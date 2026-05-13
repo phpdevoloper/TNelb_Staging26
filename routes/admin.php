@@ -47,6 +47,8 @@
 
     use App\Http\Controllers\Admin\generateLicencepdfController;
 
+    use App\Http\Controllers\Admin\FilelocationController;
+
 // use App\Models\Admin;
 
 
@@ -531,7 +533,25 @@
              Route::post('/history-result_staff', [adminlicensecontroller::class, 'history_resultstaff'])
             ->name('history_resultstaff');
 
+  // -------------------Equipment add----------------------
+            Route::get('/equiplist', [EquipmentController::class, 'index'])->name('equiplist');
+            
+            Route::post('/equipment/updateStatus',[EquipmentController::class, 'updateStatus'])->name('equipment.updateStatus');
 
+            Route::post('/equipment/operations', [EquipmentController::class, 'operations'])->name('equipment.operations');
+
+             // --------------------Filepath----------------------
+              
+            Route::get('/fileloc', [FilelocationController::class, 'index'])->name('fileloc');
+
+            Route::get('/formmodule', [FilelocationController::class, 'formmodule'])->name('formmodule');
+
+            Route::post('/formmodule/storemodule', [FilelocationController::class, 'storemodule'])->name('formmodule.storemodule');
+
+            Route::post('/formmodule/storepath', [FilelocationController::class, 'storepath'])->name('formmodule.storepath');
+
+
+            Route::post('/formmodule/updateStatus',[FilelocationController::class, 'updateStatus'])->name('formmodule.updateStatus');
 
         Route::post('/rejectApplication', [ApplicationController::class, 'rejectApplication'])->name('rejectApplication');
 

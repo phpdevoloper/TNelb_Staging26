@@ -3112,14 +3112,14 @@ $(document).ready(function() {
 
         if (SAVED_OWNERSHIP === 'pt') {
             $("#partnershipdeed").show();
-        } else if (SAVED_OWNERSHIP === 'pvt' || SAVED_OWNERSHIP === 'ltd') {
+        } else if (SAVED_OWNERSHIP === 'pvt' || SAVED_OWNERSHIP === 'public'  || SAVED_OWNERSHIP === 'ltd') {
             $("#directormom").show();
         }
     }
     });
 
     /* 🔁 Ownership change */
-    $(document).on("change", "#ownership_type_select", function() {
+ $(document).on("change", "#ownership_type_select", function() {
 
 
 
@@ -3134,8 +3134,11 @@ $(document).ready(function() {
 
     if (type === 'pt') {
         $("#partnershipdeed").slideDown();
-    } else if (type === 'pvt' || type === 'ltd') {
+    } else if (type === 'pvt' || type === 'public' || type === 'ltd') {
         $("#directormom").slideDown();
+         $("#proprietor-section").slideDown();
+    } else if (type === 'pr') {
+        // $("#proprietor-section").slideDown();
     }
     });
 

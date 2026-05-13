@@ -117,6 +117,30 @@ $(document).on("click", ".upload-btn", function () {
                 window.uploadedFilePath = file.file_url;
             }
 
+             else if (subCategory === "AP") {
+
+                let $section = btn.closest(
+                    "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
+                );
+
+                let container = btn
+                    .closest(".col-md-7")
+                    .parent()
+                    .find(".file-link");
+
+                container.removeClass("d-none").html(`
+                    <a href="${file.file_url}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+
+                // 🔥 STORE uploaded AGE proof
+                $section.attr("data-existing-age-file", file.file_url);
+
+                // 🔥 STORE globally for AGE proof
+                window.uploadedAgeFilePath = file.file_url;
+            }
+
             // ✅ OWNERSHIP (Partnership / Director)
             else if (subCategory === "OD") {
                 let container = btn

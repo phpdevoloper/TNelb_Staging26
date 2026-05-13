@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Force HTTPS only in production
         if (config('app.env') === 'production') {
-            URL::forceScheme('https');
+            URL::forceScheme('http');
         }
 
         FacadesView::composer('admincms.include.navbar', function ($view) {
