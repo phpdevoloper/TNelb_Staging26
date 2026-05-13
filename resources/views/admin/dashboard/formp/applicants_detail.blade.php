@@ -1,0 +1,1826 @@
+@include('admin.include.top')
+@include('admin.include.header')
+@include('admin.include.navbar')
+<style>
+    .tab-content {
+        padding: 0px 20px;
+    }
+    .table-education-qual-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+    }
+    .table-education-qual {
+        table-layout: fixed;
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 0;
+    }
+    /* Wrap header text in all applicant-detail tables (overrides any nowrap on th) */
+    #tabsSimple .table thead th {
+        white-space: normal !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.35;
+        vertical-align: middle;
+        padding: 0.45rem 0.5rem;
+    }
+    .table-education-qual tbody td {
+        word-break: break-word;
+        overflow-wrap: break-word;
+        vertical-align: middle;
+    }
+    .table-education-qual tbody td a {
+        white-space: normal;
+        word-break: break-word;
+    }
+    .table-education-qual img {
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+<div id="content" class="main-content">
+    <div class="layout-px-spacing">
+        <div class="middle-content container-xxl p-0">
+            <div class="secondary-nav">
+                <div class="breadcrumbs-container" data-page-heading="Analytics">
+                    <header class="header navbar navbar-expand-sm">
+                        <a href="javascript:void(0);" class="btn-toggle sidebarCollapse" data-placement="bottom">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </a>
+
+                    </header>
+                </div>
+            </div>
+
+            <div class="row layout-top-spacing">
+                <div class="col-lg-12 layout-spacing">
+                    <div class="statbox widget ">
+                        <div class="widget-header applicant_details">
+                            <div class="row">
+                                <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }} </span> 
+                                        D.O.B : <span style="color:#098501;">{{ format_date($applicant->d_o_b) }} ({{ $applicant->age }} years old) </span> Applied For : <span style="color:#098501;"> FORM {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span> </h4>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div id="tabsSimple" class="col-xl-8 col-md-12 col-sm-12 col-12 layout-spacing">
+                    <div class="statbox widget box box-shadow">
+                        <div class="widget-header">
+                            <div class="row">
+                                <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                    {{-- <h3 class="application_id_css">Application Id :<span style="color:#098501;"> {{ $applicant->application_id }}</span> </h3> --}}
+                                    <h4>Edit / View Applicant's Details</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget-content widget-content-area">
+                            <div class="simple-tab">
+                                <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Personal Details</button>
+                                    </li>
+
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link " id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Payment Status</button>
+                                    </li>
+
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Check List</button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content" id="myTabContent">
+                                    <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+                                        <div class="row mt-3 ">
+                                            <div class="row">
+                                                <!-- Left Side: Applicant Details -->
+                                                <div class="col-md-8">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm">
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td class="fw-bold" style="width: 30%;">Applicant Id:</td>
+                                                                    <td>{{ $applicant->application_id }}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="fw-bold">Applicant Name:</td>
+                                                                    <td>{{ $applicant->applicant_name }}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="fw-bold">Father's Name:</td>
+                                                                    <td>{{ $applicant->fathers_name }}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="fw-bold align-top">Address:</td>
+                                                                    <td style="white-space: normal; word-break: break-word;">
+                                                                        {{ $applicant->applicants_address }}
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="fw-bold">D.O.B & Age:</td>
+                                                                    <td>{{ $applicant->d_o_b }} ({{ $applicant->age }} years old)</td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Right Side: Applicant Photo -->
+                                                <div class="col-md-4 text-center">
+                                                    @if(isset($uploadedPhoto) && !empty($uploadedPhoto->upload_path))
+                                                        <img src="{{ url($uploadedPhoto->upload_path) }}"
+                                                             alt="Applicant Photo"
+                                                             class="img-fluid rounded border"
+                                                             style="width: 150px; height: 200px; object-fit: cover;">
+                                                    @else
+                                                        <p class="text-muted">No photo available</p>
+                                                    @endif
+                                                    <div class="mt-2">
+                                                        @if(isset($uploadedSign) && !empty($uploadedSign->uploaded_doc))
+                                                            <img src="{{ url($uploadedSign->uploaded_doc) }}"
+                                                                 alt="Applicant Signature"
+                                                                 class="img-fluid rounded border"
+                                                                 style="width: 150px; height: 70px; object-fit: contain; background: #fff;">
+                                                        @else
+                                                            <p class="text-muted mb-0">No signature available</p>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {{-- <div class="row">
+                                                <div class="col-lg-9">
+                                                    <div class="row">
+                                                        <div class="col-lg-6">
+                                                            <p><strong>Applicant Id:</strong></p>
+
+                                                            <p><strong>Applicant Name:</strong></p>
+
+                                                            <p><strong>Father's Name:</strong></p>
+
+                                                            <p><strong>Address:</strong></p>
+
+                                                            <p><strong>D.O.B & Age:</strong></p>
+                                                        </div>
+                                                        <div class="col-lg-6">
+                                                            <p>{{ $applicant->application_id }}</p>
+
+                                                            <p>{{ $applicant->applicant_name }}</p>
+
+                                                            <p>{{ $applicant->fathers_name }}</p>
+
+                                                            <p>{{ $applicant->applicants_address }}</p>
+
+                                                            <p>{{ $applicant->d_o_b }} ({{ $applicant->age }} years old)</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-3">
+                                                    @if(isset($uploadedPhoto) && !empty($uploadedPhoto->upload_path))
+                                                    <img src="{{ url($uploadedPhoto->upload_path) }}"
+                                                        alt="Applicant Photo"
+                                                        class="img-fluid rounded" width="150" style="border:1px solid;">
+                                                    @else
+                                                    <p>No photo available</p>
+                                                    @endif
+                                                </div>
+
+                                            </div> --}}
+
+                                            <h6 class="mt-2 mb-2 fw-bold">Educational Qualifications</h6>
+                                            <div class="table-education-qual-wrap mb-2">
+                                                <table class="table table-bordered table-sm table-education-qual">
+                                                    <colgroup>
+                                                        <col style="width: 14%;">
+                                                        <col style="width: 30%;">
+                                                        <col style="width: 14%;">
+                                                        <col style="width: 18%;">
+                                                        <col style="width: 24%;">
+                                                    </colgroup>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Education Level</th>
+                                                            <th>Institution/School Name</th>
+                                                            <th>Month &amp; Year of Passing</th>
+                                                            <th>Certificate No</th>
+                                                            <th>Document Upload</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse ($educationalQualifications as $education)
+                                                        <tr>
+                                                            <td>{{ $education->educational_level }}</td>
+                                                            <td>{{ $education->institute_name }}</td>
+                                                            <td>
+                                                                @php
+                                                                    $monthMap = ['01' => 'Jan', '02' => 'Feb', '03' => 'Mar', '04' => 'Apr', '05' => 'May', '06' => 'Jun', '07' => 'Jul', '08' => 'Aug', '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Dec'];
+                                                                    $rawMonth = $education->month_passing ?? $education->month_of_passing ?? '';
+                                                                    $monthKey = is_numeric($rawMonth) ? str_pad((string) $rawMonth, 2, '0', STR_PAD_LEFT) : (string) $rawMonth;
+                                                                    $monthText = $monthMap[$monthKey] ?? '';
+                                                                    if ($monthText === '' && is_string($rawMonth) && trim($rawMonth) !== '') {
+                                                                        $alphaMonth = strtolower(substr(trim($rawMonth), 0, 3));
+                                                                        $alphaMap = ['jan' => 'Jan', 'feb' => 'Feb', 'mar' => 'Mar', 'apr' => 'Apr', 'may' => 'May', 'jun' => 'Jun', 'jul' => 'Jul', 'aug' => 'Aug', 'sep' => 'Sep', 'oct' => 'Oct', 'nov' => 'Nov', 'dec' => 'Dec'];
+                                                                        $monthText = $alphaMap[$alphaMonth] ?? '';
+                                                                    }
+                                                                    $yearText = $education->year_of_passing ?? '';
+                                                                    $monthYear = $monthText !== '' ? trim($monthText . ' ' . $yearText) : (string) $yearText;
+                                                                @endphp
+                                                                {{ $monthYear !== '' ? $monthYear : '—' }}
+                                                            </td>
+                                                            <td>{{ $education->certificate_no ?? '—' }}</td>
+                                                            <td class="text-center">
+                                                                @if(!empty($education->upload_document))
+                                                                @php
+                                                                    $fileExtension = pathinfo($education->upload_document ?? 'unknown.pdf', PATHINFO_EXTENSION);
+                                                                @endphp
+                                                                @if(in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif']))
+                                                                <img src="{{ url($education->upload_document) }}" alt="Education Document" width="100">
+                                                                @elseif(strtolower($fileExtension) === 'pdf')
+                                                                    <a href="{{ url($education->upload_document) }}" target="_blank" style="font-size: small;">
+                                                                        <i class="fa fa-file-pdf-o" style="color:red"></i> View Document
+                                                                    </a>
+                                                                @else
+                                                                <a href="{{ url($education->upload_document) }}" target="_blank" style="font-size: small;"><i class="fa fa-file-o"></i>View Document</a>
+                                                                @endif
+                                                                @else
+                                                                No Documents Uploaded
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                        @empty
+                                                        <tr>
+                                                            <td colspan="5" class="text-center">No educational details available.</td>
+                                                        </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <h6 class="mt-2 mb-2 fw-bold">Institute in which the applicant has undergone the training and the period</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Institute Name & Address</th>
+                                                            <th>From Date</th>
+                                                            <th>To Date</th>
+                                                            <th>Duration(Years)</th>
+                                                            <th>Document Upload</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse ($institute_details as $institutes)
+                                                        <tr>
+                                                            <td>{{ $institutes->institute_name_address }}</td>
+                                                            <td>{{ format_date( $institutes->from_date) }} </td>
+                                                            <td>{{ format_date($institutes->to_date) }}</td>
+                                                            <td>{{ $institutes->duration }} years</td>
+                                                            <td style="text-align:center;">
+
+                                                                @if($institutes->upload_doc)
+                                                                <!-- Show Image -->
+                                                                <a href="{{ url($institutes->upload_doc) }}" target="_blank" style="font-size: small;">
+                                                                    <i class="fa fa-file-pdf-o" style="color:red"></i> View Document
+                                                                </a>
+                                                                @else
+                                                                    No Documents Uploaded
+                                                                @endif
+                                                               
+                                                            </td>
+
+                                                        </tr>
+                                                        @empty
+                                                        <tr>
+                                                            <td colspan="5" class="text-center">No institute details available.</td>
+                                                        </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <h6 class="mt-2 mb-2 fw-bold">Power Station to which he is attached at present</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Company / Power Station</th>
+                                                            <th>Designation</th>
+                                                            <th>Years of Experience</th>
+                                                            <th>Document Upload</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse ($workExperience as $exp)
+                                                        <tr>
+                                                            <td>{{ $exp->company_name ?? $exp->emp_cate ?? '—' }}</td>
+                                                            <td>{{ $exp->designation ?? '—' }}</td>
+                                                            <td>{{ $exp->experience ?? $exp->total_exp ?? '—' }}</td>
+                                                            <td style="text-align:center;">
+                                                                @if(!empty($exp->upload_document))
+                                                                <a href="{{ url($exp->upload_document) }}" target="_blank" style="font-size: small;">
+                                                                    <i class="fa fa-file-pdf-o" style="color:red"></i> View Document
+                                                                </a>
+                                                                @else
+                                                                — 
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                        @empty
+                                                        <tr>
+                                                            <td colspan="4" class="text-center">No work experience available.</td>
+                                                        </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <div class="row mt-3 mb-2">
+                                                <div class="col-12 col-sm-6">
+                                                    <h6 class="fw-bold">Name of the employer:</h6>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <p class="mb-0">{{ $applicant->employer_detail ?? '—' }}</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-lg-8 col-6">
+                                                    <h6 class="mt-3 mb-2 fw-bold pb-1">
+                                                        Have you made any previous application? If so, State reference No. and date
+                                                    </h6>
+                                                </div>
+                                                <div class="col-lg-4 col-6">
+                                                    <p class="mt-2 mb-1 mt-lg-2">
+                                                        @php
+                                                        if (empty($applicant->previously_number) && empty($applicant->previously_date)) {
+                                                            $prev_val = 'No';
+                                                        } else {
+                                                            $prev_val = 'Yes, ' . ($applicant->previously_number ?? '') . ' , ' .
+                                                                (!empty($applicant->previously_date) ? format_date($applicant->previously_date) : '');
+                                                        }
+                                                    @endphp
+                                                    </p>
+                                                </div>
+                                                @if (!empty($prev_val))
+                                                    <div class="col-12">
+                                                        <div class="row justify-content-center">
+                                                            <div class="col-6 col-md-5 col-lg-4 text-center">
+                                                                <p class="mb-1">
+                                                                    <strong>Application Number :</strong> {{ !empty($applicant->previously_number) ? $applicant->previously_number : 'No' }}
+                                                                </p>
+                                                            </div>
+                                        
+                                                            <div class="col-6 col-md-5 col-lg-4 text-center">
+                                                                <p class="mb-1">
+                                                                    <strong>Date :</strong> {{ format_date($applicant->previously_date) ?: '—' }}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            @php
+                                                $decryptedaadhar = $applicant->aadhaar ? safeDecrypt($applicant->aadhaar) : '';
+                                                $masked          = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : ($applicant->aadhaar ? 'Invalid Aadhaar' : '—');
+                                            @endphp
+
+                                            <div class="row mb-2">
+                                                <div class="col-md-12 col-lg-12">
+                                                    <h6 class="fw-bold mt-3">Documents Uploaded:</h6>
+                                                    <div class="row align-items-center mt-1 g-1">
+                                                        <div class="col-lg-6">
+                                                            <p class="fw-bold mb-0" style="color: #000;">Aadhaar:</p>
+                                                        </div>
+                                                        <div class="col-lg-6 text-end">
+                                                            @if (!empty($applicant->aadhaar_doc))
+                                                                <div class="fw-bold mb-0" style="color: #515365">
+                                                                    {{ $masked }}
+                                                                    (<a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $applicant->aadhaar_doc]) }}"
+                                                                        target="_blank"
+                                                                        class="text-primary applicant-inline-doc-link"
+                                                                        title="Open Aadhaar document">
+                                                                        <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
+                                                                        <span>View Document</span>
+                                                                    </a>)
+                                                                </div>
+                                                            @else
+                                                                <div class="mb-0 text-muted small">No document</div>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                    <div class="row align-items-center mt-2 g-1">
+                                                        <div class="col-lg-6">
+                                                            <p class="fw-bold mb-0" style="color: #000;">PAN:</p>
+                                                        </div>
+                                                        <div class="col-lg-6 text-end">
+                                                            @if (!empty($applicant->pancard_doc))
+                                                                <div class="fw-bold mb-0" style="color: #515365">
+                                                                    {{ $applicant->pancard ?? '—' }}
+                                                                    (<a href="{{ route('document.show', ['type' => 'pan', 'filename' => $applicant->pancard_doc]) }}"
+                                                                        target="_blank"
+                                                                        class="text-primary applicant-inline-doc-link"
+                                                                        title="Open PAN document">
+                                                                        <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
+                                                                        <span>View Document</span>
+                                                                    </a>)
+                                                                </div>
+                                                            @else
+                                                                <div class="fw-bold mb-0" style="color: #515365">
+                                                                    {{ $applicant->pancard ?? '—' }}
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            </div>
+                                        </div>
+                                    
+                                    <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+                                        <?php //var_dump($workflows->first()->is_verified);die; ?>
+                                        @php
+                                            $workflow = $workflows?->first();
+                                            $isVerified = $workflow?->is_verified == 'Yes';
+                                        @endphp
+
+
+                                        <div class="row mt-3">
+                                            <div class="row mt-3">
+                                                <div class="col-lg-6 d-flex align-items-center justify-content-center">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" id="check_all" name="check_all" class="form-check-input" @if($isVerified) checked disabled @endif>
+                                                        <label class="form-check-label" for="check_all">Check All</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6 d-flex align-items-center justify-content-center">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" id="reset_all" name="reset_all" class="form-check-input">
+                                                        <label class="form-check-label" for="reset_all">Reset All</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="specific-class" class="col-lg-12">
+                                                @php
+                                                    $checkboxes = [
+                                                        'signature_form' => 'Applicant Signature in Application Form',
+                                                        'sign_attached' => 'Applicant Sign attached by Officer',
+                                                        'edu_certificate' => 'Educational Qualification Certificate',
+                                                        'dob_proof' => 'Proof of D.O.B',
+                                                        'photograph' => 'Photograph',
+                                                        'specimen_signature' => 'Specimen Signature',
+                                                        'fees_details' => 'Fees Details',
+                                                        'age_details' => 'Age 18',
+                                                        'experience_details' => 'Two Years Experience after Degree/Diploma',
+                                                        'all_doc_verification' => 'All Documents Filled by Applicant',
+                                                        'safety_certificate' => 'Safety Certificate/ List of Equipment',
+                                                        'contract_copy' => 'Contract Copy of HT Works',
+                                                        'ht_experience_cert' => 'HT Experience Certificate in Specimen Format/ Transformer Details',
+                                                        'experience_in_tamilnadu' => 'Experience in TamilNadu',
+                                                        'intimation_letter' => 'Intimation Letter',
+                                                        'complete_experience_details' => 'Complete Experience Details',
+                                                        'required_qualification_certificate' => 'Required Qualification Certificate',
+                                                    ];
+                                                @endphp
+
+                                                @foreach($checkboxes as $id => $label)
+                                                    <div class="form-check">
+                                                        <input type="checkbox" 
+                                                            id="{{ $id }}" 
+                                                            name="{{ $id }}" 
+                                                            class="form-check-input"
+                                                            @if($isVerified) checked disabled @endif>
+                                                        <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                                                    </div>
+                                                @endforeach
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <?php //var_dump($workflows);die; ?>
+                                    <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
+                                        <div class="row text-center fw-bold border-bottom pb-2 mb-3 mt-3">
+                                            <div class="col-lg-6 text-primary">
+                                                Payment Details
+                                            </div>
+                                            <div class="col-lg-6 text-primary">
+                                                Transaction Details
+                                            </div>
+                                        </div>
+                                        <div class="row mt-3">
+                                            <div class="col-lg-6">
+                                                <div class="row mt-3">
+                                                    <div class="col-lg-6">
+                                                        <p><strong>Application Type</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p>{{ $applicant->appl_type == 'R'?'Renewal Application':'New Application' }}</p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p><strong>Application Fees</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p>{{ $applicant->amount }}.00</p>
+                                                    </div>
+                                                    @if (!empty($applicant->late_fees))
+                                                        <div class="col-lg-6">
+                                                            <p><strong>Late Fees({{ $applicant->late_months }} Months)</strong></p>
+                                                        </div>
+                                                        <div class="col-lg-6">
+                                                            <p>Rs.{{ $applicant->late_fees }}.00</p>
+                                                        </div>
+                                                    @endif
+                                                    <div class="col-lg-6">
+                                                        <p><strong> Date of application</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p>{{ format_date($applicant->transaction_date) }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6">
+                                                <div class="row mt-3">
+                                                    <div class="col-lg-6">
+                                                        <p><strong> Payment Status</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p class="badge badge-success">{{ strtoupper($applicant->payment_status) }}</p>
+                                                    </div>
+
+                                                    <div class="col-lg-6">
+                                                        <p><strong> Transaction Id</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p>{{ $applicant->transaction_id }}</p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p><strong>Amount</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p>{{ $applicant->amount }}.00</p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p><strong>Payment mode:</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <P>{{ $applicant->payment_mode??'UPI' }}</P>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p><strong> Payment Time</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <p>{{ format_date($applicant->transaction_date) }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    <div class="col-xl-4 col-md-12 col-sm-12 col-12 layout-spacing">
+                        <div class="statbox widget box box-shadow mb-2">
+                            <div class="row align-items-center">
+
+                                <div class="col-lg-12">
+                                    {{-- <div class="form-check form-switch">
+                                        <label class="form-check-label fw-bold text-end" for="flexSwitchCheckDefault">If you have any queries</label>
+                                        <input class="form-check-input" type="checkbox" role="switch" id="Queryswitch">
+                                    </div> --}}
+                                    <div class="switch-wrapper d-flex justify-content-between align-items-center">
+                                        <label class="switch-label mb-0 fw-bold text-end" for="Queryswitch">If you have any queries</label>
+                                        <div class="switch form-switch-custom switch-inline form-switch-primary form-switch-custom inner-text-toggle">
+                                            <div class="input-checkbox">
+                                                <span class="switch-chk-label label-left">Yes</span>
+                                                <input class="switch-input" type="checkbox" id="Queryswitch" role="switch">
+                                                <span class="switch-chk-label label-right">No</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="box box-shadow" id="queryOptions" style="display: none;">
+                                <div class="row mt-2">
+                                    <div class="col-lg-12">
+                                       <div class="form-group">
+                                         
+                                            {{-- <label class="fw-bold">Select Query Type:</label> --}}
+                                            <select class="form-control" id="queryType" name="queryType[]" multiple>
+                                                <option value="general">General Query</option>
+                                                <option value="technical">Technical Query</option>
+                                                <option value="other">Other</option>
+                                            </select>
+
+                                            <span id="query_error" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="statbox widget box box-shadow">
+                                <div class="row">
+                                    <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                        <div class="widget-header">
+                                        <h4>Remarks</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                        
+                            <div class="row">
+                                <div class="col-lg-12 col-md-offset-2">
+                                    <textarea class="form-control placement-top" id="remarks" name="remarks" rows="4" cols="50" maxlength="250"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer mt-2" style="justify-content: center;">
+
+                                @php
+                                $role = Auth::user()->name; // Current role name
+                                $workflow = [
+                                    'Supervisor'          => $applicant->app_status == 'RE'? 'Secretary' : 'Assistant Secretary',
+                                    'Assistant Secretary' => 'Secretary',
+                                    'Secretary'           => 'President',
+                                    'President'           => null, // last step
+                                ];
+
+                                @endphp
+
+                                @if ($role == 'Supervisor')
+                                    {{-- Forward to Assistant Secretary --}}
+                                    <button class="btn btn-success" id="forwardbtn" {{ $isVerified == 'Yes'? '' : 'disabled' }} >
+                                        Forward to {{ $workflow[$role] }}
+                                    </button>
+                                    <button class="btn btn-warning">On Hold</button>
+
+                                @elseif ($role == 'Assistant Secretary')
+                                    {{-- Forward to Secretary --}}
+                                    <button class="btn btn-success" id="forwardbtn" data-bs-toggle="modal" data-bs-target="#declarationModal">
+                                        Forward to {{ $workflow[$role] }}
+                                    </button>
+                                    <button class="btn btn-warning">On Hold</button>
+
+                                @elseif ($role == 'Secretary')
+
+                                    @if ($applicant->form_name !== 'S')
+                                        <button class="btn btn-success" id="confirmApprovalBtn">
+                                            Submit / Approve
+                                        </button>
+                                    @else
+                                        <button class="btn btn-success" id="confirmForwardPres">
+                                            Forward to {{ $workflow[$role] }}
+                                        </button>
+                                    @endif
+
+                                    <button id="confirmReturnBtn" class="btn btn-warning">
+                                        Return to Supervisor
+                                    </button>
+                                    <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
+                                        Return to Applicant
+                                    </button>
+                                    <button class="btn btn-danger reject_application" data-bs-toggle="modal" data-bs-target="#rejectionModal">Reject</button>
+
+                                @elseif ($role == 'President')
+                                    <button class="btn btn-success" id="confirmApprovalBtn">
+                                        Submit / Approve
+                                    </button>
+                                    <button id="confirmReturnBtn" class="btn btn-warning">
+                                        Return to Supervisor
+                                    </button>
+                                    <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
+                                        Return to Applicant
+                                    </button>
+                                    <!-- <button id="returntoSecretary" class="btn btn-warning">
+                                        Return to Secretary
+                                    </button> -->
+                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectionModal">Reject</button>
+                                @endif
+
+                            </div>
+                    </div>
+                    <!-- ----------------------------- -->
+                        @include('admin.include.workflow_timeline')
+                        {{-- <div id="timelineMinimal" class="col-lg-12 layout-spacing mt-4">
+                            <div class="statbox widget box box-shadow">
+                                <div class="widget-header">
+                                    <div class="row">
+                                        <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                            <h4>Workflow</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="widget-content widget-content-area pb-1">
+                                    <div class="mt-container mx-auto">
+                                        <div class="timeline-line">
+                                            @foreach ($workflows as $row)
+                                            @php
+                                                $roleLabels = [
+                                                    'PR' => 'President',
+                                                    'SE' => 'Secretary',
+                                                    'S'  => 'Supervisor',
+                                                    'AS' => 'Assistant Secretary',
+                                                    'AP' => 'Applicant',
+                                                ];
+                                                $processedLabel = $roleLabels[$row->processed_by] ?? $row->processed_by;
+                                            @endphp
+                                            <div class="item-timeline">
+                                                <p class="t-time">{{ format_date_other($row->created_at) }}</p>
+                                                
+                                                <div class="t-dot 
+                                                    {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
+                                                </div>
+                                                <div class="t-text">
+                                                    @if ($row->appl_status == 'RE')
+                                                        <p>Returned by {{ $processedLabel }}</p>
+                                                    @elseif ($row->appl_status == 'A')
+                                                        <p>Approved by {{ $processedLabel }}</p>
+                                                    @elseif ($row->appl_status == 'RJ')
+                                                        <p class="text-danger">Rejected by {{ $processedLabel }}</p>
+                                                    @else
+                                                        <p>Processed by {{ $processedLabel }}</p>
+                                                    @endif
+                                            
+                                                    <p class="t-meta-time">
+                                                        @if ($row->appl_status == 'RJ')
+                                                            Reason: {{ $row->reject_reason }}
+                                                        @else
+                                                            @if (!$row->name)
+                                                                Approved by {{ $processedLabel }}
+                                                            @else
+                                                                Forwarded to {{ $row->name }} <br>
+                                                                Remarks: {{ $row->remarks }}
+                                                            @endif
+                                                        @endif
+                                                        
+                                                    </p>
+                                                    @if ($row->processed_by !== 'Assistant Secretary')
+                                                        @if ($row->query_status == "P")
+                                                            <p class="text-danger">Note: Query raised by {{ $processedLabel }} (
+                                                                @php
+                                                                $queries = $row->queries;
+                                                            
+                                                                // If it's a string, decode it
+                                                                if (is_string($queries)) {
+                                                                    $queries = json_decode($queries, true);
+                                                                }
+                                                            @endphp
+                                                            
+                                                            @if(!empty($queries) && is_array($queries))
+                                                                {{ implode(', ', $queries) }}
+                                                            @endif
+                                                            )</p>
+                                                        @endif
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                            <div class="item-timeline">
+                                                <p class="t-time">{{ format_date_other($user_entry->created_at) }}</p>
+                                                <div class="t-dot t-dot-warning"></div>
+                                                <div class="t-text">
+                                                    <p>Received from Applicant</p>
+                                                    <p class="t-meta-time">Form: {{ $user_entry->form_name }}, License: {{ $user_entry->license_name }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>--}} 
+                </div>
+
+            <!-- -------------------------------------------- -->
+            <!-- <div class="row">
+                
+            </div> -->
+
+        </div>
+    </div>
+</div>
+<!-- Confirmation Modal -->
+<!-- Alert message for user -->
+<div id="alertMessage" class="alert alert-danger" style="display: none;">
+    ⚠️ Please make sure all checkboxes are checked before confirming!
+</div>
+<!-- Modal -->
+
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approvalModalLabel">Approval Declaration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="confirmApproval">
+                    <label class="form-check-label" for="confirmApproval">
+                        I confirm that this application has been reviewed and approved.
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmApprovalBtn" disabled>Approve Application</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="declarationModal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="declarationModalLabel">Declaration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="confirmVerification">
+                    <label class="form-check-label" for="confirmVerification">
+                        I confirm that all documents have been verified by me as a supervisor.
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmForward">Forward to {{ $applicant->app_status == 'RE' ? 'Secretary': 'Assistant Secretary'}}</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Success</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="returnMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="finalsuccessModal" tabindex="-1" aria-labelledby="finalsuccessModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="finalsuccessModalLabel">Success</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p id="message"></p>
+                <p><strong>License Number:</strong> <span id="licenseNumber"></span></p>
+                <a class="badge badge-primary" href="{{ route('admin.generate.pdf', ['application_id' => $applicant->application_id]) }}" style="color: #fff;" target="_blank">
+                    <i class="fa fa-eye"></i> View
+                </a>
+                {{-- <p><strong>License Expiry:</strong> <span id="licenseExpiry"></span></p> --}}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
+    <div id="queryToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                You have raised a query, so you must select at least one query type.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Return to Applicant Modal -->
+<div class="modal fade" id="returnToApplicantModal" tabindex="-1" aria-labelledby="returnToApplicantModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returnToApplicantModalLabel">Return to Applicant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold mb-3">What document(s) are missing? (Select all that apply)</p>
+                <div class="form-group">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_edu_doc" value="Education document is missing">
+                        <label class="form-check-label" for="query_edu_doc">Education document is missing</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_photo" value="Photo is missing">
+                        <label class="form-check-label" for="query_photo">Photo is missing</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_signature" value="Signature is missing">
+                        <label class="form-check-label" for="query_signature">Signature is missing</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_aadhaar" value="Aadhaar document is missing">
+                        <label class="form-check-label" for="query_aadhaar">Aadhaar document is missing</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_other" value="Other">
+                        <label class="form-check-label" for="query_other">Other</label>
+                    </div>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="returnToApplicantRemarks" class="form-label">Remarks (optional)</label>
+                    <textarea class="form-control" id="returnToApplicantRemarks" name="returnToApplicantRemarks" rows="3" maxlength="250" placeholder="Add any additional remarks..."></textarea>
+                </div>
+                <p id="returnToApplicantQueryError" class="text-danger small mt-1" style="display: none;">Please select at least one option.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-info" id="confirmReturnToApplicantModalBtn">Confirm Return to Applicant</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="forwardmodal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="declarationModalLabel">Declaration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="confirmPresident">
+                    <label class="form-check-label" for="confirmApproval">
+                        I confirm that have been verified by me as a secretary.
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmForwardPres" disabled>Forward to President</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="successModalForward" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Success</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="returnConfirmModal" tabindex="-1" aria-labelledby="returnConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header text-dark">
+          <h5 class="modal-title" id="returnConfirmModalLabel">Are you sure?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          You want to return this!
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" id="confirmReturnBtn" class="btn btn-primary">Yes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+<div class="modal fade" id="rejectionModal" tabindex="-1" role="dialog" aria-labelledby="rejectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectionModalLabel">Are sure want to Reject..!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                  <svg> ... </svg>
+                </button>
+            </div>
+            <form id="reject_application">
+                <div class="modal-body">
+                    <!-- Radio 1 + Dropdown -->
+                    <div class="form-check form-check-primary">
+                        <input class="form-check-input reason-option" type="radio" name="radio-reason" id="radio-select" value="select" checked>
+                        <label class="form-check-label" for="radio-select">
+                            Reason
+                        </label>
+                
+                        <!-- Dropdown -->
+                        <select class="form-select mt-2 reason-select" name="rejection_reason">
+                            <option value="">-- Select Reason --</option>
+                            <option value="Incomplete application">Incomplete application</option>
+                            <option value="Invalid information">Invalid information</option>
+                            <option value="Eligibility criteria not met">Eligibility criteria not met</option>
+                            <option value="Supporting documents not clear">Supporting documents not clear</option>
+                            <option value="Duplicate application">Duplicate application</option>
+                            <option value="Submission deadline missed">Submission deadline missed</option>
+                            <option value="Policy violation">Policy violation</option>
+                            <option value="Fraudulent / Misleading information">Fraudulent / Misleading information</option>
+                        </select>
+                        <div class="invalid-feedback reason-select-error"></div>
+                    </div>
+                
+                    <!-- Radio 2 + Textarea -->
+                    <div class="form-check form-check-primary mt-3">
+                        <input class="form-check-input reason-option" type="radio" name="radio-reason" id="radio-other" value="other">
+                        <label class="form-check-label" for="radio-other">
+                            Other reason
+                        </label>
+                    </div>
+                    <div class="form-group mb-4 reason-textarea" style="display:none;">
+                        <textarea class="form-control other_reason" name="other_reason" rows="3" placeholder="Enter other reason"></textarea>
+                        <div class="invalid-feedback reason-textarea-error"></div>
+                    </div>
+                    <input type="hidden" name="action_by" id="action_by" value="{{ $staff->name }}">
+                    <input type="hidden" name="login_id" id="login_id" value="{{ $staff->id }}">
+                    <input type="hidden" name="application_id" id="application_id" value="{{ $applicant->application_id }}">
+                    <input type="hidden" name="appl_status" id="appl_status" value="RJ">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn btn-light-dark" data-bs-dismiss="modal"><i class="flaticon-cancel-12"></i> Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@php
+    // var_dump($nextForwardUser);die;
+@endphp
+
+
+@include('admin.include.footer')
+
+<script>
+
+    var switch_status = document.getElementById('Queryswitch');
+    var queryDropdown = document.getElementById('queryType');
+
+    function toggleQueryOptions() {
+        if (switch_status.checked) {
+            document.getElementById('queryOptions').style.display = 'block';
+        } else {
+            document.getElementById('queryOptions').style.display = 'none';
+            
+            // Clear all selections (works for multi-select)
+            for (let i = 0; i < queryDropdown.options.length; i++) {
+                queryDropdown.options[i].selected = false;
+            }
+
+            // If using jQuery plugins like Select2 / Bootstrap-select, refresh UI too
+            if ($(queryDropdown).hasClass("select2-hidden-accessible")) {
+                $(queryDropdown).val(null).trigger("change"); // Select2 reset
+            }
+        }
+    }
+
+    // Run on load
+    toggleQueryOptions();
+
+    // Run on change
+    switch_status.addEventListener('change', toggleQueryOptions);
+
+    // var switch_status = document.getElementById('Queryswitch');
+    // var queryDropdown = document.getElementById('queryType');
+
+    // if (switch_status.checked) {
+    //     document.getElementById('queryOptions').style.display = 'block';
+    // } else {
+    //     document.getElementById('queryOptions').style.display = 'none';
+    //     queryDropdown.selectedIndex = 0; // reset dropdown
+    // }
+
+
+
+    // var switch_status = document.getElementById('Queryswitch');
+    // var queryDropdown = $('#queryType');
+
+    // if (switch_status.checked) {
+    //     $('#queryOptions').show();
+    // } else {
+    //     $('#queryOptions').hide();
+    //     queryDropdown.val([]).trigger('change'); // clear all selected options
+    // }
+
+    // document.getElementById('Queryswitch').addEventListener('change', function() {
+    //     document.getElementById('queryOptions').style.display = this.checked ? 'block' : 'none';
+    // });
+
+
+    $('#remarks').maxlength({
+        placement: "top"
+    });
+
+    $(document).ready(function() {
+
+        var checkAllBox = $('#check_all');
+        var resetAllBox = $('#reset_all');
+        var forwardbtn = $("#forwardbtn");
+        var confirmForward = $("#confirmForward");
+        var confirmVerification = $('#confirmVerification');
+        // var individualCheckboxes = $('.form-check-input:not(#check_all):not(#reset_all)');
+        var individualCheckboxes = $('#specific-class .form-check-input:not(#check_all, #reset_all)');
+
+        //forwardbtn
+        var approveButton = $('#confirmApprovalBtn');
+        var confirmApproval = $('#confirmApproval'); 
+        confirmApproval.change(function () {
+            approveButton.prop('disabled', !this.checked);
+        });
+
+
+        var checkPresident = $('#confirmPresident');
+
+        confirmForwardPres = $("#confirmForwardPres");
+
+        checkPresident.change(function () {
+            confirmForwardPres.prop('disabled', !this.checked);
+        });
+
+
+
+        // forwardbtn.prop('disabled', $('.form-check-input:not(#check_all):checked').length === 0);
+
+        // Initially disable Reset All
+        resetAllBox.prop('disabled', true);
+
+        checkAllBox.change(function() {
+            if ($(this).prop('checked')) {
+                individualCheckboxes.prop('checked', true);
+                resetAllBox.prop('disabled', false).prop('checked', false); // Enable Reset All
+                forwardbtn.prop('disabled', false);
+            } else {
+                individualCheckboxes.prop('checked', false);
+                resetAllBox.prop('disabled', true).prop('checked', false); // Disable Reset All
+                forwardbtn.prop('disabled', true);
+            }
+        });
+
+        // "Reset All" functionality
+        resetAllBox.change(function() {
+            if ($(this).prop('checked')) {
+                individualCheckboxes.prop('checked', false);
+                checkAllBox.prop('checked', false); // Uncheck Check All
+                checkAllBox.prop('disabled', false); // Enable Check All
+                resetAllBox.prop('disabled', true); // Disable Reset All after use
+                forwardbtn.prop('disabled', true);
+            }
+        });
+
+        // If any individual checkbox is manually unchecked, uncheck "Check All"
+        individualCheckboxes.change(function() {
+            if ($('.form-check-input:not(#check_all):not(#reset_all):checked').length === individualCheckboxes.length) {
+                checkAllBox.prop('checked', true);
+            } else {
+                checkAllBox.prop('checked', false);
+            }
+        });
+        
+
+        
+
+
+        approveButton.click(function () {
+            var applicationId = @json($applicant->application_id);
+            var processedBy = @json(Auth::user()->name);
+            var remarks = $("#remarks").val().trim();
+
+
+            Swal.fire({
+                title: "Declaration",
+                // html: `
+                //     <div class="form-check text-start">
+                //         <label class="form-check-label" for="confirmVerification">
+                //             I confirm that this application has been reviewed and approved.
+                //         </label>
+                //     </div>
+                // `,
+                text: 'Confirm to this application has been reviewed and approved.',
+                showCancelButton: true,
+                confirmButtonText: "Approved",
+                cancelButtonText: "Cancel",
+                focusConfirm: false,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route('admin.approveApplicationformp') }}',
+                        type: 'POST',
+                        headers: {
+                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+                        },
+                        data: {
+                            application_id: applicationId,
+                            processed_by: processedBy,
+                            remarks: remarks || "No remarks provided",
+                        },
+                        success: function (response) {
+
+                            if (response.status == "success") {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Success",
+                                    html: `
+                                        <p>${response.message}</p>
+                                        <p><b>License Number:</b> ${response.license_number}</p>
+                                    `,
+                                    confirmButtonText: "OK",
+                                    allowOutsideClick: false
+                                }).then(() => {
+                                    window.location.href = "{{ url('admin/dashboard') }}";
+                                });
+                            }
+                            // $('#licenseExpiry').text(response.license_expiry);
+                        },
+                        error: function (xhr) {
+                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error
+                                ? xhr.responseJSON.error
+                                : "An unexpected error occurred.";
+
+                            Swal.fire({
+                                icon: "warning",
+                                title: "Warning",
+                                text: errorMessage,
+                            });
+                        }
+                    });
+                }
+            });
+
+        });
+
+
+        confirmForwardPres.click(function () {
+            var applicationId   = @json($applicant->application_id);
+            var role_id         = @json(Auth::user()->roles_id);
+            var forwardedTo     = @json($nextForwardUser->roles_id);
+            var processedBy     = @json(Auth::user()->name);
+            var role            = @json($nextForwardUser->name);
+            var remarks         = $("#remarks").val().trim();
+            var queryswitch     = $("#Queryswitch").prop("checked");
+            var checkboxStatus  = "Yes";
+
+            var queryType = null;
+            var query_status = "No";
+
+            
+            if (queryswitch) {
+                queryType = $("#queryType").val() || null;
+                query_status = 'Yes';
+            }
+
+            Swal.fire({
+                title: "Declaration",
+                // html: `
+                //     <div class="form-check text-start">
+                //         <label class="form-check-label" for="confirmVerification">
+                //             I confirm that have been verified by me as a secretary.
+                //         </label>
+                //     </div>
+                // `,
+                text:'I confirm that have been verified by me as a secretary.',
+                showCancelButton: true,
+                confirmButtonText: "Forward to President",
+                cancelButtonText: "Cancel",
+                focusConfirm: false,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    
+                    $.ajax({
+                        url: '{{ route('admin.forwardApplicationformp',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
+                        type: 'POST',
+                        headers: {
+                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+                        },
+                        data: {
+                            application_id: applicationId,
+                            processed_by: processedBy,
+                            forwarded_to: forwardedTo,
+                            role_id: role_id,
+                            remarks: remarks || "No remarks provided",
+                            checkboxes: checkboxStatus, // Only "Yes" or "No"
+                            queryswitch: query_status, // Only "Yes" or "No"
+                            "queryType[]": queryType 
+                        },
+                        success: function (response) {
+
+                            if (response.status == "success") {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Success",
+                                    text: response.message,
+                                    confirmButtonText: "OK",
+                                    allowOutsideClick: false
+                                }).then(() => {
+                                    window.location.href = "{{ url('admin/dashboard') }}";
+                                });
+                            }
+
+                        },
+                        error: function (xhr) {
+                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error
+                                ? xhr.responseJSON.error
+                                : "An unexpected error occurred.";
+                            Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: errorMessage
+                            });
+                        }
+                    });
+                }
+            });
+    
+        });
+
+
+
+
+        forwardbtn.click(function() {
+            Swal.fire({
+                title: "Declaration",
+                text: 'I confirm that all documents have been verified by me as a supervisor.',
+                showCancelButton: true,
+                confirmButtonText: "Forward to {{ $applicant->app_status == 'RE' ? 'Secretary' : 'Assistant Secretary' }}",
+                cancelButtonText: "Cancel",
+                focusConfirm: false,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // your existing ajax code
+
+                    var queryType = [];
+
+                    var applicationId = @json($applicant->application_id);
+                    var processedBy = @json(Auth::user()->name);
+                    var role_id = @json(Auth::user()->roles_id);
+                    var forwardedTo = @json($nextForwardUser->roles_id);
+
+                    // console.log(forwardedTo);
+                    // return false;
+
+                    var role = @json($nextForwardUser->name);
+                    var remarks = $("#remarks").val().trim();
+
+                    var checkboxStatus = "Yes";
+                    let queryswitch = $("#Queryswitch").prop("checked");
+                    queryType = $("#queryType").val();
+                    let errorBox = $("#query_error");
+
+                    errorBox.text(""); // clear previous error
+
+                    if (queryswitch && queryType.length === 0) {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: "Please select at least one query type."
+                        });
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '{{ route('admin.forwardApplicationformp',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
+                        type: "POST",
+                        headers: {
+                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+                        },
+                        data: {
+                            application_id: applicationId,
+                            processed_by: processedBy,
+                            forwarded_to: forwardedTo,
+                            role_id: role_id,
+                            remarks: remarks || "No remarks provided",
+                            checkboxes: checkboxStatus,
+                            queryswitch: queryswitch ? "Yes" : "No",
+                            "queryType[]": queryType
+                        },
+                        success: function (response) {
+                            if (response.status == "success") {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Success",
+                                    text: response.message,
+                                    confirmButtonText: "OK",
+                                    allowOutsideClick: false
+                                }).then(() => {
+                                    window.location.href = "{{ url('admin/dashboard') }}";
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error
+                                ? xhr.responseJSON.error
+                                : "An unexpected error occurred.";
+                            Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: errorMessage
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        // confirmForward.click(function() {
+
+        //     var queryType = [];
+
+        //     var applicationId = @json($applicant-> application_id);
+        //     var processedBy = @json(Auth::user()->name);
+        //     var role_id = @json(Auth::user()->roles_id);
+        //     var forwardedTo = @json($nextForwardUser->roles_id);
+        //     var role = @json($nextForwardUser->name);
+        //     var remarks = $("#remarks").val().trim();
+
+        //     var checkboxStatus = "Yes";
+            
+        //     let queryswitch = $("#Queryswitch").prop("checked");
+        //     queryType = $("#queryType").val();
+        //     let errorBox = $("#query_error");
+            
+        //     errorBox.text(""); // clear previous error
+
+        //     if (queryswitch && queryType.length === 0) {
+        //         errorBox.text("Please select at least one query type.");
+        //         $('#declarationModal').modal('hide');
+
+        //         setTimeout(function () {
+        //             let errorTop = errorBox.offset().top - 100;
+        //             let currentScroll = $(window).scrollTop();
+
+        //             $('html, body').animate({ scrollTop: errorTop }, 500);
+        //         }, 300);
+
+        //         return;
+        //     }
+
+        //     $.ajax({
+        //         url: '{{ route('admin.forwardApplicationformp',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
+        //         type: 'POST',
+        //         // contentType: 'application/json',
+        //         headers: {
+        //             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+        //         },
+        //         data: {
+        //             application_id: applicationId,
+        //             processed_by: processedBy,
+        //             forwarded_to: forwardedTo,
+        //             role_id: role_id,
+        //             remarks: remarks || "No remarks provided",
+        //             checkboxes: checkboxStatus, // Only "Yes" or "No"
+        //             queryswitch: queryswitch ? "Yes" : "No", // Only "Yes" or "No"
+        //             "queryType[]": queryType
+        //         },
+        //         success: function(response) {
+
+        //             // if (response.status == "success") {
+        //             //     // Cleanup Bootstrap modal instance on hide
+        //             //     $('#declarationModal').modal('hide');
+
+        //             //     $('#successModal .modal-body').html(`<p>${response.message}</p>`);
+        //             //     $('#successModal').modal('show');
+
+        //             //     $('#successModal').on('hidden.bs.modal', function() {
+        //             //         window.location.href = '/admin/dashboard'
+        //             //     });
+        //             // }
+
+        //             if (response.status == "success") {
+        //                 Swal.fire({
+        //                     icon: 'success',
+        //                     title: 'Success',
+        //                     text: response.message,
+        //                     confirmButtonText: 'OK',
+        //                     confirmButtonColor: '#3085d6',
+        //                     allowOutsideClick: false
+        //                 }).then((result) => {
+        //                     if (result.isConfirmed) {
+        //                         window.location.href = '/admin/dashboard';
+        //                     }
+        //                 });
+        //             }
+
+        //         },
+        //         error: function(xhr) {
+        //             let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
+        //             $('#errorModal .modal-body').html(`<p>${errorMessage}</p>`);
+        //             $('#errorModal').modal('show');
+        //         }
+        //     });
+        // });
+
+        //
+        // var returnButton = document.querySelector('#returntoSuper');
+
+        // if (returnButton) {
+        //     returnButton.addEventListener('click', function () {
+        //         // Show Bootstrap confirmation modal
+        //         $('#returnConfirmModal').modal('show');
+        //     });
+        // }
+
+        // Handle confirm button inside modal
+        $('#confirmReturnBtn').on('click', function () {
+
+            var queryType = [];
+            
+            var applicationId   = @json($applicant->application_id);
+            var returnBy        = @json(Auth::user()->name);
+            var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
+            var remarks         = $("#remarks").val().trim();
+            // var queryswitch     = $("#Queryswitch").prop("checked");
+
+
+            var checkboxStatus = "Yes";
+            
+            let queryswitch = $("#Queryswitch").prop("checked");
+            queryType = $("#queryType").val();
+            let errorBox = $("#query_error");
+
+
+            Swal.fire({
+                title: "Return",
+                html: 'You want to return this application!',
+                showCancelButton: true,
+                confirmButtonText: "Forward to {{ $applicant->app_status == 'RE' ? 'Secretary' : 'Supervisor' }}",
+                cancelButtonText: "Cancel",
+                focusConfirm: false,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route('admin.returntoSupervisorformp') }}',
+                        type: 'POST',
+                        headers: {
+                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+                        },
+                        data: {
+                            application_id  : applicationId,
+                            return_by       : returnBy,
+                            forwarded_to    : forwardedTo,
+                            remarks         : remarks || "No remarks provided",
+                            checkboxes      : checkboxStatus,
+                            queryswitch     : queryswitch ? "Yes" : "No",
+                            "queryType[]": queryType 
+                        },
+                        success: function (response) {
+                            if (response.status == "success") {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Success",
+                                    text: response.message,
+                                    confirmButtonText: "OK",
+                                    allowOutsideClick: false
+                                }).then(() => {
+                                    window.location.href = "{{ url('admin/dashboard') }}";
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
+                            $('#errorMessage').text(errorMessage);
+                            $('#errorModal').modal('show');
+                        }
+                    });
+                }
+            });
+
+        });
+
+
+        // Return to Applicant modal: validate and call API (Form P)
+        $('#confirmReturnToApplicantModalBtn').on('click', function () {
+            var selected = [];
+            $('.return-to-applicant-query:checked').each(function () { selected.push($(this).val()); });
+            var remarks = $('#returnToApplicantRemarks').val().trim();
+            $('#returnToApplicantQueryError').hide();
+            if (selected.length === 0) {
+                $('#returnToApplicantQueryError').show();
+                return;
+            }
+            var applicationId = @json($applicant->application_id);
+            $.ajax({
+                url: '{{ route('admin.returnToApplicantFormp') }}',
+                type: 'POST',
+                headers: { "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content") },
+                data: {
+                    application_id: applicationId,
+                    'return_applicant_query[]': selected,
+                    remarks: remarks
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: response.message,
+                            confirmButtonText: 'OK',
+                            allowOutsideClick: false
+                        }).then(function () {
+                            $('#returnToApplicantModal').modal('hide');
+                            $('.return-to-applicant-query').prop('checked', false);
+                            $('#returnToApplicantRemarks').val('');
+                            window.location.href = "{{ route('admin.dashboard') }}";
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                        ? xhr.responseJSON.message
+                        : (xhr.responseJSON && xhr.responseJSON.error
+                            ? xhr.responseJSON.error
+                            : 'An unexpected error occurred.');
+                    Swal.fire({ icon: 'error', title: 'Error', text: msg });
+                }
+            });
+        });
+
+        $(document).on("click", ".admin_verify", function () {
+            let btn = $(this); 
+            // 🔹 Select only from the correct section
+            let licenseNumber = $(this).data("license_number");
+            let licenseDate = $(this).data("license_date");
+
+            let type = $(this).data("type");
+
+            let application_id = @json($applicant->application_id);
+            
+            let url = "{{ route('admin.verifylicense') }}";
+            
+            // console.log(licenseNumber, licenseDate, url);
+            // return false;
+            $.ajax({
+                url: url,
+                method: "POST",
+                data: {
+                    license_number : licenseNumber,
+                    date : licenseDate,
+                    type : type,
+                    application_id : application_id,
+                    _token: $('meta[name="csrf-token"]').attr("content"),
+                },
+                success: function (response) {
+                    btn.hide(); // hide the button
+
+                    if (response.exists) {
+                        btn.after('<span class="text-success ms-2">(Valid License.)</span>'); // ✅ tick mark
+                    } else {
+                        btn.after('<span class="text-danger ms-2">(Invalid License.)</span>'); // ❌ cross mark
+                    }
+
+                },
+                error: function () {
+                    btn.hide(); // also hide on error
+                    btn.after('<span class="text-danger ms-2">🚫 Something went wrong!.</span>'); // error icon
+                },
+            });
+        });
+
+    });
+
+
+
+
+    $(".reason-option").on("change", function() {
+    if ($(this).val() === "select") {
+      $(".reason-select").show();
+      $(".reason-textarea").hide();
+      $("textarea[name='other_reason']").val("");
+
+      $(".reason-textarea-error").text("");
+      $("textarea[name='other_reason']").removeClass("is-invalid");
+
+    } else if ($(this).val() === "other") {
+      $(".reason-textarea").show();
+            $(".reason-select").hide().val(""); // reset select
+
+            // reset errors
+            $(".reason-select-error").text("");
+            $(".reason-select").removeClass("is-invalid");
+          }
+        });
+
+    // Initialize on page load
+  $(".reason-option:checked").trigger("change");
+
+
+     // Hide validation error on change/typing
+  $(document).on("change", ".reason-select", function() {
+    if ($(this).val() !== "") {
+      $(this).removeClass("is-invalid");
+      $(this).siblings(".reason-select-error").text("");
+    }
+  });
+
+  $(document).on("input", "textarea[name='other_reason']", function() {
+    if ($(this).val().trim() !== "") {
+      $(this).removeClass("is-invalid");
+      $(this).siblings(".reason-textarea-error").text("");
+    }
+  });
+  
+
+  $("#reject_application").on("submit", function(e) {
+    e.preventDefault();
+
+    
+    const rejectAppUrl = "{{ route('admin.rejectApplicationformp') }}";
+    const APP_URL = "{{ config('app.url') }}";
+
+        // clear old errors
+    $(".form-select, textarea").removeClass("is-invalid");
+    $(".invalid-feedback").text("");
+    $("#successMsg").addClass("d-none");
+
+    let selectedOption = $("input[name='radio-reason']:checked").val();
+    let valid = true;
+    let formData = {
+      action_by: $("#action_by").val(),
+      login_id: $("#login_id").val(),
+      application_id: $("#application_id").val(),
+      appl_status: $("#appl_status").val(),
+            _token: "{{ csrf_token() }}" // important for Laravel
+          };
+
+          if (selectedOption === "select") {
+            let reason = $(".reason-select").val();
+            if (reason === "") {
+              $(".reason-select").addClass("is-invalid");
+              $(".reason-select").siblings(".reason-select-error").text("Please select a reason.");
+              valid = false;
+            } else {
+              formData.reason = reason;
+            }
+          } else if (selectedOption === "other") {
+            let other = $("textarea[name='other_reason']").val().trim();
+            if (other === "") {
+              $("textarea[name='other_reason']").addClass("is-invalid");
+              $("textarea[name='other_reason']").siblings(".reason-textarea-error").text("Please enter the other reason.");
+              valid = false;
+            } else {
+              formData.reason = other;
+            }
+          }
+
+          if (!valid) return;
+
+        // AJAX request
+          $.ajax({
+            url: rejectAppUrl,
+            type: "POST",
+            data: formData,
+            success: function(response) {
+              if (response.success === true) {
+                $("#rejectionModal").modal("hide");
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Rejected successfully',
+                  showConfirmButton: false,
+                  timer: 2000
+                }).then(() => {
+                        window.location.href = APP_URL +"/admin/dashboard"; // redirect URL
+                      });
+              }else{
+                $("#rejectionModal").modal("hide");
+                Swal.fire('Something went wrong', '', 'error');
+              }
+            },
+            error: function(xhr) {
+              Swal.fire('Server error occurred', '', 'error').then(() => {
+                $("#rejectionModal").modal("hide");
+                    //window.location.href = "/admin/dashboard"; // redirect path
+                  });
+            }
+          });
+      });
+</script>

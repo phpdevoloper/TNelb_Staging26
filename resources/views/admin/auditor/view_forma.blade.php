@@ -1,0 +1,241 @@
+@include('admin.include.top')
+@include('admin.include.header')
+@include('admin.include.navbar')
+
+<style>
+    /* table th{
+        color: #070707 !important;
+        background-color: #ccae00 !important;
+    }
+
+    .seperator-header h4{
+        background: #9c8503;
+    } */
+
+
+     /* Improved heading style */
+    .seperator-header h4 {
+        background: #238b45!important;
+        color: #333;
+        padding: 10px 15px;
+        font-size: 20px;
+        font-weight: bold;
+        text-transform: uppercase;
+        border-radius: 5px;
+        text-align: center;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+        color: #fff!important;
+    }
+
+    /* Table Header Styling */
+    table th {
+        background-color: #238b45!important;
+        color: #222 !important;
+        text-align: center;
+        font-weight: bold;
+        padding: 12px;
+        color: #fff!important;
+    }
+
+    /* Table Row Styling */
+    table tbody tr {
+        transition: background 0.3s ease-in-out;
+    }
+
+    table tbody tr:hover {
+        background: rgba(255, 204, 0, 0.1);
+    }
+
+    /* Button Enhancements */
+    .btn-primary, .btn-danger {
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 5px;
+    }
+
+    .btn-primary:hover {
+        background: #238b45!important;
+        border-color: #238b45!important;
+    }
+
+    .btn-danger:hover {
+        background: #d9534f;
+        border-color: #d9534f;
+    }
+
+    /* Adjustments for "Back" Button */
+    .col-lg-12.mt-2.mb-2.d-flex.justify-content-end a button {
+        font-size: 16px;
+        padding: 8px 15px;
+        font-weight: bold;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+/* ----------return ------------- */
+.return-cell {
+    position: relative;
+    width: 60px;
+}
+
+.return-ribbon-wrapper {
+    position: absolute;
+    top: 27px;
+    left: 0;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.return-ribbon {
+    display: inline-block;
+    background: #6f42c1;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 600;
+    width: 60px;
+    height: 14px;
+    line-height: 14px;
+    text-align: center;
+    transform: rotate(-45deg);
+    transform-origin: left top;
+    box-shadow: 0 0 3px rgba(0,0,0,0.3);
+    text-transform: uppercase;
+}
+
+.app-view-table-wrap .badge-returned {
+    background-color: #fff3e0;
+    color: #c05621;
+    border: 1px solid #ff9800;
+}
+
+.app-view-table-wrap .badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+}
+
+.app-view-table-wrap {
+    padding: 0 1rem 1rem;
+}
+</style>
+
+<div id="content" class="main-content">
+    <div class="layout-px-spacing">
+
+        <div class="middle-content container-xxl p-0">
+
+            <!--  BEGIN BREADCRUMBS  -->
+            <div class="secondary-nav">
+                <div class="breadcrumbs-container" data-page-heading="Analytics">
+                    <header class="header navbar navbar-expand-sm">
+                        <a href="{{ route('admin.secretary_table') }}" class="btn-toggle sidebarCollapse" data-placement="bottom">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </a>
+                        <div class="d-flex breadcrumb-content">
+                            <div class="page-header">
+
+                                <div class="page-title">
+                                </div>
+
+                             
+
+                            </div>
+                        </div>
+
+                    </header>
+                </div>
+            </div>
+            <!--  END BREADCRUMBS  -->
+
+            <!-- -------------------------------------------------------- -->
+            <div class="row">
+                <div class="col-xl-12 col-lg-12 col-sm-12  layout-spacing">
+                    <div class="seperator-header layout-top-spacing">
+                        <h4 class="">Pending Applications For A (License EA )</h4>
+
+                    </div>
+                    <div class="statbox widget box box-shadow app-view-table-wrap">
+                            {{-- <div class="row">
+                                <div class="col-xl-12 col-md-12 col-sm-12 col-12"> 
+                                    <h5 class="text-center p-2" style="color: #427ee1">List of New Applications of FORM S (Licence C)</h5>
+                                </div>
+                            </div> --}}
+                        <div class="widget-content widget-content-area br-8">
+                            <div class="d-flex justify-content-end m-2">
+                                <a href="{{route ('admin.dashboard')}}">
+                                    <button class="btn btn-primary _effect--ripple waves-effect waves-light">Back</button>
+                                </a>
+                            </div>
+
+                            <table id="zero-config" class="table dt-table-hover" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>S.No</th>
+                                        <th>Application Id</th>
+                                        
+                                        <th>Applicant's Name</th>
+                                        {{-- <th>Form Name</th> --}}
+                                        <th>License of</th>
+                                        <th>Payment Status</th>
+                                        <th>Applied On</th>
+                                        <th class="no-content">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($workflows_ea as $key => $application)
+                                    <tr>
+
+                                  <td class="return-cell text-center">
+                                        {{ $key + 1 }}
+                                            @if($application->return_flag == '1' )
+                                               <span class="corner-ribbon corner-ribbon-resubmitted">Resubmitted</span>
+                                             @endif
+
+                                       <!--   @if($application->return_flag == '1')
+                                            <div class="return-ribbon-wrapper">
+                                                <span class="return-ribbon">Resubmitted</span>
+                                            </div>
+                                        @endif  -->
+                                    </td>
+
+                                   
+
+                                        <td>
+                                            <a href="{{ route('admin.applicants_detail_forma', ['applicant_id' => $application->application_id]) }}">
+                                                {{ $application->application_id }}
+                                            </a>
+
+                                        
+                                           
+                                        </td>
+                                        <td>{{ $application->applicant_name }}</td>
+                                        {{-- <td>{{ $application->form_name }}</td> --}}
+                                        <td>{{ $application->license_name }}</td>
+                                        <td>Success</td>
+                                        <td>{{ \Carbon\Carbon::parse($application->dt_submit)->format('d-m-Y h:i A') }}</td>
+                                        <td>
+                                            <a href="{{ route('admin.applicants_detail_forma', ['applicant_id' => $application->application_id]) }}">
+                                                <button class="btn btn-primary">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </a>
+                                          
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@include('admin.include.footer')
