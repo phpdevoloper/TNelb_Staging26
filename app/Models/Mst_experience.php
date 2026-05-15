@@ -17,7 +17,9 @@ class Mst_experience extends Model
         'intimation_date',
         'from_date',
         'to_date',
-        'total_exp',
+        'total_y',
+        'total_m',
+        'total_d',
         'designation',
         'upload_document',
         'login_id',
@@ -33,6 +35,5 @@ class Mst_experience extends Model
         'intimation_date' => 'date',
         'from_date' => 'date',
         'to_date' => 'date',
-        'total_exp' => 'decimal:2',
     ];
 }

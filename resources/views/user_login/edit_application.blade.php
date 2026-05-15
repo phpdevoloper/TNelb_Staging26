@@ -961,8 +961,14 @@
 
                     {{-- ═══ SECTION 1 to 4 — Applicant Details ═══ --}}
                     @php
+                        $formName = $application_details->form_name ?? '';
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
+                        $emailVal = ($formName === 'S')
+                            ? (isset($application_details->applicant_email) && $application_details->applicant_email !== ''
+                                ? $application_details->applicant_email
+                                : (Auth::user()->email ?? ''))
+                            : '';
                         $addressVal = isset($application_details) ? $application_details->applicants_address : Auth::user()->address;
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
@@ -1000,10 +1006,26 @@
                                         </div>
                                     </div>
                                 </div>
+                                @if($formName === 'S')
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="fs-field-head">
+                                            <span class="fs-field-num">3</span>
+                                            <div class="fs-field-head-text">
+                                                <div class="fs-field-label">Email ID</div>
+                                                <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
+                                            </div>
+                                        </div>
+                                        <div class="fs-view-grid-value-box">
+                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicant_email">{{ $emailVal ?: 'Not provided' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-field-num">3</span>
+                                            <span class="fs-field-num">{{ $formName === 'S' ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address</div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
@@ -1017,7 +1039,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-field-num">4</span>
+                                                    <span class="fs-field-num">{{ $formName === 'S' ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>Date of Birth</div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
@@ -1064,10 +1086,26 @@
                                         <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
+                                @if($formName === 'S')
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="fs-field-head">
+                                            <span class="fs-field-num">3</span>
+                                            <div class="fs-field-head-text">
+                                                <div class="fs-field-label">Email ID <span class="req">*</span></div>
+                                                <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
+                                            </div>
+                                        </div>
+                                        <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
+                                            maxlength="191" required value="{{ $emailVal }}">
+                                        <span class="error-message text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-field-num">3</span>
+                                            <span class="fs-field-num">{{ $formName === 'S' ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
@@ -1080,7 +1118,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-field-num">4</span>
+                                                    <span class="fs-field-num">{{ $formName === 'S' ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>D.O.B <span class="req">*</span></div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
@@ -1106,12 +1144,10 @@
                         </div>
                     </div>
 
-                    @php $formName = $application_details->form_name ?? ''; @endphp
-
                     {{-- ═══ SECTION 5 — Education ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">5</span>
+                            <span class="fs-section-num">{{ $formName === 'S' ? 6 : 5 }}</span>
                             <div>
                                 <div class="fs-section-title">
                                     Applicant's Educational / Technical Qualification and pass details
@@ -1376,7 +1412,7 @@
 
                     @if (!isset($application_details->form_name) || $application_details->form_name !== 'WH')
                                                 @php
-                                                    $workQuestionNo = 6;
+                                                    $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
                                                 @endphp
 
                     {{-- ═══ SECTION 6 — Work Experience ═══ --}}
@@ -1719,7 +1755,7 @@
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">7</span>
+                            <span class="fs-section-num">8</span>
                             <div>
                                 <div class="fs-section-title">Have previously applied for Electrical Assistant Qualification Certificate and if yes then mention its number and date</div>
                                 <div class="fs-section-tamil">இதற்கு முன்னாள் விண்ணப்பம் செய்துள்ளீர்களா ? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
@@ -1755,7 +1791,7 @@
                                         </span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                        <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
@@ -1791,7 +1827,7 @@
 
                     @php
                         if (isset($application_details->form_name) && $application_details->form_name == 'S') {
-                            $questionNumber = 8;
+                            $questionNumber = 9;
                             $cert_name = 'Wireman Competency Certificate / Supervisor Competency Certificate';
                         } elseif (isset($application_details->form_name) && $application_details->form_name == 'WH') {
                             $questionNumber = 6;
@@ -1855,7 +1891,7 @@
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                                            <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
@@ -1890,7 +1926,7 @@
 
                     @php
                         if ($formName === 'S') {
-                            $uploadQuestionNo = 9;
+                            $uploadQuestionNo = 10;
                         } elseif ($formName === 'W') {
                             $uploadQuestionNo = 8;
                         } elseif ($formName === 'WH') {
@@ -2665,6 +2701,8 @@
         }
 
         function updateTotalYears($tr) {
+            var $yearsCell = $tr.find('td.work-exp-col-years');
+            $yearsCell.find('.work-exp-two-year-msg').remove();
             var $from = $tr.find('.work-date-from');
             var $to = $tr.find('.work-date-to');
             var fromStr = readIsoDate($from);
@@ -2689,6 +2727,13 @@
                 display = 'Invalid range';
                 hidden = '';
             } else {
+                var minTo = new Date(from.getTime());
+                minTo.setFullYear(minTo.getFullYear() + 2);
+                if (to < minTo) {
+                    $yearsCell.append(
+                        '<div class="work-exp-two-year-msg text-danger small mt-1" role="alert">Minimum 2 Years Experience needed</div>'
+                    );
+                }
                 var msPerDay = 86400000;
                 var years = (to - from) / msPerDay / 365.25;
                 var rounded = Math.round(years * 10) / 10;

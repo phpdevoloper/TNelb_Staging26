@@ -1795,7 +1795,7 @@
                                         </span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                        <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
@@ -1895,7 +1895,7 @@
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                                            <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
@@ -2695,6 +2695,8 @@
         }
 
         function updateTotalYears($tr) {
+            var $yearsCell = $tr.find('td.work-exp-col-years');
+            $yearsCell.find('.work-exp-two-year-msg').remove();
             var $from = $tr.find('.work-date-from');
             var $to = $tr.find('.work-date-to');
             var fromStr = readIsoDate($from);
@@ -2719,6 +2721,13 @@
                 display = 'Invalid range';
                 hidden = '';
             } else {
+                var minTo = new Date(from.getTime());
+                minTo.setFullYear(minTo.getFullYear() + 2);
+                if (to < minTo) {
+                    $yearsCell.append(
+                        '<div class="work-exp-two-year-msg text-danger small mt-1" role="alert">Minimum 2 Years Experience needed</div>'
+                    );
+                }
                 var msPerDay = 86400000;
                 var years = (to - from) / msPerDay / 365.25;
                 var rounded = Math.round(years * 10) / 10;
@@ -2948,10 +2957,10 @@
         pancard: 'PAN Number',
         previously_number: 'Previous License Number',
         previously_date: 'Previous Date of Expiry',
-        previously_issue_date: 'Previous Date of Issue',
+        previously_issue_date: 'Previous Date of First Issue',
         certificate_no: 'Certificate No',
         certificate_date: 'Certificate Date of Expiry',
-        certificate_issue_date: 'Certificate Date of Issue',
+        certificate_issue_date: 'Certificate Date of First Issue',
         wireman_details: 'Wireman Details',
         upload_photo: 'Photo',
         upload_sign: 'Signature',

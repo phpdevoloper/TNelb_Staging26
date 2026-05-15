@@ -120,7 +120,7 @@
                                                             <th>Institution</th>
                                                             <th>Year of Passing</th>
                                                             <th>Percentage</th>
-                                                            <th>Documents</th>
+                                                            <th>Document Upload</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -179,15 +179,15 @@
                                                             <th>Company Name</th>
                                                             <th>Designation</th>
                                                             <th>Years of Experience</th>
-                                                            <th>Documents</th>
+                                                            <th>Document Upload</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         @forelse ($workExperience as $experience)
                                                         <tr>
-                                                            <td>{{ $experience->company_name }}</td>
+                                                            <td>{{ $experience->emp_cate ?? $experience->company_name ?? '' }}</td>
                                                             <td>{{ $experience->designation }}</td>
-                                                            <td>{{ $experience->experience }} years</td>
+                                                            <td>{{ $experience->total_exp ?? $experience->experience ?? 0 }} years</td>
                                                             <td style="text-align:center;">
 
                                                                 @if($experience->upload_document)
@@ -216,38 +216,29 @@
 
                                                 <div class="row">
                                                     <div class="col-lg-4 col-6">
-                                                        <p><strong>License Number / Date :</strong></p>
-                                                        {{-- <p><strong>Date:</strong></p> --}}
+                                                        <p><strong>License Number:</strong></p>
+                                                        <p><strong>Date of First Issue:</strong></p>
+                                                        <p><strong>Validity Date:</strong></p>
                                                     </div>
 
                                                     <div class="col-lg-8 col-6">
                                                         @php
-                                                            if (empty($applicant->previously_number) || empty($applicant->previously_date)){
-                                                                $value = 'No';
-                                                            }else{
-                                                                $value = 'Yes, '.($applicant->previously_number ?: '') . ' , ' . (!empty($applicant->previously_date) ? format_date($applicant->previously_date) : '' . '<a href="">view</a>');
-                                                            }
-                                                            
+                                                            $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($applicant->previously_date);
                                                         @endphp
-                                                            
+                                                        @if (!$hasPreviousEaQual)
+                                                            <p class="mb-1">No</p>
+                                                        @else
+                                                            <p class="mb-1">{{ $applicant->previously_number ?: '—' }}</p>
+                                                            <p class="mb-1">{{ !empty($applicant->previously_issue_date) ? format_date($applicant->previously_issue_date) : '—' }}</p>
                                                             <p class="mb-1">
-                                                                @if($value === 'No')
-                                                                    {{ $value }}
-                                                                @else
-                                                                    {!! $value !!}
-                                                                    
-                                                                        @if ($applicant->adminlverify == null)
-                                                                            <!-- <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->previously_number }}" data-license_date="{{ $applicant->previously_date }}" data-type="License" style="cursor: pointer;">Verify</span>                        -->
-                                                                        @elseif($applicant->adminlverify == 1)
-                                                                            <span class="text-success ms-2">(License Verified.)</span>
-                                                                        @elseif($applicant->adminLverify == 2)
-                                                                            <span class="text-danger ms-2">(License not Verified.)</span>
-                                                                        @endif
-                                                                   
+                                                                {{ !empty($applicant->previously_date) ? format_date($applicant->previously_date) : '—' }}
+                                                                @if ($applicant->adminlverify == 1)
+                                                                    <span class="text-success ms-2">(License Verified.)</span>
+                                                                @elseif($applicant->adminLverify == 2)
+                                                                    <span class="text-danger ms-2">(License not Verified.)</span>
                                                                 @endif
                                                             </p>
-
-                                                        {{-- <p>{{ format_date($applicant->previously_date) }}</p> --}}
+                                                        @endif
                                                     </div>
 
                                                 </div>                                                                            
@@ -262,35 +253,28 @@
 
                                             <div class="row">
                                                 <div class="col-lg-4 col-6">
-                                                    <p><strong>License Number / Date:</strong></p>
+                                                    <p><strong>License Number:</strong></p>
+                                                    <p><strong>Date of First Issue:</strong></p>
+                                                    <p><strong>Validity Date:</strong></p>
                                                 </div>
                                                 <div class="col-lg-8 col-6">
                                                     @php
-                                                        // var_dump($staff->name);die;
-
-                                                        if (empty($applicant->certificate_no) || empty($applicant->certificate_date)) {
-                                                            $cert_no = 'No';
-                                                        } else {
-                                                            $cert_no = 'Yes, ' . $applicant->certificate_no . ' , ' . format_date($applicant->certificate_date);
-                                                        }
+                                                        $hasCert = !empty($applicant->certificate_no) && !empty($applicant->certificate_date);
                                                     @endphp
-                                                    <p>
-                                                        @if($cert_no === 'No')
-                                                            {{ $cert_no }}
-                                                        @else
-                                                            {!! $cert_no !!}
-                                                            @php
-                                                               // var_dump($applicant->admincverify);die;
-                                                            @endphp
-                                                            @if ($applicant->admincverify == null)
-                                                                <!-- <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_date="{{ $applicant->certificate_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>                        -->
-                                                            @elseif($applicant->admincverify == 1)
+                                                    @if (!$hasCert)
+                                                        <p>No</p>
+                                                    @else
+                                                        <p class="mb-1">{{ $applicant->certificate_no ?: '—' }}</p>
+                                                        <p class="mb-1">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</p>
+                                                        <p class="mb-1">
+                                                            {{ format_date($applicant->certificate_date) }}
+                                                            @if ($applicant->admincverify == 1)
                                                                 <span class="text-success ms-2">(License verified.)</span>
                                                             @elseif($applicant->admincverify == 2)
                                                                 <span class="text-danger ms-2">(License not verified.)</span>
                                                             @endif
-                                                        @endif
-                                                    </p>
+                                                        </p>
+                                                    @endif
                                                 </div>
                                             </div>
 
@@ -497,7 +481,7 @@
                                                     </p>
                                                 @endif
 
-                                                @if ($processedBy !== 'Accountant' && !$isApplicantResubmission)
+                                                @if ($processedBy !== 'Assistant Secretary' && !$isApplicantResubmission)
                                                     @if ($row->query_status == "P")
                                                         <p class="text-danger">
                                                             Note: Query raised by {{ $roleLabel }} (

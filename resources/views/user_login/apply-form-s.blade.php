@@ -185,6 +185,21 @@
     }
     .fs-section-body { padding: 18px 18px 14px; }
 
+    .fs-section-header.fs-section-header--in-grid {
+        padding: 4px 0 10px;
+        margin-bottom: 0;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+    }
+    .fs-section-header.fs-section-header--in-grid .fs-section-title { font-size: .83rem; }
+    .fs-section-header.fs-section-header--in-grid .fs-section-tamil { font-size: .74rem; margin-top: 2px; }
+    .fs-section-header.fs-section-header--in-grid .fs-section-num {
+        width: 24px;
+        height: 24px;
+        font-size: .7rem;
+    }
+
     /* ── Field rows ───────────────────────────────────── */
     .fs-field-label {
         font-size: .83rem;
@@ -199,6 +214,34 @@
         color: #7a90b0;
         margin-bottom: 4px;
         line-height: 1.3;
+    }
+    /* DOB + Age: badge 5 inline with labels (same pattern as other in-grid headers) */
+    .fs-dob-age-badge-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 4px 0 0;
+        margin-bottom: 0;
+    }
+    .fs-dob-age-badge-row > .fs-section-num {
+        width: 24px;
+        height: 24px;
+        font-size: .7rem;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+    .fs-dob-age-badge-row__body {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .fs-dob-age-pair.row { align-items: flex-start; }
+    .fs-dob-age-pair > [class*="col-"] { align-self: flex-start; }
+    .fs-dob-age-label-block {
+        min-height: 3.35rem;
+        margin-bottom: 2px;
+    }
+    @media (min-width: 576px) {
+        .fs-dob-age-label-block { min-height: 3.5rem; }
     }
     .fs-form .form-control {
         border: 1px solid #ccd5e3;
@@ -412,7 +455,7 @@
     #work-table .work-employer-req { font-size: .7rem; flex: 0 0 auto; }
     #work-table .work-exp-col-type { width: 12%; max-width: 10.5rem; }
     #work-table .work-exp-col-employer { width: 16%; max-width: 12rem; }
-    #work-table .work-exp-col-years { width: 32%; min-width: 17rem; }
+    #work-table .work-exp-col-years { width: 34%; min-width: 19.5rem; }
     #work-table .work-exp-col-designation { width: 12%; }
     #work-table .work-exp-col-upload { width: 22%; }
     #work-table .work-exp-col-sno { width: 2.5rem; min-width: 2.5rem; white-space: nowrap; text-align: center; }
@@ -421,7 +464,7 @@
     #work-table .work-exp-upload-head .file-limit { font-size: .68rem; }
     #work-table .work-exp-inline { display: flex; flex-wrap: nowrap; align-items: flex-end; gap: .25rem; }
     #work-table .work-exp-date-group { flex: 1 1 auto; min-width: 7.5rem; max-width: 10rem; }
-    #work-table .work-exp-total-inline { flex: 0 0 4rem; min-width: 4rem; max-width: 4.5rem; }
+    #work-table .work-exp-total-inline { flex: 0 0 5.75rem; min-width: 5.5rem; max-width: 6.5rem; }
     #work-table .work-exp-label-fromto { font-size: .72rem; font-weight: 600; color: #212529; margin-bottom: .2rem; line-height: 1.2; }
     #work-table thead th.work-exp-col-years { vertical-align: top; }
     #work-table .work-exp-years-title { text-align: center; margin-bottom: .35rem; font-weight: 600; font-size: .78rem; }
@@ -433,8 +476,32 @@
     #work-table .work-exp-inline--head .work-exp-total-inline { border-left: 1px solid #dee2e6; }
     #work-table .work-date-from,
     #work-table .work-date-to { font-size: .8125rem; color: #212529; min-width: 9.5rem; width: 100%; }
-    #work-table .work-year-total-display { max-width: 4.5rem; font-size: .7rem; padding: .22rem .3rem; line-height: 1.3; text-align: center; }
-
+    #work-table .work-duration-ymd {
+        display: flex;
+        gap: .18rem;
+        align-items: flex-end;
+        justify-content: center;
+        width: 100%;
+    }
+    #work-table .work-duration-cell { flex: 1 1 0; min-width: 0; text-align: center; }
+    #work-table .work-duration-label {
+        display: block;
+        font-size: .6rem;
+        font-weight: 600;
+        color: #6c757d;
+        line-height: 1;
+        margin-bottom: .1rem;
+    }
+    #work-table .work-duration-y,
+    #work-table .work-duration-m,
+    #work-table .work-duration-d {
+        font-size: .66rem;
+        padding: .16rem .06rem;
+        line-height: 1.25;
+        text-align: center;
+        width: 100%;
+        min-width: 0;
+    }
     /* ── Documents upload table ───────────────────────── */
     .fs-docs-table { width: 100%; }
     .fs-docs-table td { vertical-align: middle; padding: 10px 12px; border-color: #e8edf6; }
@@ -736,54 +803,97 @@
             {{-- ── Form body ── --}}
             <div class="fs-form-body fs-form apply-card">
 
-                <form id="competency_form_ws" enctype="multipart/form-data">
+                <form id="competency_form_ws" class="apply-form" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTION 1 & 2 — Name & Father's Name ═══ --}}
+                    {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
                                 <div class="col-12 col-md-6 mb-3 mb-md-0">
-                                    <div class="fs-field-label">1. Applicant's Name <span class="req">*</span></div>
-                                    <div class="fs-field-tamil">விண்ணப்பதாரர் பெயர்</div>
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">1</span>
+                                        <div>
+                                            <div class="fs-section-title">Applicant's Name <span class="section-req">*</span></div>
+                                            <div class="fs-section-tamil">விண்ணப்பதாரர் பெயர்</div>
+                                        </div>
+                                    </div>
                                     <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text"
                                         value="{{ $user['salutation'].' '.$user['applicant_name'] }}" readonly>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <div class="fs-field-label">2. Father's Name <span class="req">*</span></div>
-                                    <div class="fs-field-tamil">தகப்பனார் பெயர்</div>
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">2</span>
+                                        <div>
+                                            <div class="fs-section-title">Father's Name <span class="section-req">*</span></div>
+                                            <div class="fs-section-tamil">தகப்பனார் பெயர்</div>
+                                        </div>
+                                    </div>
                                     <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name"
                                         type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80">
+                                    <span class="error-message text-danger" style="font-size:.78rem;"></span>
+                                </div>
+                                <div class="col-12 col-md-6 mb-2 mt-1">
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">3</span>
+                                        <div>
+                                            <div class="fs-section-title">Email ID <span class="section-req">*</span></div>
+                                            <div class="fs-section-tamil">மின்னஞ்சல் முகவரி</div>
+                                        </div>
+                                    </div>
+                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
+                                        maxlength="191" required
+                                        value="{{ old('applicant_email', isset($application) ? ($application->applicant_email ?? '') : (Auth::user()->email ?? '')) }}">
                                     <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    {{-- ═══ SECTION 3 & 4 — Address / DOB ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
                                 <div class="col-12 col-md-6 mb-3 mb-md-0">
-                                    <div class="fs-field-label">3. Applicant Address <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
-                                    <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">4</span>
+                                        <div>
+                                            <div class="fs-section-title">
+                                                Applicant Address <span class="section-req">*</span>
+                                                <span class="section-hint">(To be clear)</span>
+                                            </div>
+                                            <div class="fs-section-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
+                                        </div>
+                                    </div>
                                     <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="255">{{Auth::user()->address}}</textarea>
                                     <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <div class="row">
-                                        <div class="col-12 col-sm-7 mb-3 mb-sm-0">
-                                            <div class="fs-field-label">4. (i) D.O.B <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
-                                            <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b"
-                                                type="text" placeholder="DD/MM/YYYY"
-                                                value="{{ isset($application) ? $application->d_o_b : '' }}">
-                                            <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
-                                        </div>
-                                        <div class="col-12 col-sm-5">
-                                            <div class="fs-field-label">4. (ii) Age</div>
-                                            <div class="fs-field-tamil">வயது</div>
-                                            <input autocomplete="off" class="form-control" id="age" name="age"
-                                                type="number" value="{{ isset($application) ? $application->age : '' }}" readonly>
+                                    <div class="fs-dob-age-badge-row">
+                                        <span class="fs-section-num">5</span>
+                                        <div class="fs-dob-age-badge-row__body">
+                                            <div class="row fs-dob-age-pair align-items-start">
+                                                <div class="col-12 col-sm-6 mb-2 mb-sm-0">
+                                                    <div class="fs-dob-age-label-block">
+                                                        <div class="fs-field-label">(i) D.O.B <span class="req">*</span></div>
+                                                        <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <div class="fs-dob-age-label-block">
+                                                        <div class="fs-field-label">(ii) Age</div>
+                                                        <div class="fs-field-tamil">வயது</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row fs-dob-age-pair align-items-start mx-0">
+                                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                                    <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b"
+                                                        type="text" placeholder="DD/MM/YYYY"
+                                                        value="{{ isset($application) ? $application->d_o_b : '' }}">
+                                                    <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <input autocomplete="off" class="form-control" id="age" name="age" type="number" value="{{ isset($application) ? $application->age : '' }}" readonly>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -791,10 +901,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 5 — Education ═══ --}}
+                    {{-- ═══ SECTION 6 — Education ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">5</span>
+                            <span class="fs-section-num">6</span>
                             <div>
                                 <div class="fs-section-title">
                                     Applicant's Educational / Technical Qualification and pass details
@@ -811,7 +921,7 @@
                                         <tr>
                                             <th rowspan="2">S.No</th>
                                             <th rowspan="2">Education Level</th>
-                                            <th rowspan="2">Institution/School Name</th>
+                                            <th rowspan="2">University / Institute</th>
                                             <th colspan="2" class="text-center">Month & Year of Passing</th>
                                             <th rowspan="2">Certificate No</th>
                                             <th class="text-center" rowspan="2">Upload Document
@@ -886,10 +996,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 6 — Work Experience ═══ --}}
+                    {{-- ═══ SECTION 7 — Work Experience ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">6</span>
+                            <span class="fs-section-num">7</span>
                             <div>
                                 <div class="fs-section-title">
                                     Details of Previous and Current Work experiences
@@ -943,7 +1053,7 @@
                                                     <option value="company">Company</option>
                                                     <option value="contractor">Contractor</option>
                                                     <option value="apprentice">Apprentice</option>
-                                                    <option value="electrical_inspector">Electrical Inspector / Assistant Electrical Inspector</option>
+                                                    <option value="electrical_inspector">Government / Quasi Government / Board</option>
                                                     <option value="retired_employees">Retired Employees</option>
                                                 </select>
                                             </td>
@@ -960,13 +1070,26 @@
                                             <td class="work-exp-col-years">
                                                 <div class="work-exp-inline">
                                                     <div class="work-exp-date-group">
-                                                        <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" disabled title="From date" aria-label="Year of experience from date">
+                                                        <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" title="From date" aria-label="Year of experience from date">
                                                     </div>
                                                     <div class="work-exp-date-group">
-                                                        <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" disabled title="To date" aria-label="Year of experience to date">
+                                                        <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" title="To date" aria-label="Year of experience to date">
                                                     </div>
                                                     <div class="work-exp-total-inline">
-                                                        <input type="text" class="form-control form-control-sm work-year-total-display" readonly placeholder="—" tabindex="-1" aria-label="Total years of experience">
+                                                        <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
+                                                            <div class="work-duration-cell">
+                                                                <span class="work-duration-label">Yrs</span>
+                                                                <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
+                                                            </div>
+                                                            <div class="work-duration-cell">
+                                                                <span class="work-duration-label">Mo</span>
+                                                                <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
+                                                            </div>
+                                                            <div class="work-duration-cell">
+                                                                <span class="work-duration-label">Days</span>
+                                                                <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
+                                                            </div>
+                                                        </div>
                                                         <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
                                                     </div>
                                                 </div>
@@ -995,10 +1118,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Previous License ═══ --}}
+                    {{-- ═══ SECTION 8 — Previous License ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">7</span>
+                            <span class="fs-section-num">8</span>
                             <div>
                                 <div class="fs-section-title">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
                                 <div class="fs-section-tamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
@@ -1018,7 +1141,7 @@
                             <div id="previously_details" class="fs-toggle-panel" style="display:none;">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234, LC20260112345)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
                                         <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text"
                                             data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
                                             placeholder="Certificate Number" value="" maxlength="80">
@@ -1026,7 +1149,7 @@
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                        <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-issue-date" id="previously_issue_date" name="previously_issue_date" type="date"
                                             data-error="#previouslyIssueDateError" value="">
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
@@ -1051,10 +1174,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 8 — Wireman Certificate ═══ --}}
+                    {{-- ═══ SECTION 9 — Wireman Certificate ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">8</span>
+                            <span class="fs-section-num">9</span>
                             <div>
                                 <div class="fs-section-title">Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.</div>
                                 <div class="fs-section-tamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
@@ -1080,7 +1203,7 @@
                             <div id="wireman_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. B1234, LB20260112345)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234)</span></div>
                                         <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text"
                                             data-type="supervisor" data-error="#certError" data-msg="#license_message"
                                             placeholder="Certificate Number" maxlength="80" value="{{ $oldCertNo }}">
@@ -1089,7 +1212,7 @@
                                         <span id="certError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                        <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input class="form-control verify-issue-date" id="certificate_issue_date" name="certificate_issue_date"
                                             data-error="#certIssueDateError" type="date" value="">
                                         <span id="certIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
@@ -1110,10 +1233,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 9 — Upload Documents ═══ --}}
+                    {{-- ═══ SECTION 10 — Upload Documents ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">9</span>
+                            <span class="fs-section-num">10</span>
                             <div>
                                 <div class="fs-section-title">Upload Documents <span class="section-req">*</span></div>
                                 <div class="fs-section-tamil">ஆவணங்களைப் பதிவேற்றவும்</div>
@@ -1320,6 +1443,12 @@
                                         <div class="prv-value" id="prv_fathers_name">—</div>
                                     </div>
                                 </div>
+                                <div class="col-12">
+                                    <div class="prv-field">
+                                        <div class="prv-label">Email ID</div>
+                                        <div class="prv-value" id="prv_email">—</div>
+                                    </div>
+                                </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="prv-field">
                                         <div class="prv-label">Address</div>
@@ -1344,10 +1473,10 @@
                 </div>
             </div>
 
-            {{-- Section 5: Education --}}
+            {{-- Section 6: Education --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
-                    <span class="prv-section-num">5</span>
+                    <span class="prv-section-num">6</span>
                     <span class="prv-section-title">Educational / Technical Qualification Details</span>
                 </div>
                 <div class="prv-section-body p-0">
@@ -1372,10 +1501,10 @@
                 </div>
             </div>
 
-            {{-- Section 6: Work Experience --}}
+            {{-- Section 7: Work Experience --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
-                    <span class="prv-section-num">6</span>
+                    <span class="prv-section-num">7</span>
                     <span class="prv-section-title">Work Experience Details</span>
                 </div>
                 <div class="prv-section-body p-0">
@@ -1401,12 +1530,12 @@
                 </div>
             </div>
 
-            {{-- Sections 7 & 8 side by side --}}
+            {{-- Sections 8 & 9 side by side --}}
             <div class="row" style="gap:0;">
                 <div class="col-12 col-md-6 pr-md-1">
                     <div class="prv-section h-100">
                         <div class="prv-section-hd">
-                            <span class="prv-section-num">7</span>
+                            <span class="prv-section-num">8</span>
                             <span class="prv-section-title">Previously Applied for Electrical Assistant Qualification Certificate</span>
                         </div>
                         <div class="prv-section-body">
@@ -1424,7 +1553,7 @@
                                     </div>
                                     <div class="col-12 col-sm-4">
                                         <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of Issue</div>
+                                            <div class="prv-label">Date of First Issue</div>
                                             <div class="prv-value" id="prv_prev_issue_date">—</div>
                                         </div>
                                     </div>
@@ -1442,7 +1571,7 @@
                 <div class="col-12 col-md-6 pl-md-1 mt-3 mt-md-0">
                     <div class="prv-section h-100">
                         <div class="prv-section-hd">
-                            <span class="prv-section-num">8</span>
+                            <span class="prv-section-num">9</span>
                             <span class="prv-section-title">Wireman Competency Certificate issued by this Board</span>
                         </div>
                         <div class="prv-section-body">
@@ -1471,10 +1600,10 @@
                 </div>
             </div>
 
-            {{-- Section 9: Documents --}}
+            {{-- Section 10: Documents --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
-                    <span class="prv-section-num">9</span>
+                    <span class="prv-section-num">10</span>
                     <span class="prv-section-title">Identity &amp; Uploaded Documents</span>
                 </div>
                 <div class="prv-section-body">
@@ -1692,17 +1821,60 @@
                 $tr.find('.experience-sync').val(tot);
             }
 
+            function clearWorkDuration($tr) {
+                $tr.find('.work-duration-y, .work-duration-m, .work-duration-d').val('');
+                $tr.find('.work-experience-total-hidden').val('');
+            }
+
+            /** Calendar-style Y/M/D between two local dates (inclusive-style components). */
+            function calendarDiffYMD(from, to) {
+                if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return null;
+                var y = to.getFullYear() - from.getFullYear();
+                var m = to.getMonth() - from.getMonth();
+                var d = to.getDate() - from.getDate();
+                if (d < 0) {
+                    m--;
+                    d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+                }
+                if (m < 0) {
+                    y--;
+                    m += 12;
+                }
+                if (d < 0) {
+                    m--;
+                    if (m < 0) {
+                        y--;
+                        m += 12;
+                    }
+                    d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+                }
+                return { y: y, m: m, d: d };
+            }
+
             function updateTotalYears($tr) {
+                var $yearsCell = $tr.find('td.work-exp-col-years');
+                $yearsCell.find('.work-exp-two-year-msg').remove();
                 var fromStr = ($tr.find('.work-date-from').val() || '').trim();
                 var toStr   = ($tr.find('.work-date-to').val() || '').trim();
-                if (!fromStr || !toStr) { $tr.find('.work-year-total-display').val(''); $tr.find('.work-experience-total-hidden').val(''); syncLegacyHidden($tr); return; }
+                if (!fromStr || !toStr) { clearWorkDuration($tr); syncLegacyHidden($tr); return; }
                 var from = new Date(fromStr + 'T12:00:00'), to = new Date(toStr + 'T12:00:00');
-                if (isNaN(from.getTime()) || isNaN(to.getTime())) { $tr.find('.work-year-total-display').val(''); $tr.find('.work-experience-total-hidden').val(''); syncLegacyHidden($tr); return; }
-                var display, hidden;
-                if (to < from) { display = 'Invalid range'; hidden = ''; }
-                else { var years = (to - from) / 86400000 / 365.25; var rounded = Math.round(years * 10) / 10; hidden = rounded.toFixed(1); display = rounded.toFixed(1); }
-                $tr.find('.work-year-total-display').val(display);
-                $tr.find('.work-experience-total-hidden').val(hidden);
+                if (isNaN(from.getTime()) || isNaN(to.getTime())) { clearWorkDuration($tr); syncLegacyHidden($tr); return; }
+                if (to < from) { clearWorkDuration($tr); syncLegacyHidden($tr); return; }
+                var minTo = new Date(from.getTime());
+                minTo.setFullYear(minTo.getFullYear() + 2);
+                if (to < minTo) {
+                    $yearsCell.append(
+                        '<div class="work-exp-two-year-msg text-danger small mt-1" role="alert">Minimum 2 Years Experience needed</div>'
+                    );
+                }
+                var diff = calendarDiffYMD(from, to);
+                if (!diff) { clearWorkDuration($tr); syncLegacyHidden($tr); return; }
+                $tr.find('.work-duration-y').val(String(diff.y));
+                $tr.find('.work-duration-m').val(String(diff.m));
+                $tr.find('.work-duration-d').val(String(diff.d));
+                var yearsDec = (to - from) / 86400000 / 365.25;
+                var rounded = Math.round(yearsDec * 10) / 10;
+                $tr.find('.work-experience-total-hidden').val(rounded.toFixed(1));
                 syncLegacyHidden($tr);
             }
 
@@ -1715,15 +1887,15 @@
                 var $blockInt = $tr.find('.work-block--intimation'), $intDate = $tr.find('.work-intimation-date');
                 if (!t) {
                     $emp.prop('disabled', true).prop('required', false);
-                    $yFrom.prop('disabled', true).prop('required', false);
-                    $yTo.prop('disabled', true).prop('required', false);
+                    $yFrom.prop('required', false);
+                    $yTo.prop('required', false);
                     $blockInt.hide();
                     $intDate.prop('disabled', false).prop('required', false).val('');
                     syncLegacyHidden($tr); return;
                 }
                 $emp.prop('disabled', false).prop('required', true);
-                $yFrom.prop('disabled', false).prop('required', true);
-                $yTo.prop('disabled', false).prop('required', true);
+                $yFrom.prop('required', true);
+                $yTo.prop('required', true);
                 if (t === 'contractor') { $blockInt.show(); $intDate.prop('disabled', false).prop('required', true); }
                 else { $blockInt.hide(); $intDate.prop('disabled', false).prop('required', false).val(''); }
                 updateTotalYears($tr); syncLegacyHidden($tr);
@@ -1765,7 +1937,7 @@
                     });
                     newRow.querySelectorAll('.work-date-from, .work-date-to').forEach(function(inp) { inp.value = ''; });
                     var typeSel = newRow.querySelector('.work-employment-type'); if (typeSel) typeSel.selectedIndex = 0;
-                    var wtd = newRow.querySelector('.work-year-total-display'); if (wtd) wtd.value = '';
+                    newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(inp) { inp.value = ''; });
                     var hTot = newRow.querySelector('.work-experience-total-hidden'); if (hTot) hTot.value = '';
                     var hLevel = newRow.querySelector('.work-level-sync'); if (hLevel) hLevel.value = '';
                     var hEx = newRow.querySelector('.experience-sync'); if (hEx) hEx.value = '';
@@ -1871,7 +2043,7 @@
                       '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec' };
     var EMP_LABEL_MAP = {
         company:'Company', contractor:'Contractor', apprentice:'Apprentice',
-        electrical_inspector:'Electrical Inspector', retired_employees:'Retired Employees'
+        electrical_inspector:'Government / Quasi Government / Board', retired_employees:'Retired Employees'
     };
 
     function fmtDate(val) {
@@ -1894,6 +2066,8 @@
         // Personal
         setVal('prv_name', document.getElementById('Applicant_Name').value);
         setVal('prv_fathers_name', document.getElementById('Fathers_Name').value);
+        var emailEl = document.getElementById('applicant_email');
+        setVal('prv_email', emailEl ? emailEl.value : '');
         setVal('prv_address', document.getElementById('applicants_address').value);
         setVal('prv_dob', document.getElementById('d_o_b').value);
         setVal('prv_age', document.getElementById('age').value);
@@ -1939,7 +2113,13 @@
                 var employer = row.querySelector('.work-employer-input');
                 var fromInp  = row.querySelector('.work-date-from');
                 var toInp    = row.querySelector('.work-date-to');
-                var total    = row.querySelector('.work-year-total-display');
+                var yPart = row.querySelector('.work-duration-y');
+                var mPart = row.querySelector('.work-duration-m');
+                var dPart = row.querySelector('.work-duration-d');
+                var yv = yPart ? (yPart.value || '').trim() : '';
+                var mv = mPart ? (mPart.value || '').trim() : '';
+                var dv = dPart ? (dPart.value || '').trim() : '';
+                var totalTxt = (yv === '' && mv === '' && dv === '') ? '—' : (yv + 'y ' + mv + 'm ' + dv + 'd');
                 var desig    = row.querySelector('[name="designation[]"]');
                 var doc      = row.querySelector('[name="work_document[]"]');
                 var empTxt   = empType ? (EMP_LABEL_MAP[empType.value] || empType.value || '—') : '—';
@@ -1951,7 +2131,7 @@
                 var tr = '<tr><td class="text-center">'+(i+1)+'</td><td>'+empTxt+'</td>'
                     +'<td>'+(employer ? employer.value || '—' : '—')+'</td>'
                     +'<td>'+fromDate+'</td><td>'+toDate+'</td>'
-                    +'<td class="text-center">'+(total ? total.value || '—' : '—')+'</td>'
+                    +'<td class="text-center">' + totalTxt + '</td>'
                     +'<td>'+(desig ? desig.value || '—' : '—')+'</td>'
                     +'<td class="text-center">'+docLink+'</td></tr>';
                 workBody.innerHTML += tr;

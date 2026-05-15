@@ -806,6 +806,11 @@
                     @php
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
+                        $emailVal = ($renewFormName === 'S')
+                            ? (isset($application_details->applicant_email) && $application_details->applicant_email !== ''
+                                ? $application_details->applicant_email
+                                : (Auth::user()->email ?? ''))
+                            : '';
                         $addressVal = isset($application_details) ? $application_details->applicants_address : Auth::user()->address;
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
@@ -843,10 +848,26 @@
                                         </div>
                                     </div>
                                 </div>
+                                @if($renewFormName === 'S')
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="fs-field-head">
+                                            <span class="fs-section-num">3</span>
+                                            <div class="fs-field-head-text">
+                                                <div class="fs-field-label">Email ID</div>
+                                                <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
+                                            </div>
+                                        </div>
+                                        <div class="fs-view-grid-value-box">
+                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicant_email">{{ $emailVal ?: 'Not provided' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-section-num">3</span>
+                                            <span class="fs-section-num">{{ $renewFormName === 'S' ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address</div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
@@ -860,7 +881,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-section-num">4</span>
+                                                    <span class="fs-section-num">{{ $renewFormName === 'S' ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>Date of Birth</div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
@@ -907,10 +928,26 @@
                                         <span class="error-message text-danger"></span>
                                     </div>
                                 </div>
+                                @if($renewFormName === 'S')
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="fs-field-head">
+                                            <span class="fs-section-num">3</span>
+                                            <div class="fs-field-head-text">
+                                                <div class="fs-field-label">Email ID <span class="req">*</span></div>
+                                                <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
+                                            </div>
+                                        </div>
+                                        <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
+                                            maxlength="191" required value="{{ $emailVal }}">
+                                        <span class="error-message text-danger"></span>
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-section-num">3</span>
+                                            <span class="fs-section-num">{{ $renewFormName === 'S' ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
@@ -923,7 +960,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-section-num">4</span>
+                                                    <span class="fs-section-num">{{ $renewFormName === 'S' ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>D.O.B <span class="req">*</span></div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
@@ -958,7 +995,7 @@
                     {{-- ═══ SECTION 2 — Education ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">5</span>
+                            <span class="fs-section-num">{{ $renewFormName === 'S' ? 6 : 5 }}</span>
                             <div>
                                 <div class="fs-section-title">
                                     Applicant's Educational / Technical Qualification and pass details
@@ -1159,7 +1196,7 @@
                     {{-- ═══ SECTION 3 — Work Experience ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">6</span>
+                            <span class="fs-section-num">{{ $renewFormName === 'S' ? 7 : 6 }}</span>
                             <div>
                                 <div class="fs-section-title">
                                     Details of Previous and Current Work experiences
@@ -1397,7 +1434,7 @@
                     {{-- ═══ SECTION 4 — Previous License (Form S only) ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">7</span>
+                            <span class="fs-section-num">8</span>
                             <div>
                                 <div class="fs-section-title">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
                                 <div class="fs-section-tamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
@@ -1430,7 +1467,7 @@
                                     <span id="licenseError" class="text-danger"></span>
                                 </div>
                                 <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                    <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                     <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                            id="previously_issue_date" name="previously_issue_date" type="date"
                                            data-error="#previouslyIssueDateError"
@@ -1472,7 +1509,7 @@
 
                     @php
                         if (isset($application_details->form_name) && $application_details->form_name == 'S') {
-                            $questionNumber = 8;
+                            $questionNumber = 9;
                             $cert_name = 'Wireman Competency Certificate';
                         } elseif (isset($application_details->form_name) && $application_details->form_name == 'WH') {
                             $questionNumber = 6;
@@ -1536,7 +1573,7 @@
                                     <span id="certError" class="text-danger"></span>
                                 </div>
                                 <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                    <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                     <input class="form-control text-box single-line verify-issue-date"
                                            id="certificate_issue_date" name="certificate_issue_date"
                                            data-error="#certIssueDateError" type="date"
@@ -1570,7 +1607,7 @@
 
                     @php
                         if ($renewFormName === 'S') {
-                            $uploadQuestionNo = 9;
+                            $uploadQuestionNo = 10;
                         } elseif (in_array($renewFormName, ['W','WH'])) {
                             $uploadQuestionNo = $showRenewWork ? 8 : 7;
                         } else {

@@ -13,7 +13,8 @@ class Mst_Form_s_w extends Model
     public $timestamps = false;
     protected $fillable = [
         'applicant_name', 
-        'fathers_name', 
+        'fathers_name',
+        'applicant_email',
         'applicants_address', 
         'd_o_b', 
         'age', 
