@@ -38,6 +38,7 @@ class ProprietorformA extends Model
         'proprietor_contractor_verify',
         'proprietor_flag',
         'ownership_type',
-        'ownership_count'
+        'ownership_count',
+        'age_proof'
     ];
 }

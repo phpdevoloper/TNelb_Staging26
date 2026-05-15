@@ -83,7 +83,7 @@ class FormAController extends BaseController
 
     public function store(Request $request)
     {
-       
+
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
@@ -130,8 +130,8 @@ class FormAController extends BaseController
                 'test_reports_enclose' => 'nullable|string|in:yes,no',
                 'specimen_signature_enclose' => 'nullable|string|in:yes,no',
                 'separate_sheet' => 'nullable|string|in:yes,no',
-                
-                
+
+
 
                 'declaration1' => 'nullable|string|max:255',
                 'declaration2' => 'nullable|string|max:255',
@@ -167,11 +167,11 @@ class FormAController extends BaseController
                 'separate_sheet' => ['required', 'string', Rule::in(['yes', 'no'])],
                 'form_name' => 'required|string|max:255',
                 'license_name' => 'required|string|max:255',
-         
+
                 'declaration1' => 'required|string|max:255',
                 'declaration2' => 'required|string|max:255',
                 'address_proof' => $request->hasFile('address_proof') ? 'required|file|max:2048' : 'nullable|string',
-            
+
 
 
             ];
@@ -202,7 +202,7 @@ class FormAController extends BaseController
                 'bank_address',
                 'form_name',
                 'license_name',
-              
+
             ] as $field
         ) {
             if (!empty($validatedData[$field])) {
@@ -210,8 +210,8 @@ class FormAController extends BaseController
             }
         }
 
-     
-       
+
+
 
         // Determine if record exists
         $applicationId = null;
@@ -241,21 +241,21 @@ class FormAController extends BaseController
         $dataToSave['updated_at'] = DB::raw('NOW()');
 
 
-            // Addressproof----------------
+        // Addressproof----------------
 
-            if (!empty($request->type_doc) || !empty($request->addressproofno)) {
+        if (!empty($request->type_doc) || !empty($request->addressproofno)) {
 
             $addressproof = [
                 'application_id' => $applicationId,
                 'login_id'       => $request->login_id_store,
-                'form_name'  => $request->form_name ,
-                'license_name'    => $request->license_name ,
-                'addressproofno'    => $request->addressproofno ,
-                'type_doc'    => $request->type_doc ,
+                'form_name'  => $request->form_name,
+                'license_name'    => $request->license_name,
+                'addressproofno'    => $request->addressproofno,
+                'type_doc'    => $request->type_doc,
 
                 // 'status'         => '1'
             ];
-          
+
 
             // dd([
             //     'login_id_store' => $request->login_id_store,
@@ -365,7 +365,7 @@ class FormAController extends BaseController
 
 
 
-        
+
 
 
 
@@ -473,7 +473,7 @@ class FormAController extends BaseController
             $count = 1;
             foreach ($request->proprietor_name as $index => $name) {
 
-            // dd($count);exit;
+                // dd($count);exit;
                 if (empty(trim($name))) continue;
 
                 $competencyHolding = data_get($request->competency, $index);
@@ -538,7 +538,7 @@ class FormAController extends BaseController
                     'proprietor_contractor_verify' => $previous_experience === 'yes' ? data_get($request->expverify, $index) : null,
                     'proprietor_flag' => 1,
 
-                    'ownership_count'=>$count,
+                    'ownership_count' => $count,
                 ];
 
 
@@ -557,43 +557,35 @@ class FormAController extends BaseController
                 ->whereNotIn('id', $newProprietorIds)
                 ->update(['proprietor_flag' => 0]);
 
-                // table move edu_file----------
+            // table move edu_file----------
 
-                 // $recordexists = DB::table('proprietordetailsform_A')
-                //             ->where('application_id', $applicationId)
-                //             ->get();
-                // if ($recordexists) {
-                    
-                //              DB::table('$proprietordetailsform_A')
-                //             ->where('application_id', $applicationId)
-                //             ->update([
-                //                 'educ_qual_proof' => $finalDbPath,
-                //                 'updated_at'  => now()
-                //             ]);
-                //         }
+            // $recordexists = DB::table('proprietordetailsform_A')
+            //             ->where('application_id', $applicationId)
+            //             ->get();
+            // if ($recordexists) {
+
+            //              DB::table('$proprietordetailsform_A')
+            //             ->where('application_id', $applicationId)
+            //             ->update([
+            //                 'educ_qual_proof' => $finalDbPath,
+            //                 'updated_at'  => now()
+            //             ]);
+            //         }
 
 
-                $tempDocs = DB::table('tnelb_temp_uploaded_documents')
+            $tempDocs = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('form_name', $request->form_name)
                 ->where('license_name', $request->license_name)
                 ->where('document_category', 'educ_qual_proof')
                 ->where('ownership_type', 'pr')
-             
+                // ->whereIn('is_final', ['0', '2'])
+
                 ->get();
-
-            // dd($tempDocs);
-            // exit;
-
-
-            // dd($tempDocs->pluck('document_category'));
-            // exit;
-
-
 
             foreach ($tempDocs as $tempDoc) {
 
-                
+
                 $matchedPartner = ProprietorformA::where('application_id', $applicationId)
                     ->where('ownership_type', 'pr')
                     ->where('ownership_count', $tempDoc->row_index + 1)
@@ -626,6 +618,8 @@ class FormAController extends BaseController
 
                 $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
 
+                // dd($dbFilePath);exit;
+
                 // -----------------------------------------
                 // 5️⃣ COPY FILE
                 // -----------------------------------------
@@ -642,6 +636,8 @@ class FormAController extends BaseController
                 // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
                 // -----------------------------------------
                 $matchedPartner->educational_proof = $dbFilePath_all->filepath_pro . $tempDoc->file_name;
+
+                // dd($matchedPartner->educational_proof);exit;
                 $matchedPartner->row_index = $tempDoc->row_index;
                 $matchedPartner->save();
 
@@ -653,6 +649,90 @@ class FormAController extends BaseController
                     ->update([
                         'is_final'   => '1',
                         'moved_as'   => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
+                        'updated_at' => now()
+                    ]);
+            }
+
+
+            // ------Age Proof-------------------
+             $tempDocsAge = DB::table('tnelb_temp_uploaded_documents')
+                ->where('login_id', $request->login_id_store)
+                ->where('form_name', $request->form_name)
+                ->where('license_name', $request->license_name)
+                ->where('document_category', 'age_proof')
+                ->where('ownership_type', 'pr')
+                // ->whereIn('is_final', ['0', '2'])
+
+                ->get();
+
+            foreach ($tempDocsAge as $tempDocAge) {
+
+
+                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
+                    ->where('ownership_type', 'pr')
+                    ->where('ownership_count', $tempDocAge->row_index + 1)
+                    ->first();
+
+                if (!$matchedPartner) {
+                    continue; // No match → skip
+                }
+
+                // -----------------------------------------
+                // 4️⃣ GET FINAL PRO PATH
+                // -----------------------------------------
+                $dynamicRequest = clone $request;
+                $dynamicRequest->merge([
+                    'module' => $tempDocAge->module
+                ]);
+
+                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
+                $dbFilePath     = $dbFilePath_all->filepath_pro;
+
+                $tempFullPath = public_path(
+                    $tempDocAge->file_path . '/' . $tempDocAge->file_name
+                );
+
+                $proFolderPath = public_path($dbFilePath);
+
+                if (!File::exists($proFolderPath)) {
+                    File::makeDirectory($proFolderPath, 0755, true);
+                }
+
+                $proFullPath = $proFolderPath . '/' . $tempDocAge->file_name;
+
+                // dd($dbFilePath);exit;
+
+                // -----------------------------------------
+                // 5️⃣ COPY FILE
+                // -----------------------------------------
+                if (File::exists($tempFullPath)) {
+                    File::copy($tempFullPath, $proFullPath);
+                } else {
+                    continue;
+                }
+
+                // dd($tempDocAge->file_path . '/' . $tempDocAge->file_name);
+                // exit;
+
+                // -----------------------------------------
+                // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
+                // -----------------------------------------
+                $matchedPartner->age_proof = $dbFilePath_all->filepath_pro . $tempDocAge->file_name;
+
+                // dd($matchedPartner->educational_proof);exit;
+                $matchedPartner->row_index = $tempDocAge->row_index;
+                $matchedPartner->save();
+
+                // -----------------------------------------
+                // 7️⃣ MARK TEMP DOC AS FINAL
+                // -----------------------------------------
+                DB::table('tnelb_temp_uploaded_documents')
+                    ->where('id', $tempDocAge->id)
+                    ->update([
+                        'is_final'   => '1',
+                        'moved_as'   => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
                         'updated_at' => now()
                     ]);
             }
@@ -661,7 +741,9 @@ class FormAController extends BaseController
         // Partners
         $newPartnerIds = [];
         if ($request->has('partner_name')) {
-             $count = 1;
+
+        // dd($request->all()); exit;
+            $count = 1;
             foreach ($request->partner_name as $index => $name) {
                 if (empty(trim($name))) continue;
 
@@ -688,7 +770,7 @@ class FormAController extends BaseController
                     'ownership_type' => 'pt',
                     'proprietor_address' => strtoupper(data_get($request->partner_proprietor_address, $index, '')),
 
-                     'dob' => $request->partner_dob[$index],
+                    'dob' => $request->partner_dob[$index],
                     'age' => data_get($request->partner_age, $index),
                     'qualification' => strtoupper(data_get($request->partner_qualification, $index, '')),
                     'qualification_text' => strtoupper(data_get($request->partner_qual_text, $index, '')),
@@ -731,7 +813,7 @@ class FormAController extends BaseController
 
                     'proprietor_contractor_verify' => $previous_experience === 'yes' ? data_get($request->partner_expverify, $index) : null,
                     'proprietor_flag' => 1,
-                    'ownership_count'=>$count,
+                    'ownership_count' => $count,
                 ];
 
                 if ($partnerId) {
@@ -741,15 +823,15 @@ class FormAController extends BaseController
                     $new = ProprietorformA::create($data);
                     $newPartnerIds[] = $new->id;
                 }
-                  $count++;
+                $count++;
             }
 
-            
+
 
             // Deactivate removed partner rows
             ProprietorformA::where('application_id', $applicationId)
                 ->whereNotIn('id', $newPartnerIds)
-                ->where('ownership_type', 'partner') // optional if you differentiate ownership
+                ->where('ownership_type', 'pt') // optional if you differentiate ownership
                 ->update(['proprietor_flag' => 0]);
 
             $tempDocs = DB::table('tnelb_temp_uploaded_documents')
@@ -757,22 +839,17 @@ class FormAController extends BaseController
                 ->where('form_name', $request->form_name)
                 ->where('license_name', $request->license_name)
                 ->where('document_category', 'educ_qual_proof')
-                 ->where('ownership_type', 'pt')
-             
+                ->where('ownership_type', 'pt')
+                // ->whereIn('is_final', ['0', '2'])
+
                 ->get();
 
-            // dd($tempDocs);
-            // exit;
 
-
-            // dd($tempDocs->pluck('document_category'));
-            // exit;
-
-
+                // dd($tempDocs);exit;
 
             foreach ($tempDocs as $tempDoc) {
 
-                
+
                 $matchedPartner = ProprietorformA::where('application_id', $applicationId)
                     ->where('ownership_type', 'pt')
                     ->where('ownership_count', $tempDoc->row_index + 1)
@@ -805,6 +882,8 @@ class FormAController extends BaseController
 
                 $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
 
+                // dd($dbFilePath);exit;
+
                 // -----------------------------------------
                 // 5️⃣ COPY FILE
                 // -----------------------------------------
@@ -814,10 +893,15 @@ class FormAController extends BaseController
                     continue;
                 }
 
+                // dd($tempDoc->file_path . '/' . $tempDoc->file_name);
+                // exit;
+
                 // -----------------------------------------
                 // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
                 // -----------------------------------------
                 $matchedPartner->educational_proof = $dbFilePath_all->filepath_pro . $tempDoc->file_name;
+
+                // dd($matchedPartner->educational_proof);exit;
                 $matchedPartner->row_index = $tempDoc->row_index;
                 $matchedPartner->save();
 
@@ -829,6 +913,92 @@ class FormAController extends BaseController
                     ->update([
                         'is_final'   => '1',
                         'moved_as'   => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
+                        'updated_at' => now()
+                    ]);
+            }
+
+
+            // ------Age Proof-------------------
+             $tempDocsAge = DB::table('tnelb_temp_uploaded_documents')
+                ->where('login_id', $request->login_id_store)
+                ->where('form_name', $request->form_name)
+                ->where('license_name', $request->license_name)
+                ->where('document_category', 'age_proof')
+                ->where('ownership_type', 'pt')
+                // ->whereIn('is_final', ['0', '2'])
+
+                ->get();
+
+                // dd($tempDocsAge); exit;
+
+            foreach ($tempDocsAge as $tempDocAge) {
+
+
+                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
+                    ->where('ownership_type', 'pt')
+                    ->where('ownership_count', $tempDocAge->row_index + 1)
+                    ->first();
+
+                if (!$matchedPartner) {
+                    continue; // No match → skip
+                }
+
+                // -----------------------------------------
+                // 4️⃣ GET FINAL PRO PATH
+                // -----------------------------------------
+                $dynamicRequest = clone $request;
+                $dynamicRequest->merge([
+                    'module' => $tempDocAge->module
+                ]);
+
+                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
+                $dbFilePath     = $dbFilePath_all->filepath_pro;
+
+                $tempFullPath = public_path(
+                    $tempDocAge->file_path . '/' . $tempDocAge->file_name
+                );
+
+                $proFolderPath = public_path($dbFilePath);
+
+                if (!File::exists($proFolderPath)) {
+                    File::makeDirectory($proFolderPath, 0755, true);
+                }
+
+                $proFullPath = $proFolderPath . '/' . $tempDocAge->file_name;
+
+                // dd($dbFilePath);exit;
+
+                // -----------------------------------------
+                // 5️⃣ COPY FILE
+                // -----------------------------------------
+                if (File::exists($tempFullPath)) {
+                    File::copy($tempFullPath, $proFullPath);
+                } else {
+                    continue;
+                }
+
+                // dd($tempDocAge->file_path . '/' . $tempDocAge->file_name);
+                // exit;
+
+                // -----------------------------------------
+                // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
+                // -----------------------------------------
+                $matchedPartner->age_proof = $dbFilePath_all->filepath_pro . $tempDocAge->file_name;
+
+                // dd($matchedPartner->educational_proof);exit;
+                $matchedPartner->row_index = $tempDocAge->row_index;
+                $matchedPartner->save();
+
+                // -----------------------------------------
+                // 7️⃣ MARK TEMP DOC AS FINAL
+                // -----------------------------------------
+                DB::table('tnelb_temp_uploaded_documents')
+                    ->where('id', $tempDocAge->id)
+                    ->update([
+                        'is_final'   => '1',
+                        'moved_as'   => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
                         'updated_at' => now()
                     ]);
             }
@@ -845,7 +1015,7 @@ class FormAController extends BaseController
             // exit;
             foreach ($request->director_name as $index => $name) {
 
-            
+
                 if (empty(trim($name))) continue;
 
                 $directorId = $request->director_id[$index] ?? null;
@@ -917,7 +1087,7 @@ class FormAController extends BaseController
 
                     'proprietor_contractor_verify' => $previous_experience === 'yes' ? data_get($request->director_expverify, $index) : null,
                     'proprietor_flag' => 1,
-                    'ownership_count'=>$count,
+                    'ownership_count' => $count,
                 ];
 
                 if ($directorId) {
@@ -927,30 +1097,31 @@ class FormAController extends BaseController
                     $new = ProprietorformA::create($data);
                     $newdirectorIds[] = $new->id;
                 }
-                 $count++;
+                $count++;
             }
 
             // Deactivate removed partner rows
             ProprietorformA::where('application_id', $applicationId)
                 ->whereNotIn('id', $newdirectorIds)
-                ->where('ownership_type', 'partner') // optional if you differentiate ownership
+                ->where('ownership_type', 'dr') 
                 ->update(['proprietor_flag' => 0]);
 
-    
+
             $tempDocs = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('form_name', $request->form_name)
                 ->where('license_name', $request->license_name)
                 ->where('document_category', 'educ_qual_proof')
                 ->where('ownership_type', 'dr')
-             
+                ->whereIn('is_final', ['0', '2'])
+
                 ->get();
 
 
 
-               foreach ($tempDocs as $tempDoc) {
+            foreach ($tempDocs as $tempDoc) {
 
-                
+
                 $matchedPartner = ProprietorformA::where('application_id', $applicationId)
                     ->where('ownership_type', 'dr')
                     ->where('ownership_count', $tempDoc->row_index + 1)
@@ -1009,6 +1180,7 @@ class FormAController extends BaseController
                     ->update([
                         'is_final'   => '1',
                         'moved_as'   => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
                         'updated_at' => now()
                     ]);
             }
@@ -1042,9 +1214,7 @@ class FormAController extends BaseController
         $payment = $isDraft ? 'draft' : 'success';
 
         // ------------Temp Table move------------------------------------------
-         
-
-    DB::transaction(function () use ($applicationId, $request) {
+        DB::transaction(function () use ($applicationId, $request) {
 
             // dd('111');exit;
 
@@ -1059,6 +1229,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'ownership_doc')
+                ->whereIn('is_final', ['0', '2'])
                 ->latest()
                 ->first();
 
@@ -1098,6 +1269,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'bank_doc')
+                ->whereIn('is_final', ['0', '2'])
                 ->latest()
                 ->first();
 
@@ -1114,7 +1286,7 @@ class FormAController extends BaseController
 
                 $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
 
-             DB::table('tnelb_banksolvency_a')
+                DB::table('tnelb_banksolvency_a')
                     ->updateOrInsert(
                         ['application_id' => $applicationId],
                         [
@@ -1141,6 +1313,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'Address_proof')
+                ->whereIn('is_final', ['0', '2'])
                 ->latest()
                 ->first();
 
@@ -1157,7 +1330,7 @@ class FormAController extends BaseController
 
                 $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
 
-               DB::table('tnelb_addressproof_cl')
+                DB::table('tnelb_addressproof_cl')
                     ->updateOrInsert(
                         ['application_id' => $applicationId],
                         [
@@ -1183,6 +1356,7 @@ class FormAController extends BaseController
 
             $otherDocs = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
+                ->whereIn('is_final', ['0', '2'])
                 ->where('document_category', 'other_doc')
                 ->get();
 
@@ -1206,14 +1380,22 @@ class FormAController extends BaseController
 
                 $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
 
-                  DB::table('tnelb_attachments_cl')->updateOrInsert(
+                // DB::table('tnelb_attachments_cl')->insert([
+                //     'application_id' => $applicationId,
+                //     'file_doc'       => $finalPath,
+                //     'type'           => $doc->ownership_type,
+                //     'created_at'     => now(),
+                //     'updated_at'     => now(),
+                // ]);
+
+                DB::table('tnelb_attachments_cl')->updateOrInsert(
                     [
                         'application_id' => $applicationId,
                         'type' => $doc->ownership_type // important for unique condition
                     ],
                     [
-                        'login_id'            => $request->login_id_store ,
-                        
+                        'login_id'            => $request->login_id_store,
+                          
                         'form_name'           => $request->form_name,
                         'license_name'        => $request->license_name,
                         'file_doc'   => $finalPath,
@@ -1233,15 +1415,12 @@ class FormAController extends BaseController
 
 
 
+
             // =======================================================
             // 8️⃣ MOVE EQUIPMENT FILES + INSERT INTO PERMANENT TABLE
             // =======================================================
 
             // if ($request->has('equipments')) {
-
-                // -----------------------------------------
-                // 1️⃣ GET PERMANENT PATH
-                // -----------------------------------------
 
                 $dbFilePath_all = DocPathController::getPath($request);
                 $proFolderPath  = public_path($dbFilePath_all->filepath_pro);
@@ -1255,6 +1434,7 @@ class FormAController extends BaseController
                     ->where('login_id', $request->login_id_store)
                     ->where('module', 'EQUIPMENTS DOCUMENT')
                     ->where('document_sub_category', 'ED')
+                    ->whereIn('is_final', ['0', '2'])
                     ->get()
                     ->groupBy('equip_code');
 
@@ -1464,8 +1644,8 @@ class FormAController extends BaseController
                 // exit;
 
             } else {
-         // dd($form->id);
-         //        exit;
+                // dd($form->id);
+                //        exit;
 
                 $paymentDetails = DB::select("
                     SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
@@ -3664,7 +3844,7 @@ class FormAController extends BaseController
             ->select('id', 'application_id', 'license_number', 'expires_at')
             ->unionAll(
                 DB::table('tnelb_renewal_license')
-                    ->select('ren_id as id', 'application_id', 'license_number', 'expires_at')
+                    ->select('id', 'application_id', 'license_number', 'expires_at')
             )
             ->orderBy('id', 'ASC')
             ->get();

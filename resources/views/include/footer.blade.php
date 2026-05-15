@@ -3050,7 +3050,7 @@ $(document).ready(function() {
     let $wrapper = $section.find(".qualTextWrapper");
     let $input   = $wrapper.find("input[name='qual_text[]']");
 
-    if (qualification && qualification !== '8 TO 12') {
+    if (qualification && qualification !== '8TH PASS') {
 
         if (!$wrapper.is(":visible")) {
             $wrapper.stop(true, true).slideDown(250);
@@ -3119,28 +3119,89 @@ $(document).ready(function() {
     });
 
     /* 🔁 Ownership change */
- $(document).on("change", "#ownership_type_select", function() {
-
-
+ $(document).on("change", "#ownership_type_select", function () {
 
     let type = $(this).val();
 
-    // clear files + errors
+    // Clear files + errors
     $("input[type='file']").val("");
     $(".ownershipdoc_upload_error").text("");
-    // $(".file-link").html("").addClass("d-none");
 
-    $("#partnershipdeed, #directormom").slideUp();
+    // Hide all sections first
+    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section")
+        .hide();
 
+    // Reset readonly + values
+    $("input[name='proprietor_name[]']")
+        .val("")
+        .prop("readonly", false);
+
+    // Partnership
     if (type === 'pt') {
+        
+
         $("#partnershipdeed").slideDown();
-    } else if (type === 'pvt' || type === 'public' || type === 'ltd') {
-        $("#directormom").slideDown();
-         $("#proprietor-section").slideDown();
-    } else if (type === 'pr') {
-        // $("#proprietor-section").slideDown();
+         $("#partnersfill-section").slideDown();
+
+        let rowCount = $("#partnersfill-section table tbody tr").length;
+
+
+        @if(Auth::check())
+
+        if (rowCount == 0) {
+
+            $("#partnersfill-section")
+                .find("input[name='proprietor_name[]']")
+                .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
+                .prop("readonly", true);
+        }
+
+        @endif
+
     }
-    });
+
+    // Company Types
+    else if (
+        type === 'pvt' ||
+        type === 'public' ||
+        type === 'ltd'
+    ) {
+
+        $("#directormom").slideDown();
+        $("#directorfill-section").slideDown();
+
+        let rowCount = $("#director-section table tbody tr").length;
+
+        @if(Auth::check())
+
+        if (rowCount == 0) {
+
+            $("#directorfill-section")
+                .find("input[name='proprietor_name[]']")
+                .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
+                .prop("readonly", true);
+        }
+
+        @endif
+    }
+
+    // Proprietor
+    else if (type === 'pr') {
+
+        $("#proprietor-sectionfresh").slideDown();
+
+        @if(Auth::check())
+
+        $("#proprietor-sectionfresh")
+            .find("input[name='proprietor_name[]']")
+            .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
+            .prop("readonly", true);
+
+        @endif
+    }
+});
+
+    
 
     // ------------------------------------------------------------forma 8_11 Attachments open----------------------
     $(document).on("change", "input[name='criminal_offence']", function () {

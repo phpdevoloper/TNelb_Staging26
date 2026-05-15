@@ -103,6 +103,13 @@ Swal.fire({
         background-color: #035ab3;
         color: #fff !important;
     }
+
+   /* input[readonly] .pro,
+    textarea[readonly],
+    select[readonly] {
+        background-color: #d3d3d3 !important;
+        cursor: not-allowed;
+    } */
 </style>
 
 <!-- 
@@ -380,8 +387,8 @@ exit; -->
                                 <option value="">---Select Ownership Type---</option>
                                 <option value="pr" {{ isset($application) && $application->application_ownershiptype == 'pr' ? 'selected' : '' }}>Proprietorship</option>
                                 <option value="pt" {{ isset($application) && $application->application_ownershiptype == 'pt' ? 'selected' : '' }}>Partnership</option>
-                                <option value="pvt" {{ isset($application) && $application->application_ownershiptype == 'pvt' ? 'selected' : '' }}>Private Limited (PVT LTD)</option>
-                                <option value="public" {{ isset($application) && $application->application_ownershiptype == 'public' ? 'selected' : '' }}>Public Limited (PVT LTD)</option>
+                                <option value="pvt" {{ isset($application) && $application->application_ownershiptype == 'pvt' ? 'selected' : '' }}>Private Limited (PLC)</option>
+                                <option value="public" {{ isset($application) && $application->application_ownershiptype == 'public' ? 'selected' : '' }}>Public Limited (LTD)</option>
                                 <option value="ltd" {{ isset($application) && $application->application_ownershiptype == 'ltd' ? 'selected' : '' }}>Limited (LTD)</option>
 
 
@@ -554,7 +561,8 @@ exit; -->
                                         <tr data-id="{{ $p->id }}">
                                             <td>{{ $p->proprietor_name }}</td>
                                             <td>{{ $p->fathers_name }}</td>
-                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}">{{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}</td>
+                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}" data-age_proof="{{ asset($p->age_proof) }}">{{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                                <a href="{{ asset($p->age_proof) }}" target="_blank"><i class="fa fa-file-pdf-o" style="color: red;"></i></a> </td>
                                             <td>{{ $p->proprietor_address }}</td>
                                             <td data-qualification="{{ $p->qualification }}" data-qual_text="{{ $p->qualification_text }}" data-educational_proof="{{ asset($p->educational_proof) }}">{{ $p->qualification }}, {{ $p->qualification_text }}
                                                 <a href="{{ asset($p->educational_proof) }}" target="_blank"><i class="fa fa-file-pdf-o" style="color: red;"></i></a>
@@ -695,7 +703,7 @@ exit; -->
                                         <div class="col-12 col-md-4">
                                             <select class="form-control qualification" name="qualification[]">
                                                 <option value="">Select Qualification</option>
-                                                <option value="8 TO 12">8 TO 12</option>
+                                                <option value="8TH PASS">8TH PASS</option>
                                                 <option value="DEGREE">DEGREE</option>
                                                 <option value="DIPLOMA">DIPLOMA</option>
                                                 <option value="MASTER DEGREE">MASTER DEGREE</option>
@@ -752,19 +760,13 @@ exit; -->
                                             </div>
                                         </div>
 
-                                        <div class="col-md-12 col-12  file-link">
-                                            <!-- @if(!empty($application->educational_proof))
-                                                <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
-                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                                                </a>
-                                            @endif -->
+                                        <div class="col-md-12 col-12 age-file-link">
+                                           
                                         </div>
 
 
 
-                                        <!-- <div class="col-12 col-md-3">
-                                            <button class="btn btn-info"> <i class="fa fa-upload"></i> Upload </button>
-                                        </div> -->
+                                       
 
                                     </div>
 
@@ -1160,7 +1162,8 @@ exit; -->
                                         <tr data-id="{{ $p->id }}">
                                             <td>{{ $p->proprietor_name }}</td>
                                             <td>{{ $p->fathers_name }}</td>
-                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}">{{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}</td>
+                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}" data-age_proof="{{ asset($p->age_proof) }}">{{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                                <a href="{{ asset($p->age_proof) }}" target="_blank"><i class="fa fa-file-pdf-o" style="color: red;"></i></a> </td>
                                             <td>{{ $p->proprietor_address }}</td>
                                             <td data-qualification="{{ $p->qualification }}" data-qual_text="{{ $p->qualification_text }}" data-educational_proof="{{ asset($p->educational_proof) }}">{{ $p->qualification }}, {{ $p->qualification_text }}
                                                 <a href="{{ asset($p->educational_proof) }}" target="_blank"><i class="fa fa-file-pdf-o" style="color: red;"></i></a>
@@ -1311,7 +1314,7 @@ exit; -->
                                             <div class="col-12 col-md-4">
                                                 <select class="form-control qualification" name="qualification[]">
                                                     <option value="">Select Qualification</option>
-                                                    <option value="8 TO 12">8 TO 12</option>
+                                                    <option value="8TH PASS">8TH PASS</option>
                                                     <option value="DEGREE">DEGREE</option>
                                                     <option value="DIPLOMA">DIPLOMA</option>
                                                     <option value="MASTER DEGREE">MASTER DEGREE</option>
@@ -1333,43 +1336,50 @@ exit; -->
                                             </div>
                                         </div>
 
-                                        <div class="row mt-2">
+                                    <div class="row mt-2">
 
-                                            <div class="col-12 col-md-3">
-                                                <label>Age Proof <span class="text-red">*</span></label>
-                                            </div>
-                                            <div class="col-12 col-md-7">
-                                                <div class="row">
-                                                    <div class="col-12 col-md-8">
-                                                        <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
-                                                        <input type="file" class="form-control"
-                                                            name="age_proof[]"
-                                                            accept="application/pdf">
-
-
-
-                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
-                                                        <br>
-                                                        <span class="text-danger Doc_upload_error"></span>
-                                                        <span class="error text-danger qual_proof_error"></span>
-                                                    </div>
-
-                                                    <div class="col-12 col-md-4">
-                                                        <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="AGE PROOF" data-document_category="age_proof" data-ownership_type="pt"
-                                                            data-row-index=""
-                                                            data-document_sub_category="AP" data-form_code="{{$form_code->id}}">
-                                                            <i class="fa fa-upload"></i> Upload
-                                                        </button>
+                                        <div class="col-12 col-md-3">
+                                            <label>Age Proof <span class="text-red">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-7">
+                                            <div class="row">
+                                                <div class="col-12 col-md-8">
+                                                    <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                    <input type="file" class="form-control"
+                                                        name="age_proof[]"
+                                                        accept="application/pdf">
 
 
-                                                    </div>
+
+                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                    <br>
+                                                    <span class="text-danger Doc_upload_error"></span>
+                                                    <span class="error text-danger age_proof_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-4">
+                                                    <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="AGE PROOF" data-document_category="age_proof" data-ownership_type="pt"
+                                                        data-row-index=""
+                                                        data-document_sub_category="AP" data-form_code="{{$form_code->id}}">
+                                                        <i class="fa fa-upload"></i> Upload
+                                                    </button>
 
 
                                                 </div>
+
+                                                <!-- <span class="text-danger Doc_upload_error"></span> -->
                                             </div>
-
-
                                         </div>
+
+                                        <div class="col-md-12 col-12 age-file-link">
+                                           
+                                        </div>
+
+
+
+                                       
+
+                                    </div>
 
 
                                         <div class="row mt-2">
@@ -1755,7 +1765,8 @@ exit; -->
                                             <td>{{ $p->proprietor_name }}</td>
                                             <td>{{ $p->fathers_name }}</td>
 
-                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}">{{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}</td>
+                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}" data-age_proof="{{ asset($p->age_proof) }}">{{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                                <a href="{{ asset($p->age_proof) }}" target="_blank"><i class="fa fa-file-pdf-o" style="color: red;"></i></a> </td>
                                             <td>{{ $p->proprietor_address }}</td>
                                             <td data-qualification="{{ $p->qualification }}" data-qual_text="{{ $p->qualification_text }}" data-educational_proof="{{ asset($p->educational_proof) }}">{{ $p->qualification }}, {{ $p->qualification_text }}
                                                 <a href="{{ asset($p->educational_proof) }}" target="_blank"><i class="fa fa-file-pdf-o" style="color: red;"></i></a>
@@ -1841,6 +1852,8 @@ exit; -->
 
                                                 <input type="text" class="form-control mb-2 proprietor_name" maxlength="50" id="proprietor_name" name="proprietor_name[]" placeholder="Director's Name">
 
+     
+
                                                 <span class="error text-danger" id="proprietor_name_error"></span>
                                             </div>
 
@@ -1896,7 +1909,7 @@ exit; -->
                                             <div class="col-12 col-md-4">
                                                 <select class="form-control qualification" name="qualification[]">
                                                     <option value="">Select Qualification</option>
-                                                    <option value="8 TO 12">8 TO 12</option>
+                                                    <option value="8TH PASS">8th PASS</option>
                                                     <option value="DEGREE">DEGREE</option>
                                                     <option value="DIPLOMA">DIPLOMA</option>
                                                     <option value="MASTER DEGREE">MASTER DEGREE</option>
@@ -1920,41 +1933,47 @@ exit; -->
 
                                         <div class="row mt-2">
 
-                                            <div class="col-12 col-md-3">
-                                                <label>Age Proof <span class="text-red">*</span></label>
-                                            </div>
-                                            <div class="col-12 col-md-7">
-                                                <div class="row">
-                                                    <div class="col-12 col-md-8">
-                                                        <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
-                                                        <input type="file" class="form-control"
-                                                            name="age_proof[]"
-                                                            accept="application/pdf">
+                                        <div class="col-12 col-md-3">
+                                            <label>Age Proof <span class="text-red">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-7">
+                                            <div class="row">
+                                                <div class="col-12 col-md-8">
+                                                    <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                    <input type="file" class="form-control"
+                                                        name="age_proof[]"
+                                                        accept="application/pdf">
 
 
 
-                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
-                                                        <br>
-                                                        <span class="text-danger Doc_upload_error"></span>
-                                                        <span class="error text-danger qual_proof_error"></span>
-                                                    </div>
+                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                    <br>
+                                                    <span class="text-danger Doc_upload_error"></span>
+                                                    <span class="error text-danger age_proof_error"></span>
+                                                </div>
 
-                                                    <div class="col-12 col-md-4">
-                                                        <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="AGE PROOF" data-document_category="age_proof" data-ownership_type="dr"
-                                                            data-row-index=""
-                                                            data-document_sub_category="AP" data-form_code="{{$form_code->id}}">
-                                                            <i class="fa fa-upload"></i> Upload
-                                                        </button>
-
-
-                                                    </div>
+                                                <div class="col-12 col-md-4">
+                                                    <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="AGE PROOF" data-document_category="age_proof" data-ownership_type="dr"
+                                                        data-row-index=""
+                                                        data-document_sub_category="AP" data-form_code="{{$form_code->id}}">
+                                                        <i class="fa fa-upload"></i> Upload
+                                                    </button>
 
 
                                                 </div>
+
                                             </div>
-
-
                                         </div>
+
+                                        <div class="col-md-12 col-12 age-file-link">
+                                           
+                                        </div>
+
+
+
+                                       
+
+                                    </div>
 
 
                                         <div class="row mt-2">
@@ -3857,11 +3876,7 @@ exit; -->
     </script>
 
     <script>
-        const hasApplication = {
-            {
-                isset($application) ? 'true' : 'false'
-            }
-        };
+        const hasApplication = {{isset($application) ? 'true' : 'false'}};
     </script>
 
     <script>
@@ -5110,7 +5125,7 @@ let proprietorCount = initialDraftCount || 0;
 
             }
 
-            if (qualification && qualification !== '8 TO 12') {
+            if (qualification && qualification !== '8TH PASS') {
                 // alert(qual_text);
 
                 if (!qual_text) {
@@ -5122,168 +5137,89 @@ let proprietorCount = initialDraftCount || 0;
                 }
             }
 
-            // let fileInput = $section.find("input[name='qual_proof[]']")[0];
-
-            // // check if an existing uploaded file link is present
-            // let hasExistingFile =
-            //     $section.find(".file-link a").length > 0;
-
-            // // check if new file selected
-            // let hasNewFile =
-            //     fileInput && fileInput.files && fileInput.files.length > 0;
-
-            // // VALIDATION
-            // if (!hasNewFile && !hasExistingFile) {
-            //     setError(
-            //         $section.find("input[name='qual_proof[]']"),
-            //         "Qualification proof is required"
-            //     );
-            //     isValid = false;
-            // }
 
             /* ---------------- FILE HANDLING ---------------- */
 
-
             let isEditMode = $section.attr("data-edit-id") ? true : false;
 
+             let existingFileUrl = $section.attr("data-existing-file") || "";
 
-            // =====================================================
-            // QUALIFICATION FILE
-            // =====================================================
+            // Present file from table edit
+            let presentFile = $section.attr("data-present-file") || "";
 
-            // Existing qualification file from edit
-            let existingQualFileUrl =
-                $section.attr("data-existing-qual-file") || "";
+            // alert(presentFile);
 
-            // Present qualification file from table edit
-            let presentQualFile =
-                $section.attr("data-present-qual-file") || "";
+            // New uploaded file
+            let fileInput = $section.find("input[name='qual_proof[]']")[0];
+            let hasNewFile = fileInput && fileInput.files && fileInput.files.length > 0;
 
-            // New uploaded qualification file
-            let qualFileInput =
-                $section.find("input[name='qual_proof[]']")[0];
+            // Flags
+            let hasExistingFile = existingFileUrl !== "";
+            let hasPresentFile = presentFile !== "";
 
-            let hasNewQualFile =
-                qualFileInput &&
-                qualFileInput.files &&
-                qualFileInput.files.length > 0;
-
-            // Qualification Flags
-            let hasExistingQualFile = existingQualFileUrl !== "";
-            let hasPresentQualFile = presentQualFile !== "";
-
-
-            // =====================================================
-            // AGE FILE
-            // =====================================================
-
-            // Existing age file from edit
-            let existingAgeFileUrl =
-                $section.attr("data-existing-age-file") || "";
-
-            // Present age file from table edit
-            let presentAgeFile =
-                $section.attr("data-present-age-file") || "";
-
-            // New uploaded age file
-            let ageFileInput =
-                $section.find("input[name='age_proof[]']")[0];
-
-            let hasNewAgeFile =
-                ageFileInput &&
-                ageFileInput.files &&
-                ageFileInput.files.length > 0;
-
-            // Age Flags
-            let hasExistingAgeFile = existingAgeFileUrl !== "";
-            let hasPresentAgeFile = presentAgeFile !== "";
-
-
-
-            // =====================================================
-            // VALIDATION
-            // =====================================================
-
-            // Qualification validation
-            if (
-                !hasNewQualFile &&
-                !hasExistingQualFile &&
-                !hasPresentQualFile
-            ) {
-
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingFile && !hasPresentFile) {
                 setError(
                     $section.find("input[name='qual_proof[]']"),
                     "Please upload Qualification proof"
                 );
-
                 isValid = false;
             }
 
+            // FINAL FILE
+            let uploadedFilePath = window.uploadedFilePath || "";
+            let finalFileUrl = "";
 
-            // Age validation
-            if (
-                !hasNewAgeFile &&
-                !hasExistingAgeFile &&
-                !hasPresentAgeFile
-            ) {
+            if (hasNewFile && uploadedFilePath) {
+                finalFileUrl = uploadedFilePath; // new upload
+            } else if (hasExistingFile) {
+                finalFileUrl = existingFileUrl; // edit file
+            } else if (hasPresentFile) {
+                finalFileUrl = presentFile; // table file
+            }
 
+
+            /* ================= AGE PROOF ================= */
+            let existingAgeFile = $section.attr("data-existing-age-file") || "";
+
+            // Present file from table edit
+            let presentAgeFile = $section.attr("data-present-age-file") || "";
+
+            // alert(presentFile);
+
+            // New uploaded file
+            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
+            let hasNewAgeFile = ageFileInput && ageFileInput.files && ageFileInput.files.length > 0;
+
+            // Flags
+            let hasExistingageFile = existingAgeFile !== "";
+            let hasPresentageFile = presentAgeFile !== "";
+
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingageFile && !hasPresentageFile) {
+
+            // alert(hasExistingageFile);
                 setError(
                     $section.find("input[name='age_proof[]']"),
                     "Please upload Age proof"
                 );
-
                 isValid = false;
             }
 
-
-
-            // =====================================================
-            // FINAL FILES
-            // =====================================================
-
-            // Uploaded qualification file path
-            let uploadedQualFilePath =
-                window.uploadedQualFilePath || "";
-
-            // Uploaded age file path
-            let uploadedAgeFilePath =
-                window.uploadedAgeFilePath || "";
-
-
-            // Final qualification file
-            let finalQualFileUrl = "";
-
-            if (hasNewQualFile && uploadedQualFilePath) {
-
-                finalQualFileUrl = uploadedQualFilePath;
-
-            } else if (hasExistingQualFile) {
-
-                finalQualFileUrl = existingQualFileUrl;
-
-            } else if (hasPresentQualFile) {
-
-                finalQualFileUrl = presentQualFile;
-            }
-
-
-
-            // Final age file
+            // FINAL FILE
+            let uploadedAgeFilePath = window.uploadedAgeFilePath || "";
             let finalAgeFileUrl = "";
 
             if (hasNewAgeFile && uploadedAgeFilePath) {
-
-                finalAgeFileUrl = uploadedAgeFilePath;
-
-            } else if (hasExistingAgeFile) {
-
-                finalAgeFileUrl = existingAgeFileUrl;
-
-            } else if (hasPresentAgeFile) {
-
-                finalAgeFileUrl = presentAgeFile;
+                finalAgeFileUrl = uploadedAgeFilePath; // new upload
+            } else if (hasExistingageFile) {
+                // alert('111');
+                finalAgeFileUrl = existingAgeFile; // edit file
+            } else if (hasPresentageFile) {
+                finalAgeFileUrl = presentAgeFile; // table file
             }
-                        /* ---------------- VALIDATION ---------------- */
+
+            // alert(finalAgeFileUrl);
 
 
             // FATHER NAME
@@ -5406,12 +5342,16 @@ let proprietorCount = initialDraftCount || 0;
                 }
                 $row.find("td").eq(0).text(name);
                 $row.find("td").eq(1).text(fathersName);
-                $row.find("td").eq(2)
-                    .attr({
-                        "data-dob": dob,
-                        "data-age": age
-                    })
-                    .text(`${dob}, ${age}`);
+              $row.find("td").eq(2)
+                .attr({
+                    "data-dob": dob,
+                    "data-age": age,
+                    "data-age_proof": finalAgeFileUrl
+                })
+                .html(`
+                    ${dob}, ${age}
+                    ${renderPdfIcon(finalAgeFileUrl)}
+                `);
 
                 $row.find("td").eq(3).text(address);
                 $row.find("td").eq(4)
@@ -5421,7 +5361,7 @@ let proprietorCount = initialDraftCount || 0;
                         "data-qual_proof": finalFileUrl
                     })
                     .html(
-                        (qualification === '8 TO 12' ?
+                        (qualification === '8TH PASS' ?
                             qualification :
                             `${qualification}, ${qual_text}`) +
                         " " +
@@ -5490,8 +5430,8 @@ let proprietorCount = initialDraftCount || 0;
                     <tr>
                         <td>${name}</td>
                         <td>${fathersName}</td>
-                        <td data-dob="${dob}" data-age="${age}">
-                            ${dob}, ${age}
+                        <td data-dob="${dob}" data-age="${age}" data-age_proof="${finalAgeFileUrl}">
+                            ${dob}, ${age} , ${renderPdfIcon(finalAgeFileUrl)}
                         </td>
 
                         <td>${address}</td>
@@ -5500,7 +5440,7 @@ let proprietorCount = initialDraftCount || 0;
                             data-qual_text="${qual_text}" 
                             data-qual_proof="${finalFileUrl}">
                                 
-                            ${qualification === '8 TO 12' 
+                            ${qualification === '8TH PASS' 
                                 ? qualification 
                                 : `${qualification}, ${qual_text}`}
 
@@ -5551,7 +5491,12 @@ let proprietorCount = initialDraftCount || 0;
 
             // 🔥 Clear file
             $section.find(".file-link").html("");
+
+            $section.find(".age-file-link").html("");
             $section.removeAttr("data-existing-file");
+
+            $section.removeAttr("data-existing-age-file");
+            
 
             $section.removeAttr("data-edit-id");
 
@@ -5578,7 +5523,9 @@ let proprietorCount = initialDraftCount || 0;
             let $tds = $row.find("td");
             let id = $row.data("id");
             editIndex = $row.index();
-            let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
+            // let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
+
+            let ownershipValue = $row.find("td").eq(9).attr("data-ownership");
             // console.log("Ownership Value:", ownershipValue); 
             // alert(ownershipValue);
             // exit;
@@ -5596,9 +5543,51 @@ let proprietorCount = initialDraftCount || 0;
             $section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text());
 
             let tdDobAge = $row.find("td").eq(2);
+            
 
             $section.find("input[name='dob[]']").val(tdDobAge.data("dob"));
             $section.find("input[name='age[]']").val(tdDobAge.data("age"));
+            
+            
+           $ageproofdata = $row.find("td").eq(2);
+            // alert(tdDobAge.data("age"));
+
+            let age_proof = $ageproofdata.attr("data-age_proof");
+
+            // alert(age_proof);
+
+
+            
+            $section.attr("data-existing-age-file", age_proof || "");
+
+            // 🔥 SHOW FILE IN FORM
+            if (age_proof) {
+
+            
+                $section.find(".age-file-link").html(`
+                    <a href="${age_proof}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            } else {
+                $section.find(".age-file-link").html("");
+            }
+
+            // Get present file from TABLE (important)
+            let presentFileage = $ageproofdata.attr("data-age_proof");
+
+            $section.attr("data-present-age-file", presentFileage || "");
+            // Show present file below input box (only for table edit)
+            if (presentFileage) {
+                $section.find(".age-file-link").html(`
+                    <a href="${presentFileage}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            }
+
+
+            
 
             // alert($section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text()));
             // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
@@ -5635,8 +5624,8 @@ let proprietorCount = initialDraftCount || 0;
             // Set text value
             $qualTextInput.val(qualTextValue);
 
-            // If qualification is not 8 TO 12 AND text exists → show wrapper
-            if (qualificationValue && qualificationValue !== '8 TO 12') {
+            // If qualification is not 8TH PASS AND text exists → show wrapper
+            if (qualificationValue && qualificationValue !== '8TH PASS') {
                 $wrapper.show();
             }
             // let $tr = $(this).closest("tr");
@@ -5849,7 +5838,7 @@ let proprietorCount = initialDraftCount || 0;
             let rowCount = $("#partner-section table tbody tr").length;
 
 
-            if (rowCount >= 6) {
+            if (rowCount >= 5) {
 
                 Swal.fire({
                     title: "Partner Entry Exists!",
@@ -5920,7 +5909,7 @@ let proprietorCount = initialDraftCount || 0;
             // qual_proof
             let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
 
-
+            let age_proof = $section.find("input[name='age_proof[]']").val().trim();
 
             let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
             let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
@@ -6022,7 +6011,7 @@ let proprietorCount = initialDraftCount || 0;
 
             }
 
-            if (qualification && qualification !== '8 TO 12') {
+            if (qualification && qualification !== '8TH PASS') {
                 // alert(qual_text);
 
                 if (!qual_text) {
@@ -6036,11 +6025,9 @@ let proprietorCount = initialDraftCount || 0;
 
 
             /* ---------------- FILE HANDLING ---------------- */
+             let isEditMode = $section.attr("data-edit-id") ? true : false;
 
-            let isEditMode = $section.attr("data-edit-id") ? true : false;
-
-            // Existing file from edit
-            let existingFileUrl = $section.attr("data-existing-file") || "";
+             let existingFileUrl = $section.attr("data-existing-file") || "";
 
             // Present file from table edit
             let presentFile = $section.attr("data-present-file") || "";
@@ -6074,6 +6061,47 @@ let proprietorCount = initialDraftCount || 0;
                 finalFileUrl = existingFileUrl; // edit file
             } else if (hasPresentFile) {
                 finalFileUrl = presentFile; // table file
+            }
+
+
+            /* ================= AGE PROOF ================= */
+            let existingAgeFile = $section.attr("data-existing-age-file") || "";
+
+            // Present file from table edit
+            let presentAgeFile = $section.attr("data-present-age-file") || "";
+
+            // alert(presentFile);
+
+            // New uploaded file
+            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
+            let hasNewAgeFile = ageFileInput && ageFileInput.files && ageFileInput.files.length > 0;
+
+            // Flags
+            let hasExistingageFile = existingAgeFile !== "";
+            let hasPresentageFile = presentAgeFile !== "";
+
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingageFile && !hasPresentageFile) {
+
+            // alert(hasExistingageFile);
+                setError(
+                    $section.find("input[name='age_proof[]']"),
+                    "Please upload Age proof"
+                );
+                isValid = false;
+            }
+
+            // FINAL FILE
+            let uploadedAgeFilePath = window.uploadedAgeFilePath || "";
+            let finalAgeFileUrl = "";
+
+            if (hasNewAgeFile && uploadedAgeFilePath) {
+                finalAgeFileUrl = uploadedAgeFilePath; // new upload
+            } else if (hasExistingageFile) {
+                // alert('111');
+                finalAgeFileUrl = existingAgeFile; // edit file
+            } else if (hasPresentageFile) {
+                finalAgeFileUrl = presentAgeFile; // table file
             }
 
             /* ---------------- VALIDATION ---------------- */
@@ -6195,11 +6223,15 @@ let proprietorCount = initialDraftCount || 0;
                 $row.find("td").eq(0).text(name);
                 $row.find("td").eq(1).text(fathersName);
                 $row.find("td").eq(2)
-                    .attr({
-                        "data-dob": dob,
-                        "data-age": age
-                    })
-                    .text(`${dob}, ${age}`);
+                .attr({
+                    "data-dob": dob,
+                    "data-age": age,
+                    "data-age_proof": finalAgeFileUrl
+                })
+                .html(`
+                    ${dob}, ${age}
+                    ${renderPdfIcon(finalAgeFileUrl)}
+                `);
 
                 $row.find("td").eq(3).text(address);
                 $row.find("td").eq(4)
@@ -6209,7 +6241,7 @@ let proprietorCount = initialDraftCount || 0;
                         "data-qual_proof": finalFileUrl
                     })
                     .html(
-                        (qualification === '8 TO 12' ?
+                        (qualification === '8TH PASS' ?
                             qualification :
                             `${qualification}, ${qual_text}`) +
                         " " +
@@ -6275,8 +6307,8 @@ let proprietorCount = initialDraftCount || 0;
                     <tr>
                         <td>${name}</td>
                         <td>${fathersName}</td>
-                         <td data-dob="${dob}" data-age="${age}">
-                            ${dob}, ${age}
+                         <td data-dob="${dob}" data-age="${age}" data-age_proof="${finalAgeFileUrl}">
+                            ${dob}, ${age} , ${renderPdfIcon(finalAgeFileUrl)}
                         </td>
 
                         <td>${address}</td>
@@ -6285,7 +6317,7 @@ let proprietorCount = initialDraftCount || 0;
                             data-qual_text="${qual_text}" 
                             data-qual_proof="${finalFileUrl}">
                                 
-                            ${qualification === '8 TO 12' 
+                            ${qualification === '8TH PASS' 
                                 ? qualification 
                                 : `${qualification}, ${qual_text}`}
 
@@ -6334,6 +6366,7 @@ let proprietorCount = initialDraftCount || 0;
             // Clear all radio buttons
             $section.find("input[type='radio']").prop("checked", false);
 
+            $section.find(".age-file-link").html("");
             $section.find(".file-link").html("");
             $section.removeAttr("data-existing-file");
 
@@ -6402,9 +6435,49 @@ let proprietorCount = initialDraftCount || 0;
             // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
 
             let tdDobAge = $row.find("td").eq(2);
+            
 
             $section.find("input[name='dob[]']").val(tdDobAge.data("dob"));
             $section.find("input[name='age[]']").val(tdDobAge.data("age"));
+            
+            
+           $ageproofdata = $row.find("td").eq(2);
+            // alert(tdDobAge.data("age"));
+
+            let age_proof = $ageproofdata.attr("data-age_proof");
+
+            // alert(age_proof);
+
+
+            
+            $section.attr("data-existing-age-file", age_proof || "");
+
+            // 🔥 SHOW FILE IN FORM
+            if (age_proof) {
+
+            
+                $section.find(".age-file-link").html(`
+                    <a href="${age_proof}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            } else {
+                $section.find(".age-file-link").html("");
+            }
+
+            // Get present file from TABLE (important)
+            let presentFileage = $ageproofdata.attr("data-age_proof");
+
+            $section.attr("data-present-age-file", presentFileage || "");
+            // Show present file below input box (only for table edit)
+            if (presentFileage) {
+                $section.find(".age-file-link").html(`
+                    <a href="${presentFileage}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            }
+
 
             // alert($section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text()));
             // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
@@ -6441,8 +6514,8 @@ let proprietorCount = initialDraftCount || 0;
             // Set text value
             $qualTextInput.val(qualTextValue);
 
-            // If qualification is not 8 TO 12 AND text exists → show wrapper
-            if (qualificationValue && qualificationValue !== '8 TO 12') {
+            // If qualification is not 8TH PASS AND text exists → show wrapper
+            if (qualificationValue && qualificationValue !== '8TH PASS') {
                 $wrapper.show();
             }
             // let $tr = $(this).closest("tr");
@@ -6599,8 +6672,29 @@ let proprietorCount = initialDraftCount || 0;
 
         // Show partner form
         $("#add-director").on("click", function() {
-            let rowCount = $("#director-section table tbody tr").length;
-            if (rowCount >= 6) {
+              let rowCount = $("#director-section table tbody tr").length;
+
+                let directorSection = $("#directorfill-section");
+
+                let directorInput = directorSection.find("input[name='proprietor_name[]']");
+
+                if (rowCount == 0) {
+
+                    let userName = @json(Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name);
+                    
+                    
+                $("#proprietor_name")
+                    .val(userName)
+                    .prop("readonly", true);
+
+                } else {
+
+                    directorInput
+                        .val("")
+                        .prop("readonly", false);
+                }
+            
+            if (rowCount >= 10) {
 
                 Swal.fire({
                     title: "Directors Entry Exists!",
@@ -6655,6 +6749,8 @@ let proprietorCount = initialDraftCount || 0;
 
             // qual_proof
             let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
+
+            let age_proof = $section.find("input[name='age_proof[]']").val().trim();
 
 
             let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
@@ -6756,7 +6852,7 @@ let proprietorCount = initialDraftCount || 0;
 
             }
 
-            if (qualification && qualification !== '8 TO 12') {
+            if (qualification && qualification !== '8TH PASS') {
                 // alert(qual_text);
 
                 if (!qual_text) {
@@ -6771,10 +6867,10 @@ let proprietorCount = initialDraftCount || 0;
 
             /* ---------------- FILE HANDLING ---------------- */
 
+          
             let isEditMode = $section.attr("data-edit-id") ? true : false;
 
-            // Existing file from edit
-            let existingFileUrl = $section.attr("data-existing-file") || "";
+             let existingFileUrl = $section.attr("data-existing-file") || "";
 
             // Present file from table edit
             let presentFile = $section.attr("data-present-file") || "";
@@ -6808,6 +6904,47 @@ let proprietorCount = initialDraftCount || 0;
                 finalFileUrl = existingFileUrl; // edit file
             } else if (hasPresentFile) {
                 finalFileUrl = presentFile; // table file
+            }
+
+
+            /* ================= AGE PROOF ================= */
+            let existingAgeFile = $section.attr("data-existing-age-file") || "";
+
+            // Present file from table edit
+            let presentAgeFile = $section.attr("data-present-age-file") || "";
+
+            // alert(presentFile);
+
+            // New uploaded file
+            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
+            let hasNewAgeFile = ageFileInput && ageFileInput.files && ageFileInput.files.length > 0;
+
+            // Flags
+            let hasExistingageFile = existingAgeFile !== "";
+            let hasPresentageFile = presentAgeFile !== "";
+
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingageFile && !hasPresentageFile) {
+
+            // alert(hasExistingageFile);
+                setError(
+                    $section.find("input[name='age_proof[]']"),
+                    "Please upload Age proof"
+                );
+                isValid = false;
+            }
+
+            // FINAL FILE
+            let uploadedAgeFilePath = window.uploadedAgeFilePath || "";
+            let finalAgeFileUrl = "";
+
+            if (hasNewAgeFile && uploadedAgeFilePath) {
+                finalAgeFileUrl = uploadedAgeFilePath; // new upload
+            } else if (hasExistingageFile) {
+                // alert('111');
+                finalAgeFileUrl = existingAgeFile; // edit file
+            } else if (hasPresentageFile) {
+                finalAgeFileUrl = presentAgeFile; // table file
             }
 
             /* ---------------- VALIDATION ---------------- */
@@ -6929,11 +7066,15 @@ let proprietorCount = initialDraftCount || 0;
                 $row.find("td").eq(1).text(fathersName);
 
                 $row.find("td").eq(2)
-                    .attr({
-                        "data-dob": dob,
-                        "data-age": age
-                    })
-                    .text(`${dob}, ${age}`);
+                .attr({
+                    "data-dob": dob,
+                    "data-age": age,
+                    "data-age_proof": finalAgeFileUrl
+                })
+                .html(`
+                    ${dob}, ${age}
+                    ${renderPdfIcon(finalAgeFileUrl)}
+                `);
 
                 $row.find("td").eq(3).text(address);
                 $row.find("td").eq(4)
@@ -6943,7 +7084,7 @@ let proprietorCount = initialDraftCount || 0;
                         "data-qual_proof": finalFileUrl
                     })
                     .html(
-                        (qualification === '8 TO 12' ?
+                        (qualification === '8TH PASS' ?
                             qualification :
                             `${qualification}, ${qual_text}`) +
                         " " +
@@ -7012,8 +7153,8 @@ let proprietorCount = initialDraftCount || 0;
                         <td>${name}</td>
                         <td>${fathersName}</td>
 
-                        <td data-dob="${dob}" data-age="${age}">
-                            ${dob}, ${age}
+                         <td data-dob="${dob}" data-age="${age}" data-age_proof="${finalAgeFileUrl}">
+                            ${dob}, ${age} , ${renderPdfIcon(finalAgeFileUrl)}
                         </td>
 
                         <td>${address}</td>
@@ -7022,7 +7163,7 @@ let proprietorCount = initialDraftCount || 0;
                             data-qual_text="${qual_text}" 
                             data-qual_proof="${finalFileUrl}">
                                 
-                            ${qualification === '8 TO 12'
+                            ${qualification === '8TH PASS'
                         ? qualification
                         : `${qualification}, ${qual_text}`}
 
@@ -7074,6 +7215,7 @@ let proprietorCount = initialDraftCount || 0;
 
             $section.find(".file-link").html("");
             $section.removeAttr("data-existing-file");
+            $section.find(".age-file-link").html("");
 
             $section.removeAttr("data-edit-id");
 
@@ -7145,6 +7287,44 @@ let proprietorCount = initialDraftCount || 0;
             $section.find("input[name='dob[]']").val(tdDobAge.data("dob"));
             $section.find("input[name='age[]']").val(tdDobAge.data("age"));
 
+              
+           $ageproofdata = $row.find("td").eq(2);
+            // alert(tdDobAge.data("age"));
+
+            let age_proof = $ageproofdata.attr("data-age_proof");
+
+            // alert(age_proof);
+
+
+            
+            $section.attr("data-existing-age-file", age_proof || "");
+
+            // 🔥 SHOW FILE IN FORM
+            if (age_proof) {
+
+            
+                $section.find(".age-file-link").html(`
+                    <a href="${age_proof}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            } else {
+                $section.find(".age-file-link").html("");
+            }
+
+            // Get present file from TABLE (important)
+            let presentFileage = $ageproofdata.attr("data-age_proof");
+
+            $section.attr("data-present-age-file", presentFileage || "");
+            // Show present file below input box (only for table edit)
+            if (presentFileage) {
+                $section.find(".age-file-link").html(`
+                    <a href="${presentFileage}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            }
+
             $section.find("textarea[name='proprietor_address[]']").val($row.find("td").eq(3).text());
 
             let tdqualification = $row.find("td").eq(4);
@@ -7172,8 +7352,8 @@ let proprietorCount = initialDraftCount || 0;
             // Set text value
             $qualTextInput.val(qualTextValue);
 
-            // If qualification is not 8 TO 12 AND text exists → show wrapper
-            if (qualificationValue && qualificationValue !== '8 TO 12') {
+            // If qualification is not 8TH PASS AND text exists → show wrapper
+            if (qualificationValue && qualificationValue !== '8TH PASS') {
                 $wrapper.show();
             }
             // let $tr = $(this).closest("tr");
@@ -7394,6 +7574,7 @@ let proprietorCount = initialDraftCount || 0;
                 $("#instrument3_row").slideUp();
             }
         });
+        
     </script>
     <!-- 
     <script>

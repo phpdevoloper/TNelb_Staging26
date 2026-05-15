@@ -124,7 +124,7 @@ class DocumentUploadController extends Controller
     }
 
 
-    public function uploadownershipdeed(Request $request)
+     public function uploadownershipdeed(Request $request)
     {
 
     // dd($request->all());
@@ -227,10 +227,14 @@ class DocumentUploadController extends Controller
 
                 // dd($request->document_category);
                 // exit;
+
+                $record_id_app = $request->record_id;
+                // dd($record_id);exit;
                 $existingQuery = DB::table('tnelb_temp_uploaded_documents')
                     ->where('login_id', $loginId)
                     ->where('application_id', $applicationId)
                     ->where('module', $request->module)
+                    // ->where('record_id_app', $record_id_app)
                     ->where('form_name', $request->form_name)
                     ->where('document_category', $request->document_category);
 
@@ -240,7 +244,13 @@ class DocumentUploadController extends Controller
                                 ->where('row_index', $request->row_index);
                 }
 
-                 if ($request->document_sub_category === 'ED') {
+                  if ($request->document_sub_category === 'AP') {
+                    $existingQuery->where('document_sub_category', 'AP')
+                                ->where('ownership_type', $request->ownership_type)
+                                ->where('row_index', $request->row_index);
+                }
+
+                if ($request->document_sub_category === 'ED') {
 
                 // dd('ED');exit;
                     $existingQuery->where('document_sub_category', 'ED')
@@ -267,6 +277,8 @@ class DocumentUploadController extends Controller
                     // ------------------------------------------
                     $fileName = $existing->file_name;
 
+                      $newStatus = ($existing->is_final == '1') ? '2' : '0';
+
                     // DELETE OLD FILE
                     $oldFile = public_path($existing->file_path . $fileName);
                     if (\File::exists($oldFile)) {
@@ -283,7 +295,7 @@ class DocumentUploadController extends Controller
                             'document_sub_category' => $request->document_sub_category,
                             'original_pdfname'      => $originalName,
                             'file_path'             => $dbFilePath,
-                            
+                            'is_final'              => $newStatus,
                             'uploaded_at'           => now(),
                             'updated_at'            => now(),
                         ]);
@@ -334,8 +346,28 @@ class DocumentUploadController extends Controller
                            
 
                             // dd($fileName);exit;
+ 
+                        } elseif ($request->document_sub_category === 'AP') {
 
-                        } elseif($request->document_sub_category === 'OHD') {
+                            // $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            //             'L' . $form_code . '_' .$request->ownership_type.
+                            //             $moduleCode . $counter . '.pdf';
+
+                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                                'L' . $form_code . '_' .
+                                strtoupper($request->ownership_type).
+                                $moduleCode.$request->row_index . '.pdf';
+
+                           
+
+                            // dd($fileName);exit;
+
+                        } 
+                        
+                        
+                        
+                        
+                        elseif($request->document_sub_category === 'OHD') {
 
                                        
                            // yyyymmdd_time(11.30)login_id_L(license)1_ownership_type_document_sub_category(OT).pdf
@@ -384,9 +416,9 @@ class DocumentUploadController extends Controller
                         'file_path'             => $dbFilePath,
                         'ownership_count'       => $counter,
 
-                        'appl_type'       => $request->appl_type,
+                        'appl_type'             => $request->appl_type,
 
-                       'row_index' =>            is_numeric($request->row_index) ? (int)$request->row_index : null,
+                        'row_index' =>            is_numeric($request->row_index) ? (int)$request->row_index : null,
                         
                         'equip_code'             => $equip_code,
                         'uploaded_at'           => now(),
