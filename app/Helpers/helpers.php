@@ -1,6 +1,7 @@
 <?php 
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Crypt;
 
@@ -56,6 +57,42 @@ function calculateDaysDifference($givenDate)
     return $interval->days;
 }
 
+if (!function_exists('format_edu_passing_month')) {
+    /**
+     * Education "month of passing": numeric 1–12 / 01–12 → Jan, Feb, …; recognises 3-letter names.
+     *
+     * @param  mixed  $month  Raw value from DB (e.g. month_passing)
+     */
+    function format_edu_passing_month($month): string
+    {
+        $raw = trim((string) ($month ?? ''));
+        if ($raw === '') {
+            return '';
+        }
+
+        static $labels = [
+            '01' => 'Jan', '02' => 'Feb', '03' => 'Mar', '04' => 'Apr',
+            '05' => 'May', '06' => 'Jun', '07' => 'Jul', '08' => 'Aug',
+            '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Dec',
+        ];
+
+        if (ctype_digit($raw)) {
+            $key = str_pad($raw, 2, '0', STR_PAD_LEFT);
+
+            return $labels[$key] ?? $raw;
+        }
+
+        $alpha = strtolower(substr($raw, 0, 3));
+        $alphaMap = [
+            'jan' => 'Jan', 'feb' => 'Feb', 'mar' => 'Mar', 'apr' => 'Apr',
+            'may' => 'May', 'jun' => 'Jun', 'jul' => 'Jul', 'aug' => 'Aug',
+            'sep' => 'Sep', 'oct' => 'Oct', 'nov' => 'Nov', 'dec' => 'Dec',
+        ];
+
+        return $alphaMap[$alpha] ?? $raw;
+    }
+}
+
 if (!function_exists('safeDecrypt')) {
     /**
      * Safely decrypt a value. Returns null if value is empty or decryption fails.
@@ -73,6 +110,13 @@ if (!function_exists('safeDecrypt')) {
         } catch (\Throwable $e) {
             return null;
         }
+    }
+}
+
+
+if (!function_exists('db_now')) {
+    function db_now() {
+        return DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
     }
 }
 

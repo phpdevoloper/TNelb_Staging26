@@ -6,10 +6,6 @@
         font-size: 15px;
     }
 
-    .active_license table th {
-        padding: 14 px !important;
-    }
-
     .custom-fieldset {
         border: 1px solid #34495e;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
@@ -250,6 +246,326 @@
         padding: 0.375rem 0.72rem;
     }
 
+    /* ------------------------------------------------------------------
+       Active / Present License Details — modern card-grid UI
+       Split into Competency Certificates and Contractor Licenses.
+       ------------------------------------------------------------------ */
+    .license-board {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .license-section {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        padding: 1rem 1.1rem 1.15rem;
+    }
+
+    .license-section__header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding-bottom: 0.65rem;
+        margin-bottom: 0.9rem;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .license-section__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        font-size: 15px;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .license-section--competency .license-section__icon {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+
+    .license-section--contractor .license-section__icon {
+        background: linear-gradient(135deg, #0d9488, #0f766e);
+    }
+
+    .license-section__title {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        letter-spacing: 0.01em;
+    }
+
+    .license-section__count {
+        margin-left: auto;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+        letter-spacing: 0.04em;
+    }
+
+    .license-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+        gap: 0.65rem;
+    }
+
+    /* Compact ID-card style: gradient background, monospace license number focal point. */
+    .license-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 0.6rem 0.75rem 0.65rem;
+        border: none;
+        border-radius: 9px;
+        color: #fff;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 55%, #2563eb 100%);
+        box-shadow: 0 2px 6px rgba(30, 58, 138, 0.18);
+    }
+
+    .license-section--contractor .license-card {
+        background: linear-gradient(135deg, #134e4a 0%, #0f766e 55%, #0d9488 100%);
+        box-shadow: 0 2px 6px rgba(13, 148, 136, 0.18);
+    }
+
+    .license-card.is-expired {
+        background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 55%, #b91c1c 100%);
+        box-shadow: 0 2px 6px rgba(153, 27, 27, 0.22);
+    }
+
+    /* Decorative glow blobs (smaller for compact card) */
+    .license-card::before {
+        content: '';
+        position: absolute;
+        top: -55%;
+        right: -25%;
+        width: 130px;
+        height: 130px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.13), transparent 70%);
+        pointer-events: none;
+    }
+
+    .license-card::after {
+        content: '';
+        position: absolute;
+        bottom: -45%;
+        left: -18%;
+        width: 110px;
+        height: 110px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 70%);
+        pointer-events: none;
+    }
+
+    .license-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(30, 58, 138, 0.26);
+    }
+
+    .license-section--contractor .license-card:hover {
+        box-shadow: 0 6px 14px rgba(13, 148, 136, 0.26);
+    }
+
+    .license-card.is-expired:hover {
+        box-shadow: 0 6px 14px rgba(153, 27, 27, 0.3);
+    }
+
+    .license-card__top {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.45rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .license-card__category {
+        font-size: 0.58rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.74);
+    }
+
+    .license-card__status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        color: #fff;
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        white-space: nowrap;
+        line-height: 1.4;
+    }
+
+    .license-card__status::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+
+    .license-card.is-active .license-card__status::before {
+        background: #4ade80;
+        box-shadow: 0 0 5px rgba(74, 222, 128, 0.7);
+    }
+
+    .license-card.is-expired .license-card__status::before {
+        background: #fca5a5;
+    }
+
+    .license-card__title {
+        position: relative;
+        z-index: 1;
+        font-size: 0.78rem;
+        font-weight: 600;
+        line-height: 1.3;
+        color: rgba(255, 255, 255, 0.95);
+        margin-bottom: 0.25rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .license-card__number {
+        position: relative;
+        z-index: 1;
+        font-family: 'Courier New', Consolas, ui-monospace, monospace;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+        margin-bottom: 0.55rem;
+        word-break: break-all;
+    }
+
+    .license-card__bottom {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-top: auto;
+    }
+
+    .license-card__dates {
+        display: flex;
+        gap: 0.85rem;
+    }
+
+    .license-card__date-block {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+
+    .license-card__date-label {
+        font-size: 0.54rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.62);
+        margin-bottom: 1px;
+    }
+
+    .license-card__date-value {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #fff;
+        letter-spacing: 0.01em;
+    }
+
+    .license-card__chip {
+        background: rgba(255, 255, 255, 0.95);
+        color: #1e3a8a;
+        font-size: 0.6rem;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 4px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        line-height: 1.4;
+    }
+
+    .license-section--contractor .license-card__chip {
+        color: #134e4a;
+    }
+
+    .license-card.is-expired .license-card__chip {
+        color: #7f1d1d;
+    }
+
+    .license-card__reason {
+        position: relative;
+        z-index: 1;
+        margin-top: 0.45rem;
+        padding: 0.35rem 0.55rem;
+        background: rgba(255, 255, 255, 0.16);
+        border-left: 2px solid rgba(255, 255, 255, 0.65);
+        border-radius: 3px;
+        font-size: 0.68rem;
+        font-weight: 500;
+        line-height: 1.35;
+        color: #fff;
+        display: flex;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .license-card__reason i {
+        margin-top: 1px;
+        flex-shrink: 0;
+        font-size: 0.7rem;
+    }
+
+    .license-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        padding: 1.7rem 1rem;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        color: #64748b;
+        font-size: 0.86rem;
+        font-weight: 500;
+    }
+
+    .license-empty i {
+        font-size: 1rem;
+        color: #94a3b8;
+    }
+
+    @media (max-width: 575px) {
+        .license-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
 </style>
 <section class="dashboard-panel">
     <div class="layout-login">
@@ -291,187 +607,180 @@
 
 
                         <!-- Projects -->
-                        <div class="projects-section-login active_license">
+
+                        @php
+                        use Carbon\Carbon;
+                        $today = Carbon::today();
+                        $competencyCodes = ['C', 'B', 'W', 'WH'];
+                        $allLicenses = collect($present_license);
+                        $competencyLicenses = $allLicenses->filter(function ($l) use ($competencyCodes) {
+                            return in_array($l->license_name, $competencyCodes);
+                        });
+                        $contractorLicenses = $allLicenses->reject(function ($l) use ($competencyCodes) {
+                            return in_array($l->license_name, $competencyCodes);
+                        });
+                        @endphp
+
+                        <div class="projects-section-login license-board">
                             <h5 class="mb-2"><strong>Active / Present License Details</strong></h5>
-                            <div class="project-list-login mt-2">
 
-                                <div class="project-card-login" data-status="en-cours">
-                                    @if (!$present_license)
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <p>No Active Licenses</p>
-                                        </div>
-                                    </div>
-                                    @endif
-
-                                    <table class="table table-login " width="100%">
-                                        <thead class="text-center">
-                                            <tr>
-                                                <th>Licence Name / Certificate Name</th>
-                                                <th>Category</th>
-                                                <th>License Number</th>
-                                                <th>Issued On</th>
-                                                <th>Validity Upto</th>
-                                                <th>Status</th>
-                                                <th>Reason</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @php
-                                            use Carbon\Carbon;
-
-                                            // Merge both collections
-                                            $allLicenses = collect($present_license);
-
-                                            $today = Carbon::today();
-                                            $licenses = ['C', 'B', 'W', 'WH'];
-                                            @endphp
-
-                                            @forelse($allLicenses as $workflow)
-                                            @php
-                                            $category = in_array($workflow->license_name, $licenses)
-                                            ? 'Competency Certificate'
-                                            : 'Contractor License';
-
-                                            $issuedDate = $workflow->issued_at ? Carbon::parse($workflow->issued_at)->format('d-m-Y') : 'N/A';
-                                            $expiryDate = $workflow->expires_at ? Carbon::parse($workflow->expires_at)->format('d-m-Y') : 'N/A';
-                                            $expiry = $workflow->renewal_expires_at ?: $workflow->expires_at;
-
-
-                                            $isExpired = Carbon::parse($expiry)->lte($today);
-
-
-
-                                            $applicant_id = $workflow->application_id;
-
-                                            // TEMP: Bank Solvency lookup disabled (table `tnelb_banksolvency_a` missing in DB)
-                                            // $banksolvency = \App\Models\Tnelb_banksolvency_a::where('application_id', $applicant_id)
-                                            //     ->where('status', '1')
-                                            //     ->first();
-                                            $banksolvency = null;
-
-                                            // TEMP: Equipment list lookup disabled (table `equipment_storetmp_a` missing in DB)
-                                            // $equipmentlist = \App\Models\Equipment_storetmp_A::where('application_id', $applicant_id)->first();
-                                            $equipmentlist = null;
-
-                                            // TEMP: Staff details lookup disabled (table `tnelb_applicant_cl_staffdetails` missing in DB)
-                                            // $staffRecords = DB::table('tnelb_applicant_cl_staffdetails')
-                                            //     ->where('application_id', $applicant_id)
-                                            //     ->where('staff_category', 'QC')
-                                            //     ->orderBy('id')
-                                            //     ->get();
-                                            $staffRecords = collect();
-
-                                            $expiredStaffDates = [];
-                                            if ($staffRecords->count() > 0) {
-                                            foreach ($staffRecords as $staff) {
-                                            if (!empty($staff->cc_validity)) {
-                                            $ccValidity = Carbon::parse($staff->cc_validity);
-
-                                            $CCNumber = $staff->cc_number;
-                                            if ($ccValidity->lt($today)) {
-                                            $expiredStaffDates[] =[
-                                            'number' => $staff->cc_number ?? 'N/A',
-                                            'date' => $ccValidity->format('d-m-Y')];
-                                            }
-                                            }
-                                            }
-                                            }
-
-
-                                            // Prepare date comparisons
-                                            $bankValidity = null; // see TEMP note above
-                                            @endphp
-
-                                            <tr class="text-center">
-                                                <td style="width: 18%;">
-
-                                                @php
-                                             $licence_name_present = DB::table('mst_licences')
-               
-                                            ->where('cert_licence_code', $workflow->license_name)
-                                             ->first();
-                                                @endphp
-                                            {{$licence_name_present->licence_name }} <br>
-                                                   [Form {{ $workflow->license_name ?? 'N/A' }}]
-                                                    <!-- {{ $applicant_id }} -->
-                                                </td>
-                                                <td>{{ $category }}</td>
-                                                <td>{{ $workflow->license_number }}</td>
-                                                <td>{{ $issuedDate }}</td>
-                                                <td>{{ $expiryDate }}</td>
-
-                                                <td>
-                                                    @php
-                                                    $hasBankExpired = $bankValidity && $bankValidity->lt($today);
-                                                    $hasStaffExpired = !empty($expiredStaffDates);
-                                                    @endphp
-
-                                                    @if($isExpired)
-                                                    <span class="badge text-danger text-white">Expired</span>
-                                                    @else
-                                                    @if($hasBankExpired || $hasStaffExpired)
-
-                                                    <span class="badge text-danger text-white" style="line-height: 20px;">Expired</span>
-                                                    @else
-                                                    <span class="badge text-success text-white">Active</span>
-                                                    @endif
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @if ($workflow->license_name == 'EA' || $workflow->license_name == 'ESA' || $workflow->license_name == 'ESB' || $workflow->license_name == 'EB' )
-                                                    @php
-                                                    $hasBankExpired = $bankValidity && $bankValidity->lt($today);
-                                                    $hasStaffExpired = !empty($expiredStaffDates);
-                                                    @endphp
-                                                    @if($isExpired)
-                                                    <span class="text-danger" style="font-weight:600; font-size:13px; ">
-                                                        Expired: {{ Carbon::parse($workflow->expires_at)->format('d-m-Y') }}
-                                                    </span>
-                                                    @else
-
-                                                    @if ($hasBankExpired || $hasStaffExpired)
-                                                    <span class="text-danger " style="font-weight:600; font-size:13px; ">
-                                                        @if($hasBankExpired)
-                                                        Bank Solvency Date Expired on {{ $bankValidity->format('d-m-Y') }}<br>
-                                                        @endif
-
-                                                        @if($hasStaffExpired)
-
-                                                        @foreach($expiredStaffDates as $expired)
-                                                        QC Staff CC Number: {{ $expired['number'] }} , Date Expired on {{ $expired['date'] }}<br>
-                                                        @endforeach
-                                                        @endif
-                                                    </span>
-                                                    @else
-                                                    -
-                                                    @endif
-                                                    @endif
-                                                    @else
-                                                    -
-                                                    @endif
-
-                                                </td>
-
-                                            </tr>
-                                            @empty
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted">No License Found</td>
-                                            </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-
-
+                            {{-- Competency Certificates --}}
+                            <section class="license-section license-section--competency">
+                                <div class="license-section__header">
+                                    <span class="license-section__icon"><i class="fa fa-certificate"></i></span>
+                                    <h6 class="license-section__title">Competency Certificates</h6>
+                                    <span class="license-section__count">{{ $competencyLicenses->count() }}</span>
                                 </div>
-                            </div>
+
+                                @if ($competencyLicenses->isEmpty())
+                                    <div class="license-empty">
+                                        <i class="fa fa-folder-open-o"></i>
+                                        <span>No active competency certificates</span>
+                                    </div>
+                                @else
+                                    <div class="license-grid">
+                                        @foreach ($competencyLicenses as $workflow)
+                                            @php
+                                                $licName = DB::table('mst_licences')
+                                                    ->where('cert_licence_code', $workflow->license_name)
+                                                    ->first();
+                                                $issuedDate = $workflow->issued_at ? Carbon::parse($workflow->issued_at)->format('d-m-Y') : 'N/A';
+                                                $expiryDate = $workflow->expires_at ? Carbon::parse($workflow->expires_at)->format('d-m-Y') : 'N/A';
+                                                $expiry = $workflow->renewal_expires_at ?: $workflow->expires_at;
+                                                $isExpired = $expiry ? Carbon::parse($expiry)->lte($today) : false;
+                                            @endphp
+
+                                            <article class="license-card {{ $isExpired ? 'is-expired' : 'is-active' }}">
+                                                <div class="license-card__top">
+                                                    {{-- <span class="license-card__category">Competency Certificate</span> --}}
+                                                    <span class="license-card__status">
+                                                        {{ $isExpired ? 'Expired' : 'Active' }}
+                                                    </span>
+                                                </div>
+                                                <div class="license-card__title">
+                                                    {{ $licName->licence_name ?? 'N/A' }}
+                                                </div>
+                                                <div class="license-card__number">
+                                                    {{ $workflow->license_number ?? '— — — —' }}
+                                                </div>
+                                                <div class="license-card__bottom">
+                                                    <div class="license-card__dates">
+                                                        <div class="license-card__date-block">
+                                                            <span class="license-card__date-label">Issued</span>
+                                                            <span class="license-card__date-value">{{ $issuedDate }}</span>
+                                                        </div>
+                                                        <div class="license-card__date-block">
+                                                            <span class="license-card__date-label">Expiry</span>
+                                                            <span class="license-card__date-value">{{ $expiryDate }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span class="license-card__chip">Form {{ $workflow->license_name ?? 'N/A' }}</span>
+                                                </div>
+
+                                                @if ($isExpired && $workflow->expires_at)
+                                                    <div class="license-card__reason">
+                                                        <i class="fa fa-exclamation-triangle"></i>
+                                                        <span>Expired on {{ Carbon::parse($workflow->expires_at)->format('d-m-Y') }}</span>
+                                                    </div>
+                                                @endif
+                                            </article>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </section>
+
+                            {{-- Contractor Licenses --}}
+                            <section class="license-section license-section--contractor">
+                                <div class="license-section__header">
+                                    <span class="license-section__icon"><i class="fa fa-id-card-o"></i></span>
+                                    <h6 class="license-section__title">Contractor Licenses</h6>
+                                    <span class="license-section__count">{{ $contractorLicenses->count() }}</span>
+                                </div>
+
+                                @if ($contractorLicenses->isEmpty())
+                                    <div class="license-empty">
+                                        <i class="fa fa-folder-open-o"></i>
+                                        <span>No active contractor licenses</span>
+                                    </div>
+                                @else
+                                    <div class="license-grid">
+                                        @foreach ($contractorLicenses as $workflow)
+                                            @php
+                                                $licName = DB::table('mst_licences')
+                                                    ->where('cert_licence_code', $workflow->license_name)
+                                                    ->first();
+                                                $issuedDate = $workflow->issued_at ? Carbon::parse($workflow->issued_at)->format('d-m-Y') : 'N/A';
+                                                $expiryDate = $workflow->expires_at ? Carbon::parse($workflow->expires_at)->format('d-m-Y') : 'N/A';
+                                                $expiry = $workflow->renewal_expires_at ?: $workflow->expires_at;
+                                                $isExpired = $expiry ? Carbon::parse($expiry)->lte($today) : false;
+
+                                                // TEMP: Bank Solvency / Staff CC checks disabled (source tables missing in DB)
+                                                $bankValidity = null;
+                                                $expiredStaffDates = [];
+                                                $hasBankExpired = $bankValidity && $bankValidity->lt($today);
+                                                $hasStaffExpired = !empty($expiredStaffDates);
+                                                $isFlagged = $isExpired || $hasBankExpired || $hasStaffExpired;
+                                            @endphp
+
+                                            <article class="license-card {{ $isFlagged ? 'is-expired' : 'is-active' }}">
+                                                <div class="license-card__top">
+                                                    <span class="license-card__category">Contractor License</span>
+                                                    <span class="license-card__status">
+                                                        {{ $isFlagged ? 'Expired' : 'Active' }}
+                                                    </span>
+                                                </div>
+                                                <div class="license-card__title">
+                                                    {{ $licName->licence_name ?? 'N/A' }}
+                                                </div>
+                                                <div class="license-card__number">
+                                                    {{ $workflow->license_number ?? '— — — —' }}
+                                                </div>
+                                                <div class="license-card__bottom">
+                                                    <div class="license-card__dates">
+                                                        <div class="license-card__date-block">
+                                                            <span class="license-card__date-label">Issued</span>
+                                                            <span class="license-card__date-value">{{ $issuedDate }}</span>
+                                                        </div>
+                                                        <div class="license-card__date-block">
+                                                            <span class="license-card__date-label">Expiry</span>
+                                                            <span class="license-card__date-value">{{ $expiryDate }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span class="license-card__chip">Form {{ $workflow->license_name ?? 'N/A' }}</span>
+                                                </div>
+
+                                                @if ($isExpired && $workflow->expires_at)
+                                                    <div class="license-card__reason">
+                                                        <i class="fa fa-exclamation-triangle"></i>
+                                                        <span>Expired on {{ Carbon::parse($workflow->expires_at)->format('d-m-Y') }}</span>
+                                                    </div>
+                                                @elseif ($hasBankExpired || $hasStaffExpired)
+                                                    <div class="license-card__reason">
+                                                        <i class="fa fa-exclamation-triangle"></i>
+                                                        <span>
+                                                            @if ($hasBankExpired)
+                                                                Bank Solvency expired on {{ $bankValidity->format('d-m-Y') }}<br>
+                                                            @endif
+                                                            @if ($hasStaffExpired)
+                                                                @foreach ($expiredStaffDates as $expired)
+                                                                    QC Staff CC {{ $expired['number'] }} expired on {{ $expired['date'] }}<br>
+                                                                @endforeach
+                                                            @endif
+                                                        </span>
+                                                    </div>
+                                                @endif
+                                            </article>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </section>
                         </div>
 
                         <!-- Tasks -->
                         @if (isset($paginatedData) && $paginatedData->isNotEmpty())
 
                         <!-- ----------------- -->
-                        <div class="tasks-section-login d-none d-sm-block">
+                        <div class="tasks-section-login">
                             <h5 class="mb-2">
                                 <strong>Status of Applications ( Competency Certificate )</strong>
                             </h5>
@@ -507,8 +816,6 @@
                                 <div id="applicationsTable">
                                     @include('user_login.pagination-list')
                                 </div>
-
-                                <div id="tablePagination" class="mt-3"></div>
                             </fieldset>
                         </div>
                         @endif
@@ -1041,6 +1348,9 @@ document.addEventListener("DOMContentLoaded", function () {
     tables.forEach((table, tableIndex) => {
         const rows = table.querySelectorAll("tbody tr");
         const paginationContainer = table.nextElementSibling; // .table-pagination div
+        if (!paginationContainer || !paginationContainer.classList.contains("table-pagination")) {
+            return;
+        }
         let currentPage = 1;
 
         function displayRows(page) {

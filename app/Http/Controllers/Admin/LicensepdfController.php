@@ -2319,6 +2319,7 @@ class LicensepdfController extends Controller
                 'tnelb_renewal_license.license_number',
                 'tnelb_renewal_license.issued_by',
                 'tnelb_renewal_license.issued_at',
+                'tnelb_renewal_license.issued_from',
                 'tnelb_renewal_license.expires_at'
             )
             ->first();
@@ -2338,6 +2339,7 @@ class LicensepdfController extends Controller
                 'tnelb_license.license_number',
                 'tnelb_license.issued_by',
                 'tnelb_license.issued_at',
+                'tnelb_license.issued_from',
                 'tnelb_license.expires_at'
             )
             ->first();
@@ -2515,8 +2517,13 @@ class LicensepdfController extends Controller
                 font-size: 11pt;
                 border-collapse: collapse;
                 width: 100%;
+                table-layout: fixed;
             }
             .info-table td { padding: 1.65mm 0; vertical-align: top; border-bottom: 0.22mm solid #e8edf4; }
+            .info-table td.lbl {
+                width: 50%;
+                padding-right: 1mm;
+            }
             .info-table td.lbl,
             .info-table td.lbl .lbl-bi {
                 font-family: helvetica;
@@ -2526,16 +2533,18 @@ class LicensepdfController extends Controller
                 font-family: TAMIL_FONT_PLACEHOLDER !important;
             }
             .info-table .colon {
-                width: 2mm;
+                width: 3mm;
                 text-align: center;
                 font-weight: bold;
                 padding-top: 0.35mm;
             }
             .info-table .val {
+                width: 50%;
                 font-size: 11pt;
                 font-weight: normal;
                 line-height: 1.3;
-                padding-left: 0.5mm;
+                padding-left: 1mm;
+                word-wrap: break-word;
             }
             .summary-card { border: 0.4mm solid #cfd8e3; margin-top: 2mm; overflow: hidden; }
             .summary-heading {
@@ -2632,8 +2641,13 @@ class LicensepdfController extends Controller
         ), \Mpdf\HTMLParserMode::HEADER_CSS);
                 
         $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path): null;
+        // var_dump($photoPath);exit;
         $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
         
+
+        // var_dump($photoPath);
+        // var_dump($signPath);
+        // exit;
 
         $qrValue = 'Tnelb QR Testing';
 
@@ -2678,7 +2692,7 @@ class LicensepdfController extends Controller
                                  <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Validity</div><div class="lbl-ta" lang="ta">செல்லுபடியாகும் காலம்</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">'.format_date($applicant->issued_at).' <span class="range-sep-inline"><span class="rs-en">To</span> <span class="rs-ta" lang="ta">வரை</span></span> '.format_date($applicant->expires_at).'</td>
+                                    <td class="val">'.format_date($applicant->issued_from).' <span class="range-sep-inline"><span class="rs-en">To</span> <span class="rs-ta" lang="ta">வரை</span></span> '.format_date($applicant->expires_at).'</td>
                                 </tr>
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>

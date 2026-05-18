@@ -121,6 +121,76 @@ class FormController extends BaseController
     }
 
     /**
+     * Form W / WH / P — work experience is optional; if any field in a row is filled, require the full row including dates.
+     */
+    private function validateOptionalCompetencyWorkRows(Request $request, \Illuminate\Validation\Validator $validator): void
+    {
+        if (($request->form_name ?? '') === 'W') {
+            return;
+        }
+
+        $levels = is_array($request->work_level ?? null) ? $request->work_level : [];
+        $exps = is_array($request->experience ?? null) ? $request->experience : [];
+        $designations = is_array($request->designation ?? null) ? $request->designation : [];
+        $fromDates = is_array($request->work_date_from ?? null) ? $request->work_date_from : [];
+        $toDates = is_array($request->work_date_to ?? null) ? $request->work_date_to : [];
+
+        $max = max(
+            count($levels),
+            count($exps),
+            count($designations),
+            count($fromDates),
+            count($toDates)
+        );
+
+        for ($i = 0; $i < $max; $i++) {
+            $wl = trim((string) ($levels[$i] ?? ''));
+            $ex = trim((string) ($exps[$i] ?? ''));
+            $des = trim((string) ($designations[$i] ?? ''));
+            $from = trim((string) ($fromDates[$i] ?? ''));
+            $to = trim((string) ($toDates[$i] ?? ''));
+
+            $any = ($wl !== '' || $ex !== '' || $des !== '' || $from !== '' || $to !== '');
+            if (! $any) {
+                continue;
+            }
+
+            if ($wl === '') {
+                $validator->errors()->add("work_level.$i", 'Work level is required.');
+            }
+            if ($des === '') {
+                $validator->errors()->add("designation.$i", 'Designation is required.');
+            }
+            if ($from === '') {
+                $validator->errors()->add("work_date_from.$i", 'From date is required.');
+            }
+            if ($to === '') {
+                $validator->errors()->add("work_date_to.$i", 'To date is required.');
+            }
+            if ($ex === '') {
+                $validator->errors()->add("experience.$i", 'Experience (in years) is required.');
+            }
+
+            if ($from !== '' && $to !== '') {
+                try {
+                    $fromC = Carbon::parse($from)->startOfDay();
+                    $toC = Carbon::parse($to)->startOfDay();
+                    if ($toC->lt($fromC)) {
+                        $validator->errors()->add("work_date_to.$i", 'To date must be greater than or equal to From date.');
+                    } else {
+                        $minimumToDate = $fromC->copy()->addYears(2);
+                        if ($toC->lt($minimumToDate)) {
+                            $validator->errors()->add("work_date_to.$i", 'Minimum 2 Years Experience needed');
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Other rules may handle invalid date formats.
+                }
+            }
+        }
+    }
+
+    /**
      * Form S §7 — work experience: To date must be at least two calendar years after From date.
      */
     private function validateFor9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8(Request $request, \Illuminate\Validation\Validator $validator): void
@@ -576,31 +646,7 @@ class FormController extends BaseController
                 return;
             }
 
-            $levels = $request->work_level ?? [];
-            $exps = $request->experience ?? [];
-            $designations = $request->designation ?? [];
-
-            $max = max(count($levels), count($exps), count($designations));
-            for ($i = 0; $i < $max; $i++) {
-                $wl = trim((string)($levels[$i] ?? ''));
-                $ex = trim((string)($exps[$i] ?? ''));
-                $des = trim((string)($designations[$i] ?? ''));
-
-                $any = ($wl !== '' || $ex !== '' || $des !== '');
-                if (!$any) {
-                    continue;
-                }
-
-                if ($wl === '') {
-                    $validator->errors()->add("work_level.$i", 'Work level is required.');
-                }
-                if ($ex === '') {
-                    $validator->errors()->add("experience.$i", 'Experience (in years) is required.');
-                }
-                if ($des === '') {
-                    $validator->errors()->add("designation.$i", 'Designation is required.');
-                }
-            }
+            $this->validateOptionalCompetencyWorkRows($request, $validator);
         });
         $validator->after(function ($validator) use ($request, $isWorkOptional) {
             if (! $this->isCompetencyForm($request->form_name ?? null)) {
@@ -1105,31 +1151,7 @@ class FormController extends BaseController
                 return;
             }
 
-            $levels = $request->work_level ?? [];
-            $exps = $request->experience ?? [];
-            $designations = $request->designation ?? [];
-
-            $max = max(count($levels), count($exps), count($designations));
-            for ($i = 0; $i < $max; $i++) {
-                $wl = trim((string)($levels[$i] ?? ''));
-                $ex = trim((string)($exps[$i] ?? ''));
-                $des = trim((string)($designations[$i] ?? ''));
-
-                $any = ($wl !== '' || $ex !== '' || $des !== '');
-                if (!$any) {
-                    continue;
-                }
-
-                if ($wl === '') {
-                    $validator->errors()->add("work_level.$i", 'Work level is required.');
-                }
-                if ($ex === '') {
-                    $validator->errors()->add("experience.$i", 'Experience (in years) is required.');
-                }
-                if ($des === '') {
-                    $validator->errors()->add("designation.$i", 'Designation is required.');
-                }
-            }
+            $this->validateOptionalCompetencyWorkRows($request, $validator);
         });
         $validator->after(function ($validator) use ($request, $isWorkOptional) {
             if (! $this->isCompetencyForm($request->form_name ?? null)) {
@@ -1161,7 +1183,7 @@ class FormController extends BaseController
                                 'The previously uploaded certificate is missing on the server. Please upload the document again.'
                             );
                         }
-                } else {
+                    } else {
                         $validator->errors()->add('existing_document.'.$key, 'Invalid uploaded document reference.');
                     }
                 }

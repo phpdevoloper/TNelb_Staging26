@@ -1697,38 +1697,50 @@ public function approveApplication(Request $request)
      */
     private function issueOrRenewLicense(object $application, int $licenceId, string $applType, string $processedBy, string $applicationId, string $loginId): array
     {
+        
         // Renewal flow
         if ($applType === 'R') {
             $licenseDetails = DB::table('tnelb_renewal_license')
                 ->where('application_id', $applicationId)
                 ->first();
 
-            $now = now();
+            
+
+            $previousCertExpiry = DB::table('tnelb_license')
+                ->where('license_number', $application->license_number)
+                ->value('expires_at');
+
+            $now = db_now();
+
+
 
             if (!$licenseDetails || $now->greaterThan(Carbon::parse($licenseDetails->expires_at))) {
-                $issuedAt = $now->format('Y-m-d H:i:s');
+                $issuedAt = $now;
 
                 $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
                 $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
+                
                 // $expiresAtone     = $now->copy()->addMonths($monthsToAdd)->format('Y-m-d');
 
-                   $expiresAt = $now->copy()
-                    ->addMonths($monthsToAdd)
-                    ->subDay()
-                    ->format('Y-m-d');
+                $expiresAt = Carbon::parse($previousCertExpiry)->copy()
+                ->addMonths($monthsToAdd)
+                ->subDay()
+                ->format('Y-m-d');
 
                 DB::table('tnelb_renewal_license')->insert([
                     'login_id'       => $loginId,
                     'license_number' => $application->license_number,
                     'application_id' => $applicationId,
                     'issued_by'      => $processedBy,
-                    'issued_at'      => $issuedAt,
+                    'issued_at'      => $now,
+                    'issued_from'    => $previousCertExpiry,
                     'expires_at'     => $expiresAt,
-                    'created_at'     => now(),
+                    'created_at'     => $now,
                 ]);
 
                 $licenseNumber = $application->license_number;
             } else {
+                
                 // Existing renewal record still valid – reuse its values
                 $licenseNumber = $licenseDetails->license_number;
                 $issuedAt      = $licenseDetails->issued_at;
@@ -1746,9 +1758,10 @@ public function approveApplication(Request $request)
         if ($licenseDetails) {
             $licenseNumber = $licenseDetails->license_number;
             $issuedAt      = $licenseDetails->issued_at;
+            $issuedFrom    = $licenseDetails->issued_from;
             $expiresAt     = $licenseDetails->expires_at;
 
-            return [$licenseNumber, $issuedAt, $expiresAt];
+            return [$licenseNumber, $issuedAt, $issuedFrom, $expiresAt];
         }
 
         // Create a brand new licence entry
@@ -1767,28 +1780,27 @@ public function approveApplication(Request $request)
             $newNumber = '00001';
         }
 
-         $now = now();
+        $now = db_now();
 
         $licenseNumber = "L{$prefix}{$yearMonth}{$newNumber}";
-        $issuedAt      = now()->format('Y-m-d H:i:s');
+        $issuedAt      = $now;
 
         $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
         $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
-        $expiresAtone     = now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
+        
 
-           $expiresAt = $now->copy()
-                    ->addMonths($monthsToAdd)
-                    ->subDay()
-                    ->format('Y-m-d');
-
-                    // dd($expiresAt, $expiresAtone);exit;
+        $expiresAt = Carbon::parse($now)->copy()->addMonths($monthsToAdd)
+                ->subDay()
+                ->toDateString();
 
         DB::table('tnelb_license')->insert([
             'application_id' => $applicationId,
             'license_number' => $licenseNumber,
             'issued_by'      => $processedBy,
             'issued_at'      => $issuedAt,
+            'issued_from'    => $now,
             'expires_at'     => $expiresAt,
+            'created_at'     => $now,
         ]);
 
         return [$licenseNumber, $issuedAt, $expiresAt];

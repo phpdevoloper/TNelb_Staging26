@@ -359,6 +359,36 @@ $(document).ready(function() {
 
     $(document).ready(function() {
 
+        /** Date order / min-duration for work rows: inject below From–To flex row so columns stay aligned (Form S/W/WH). */
+        function clearWorkExpDateRangeError($row) {
+            if (!$row || !$row.length) {
+                return;
+            }
+            var $inline = $row.find('.work-exp-col-years .work-exp-inline').not('.work-exp-inline--head').first();
+            if ($inline.length) {
+                $inline.next('.work-exp-date-range-error').remove();
+            } else {
+                $row.find('.work-date-to').first().next('.work-exp-date-range-error').remove();
+            }
+        }
+
+        function showWorkExpDateRangeError($row, message) {
+            if (!$row || !$row.length) {
+                return;
+            }
+            clearWorkExpDateRangeError($row);
+            var cls = 'error-message text-danger d-block mt-1 work-exp-date-range-error';
+            var html = '<span class="' + cls + '">' + message + '</span>';
+            var $inline = $row.find('.work-exp-col-years .work-exp-inline').not('.work-exp-inline--head').first();
+            if ($inline.length) {
+                $inline.after(html);
+            } else {
+                var $toDate = $row.find('.work-date-to').first();
+                if ($toDate.length) {
+                    $toDate.after(html);
+                }
+            }
+        }
 
         let profile = document.querySelector('.profile');
         let menu = document.querySelector('.menu');
@@ -1293,6 +1323,33 @@ $(document).ready(function() {
                             padding: 6px 8px;
                             font-size: 0.86rem;
                         }
+                        /* Form S — work experience Yrs/Mo/Days: prevent digit wrap in narrow SweetAlert clone */
+                        .preview-modal-wrap #work-table .work-exp-col-years .work-exp-inline {
+                            flex-wrap: nowrap;
+                        }
+                        .preview-modal-wrap #work-table .work-exp-total-inline {
+                            flex: 1 1 auto !important;
+                            min-width: 9rem;
+                            max-width: none;
+                        }
+                        .preview-modal-wrap #work-table .work-duration-ymd {
+                            flex-wrap: nowrap;
+                            gap: 0.35rem;
+                            justify-content: center;
+                        }
+                        .preview-modal-wrap #work-table .work-duration-cell {
+                            flex: 1 1 0;
+                            min-width: 2.85rem;
+                        }
+                        .preview-modal-wrap #work-table .work-duration-cell .preview-value,
+                        .preview-modal-wrap #work-table .work-duration-cell .preview-value.preview-value-sm {
+                            display: block;
+                            white-space: nowrap;
+                            word-break: normal;
+                            overflow-wrap: normal;
+                            text-align: center;
+                            justify-content: unset;
+                        }
                         .preview-modal-wrap .preview-value-inline {
                             max-width: 120px;
                             margin: 0 auto;
@@ -1487,11 +1544,13 @@ $(document).ready(function() {
             let applicantEmailEl = $('#applicant_email');
             if (applicantEmailEl.length) {
                 let ev = (applicantEmailEl.val() || '').trim();
-                if (ev === '') {
+                let formNameEmail = ($('#form_name').val() || '').toString().trim().toUpperCase();
+                let emailRequired = formNameEmail === 'S';
+                if (emailRequired && ev === '') {
                     applicantEmailEl.after('<span class="error-message text-danger d-block mt-1">Email ID is required.</span>');
                     if (!firstErrorField) firstErrorField = applicantEmailEl;
                     isValid = false;
-                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)) {
+                } else if (ev !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)) {
                     applicantEmailEl.after('<span class="error-message text-danger d-block mt-1">Enter a valid Email ID.</span>');
                     if (!firstErrorField) firstErrorField = applicantEmailEl;
                     isValid = false;
@@ -1625,9 +1684,34 @@ $(document).ready(function() {
                 }
             });
 
-            const formName = ($('#form_name').val() || '').trim();
+            const formName = (($('#form_name').val() || '').trim() || '').toUpperCase();
             const workOptional = (formName === 'W' || formName === 'WH' || formName === 'P');
             const isSWorkForm = (formName === 'S');
+
+            /** Work experience row dates may show DD-MM-YYYY (data-raw holds ISO); match edit-form JS. */
+            function readWorkDateIso($input) {
+                if (!$input || !$input.length) return '';
+                const raw = String($input.attr('data-raw') || '').trim();
+                if (raw) return raw;
+                const v = String($input.val() || '').trim();
+                if (!v) return '';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+                const m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+                if (m) return m[3] + '-' + m[2] + '-' + m[1];
+                return '';
+            }
+
+            /* Recompute work duration hidden fields before validating (native change + blur for jQuery handlers). */
+            if ($('#work-container').length) {
+                $('#work-container .work-fields').find('.work-date-from, .work-date-to').each(function () {
+                    const el = this;
+                    if (el.dispatchEvent) {
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    $(el).trigger('blur');
+                });
+            }
 
             $('#work-container .work-fields').each(function () {
                 if (isSWorkForm) {
@@ -1635,6 +1719,8 @@ $(document).ready(function() {
                     const employerInput = $(this).find('.work-employer-input');
                     const fromDate = $(this).find('.work-date-from');
                     const toDate = $(this).find('.work-date-to');
+                    const fromIso = readWorkDateIso(fromDate);
+                    const toIso = readWorkDateIso(toDate);
                     const designation = $(this).find('input[name="designation[]"]');
                     const workDocument = $(this).find('input[name="work_document[]"], input[name^="work_document["]');
                     const existingDocInput = $(this).find('input[name="existing_work_document[]"]');
@@ -1665,31 +1751,31 @@ $(document).ready(function() {
                         isValid = false;
                     }
 
-                    if (fromDate.length && (fromDate.val() || '').trim() === '') {
+                    if (fromDate.length && !fromIso) {
                         fromDate.after('<span class="error-message text-danger d-block mt-1">From date is required.</span>');
                         if (!firstErrorField) firstErrorField = fromDate;
                         isValid = false;
                     }
 
-                    if (toDate.length && (toDate.val() || '').trim() === '') {
+                    if (toDate.length && !toIso) {
                         toDate.after('<span class="error-message text-danger d-block mt-1">To date is required.</span>');
                         if (!firstErrorField) firstErrorField = toDate;
                         isValid = false;
                     }
 
-                    if (fromDate.length && toDate.length && fromDate.val() && toDate.val()) {
-                        const from = new Date(fromDate.val() + 'T12:00:00');
-                        const to = new Date(toDate.val() + 'T12:00:00');
+                    if (fromDate.length && toDate.length && fromIso && toIso) {
+                        const from = new Date(fromIso + 'T12:00:00');
+                        const to = new Date(toIso + 'T12:00:00');
                         if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
                             if (to < from) {
-                                toDate.after('<span class="error-message text-danger d-block mt-1">To date must be greater than or equal to From date.</span>');
+                                showWorkExpDateRangeError($(this), 'To date must be greater than or equal to From date.');
                                 if (!firstErrorField) firstErrorField = toDate;
                                 isValid = false;
                             } else {
                                 const minTo = new Date(from.getTime());
                                 minTo.setFullYear(minTo.getFullYear() + 2);
                                 if (to < minTo) {
-                                    toDate.after('<span class="error-message text-danger d-block mt-1">Minimum 2 Years Experience needed</span>');
+                                    showWorkExpDateRangeError($(this), 'Minimum 2 Years Experience needed');
                                     if (!firstErrorField) firstErrorField = toDate;
                                     isValid = false;
                                 }
@@ -1728,10 +1814,18 @@ $(document).ready(function() {
                     return;
                 }
 
+                if (formName === 'W') {
+                    return;
+                }
+
                 const workLevel = $(this).find('input[name="work_level[]"]');
                 const experience = $(this).find('input[name="experience[]"]');
                 const designation = $(this).find('input[name="designation[]"]');
                 const workDocument = $(this).find('input[name="work_document[]"], input[name^="work_document["]');
+                const fromDate = $(this).find('.work-date-from');
+                const toDate = $(this).find('.work-date-to');
+                const fromIso = readWorkDateIso(fromDate);
+                const toIso = readWorkDateIso(toDate);
 
                 const wl = (workLevel.val() || '').trim();
                 const ex = (experience.val() || '').trim();
@@ -1739,7 +1833,7 @@ $(document).ready(function() {
 
                 // For W/WH forms, the entire work section is optional.
                 // Validate a row only if the user started filling something in that row.
-                const shouldValidateRow = !workOptional || (wl !== '' || ex !== '' || des !== '');
+                const shouldValidateRow = !workOptional || (wl !== '' || ex !== '' || des !== '' || fromIso || toIso);
 
                 if (!shouldValidateRow) {
                     return;
@@ -1751,9 +1845,52 @@ $(document).ready(function() {
                     isValid = false;
                 }
 
-                if (experience.length && (ex === "" || isNaN(ex) || parseInt(ex) < 0 || parseInt(ex) > 50)) {
-                    experience.after('<span class="error-message text-danger d-block mt-1">Year of experience is required.</span>');
-                    if (!firstErrorField) firstErrorField = experience;
+                if (fromDate.length && !fromIso) {
+                    fromDate.after('<span class="error-message text-danger d-block mt-1">From date is required.</span>');
+                    if (!firstErrorField) firstErrorField = fromDate;
+                    isValid = false;
+                }
+
+                if (toDate.length && !toIso) {
+                    toDate.after('<span class="error-message text-danger d-block mt-1">To date is required.</span>');
+                    if (!firstErrorField) firstErrorField = toDate;
+                    isValid = false;
+                }
+
+                if (fromDate.length && toDate.length && fromIso && toIso) {
+                    const fromD = new Date(fromIso + 'T12:00:00');
+                    const toD = new Date(toIso + 'T12:00:00');
+                    if (!isNaN(fromD.getTime()) && !isNaN(toD.getTime())) {
+                        if (toD < fromD) {
+                            showWorkExpDateRangeError($(this), 'To date must be greater than or equal to From date.');
+                            if (!firstErrorField) firstErrorField = toDate;
+                            isValid = false;
+                        } else {
+                            const minToW = new Date(fromD.getTime());
+                            minToW.setFullYear(minToW.getFullYear() + 2);
+                            if (toD < minToW) {
+                                showWorkExpDateRangeError($(this), 'Minimum 2 Years Experience needed');
+                                if (!firstErrorField) firstErrorField = toDate;
+                                isValid = false;
+                            }
+                        }
+                    }
+                }
+
+                const exNum = parseFloat(ex);
+                if (experience.length && (ex === '' || isNaN(exNum) || exNum < 0 || exNum > 50)) {
+                    const expMsg = (ex === '')
+                        ? 'Year of experience is required.'
+                        : 'Experience must be a valid number between 0 and 50 years.';
+                    const $expAnchor = $(this).find('.work-exp-total-inline').first();
+                    if ($expAnchor.length) {
+                        $expAnchor.after('<span class="error-message text-danger d-block mt-1">' + expMsg + '</span>');
+                    } else {
+                        experience.after('<span class="error-message text-danger d-block mt-1">' + expMsg + '</span>');
+                    }
+                    if (!firstErrorField) {
+                        firstErrorField = toDate.length ? toDate : (fromDate.length ? fromDate : workLevel);
+                    }
                     isValid = false;
                 }
 
@@ -2008,8 +2145,15 @@ $(document).ready(function() {
                 }
             }
 
-            if (!isValid && firstErrorField) {
-                $('html, body').animate({ scrollTop: firstErrorField.offset().top - 100 }, 500);
+            if (!isValid) {
+                if (firstErrorField && firstErrorField.length) {
+                    try {
+                        const off = firstErrorField.offset();
+                        if (off && typeof off.top === 'number') {
+                            $('html, body').animate({ scrollTop: off.top - 100 }, 500);
+                        }
+                    } catch (err) { /* hidden/disconnected nodes */ }
+                }
                 $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
                 return;
             }
@@ -2135,13 +2279,87 @@ $(document).ready(function() {
         });
     
 
-        $(document).on('keyup change','#work-container .work-fields input, #work-container .work-fields select',
-            function() {
+        /** Form S only: From/To work dates — live check for date order and minimum 2 years (matches Pay validation). */
+        function readWorkDateIsoFormS($input) {
+            if (!$input || !$input.length) {
+                return '';
+            }
+            var raw = String($input.attr('data-raw') || '').trim();
+            if (raw) {
+                return raw;
+            }
+            var v = String($input.val() || '').trim();
+            if (!v) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                return v;
+            }
+            var m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+            if (m) {
+                return m[3] + '-' + m[2] + '-' + m[1];
+            }
+            return '';
+        }
+
+        /* Form S, WH — From/To only: date order + minimum 2 calendar years (matches Pay / server). WH: only when the row is partially filled. Form W: no client work-date rules. */
+        $(document).on('change blur input', '#work-container .work-fields .work-date-from, #work-container .work-fields .work-date-to', function () {
+            var formName = String($('#form_name').val() || '').trim().toUpperCase();
+            if (formName !== 'S' && formName !== 'WH') {
+                return;
+            }
+            var $row = $(this).closest('.work-fields');
+            var $fromDate = $row.find('.work-date-from');
+            var $toDate = $row.find('.work-date-to');
+
+            if (formName === 'WH') {
+                var wl0 = ($row.find('input[name="work_level[]"]').val() || '').trim();
+                var ex0 = ($row.find('input[name="experience[]"]').val() || '').trim();
+                var des0 = ($row.find('input[name="designation[]"]').val() || '').trim();
+                var fi0 = readWorkDateIsoFormS($fromDate);
+                var ti0 = readWorkDateIsoFormS($toDate);
+                if (!(wl0 !== '' || ex0 !== '' || des0 !== '' || fi0 !== '' || ti0 !== '')) {
+                    clearWorkExpDateRangeError($row);
+                    return;
+                }
+            }
+
+            clearWorkExpDateRangeError($row);
+
+            var fromIso = readWorkDateIsoFormS($fromDate);
+            var toIso = readWorkDateIsoFormS($toDate);
+            if (!fromIso || !toIso) {
+                return;
+            }
+
+            var from = new Date(fromIso + 'T12:00:00');
+            var to = new Date(toIso + 'T12:00:00');
+            if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+                return;
+            }
+
+            if (to < from) {
+                showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
+                return;
+            }
+            var minTo = new Date(from.getTime());
+            minTo.setFullYear(minTo.getFullYear() + 2);
+            if (to < minTo) {
+                showWorkExpDateRangeError($row, 'Minimum 2 Years Experience needed');
+            }
+        });
+
+        $(document).on('keyup change', '#work-container .work-fields input, #work-container .work-fields select',
+            function () {
                 const $field = $(this);
+                /* Date fields: handled by From/To live validation; do not strip row errors here. */
+                if ($field.is('.work-date-from, .work-date-to')) {
+                    return;
+                }
                 if ($field.val().trim() !== '') {
                     $field.nextAll('.error-message').first().remove();
-                    $field.closest('.work-fields').find('.error-message').filter(function() {
-                        return $(this).text().includes("Please fill in at least one field");
+                    $field.closest('.work-fields').find('.error-message').filter(function () {
+                        return $(this).text().includes('Please fill in at least one field');
                     }).remove();
                 }
             });

@@ -55,6 +55,50 @@
     .fs-section-tamil { font-size: .8rem; color: #5a7299; line-height: 1.4; margin-top: 1px; }
     .fs-section-body { padding: 18px 18px 14px; }
 
+    .fs-section-header.fs-section-header--in-grid {
+        padding: 4px 0 10px;
+        margin-bottom: 0;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+    }
+    .fs-section-header.fs-section-header--in-grid .fs-section-title { font-size: .83rem; }
+    .fs-section-header.fs-section-header--in-grid .fs-section-tamil { font-size: .74rem; margin-top: 2px; }
+    .fs-section-header.fs-section-header--in-grid .fs-section-num {
+        width: 24px;
+        height: 24px;
+        font-size: .7rem;
+    }
+
+    /* DOB + Age: badge 5 (matches apply-form-s) */
+    .fs-dob-age-badge-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 4px 0 0;
+        margin-bottom: 0;
+    }
+    .fs-dob-age-badge-row > .fs-section-num {
+        width: 24px;
+        height: 24px;
+        font-size: .7rem;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+    .fs-dob-age-badge-row__body {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .fs-dob-age-pair.row { align-items: flex-start; }
+    .fs-dob-age-pair > [class*="col-"] { align-self: flex-start; }
+    .fs-dob-age-label-block {
+        min-height: 3.35rem;
+        margin-bottom: 2px;
+    }
+    @media (min-width: 576px) {
+        .fs-dob-age-label-block { min-height: 3.5rem; }
+    }
+
     /* ── Field rows ───────────────────────────────────── */
     .fs-field-label { font-size: .83rem; font-weight: 600; color: #2c3e5e; margin-bottom: 3px; line-height: 1.3; }
     .fs-field-label .req { color: #d9363e; }
@@ -270,48 +314,93 @@
             <div class="fs-form-body fs-form apply-card">
                 <form id="competency_form_ws" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTION 1 & 2 — Name & Father's Name ═══ --}}
+                    {{-- ═══ SECTIONS 1–3 — Name, Father's Name, Email (same layout as apply-form-s) ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
                                 <div class="col-12 col-md-6 mb-3 mb-md-0">
-                                    <div class="fs-field-label">1. Applicant's Name <span class="req">*</span></div>
-                                    <div class="fs-field-tamil">விண்ணப்பதாரர் பெயர்</div>
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">1</span>
+                                        <div>
+                                            <div class="fs-section-title">Applicant's Name <span class="section-req">*</span></div>
+                                            <div class="fs-section-tamil">விண்ணப்பதாரர் பெயர்</div>
+                                        </div>
+                                    </div>
                                     <input type="hidden" name="login_id" id="login_id_store" value="{{ Auth::user()->login_id }}">
                                     <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text" value="{{ $user['salutation'].' '.$user['applicant_name'] }}" readonly>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <div class="fs-field-label">2. Father's Name <span class="req">*</span></div>
-                                    <div class="fs-field-tamil">தகப்பனார் பெயர்</div>
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">2</span>
+                                        <div>
+                                            <div class="fs-section-title">Father's Name <span class="section-req">*</span></div>
+                                            <div class="fs-section-tamil">தகப்பனார் பெயர்</div>
+                                        </div>
+                                    </div>
                                     <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80">
-                                    <span class="error-message text-danger"></span>
+                                    <span class="error-message text-danger" style="font-size:.78rem;"></span>
+                                </div>
+                                <div class="col-12 col-md-6 mb-2 mt-1">
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">3</span>
+                                        <div>
+                                            <div class="fs-section-title">Email ID <span class="section-hint">(optional)</span></div>
+                                            <div class="fs-section-tamil">மின்னஞ்சல் முகவரி</div>
+                                        </div>
+                                    </div>
+                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email" maxlength="191"
+                                        value="{{ old('applicant_email', isset($application) ? ($application->applicant_email ?? '') : (Auth::user()->email ?? '')) }}">
+                                    <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 3 & 4 — Address / DOB ═══ --}}
+                    {{-- ═══ SECTIONS 4–5 — Address / D.O.B & Age (same layout as apply-form-s) ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
                                 <div class="col-12 col-md-6 mb-3 mb-md-0">
-                                    <div class="fs-field-label">3. Applicant Address <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
-                                    <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
+                                    <div class="fs-section-header fs-section-header--in-grid">
+                                        <span class="fs-section-num">4</span>
+                                        <div>
+                                            <div class="fs-section-title">
+                                                Applicant Address <span class="section-req">*</span>
+                                                <span class="section-hint">(To be clear)</span>
+                                            </div>
+                                            <div class="fs-section-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
+                                        </div>
+                                    </div>
                                     <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="255">{{Auth::user()->address}}</textarea>
-                                    <span id="applicants_address_error" class="text-danger"></span>
+                                    <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <div class="row">
-                                        <div class="col-12 col-sm-7 mb-3 mb-sm-0">
-                                            <div class="fs-field-label">4. (i) D.O.B <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
-                                            <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b" type="text" placeholder="DD/MM/YYYY" value="{{ isset($application) ? $application->d_o_b : '' }}">
-                                            <span id="dob-error" class="text-danger"></span>
-                                        </div>
-                                        <div class="col-12 col-sm-5">
-                                            <div class="fs-field-label">4. (ii) Age</div>
-                                            <div class="fs-field-tamil">வயது</div>
-                                            <input autocomplete="off" class="form-control" id="age" name="age" type="number" value="{{ isset($application) ? $application->age : '' }}" readonly>
+                                    <div class="fs-dob-age-badge-row">
+                                        <span class="fs-section-num">5</span>
+                                        <div class="fs-dob-age-badge-row__body">
+                                            <div class="row fs-dob-age-pair align-items-start">
+                                                <div class="col-12 col-sm-6 mb-2 mb-sm-0">
+                                                    <div class="fs-dob-age-label-block">
+                                                        <div class="fs-field-label">(i) D.O.B <span class="req">*</span></div>
+                                                        <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <div class="fs-dob-age-label-block">
+                                                        <div class="fs-field-label">(ii) Age</div>
+                                                        <div class="fs-field-tamil">வயது</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row fs-dob-age-pair align-items-start mx-0">
+                                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                                    <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b" type="text" placeholder="DD/MM/YYYY" value="{{ isset($application) ? $application->d_o_b : '' }}">
+                                                    <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <input autocomplete="off" class="form-control" id="age" name="age" type="number" value="{{ isset($application) ? $application->age : '' }}" readonly>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -319,10 +408,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 5 — Education ═══ --}}
+                    {{-- ═══ SECTION 6 — Education ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">5</span>
+                            <span class="fs-section-num">6</span>
                             <div>
                                 <div class="fs-section-title">
                                     Applicant's Educational / Technical Qualification and pass details
@@ -409,10 +498,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 6 — Work Experience ═══ --}}
+                    {{-- ═══ SECTION 7 — Work Experience ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">6</span>
+                            <span class="fs-section-num">7</span>
                             <div>
                                 <div class="fs-section-title">Details of Previous and Current Work experiences</div>
                                 <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்</div>
@@ -425,7 +514,7 @@
                                         <tr>
                                             <th class="work-exp-col-sno text-center">S.No</th>
                                             <th class="work-exp-col-company">Company Name / Contractor</th>
-                                            <th class="work-exp-col-years" scope="col">
+                                            <th class="work-exp-col-years work-exp-years-head" scope="col">
                                                 <div class="work-exp-years-title">Year of Experience</div>
                                                 <div class="work-exp-inline work-exp-inline--head">
                                                     <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">From (date)</span></div>
@@ -456,7 +545,7 @@
                                                         <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" title="To date" aria-label="Year of experience to date">
                                                     </div>
                                                     <div class="work-exp-total-inline">
-                                                        <input type="text" class="form-control form-control-sm work-year-total-display" readonly placeholder="—" tabindex="-1" aria-label="Total years of experience">
+                                                        <input type="text" class="form-control form-control-sm work-year-total-display" readonly placeholder="—" tabindex="-1">
                                                         <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
                                                     </div>
                                                 </div>
@@ -477,10 +566,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Previous Certificate ═══ --}}
+                    {{-- ═══ SECTION 8 — Previous Certificate ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">7</span>
+                            <span class="fs-section-num">8</span>
                             <div>
                                 <div class="fs-section-title">Have you applied for and obtained a Certificate of Qualification for Wireman / Wireman Helper? If yes, please state its number and validity.</div>
                                 <div class="fs-section-tamil">இதற்கு முன்னாள் விண்ணப்பம் செய்து மின்கம்பியாளர் தகுதி சான்றிதழ் / மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் பெறப்பட்டுள்ளதா? ஆம் என்றால் அதன் எண் மற்றும் செல்லத்தக்க காலம் குறிப்பிடுக</div>
@@ -532,10 +621,10 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 8 — Upload Documents ═══ --}}
+                    {{-- ═══ SECTION 9 — Upload Documents ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">8</span>
+                            <span class="fs-section-num">9</span>
                             <div>
                                 <div class="fs-section-title">Upload Documents <span class="section-req">*</span></div>
                                 <div class="fs-section-tamil">ஆவணங்களைப் பதிவேற்றவும்</div>
@@ -724,13 +813,14 @@
                                 <div class="col-12 col-sm-6"><div class="prv-field"><div class="prv-label">Address</div><div class="prv-value" id="prv_address" style="white-space:pre-line;">—</div></div></div>
                                 <div class="col-6 col-sm-3"><div class="prv-field"><div class="prv-label">Date of Birth</div><div class="prv-value" id="prv_dob">—</div></div></div>
                                 <div class="col-6 col-sm-3"><div class="prv-field"><div class="prv-label">Age</div><div class="prv-value" id="prv_age">—</div></div></div>
+                                <div class="col-12 col-sm-6"><div class="prv-field"><div class="prv-label">Email ID</div><div class="prv-value" id="prv_email">—</div></div></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">5</span><span class="prv-section-title">Educational / Technical Qualification Details</span></div>
+                <div class="prv-section-hd"><span class="prv-section-num">6</span><span class="prv-section-title">Educational / Technical Qualification Details</span></div>
                 <div class="prv-section-body p-0">
                     <div style="overflow-x:auto;">
                         <table class="prv-table">
@@ -741,7 +831,7 @@
                 </div>
             </div>
             <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">6</span><span class="prv-section-title">Work Experience Details</span></div>
+                <div class="prv-section-hd"><span class="prv-section-num">7</span><span class="prv-section-title">Work Experience Details</span></div>
                 <div class="prv-section-body p-0">
                     <div style="overflow-x:auto;">
                         <table class="prv-table">
@@ -752,7 +842,7 @@
                 </div>
             </div>
             <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">7</span><span class="prv-section-title">Previously Obtained Wireman / Wireman Helper Certificate</span></div>
+                <div class="prv-section-hd"><span class="prv-section-num">8</span><span class="prv-section-title">Previously Obtained Wireman / Wireman Helper Certificate</span></div>
                 <div class="prv-section-body">
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Certificate Obtained:</span>
@@ -768,7 +858,7 @@
                 </div>
             </div>
             <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">8</span><span class="prv-section-title">Identity &amp; Uploaded Documents</span></div>
+                <div class="prv-section-hd"><span class="prv-section-num">9</span><span class="prv-section-title">Identity &amp; Uploaded Documents</span></div>
                 <div class="prv-section-body">
                     <div class="row align-items-center mb-2">
                         <div class="col-5 col-md-3"><div class="prv-field mb-0"><div class="prv-label">Aadhaar Number</div><div class="prv-value" id="prv_aadhaar">—</div></div></div>
@@ -1013,6 +1103,7 @@
         setValW('prv_address',(document.getElementById('applicants_address')||{}).value||'');
         setValW('prv_dob',(document.getElementById('d_o_b')||{}).value||'');
         setValW('prv_age',(document.getElementById('age')||{}).value||'');
+        setValW('prv_email',(document.getElementById('applicant_email')||{}).value||'');
         // Education
         var eduBody=document.getElementById('prv_edu_body');eduBody.innerHTML='';
         var eduRows=document.querySelectorAll('#education-container .education-fields');

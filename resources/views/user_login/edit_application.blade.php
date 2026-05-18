@@ -577,10 +577,14 @@
     /* ── Work-table specific ──────────────────────────── */
     #work-table.work-exp-table { font-size: .8125rem; width: 100%; max-width: 100%; }
     #work-table.work-exp-table thead th { font-size: .78rem; font-weight: 600; padding: .35rem .4rem; vertical-align: middle; line-height: 1.25; }
-    #work-table.work-exp-table tbody td { padding: .4rem .45rem; vertical-align: top; }
+    #work-table.work-exp-table tbody td { padding: .4rem .45rem; vertical-align: middle; }
+    #work-table .work-employer-cell { vertical-align: top; }
+    #work-table .work-employer-label-row { display: flex; align-items: baseline; margin-bottom: .15rem; min-width: 0; }
+    #work-table .work-employer-label { font-size: .7rem; color: #6c757d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 0; min-width: 0; }
+    #work-table .work-employer-req { font-size: .7rem; flex: 0 0 auto; }
     #work-table .work-exp-col-type { width: 12%; max-width: 10.5rem; }
     #work-table .work-exp-col-employer { width: 16%; max-width: 12rem; }
-    #work-table.work-exp-table .work-exp-col-years { width: 32%; min-width: 17rem; }
+    #work-table.work-exp-table .work-exp-col-years { width: 34%; min-width: 19.5rem; }
     #work-table.work-table-w .work-exp-col-company { width: 28%; }
     #work-table.work-table-w .work-exp-col-years { width: 38%; min-width: 17rem; }
     #work-table .work-exp-col-designation { width: 12%; }
@@ -589,9 +593,12 @@
     #work-table .work-exp-col-actions { width: 2.75rem; white-space: nowrap; }
     #work-table .work-exp-upload-head { font-size: .72rem; line-height: 1.2; }
     #work-table .work-exp-upload-head .file-limit { font-size: .68rem; }
-    #work-table .work-exp-inline { display: flex; flex-wrap: nowrap; align-items: flex-end; gap: .25rem; }
+    #work-table .work-exp-inline { display: flex; flex-wrap: nowrap; gap: .25rem; }
+    #work-table.work-table-w .work-exp-inline { align-items: flex-end; }
+    #work-table.work-exp-table:not(.work-table-w) .work-exp-inline:not(.work-exp-inline--head) { align-items: flex-start; }
     #work-table .work-exp-date-group { flex: 1 1 auto; min-width: 7.5rem; max-width: 10rem; }
-    #work-table .work-exp-total-inline { flex: 0 0 4rem; min-width: 4rem; max-width: 4.5rem; }
+    #work-table.work-table-w .work-exp-total-inline { flex: 0 0 4rem; min-width: 4rem; max-width: 4.5rem; }
+    #work-table.work-exp-table:not(.work-table-w) .work-exp-total-inline { flex: 0 0 5.75rem; min-width: 5.5rem; max-width: 6.5rem; }
     #work-table .work-exp-label-fromto { font-size: .72rem; font-weight: 600; color: #212529; margin-bottom: .2rem; line-height: 1.2; }
     #work-table thead th.work-exp-col-years { vertical-align: top; }
     #work-table .work-exp-years-title { text-align: center; margin-bottom: .35rem; font-weight: 600; font-size: .78rem; }
@@ -604,7 +611,32 @@
     #work-table .work-date-from,
     #work-table .work-date-to { font-size: .8125rem; color: #212529; min-width: 9.5rem; width: 100%; }
     #work-table .work-year-total-display { max-width: 4.5rem; font-size: .7rem; padding: .22rem .3rem; line-height: 1.3; text-align: center; }
-    #work-table .work-employer-label { font-size: .7rem !important; margin-bottom: .15rem !important; }
+    #work-table .work-duration-ymd {
+        display: flex;
+        gap: .18rem;
+        align-items: flex-end;
+        justify-content: center;
+        width: 100%;
+    }
+    #work-table .work-duration-cell { flex: 1 1 0; min-width: 0; text-align: center; }
+    #work-table .work-duration-label {
+        display: block;
+        font-size: .6rem;
+        font-weight: 600;
+        color: #6c757d;
+        line-height: 1;
+        margin-bottom: .1rem;
+    }
+    #work-table .work-duration-y,
+    #work-table .work-duration-m,
+    #work-table .work-duration-d {
+        font-size: .66rem;
+        padding: .16rem .06rem;
+        line-height: 1.25;
+        text-align: center;
+        width: 100%;
+        min-width: 0;
+    }
 
     /* ── Documents upload table ───────────────────────── */
     .fs-docs-table { width: 100%; }
@@ -1005,23 +1037,20 @@
                                             <div class="fs-view-value {{ empty($fathersNameVal) ? 'fs-view-value--empty' : '' }}" data-view-for="Fathers_Name">{{ $fathersNameVal ?: 'Not provided' }}</div>
                                         </div>
                                     </div>
-                                </div>
-                                @if($formName === 'S')
-                                <div class="row mt-3">
-                                    <div class="col-12">
+                                    <div class="col-12 col-md-6 mb-2 mt-2">
                                         <div class="fs-field-head">
                                             <span class="fs-field-num">3</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Email ID</div>
                                                 <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
+                                                <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
+                                            maxlength="191" value="{{ $emailVal }}">
                                             </div>
-                                        </div>
-                                        <div class="fs-view-grid-value-box">
-                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicant_email">{{ $emailVal ?: 'Not provided' }}</div>
+                  
+                                        
                                         </div>
                                     </div>
                                 </div>
-                                @endif
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
@@ -1438,7 +1467,7 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
-                            <div class="table-responsive">
+                            <div class="fs-table-wrap">
                                                     <table class="table table-bordered {{ (isset($application_details->form_name) && in_array($application_details->form_name, ['S','W'])) ? 'table-sm work-exp-table' : 'table-striped' }} {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'work-table-w' : '' }}" id="work-table">
                                                         <thead>
                                                             <tr>
@@ -1463,7 +1492,7 @@
                                                                 @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
                                                                 <th class="work-exp-col-sno text-center">S.No</th>
                                                                 <th class="work-exp-col-company">Company Name / Contractor</th>
-                                                                <th class="work-exp-col-years" scope="col">
+                                                                <th class="work-exp-col-years work-exp-years-head" scope="col">
                                                                     <div class="work-exp-years-title">Year of Experience</div>
                                                                     <div class="work-exp-inline work-exp-inline--head">
                                                                         <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">From (date)</span></div>
@@ -1480,7 +1509,7 @@
                                                                 @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                                                                     <th class="text-center work-exp-col-upload work-exp-upload-head">
                                                                         Upload Document
-                                                                        <br><span class="file-limit text-success small">File type: PDF(Min 5 KB To Max 200 KB)</span>
+                                                                        <br><span class="file-limit">File type: PDF(Min 5 KB To Max 200 KB)</span>
                                                                     </th>
                                                                 @endif
                                                                 <th class="work-exp-col-actions text-center p-1">
@@ -1508,17 +1537,21 @@
                                                                     <td class="work-serial text-center">{{ $loop->iteration }}</td>
                                                                     <td class="work-exp-col-type">
                                                                         <select class="form-control form-control-sm work-employment-type" name="work_employment_type[]" required>
+                                                                            <option value="" disabled>Select type</option>
                                                                             <option value="company" {{ $workEmpType === 'company' ? 'selected' : '' }}>Company</option>
                                                                             <option value="contractor" {{ $workEmpType === 'contractor' ? 'selected' : '' }}>Contractor</option>
                                                                             <option value="apprentice" {{ $workEmpType === 'apprentice' ? 'selected' : '' }}>Apprentice</option>
-                                                                            <option value="electrical_inspector" {{ $workEmpType === 'electrical_inspector' ? 'selected' : '' }}>Electrical Inspector / Assistant Electrical Inspector</option>
+                                                                            <option value="electrical_inspector" {{ $workEmpType === 'electrical_inspector' ? 'selected' : '' }}>Government / Quasi Government / Board</option>
                                                                             <option value="retired_employees" {{ $workEmpType === 'retired_employees' ? 'selected' : '' }}>Retired Employees</option>
                                                                         </select>
                                                                     </td>
                                                                     <td class="work-employer-cell work-exp-col-employer">
-                                                                        <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" placeholder="Company name *" value="{{ $workEmployerName }}">
-                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;text-align:left;">
-                                                                            <div style="font-size:.7rem;line-height:1.1;margin-bottom:2px;color:#6c757d;white-space:nowrap;display:inline-block;">Intimation&nbsp;letter&nbsp;<span style="color:#d9363e;">*</span></div>
+                                                                        <div class="work-employer-label-row">
+                                                                            <span class="work-employer-label">—</span><span class="text-danger work-employer-req" style="display:none;"> *</span>
+                                                                        </div>
+                                                                        <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" value="{{ $workEmployerName }}">
+                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;">
+                                                                            <label class="small mb-0" style="font-size:.7rem;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;"><span style="white-space:nowrap;">Intimation letter</span><span class="text-danger flex-shrink-0">*</span></label>
                                                                             <input type="date" class="form-control form-control-sm work-intimation-date" name="work_intimation_date[]" value="{{ $workIntimationDate }}">
                                                                         </div>
                                                                     </td>
@@ -1531,7 +1564,20 @@
                                                                                 <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" value="{{ $workToDate }}" title="To date" aria-label="Year of experience to date">
                                                                             </div>
                                                                             <div class="work-exp-total-inline">
-                                                                                <input type="text" class="form-control form-control-sm work-year-total-display" readonly placeholder="—" tabindex="-1" aria-label="Total years of experience" value="{{ $workTotalExp }}">
+                                                                                <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Yrs</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Mo</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Days</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
+                                                                                    </div>
+                                                                                </div>
                                                                                 <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $workTotalExp }}">
                                                                             </div>
                                                                         </div>
@@ -1642,27 +1688,43 @@
                                                                             <option value="company">Company</option>
                                                                             <option value="contractor">Contractor</option>
                                                                             <option value="apprentice">Apprentice</option>
-                                                                            <option value="electrical_inspector">Electrical Inspector / Assistant Electrical Inspector</option>
+                                                                            <option value="electrical_inspector">Government / Quasi Government / Board</option>
                                                                             <option value="retired_employees">Retired Employees</option>
                                                                         </select>
                                                                     </td>
                                                                     <td class="work-employer-cell work-exp-col-employer">
+                                                                        <div class="work-employer-label-row">
+                                                                            <span class="work-employer-label">—</span><span class="text-danger work-employer-req" style="display:none;"> *</span>
+                                                                        </div>
                                                                         <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled>
-                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;text-align:left;">
-                                                                            <div style="font-size:.7rem;line-height:1.1;margin-bottom:2px;color:#6c757d;white-space:nowrap;display:inline-block;">Intimation&nbsp;letter&nbsp;<span style="color:#d9363e;">*</span></div>
+                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;">
+                                                                            <label class="small mb-0" style="font-size:.7rem;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;"><span style="white-space:nowrap;">Intimation letter</span><span class="text-danger flex-shrink-0">*</span></label>
                                                                             <input type="date" class="form-control form-control-sm work-intimation-date" name="work_intimation_date[]">
                                                                         </div>
                                                                     </td>
                                                                     <td class="work-exp-col-years">
                                                                         <div class="work-exp-inline">
                                                                             <div class="work-exp-date-group">
-                                                                                <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" disabled title="From date" aria-label="Year of experience from date">
+                                                                                <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" title="From date" aria-label="Year of experience from date">
                                                                             </div>
                                                                             <div class="work-exp-date-group">
-                                                                                <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" disabled title="To date" aria-label="Year of experience to date">
+                                                                                <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" title="To date" aria-label="Year of experience to date">
                                                                             </div>
                                                                             <div class="work-exp-total-inline">
-                                                                                <input type="text" class="form-control form-control-sm work-year-total-display" readonly placeholder="—" tabindex="-1" aria-label="Total years of experience">
+                                                                                <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Yrs</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Mo</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Days</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
+                                                                                    </div>
+                                                                                </div>
                                                                                 <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
                                                                             </div>
                                                                         </div>
@@ -2615,7 +2677,7 @@
                 syncExpHiddenW($tr);
             }
 
-            $(document).on('change', '.work-date-from, .work-date-to', function() {
+            $(document).on('change input blur', '.work-date-from, .work-date-to', function() {
                 updateTotalYearsW($(this).closest('tr.work-fields'));
             });
 
@@ -2662,17 +2724,22 @@
                 }
             });
 
-            $(document).ready(function() { refreshWorkSerials(); });
+            $(document).ready(function() {
+                refreshWorkSerials();
+                $('#work-container .work-fields').each(function() {
+                    updateTotalYearsW($(this));
+                });
+            });
             return;
         }
 
         var EMP_LABELS = {
-            '': '',
-            company: 'Company name *',
-            contractor: 'Contractor / firm name *',
-            apprentice: 'Establishment / training organization *',
-            electrical_inspector: 'Office / department *',
-            retired_employees: 'Name of PSU (State / Central / Corporation) *'
+            '': '—',
+            company: 'Company name',
+            contractor: 'Contractor / firm name',
+            apprentice: 'Establishment / training organization',
+            electrical_inspector: 'Office / department',
+            retired_employees: 'Name of PSU (State / Central / Corporation)'
         };
 
         function $workRow(el) {
@@ -2700,6 +2767,36 @@
             return '';
         }
 
+        function clearWorkDuration($tr) {
+            $tr.find('.work-duration-y, .work-duration-m, .work-duration-d').val('');
+            $tr.find('.work-experience-total-hidden').val('');
+        }
+
+        /** Calendar-style Y/M/D between two local dates (inclusive-style components). */
+        function calendarDiffYMD(from, to) {
+            if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return null;
+            var y = to.getFullYear() - from.getFullYear();
+            var m = to.getMonth() - from.getMonth();
+            var d = to.getDate() - from.getDate();
+            if (d < 0) {
+                m--;
+                d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+            }
+            if (m < 0) {
+                y--;
+                m += 12;
+            }
+            if (d < 0) {
+                m--;
+                if (m < 0) {
+                    y--;
+                    m += 12;
+                }
+                d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+            }
+            return { y: y, m: m, d: d };
+        }
+
         function updateTotalYears($tr) {
             var $yearsCell = $tr.find('td.work-exp-col-years');
             $yearsCell.find('.work-exp-two-year-msg').remove();
@@ -2707,47 +2804,50 @@
             var $to = $tr.find('.work-date-to');
             var fromStr = readIsoDate($from);
             var toStr = readIsoDate($to);
-            var display = '';
-            var hidden = '';
             if (!fromStr || !toStr) {
-                $tr.find('.work-year-total-display').val('');
-                $tr.find('.work-experience-total-hidden').val('');
+                clearWorkDuration($tr);
                 syncLegacyHidden($tr);
                 return;
             }
             var from = new Date(fromStr + 'T12:00:00');
             var to = new Date(toStr + 'T12:00:00');
             if (isNaN(from.getTime()) || isNaN(to.getTime())) {
-                $tr.find('.work-year-total-display').val('');
-                $tr.find('.work-experience-total-hidden').val('');
+                clearWorkDuration($tr);
                 syncLegacyHidden($tr);
                 return;
             }
             if (to < from) {
-                display = 'Invalid range';
-                hidden = '';
-            } else {
-                var minTo = new Date(from.getTime());
-                minTo.setFullYear(minTo.getFullYear() + 2);
-                if (to < minTo) {
-                    $yearsCell.append(
-                        '<div class="work-exp-two-year-msg text-danger small mt-1" role="alert">Minimum 2 Years Experience needed</div>'
-                    );
-                }
-                var msPerDay = 86400000;
-                var years = (to - from) / msPerDay / 365.25;
-                var rounded = Math.round(years * 10) / 10;
-                hidden = rounded.toFixed(1);
-                display = rounded.toFixed(1);
+                clearWorkDuration($tr);
+                syncLegacyHidden($tr);
+                return;
             }
-            $tr.find('.work-year-total-display').val(display);
-            $tr.find('.work-experience-total-hidden').val(hidden);
+            var minTo = new Date(from.getTime());
+            minTo.setFullYear(minTo.getFullYear() + 2);
+            if (to < minTo) {
+                $yearsCell.append(
+                    '<div class="work-exp-two-year-msg text-danger small mt-1" role="alert">Minimum 2 Years Experience needed</div>'
+                );
+            }
+            var diff = calendarDiffYMD(from, to);
+            if (!diff) {
+                clearWorkDuration($tr);
+                syncLegacyHidden($tr);
+                return;
+            }
+            $tr.find('.work-duration-y').val(String(diff.y));
+            $tr.find('.work-duration-m').val(String(diff.m));
+            $tr.find('.work-duration-d').val(String(diff.d));
+            var msPerDay = 86400000;
+            var years = (to - from) / msPerDay / 365.25;
+            var rounded = Math.round(years * 10) / 10;
+            $tr.find('.work-experience-total-hidden').val(rounded.toFixed(1));
             syncLegacyHidden($tr);
         }
 
         function applyEmploymentType($tr) {
             var t = $tr.find('.work-employment-type').val() || '';
-            $tr.find('.work-employer-input').attr('placeholder', EMP_LABELS[t] || '');
+            $tr.find('.work-employer-label').text(EMP_LABELS[t] || EMP_LABELS['']);
+            $tr.find('.work-employer-req').toggle(!!t);
 
             var $emp = $tr.find('.work-employer-input');
             var $yFrom = $tr.find('.work-date-from');
@@ -2757,12 +2857,9 @@
 
             if (!t) {
                 $emp.prop('disabled', true).prop('required', false);
-                $yFrom.prop('disabled', true).prop('required', false);
-                $yTo.prop('disabled', true).prop('required', false);
+                $yFrom.prop('required', false);
+                $yTo.prop('required', false);
                 $blockInt.hide();
-                // Keep the intimation input enabled (just hidden/cleared) so its POST array
-                // index stays aligned with the other work_* arrays. Disabled inputs are not
-                // submitted, which causes off-by-one row mismatches on save.
                 $intDate.prop('disabled', false).prop('required', false).val('');
                 syncLegacyHidden($tr);
                 return;
@@ -2785,9 +2882,6 @@
         }
 
         function initWorkRow($tr) {
-            if (($tr.find('.work-employment-type').val() || '') === '') {
-                $tr.find('.work-employment-type').val('company');
-            }
             applyEmploymentType($tr);
             syncLegacyHidden($tr);
         }
@@ -2803,7 +2897,7 @@
             applyEmploymentType($workRow(this));
         });
 
-        $(document).on('change', '.work-date-from, .work-date-to', function() {
+        $(document).on('change input blur', '.work-date-from, .work-date-to', function() {
             updateTotalYears($workRow(this));
         });
 
@@ -2866,6 +2960,11 @@
                 });
                 var typeSel = newRow.querySelector('.work-employment-type');
                 if (typeSel) typeSel.value = '';
+                newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(el) { el.value = ''; });
+                var wLabel = newRow.querySelector('.work-employer-label');
+                if (wLabel) wLabel.textContent = '—';
+                var wReq = newRow.querySelector('.work-employer-req');
+                if (wReq) wReq.style.display = 'none';
                 var wtd = newRow.querySelector('.work-year-total-display');
                 if (wtd) wtd.value = '';
                 var hTot = newRow.querySelector('.work-experience-total-hidden');

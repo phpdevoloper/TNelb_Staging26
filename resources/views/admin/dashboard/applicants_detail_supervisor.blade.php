@@ -497,6 +497,7 @@
                                         <strong>Applicant Id:</strong> <span>{{ $applicant->application_id }}</span>
                                         <strong>Name:</strong> <span>{{ $applicant->applicant_name }}</span>
                                         <strong>D.O.B:</strong> <span>{{ format_date($applicant->d_o_b) }} &middot; {{ $applicant->age }} yrs</span>
+                                        <strong>Email:</strong> <span>{{ !empty($applicant->applicant_email) ? e($applicant->applicant_email) : '—' }}</span>
                                         <strong>Applied For:</strong> <span>FORM {{ $applicant->form_name }} &middot; License {{ $applicant->license_name }}</span>
                                     </h4>
                                 </div>
@@ -561,6 +562,16 @@
                                                                 <tr>
                                                                     <td class="fw-bold">D.O.B & Age :</td>
                                                                     <td>{{ $applicant->d_o_b }} ({{ $applicant->age }} years old)</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td class="fw-bold">Email ID :</td>
+                                                                    <td>
+                                                                        @if (!empty($applicant->applicant_email))
+                                                                            <a href="mailto:{{ e($applicant->applicant_email) }}">{{ e($applicant->applicant_email) }}</a>
+                                                                        @else
+                                                                            —
+                                                                        @endif
+                                                                    </td>
                                                                 </tr>
                                                             </tbody>
                                                         </table>
@@ -811,7 +822,7 @@
                                                     @if ($hasPreviousEaQual)
                                                         <div class="asp-qa-detail">
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">License Number</span>
+                                                                <span class="asp-detail-label">Certificate Number</span>
                                                                 <span class="asp-detail-value">{{ $applicant->previously_number ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
@@ -850,7 +861,7 @@
                                                     @if ($hasWiremanCompCert)
                                                         <div class="asp-qa-detail">
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">License Number</span>
+                                                                <span class="asp-detail-label">Certificate Number</span>
                                                                 <span class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
@@ -1293,13 +1304,13 @@
                                             <button class="btn btn-success" id="confirmApprovalBtn">
                                                 Approve
                                             </button>
-                                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectionModal">Reject</button>
+                                            {{-- <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectionModal">Reject</button> --}}
                                         </div>
                                         {{-- Row 2: Return actions (single line) --}}
                                         <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                                            <button id="confirmReturnBtn" class="btn btn-warning">
+                                            {{-- <button id="confirmReturnBtn" class="btn btn-warning">
                                                 Return to Supervisor
-                                            </button>
+                                            </button> --}}
                                             {{-- <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
                                                 Return to Applicant
                                             </button> --}}
