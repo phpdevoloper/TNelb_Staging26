@@ -2297,6 +2297,7 @@ class LicensepdfController extends Controller
 
    public function generateLicensePDF($application_id)
     {
+        
         $application = DB::table('tnelb_application_tbl')
         ->where('application_id', $application_id)
         ->first();
@@ -2360,7 +2361,9 @@ class LicensepdfController extends Controller
         $certificateRowsHtml = '';
         foreach ($certificateList as $index => $certificate) {
             $isExpired = !empty($certificate->expires_at) && strtotime((string) $certificate->expires_at) < strtotime(date('Y-m-d'));
-            $statusText = $isExpired ? 'Expired' : 'Active';
+            $statusInner = $isExpired
+                ? '<div class="st-en">Expired</div><div class="st-ta" lang="ta">காலாவதியானது</div>'
+                : '<div class="st-en">Active</div><div class="st-ta" lang="ta">செயலில்</div>';
             $statusClass = $isExpired ? 'status-expired' : 'status-active';
             $certificateRowsHtml .= '
                         <tr>
@@ -2368,17 +2371,17 @@ class LicensepdfController extends Controller
                             <td width="28%">'.$certificate->license_number.'</td>
                             <td width="20%">'.date('d M Y', strtotime($certificate->issued_at)).'</td>
                             <td width="20%">'.format_date($certificate->expires_at).'</td>
-                            <td width="16%"><span class="status-pill '.$statusClass.'">'.$statusText.'</span></td>
                         </tr>';
         }
         if ($certificateRowsHtml === '') {
-            $certificateRowsHtml = '<tr><td colspan="5" align="center" style="padding:3mm;">No certificate history available.</td></tr>';
+            $certificateRowsHtml = '<tr><td colspan="5"><div class="table-empty-msg"><div class="bi-en">No certificate history available.</div><div class="bi-ta" lang="ta">சான்றிதழ் வரலாறு ஏதுமில்லை.</div></div></td></tr>';
         }
 
 
         $payment = DB::table('payments')->where('application_id', $application_id)->first();
-        // A4 output (required): previously CR100 card size
-        $mpdf = new \Mpdf\Mpdf([
+        // Tamil: prefer dejavusans Regular (OTL); avoids Bold faces missing Indic. Marutham if file exists.
+        $tamilFontFamily = 'dejavusans';
+        $mpdfConfig = [
             'mode' => 'utf-8',
             'format' => 'A4',
             'orientation' => 'P',
@@ -2386,21 +2389,94 @@ class LicensepdfController extends Controller
             'margin_bottom' => 10,
             'margin_left' => 10,
             'margin_right' => 10,
-        ]);
+            'default_font' => 'helvetica',
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true,
+            // Pick missing glyphs from backup fonts; helps Tamil/Latin mix
+            'useSubstitutions' => true,
+            // 0 = embed full TTF (no subset) so Tamil codepoints are not stripped
+            'percentSubset' => 0,
+        ];
+        $maruthamPath = public_path('fonts/Marutham.ttf');
+        if (is_readable($maruthamPath)) {
+            $defaultConfig = (new \Mpdf\Config\ConfigVariables())->getDefaults();
+            $fontDirs = $defaultConfig['fontDir'];
+            $defaultFontConfig = (new \Mpdf\Config\FontVariables())->getDefaults();
+            $fontData = $defaultFontConfig['fontdata'];
+            $mpdfConfig['fontDir'] = array_merge($fontDirs, [
+                public_path('fonts'),
+            ]);
+            $mpdfConfig['fontdata'] = $fontData + [
+                'marutham' => [
+                    'R' => 'Marutham.ttf',
+                    'useOTL' => 0xFF,
+                ],
+            ];
+            $tamilFontFamily = 'marutham';
+        }
+
+        $mpdf = new \Mpdf\Mpdf($mpdfConfig);
 
         $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-        $mpdf->WriteHTML('<style>
+        $mpdf->WriteHTML(str_replace(
+            'TAMIL_FONT_PLACEHOLDER',
+            $tamilFontFamily,
+            '<style>
             body { font-family: helvetica; font-size: 14pt; }
+            /* Bilingual: English on top, Tamil below — same Helvetica as original */
+            .bi-en {
+                display: block;
+                font-family: helvetica;
+                font-weight: bold;
+                line-height: 1.2;
+                margin: 0;
+                padding: 0;
+            }
+            /* Tamil: always Regular weight — Bold TTFs often lack Indic glyphs (tofu).
+               !important beats bold inherited from th, .lbl, .status-pill, .summary-heading */
+            .bi-ta {
+                display: block;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-weight: normal !important;
+                line-height: 1.2;
+                margin: 0.12em 0 0 0;
+                padding: 0;
+                font-size: 88%;
+            }
             .card {
                 border: 1px solid #000; padding: 18px; box-sizing: border-box; width: 100%;
                 min-height: 178mm;
             }
-            .header { color: #003366; text-align: center; margin-bottom: 16px; }
-            .header-main { font-size: 16pt; font-weight: bold; line-height: 1.2; }
-            .header-title { font-size: 14pt; font-weight: bold; line-height: 1.2; }
-            .header-sub { font-size: 10.5pt; font-weight: bold; line-height: 1.3; }
+            .header { color: #003366; text-align: center; margin-bottom: 16px;
+                border-bottom: 0.35mm solid #c5d4e6; padding-bottom: 10px; }
+            .hdr-stack { margin-bottom: 2mm; }
+            .hdr-stack:last-child { margin-bottom: 0; }
+            .header-main .bi-en { font-size: 16pt; }
+            .header-main .bi-ta { font-size: 12.5pt; margin-top: 0.12em; font-weight: normal !important; }
+            .header-title .bi-en { font-size: 14pt; }
+            .header-title .bi-ta { font-size: 11pt; margin-top: 0.12em; font-weight: normal !important; }
+            .header-sub .bi-en { font-size: 10.5pt; }
+            .header-sub .bi-ta { font-size: 10pt; margin-top: 0.12em; font-weight: normal !important; }
             .content { font-size: 14pt; }
-            /* Photo and QR use the same square (width × height) */
+            .lbl-bi { padding: 0; margin: 0; line-height: 1.2; }
+            .lbl-bi .lbl-en {
+                display: block;
+                font-family: helvetica;
+                font-weight: bold;
+                font-size: 11pt;
+                line-height: 1.15;
+                margin: 0;
+                padding: 0;
+            }
+            .lbl-bi .lbl-ta {
+                display: block;
+                margin: 0.1em 0 0 0;
+                padding: 0;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-weight: normal !important;
+                font-size: 9.5pt;
+                line-height: 1.15;
+            }
             .photo-frame, .qr-box {
                 width: 38mm;
                 height: 38mm;
@@ -2419,7 +2495,8 @@ class LicensepdfController extends Controller
             }
             .sign-frame {
                 width: 38mm;
-                height: 14mm;
+                min-height: 14mm;
+                height: auto;
                 border: none;
                 box-sizing: border-box;
                 margin: 0 auto;
@@ -2427,58 +2504,156 @@ class LicensepdfController extends Controller
             }
             .sign-inner {
                 width: 100%;
-                height: 100%;
+                min-height: 14mm;
                 overflow: hidden;
-                line-height: 14mm;
+                line-height: 1.2;
+                padding: 1mm 0;
             }
             .qr-box table { border-collapse: collapse; }
             .qr-box td { padding: 0; vertical-align: middle; }
            .info-table {
-                font-size: 14pt;
+                font-size: 11pt;
                 border-collapse: collapse;
+                width: 100%;
             }
-
-            .info-table td { padding: 2.2mm 2mm; vertical-align: top; }
-
-            .info-table .lbl { width: 38mm; font-weight: bold; }
-
+            .info-table td { padding: 1.65mm 0; vertical-align: top; border-bottom: 0.22mm solid #e8edf4; }
+            .info-table td.lbl,
+            .info-table td.lbl .lbl-bi {
+                font-family: helvetica;
+            }
+            /* mPDF: force Tamil face inside label cells (nested tables ignore class-only font). */
+            .info-table td.lbl .lbl-ta {
+                font-family: TAMIL_FONT_PLACEHOLDER !important;
+            }
             .info-table .colon {
                 width: 2mm;
                 text-align: center;
+                font-weight: bold;
+                padding-top: 0.35mm;
             }
-            .summary-card { border: 0.4mm solid #cfd8e3; margin-top: 2mm; }
-            .summary-heading { font-size: 11.5pt; font-weight: bold; color: #0b3b6e; padding: 2mm 2.2mm 1.2mm 2.2mm; border-bottom: 0.3mm solid #d8e2ef; text-align: center; }
+            .info-table .val {
+                font-size: 11pt;
+                font-weight: normal;
+                line-height: 1.3;
+                padding-left: 0.5mm;
+            }
+            .summary-card { border: 0.4mm solid #cfd8e3; margin-top: 2mm; overflow: hidden; }
+            .summary-heading {
+                background: #edf3fa;
+                font-weight: bold;
+                color: #0b3b6e;
+                padding: 2mm 2.2mm 1.2mm 2.2mm;
+                border-bottom: 0.3mm solid #d8e2ef;
+                text-align: center;
+            }
+            .summary-heading .bi-en { font-size: 11.5pt; margin: 0; line-height: 1.2; }
+            .summary-heading .bi-ta { font-size: 10pt; margin-top: 0.12em; font-weight: normal !important; line-height: 1.2; }
             .summary-table { border-collapse: collapse; font-size: 10.2pt; width: 100%; }
-            .summary-table th { background: #edf3fa; color: #123c66; font-weight: bold; padding: 1.6mm 1.4mm; border-bottom: 0.3mm solid #d7e1ee; text-transform: uppercase; font-size: 9.2pt; letter-spacing: 0.2px; text-align: center; vertical-align: middle; }
+            .summary-table th {
+                background: #edf3fa;
+                color: #123c66;
+                font-weight: bold;
+                padding: 1.6mm 1.4mm;
+                border-bottom: 0.3mm solid #d7e1ee;
+                text-transform: none;
+                font-size: 9.2pt;
+                letter-spacing: 0.2px;
+                text-align: center;
+                vertical-align: middle;
+            }
+            .summary-table .th-bi .th-en {
+                display: block;
+                font-family: helvetica;
+                font-size: 8.8pt;
+                font-weight: bold;
+                text-transform: uppercase;
+                line-height: 1.15;
+                margin: 0;
+                padding: 0;
+            }
+            .summary-table .th-bi .th-ta {
+                display: block;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-size: 8.2pt;
+                margin: 0.12em 0 0 0;
+                padding: 0;
+                font-weight: normal !important;
+                text-transform: none;
+                line-height: 1.15;
+            }
             .summary-table td { padding: 1.6mm 1.4mm; border-bottom: 0.25mm solid #e7edf5; text-align: center; vertical-align: middle; }
             .summary-table tr:nth-child(even) td { background: #fafcff; }
-            .status-pill { display: inline-block; padding: 0.6mm 1.6mm; border-radius: 2mm; font-size: 8.6pt; font-weight: bold; }
+            .status-pill {
+                display: inline-block;
+                padding: 0.6mm 1.6mm;
+                border-radius: 2mm;
+                font-size: 8.6pt;
+                font-weight: bold;
+                text-align: center;
+            }
+            .status-pill .st-en {
+                display: block;
+                font-family: helvetica;
+                line-height: 1.15;
+                margin: 0;
+            }
+            .status-pill .st-ta {
+                display: block;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-size: 7.8pt;
+                margin: 0.12em 0 0 0;
+                font-weight: normal !important;
+                line-height: 1.15;
+            }
             .status-active { background: #e8f7ed; color: #196b33; border: 0.25mm solid #b7dfc2; }
             .status-expired { background: #fdeaea; color: #9b1c1c; border: 0.25mm solid #efb8b8; }
-            .footer { margin-top: 16px; text-align: center; font-size: 12pt; }
-            </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
+            .footer {
+                margin-top: 16px;
+                text-align: center;
+                font-size: 12pt;
+            }
+            .footer .bi-en { font-family: helvetica; font-weight: bold; margin: 0; line-height: 1.2; }
+            .footer .bi-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: 11pt; margin-top: 0.12em; font-weight: normal !important; line-height: 1.2; }
+            .range-sep-inline {
+                display: inline;
+                white-space: nowrap;
+                margin: 0 1.2mm;
+                font-weight: bold;
+            }
+            .range-sep-inline .rs-en { font-family: helvetica; font-size: inherit; font-weight: bold; }
+            .range-sep-inline .rs-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: inherit; font-weight: normal !important; }
+            .sign-missing { text-align: center; line-height: 1.2; color: #666; }
+            .sign-missing .bi-en { font-size: 8pt; font-weight: bold; margin: 0; }
+            .sign-missing .bi-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: 7.5pt; margin-top: 0.12em; font-weight: normal !important; }
+            .table-empty-msg { text-align: center; padding: 3mm 2mm; font-size: 14pt; line-height: 1.25; }
+            .table-empty-msg .bi-en { font-weight: bold; margin: 0; line-height: 1.2; }
+            .table-empty-msg .bi-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: 12pt; margin-top: 0.12em; font-weight: normal !important; line-height: 1.2; }
+            </style>'
+        ), \Mpdf\HTMLParserMode::HEADER_CSS);
                 
         $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path): null;
         $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
+        
 
-        $qrValue = 'sdfdgsdg';
-
-        $formNameForLabel = strtoupper(trim((string) ($applicant->form_name ?? '')));
-        $licenseNumberColLabel = match ($formNameForLabel) {
-            'WH' => 'WH.No',
-            'S' => 'C.No',
-            'W' => 'H.No',
-            default => 'C.No',
-        };
+        $qrValue = 'Tnelb QR Testing';
 
         $html = '
         <div class="card">
 
             <!-- HEADER -->
             <div class="header">
-            <div class="header-main">GOVERNMENT OF TAMIL NADU</div>
-                <div class="header-title">TAMIL NADU ELECTRICAL LICENCING BOARD</div>
-                <div class="header-sub">Thiru Vi. Ka. Industrial Estate, Guindy, Chennai - 600 032.</div>
+                <div class="hdr-stack header-main">
+                    <div class="bi-en">GOVERNMENT OF TAMIL NADU</div>
+                    <div class="bi-ta" lang="ta">தமிழ்நாடு அரசு</div>
+                </div>
+                <div class="hdr-stack header-title">
+                    <div class="bi-en">TAMIL NADU ELECTRICAL LICENCING BOARD</div>
+                    <div class="bi-ta" lang="ta">மின்சார உரிமையாளர்கள் வாரியம்</div>
+                </div>
+                <div class="hdr-stack header-sub">
+                    <div class="bi-en">Thiru Vi. Ka. Industrial Estate, Guindy, Chennai - 600 032.</div>
+                    <div class="bi-ta" lang="ta">திரு.வி.கா. தொழிற்சாலை, கிண்டி, சென்னை – 600032.</div>
+                </div>
             </div>
 
             <!-- BODY -->
@@ -2491,37 +2666,37 @@ class LicensepdfController extends Controller
 
                             <table class="info-table">
                                 <tr>
-                                    <td class="lbl">'.$licenseNumberColLabel.'</td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Certificate Number</div><div class="lbl-ta" lang="ta">சான்றிதழ் எண்</div></div></td>
                                     <td class="colon">:</td>
                                     <td class="val">'.$applicant->license_number.'</td>
                                 </tr>
                                 <tr>
-                                    <td class="lbl">D.O.I</td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of Issue</div><div class="lbl-ta" lang="ta">வழங்கப்பட்ட தேதி</div></div></td>
                                     <td class="colon">:</td>
                                     <td class="val">'.date('d M Y', strtotime($applicant->issued_at)).'</td>
                                 </tr>
                                  <tr>
-                                    <td class="lbl">Validity</td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Validity</div><div class="lbl-ta" lang="ta">செல்லுபடியாகும் காலம்</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">'.format_date($applicant->issued_at). '<small style="font-weight: bold;"> To </small>'. format_date($applicant->expires_at).'</td>
+                                    <td class="val">'.format_date($applicant->issued_at).' <span class="range-sep-inline"><span class="rs-en">To</span> <span class="rs-ta" lang="ta">வரை</span></span> '.format_date($applicant->expires_at).'</td>
                                 </tr>
                                 <tr>
-                                    <td class="lbl">Name</td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
                                     <td class="colon">:</td>
                                     <td class="val">'.$applicant->name.'</td>
                                 </tr>
                                 <tr>
-                                    <td class="lbl">F/H Name</td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Father / Husband Name</div><div class="lbl-ta" lang="ta">தந்தை / கணவர் பெயர்</div></div></td>
                                     <td class="colon">:</td>
                                     <td class="val">'.$applicant->fathers_name.'</td>
                                 </tr>
                                 <tr>
-                                    <td class="lbl">D.O.B</td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of Birth</div><div class="lbl-ta" lang="ta">பிறந்த தேதி</div></div></td>
                                     <td class="colon">:</td>
                                     <td class="val">'.format_date($applicant->d_o_b).'</td>
                                 </tr>
                                 <tr>
-                                    <td class="lbl">Address</td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Address</div><div class="lbl-ta" lang="ta">முகவரி</div></div></td>
                                     <td class="colon">:</td>
                                     <td class="val">'.$applicant->applicants_address.'</td>
                                 </tr>
@@ -2557,7 +2732,7 @@ class LicensepdfController extends Controller
                                             <div class="sign-inner">
                                             '.($signPath
                                                 ? '<img src="'.$signPath.'" style="width:34mm; height:10mm; object-fit:contain; vertical-align:middle;">'
-                                                : '<span style="font-size:8pt; color:#666;">Signature not available</span>').'
+                                                : '<div class="sign-missing"><div class="bi-en">Signature not available</div><div class="bi-ta" lang="ta">கையெழுத்து இல்லை</div></div>').'
                                             </div>
                                         </div>
                                     </td>
@@ -2588,15 +2763,14 @@ class LicensepdfController extends Controller
                     </tr>
                 </table>
                 <div class="summary-card">
-                    <div class="summary-heading">Issued Certificates</div>
+                    <div class="summary-heading"><div class="bi-en">Issued Certificates</div><div class="bi-ta" lang="ta">வழங்கப்பட்ட சான்றிதழ்கள்</div></div>
                     <table class="summary-table" width="100%" cellspacing="0" cellpadding="0">
                     <thead>
                         <tr>
-                            <th width="6%">#</th>
-                            <th width="28%">Certificate Number</th>
-                            <th width="20%">Date Of Issue</th>
-                            <th width="20%">Expired At</th>
-                            <th width="16%">Status</th>
+                            <th width="6%"><div class="th-bi"><div class="th-en">#</div><div class="th-ta" lang="ta">எண்</div></div></th>
+                            <th width="28%"><div class="th-bi"><div class="th-en">Cert. No.</div><div class="th-ta" lang="ta">சான்றிதழ் எண்</div></div></th>
+                            <th width="20%"><div class="th-bi"><div class="th-en">Date Of Issue</div><div class="th-ta" lang="ta">வழங்கிய தேதி</div></div></th>
+                            <th width="20%"><div class="th-bi"><div class="th-en">Expires On</div><div class="th-ta" lang="ta">காலாவதி தேதி</div></div></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2611,12 +2785,24 @@ class LicensepdfController extends Controller
 
             <!-- FOOTER -->
             <div class="footer">
-                Issued by TNELB | Tamil Nadu
+                <div class="bi-en">Issued by TNELB | Tamil Nadu</div>
+                <div class="bi-ta" lang="ta">TNELB வழங்கியது | தமிழ்நாடு</div>
             </div>
 
         </div>
         ';
-    
+        // Inline Tamil font — mPDF often applies stylesheet fonts in header/body blocks but not in nested <td>
+        $html = preg_replace(
+            '/<(div|span) class="(bi-ta|lbl-ta|th-ta|st-ta)" lang="ta">/u',
+            '<$1 class="$2" lang="ta" style="font-family: ' . $tamilFontFamily . '; font-weight: normal;">',
+            $html
+        );
+        $html = preg_replace(
+            '/<span class="rs-ta" lang="ta">/u',
+            '<span class="rs-ta" lang="ta" style="font-family: ' . $tamilFontFamily . '; font-weight: normal;">',
+            $html
+        );
+
         $mpdf->WriteHTML($html);
         return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
 
