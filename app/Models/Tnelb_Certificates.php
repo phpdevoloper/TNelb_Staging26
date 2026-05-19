@@ -27,6 +27,7 @@ class Tnelb_Certificates extends Model
         'license_status',
         'license_pdf_en',
         'license_pdf_ta',
-        
+        'license_pdf_bilingual',
+
     ];
 }

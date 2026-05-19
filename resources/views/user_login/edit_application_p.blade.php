@@ -983,6 +983,17 @@
                                         </td>
                                     </tr>
                                     {{-- (iv) PAN Number / (v) PAN Document --}}
+                                    @php
+                                        $decryptedPanEdit = '';
+                                        if (!empty($application_details->pancard)) {
+                                            try {
+                                                $decryptedPanEdit = \Illuminate\Support\Facades\Crypt::decryptString($application_details->pancard);
+                                            } catch (\Throwable $e) {
+                                                $decryptedPanEdit = '';
+                                            }
+                                        }
+                                        $existingPanDocFormP = $application_details->pan_doc ?? $application_details->pancard_doc ?? null;
+                                    @endphp
                                     <tr>
                                         <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
@@ -990,7 +1001,7 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" value="{{ $application_details->pancard ?? '' }}" style="max-width:260px;" placeholder="e.g. ABCDE1234F">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" value="{{ $decryptedPanEdit }}" style="max-width:260px;" placeholder="e.g. ABCDE1234F">
                                             <span id="pancard-error" class="text-danger d-block"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -998,9 +1009,9 @@
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
-                                            @if (!empty($application_details->pancard_doc))
+                                            @if (!empty($existingPanDocFormP))
                                                 <div class="pan-doc-container fs-doc-existing" style="justify-content:flex-start;">
-                                                    <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $application_details->pancard_doc]) }}" target="_blank">
+                                                    <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $existingPanDocFormP]) }}" target="_blank">
                                                         <i class="fa fa-file-pdf-o"></i> View
                                                     </a>
                                                     <button type="button" class="btn-tbl-remove remove-pan-doc py-1 px-2">Remove</button>

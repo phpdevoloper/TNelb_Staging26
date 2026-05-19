@@ -82,16 +82,95 @@ class FormController extends BaseController
         return $indexes;
     }
 
+    /**
+     * Calendar-style years / months / days between two dates (Form S only; aligned with apply-form-s `calendarDiffYMD`).
+     *
+     * @return array{y:int,m:int,d:int}|null
+     */
+    private function workExperienceCalendarYmd(?string $fromRaw, ?string $toRaw): ?array
+    {
+        if ($fromRaw === null || $fromRaw === '' || $toRaw === null || $toRaw === '') {
+            return null;
+        }
+
+        try {
+            $from = Carbon::parse($fromRaw)->startOfDay();
+            $to = Carbon::parse($toRaw)->startOfDay();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if ($to->lt($from)) {
+            return null;
+        }
+
+        $y = $to->year - $from->year;
+        $m = $to->month - $from->month;
+        $d = $to->day - $from->day;
+
+        if ($d < 0) {
+            $m--;
+            $d += Carbon::create($to->year, $to->month, 1)->subDay()->day;
+        }
+        if ($m < 0) {
+            $y--;
+            $m += 12;
+        }
+        if ($d < 0) {
+            $m--;
+            if ($m < 0) {
+                $y--;
+                $m += 12;
+            }
+            $d += Carbon::create($to->year, $to->month, 1)->subDay()->day;
+        }
+
+        return [
+            'y' => (int) $y,
+            'm' => (int) $m,
+            'd' => (int) $d,
+        ];
+    }
+
+    /**
+     * Duration columns for `tnelb_applicants_exp`: Form S calendar Y/M/D (when flagged);
+     * `total_exp` for Form S, W, WH, and P when flagged and the column exists.
+     *
+     * @param  array  $workRow  Output of mapWorkExperienceRow()
+     * @return array<string, mixed>
+     */
+    private function mstExperienceDurationForDb(array $workRow): array
+    {
+        static $hasTotalExpColumn = null;
+        if ($hasTotalExpColumn === null) {
+            $hasTotalExpColumn = Schema::hasColumn('tnelb_applicants_exp', 'total_exp');
+        }
+
+        $out = [];
+        if (!empty($workRow['store_work_duration_ymd'])) {
+            $out['total_y'] = $workRow['total_y'];
+            $out['total_m'] = $workRow['total_m'];
+            $out['total_d'] = $workRow['total_d'];
+        }
+        if ($hasTotalExpColumn && !empty($workRow['store_total_exp'])) {
+            $out['total_exp'] = format_total_exp_years($workRow['total_exp']);
+        }
+
+        return $out;
+    }
+
     private function mapWorkExperienceRow(Request $request, $key, ?string $formName): array
     {
         $normalizedForm = strtoupper((string) $formName);
         $isFormS = $normalizedForm === 'S';
+        /** Form S, W, WH, P: persist decimal years to `total_exp` (uses `work_experience_total[]` first). */
+        $storesTotalExp = in_array($normalizedForm, ['S', 'W', 'WH', 'P'], true);
 
         $companyName = $isFormS
             ? trim((string) ($request->work_employer_name[$key] ?? $request->work_level[$key] ?? ''))
             : trim((string) ($request->work_level[$key] ?? ''));
 
-        $experience = $isFormS
+        $experience = $storesTotalExp
             ? trim((string) ($request->work_experience_total[$key] ?? $request->experience[$key] ?? ''))
             : trim((string) ($request->experience[$key] ?? ''));
 
@@ -108,6 +187,13 @@ class FormController extends BaseController
             $intimationDate = '';
         }
 
+        $ymd = $isFormS
+            ? $this->workExperienceCalendarYmd(
+                $fromDate !== '' ? $fromDate : null,
+                $toDate !== '' ? $toDate : null
+            )
+            : null;
+
         return [
             'company_name' => $companyName,
             'experience' => $experience,
@@ -118,6 +204,11 @@ class FormController extends BaseController
             'to_date' => ($toDate !== '' ? $toDate : null),
             'intimation_date' => ($intimationDate !== '' ? $intimationDate : null),
             'total_exp' => ($experience !== '' ? $experience : null),
+            'total_y' => $isFormS ? ($ymd['y'] ?? null) : null,
+            'total_m' => $isFormS ? ($ymd['m'] ?? null) : null,
+            'total_d' => $isFormS ? ($ymd['d'] ?? null) : null,
+            'store_work_duration_ymd' => $isFormS,
+            'store_total_exp' => $storesTotalExp,
             'is_empty' => ($companyName === '' && $experience === '' && $designation === ''),
         ];
     }
@@ -1036,7 +1127,7 @@ class FormController extends BaseController
                         'intimation_date' => $workRow['intimation_date'],
                         'from_date'       => $workRow['from_date'],
                         'to_date'         => $workRow['to_date'],
-                        'total_exp'       => $workRow['total_exp'],
+                        ...$this->mstExperienceDurationForDb($workRow),
                         'designation'     => $designation,
                         'application_id'  => $newApplicationId,
                         'exp_serial'      => $newExpSerial,
@@ -1488,7 +1579,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'upload_document' => $filePath,
                         ]);
@@ -1504,7 +1595,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'application_id'  => $applicationId,
                             'exp_serial'      => $newExpSerial,
@@ -2156,7 +2247,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation ?: null,
                             'upload_document' => $filePath !== null
                                 ? $filePath
@@ -2174,7 +2265,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'application_id'  => $applicationId,
                             'exp_serial'      => $newExpSerial,
@@ -2559,7 +2650,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'upload_document' => $finalDoc,
                             'exp_serial'      => $newSerial,
@@ -2984,7 +3075,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'upload_document' => $finalDoc,
                             'exp_serial'      => $newSerial,

@@ -35,6 +35,7 @@ class FormPController extends Controller
     public function view_application_formp($applicant_id)
     {
 
+        
         // $roles = DB::table('tnelb_registers')
         //     ->select('*')
         //         ->get();
@@ -147,24 +148,21 @@ class FormPController extends Controller
         // Fetch next role dynamically from the roles table
         if ($staff->name === "Supervisor") {
 
-            if ($applicant->app_status == 'RE') {
-                $nextForwardUser = DB::table('mst_login_users')
-                    ->where('user_name', 'secretary')
-                    ->select('user_name as name', 'role_id as roles_id')
-                    ->first();
-            } else {
-                $nextForwardUser = DB::table('mst_login_users')
-                    ->where('user_name', 'assistantsecretary')
-                    ->select('user_name as name', 'role_id as roles_id')
-                    ->first();
-            }
+            $nextForwardUser = DB::table('mst_login_users')
+            ->where('user_name', 'assistantsecretary')
+            ->select('user_name as name', 'role_id as roles_id')
+            ->first();
         }
 
 
         if ($staff->name === "Assistant Secretary") {
-            $nextForwardUser = DB::table('mst_login_users')
-                ->where('user_name', 'secretary')
-                ->select('user_name as name', 'role_id as roles_id')
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Secretary')
+                ->select('name', 'roles_id')
+                ->first();
+             $returnForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Supervisor')
+                ->select('name', 'roles_id')
                 ->first();
         }
         if ($staff->name === "Secretary") {
@@ -200,13 +198,13 @@ class FormPController extends Controller
 
         $workflows = DB::table('tnelb_workflow')
             ->leftjoin('tnelb_form_p', 'tnelb_workflow.application_id', '=', 'tnelb_form_p.application_id')
-            ->leftjoin('mst__roles', 'tnelb_workflow.forwarded_to', '=', 'mst__roles.id')
+            ->leftjoin('mst_roles', 'tnelb_workflow.forwarded_to', '=', 'mst_roles.r_id')
             ->where('tnelb_workflow.application_id', $applicant_id) // Filter by specific application
-            ->select('tnelb_workflow.*', 'mst__roles.name', 'tnelb_form_p.form_name', 'tnelb_form_p.license_name')
+            ->select('tnelb_workflow.*', 'mst_roles.role_name as name', 'tnelb_form_p.form_name', 'tnelb_form_p.license_name')
             ->orderBy('tnelb_workflow.id', 'desc')
             ->get();
 
-        $workflows1 = DB::table('mst__roles')
+        $workflows1 = DB::table('mst_roles')
             ->select('*')
             ->get();
 
@@ -227,11 +225,10 @@ class FormPController extends Controller
         // Determine view based on user role
         $view = match ($staff->name) {
             'Supervisor', 'President', 'Secretary' => 'admin.dashboard.formp.applicants_detail',
-            'Assistant Secretary'                  => 'admin.dashboard.applicants_detail_auditor',
+            'Assistant Secretary'                  => 'admin.dashboard.formp.applicants_detail',
 
             default                                => abort(403, 'Unauthorized'),
         };
-
 
         return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff','institute_details'));
     }
@@ -1236,6 +1233,8 @@ class FormPController extends Controller
             ->where('cert_licence_code', 'P')
             ->value('id');
 
+        // var_dump($licenceId,$appl_type);die;
+
         if ($licenceId <= 0) {
             return response()->json(['error' => 'Licence configuration for Form P not found.'], 422);
         }
@@ -1274,6 +1273,7 @@ class FormPController extends Controller
                 ]);
 
         // -------------------- GET LICENCE VALIDITY MONTHS --------------------
+
             $today = Carbon::today()->toDateString();
             $licenseperiod = DB::table('mst_fees_validity')
                 ->where('licence_id', $licenceId)
@@ -1411,9 +1411,9 @@ class FormPController extends Controller
             ]);
 
             // -------------------- LICENCE PDF (best-effort) --------------------
-            $pdfUrlEn = null;
+            $pdfStoragePath = null;
             try {
-                $pdfUrlEn = app(LicensepdfController::class)->generateFormPLicencePdfs($request->application_id);
+                $pdfStoragePath = app(LicensepdfController::class)->generateFormPLicencePdfs($request->application_id);
             } catch (\Throwable $e) {
                 Log::warning('Failed to generate Form P licence PDF after approval', [
                     'application_id' => $request->application_id,
@@ -1423,6 +1423,8 @@ class FormPController extends Controller
 
             DB::commit();
 
+            $appId = $request->application_id;
+
             return response()->json([
                 'status'         => 'success',
                 'message'        => $appl_type === 'R'
@@ -1431,7 +1433,10 @@ class FormPController extends Controller
                 'license_number' => $newSerial,
                 'issued_at'      => $issuedAt,
                 'expires_at'     => $expiresAt,
-                'license_pdf_en_url' => $pdfUrlEn,
+                // Bilingual PDF (EN + TA in one file); EN/TA routes serve the same document when stored as bilingual.
+                'license_pdf_en_url' => $pdfStoragePath ? route('admin.formp.licence.en', ['application_id' => $appId]) : null,
+                'license_pdf_ta_url' => $pdfStoragePath ? route('admin.formp.licence.ta', ['application_id' => $appId]) : null,
+                'license_pdf_storage_path' => $pdfStoragePath,
             ], 200);
 
         } catch (\Exception $e) {

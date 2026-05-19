@@ -167,7 +167,7 @@
                                                             <tr>
                                                                 <td>{{ $experience->company_name }}</td>
                                                                 <td>{{ $experience->designation }}</td>
-                                                                <td>{{ $experience->experience }} years</td>
+                                                                <td>{{ (format_total_exp_years($experience->experience ?? $experience->total_exp) ?? '—') }} years</td>
                                                                 <td style="text-align:center;">
                                                                     @if($experience->upload_document)
                                                                         <a href="{{ url($experience->upload_document) }}" target="_blank">

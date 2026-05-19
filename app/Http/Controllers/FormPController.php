@@ -33,6 +33,25 @@ class FormPController extends BaseController
         $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
     }
 
+    /**
+     * Total experience (years) for one work row on Form P: prefer `work_experience_total[]`, else `experience[]`.
+     * Aligned with `mapWorkExperienceRow` / `mstExperienceDurationForDb` on FormController (S / W / WH / P).
+     */
+    private function formPResolveWorkTotalYears(Request $request, int|string $key): ?string
+    {
+        $wt = $request->input('work_experience_total', []);
+        $ex = $request->input('experience', []);
+        if (! is_array($wt)) {
+            $wt = [];
+        }
+        if (! is_array($ex)) {
+            $ex = [];
+        }
+        $s = trim((string) ($wt[$key] ?? $ex[$key] ?? ''));
+
+        return $s !== '' ? $s : null;
+    }
+
     public function apply_form_p()
     {
         if (!Auth::check()) {
@@ -58,7 +77,8 @@ class FormPController extends BaseController
         }
 
         $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
+            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar),
+            'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) $request->input('pancard', ''))),
         ]);
 
 
@@ -76,6 +96,7 @@ class FormPController extends BaseController
             'previously_number'    => 'nullable|string|max:80',
             'previously_date'      => 'nullable|date',
             'aadhaar'              => 'required|string|digits:12',
+            'pancard'               => ['nullable', 'string', 'regex:/^([A-Z]{5}[0-9]{4}[A-Z])?$/'],
             'form_name'            => 'required|string|max:2',
             'license_name'         => 'required|string|max:2',
             // 'form_id'              => 'required|integer',
@@ -123,6 +144,7 @@ class FormPController extends BaseController
             'upload_photo'         => 'required|image|mimes:jpg,jpeg,png|max:50', // 1MB
             'upload_sign'         => 'required|image|mimes:jpg,jpeg,png|max:50',
             'aadhaar_doc'          => 'nullable|mimes:pdf|max:250',
+            'pancard_doc'          => 'nullable|mimes:pdf|max:250',
 
             // multiple files (arrays)
             'education_document'   => 'required|array|min:1',
@@ -218,6 +240,8 @@ class FormPController extends BaseController
         DB::beginTransaction();
 
         $encrypted_aadhaar = Crypt::encryptString($request->aadhaar);
+        $panPlainSubmit = (string) $request->input('pancard', '');
+        $encrypted_pancard = $panPlainSubmit !== '' ? Crypt::encryptString($panPlainSubmit) : null;
 
         try {
             $hasCompanyNameColumn = Schema::hasColumn('tnelb_applicants_exp', 'company_name');
@@ -265,6 +289,19 @@ class FormPController extends BaseController
                 file_put_contents($destinationPath . '/' . $aadhaarFilename, $encrypted);
             }
 
+            $panFilename = null;
+            if ($request->hasFile('pancard_doc')) {
+                $panFile = $request->file('pancard_doc');
+                $panContents = file_get_contents($panFile->getRealPath());
+                $panEncrypted = Crypt::encrypt($panContents);
+                $panFilename = time() . '_' . rand(10000, 9999999) . '_pan.bin';
+                $destinationPathPan = storage_path('app/private_documents');
+                if (! is_dir($destinationPathPan)) {
+                    mkdir($destinationPathPan, 0755, true);
+                }
+                file_put_contents($destinationPathPan . '/' . $panFilename, $panEncrypted);
+            }
+
             $form = TnelbFormP::create([
                 'login_id'            => $loginId,
                 'applicant_name'      => $request->applicant_name ?? '',
@@ -280,10 +317,12 @@ class FormPController extends BaseController
                 'form_id'             => $request->form_id,
                 'license_name'        => $request->license_name,
                 'aadhaar'             => $encrypted_aadhaar,
+                'pancard'             => $encrypted_pancard,
                 'app_status'              => 'P',
                 'appl_type'           => $appl_type,
                 'payment_status'      => ($action === 'draft') ? 'draft' : 'payment',
                 'aadhaar_doc'         => $aadhaarFilename,
+                'pan_doc'             => $panFilename,
                 'certificate_no'      => is_array($request->certificate_no ?? null) ? null : ($request->certificate_no ?? null),
                 'certificate_date'    => is_array($request->certificate_date ?? null) ? null : ($request->certificate_date ?? null),
                 'cert_verify'         => $request->cert_verify ?? '0',
@@ -359,7 +398,7 @@ class FormPController extends BaseController
                 foreach ($request->work_level as $key => $company) {
                     $fromDate = $request->work_date_from[$key] ?? null;
                     $toDate = $request->work_date_to[$key] ?? null;
-                    $totalExp = $request->work_experience_total[$key] ?? ($request->experience[$key] ?? null);
+                    $totalExp = $this->formPResolveWorkTotalYears($request, $key);
                     $designation = $request->designation[$key] ?? null;
 
                     if (empty($company) && empty($fromDate) && empty($toDate) && empty($totalExp) && empty($designation)) {
@@ -403,10 +442,10 @@ class FormPController extends BaseController
                         $expData['to_date'] = $toDate ?: null;
                     }
                     if ($hasTotalExpColumn) {
-                        $expData['total_exp'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                        $expData['total_exp'] = format_total_exp_years($totalExp);
                     }
                     if ($hasExperienceColumn) {
-                        $expData['experience'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                        $expData['experience'] = format_total_exp_years($totalExp);
                     }
                     Mst_experience::create($expData);
                 }
@@ -496,7 +535,8 @@ class FormPController extends BaseController
         }
 
         $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
+            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar),
+            'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) $request->input('pancard', ''))),
         ]);
         $applicationId = $request->application_id;
         $existingForm = TnelbFormP::where('application_id', $applicationId)->first();
@@ -513,6 +553,7 @@ class FormPController extends BaseController
             ? 'image|mimes:jpg,jpeg,png|max:50'
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
         $aadhaarDocRule = 'nullable|mimes:pdf|max:250';
+        $panDocRule = 'nullable|mimes:pdf|max:250';
         $request->validate([
             'login_id'           => 'nullable|string',
             'applicant_name'     => 'nullable|string|max:255',
@@ -527,6 +568,7 @@ class FormPController extends BaseController
             'license_name'       => 'nullable|string|max:2',
             'form_id'            => 'nullable|integer',
             // 'amount'             => 'nullable|numeric|min:0',
+            'pancard'             => ['nullable', 'string', 'regex:/^([A-Z]{5}[0-9]{4}[A-Z])?$/'],
             'educational_level'    => 'nullable|array|min:1',
             'educational_level.*'  => 'nullable|string|max:50',
             'institute_name'       => 'nullable|array|min:1',
@@ -540,6 +582,7 @@ class FormPController extends BaseController
             'upload_photo'   => $uploadPhotoRule,
             'upload_sign'    => $uploadSignRule,
             'aadhaar_doc'    => $aadhaarDocRule,
+            'pancard_doc'    => $panDocRule,
 
             'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
 
@@ -628,6 +671,35 @@ class FormPController extends BaseController
                 }
             }
 
+            $panPlainUpdate = (string) $request->input('pancard', '');
+            if ($request->exists('pancard')) {
+                $encrypted_pancard = $panPlainUpdate !== '' ? Crypt::encryptString($panPlainUpdate) : null;
+            } else {
+                $encrypted_pancard = $form?->pancard;
+                if ($encrypted_pancard === null) {
+                    $encrypted_pancard = TnelbFormP::where('application_id', $applicationId)->value('pancard');
+                }
+            }
+
+            if ($request->hasFile('pancard_doc')) {
+                $panFile = $request->file('pancard_doc');
+                $panContents = file_get_contents($panFile->getRealPath());
+                $panEncrypted = Crypt::encrypt($panContents);
+                $panFilename = time() . '_' . rand(10000, 9999999) . '_pan.bin';
+                $destinationPathPan = storage_path('app/private_documents');
+                if (! is_dir($destinationPathPan)) {
+                    mkdir($destinationPathPan, 0755, true);
+                }
+                file_put_contents($destinationPathPan . '/' . $panFilename, $panEncrypted);
+            } elseif ($request->input('pancard_doc_removed') == '1') {
+                $panFilename = null;
+            } else {
+                $panFilename = $form?->pan_doc ?? null;
+                if ($panFilename == null) {
+                    $panFilename = TnelbFormP::where('application_id', $applicationId)->value('pan_doc');
+                }
+            }
+
             $renewal_form = TnelbFormP::updateOrCreate(
                 [
                     'application_id' => $applicationId
@@ -647,12 +719,14 @@ class FormPController extends BaseController
                     'form_id'            => $request->form_id,
                     'license_name'       => $request->license_name,
                     'aadhaar'            => $encrypted_aadhaar,
+                    'pancard'            => $encrypted_pancard,
                     'certificate_no'     => is_array($request->certificate_no ?? null) ? null : ($request->certificate_no ?? null),
                     'certificate_date'   => is_array($request->certificate_date ?? null) ? null : ($request->certificate_date ?? null),
                     'appl_type'          => $appl_type,
                     'license_number'     => $request->license_number,
                     'payment_status'     => 'draft',
                     'aadhaar_doc'        => $aadhaarFilename ?? $form?->aadhaar_doc ?? null,
+                    'pan_doc'            => $panFilename ?? $form?->pan_doc ?? null,
                     'cert_verify'        => $request->cert_verify ?? '0',
                     'license_verify'     => $request->l_verify ?? '0',
                     'old_application'    => $applicationId ?? '',
@@ -796,10 +870,10 @@ class FormPController extends BaseController
                         $expPayload['to_date'] = $toDate ?: null;
                     }
                     if ($hasTotalExpColumn) {
-                        $expPayload['total_exp'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                        $expPayload['total_exp'] = format_total_exp_years($totalExp);
                     }
                     if ($hasExperienceColumn) {
-                        $expPayload['experience'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                        $expPayload['experience'] = format_total_exp_years($totalExp);
                     }
                     if ($hasCompanyNameColumn) {
                         $expPayload['company_name'] = $companyName;
@@ -1080,6 +1154,10 @@ class FormPController extends BaseController
             $request->files->remove('aadhaar_doc');
             $request->merge(['aadhaar_doc_removed' => '0']);
         }
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_PAN_DOC])) {
+            $request->files->remove('pancard_doc');
+            $request->merge(['pancard_doc_removed' => '0']);
+        }
     }
 
     // Save As Draft function
@@ -1090,7 +1168,8 @@ class FormPController extends BaseController
         }
 
         $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
+            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar),
+            'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) $request->input('pancard', ''))),
         ]);
 
         $request->validate([
@@ -1123,6 +1202,7 @@ class FormPController extends BaseController
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
         $aadhaarDocRule = 'nullable|mimes:pdf|max:250';
+        $panDocRule = 'nullable|mimes:pdf|max:250';
 
         $request->validate([
             'login_id'           => 'nullable|string',
@@ -1138,6 +1218,7 @@ class FormPController extends BaseController
             'license_name'       => 'nullable|string|max:2',
             'form_id'            => 'nullable|integer',
             'amount'             => 'nullable|numeric|min:0',
+            'pancard'             => ['nullable', 'string', 'regex:/^([A-Z]{5}[0-9]{4}[A-Z])?$/'],
 
             'educational_level'    => 'nullable|array|min:1',
             'educational_level.*'  => 'nullable|string|max:50',
@@ -1154,6 +1235,7 @@ class FormPController extends BaseController
             'upload_photo'   => $uploadPhotoRule,
             'upload_sign'    => $uploadSignRule,
             'aadhaar_doc'    => $aadhaarDocRule,
+            'pancard_doc'    => $panDocRule,
 
             'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
 
@@ -1254,6 +1336,29 @@ class FormPController extends BaseController
                 $aadhaarFilename = $form?->aadhaar_doc ?? null;
             }
 
+            $panPlainDraft = (string) $request->input('pancard', '');
+            if ($form && ! $request->exists('pancard')) {
+                $encrypted_pancard = $form->pancard;
+            } else {
+                $encrypted_pancard = $panPlainDraft !== '' ? Crypt::encryptString($panPlainDraft) : null;
+            }
+
+            if ($request->hasFile('pancard_doc')) {
+                $panFile = $request->file('pancard_doc');
+                $panContents = file_get_contents($panFile->getRealPath());
+                $panEncrypted = Crypt::encrypt($panContents);
+                $panFilename = time() . '_' . rand(10000, 9999999) . '_pan.bin';
+                $destinationPathPan = storage_path('app/private_documents');
+                if (! is_dir($destinationPathPan)) {
+                    mkdir($destinationPathPan, 0755, true);
+                }
+                file_put_contents($destinationPathPan . '/' . $panFilename, $panEncrypted);
+            } elseif ($request->input('pancard_doc_removed') == '1') {
+                $panFilename = null;
+            } else {
+                $panFilename = $form?->pan_doc ?? null;
+            }
+
 
             // 🔹 Prepare Data
             $data = [
@@ -1271,10 +1376,12 @@ class FormPController extends BaseController
                 'form_id'           => $request->form_id,
                 'license_name'      => $request->license_name,
                 'aadhaar'           => $encrypted_aadhaar ?? null,
+                'pancard'           => $encrypted_pancard,
                 'appl_type'         => $request->appl_type,
                 'license_number'    => $request->license_number,
                 'payment_status'    => $action === 'draft' ? 'draft' : 'payment',
                 'aadhaar_doc'         => $aadhaarFilename,
+                'pan_doc'             => $panFilename,
                 'certificate_no'      => is_array($request->certificate_no ?? null) ? null : ($request->certificate_no ?? null),
                 'certificate_date'   => is_array($request->certificate_date ?? null) ? null : ($request->certificate_date ?? null),
                 'application_id'    => $applicationId,
@@ -1380,7 +1487,7 @@ class FormPController extends BaseController
                 foreach ($request->work_level as $key => $company) {
                     $fromDate = $request->work_date_from[$key] ?? null;
                     $toDate = $request->work_date_to[$key] ?? null;
-                    $totalExp = $request->work_experience_total[$key] ?? ($request->experience[$key] ?? null);
+                    $totalExp = $this->formPResolveWorkTotalYears($request, $key);
                     $designation = $request->designation[$key] ?? null;
 
                     // ✅ Skip empty rows
@@ -1431,10 +1538,10 @@ class FormPController extends BaseController
                             $workPayload['to_date'] = $toDate ?: null;
                         }
                         if ($hasTotalExpColumn) {
-                            $workPayload['total_exp'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                            $workPayload['total_exp'] = format_total_exp_years($totalExp);
                         }
                         if ($hasExperienceColumn) {
-                            $workPayload['experience'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                            $workPayload['experience'] = format_total_exp_years($totalExp);
                         }
                         $work->update($workPayload);
                     } else {
@@ -1461,10 +1568,10 @@ class FormPController extends BaseController
                             $workPayload['to_date'] = $toDate ?: null;
                         }
                         if ($hasTotalExpColumn) {
-                            $workPayload['total_exp'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                            $workPayload['total_exp'] = format_total_exp_years($totalExp);
                         }
                         if ($hasExperienceColumn) {
-                            $workPayload['experience'] = $totalExp !== null && $totalExp !== '' ? $totalExp : null;
+                            $workPayload['experience'] = format_total_exp_years($totalExp);
                         }
                         Mst_experience::create($workPayload);
                     }

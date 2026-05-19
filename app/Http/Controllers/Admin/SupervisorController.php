@@ -94,19 +94,44 @@ class SupervisorController extends Controller
                 $workflows = DB::query()->fromSub($currentAppIds, 'cur')
                     ->join('tnelb_form_p as ta', 'ta.application_id', '=', 'cur.application_id')
                     ->whereIn('ta.payment_status', ['payment', 'paid'])
-                    ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))->orderByDesc('ta.id')->get();
+                    ->select(
+                        'ta.*',
+                        DB::raw("'Form P' as form_name"),
+                        DB::raw('ta.license_name as license_name'),
+                        DB::raw("EXISTS (SELECT 1 FROM tnelb_workflow tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
+                    )
+                    ->orderByDesc('ta.id')
+                    ->get();
                 if ($applTypeFilter) {
                     $workflows = collect($workflows)->filter(function ($row) use ($applTypeFilter) {
                         return strtoupper((string) ($row->appl_type ?? '')) === $applTypeFilter;
                     })->values();
                 }
             }
-            // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with return history)
+            // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with QU in history) +
+            // Form P apps returned to Supervisor/upper staff with an open workflow query (RE + latest tw.query_status P).
+            $twLastFormP = DB::table('tnelb_workflow')
+                ->select('application_id', DB::raw('MAX(id) as max_id'))
+                ->groupBy('application_id');
+
             $returnedQuery = DB::table('tnelb_form_p as ta')
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
-                ->where(function ($q) {
+                ->where(function ($q) use ($twLastFormP) {
                     $q->where('ta.app_status', 'QU')
-                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM tnelb_workflow tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))");
+                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM tnelb_workflow tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))")
+                        ->orWhere(function ($q2) use ($twLastFormP) {
+                            $q2->whereIn('ta.app_status', ['P', 'RE'])
+                                ->whereExists(function ($sub) use ($twLastFormP) {
+                                    $sub->select(DB::raw(1))
+                                        ->from('tnelb_workflow as tw')
+                                        ->joinSub($twLastFormP, 'tw_last', function ($join) {
+                                            $join->on('tw.application_id', '=', 'tw_last.application_id')
+                                                ->on('tw.id', '=', 'tw_last.max_id');
+                                        })
+                                        ->whereColumn('tw.application_id', 'ta.application_id')
+                                        ->where('tw.query_status', 'P');
+                                });
+                        });
                 })
                 ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))
                 ->orderByDesc('ta.submitted_date')
@@ -114,6 +139,7 @@ class SupervisorController extends Controller
             if ($applTypeFilter) {
                 $returnedQuery->where('ta.appl_type', $applTypeFilter);
             }
+
             $returned_applications = $returnedQuery->get();
 
             [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
@@ -320,7 +346,7 @@ class SupervisorController extends Controller
             ->sortByDesc('submitted_date')
             ->values();
 
-        return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal'));
+        return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
     }
 
     /**

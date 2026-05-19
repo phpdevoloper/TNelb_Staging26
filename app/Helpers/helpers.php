@@ -114,6 +114,33 @@ if (!function_exists('safeDecrypt')) {
 }
 
 
+if (!function_exists('format_total_exp_years')) {
+    /**
+     * Normalize work-experience years for storage/display (e.g. 2.0 instead of 2.00).
+     *
+     * @param  mixed  $value
+     * @return string|null
+     */
+    function format_total_exp_years($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return null;
+            }
+        }
+        if (! is_numeric($value)) {
+            return (string) $value;
+        }
+
+        return number_format((float) $value, 1, '.', '');
+    }
+}
+
+
 if (!function_exists('db_now')) {
     function db_now() {
         return DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;

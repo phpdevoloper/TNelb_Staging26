@@ -36,6 +36,7 @@ final class ReturnedApplicationEditScope
         'Photo is missing' => [self::SECTION_PHOTO],
         'Signature is missing' => [self::SECTION_SIGNATURE],
         'Aadhaar document is missing' => [self::SECTION_AADHAAR_DOC],
+        'PAN document is missing' => [self::SECTION_PAN_DOC],
         'Other' => [self::SECTION_FULL],
     ];
 

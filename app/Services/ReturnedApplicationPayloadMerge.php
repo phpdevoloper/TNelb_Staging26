@@ -238,6 +238,7 @@ final class ReturnedApplicationPayloadMerge
             'previously_date' => $fmtDate($form->previously_date),
             'wireman_details' => $form->wireman_details ?? null,
             'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
+            'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) (safeDecrypt($form->pancard) ?? ''))),
             'certificate_no' => $form->certificate_no,
             'certificate_date' => $fmtDate($form->certificate_date),
             'license_number' => $form->license_number,

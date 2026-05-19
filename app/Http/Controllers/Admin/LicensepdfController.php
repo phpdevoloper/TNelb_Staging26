@@ -1836,91 +1836,134 @@ class LicensepdfController extends Controller
     }
 
     /**
-     * Stream encrypted English Form P licence PDF from private storage.
+     * Licence row for Form P: new → tnelb_license, renewal → tnelb_renewal_license.
      */
-    public function streamFormPLicenceEn(string $applicationId)
+    private function getFormPLicenceRow(string $applicationId): ?object
     {
-        // Ensure licence and PDF paths exist; if not, (re)generate them
-        $licence = DB::table('tnelb_license')
-            ->where('application_id', $applicationId)
-            ->first();
+        $formP = DB::table('tnelb_form_p')->where('application_id', $applicationId)->first();
+        if (! $formP) {
+            return null;
+        }
+        $applType = strtoupper(trim($formP->appl_type ?? 'N'));
 
-        if (!$licence || empty($licence->license_pdf_en)) {
-            // Best-effort regenerate
-            $this->generateFormPLicencePdfs($applicationId);
-            $licence = DB::table('tnelb_license')
-                ->where('application_id', $applicationId)
-                ->first();
+        if ($applType === 'R') {
+            return DB::table('tnelb_renewal_license')->where('application_id', $applicationId)->first();
         }
 
-        if (!$licence || empty($licence->license_pdf_en)) {
-            abort(404, 'Form P English licence PDF not found.');
+        return DB::table('tnelb_license')->where('application_id', $applicationId)->first();
+    }
+
+    private function formPLicenceTableForApplType(string $applType): string
+    {
+        return strtoupper(trim($applType)) === 'R' ? 'tnelb_renewal_license' : 'tnelb_license';
+    }
+
+    /**
+     * Concatenate two PDFs (all pages from the first, then all pages from the second).
+     */
+    private function mergePdfBinaries(string $pdfBinaryA, string $pdfBinaryB): string
+    {
+        $tmpA = tempnam(sys_get_temp_dir(), 'fpdf_a');
+        $tmpB = tempnam(sys_get_temp_dir(), 'fpdf_b');
+        if ($tmpA === false || $tmpB === false) {
+            throw new \RuntimeException('Unable to create temp file for PDF merge.');
+        }
+        try {
+            file_put_contents($tmpA, $pdfBinaryA);
+            file_put_contents($tmpB, $pdfBinaryB);
+            $mpdf = new Mpdf(['mode' => 'utf-8']);
+            foreach ([$tmpA, $tmpB] as $tmp) {
+                $pageCount = $mpdf->setSourceFile($tmp);
+                for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                    $mpdf->AddPage();
+                    $tplId = $mpdf->importPage($pageNo);
+                    $mpdf->useTemplate($tplId);
+                }
+            }
+
+            return $mpdf->Output('', 'S');
+        } finally {
+            @unlink($tmpA);
+            @unlink($tmpB);
+        }
+    }
+
+    /**
+     * Stored path to use when streaming Form P licence (single bilingual file preferred).
+     */
+    private function resolveFormPLicenceEncryptedPath(object $licence, string $requestedLocale): ?string
+    {
+        if (! empty($licence->license_pdf_bilingual)) {
+            return $licence->license_pdf_bilingual;
+        }
+        if ($requestedLocale === 'ta') {
+            return $licence->license_pdf_ta ?? null;
+        }
+
+        return $licence->license_pdf_en ?? null;
+    }
+
+    private function streamFormPLicenceByLocale(string $applicationId, string $requestedLocale): \Illuminate\Http\Response
+    {
+        $label = $requestedLocale === 'ta' ? 'Tamil' : 'English';
+        $licence = $this->getFormPLicenceRow($applicationId);
+
+        $encryptedPath = $licence ? $this->resolveFormPLicenceEncryptedPath($licence, $requestedLocale) : null;
+
+        if (! $licence || empty($encryptedPath)) {
+            $this->generateFormPLicencePdfs($applicationId);
+            $licence       = $this->getFormPLicenceRow($applicationId);
+            $encryptedPath = $licence ? $this->resolveFormPLicenceEncryptedPath($licence, $requestedLocale) : null;
+        }
+
+        if (! $licence || empty($encryptedPath)) {
+            abort(404, "Form P {$label} licence PDF not found.");
         }
 
         try {
-            $encryptedPath = $licence->license_pdf_en;
             $encryptedData = Storage::disk('local')->get($encryptedPath);
             $pdfBinary     = Crypt::decryptString($encryptedData);
         } catch (\Throwable $e) {
-            Log::warning('Failed to stream Form P English licence PDF', [
+            Log::warning('Failed to stream Form P licence PDF', [
                 'application_id' => $applicationId,
-                'path'           => $licence->license_pdf_en ?? null,
+                'locale'         => $requestedLocale,
+                'path'           => $encryptedPath,
                 'error'          => $e->getMessage(),
             ]);
             abort(500, 'Unable to open licence PDF.');
         }
 
         $fileName = basename($encryptedPath, '.enc');
+
         return response($pdfBinary)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="'.$fileName.'"');
+    }
+
+    /**
+     * Stream encrypted English Form P licence PDF from private storage.
+     * If a bilingual PDF is stored, streams the combined EN+TA document (same file as Tamil route).
+     */
+    public function streamFormPLicenceEn(string $applicationId)
+    {
+        return $this->streamFormPLicenceByLocale($applicationId, 'en');
     }
 
     /**
      * Stream encrypted Tamil Form P licence PDF from private storage.
+     * If a bilingual PDF is stored, streams the combined EN+TA document (same file as English route).
      */
     public function streamFormPLicenceTa(string $applicationId)
     {
-        // Ensure licence and PDF paths exist; if not, (re)generate them
-        $licence = DB::table('tnelb_license')
-            ->where('application_id', $applicationId)
-            ->first();
-
-        if (!$licence || empty($licence->license_pdf_ta)) {
-            // Best-effort regenerate (will set both en & ta)
-            $this->generateFormPLicencePdfs($applicationId);
-            $licence = DB::table('tnelb_license')
-                ->where('application_id', $applicationId)
-                ->first();
-        }
-
-        if (!$licence || empty($licence->license_pdf_ta)) {
-            abort(404, 'Form P Tamil licence PDF not found.');
-        }
-
-        try {
-            $encryptedPath = $licence->license_pdf_ta;
-            $encryptedData = Storage::disk('local')->get($encryptedPath);
-            $pdfBinary     = Crypt::decryptString($encryptedData);
-        } catch (\Throwable $e) {
-            Log::warning('Failed to stream Form P Tamil licence PDF', [
-                'application_id' => $applicationId,
-                'path'           => $licence->license_pdf_ta ?? null,
-                'error'          => $e->getMessage(),
-            ]);
-            abort(500, 'Unable to open licence PDF.');
-        }
-
-        $fileName = basename($encryptedPath, '.enc');
-        return response($pdfBinary)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="'.$fileName.'"');
+        return $this->streamFormPLicenceByLocale($applicationId, 'ta');
     }
 
     /**
-     * Generate English and Tamil licence PDFs specifically for Form P applications.
-     * Stores paths in `tnelb_license.license_pdf_en` and `license_pdf_ta` and
-     * returns the public URL to the English PDF (for UI display).
+     * Generate Form P licence PDF(s): merges English + Tamil into one bilingual PDF when
+     * `license_pdf_bilingual` exists on the licence table; encrypts once and stores the path.
+     * Skips regeneration if a bilingual (or legacy EN+TA) file is already stored.
+     *
+     * @return string|null Storage path of the primary encrypted file (bilingual preferred, else EN legacy)
      */
     public function generateFormPLicencePdfs(string $applicationId): ?string
     {
@@ -1955,6 +1998,26 @@ class LicensepdfController extends Controller
                 'appl_type'      => $applType,
             ]);
             return null;
+        }
+
+        $licenceTable = $this->formPLicenceTableForApplType($applType);
+
+        // Already have a single bilingual file (generate once per application).
+        if (Schema::hasTable($licenceTable)
+            && Schema::hasColumn($licenceTable, 'license_pdf_bilingual')
+            && ! empty($licence->license_pdf_bilingual)
+            && Storage::disk('local')->exists($licence->license_pdf_bilingual)) {
+            return $licence->license_pdf_bilingual;
+        }
+
+        // Legacy: separate EN + TA already stored.
+        if (Schema::hasTable($licenceTable)
+            && Schema::hasColumn($licenceTable, 'license_pdf_en')
+            && Schema::hasColumn($licenceTable, 'license_pdf_ta')
+            && ! empty($licence->license_pdf_en) && ! empty($licence->license_pdf_ta)
+            && Storage::disk('local')->exists($licence->license_pdf_en)
+            && Storage::disk('local')->exists($licence->license_pdf_ta)) {
+            return $licence->license_pdf_en;
         }
 
         $applicantPhoto = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
@@ -2112,11 +2175,8 @@ class LicensepdfController extends Controller
             </div>
         ');
 
-        $fileNameEn      = $applicationId . '_FORMP_EN.pdf';
-        $pdfBinaryEn     = $mpdfEn->Output($fileNameEn, 'S');
-        // Store encrypted English PDF in private storage
-        $encryptedPathEn = 'private_documents/license_pdfs/' . $fileNameEn . '.enc';
-        Storage::disk('local')->put($encryptedPathEn, Crypt::encryptString($pdfBinaryEn));
+        $fileNameEn   = $applicationId . '_FORMP_EN.pdf';
+        $pdfBinaryEn  = $mpdfEn->Output($fileNameEn, 'S');
 
         // ---------- Tamil card (simplified) ----------
         // Reuse the same Tamil font configuration as the existing Tamil licence generator
@@ -2268,30 +2328,75 @@ class LicensepdfController extends Controller
 
         // Front + explicit page break + back on page 2
         $mpdfTa->WriteHTML($taHtml . '<pagebreak />' . $backTaHtml);
-        $fileNameTa     = $applicationId . '_FORMP_TA.pdf';
-        $pdfBinaryTa    = $mpdfTa->Output($fileNameTa, 'S');
-        // Store encrypted Tamil PDF in private storage
+        $fileNameTa    = $applicationId . '_FORMP_TA.pdf';
+        $pdfBinaryTa   = $mpdfTa->Output($fileNameTa, 'S');
+
+        $hasBilingualCol = Schema::hasTable($licenceTable)
+            && Schema::hasColumn($licenceTable, 'license_pdf_bilingual');
+
+        if ($hasBilingualCol) {
+            try {
+                $pdfMerged = $this->mergePdfBinaries($pdfBinaryEn, $pdfBinaryTa);
+            } catch (\Throwable $e) {
+                Log::error('Form P bilingual PDF merge failed', [
+                    'application_id' => $applicationId,
+                    'error'          => $e->getMessage(),
+                ]);
+
+                return null;
+            }
+
+            $encryptedPathBl = 'private_documents/license_pdfs/' . $applicationId . '_FORMP_BL.pdf.enc';
+            Storage::disk('local')->put($encryptedPathBl, Crypt::encryptString($pdfMerged));
+
+            $payload = ['license_pdf_bilingual' => $encryptedPathBl];
+            if (Schema::hasColumn($licenceTable, 'license_pdf_en')) {
+                $payload['license_pdf_en'] = null;
+            }
+            if (Schema::hasColumn($licenceTable, 'license_pdf_ta')) {
+                $payload['license_pdf_ta'] = null;
+            }
+
+            try {
+                DB::table($licenceTable)
+                    ->where('application_id', $applicationId)
+                    ->update($payload);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to update Form P bilingual licence PDF path', [
+                    'application_id' => $applicationId,
+                    'table'          => $licenceTable,
+                    'path'           => $encryptedPathBl,
+                    'error'          => $e->getMessage(),
+                ]);
+            }
+
+            return $encryptedPathBl;
+        }
+
+        // Legacy: separate encrypted EN / TA files
+        $encryptedPathEn = 'private_documents/license_pdfs/' . $fileNameEn . '.enc';
         $encryptedPathTa = 'private_documents/license_pdfs/' . $fileNameTa . '.enc';
+        Storage::disk('local')->put($encryptedPathEn, Crypt::encryptString($pdfBinaryEn));
         Storage::disk('local')->put($encryptedPathTa, Crypt::encryptString($pdfBinaryTa));
 
-        // Update paths in tnelb_license table
         try {
-            DB::table('tnelb_license')
+            $legacyPayload = [
+                'license_pdf_en' => $encryptedPathEn,
+                'license_pdf_ta' => $encryptedPathTa,
+            ];
+            DB::table($licenceTable)
                 ->where('application_id', $applicationId)
-                ->update([
-                    'license_pdf_en' => $encryptedPathEn,
-                    'license_pdf_ta' => $encryptedPathTa,
-                ]);
+                ->update($legacyPayload);
         } catch (\Throwable $e) {
             Log::warning('Failed to update licence PDF paths for Form P', [
                 'application_id' => $applicationId,
+                'table'          => $licenceTable,
                 'path_en'        => $encryptedPathEn,
                 'path_ta'        => $encryptedPathTa,
                 'error'          => $e->getMessage(),
             ]);
         }
 
-        // Return stored encrypted path for English PDF so UI can show/reference it
         return $encryptedPathEn;
     }
 

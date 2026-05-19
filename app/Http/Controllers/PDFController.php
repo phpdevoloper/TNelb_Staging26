@@ -163,10 +163,8 @@ class PDFController extends Controller
         $decryptedPan = $this->safeDecryptString($form->pancard);
         $decryptedPan = $decryptedPan ? strtoupper(preg_replace('/[^A-Z0-9]/i', '', $decryptedPan)) : '';
         $maskedPan = strlen($decryptedPan) === 10 ? str_repeat('X', 6) . substr($decryptedPan, -4) : '';
-        $decryptedPan = $this->safeDecryptString($form->pancard);
-        $decryptedPan = $decryptedPan ? strtoupper(preg_replace('/[^A-Z0-9]/i', '', $decryptedPan)) : '';
-        $maskedPan = strlen($decryptedPan) === 10 ? str_repeat('X', 6) . substr($decryptedPan, -4) : '';
         $maskedUpper = mb_strtoupper($masked, 'UTF-8');
+        $panDisplayPdf = $maskedPan !== '' ? mb_strtoupper($maskedPan, 'UTF-8') : '—';
 
         // Match generatePDF(): A4, helvetica 10pt, acknowledgement-style layout
         $applicantNameUpper = mb_strtoupper($form->applicant_name ?? '', 'UTF-8');
@@ -271,7 +269,8 @@ class PDFController extends Controller
 
             table.form-p-grid.form-p-qs-final { margin-top: 22px; margin-bottom: 4px; }
             table.form-p-grid.form-p-qs-final tr.form-p-q6 > td,
-            table.form-p-grid.form-p-qs-final tr.form-p-q7 > td {
+            table.form-p-grid.form-p-qs-final tr.form-p-q7 > td,
+            table.form-p-grid.form-p-qs-final tr.form-p-q8 > td {
                 padding-top: 14px;
                 padding-bottom: 6px;
             }
@@ -309,7 +308,7 @@ class PDFController extends Controller
             </tr>
         </table>';
 
-        // Applicant & photo — single fixed grid so #, labels, colons, values align with (IV)/6/7
+        // Applicant & photo — single fixed grid so #, labels, colons, values align with (IV)/6–8
         $emailDisplayP = trim((string) data_get($form, 'applicant_email', ''));
         $emailDisplayP = $emailDisplayP !== '' ? $emailDisplayP : '—';
 
@@ -480,6 +479,13 @@ class PDFController extends Controller
             <td class="fp-label">AADHAAR NUMBER</td>
             <td class="fp-colon">:</td>
             <td class="fp-val">' . e($maskedUpper) . '</td>
+            <td class="fp-photo">&nbsp;</td>
+        </tr>
+        <tr class="form-p-q8">
+            <td class="fp-num">8.</td>
+            <td class="fp-label">PAN CARD NUMBER</td>
+            <td class="fp-colon">:</td>
+            <td class="fp-val">' . e($panDisplayPdf) . '</td>
             <td class="fp-photo">&nbsp;</td>
         </tr>
         </table>';
