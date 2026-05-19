@@ -883,10 +883,45 @@
         font-family: 'FontAwesome';
         display: inline-block;
     }
+
+    /* Returned-application partial edit: locked blocks are visible but non-interactive */
+    .fs-return-section-locked {
+        pointer-events: none;
+        opacity: 0.72;
+        filter: grayscale(0.06);
+    }
+    .fs-return-upload-cell.fs-return-section-locked {
+        pointer-events: none;
+        opacity: 0.72;
+        filter: grayscale(0.06);
+    }
 </style>
 
 
 @php
+    use App\Services\ReturnedApplicationEditScope;
+
+    $returnedEditableSections = $returnedEditableSections ?? [ReturnedApplicationEditScope::SECTION_FULL];
+    $returnedIsPartial = ! ReturnedApplicationEditScope::isFullUnlock($returnedEditableSections);
+    $retCanEdit = function (string $section) use ($returnedEditableSections): bool {
+        return ReturnedApplicationEditScope::isFullUnlock($returnedEditableSections)
+            || in_array($section, $returnedEditableSections, true);
+    };
+    $retLockClass = function (string $section) use ($returnedIsPartial, $retCanEdit): string {
+        if (! $returnedIsPartial) {
+            return '';
+        }
+
+        return $retCanEdit($section) ? '' : ' fs-return-section-locked';
+    };
+    $retSectionMode = function (string $section) use ($returnedIsPartial, $retCanEdit): string {
+        if (! $returnedIsPartial) {
+            return 'view';
+        }
+
+        return $retCanEdit($section) ? 'edit' : 'view';
+    };
+
     $editFormName = $application_details->form_name ?? '';
     $editLicenseName = $application_details->license_name ?? '';
     $editEnglishTitle = isset($licence_name->licence_name) ? $licence_name->licence_name : 'Competency Certificate';
@@ -1008,6 +1043,12 @@
                                 </div>
                             </div>
                         @endif
+                        @if($returnedIsPartial ?? false)
+                            <div class="mt-2 mb-0 rounded px-3 py-2" role="note"
+                                 style="background:#e8f4fd;border:1px solid #90caf9;color:#0d47a1;font-size:.83rem;">
+                                <strong>Partial correction:</strong> only the sections staff queried are editable. Other fields are locked but still shown for your reference.
+                            </div>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -1039,10 +1080,12 @@
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
                     @endphp
-                    <div class="fs-section" data-mode="view">
+                    <div class="fs-section{{ $retLockClass('applicant') }}" data-return-section="applicant" data-mode="{{ $retSectionMode('applicant') }}">
+                        @unless(($returnedIsPartial ?? false) && ! ($retCanEdit('applicant')))
                         <button type="button" class="fs-section-edit-toggle" onclick="toggleSectionEdit(this)" title="Edit" style="position:absolute;top:10px;right:10px;">
                             <i class="fa fa-pencil"></i>
                         </button>
+                        @endunless
                         <div class="fs-section-body">
                             <div class="fs-view-block">
                                 <div class="row">
@@ -1180,7 +1223,7 @@
                     @php $formName = $application_details->form_name ?? ''; @endphp
 
                     {{-- ═══ SECTION 5 — Education ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section{{ $retLockClass('education') }}" data-return-section="education">
                         <div class="fs-section-header">
                             <span class="fs-section-num">5</span>
                             <div>
@@ -1208,10 +1251,12 @@
                                                             </th>
                                                             <th class="text-center p-1" rowspan="2">
                                                                 <div class="form-s-actions-stack">
+                                                                    @unless(($returnedIsPartial ?? false) && ! ($retCanEdit('education')))
                                                                     <button type="button"
                                                                         class="btn-tbl-add add-more add-more-education py-1 px-2" title="Add row">
                                                                         <i class="fa fa-plus"></i>
                                                                     </button>
+                                                                    @endunless
                                                                 </div>
                                                             </th>
                                                         </tr>
@@ -1451,7 +1496,7 @@
                                                 @endphp
 
                     {{-- ═══ SECTION 6 — Work Experience ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section{{ $retLockClass('experience') }}" data-return-section="experience">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $workQuestionNo }}</span>
                             <div>
@@ -1520,9 +1565,11 @@
                                                                 @endif
                                                                 <th class="work-exp-col-actions text-center p-1">
                                                                     <div class="form-s-actions-stack">
+                                                                        @unless(($returnedIsPartial ?? false) && ! ($retCanEdit('experience')))
                                                                         <button type="button" class="btn-tbl-add add-more-work py-1 px-2" title="Add row">
                                                                             <i class="fa fa-plus"></i>
                                                                         </button>
+                                                                        @endunless
                                                                     </div>
                                                                 </th>
                                                             </tr>
@@ -1820,7 +1867,7 @@
 
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section{{ $retLockClass('applicant') }}" data-return-section="applicant">
                         <div class="fs-section-header">
                             <span class="fs-section-num">7</span>
                             <div>
@@ -1909,7 +1956,7 @@
                     @endphp
 
                     {{-- ═══ SECTION 8 — Wireman/Helper Competency ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section{{ $retLockClass('applicant') }}" data-return-section="applicant">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $questionNumber }}</span>
                             <div>
@@ -2006,7 +2053,7 @@
                     @endphp
 
                     {{-- ═══ SECTION 9 — Upload Documents ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section" data-return-section="documents">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $uploadQuestionNo }}</span>
                             <div>
@@ -2030,8 +2077,9 @@
                                             <div class="fs-field-label">Upload Photo <span class="req">*</span></div>
                                             <div class="fs-field-tamil">புகைப்படத்தைப் பதிவேற்றவும்</div>
                                         </td>
-                                        <td colspan="3">
-                                            <div class="fs-upload-card">
+                                        <td colspan="3" class="p-0">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('photo') }}" data-return-section="photo">
+                                            <div class="fs-upload-card p-3">
                                                 <div class="fs-upload-controls">
                                                     <div id="photo-input-wrapper" style="{{ $hasPhoto ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
@@ -2053,6 +2101,7 @@
                                                     <img id="preview_applicant" src="{{ $hasPhoto ? url($applicant_photo->upload_path) : '' }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
+                                            </div>
                                         </td>
                                     </tr>
                                     {{-- Aadhaar --}}
@@ -2063,14 +2112,17 @@
                                             <div class="fs-field-tamil">ஆதார் எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-aadhaar-no">
                                             <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}">
                                             <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
+                                            </div>
                                         </td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
                                             <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
                                         </td>
                                         <td style="min-width:200px;">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="aadhaar_doc">
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $application_details->aadhaar_doc]) }}" target="_blank" style="color:#007bff;">
@@ -2087,6 +2139,7 @@
                                                 <small class="text-danger file-error d-block"></small>
                                             </div>
                                             <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
+                                            </div>
                                         </td>
                                     </tr>
                                     {{-- PAN --}}
@@ -2097,14 +2150,17 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-pan-no">
                                             <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $application_details->pancard ?? '') }}">
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
+                                            </div>
                                         </td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">(iv) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('pan_doc') }}" data-return-section="pan_doc">
                                             @if (!empty($existingPanDoc))
                                                 <div class="pan-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $existingPanDoc]) }}" target="_blank" style="color:#007bff;">
@@ -2120,6 +2176,7 @@
                                                 <span class="file-limit">File type: PDF (Max 250 KB)</span>
                                                 <small class="text-danger file-error d-block"></small>
                                             </div>
+                                            </div>
                                         </td>
                                     </tr>
                                     {{-- Signature --}}
@@ -2129,8 +2186,9 @@
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
                                         </td>
-                                        <td colspan="3">
-                                            <div class="fs-upload-card">
+                                        <td colspan="3" class="p-0">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('signature') }}" data-return-section="signature">
+                                            <div class="fs-upload-card p-3">
                                                 <div class="fs-upload-controls">
                                                     <div id="sign-input-wrapper" style="{{ $hasSign ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
@@ -2151,6 +2209,7 @@
                                                     <span id="sign_placeholder" class="fs-upload-placeholder" style="{{ $hasSign ? 'display:none;' : '' }}">Signature preview</span>
                                                     <img id="preview_signature" src="{{ $hasSign ? asset($proof_doc->uploaded_doc) : '' }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
                                                 </div>
+                                            </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -2188,7 +2247,7 @@
                                 @endif
                             </div>
                         </label>
-                        <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none;font-size:.82rem;">Please check the declaration box before proceeding.</span>
+                        <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
                     </div>
 
                     {{-- Hidden fields --}}
@@ -3190,7 +3249,7 @@
 
     $(document).on('change', '#declarationCheckbox', function () {
         if ($(this).prop('checked')) {
-            $('#checkboxError').addClass('d-none').hide();
+            $('#checkboxError').removeClass('d-block').addClass('d-none');
         }
     });
 
@@ -3214,6 +3273,10 @@
             var $section = $f.closest('.fs-section');
             if ($section.length && $section.attr('data-mode') === 'view') {
                 $section.attr('data-mode', 'edit');
+            }
+
+            if ($f.closest('.fs-return-section-locked').length) {
+                return;
             }
 
             var tag = (el.tagName || '').toLowerCase();
@@ -3265,7 +3328,7 @@
         __rfClearServerErrors($form);
 
         if (!$('#declarationCheckbox').prop('checked')) {
-            $('#checkboxError').removeClass('d-none').show();
+            $('#checkboxError').removeClass('d-none').addClass('d-block');
             var $cb = $('#declarationCheckbox');
             if ($cb.length) {
                 $cb[0].focus();
@@ -3273,7 +3336,7 @@
             }
             return;
         }
-        $('#checkboxError').addClass('d-none').hide();
+        $('#checkboxError').removeClass('d-block').addClass('d-none');
 
         if (!__rfValidateBeforeSubmit($form, form)) {
             return;

@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\RoleHelper;
+use App\Services\ReturnedApplicationEditScope;
+use App\Services\ReturnedApplicationPayloadMerge;
 
 class FormController extends BaseController
 {
@@ -247,6 +249,92 @@ class FormController extends BaseController
     }
 
     /**
+     * Merge locked parts of the competency payload from DB before draft_update (partial returned-application submit).
+     *
+     * @param  list<string>  $editableSections  Keys from ReturnedApplicationEditScope (never SECTION_FULL here)
+     */
+    private function mergeReturnedCompetencyRequestFromDb(Request $request, string $applicationId, array $editableSections): void
+    {
+        if (ReturnedApplicationEditScope::isFullUnlock($editableSections)) {
+            return;
+        }
+
+        $existingForm = Mst_Form_s_w::where('application_id', $applicationId)->first();
+        if (! $existingForm) {
+            return;
+        }
+
+        $editable = array_flip($editableSections);
+        $formName = strtoupper((string) ($request->input('form_name') ?: $existingForm->form_name));
+
+        $aadhaarPlain = safeDecrypt($existingForm->aadhaar) ?? '';
+        $panPlain = $existingForm->pancard;
+        if ($panPlain !== null && $panPlain !== '') {
+            try {
+                $panPlain = Crypt::decryptString((string) $panPlain);
+            } catch (\Throwable $e) {
+                // plain legacy
+            }
+        }
+
+        $fmtDate = static function ($v): ?string {
+            if ($v === null || $v === '') {
+                return null;
+            }
+            try {
+                return Carbon::parse($v)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+
+        $request->merge([
+            'applicant_name' => $existingForm->applicant_name,
+            'fathers_name' => $existingForm->fathers_name,
+            'applicant_email' => $existingForm->applicant_email,
+            'applicants_address' => $existingForm->applicants_address,
+            'd_o_b' => $fmtDate($existingForm->d_o_b) ?? '',
+            'age' => $existingForm->age,
+            'previously_number' => $existingForm->previously_number,
+            'previously_date' => $fmtDate($existingForm->previously_date),
+            'previously_issue_date' => $fmtDate($existingForm->previously_issue_date),
+            'wireman_details' => $existingForm->wireman_details,
+            'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
+            'pancard' => $panPlain !== null && $panPlain !== '' ? strtoupper(preg_replace('/\s+/', '', (string) $panPlain)) : null,
+            'competency_certificate_no' => $existingForm->certificate_no,
+            'certificate_date' => $fmtDate($existingForm->certificate_date),
+            'certificate_issue_date' => $fmtDate($existingForm->certificate_issue_date),
+            'l_verify' => (string) ($existingForm->license_verify ?? '0'),
+            'cert_verify' => (string) ($existingForm->cert_verify ?? '0'),
+        ]);
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_EDUCATION])) {
+            $request->files->remove('education_document');
+            ReturnedApplicationPayloadMerge::mergeEducationArraysIntoRequest($request, $applicationId);
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_EXPERIENCE])) {
+            $request->files->remove('work_document');
+            ReturnedApplicationPayloadMerge::mergeExperienceArraysIntoRequest($request, $applicationId, $formName);
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_PHOTO])) {
+            $request->files->remove('upload_photo');
+        }
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_SIGNATURE])) {
+            $request->files->remove('upload_sign');
+        }
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_AADHAAR_DOC])) {
+            $request->files->remove('aadhaar_doc');
+            $request->merge(['aadhaar_doc_removed' => '0']);
+        }
+
+        if ($this->isCompetencyForm($formName)) {
+            $request->files->remove('pancard_doc');
+        }
+    }
+
+    /**
      * Populate issued licence number for renewal fee AJAX when tnelb_license has no row or empty number.
      */
     private function enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details)
@@ -444,26 +532,11 @@ class FormController extends BaseController
         $returnRemarks = '';
 
         if (Schema::hasTable('tnelb_return_to_applicant_log')) {
-            $returnLogRow = DB::table('tnelb_return_to_applicant_log')
-                ->where('application_id', $appl_id)
-                ->orderByDesc('id')
-                ->first();
+            $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
 
             if ($returnLogRow) {
                 $returnRemarks = trim((string) ($returnLogRow->remarks ?? ''));
-                $queryTypesRaw = $returnLogRow->query_types ?? null;
-                $items = is_string($queryTypesRaw) ? json_decode($queryTypesRaw, true) : $queryTypesRaw;
-                if (!is_array($items)) {
-                    $items = ($queryTypesRaw !== null && $queryTypesRaw !== '' && is_string($queryTypesRaw))
-                        ? [$queryTypesRaw]
-                        : [];
-                }
-                foreach ($items as $item) {
-                    if (is_string($item) && $item !== '') {
-                        $queryReasonsForValidation[] = $item;
-                    }
-                }
-                $queryReasonsForValidation = array_values(array_unique($queryReasonsForValidation));
+                $queryReasonsForValidation = ReturnedApplicationEditScope::parseQueryTypesJson($returnLogRow->query_types ?? null);
 
                 if ($queryReasonsForValidation !== [] || $returnRemarks !== '') {
                     $queries = collect([(object) [
@@ -473,6 +546,8 @@ class FormController extends BaseController
                 }
             }
         }
+
+        $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForValidation);
 
         return view('user_login.edit_returned_application', compact(
             'applicationid',
@@ -487,7 +562,8 @@ class FormController extends BaseController
             'licence_name',
             'queries',
             'queryReasonsForValidation',
-            'returnRemarks'
+            'returnRemarks',
+            'returnedEditableSections'
         ));
     }
 
@@ -1543,6 +1619,14 @@ class FormController extends BaseController
         if (!$loginId || (string) $app->login_id !== (string) $loginId) {
             return response()->json(['status' => 'error', 'message' => 'You can only submit corrections for your own application.'], 403);
         }
+
+        $queryReasonsForSubmit = [];
+        $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
+        if ($returnLogRow) {
+            $queryReasonsForSubmit = ReturnedApplicationEditScope::parseQueryTypesJson($returnLogRow->query_types ?? null);
+        }
+        $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForSubmit);
+        $this->mergeReturnedCompetencyRequestFromDb($request, $appl_id, $returnedEditableSections);
 
         $response = $this->draft_update($request, $appl_id);
         $data = json_decode($response->getContent(), true);

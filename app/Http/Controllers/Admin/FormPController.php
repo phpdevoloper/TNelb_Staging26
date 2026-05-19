@@ -22,6 +22,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
+use App\Services\ReturnedApplicationEditScope;
+
 class FormPController extends Controller
 {
     protected $today,$dbNow;
@@ -585,6 +587,15 @@ class FormPController extends Controller
 
         /** @var \App\Http\Controllers\FormPController $userFormPController */
         $userFormPController = app(\App\Http\Controllers\FormPController::class);
+
+        $queryReasonsForSubmit = [];
+        $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
+        if ($returnLogRow) {
+            $queryReasonsForSubmit = ReturnedApplicationEditScope::parseQueryTypesJson($returnLogRow->query_types ?? null);
+        }
+        $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForSubmit);
+        $userFormPController->mergeReturnedPartialSubmitFromDb($request, $appl_id, $returnedEditableSections);
+
         $response = $userFormPController->update($request);
         $data = json_decode($response->getContent(), true);
 

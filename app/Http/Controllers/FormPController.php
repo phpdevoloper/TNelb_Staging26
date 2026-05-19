@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Services\ReturnedApplicationEditScope;
+use App\Services\ReturnedApplicationPayloadMerge;
 
 class FormPController extends BaseController
 {
@@ -981,6 +983,12 @@ class FormPController extends BaseController
             ->orderByDesc('id')
             ->get();
 
+        $queryReasonsFromLog = [];
+        $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
+        if ($returnLogRow) {
+            $queryReasonsFromLog = ReturnedApplicationEditScope::parseQueryTypesJson($returnLogRow->query_types ?? null);
+        }
+
         $queryReasonsForValidation = [];
         foreach ($queries as $q) {
             $items = is_string($q->query_type) ? json_decode($q->query_type, true) : $q->query_type;
@@ -993,6 +1001,19 @@ class FormPController extends BaseController
             }
         }
         $queryReasonsForValidation = array_values(array_unique($queryReasonsForValidation));
+
+        if ($queryReasonsFromLog !== []) {
+            $queryReasonsForValidation = $queryReasonsFromLog;
+        }
+
+        $returnedEditableSections = [ReturnedApplicationEditScope::SECTION_FULL];
+        $returnedFormPSectionKeys = [];
+        $returnedIsPartialEdit = false;
+        if (isset($application_details->app_status) && $application_details->app_status === 'QU') {
+            $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForValidation);
+            $returnedFormPSectionKeys = ReturnedApplicationEditScope::formPSectionKeysForPartialUi($returnedEditableSections);
+            $returnedIsPartialEdit = ! ReturnedApplicationEditScope::isFullUnlock($returnedEditableSections);
+        }
 
         $view = (isset($application_details->app_status) && $application_details->app_status === 'QU')
             ? 'user_login.edit_returned_application_p'
@@ -1010,8 +1031,55 @@ class FormPController extends BaseController
             'proof_doc',
             'institutes',
             'queries',
-            'queryReasonsForValidation'
+            'queryReasonsForValidation',
+            'returnedEditableSections',
+            'returnedFormPSectionKeys',
+            'returnedIsPartialEdit'
         ));
+    }
+
+    /**
+     * Merge locked Form P payload from DB before update() on partial returned-application submit.
+     *
+     * @param  list<string>  $editableSections  From ReturnedApplicationEditScope::editableSectionsFromReasons()
+     */
+    public function mergeReturnedPartialSubmitFromDb(Request $request, string $applicationId, array $editableSections): void
+    {
+        if (ReturnedApplicationEditScope::isFullUnlock($editableSections)) {
+            return;
+        }
+
+        $form = TnelbFormP::where('application_id', $applicationId)->first();
+        if (! $form) {
+            return;
+        }
+
+        $editable = array_flip($editableSections);
+
+        ReturnedApplicationPayloadMerge::mergeFormPApplicantScalarsIntoRequest($request, $form);
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_EDUCATION])) {
+            $request->files->remove('education_document');
+            ReturnedApplicationPayloadMerge::mergeEducationArraysIntoRequest($request, $applicationId);
+            ReturnedApplicationPayloadMerge::mergeFormPInstituteArraysIntoRequest($request, $applicationId);
+            $request->files->remove('institute_document');
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_EXPERIENCE])) {
+            $request->files->remove('work_document');
+            ReturnedApplicationPayloadMerge::mergeExperienceArraysIntoRequest($request, $applicationId, 'W');
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_PHOTO])) {
+            $request->files->remove('upload_photo');
+        }
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_SIGNATURE])) {
+            $request->files->remove('upload_sign');
+        }
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_AADHAAR_DOC])) {
+            $request->files->remove('aadhaar_doc');
+            $request->merge(['aadhaar_doc_removed' => '0']);
+        }
     }
 
     // Save As Draft function
