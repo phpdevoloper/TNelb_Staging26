@@ -903,7 +903,10 @@
                         var delta = JSON.parse(instructionResponse.data);
                         if (typeof QuillDeltaToHtmlConverter !== 'undefined' && delta && delta.ops) {
                             var converter = new QuillDeltaToHtmlConverter(delta.ops, { multiLineParagraph: false, listItemTag: "li", paragraphTag: "p" });
-                            modalBody.innerHTML = converter.convert();
+                            var html = converter.convert();
+                            html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
+                            html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
+                            modalBody.innerHTML = html;
                         } else { modalBody.textContent = instructionResponse.data; }
                     } catch(parseErr) { modalBody.textContent = instructionResponse.data; }
                 } else { modalBody.innerHTML = '<p class="mb-0 text-danger">Instruction not available.</p>'; }

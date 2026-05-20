@@ -526,6 +526,210 @@ use Illuminate\Support\Facades\Auth;
             }
         }
 
+        /* ─────────────────────────────────────────────────────────────────────
+         * Applicant Instructions & Declaration modal — modern shell
+         * Used by #competencyInstructionsModal (and any modal with
+         * the .applicant-instr-modal class).
+         * ─────────────────────────────────────────────────────────────────── */
+        .applicant-instr-modal .modal-content {
+            border: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(20, 30, 60, 0.25);
+            font-family: 'Inter', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+        }
+        .applicant-instr-modal .modal-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #4361ee 60%, #6366f1 100%);
+            border: 0;
+            padding: 20px 28px;
+            color: #fff;
+            position: relative;
+        }
+        .applicant-instr-modal .header-row { display: flex; align-items: center; gap: 14px; }
+        .applicant-instr-modal .header-icon {
+            width: 44px; height: 44px; flex: 0 0 44px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            border-radius: 12px;
+            display: inline-flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .applicant-instr-modal .header-icon svg { width: 22px; height: 22px; color: #fff; }
+        .applicant-instr-modal .modal-title {
+            color: #fff; font-size: 19px; font-weight: 600; margin: 0; letter-spacing: 0.2px;
+        }
+        .applicant-instr-modal .modal-subtitle {
+            display: block; color: rgba(255, 255, 255, 0.82);
+            font-size: 12.5px; margin-top: 2px; letter-spacing: 0.2px;
+        }
+        .applicant-instr-modal .modal-close-x {
+            position: absolute; top: 16px; right: 18px;
+            width: 32px; height: 32px;
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff; border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 18px; line-height: 1; cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+        .applicant-instr-modal .modal-close-x:hover { background: rgba(255, 255, 255, 0.28); transform: rotate(90deg); }
+
+        .applicant-instr-modal .modal-body {
+            background: #f4f6fb;
+            padding: 22px 24px;
+            color: #1f2937;
+            font-size: 14.5px;
+            line-height: 1.7;
+        }
+
+        .applicant-instr-modal .instructions-card,
+        .applicant-instr-modal .declaration-card {
+            background: #ffffff;
+            border: 1px solid #e6e9f2;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .applicant-instr-modal .card-header-strip {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 18px;
+            background: #f8fafc;
+            border-bottom: 1px solid #eef0f5;
+            font-weight: 600; color: #0f172a; font-size: 14px;
+            letter-spacing: 0.3px;
+        }
+        .applicant-instr-modal .card-header-strip svg { width: 16px; height: 16px; color: #4361ee; }
+        .applicant-instr-modal .card-header-strip .badge-soft {
+            margin-left: auto;
+            background: #eef2ff; color: #4338ca;
+            font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500;
+        }
+        .applicant-instr-modal .instructions-content {
+            padding: 18px 22px;
+            color: #1f2937;
+            font-size: 14.5px;
+            line-height: 1.75;
+        }
+        .applicant-instr-modal .instructions-content p { margin: 0 0 10px; }
+        .applicant-instr-modal .instructions-content strong { color: #0b1220; font-weight: 600; }
+        /* Ensure list markers render even when global CSS resets <ol>/<ul>. */
+        .applicant-instr-modal .instructions-content ol,
+        .applicant-instr-modal .instructions-content ul {
+            margin: 8px 0 12px;
+            padding-left: 28px !important;
+        }
+        .applicant-instr-modal .instructions-content ol { list-style: decimal outside !important; }
+        .applicant-instr-modal .instructions-content ul { list-style: disc outside !important; }
+        .applicant-instr-modal .instructions-content ol ol { list-style: lower-alpha outside !important; }
+        .applicant-instr-modal .instructions-content ol ol ol { list-style: lower-roman outside !important; }
+        .applicant-instr-modal .instructions-content ul ul { list-style: circle outside !important; }
+        .applicant-instr-modal .instructions-content ul ul ul { list-style: square outside !important; }
+        .applicant-instr-modal .instructions-content li {
+            display: list-item !important;
+            margin: 4px 0;
+            padding-left: 4px;
+        }
+        .applicant-instr-modal .instructions-content li::marker { color: #4338ca; font-weight: 600; }
+        .applicant-instr-modal .instructions-content table {
+            border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13.5px;
+        }
+        .applicant-instr-modal .instructions-content table td,
+        .applicant-instr-modal .instructions-content table th {
+            border: 1px solid #d0d7e5; padding: 6px 10px;
+        }
+        .applicant-instr-modal .instructions-content table th { background: #eef2ff; color: #1e293b; }
+
+        .applicant-instr-modal .declaration-list {
+            list-style: none; padding: 14px 18px 4px; margin: 0;
+            counter-reset: dec;
+        }
+        .applicant-instr-modal .declaration-list li {
+            position: relative;
+            padding: 8px 0 8px 38px;
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+        .applicant-instr-modal .declaration-list li::before {
+            counter-increment: dec; content: counter(dec);
+            position: absolute; left: 0; top: 6px;
+            width: 26px; height: 26px;
+            background: #eef2ff; color: #4338ca;
+            border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 12px;
+        }
+        .applicant-instr-modal .agree-row {
+            display: flex; align-items: center; gap: 12px;
+            margin: 6px 18px 18px;
+            padding: 12px 14px;
+            /* background: #f8fafc;  */
+            /* border: 1px solid #e6e9f2; */
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .applicant-instr-modal .agree-row:hover { background: #eef2ff; border-color: #c7d2fe; }
+        .applicant-instr-modal .agree-row.is-checked { background: #ecfeff; border-color: #67e8f9; }
+        .applicant-instr-modal .agree-check {
+            appearance: none; -webkit-appearance: none;
+            width: 22px; height: 22px; flex: 0 0 22px;
+            border: 2px solid #cbd5e1; border-radius: 6px;
+            background: #fff;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .applicant-instr-modal .agree-check:checked {
+            background: #4361ee; border-color: #4361ee;
+        }
+        .applicant-instr-modal .agree-check:checked::after {
+            content: ""; position: absolute; left: 6px; top: 2px;
+            width: 6px; height: 12px;
+            border: solid #fff; border-width: 0 2.5px 2.5px 0;
+            transform: rotate(45deg);
+        }
+        .applicant-instr-modal .agree-label {
+            font-weight: 500; color: #0f172a; font-size: 14px; user-select: none;
+        }
+        .applicant-instr-modal .declaration-error {
+            margin: -8px 18px 16px;
+            background: #fef2f2; color: #b91c1c;
+            border: 1px solid #fecaca; border-radius: 8px;
+            padding: 8px 12px; font-size: 13px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .applicant-instr-modal .declaration-error svg { width: 16px; height: 16px; }
+
+        .applicant-instr-modal .modal-footer {
+            background: #fff; border-top: 1px solid #eef0f5;
+            padding: 14px 24px; gap: 10px; justify-content: flex-end;
+        }
+        .applicant-instr-modal .btn-cancel,
+        .applicant-instr-modal .btn-proceed {
+            border: 0; border-radius: 10px; padding: 9px 22px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.15s ease;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .applicant-instr-modal .btn-cancel { background: #eef0f5; color: #344767; }
+        .applicant-instr-modal .btn-cancel:hover { background: #dbe0ec; }
+        .applicant-instr-modal .btn-proceed {
+            background: linear-gradient(135deg, #1a9e4f, #15883f);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+        }
+        .applicant-instr-modal .btn-proceed:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(67, 97, 238, 0.38); }
+        .applicant-instr-modal .btn-proceed svg { width: 14px; height: 14px; }
+
+        @media (max-width: 575.98px) {
+            .applicant-instr-modal .modal-header { padding: 16px 18px; }
+            .applicant-instr-modal .modal-title { font-size: 16px; }
+            .applicant-instr-modal .modal-body { padding: 16px; }
+            .applicant-instr-modal .modal-footer { padding: 12px 16px; }
+            .applicant-instr-modal .agree-row { margin: 6px 12px 14px; }
+        }
+
     </style>
 
 <style>
@@ -789,41 +993,79 @@ use Illuminate\Support\Facades\Auth;
     </div>
   </div>
 
-<!-- Declaration Modal for competency certificate-->
-
-
-  <div class="modal fade" id="competencyInstructionsModal" tabindex="-1" aria-labelledby="competencyInstructionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header" style="background-color: white;">
-          <h5 class="modal-title" id="competencyInstructionsModalLabel">📋 Instructions & Declaration</h5>
-          <button type="button" class="btn-close btn-close-white" data-dismiss="modal" aria-label="Close">X</button>
-        </div>
-        <div class="modal-body" style="padding: 30px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.8; color: #333;">
-          <div class="show-list-numbers">
-            1) (i) Fees Issue for <span id="certificate_name"></span> from <span id="fees_starts_from"></span> onwards is <span id="form_fees" style="color:#1f6920; font-weight:600;"></span>
-            
-          </div>
-          <div id="instructionContent" class="show-list-numbers"></div>
-            
-          <div class="form-check mt-4">
-            <input type="checkbox" class="form-check-input" id="declaration-agree-renew">
-            <label for="declaration-agree-renew" class="form-check-label" style="font-weight: 600;">
-              I have read and agree to the above instructions.
-            </label>
-            <div class="text-danger mt-2 d-none" id="declaration-error-renew">
-              Please agree the above instructions.
+<!-- Declaration Modal for competency certificate (styles live in the <head> .applicant-instr-modal block) -->
+<div class="modal fade applicant-instr-modal" id="competencyInstructionsModal" tabindex="-1" aria-labelledby="competencyInstructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="header-row">
+                    <span class="header-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><path d="M9 16h6"/><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6"/></svg>
+                    </span>
+                    <div>
+                        <h5 class="modal-title" id="competencyInstructionsModalLabel">Instructions &amp; Declaration</h5>
+                        <small class="modal-subtitle">Please review the details below before proceeding to payment.</small>
+                    </div>
+                </div>
+                <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button>
             </div>
-          </div>
+
+            <div class="modal-body">
+                <div class="instructions-card">
+                    <div class="card-header-strip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><circle cx="12" cy="8" r=".5" fill="currentColor"/></svg>
+                        <span>Instructions</span>
+                        <span class="badge-soft">Read carefully</span>
+                    </div>
+                    <div id="instructionContent" class="instructions-content show-list-numbers"></div>
+                </div>
+
+                <div class="declaration-card">
+                    <div class="card-header-strip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                        <span>Declaration</span>
+                    </div>
+                    <label class="agree-row" for="declaration-agree-renew">
+                        <input type="checkbox" class="agree-check" id="declaration-agree-renew">
+                        <span class="agree-label">I have read the above instruction & all the document are kept ready for the uploading in the prescribed format & size.</span>
+                    </label>
+                    <div class="declaration-error d-none" id="declaration-error-renew">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Please agree to the declarations to continue.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-proceed" id="proceedPayment">
+                    Proceed to Application Form
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </div>
         </div>
-  
-        <div class="modal-footer" style="justify-content: center;">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="proceedPayment">Proceed</button>
-        </div>
-      </div>
     </div>
-  </div>
+</div>
+
+<script>
+    /** Visual feedback for the agree checkbox + clear error when ticked. */
+    (function () {
+        var cb = document.getElementById('declaration-agree-renew');
+        if (!cb) {
+            return;
+        }
+        var row = cb.closest('.agree-row');
+        var err = document.getElementById('declaration-error-renew');
+        cb.addEventListener('change', function () {
+            if (row) {
+                row.classList.toggle('is-checked', cb.checked);
+            }
+            if (cb.checked && err) {
+                err.classList.add('d-none');
+            }
+        });
+    })();
+</script>
 
 
 <!-- -----contractor license ------------------- -->

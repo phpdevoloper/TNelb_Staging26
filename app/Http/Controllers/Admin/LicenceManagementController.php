@@ -92,7 +92,7 @@ class LicenceManagementController extends BaseController
     
 
     public function view_licences(){
-
+        
         $categories = LicenceCategory::where('status', 1)
         ->orderBy('created_at', 'desc')
         ->get();
@@ -1199,6 +1199,226 @@ class LicenceManagementController extends BaseController
         }
     }
 
+    /**
+     * Merge-tag map for licence instructions: current fees from tnelb_fees (fees_type N / R / L) + static licence fields.
+     * Applicant-specific tags ({{APPLICANT_NAME}}, etc.) — pass via $extra when you have application context.
+     *
+     * @param  array<string, string>  $extra
+     * @return array<string, string>
+     */
+    public static function instructionMergeTagMap(int $mstLicenceId, array $extra = []): array
+    {
+        $licence = MstLicence::query()->find($mstLicenceId);
+        $today = Carbon::today()->toDateString();
+
+        $activeFeeAmount = function (string $type) use ($mstLicenceId, $today): string {
+            $q = TnelbFee::query()
+                ->where('cert_licence_id', $mstLicenceId)
+                ->where('fees_type', $type)
+                // ->where('fees_status', 1)
+                ->whereDate('start_date', '<=', $today)
+                ->where(function ($q2) use ($today) {
+                    $q2->whereNull('end_date')->orWhereDate('end_date', '>=', $today);
+                })
+                ->orderByDesc('start_date');
+            $val = $q->value('fees');
+
+            if ($val === null || $val === '') {
+                // Helps admins spot missing fee rows in storage/logs/laravel.log instead of debugging blank instructions.
+                \Log::warning('Instruction merge tag resolved empty: no active tnelb_fees row.', [
+                    'mst_licence_id' => $mstLicenceId,
+                    'fees_type' => $type,
+                    'today' => $today,
+                ]);
+
+                return '';
+            }
+
+            return (string) $val;
+        };
+
+
+        $base = [
+            '{{FEE_NEW}}' => $activeFeeAmount('N'),
+            '{{FEE_RENEWAL}}' => $activeFeeAmount('R'),
+            '{{FEE_LATE}}' => $activeFeeAmount('L'),
+            '{{CURRENT_DATE}}' => Carbon::now()->format('d-m-Y'),
+            '{{CERTIFICATE_NAME}}' => (string) ($licence->licence_name ?? ''),
+            '{{FORM_NAME}}' => (string) ($licence->form_name ?? ''),
+            '{{LICENCE_CODE}}' => (string) ($licence->cert_licence_code ?? ''),
+        ];
+
+        return array_merge($base, $extra);
+    }
+
+    /**
+     * Apply merge tags to HTML or plain text (e.g. after Quill → HTML export).
+     *
+     * @param  array<string, string>  $extra  e.g. ['{{APPLICANT_NAME}}' => $name, '{{APPLICATION_ID}}' => $id]
+     */
+    public static function mergeInstructionTokens(string $content, int $mstLicenceId, array $extra = []): string
+    {
+        $map = self::expandMergeTagMapWithAtVariants(
+            self::instructionMergeTagMap($mstLicenceId, $extra)
+        );
+
+        return str_replace(array_keys($map), array_values($map), $content);
+    }
+
+    /**
+     * Replace merge tags inside stored Quill Delta JSON (per text insert) so JSON stays valid
+     * when values contain quotes. Falls back to mergeInstructionTokens for non-Delta content.
+     */
+    public static function mergeStoredInstructionsContent(string $content, int $mstLicenceId, array $extra = []): string
+    {
+        $trimmed = ltrim($content);
+        if ($trimmed === '' || ! in_array($trimmed[0], ['{', '['], true)) {
+            return self::mergeInstructionTokens($content, $mstLicenceId, $extra);
+        }
+
+        $decoded = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($decoded) || ! isset($decoded['ops']) || ! is_array($decoded['ops'])) {
+            return self::mergeInstructionTokens($content, $mstLicenceId, $extra);
+        }
+
+        // Quill often splits text into multiple ops (sometimes with different attributes); merge tags like @{{FEE_NEW}} must be one string or replace misses and a stray "@" remains.
+        $decoded['ops'] = self::coalesceAdjacentQuillStringInserts($decoded['ops']);
+        // List items are separated by "\n" ops — "… is @" may be in one <li> and "{{FEE_NEW}}" or "(ii)" in the next; join logically by dropping a trailing "@".
+        $decoded['ops'] = self::stripTrailingAtBeforeNextTextChunk($decoded['ops']);
+
+        $map = self::expandMergeTagMapWithAtVariants(
+            self::instructionMergeTagMap($mstLicenceId, $extra)
+        );
+
+        foreach ($decoded['ops'] as &$op) {
+            if (isset($op['insert']) && is_string($op['insert'])) {
+                $op['insert'] = str_replace(array_keys($map), array_values($map), $op['insert']);
+                // Stray "@" before a bracket (e.g. "@ (ii)" or "@（ii）") from Blade / split placeholders.
+                $op['insert'] = preg_replace('/@(\s*)(\(|\x{FF08})/u', '$1$2', $op['insert']);
+                // Lone "@" left in its own chunk after a split merge-tag.
+                if (trim($op['insert']) === '@') {
+                    $op['insert'] = '';
+                }
+            }
+        }
+        unset($op);
+
+        $decoded['ops'] = array_values(array_filter(
+            $decoded['ops'],
+            static function ($op) {
+                return ! (isset($op['insert']) && is_string($op['insert']) && $op['insert'] === '');
+            }
+        ));
+
+        return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Join consecutive Delta string inserts so split merge tags become one string,
+     * WITHOUT touching newline-carrying ops — those hold line-level formatting (list, align, header, blockquote)
+     * that the renderer needs. Merging a "\n" op kills those attributes and turns ordered lists into plain paragraphs.
+     *
+     * @param  array<int, array<string, mixed>>  $ops
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function coalesceAdjacentQuillStringInserts(array $ops): array
+    {
+        $out = [];
+        foreach ($ops as $op) {
+            if (! isset($op['insert']) || ! is_string($op['insert'])) {
+                $out[] = $op;
+
+                continue;
+            }
+
+            // Any op containing a newline carries (or could carry) block formatting — leave it alone.
+            if (strpos($op['insert'], "\n") !== false) {
+                $out[] = $op;
+
+                continue;
+            }
+
+            $prev = end($out);
+            if ($prev !== false
+                && isset($prev['insert'])
+                && is_string($prev['insert'])
+                && strpos($prev['insert'], "\n") === false
+            ) {
+                $i = count($out) - 1;
+                $out[$i]['insert'] = $out[$i]['insert'] . $op['insert'];
+
+                continue;
+            }
+
+            $out[] = $op;
+        }
+
+        return $out;
+    }
+
+    /**
+     * When "@", "{{TAG}}", or "(ii)" end up in separate Delta chunks separated only by newline ops (e.g. ordered-list boundaries), remove trailing "@" from the earlier text chunk.
+     *
+     * @param  array<int, array<string, mixed>>  $ops
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function stripTrailingAtBeforeNextTextChunk(array $ops): array
+    {
+        $n = count($ops);
+        for ($i = 0; $i < $n; $i++) {
+            if (! isset($ops[$i]['insert']) || ! is_string($ops[$i]['insert'])) {
+                continue;
+            }
+
+            $j = $i + 1;
+            while ($j < $n && self::quillOpIsNewlineInsertOnly($ops[$j])) {
+                $j++;
+            }
+
+            if ($j >= $n || ! isset($ops[$j]['insert']) || ! is_string($ops[$j]['insert'])) {
+                continue;
+            }
+
+            $next = $ops[$j]['insert'];
+            if (! preg_match('/^\{\{/', $next) && ! preg_match('/^\s*(\(|\x{FF08})/u', $next)) {
+                continue;
+            }
+
+            $ops[$i]['insert'] = preg_replace('/@\s*$/u', '', $ops[$i]['insert']);
+        }
+
+        return $ops;
+    }
+
+    /**
+     * Delta op whose insert is only a newline (optional list/block attrs on the op).
+     *
+     * @param  array<string, mixed>  $op
+     */
+    protected static function quillOpIsNewlineInsertOnly(array $op): bool
+    {
+        return isset($op['insert']) && is_string($op['insert']) && $op['insert'] === "\n";
+    }
+
+    /**
+     * Prepend @{{TAG}} aliases before plain {{TAG}} so str_replace consumes the leading "@" with the tag.
+     * Without this order, a string like "{{FORM_NAME}}@{{FEE_NEW}}" leaves a stray "@" between resolved values.
+     *
+     * @param  array<string, string>  $map
+     * @return array<string, string>
+     */
+    protected static function expandMergeTagMapWithAtVariants(array $map): array
+    {
+        $atVariants = [];
+        foreach ($map as $key => $value) {
+            if (str_starts_with($key, '{{')) {
+                $atVariants['@' . $key] = $value;
+            }
+        }
+
+        return $atVariants + $map;
+    }
+
     public function getFormInstruction(Request $request)
     {
         try {
@@ -1209,20 +1429,18 @@ class LicenceManagementController extends BaseController
                 'licence_code' => 'required|string',
             ]);
 
-            // FIXED: Use licence_id, not rec_id
-
-            // var_dump($request->licence_code);die;
-            
             $licence = MstLicence::where('cert_licence_code', $request->licence_code)
-            ->select('instructions')
-            ->first();
+                ->select('id', 'instructions')
+                ->first();
 
-            // dd($licence);
-            // exit;
+            $instructions = $licence?->instructions;
+            if ($instructions !== null && $instructions !== '') {
+                $instructions = self::mergeStoredInstructionsContent((string) $instructions, (int) $licence->id, []);
+            }
 
             return response()->json([
                 'status' => 200,
-                'data'   => $licence->instructions ?? null
+                'data'   => $instructions,
             ]);
 
         } catch (\Exception $e) {

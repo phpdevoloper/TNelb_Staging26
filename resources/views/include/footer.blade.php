@@ -4186,9 +4186,10 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 paragraphTag: "p"
             });
 
-            const html = converter.convert();
-            
-            
+            let html = converter.convert();
+            /* Stray "@" before (ii) / list markers when Quill split merge-tag text */
+            html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
+            html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
             modalBody.innerHTML = html;
             const el = document.querySelector("#instructionContent");
             

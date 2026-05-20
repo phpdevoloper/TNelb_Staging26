@@ -76,6 +76,9 @@ async function showInstructPopup(licence_code,login_id) {
                     });
         
                     html = converter.convert();
+                    // Stray "@" before list markers (split Blade/@{{…}} in Quill) — safe for instruction HTML only.
+                    html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
+                    html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
                 } else {
                     console.warn('Delta structure is invalid:', delta);
                 }
