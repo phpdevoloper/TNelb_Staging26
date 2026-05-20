@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\RoleHelper;
+use App\Services\ReturnedApplicationEditScope;
+use App\Services\ReturnedApplicationPayloadMerge;
 
 class FormController extends BaseController
 {
@@ -80,16 +82,95 @@ class FormController extends BaseController
         return $indexes;
     }
 
+    /**
+     * Calendar-style years / months / days between two dates (Form S only; aligned with apply-form-s `calendarDiffYMD`).
+     *
+     * @return array{y:int,m:int,d:int}|null
+     */
+    private function workExperienceCalendarYmd(?string $fromRaw, ?string $toRaw): ?array
+    {
+        if ($fromRaw === null || $fromRaw === '' || $toRaw === null || $toRaw === '') {
+            return null;
+        }
+
+        try {
+            $from = Carbon::parse($fromRaw)->startOfDay();
+            $to = Carbon::parse($toRaw)->startOfDay();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if ($to->lt($from)) {
+            return null;
+        }
+
+        $y = $to->year - $from->year;
+        $m = $to->month - $from->month;
+        $d = $to->day - $from->day;
+
+        if ($d < 0) {
+            $m--;
+            $d += Carbon::create($to->year, $to->month, 1)->subDay()->day;
+        }
+        if ($m < 0) {
+            $y--;
+            $m += 12;
+        }
+        if ($d < 0) {
+            $m--;
+            if ($m < 0) {
+                $y--;
+                $m += 12;
+            }
+            $d += Carbon::create($to->year, $to->month, 1)->subDay()->day;
+        }
+
+        return [
+            'y' => (int) $y,
+            'm' => (int) $m,
+            'd' => (int) $d,
+        ];
+    }
+
+    /**
+     * Duration columns for `tnelb_applicants_exp`: Form S calendar Y/M/D (when flagged);
+     * `total_exp` for Form S, W, WH, and P when flagged and the column exists.
+     *
+     * @param  array  $workRow  Output of mapWorkExperienceRow()
+     * @return array<string, mixed>
+     */
+    private function mstExperienceDurationForDb(array $workRow): array
+    {
+        static $hasTotalExpColumn = null;
+        if ($hasTotalExpColumn === null) {
+            $hasTotalExpColumn = Schema::hasColumn('tnelb_applicants_exp', 'total_exp');
+        }
+
+        $out = [];
+        if (!empty($workRow['store_work_duration_ymd'])) {
+            $out['total_y'] = $workRow['total_y'];
+            $out['total_m'] = $workRow['total_m'];
+            $out['total_d'] = $workRow['total_d'];
+        }
+        if ($hasTotalExpColumn && !empty($workRow['store_total_exp'])) {
+            $out['total_exp'] = format_total_exp_years($workRow['total_exp']);
+        }
+
+        return $out;
+    }
+
     private function mapWorkExperienceRow(Request $request, $key, ?string $formName): array
     {
         $normalizedForm = strtoupper((string) $formName);
         $isFormS = $normalizedForm === 'S';
+        /** Form S, W, WH, P: persist decimal years to `total_exp` (uses `work_experience_total[]` first). */
+        $storesTotalExp = in_array($normalizedForm, ['S', 'W', 'WH', 'P'], true);
 
         $companyName = $isFormS
             ? trim((string) ($request->work_employer_name[$key] ?? $request->work_level[$key] ?? ''))
             : trim((string) ($request->work_level[$key] ?? ''));
 
-        $experience = $isFormS
+        $experience = $storesTotalExp
             ? trim((string) ($request->work_experience_total[$key] ?? $request->experience[$key] ?? ''))
             : trim((string) ($request->experience[$key] ?? ''));
 
@@ -106,6 +187,13 @@ class FormController extends BaseController
             $intimationDate = '';
         }
 
+        $ymd = $isFormS
+            ? $this->workExperienceCalendarYmd(
+                $fromDate !== '' ? $fromDate : null,
+                $toDate !== '' ? $toDate : null
+            )
+            : null;
+
         return [
             'company_name' => $companyName,
             'experience' => $experience,
@@ -116,8 +204,83 @@ class FormController extends BaseController
             'to_date' => ($toDate !== '' ? $toDate : null),
             'intimation_date' => ($intimationDate !== '' ? $intimationDate : null),
             'total_exp' => ($experience !== '' ? $experience : null),
+            'total_y' => $isFormS ? ($ymd['y'] ?? null) : null,
+            'total_m' => $isFormS ? ($ymd['m'] ?? null) : null,
+            'total_d' => $isFormS ? ($ymd['d'] ?? null) : null,
+            'store_work_duration_ymd' => $isFormS,
+            'store_total_exp' => $storesTotalExp,
             'is_empty' => ($companyName === '' && $experience === '' && $designation === ''),
         ];
+    }
+
+    /**
+     * Form W / WH / P — work experience is optional; if any field in a row is filled, require the full row including dates.
+     */
+    private function validateOptionalCompetencyWorkRows(Request $request, \Illuminate\Validation\Validator $validator): void
+    {
+        if (($request->form_name ?? '') === 'W') {
+            return;
+        }
+
+        $levels = is_array($request->work_level ?? null) ? $request->work_level : [];
+        $exps = is_array($request->experience ?? null) ? $request->experience : [];
+        $designations = is_array($request->designation ?? null) ? $request->designation : [];
+        $fromDates = is_array($request->work_date_from ?? null) ? $request->work_date_from : [];
+        $toDates = is_array($request->work_date_to ?? null) ? $request->work_date_to : [];
+
+        $max = max(
+            count($levels),
+            count($exps),
+            count($designations),
+            count($fromDates),
+            count($toDates)
+        );
+
+        for ($i = 0; $i < $max; $i++) {
+            $wl = trim((string) ($levels[$i] ?? ''));
+            $ex = trim((string) ($exps[$i] ?? ''));
+            $des = trim((string) ($designations[$i] ?? ''));
+            $from = trim((string) ($fromDates[$i] ?? ''));
+            $to = trim((string) ($toDates[$i] ?? ''));
+
+            $any = ($wl !== '' || $ex !== '' || $des !== '' || $from !== '' || $to !== '');
+            if (! $any) {
+                continue;
+            }
+
+            if ($wl === '') {
+                $validator->errors()->add("work_level.$i", 'Work level is required.');
+            }
+            if ($des === '') {
+                $validator->errors()->add("designation.$i", 'Designation is required.');
+            }
+            if ($from === '') {
+                $validator->errors()->add("work_date_from.$i", 'From date is required.');
+            }
+            if ($to === '') {
+                $validator->errors()->add("work_date_to.$i", 'To date is required.');
+            }
+            if ($ex === '') {
+                $validator->errors()->add("experience.$i", 'Experience (in years) is required.');
+            }
+
+            if ($from !== '' && $to !== '') {
+                try {
+                    $fromC = Carbon::parse($from)->startOfDay();
+                    $toC = Carbon::parse($to)->startOfDay();
+                    if ($toC->lt($fromC)) {
+                        $validator->errors()->add("work_date_to.$i", 'To date must be greater than or equal to From date.');
+                    } else {
+                        $minimumToDate = $fromC->copy()->addYears(2);
+                        if ($toC->lt($minimumToDate)) {
+                            $validator->errors()->add("work_date_to.$i", 'Minimum 2 Years Experience needed');
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Other rules may handle invalid date formats.
+                }
+            }
+        }
     }
 
     /**
@@ -173,6 +336,92 @@ class FormController extends BaseController
             $applicationDetails->pancard = Crypt::decryptString((string) $applicationDetails->pancard);
         } catch (\Throwable $e) {
             // Keep legacy/plain values as-is when not encrypted.
+        }
+    }
+
+    /**
+     * Merge locked parts of the competency payload from DB before draft_update (partial returned-application submit).
+     *
+     * @param  list<string>  $editableSections  Keys from ReturnedApplicationEditScope (never SECTION_FULL here)
+     */
+    private function mergeReturnedCompetencyRequestFromDb(Request $request, string $applicationId, array $editableSections): void
+    {
+        if (ReturnedApplicationEditScope::isFullUnlock($editableSections)) {
+            return;
+        }
+
+        $existingForm = Mst_Form_s_w::where('application_id', $applicationId)->first();
+        if (! $existingForm) {
+            return;
+        }
+
+        $editable = array_flip($editableSections);
+        $formName = strtoupper((string) ($request->input('form_name') ?: $existingForm->form_name));
+
+        $aadhaarPlain = safeDecrypt($existingForm->aadhaar) ?? '';
+        $panPlain = $existingForm->pancard;
+        if ($panPlain !== null && $panPlain !== '') {
+            try {
+                $panPlain = Crypt::decryptString((string) $panPlain);
+            } catch (\Throwable $e) {
+                // plain legacy
+            }
+        }
+
+        $fmtDate = static function ($v): ?string {
+            if ($v === null || $v === '') {
+                return null;
+            }
+            try {
+                return Carbon::parse($v)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+
+        $request->merge([
+            'applicant_name' => $existingForm->applicant_name,
+            'fathers_name' => $existingForm->fathers_name,
+            'applicant_email' => $existingForm->applicant_email,
+            'applicants_address' => $existingForm->applicants_address,
+            'd_o_b' => $fmtDate($existingForm->d_o_b) ?? '',
+            'age' => $existingForm->age,
+            'previously_number' => $existingForm->previously_number,
+            'previously_date' => $fmtDate($existingForm->previously_date),
+            'previously_issue_date' => $fmtDate($existingForm->previously_issue_date),
+            'wireman_details' => $existingForm->wireman_details,
+            'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
+            'pancard' => $panPlain !== null && $panPlain !== '' ? strtoupper(preg_replace('/\s+/', '', (string) $panPlain)) : null,
+            'competency_certificate_no' => $existingForm->certificate_no,
+            'certificate_date' => $fmtDate($existingForm->certificate_date),
+            'certificate_issue_date' => $fmtDate($existingForm->certificate_issue_date),
+            'l_verify' => (string) ($existingForm->license_verify ?? '0'),
+            'cert_verify' => (string) ($existingForm->cert_verify ?? '0'),
+        ]);
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_EDUCATION])) {
+            $request->files->remove('education_document');
+            ReturnedApplicationPayloadMerge::mergeEducationArraysIntoRequest($request, $applicationId);
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_EXPERIENCE])) {
+            $request->files->remove('work_document');
+            ReturnedApplicationPayloadMerge::mergeExperienceArraysIntoRequest($request, $applicationId, $formName);
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_PHOTO])) {
+            $request->files->remove('upload_photo');
+        }
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_SIGNATURE])) {
+            $request->files->remove('upload_sign');
+        }
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_AADHAAR_DOC])) {
+            $request->files->remove('aadhaar_doc');
+            $request->merge(['aadhaar_doc_removed' => '0']);
+        }
+
+        if ($this->isCompetencyForm($formName)) {
+            $request->files->remove('pancard_doc');
         }
     }
 
@@ -374,26 +623,11 @@ class FormController extends BaseController
         $returnRemarks = '';
 
         if (Schema::hasTable('tnelb_return_to_applicant_log')) {
-            $returnLogRow = DB::table('tnelb_return_to_applicant_log')
-                ->where('application_id', $appl_id)
-                ->orderByDesc('id')
-                ->first();
+            $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
 
             if ($returnLogRow) {
                 $returnRemarks = trim((string) ($returnLogRow->remarks ?? ''));
-                $queryTypesRaw = $returnLogRow->query_types ?? null;
-                $items = is_string($queryTypesRaw) ? json_decode($queryTypesRaw, true) : $queryTypesRaw;
-                if (!is_array($items)) {
-                    $items = ($queryTypesRaw !== null && $queryTypesRaw !== '' && is_string($queryTypesRaw))
-                        ? [$queryTypesRaw]
-                        : [];
-                }
-                foreach ($items as $item) {
-                    if (is_string($item) && $item !== '') {
-                        $queryReasonsForValidation[] = $item;
-                    }
-                }
-                $queryReasonsForValidation = array_values(array_unique($queryReasonsForValidation));
+                $queryReasonsForValidation = ReturnedApplicationEditScope::parseQueryTypesJson($returnLogRow->query_types ?? null);
 
                 if ($queryReasonsForValidation !== [] || $returnRemarks !== '') {
                     $queries = collect([(object) [
@@ -403,6 +637,8 @@ class FormController extends BaseController
                 }
             }
         }
+
+        $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForValidation);
 
         return view('user_login.edit_returned_application', compact(
             'applicationid',
@@ -417,7 +653,8 @@ class FormController extends BaseController
             'licence_name',
             'queries',
             'queryReasonsForValidation',
-            'returnRemarks'
+            'returnRemarks',
+            'returnedEditableSections'
         ));
     }
 
@@ -576,31 +813,7 @@ class FormController extends BaseController
                 return;
             }
 
-            $levels = $request->work_level ?? [];
-            $exps = $request->experience ?? [];
-            $designations = $request->designation ?? [];
-
-            $max = max(count($levels), count($exps), count($designations));
-            for ($i = 0; $i < $max; $i++) {
-                $wl = trim((string)($levels[$i] ?? ''));
-                $ex = trim((string)($exps[$i] ?? ''));
-                $des = trim((string)($designations[$i] ?? ''));
-
-                $any = ($wl !== '' || $ex !== '' || $des !== '');
-                if (!$any) {
-                    continue;
-                }
-
-                if ($wl === '') {
-                    $validator->errors()->add("work_level.$i", 'Work level is required.');
-                }
-                if ($ex === '') {
-                    $validator->errors()->add("experience.$i", 'Experience (in years) is required.');
-                }
-                if ($des === '') {
-                    $validator->errors()->add("designation.$i", 'Designation is required.');
-                }
-            }
+            $this->validateOptionalCompetencyWorkRows($request, $validator);
         });
         $validator->after(function ($validator) use ($request, $isWorkOptional) {
             if (! $this->isCompetencyForm($request->form_name ?? null)) {
@@ -914,7 +1127,7 @@ class FormController extends BaseController
                         'intimation_date' => $workRow['intimation_date'],
                         'from_date'       => $workRow['from_date'],
                         'to_date'         => $workRow['to_date'],
-                        'total_exp'       => $workRow['total_exp'],
+                        ...$this->mstExperienceDurationForDb($workRow),
                         'designation'     => $designation,
                         'application_id'  => $newApplicationId,
                         'exp_serial'      => $newExpSerial,
@@ -1105,31 +1318,7 @@ class FormController extends BaseController
                 return;
             }
 
-            $levels = $request->work_level ?? [];
-            $exps = $request->experience ?? [];
-            $designations = $request->designation ?? [];
-
-            $max = max(count($levels), count($exps), count($designations));
-            for ($i = 0; $i < $max; $i++) {
-                $wl = trim((string)($levels[$i] ?? ''));
-                $ex = trim((string)($exps[$i] ?? ''));
-                $des = trim((string)($designations[$i] ?? ''));
-
-                $any = ($wl !== '' || $ex !== '' || $des !== '');
-                if (!$any) {
-                    continue;
-                }
-
-                if ($wl === '') {
-                    $validator->errors()->add("work_level.$i", 'Work level is required.');
-                }
-                if ($ex === '') {
-                    $validator->errors()->add("experience.$i", 'Experience (in years) is required.');
-                }
-                if ($des === '') {
-                    $validator->errors()->add("designation.$i", 'Designation is required.');
-                }
-            }
+            $this->validateOptionalCompetencyWorkRows($request, $validator);
         });
         $validator->after(function ($validator) use ($request, $isWorkOptional) {
             if (! $this->isCompetencyForm($request->form_name ?? null)) {
@@ -1161,7 +1350,7 @@ class FormController extends BaseController
                                 'The previously uploaded certificate is missing on the server. Please upload the document again.'
                             );
                         }
-                } else {
+                    } else {
                         $validator->errors()->add('existing_document.'.$key, 'Invalid uploaded document reference.');
                     }
                 }
@@ -1390,7 +1579,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'upload_document' => $filePath,
                         ]);
@@ -1406,7 +1595,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'application_id'  => $applicationId,
                             'exp_serial'      => $newExpSerial,
@@ -1521,6 +1710,14 @@ class FormController extends BaseController
         if (!$loginId || (string) $app->login_id !== (string) $loginId) {
             return response()->json(['status' => 'error', 'message' => 'You can only submit corrections for your own application.'], 403);
         }
+
+        $queryReasonsForSubmit = [];
+        $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
+        if ($returnLogRow) {
+            $queryReasonsForSubmit = ReturnedApplicationEditScope::parseQueryTypesJson($returnLogRow->query_types ?? null);
+        }
+        $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForSubmit);
+        $this->mergeReturnedCompetencyRequestFromDb($request, $appl_id, $returnedEditableSections);
 
         $response = $this->draft_update($request, $appl_id);
         $data = json_decode($response->getContent(), true);
@@ -2050,7 +2247,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation ?: null,
                             'upload_document' => $filePath !== null
                                 ? $filePath
@@ -2068,7 +2265,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'application_id'  => $applicationId,
                             'exp_serial'      => $newExpSerial,
@@ -2453,7 +2650,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'upload_document' => $finalDoc,
                             'exp_serial'      => $newSerial,
@@ -2878,7 +3075,7 @@ class FormController extends BaseController
                             'intimation_date' => $workRow['intimation_date'],
                             'from_date'       => $workRow['from_date'],
                             'to_date'         => $workRow['to_date'],
-                            'total_exp'       => $workRow['total_exp'],
+                            ...$this->mstExperienceDurationForDb($workRow),
                             'designation'     => $designation,
                             'upload_document' => $finalDoc,
                             'exp_serial'      => $newSerial,

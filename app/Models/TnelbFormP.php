@@ -18,6 +18,7 @@ class TnelbFormP extends Model
         'applicant_name',
         'fathers_name',
         'applicants_address',
+        'applicant_email',
         'd_o_b',
         'age',
         'previously_number',

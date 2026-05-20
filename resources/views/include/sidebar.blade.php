@@ -18,449 +18,467 @@
         || request()->routeIs('old_renewal.*');
     $activeOldContractorRenewal = request()->routeIs('old_contractor_renewal')
         || request()->routeIs('old_contractor_renewal.*');
+    $activeExpiry = request()->routeIs('expiry_date_change');
+    $activePrevLicence = request()->routeIs('previous_licence_date_change');
 @endphp
 @once
     <link rel="stylesheet" href="{{ asset('assets/css/font-awesome-4.7.0/css/font-awesome.min.css') }}">
 @endonce
 <style>
-    /* User sidebar - rounded card style */
-    .sidebar-login-v2 {
-        --sb-panel: #143b62;
-        --sb-row: rgba(255, 255, 255, 0.08);
-        --sb-row-soft: rgba(255, 255, 255, 0.06);
-        --sb-row-hover: rgba(255, 255, 255, 0.16);
-        --sb-border: rgba(255, 255, 255, 0.2);
+    .sb-nav {
+        --sb-bg-start: #0f2c4a;
+        --sb-bg-end: #0b2238;
         --sb-text: #ffffff;
-        --sb-muted: rgba(255, 255, 255, 0.88);
-        --sb-active: rgba(255, 255, 255, 0.22);
-        --sb-caret-bg: rgba(255, 255, 255, 0.16);
-        --sb-radius: 10px;
+        --sb-muted: rgba(255, 255, 255, 0.78);
+        --sb-divider: rgba(255, 255, 255, 0.10);
+        --sb-overlay: rgba(255, 255, 255, 0.10);
+        --sb-overlay-strong: rgba(255, 255, 255, 0.18);
+
+        --sb-c-competency: #2ebb84;
+        --sb-c-contractor: #f59e42;
+        --sb-c-renewals: #60a5fa;
+
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        background: linear-gradient(180deg, #143b62 0%, #12365a 100%);
+        background: linear-gradient(180deg, var(--sb-bg-start) 0%, var(--sb-bg-end) 100%);
         color: var(--sb-text);
         width: 340px;
         min-height: 100%;
-        padding: 0.55rem 0.45rem 0.65rem;
-        border-right: 1px solid var(--sb-border);
+        padding: 12px 10px 16px;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        box-sizing: border-box;
     }
 
-    .sidebar-login-v2 span em {
-        font-style: normal;
-        font-weight: 600;
+    .sb-nav *,
+    .sb-nav *::before,
+    .sb-nav *::after {
+        box-sizing: border-box;
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__list {
+    .sb-nav .sb-nav__list {
         list-style: none;
         margin: 0;
         padding: 0;
-        gap: 0.38rem;
         display: flex;
         flex-direction: column;
+        gap: 10px;
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__list > .nav-item {
+    .sb-nav .sb-nav__group {
+        list-style: none;
         margin: 0;
-        border: none;
-        background: transparent;
+        padding: 0;
     }
 
-    .sidebar-login-v2 .nav-link {
-        border-radius: var(--sb-radius);
+    /* Standalone items (Dashboard / Others) */
+    .sb-nav .sb-nav__link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
         color: var(--sb-text);
-        font-size: 0.83rem;
-        line-height: 1.25;
+        font-size: 0.86rem;
         font-weight: 500;
-        padding: 0.45rem 0.8rem;
         text-decoration: none;
-        border: 1px solid var(--sb-border);
-        background: var(--sb-row);
-        transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        background: var(--sb-overlay);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        transition: background 0.18s ease, transform 0.18s ease;
     }
 
-    .sidebar-login-v2 .nav-link:hover {
-        background: var(--sb-row-hover);
+    .sb-nav .sb-nav__link:hover {
+        background: var(--sb-overlay-strong);
         color: var(--sb-text);
+        text-decoration: none;
     }
 
-    .sidebar-login-v2 .nav-link.is-active {
-        background: var(--sb-active);
-        color: var(--sb-text);
-        border-color: rgba(255, 255, 255, 0.38);
+    .sb-nav .sb-nav__link.is-active {
+        background: rgba(255, 255, 255, 0.22);
+        border-color: rgba(255, 255, 255, 0.35);
         font-weight: 600;
     }
 
-    .sidebar-login-v2 .nav-link.is-active .sidebar-login-v2__icon {
+    .sb-nav .sb-nav__link i {
+        width: 18px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--sb-muted);
+    }
+
+    .sb-nav .sb-nav__link.is-active i {
         color: var(--sb-text);
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__icon {
-        width: 1.1rem;
-        height: 1.1rem;
-        line-height: 1;
+    /* Section heading (Others) */
+    .sb-nav .sb-nav__section-title {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.55);
+        padding: 6px 10px 2px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0 -2px;
+    }
+
+    /* Tinted card group */
+    .sb-nav .sb-nav__card {
+        border-radius: 12px;
+        padding: 8px 8px 10px;
+        border: 1px solid;
+        background-clip: padding-box;
+    }
+
+    .sb-nav .sb-nav__card-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 10px;
+        background: transparent;
+        border: 0;
+        color: var(--sb-text);
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-decoration: none;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background 0.18s ease;
+    }
+
+    .sb-nav .sb-nav__card-toggle:hover {
+        background: rgba(255, 255, 255, 0.10);
+        color: var(--sb-text);
+        text-decoration: none;
+    }
+
+    .sb-nav .sb-nav__card-toggle-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin-right: 0.55rem;
-        color: var(--sb-muted);
-        flex-shrink: 0;
-        font-size: 0.8rem;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__icon--sub {
-        font-size: 0.68rem;
-        opacity: 0.95;
-        width: 1.1rem;
-        text-align: center;
-        margin-right: 0.55rem;
-        color: var(--sb-muted);
+        font-size: 0.85rem;
+        background: rgba(255, 255, 255, 0.16);
+        color: var(--sb-text);
         flex-shrink: 0;
     }
 
-    .sidebar-login-v2 .nav-link.is-active .sidebar-login-v2__icon--sub {
-        color: var(--sb-text);
-        opacity: 1;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__toggle {
-        background: var(--sb-row);
-        border: 1px solid var(--sb-border);
-        font-weight: 500;
-        color: var(--sb-text);
-        padding: 0;
-        margin-top: 0;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__toggle:hover {
-        background: var(--sb-row-hover);
-        color: var(--sb-text);
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__toggle:hover .sidebar-login-v2__icon,
-    .sidebar-login-v2 .sidebar-login-v2__toggle:hover .sidebar-login-v2__caret {
-        color: var(--sb-text);
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__caret {
-        font-size: 0.7rem;
-        opacity: 1;
-        transition: transform 0.22s ease;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__toggle-left {
-        padding: 0.45rem 0.8rem;
+    .sb-nav .sb-nav__card-toggle-title {
         flex: 1 1 auto;
         min-width: 0;
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__caret-wrap {
-        width: 1.9rem;
-        min-height: 1.9rem;
-        margin: 0.18rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--sb-caret-bg);
-        border: 1px solid var(--sb-border);
-        border-radius: 7px;
+    .sb-nav .sb-nav__card-toggle-caret {
+        font-size: 0.7rem;
+        opacity: 0.9;
+        transition: transform 0.22s ease;
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__toggle:hover .sidebar-login-v2__caret-wrap {
-        background: rgba(255, 255, 255, 0.24);
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__toggle[aria-expanded="true"] .sidebar-login-v2__caret {
+    .sb-nav .sb-nav__card-toggle[aria-expanded="true"] .sb-nav__card-toggle-caret {
         transform: rotate(180deg);
     }
 
-    .sidebar-login-v2 div.collapse-menu {
-        background: transparent;
-        margin-top: 0.18rem;
-        border-radius: 0;
+    .sb-nav .sb-nav__card-body {
+        margin-top: 6px;
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__subnav {
+    .sb-nav .sb-nav__sublist {
         list-style: none;
         margin: 0;
-        padding: 0.15rem 0 0.1rem;
-        border-left: 2px solid rgba(255, 255, 255, 0.22);
-        margin-left: 1rem;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__subnav .nav-link {
-        padding: 0.3rem 0.55rem 0.3rem 0.6rem;
-        font-size: 0.78rem;
-        font-weight: 450;
-        color: var(--sb-muted);
-        border: 0;
-        border-radius: 7px;
-        background: transparent;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__subnav .nav-link:hover {
-        background: var(--sb-row-hover);
-        color: var(--sb-text);
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__subnav .nav-link.is-active {
-        background: var(--sb-active);
-        color: var(--sb-text);
-        border-radius: 7px;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__item-title {
-        display: block;
-        line-height: 1.3;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__item-form {
-        display: block;
-        margin-top: 0.1rem;
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        color: var(--sb-muted);
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__subnav .nav-link.is-active .sidebar-login-v2__item-form {
-        color: var(--sb-text);
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__section-title {
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--sb-muted);
-        padding: 0.1rem 0.2rem;
-        margin: 0.2rem 0 0;
-        list-style: none;
-        background: transparent;
-        border: 0;
-    }
-
-    .sidebar-login-v2 .sidebar-login-v2__section-title span {
-        color: inherit;
+        padding: 4px 0 2px 8px;
+        border-left: 2px solid rgba(255, 255, 255, 0.18);
+        margin-left: 12px;
         display: flex;
-        align-items: center;
-        gap: 0.35rem;
+        flex-direction: column;
+        gap: 2px;
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__section-title i {
-        color: var(--sb-muted);
-        font-size: 0.78rem;
-        letter-spacing: 0;
+    .sb-nav .sb-nav__sublink {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 0.8rem;
+        font-weight: 500;
+        line-height: 1.3;
+        text-decoration: none;
+        transition: background 0.18s ease, color 0.18s ease;
     }
 
-    .sidebar-login-v2 .sidebar-login-v2__divider {
-        height: 0;
-        border: 0;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        opacity: 0;
+    .sb-nav .sb-nav__sublink:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--sb-text);
+        text-decoration: none;
+    }
+
+    .sb-nav .sb-nav__sublink.is-active {
+        background: rgba(255, 255, 255, 0.22);
+        color: var(--sb-text);
+        font-weight: 600;
+    }
+
+    .sb-nav .sb-nav__sublink-bullet {
+        font-size: 0.65rem;
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.55);
+        flex-shrink: 0;
+    }
+
+    .sb-nav .sb-nav__sublink.is-active .sb-nav__sublink-bullet {
+        color: var(--sb-text);
+    }
+
+    .sb-nav .sb-nav__sublink-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+
+    .sb-nav .sb-nav__sublink-form {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .sb-nav .sb-nav__sublink.is-active .sb-nav__sublink-form {
+        color: var(--sb-text);
+    }
+
+    /* Section variants */
+    .sb-nav .sb-nav__card--competency {
+        background: linear-gradient(180deg, rgba(46, 187, 132, 0.22), rgba(46, 187, 132, 0.08));
+        border-color: rgba(46, 187, 132, 0.55);
+        box-shadow: inset 3px 0 0 0 var(--sb-c-competency);
+    }
+
+    .sb-nav .sb-nav__card--competency .sb-nav__card-toggle-icon {
+        background: rgba(46, 187, 132, 0.35);
+        color: #d6f7e8;
+    }
+
+    .sb-nav .sb-nav__card--competency .sb-nav__sublist {
+        border-left-color: rgba(46, 187, 132, 0.6);
+    }
+
+    .sb-nav .sb-nav__card--contractor {
+        background: linear-gradient(180deg, rgba(245, 158, 66, 0.22), rgba(245, 158, 66, 0.08));
+        border-color: rgba(245, 158, 66, 0.55);
+        box-shadow: inset 3px 0 0 0 var(--sb-c-contractor);
+    }
+
+    .sb-nav .sb-nav__card--contractor .sb-nav__card-toggle-icon {
+        background: rgba(245, 158, 66, 0.38);
+        color: #ffe6c7;
+    }
+
+    .sb-nav .sb-nav__card--contractor .sb-nav__sublist {
+        border-left-color: rgba(245, 158, 66, 0.6);
+    }
+
+    .sb-nav .sb-nav__card--renewals {
+        background: linear-gradient(180deg, rgba(96, 165, 250, 0.22), rgba(96, 165, 250, 0.08));
+        border-color: rgba(96, 165, 250, 0.55);
+        box-shadow: inset 3px 0 0 0 var(--sb-c-renewals);
+    }
+
+    .sb-nav .sb-nav__card--renewals .sb-nav__card-toggle-icon {
+        background: rgba(96, 165, 250, 0.38);
+        color: #d6e7ff;
+    }
+
+    .sb-nav .sb-nav__card--renewals .sb-nav__sublist {
+        border-left-color: rgba(96, 165, 250, 0.6);
     }
 
     @media (max-width: 991px) {
-        .sidebar-login-v2 {
+        .sb-nav {
             width: 100%;
             min-height: unset;
             border-right: none;
-            border-bottom: 1px solid var(--sb-border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.10);
         }
     }
 </style>
 
-
-<div class="sidebar sidebar-login sidebar-login-v2">
-    <ul class="nav flex-column sidebar-login-v2__list">
-        <li class="nav-item">
-            <a class="nav-link d-flex align-items-center {{ $dashboardActive ? 'is-active' : '' }}"
-                href="{{ route('dashboard') }}">
-                <i class="fa fa-home sidebar-login-v2__icon" aria-hidden="true"></i>
+<div class="sidebar sidebar-login sb-nav">
+    <ul class="sb-nav__list">
+        <li class="sb-nav__group">
+            <a class="sb-nav__link {{ $dashboardActive ? 'is-active' : '' }}" href="{{ route('dashboard') }}">
+                <i class="fa fa-home" aria-hidden="true"></i>
                 <span>Dashboard</span>
             </a>
         </li>
 
-        <li class="sidebar-login-v2__divider" role="presentation"></li>
-
-        <li class="nav-item">
-            <a class="nav-link sidebar-login-v2__toggle d-flex justify-content-between align-items-center"
-                data-toggle="collapse" href="#competencyMenu" role="button" aria-expanded="true"
-                aria-controls="competencyMenu">
-                <span class="d-flex align-items-center sidebar-login-v2__toggle-left">
-                    <i class="fa fa-wpforms sidebar-login-v2__icon" aria-hidden="true"></i>
-                    <span>Competency Certificates</span>
-                </span>
-                <span class="sidebar-login-v2__caret-wrap">
-                    <i class="fa fa-chevron-down sidebar-login-v2__caret" aria-hidden="true"></i>
-                </span>
-            </a>
-            <div class="collapse collapse-menu show" id="competencyMenu">
-                <ul class="nav flex-column certificate-menu sidebar-login-v2__subnav">
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormWh ? 'is-active' : '' }}"
-                            href="{{ route('apply-form-wh') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span class="sidebar-login-v2__item-title">Wireman Helper Competency Certificate</span>
-                                <span class="sidebar-login-v2__item-form">[Form H]</span>
-                            </span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormW ? 'is-active' : '' }}"
-                            href="{{ route('apply-form-w') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span class="sidebar-login-v2__item-title">Wireman Competency Certificate</span>
-                                <span class="sidebar-login-v2__item-form">[Form W]</span>
-                            </span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormP ? 'is-active' : '' }}"
-                            href="{{ route('apply_form_p') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span class="sidebar-login-v2__item-title">Power Generating Station Operation &amp;
-                                    Maintenance Competency Certificate</span>
-                                <span class="sidebar-login-v2__item-form">[Form P]</span>
-                            </span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormS ? 'is-active' : '' }}"
-                            href="{{ route('apply-form-s') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span class="sidebar-login-v2__item-title">Supervisor Competency Certificate</span>
-                                <span class="sidebar-login-v2__item-form">[Form S]</span>
-                            </span>
-                        </a>
-                    </li>
-                </ul>
+        <li class="sb-nav__group">
+            <div class="sb-nav__card sb-nav__card--competency">
+                <a class="sb-nav__card-toggle" data-toggle="collapse" href="#competencyMenu" role="button"
+                    aria-expanded="true" aria-controls="competencyMenu">
+                    <span class="sb-nav__card-toggle-icon"><i class="fa fa-wpforms" aria-hidden="true"></i></span>
+                    <span class="sb-nav__card-toggle-title">Competency Certificates</span>
+                    <i class="fa fa-chevron-down sb-nav__card-toggle-caret" aria-hidden="true"></i>
+                </a>
+                <div class="collapse show sb-nav__card-body" id="competencyMenu">
+                    <ul class="sb-nav__sublist">
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormWh ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-wh') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Wireman Helper Competency Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form H]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormW ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-w') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Wireman Competency Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form W]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormP ? 'is-active' : '' }}"
+                                href="{{ route('apply_form_p') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Power Generating Station Operation &amp; Maintenance Competency
+                                        Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form P]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormS ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-s') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Supervisor Competency Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form S]</span>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </li>
 
-        <li class="sidebar-login-v2__divider" role="presentation"></li>
-
-        <li class="nav-item">
-            <a class="nav-link sidebar-login-v2__toggle d-flex justify-content-between align-items-center"
-                data-toggle="collapse" href="#contractorMenu" role="button" aria-expanded="true"
-                aria-controls="contractorMenu">
-                <span class="d-flex align-items-center sidebar-login-v2__toggle-left">
-                    <i class="fa fa-file-text-o sidebar-login-v2__icon" aria-hidden="true"></i>
-                    <span>Contractor Licences</span>
-                </span>
-                <span class="sidebar-login-v2__caret-wrap">
-                    <i class="fa fa-chevron-down sidebar-login-v2__caret" aria-hidden="true"></i>
-                </span>
-            </a>
-            <div class="collapse collapse-menu show" id="contractorMenu">
-                <ul class="nav flex-column contractor-menu sidebar-login-v2__subnav">
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormA ? 'is-active' : '' }}"
-                            href="{{ route('apply-form-a') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span>Electrical Contractor's Licence-Grade 'A'</span>
-                                <span class="sidebar-login-v2__item-form">[Form A]</span>
-                            </span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormSa ? 'is-active' : '' }}"
-                            href="{{ route('apply-form-sa') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span>Electrical Contractors Licence Grade Super 'A'</span>
-                                <span class="sidebar-login-v2__item-form">[Form SA]</span>
-                            </span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormSb ? 'is-active' : '' }}"
-                            href="{{ route('apply-form-sb') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span>Electrical Contractor's Licence-Grade `SB'</span>
-                                <span class="sidebar-login-v2__item-form">[Form SB]</span>
-                            </span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeFormB ? 'is-active' : '' }}"
-                            href="{{ route('apply-form-b') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>
-                                <span>Electrical Contractor License 'EB'</span>
-                                <span class="sidebar-login-v2__item-form">[Form B]</span>
-                            </span>
-                        </a>
-                    </li>
-                </ul>
+        <li class="sb-nav__group">
+            <div class="sb-nav__card sb-nav__card--contractor">
+                <a class="sb-nav__card-toggle" data-toggle="collapse" href="#contractorMenu" role="button"
+                    aria-expanded="true" aria-controls="contractorMenu">
+                    <span class="sb-nav__card-toggle-icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></span>
+                    <span class="sb-nav__card-toggle-title">Contractor Licences</span>
+                    <i class="fa fa-chevron-down sb-nav__card-toggle-caret" aria-hidden="true"></i>
+                </a>
+                <div class="collapse show sb-nav__card-body" id="contractorMenu">
+                    <ul class="sb-nav__sublist">
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormA ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-a') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractor's Licence-Grade 'A'</span>
+                                    <span class="sb-nav__sublink-form">[Form A]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormSa ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-sa') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractors Licence Grade Super 'A'</span>
+                                    <span class="sb-nav__sublink-form">[Form SA]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormSb ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-sb') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractor's Licence-Grade `SB'</span>
+                                    <span class="sb-nav__sublink-form">[Form SB]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormB ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-b') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractor License 'EB'</span>
+                                    <span class="sb-nav__sublink-form">[Form B]</span>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </li>
 
-        <li class="sidebar-login-v2__divider" role="presentation"></li>
-
-        <li class="nav-item">
-            <a class="nav-link sidebar-login-v2__toggle d-flex justify-content-between align-items-center"
-                data-toggle="collapse" href="#oldRenewalsMenu" role="button" aria-expanded="true"
-                aria-controls="oldRenewalsMenu">
-                <span class="d-flex align-items-center sidebar-login-v2__toggle-left">
-                    <i class="fa fa-refresh sidebar-login-v2__icon" aria-hidden="true"></i>
-                    <span>Old Renewals</span>
-                </span>
-                <span class="sidebar-login-v2__caret-wrap">
-                    <i class="fa fa-chevron-down sidebar-login-v2__caret" aria-hidden="true"></i>
-                </span>
-            </a>
-            <div class="collapse collapse-menu show" id="oldRenewalsMenu">
-                <ul class="nav flex-column old-renewals-menu sidebar-login-v2__subnav">
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeOldCertRenewal ? 'is-active' : '' }}"
-                            href="{{ route('old_certificate_renewal') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>Old Certificate Renewal</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-start {{ $activeOldContractorRenewal ? 'is-active' : '' }}"
-                            href="{{ route('old_contractor_renewal') }}">
-                            <i class="fa fa-angle-right sidebar-login-v2__icon--sub" aria-hidden="true"></i>
-                            <span>Old Contractor Renewal</span>
-                        </a>
-                    </li>
-                </ul>
+        <li class="sb-nav__group">
+            <div class="sb-nav__card sb-nav__card--renewals">
+                <a class="sb-nav__card-toggle" data-toggle="collapse" href="#oldRenewalsMenu" role="button"
+                    aria-expanded="true" aria-controls="oldRenewalsMenu">
+                    <span class="sb-nav__card-toggle-icon"><i class="fa fa-refresh" aria-hidden="true"></i></span>
+                    <span class="sb-nav__card-toggle-title">Old Renewals</span>
+                    <i class="fa fa-chevron-down sb-nav__card-toggle-caret" aria-hidden="true"></i>
+                </a>
+                <div class="collapse show sb-nav__card-body" id="oldRenewalsMenu">
+                    <ul class="sb-nav__sublist">
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeOldCertRenewal ? 'is-active' : '' }}"
+                                href="{{ route('old_certificate_renewal') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Old Certificate Renewal</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeOldContractorRenewal ? 'is-active' : '' }}"
+                                href="{{ route('old_contractor_renewal') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Old Contractor Renewal</span>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </li>
 
-        <li class="sidebar-login-v2__section-title" role="presentation">
-            <span><i class="fa fa-ellipsis-h" aria-hidden="true"></i> Others</span>
+        <li class="sb-nav__section-title" role="presentation">
+            <i class="fa fa-ellipsis-h" aria-hidden="true"></i>
+            <span>Others</span>
         </li>
 
-        <li class="nav-item">
-            <a class="nav-link d-flex align-items-center {{ request()->routeIs('expiry_date_change') ? 'is-active' : '' }}"
-                href="{{ route('expiry_date_change') }}">
-                <i class="fa fa-angle-right sidebar-login-v2__icon" aria-hidden="true"></i>
+        <li class="sb-nav__group">
+            <a class="sb-nav__link {{ $activeExpiry ? 'is-active' : '' }}" href="{{ route('expiry_date_change') }}">
+                <i class="fa fa-calendar-times-o" aria-hidden="true"></i>
                 <span>License Expiry Date Change</span>
             </a>
         </li>
 
-        <li class="nav-item">
-            <a class="nav-link d-flex align-items-center {{ request()->routeIs('previous_licence_date_change') ? 'is-active' : '' }}"
+        <li class="sb-nav__group">
+            <a class="sb-nav__link {{ $activePrevLicence ? 'is-active' : '' }}"
                 href="{{ route('previous_licence_date_change') }}">
-                <i class="fa fa-angle-right sidebar-login-v2__icon" aria-hidden="true"></i>
+                <i class="fa fa-exchange" aria-hidden="true"></i>
                 <span>C &amp; W Licence Change</span>
             </a>
         </li>
-
-        {{-- <li class="nav-item">
-            <a href="" class="nav-link d-flex align-items-center">
-                <i class="fa fa-clipboard sidebar-login-v2__icon" aria-hidden="true"></i>
-                <span>Previous (or) Old License Details</span>
-            </a>
-        </li> --}}
     </ul>
 </div>

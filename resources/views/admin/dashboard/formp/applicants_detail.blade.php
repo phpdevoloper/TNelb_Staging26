@@ -323,7 +323,7 @@
                                                         <tr>
                                                             <td>{{ $exp->company_name ?? $exp->emp_cate ?? '—' }}</td>
                                                             <td>{{ $exp->designation ?? '—' }}</td>
-                                                            <td>{{ $exp->experience ?? $exp->total_exp ?? '—' }}</td>
+                                                            <td>{{ format_total_exp_years($exp->experience ?? $exp->total_exp) ?? '—' }}</td>
                                                             <td style="text-align:center;">
                                                                 @if(!empty($exp->upload_document))
                                                                 <a href="{{ url($exp->upload_document) }}" target="_blank" style="font-size: small;">
@@ -391,6 +391,9 @@
                                             @php
                                                 $decryptedaadhar = $applicant->aadhaar ? safeDecrypt($applicant->aadhaar) : '';
                                                 $masked          = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : ($applicant->aadhaar ? 'Invalid Aadhaar' : '—');
+                                                $decryptedPanRow = $applicant->pancard ? safeDecrypt($applicant->pancard) : '';
+                                                $maskedPan       = strlen((string) $decryptedPanRow) === 10 ? str_repeat('X', 6) . substr($decryptedPanRow, -4) : ($applicant->pancard ? 'Invalid PAN' : '—');
+                                                $panDocFile      = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
                                             @endphp
 
                                             <div class="row mb-2">
@@ -422,10 +425,10 @@
                                                             <p class="fw-bold mb-0" style="color: #000;">PAN:</p>
                                                         </div>
                                                         <div class="col-lg-6 text-end">
-                                                            @if (!empty($applicant->pancard_doc))
+                                                            @if (!empty($panDocFile))
                                                                 <div class="fw-bold mb-0" style="color: #515365">
-                                                                    {{ $applicant->pancard ?? '—' }}
-                                                                    (<a href="{{ route('document.show', ['type' => 'pan', 'filename' => $applicant->pancard_doc]) }}"
+                                                                    {{ $maskedPan }}
+                                                                    (<a href="{{ route('document.show', ['type' => 'pan', 'filename' => $panDocFile]) }}"
                                                                         target="_blank"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open PAN document">
@@ -435,7 +438,7 @@
                                                                 </div>
                                                             @else
                                                                 <div class="fw-bold mb-0" style="color: #515365">
-                                                                    {{ $applicant->pancard ?? '—' }}
+                                                                    {{ $maskedPan }}
                                                                 </div>
                                                             @endif
                                                         </div>
@@ -455,7 +458,7 @@
 
 
                                         <div class="row mt-3">
-                                            <div class="row mt-3">
+                                            {{-- <div class="row mt-3">
                                                 <div class="col-lg-6 d-flex align-items-center justify-content-center">
                                                     <div class="form-check">
                                                         <input type="checkbox" id="check_all" name="check_all" class="form-check-input" @if($isVerified) checked disabled @endif>
@@ -468,8 +471,9 @@
                                                         <label class="form-check-label" for="reset_all">Reset All</label>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div id="specific-class" class="col-lg-12">
+                                            </div> --}}
+                                            <div class="col-12" id="specific-class">
+                                                <div class="row">
                                                 @php
                                                     $checkboxes = [
                                                         'signature_form' => 'Applicant Signature in Application Form',
@@ -490,19 +494,37 @@
                                                         'complete_experience_details' => 'Complete Experience Details',
                                                         'required_qualification_certificate' => 'Required Qualification Certificate',
                                                     ];
+                                                    $checkHalf = (int) ceil(count($checkboxes) / 2);
+                                                    $checkboxesCol1 = array_slice($checkboxes, 0, $checkHalf, true);
+                                                    $checkboxesCol2 = array_slice($checkboxes, $checkHalf, null, true);
                                                 @endphp
 
-                                                @foreach($checkboxes as $id => $label)
-                                                    <div class="form-check">
-                                                        <input type="checkbox" 
-                                                            id="{{ $id }}" 
-                                                            name="{{ $id }}" 
-                                                            class="form-check-input"
-                                                            @if($isVerified) checked disabled @endif>
-                                                        <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                                                    </div>
-                                                @endforeach
+                                                <div class="col-md-6">
+                                                    @foreach($checkboxesCol1 as $id => $label)
+                                                        <div class="form-check">
+                                                            <input type="checkbox"
+                                                                id="{{ $id }}"
+                                                                name="{{ $id }}"
+                                                                class="form-check-input"
+                                                                @if($isVerified) checked disabled @endif>
+                                                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                <div class="col-md-6">
+                                                    @foreach($checkboxesCol2 as $id => $label)
+                                                        <div class="form-check">
+                                                            <input type="checkbox"
+                                                                id="{{ $id }}"
+                                                                name="{{ $id }}"
+                                                                class="form-check-input"
+                                                                @if($isVerified) checked disabled @endif>
+                                                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
 
+                                                </div>
                                             </div>
                                         </div>
 
@@ -666,7 +688,7 @@
 
                                 @elseif ($role == 'Assistant Secretary')
                                     {{-- Forward to Secretary --}}
-                                    <button class="btn btn-success" id="forwardbtn" data-bs-toggle="modal" data-bs-target="#declarationModal">
+                                    <button class="btn btn-success" id="forwardbtn">
                                         Forward to {{ $workflow[$role] }}
                                     </button>
                                     <button class="btn btn-warning">On Hold</button>
@@ -840,7 +862,7 @@
 
 
 
-<div class="modal fade" id="declarationModal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
+{{-- <div class="modal fade" id="declarationModal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -861,7 +883,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> --}}
 <!-- Success Modal -->
 <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -1202,10 +1224,13 @@
 
         // If any individual checkbox is manually unchecked, uncheck "Check All"
         individualCheckboxes.change(function() {
-            if ($('.form-check-input:not(#check_all):not(#reset_all):checked').length === individualCheckboxes.length) {
-                checkAllBox.prop('checked', true);
+            // console.log($('#specific-class input[type="checkbox"].form-check-input:checked').length);
+            // console.log(individualCheckboxes.length);
+            // return false;
+            if ($('#specific-class input[type="checkbox"].form-check-input:checked').length === individualCheckboxes.length) {
+                forwardbtn.prop('disabled', false);
             } else {
-                checkAllBox.prop('checked', false);
+                forwardbtn.prop('disabled', true);
             }
         });
         
@@ -1452,103 +1477,7 @@
                 }
             });
         });
-        // confirmForward.click(function() {
-
-        //     var queryType = [];
-
-        //     var applicationId = @json($applicant-> application_id);
-        //     var processedBy = @json(Auth::user()->name);
-        //     var role_id = @json(Auth::user()->roles_id);
-        //     var forwardedTo = @json($nextForwardUser->roles_id);
-        //     var role = @json($nextForwardUser->name);
-        //     var remarks = $("#remarks").val().trim();
-
-        //     var checkboxStatus = "Yes";
-            
-        //     let queryswitch = $("#Queryswitch").prop("checked");
-        //     queryType = $("#queryType").val();
-        //     let errorBox = $("#query_error");
-            
-        //     errorBox.text(""); // clear previous error
-
-        //     if (queryswitch && queryType.length === 0) {
-        //         errorBox.text("Please select at least one query type.");
-        //         $('#declarationModal').modal('hide');
-
-        //         setTimeout(function () {
-        //             let errorTop = errorBox.offset().top - 100;
-        //             let currentScroll = $(window).scrollTop();
-
-        //             $('html, body').animate({ scrollTop: errorTop }, 500);
-        //         }, 300);
-
-        //         return;
-        //     }
-
-        //     $.ajax({
-        //         url: '{{ route('admin.forwardApplicationformp',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
-        //         type: 'POST',
-        //         // contentType: 'application/json',
-        //         headers: {
-        //             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
-        //         },
-        //         data: {
-        //             application_id: applicationId,
-        //             processed_by: processedBy,
-        //             forwarded_to: forwardedTo,
-        //             role_id: role_id,
-        //             remarks: remarks || "No remarks provided",
-        //             checkboxes: checkboxStatus, // Only "Yes" or "No"
-        //             queryswitch: queryswitch ? "Yes" : "No", // Only "Yes" or "No"
-        //             "queryType[]": queryType
-        //         },
-        //         success: function(response) {
-
-        //             // if (response.status == "success") {
-        //             //     // Cleanup Bootstrap modal instance on hide
-        //             //     $('#declarationModal').modal('hide');
-
-        //             //     $('#successModal .modal-body').html(`<p>${response.message}</p>`);
-        //             //     $('#successModal').modal('show');
-
-        //             //     $('#successModal').on('hidden.bs.modal', function() {
-        //             //         window.location.href = '/admin/dashboard'
-        //             //     });
-        //             // }
-
-        //             if (response.status == "success") {
-        //                 Swal.fire({
-        //                     icon: 'success',
-        //                     title: 'Success',
-        //                     text: response.message,
-        //                     confirmButtonText: 'OK',
-        //                     confirmButtonColor: '#3085d6',
-        //                     allowOutsideClick: false
-        //                 }).then((result) => {
-        //                     if (result.isConfirmed) {
-        //                         window.location.href = '/admin/dashboard';
-        //                     }
-        //                 });
-        //             }
-
-        //         },
-        //         error: function(xhr) {
-        //             let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
-        //             $('#errorModal .modal-body').html(`<p>${errorMessage}</p>`);
-        //             $('#errorModal').modal('show');
-        //         }
-        //     });
-        // });
-
-        //
-        // var returnButton = document.querySelector('#returntoSuper');
-
-        // if (returnButton) {
-        //     returnButton.addEventListener('click', function () {
-        //         // Show Bootstrap confirmation modal
-        //         $('#returnConfirmModal').modal('show');
-        //     });
-        // }
+        
 
         // Handle confirm button inside modal
         $('#confirmReturnBtn').on('click', function () {
