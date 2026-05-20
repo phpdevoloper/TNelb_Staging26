@@ -232,23 +232,19 @@
                     </a><br>
 
                     @if ($workflow->form_name == 'P')
-                        {{-- Form P: encrypted English and Tamil licence PDFs from private storage --}}
-                        <a href="{{ route('admin.formp.licence.ta', ['application_id' => $workflow->application_id]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (Tamil)">
+                        {{-- Form P: single encrypted PDF (English + Tamil) --}}
+                        <a href="{{ route('admin.formp.licence.en', ['application_id' => $workflow->application_id]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (English & Tamil)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span class="badge outline-badge-info" style="font-size:10px;">தமிழ்</span>
-                        </a>
-                        <a href="{{ route('admin.formp.licence.en', ['application_id' => $workflow->application_id]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (English)">
-                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span class="badge outline-badge-info" style="font-size:10px;">English</span>
+                            <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
                     @else
-                        <a href="{{ route('admin.competency-certificate-tamil.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (Tamil)">
+                        {{-- <a href="{{ route('admin.competency-certificate-tamil.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (Tamil)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
                             <span class="badge outline-badge-info" style="font-size:10px;">தமிழ்</span>
-                        </a>
+                        </a> --}}
                         <a href="{{ route('admin.generateLicensePDF', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (English)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span class="badge outline-badge-info" style="font-size:10px;">English</span>
+                            <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
                     @endif
                     <br>

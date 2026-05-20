@@ -824,6 +824,7 @@ class LoginController extends Controller
      */
     public function completedApplications()
     {
+        
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -1083,6 +1084,7 @@ class LoginController extends Controller
      */
     public function completedApplicationsData(Request $request)
     {
+        
         $staff = Auth::user();
         if (!$staff) {
             return response()->json(['message' => 'Unauthorized'], 403);
