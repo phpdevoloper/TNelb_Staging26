@@ -120,6 +120,49 @@ class FormController extends BaseController
         ];
     }
 
+    /**
+     * Form S §7 — work experience: To date must be at least two calendar years after From date.
+     */
+    private function validateFor9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8(Request $request, \Illuminate\Validation\Validator $validator): void
+    {
+        if (($request->form_name ?? '') !== 'S') {
+            return;
+        }
+
+        $fromDates = $request->input('work_date_from', []);
+        $toDates = $request->input('work_date_to', []);
+        if (! is_array($fromDates)) {
+            return;
+        }
+
+        foreach (array_keys($fromDates) as $key) {
+            $fromRaw = trim((string) ($fromDates[$key] ?? ''));
+            $toRaw = trim((string) ($toDates[$key] ?? ''));
+            if ($fromRaw === '' || $toRaw === '') {
+                continue;
+            }
+
+            try {
+                $from = Carbon::parse($fromRaw)->startOfDay();
+                $to = Carbon::parse($toRaw)->startOfDay();
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            if ($to->lt($from)) {
+                continue;
+            }
+
+            $minimumToDate = $from->copy()->addYears(2);
+            if ($to->lt($minimumToDate)) {
+                $validator->errors()->add(
+                    'work_date_to.'.$key,
+                    'Minimum 2 Years Experience needed'
+                );
+            }
+        }
+    }
+
     private function decryptPanForDisplay($applicationDetails): void
     {
         if (!$applicationDetails || !isset($applicationDetails->pancard) || $applicationDetails->pancard === null || $applicationDetails->pancard === '') {
@@ -146,7 +189,7 @@ class FormController extends BaseController
             $issued = trim((string) ($application_details->license_number ?? ''));
         }
         if ($issued === '') {
-            $compRow = DB::table('tnelb_application_tbl')->where('application_id', $appl_id)->first();
+            $compRow = Mst_Form_s_W::where('application_id', $appl_id)->first();
             if ($compRow) {
                 $issued = trim((string) ($compRow->license_number ?? ''));
             }
@@ -419,6 +462,9 @@ class FormController extends BaseController
             'certificate_date'              => 'nullable|date',
             'certificate_issue_date'        => 'nullable|date',
 
+            'applicant_email'      => ($request->form_name === 'S')
+                ? 'required|email|max:191'
+                : 'nullable|email|max:191',
 
             // education arrays
             'educational_level'    => 'required|array|min:1',
@@ -509,6 +555,8 @@ class FormController extends BaseController
             'applicant_name.max' => 'Applicant name may not be greater than 80 characters.',
             'fathers_name.max' => 'Father\'s name may not be greater than 80 characters.',
             'applicants_address.max' => 'Address may not be greater than 255 characters.',
+            'applicant_email.required' => 'Email ID is required.',
+            'applicant_email.email' => 'Enter a valid Email ID.',
             'competency_certificate_no.max' => 'Certificate number may not be greater than 80 characters.',
             'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
             'pancard.required' => 'PAN card number is required.',
@@ -624,6 +672,9 @@ class FormController extends BaseController
                 }
             }
         });
+        $validator->after(function ($validator) use ($request) {
+            $this->validateFor9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8($request, $validator);
+        });
         $validator->validate();
         
         
@@ -705,6 +756,7 @@ class FormController extends BaseController
                 'login_id'            => $loginId,
                 'applicant_name'      => $request->applicant_name ?? '',
                 'fathers_name'        => $request->fathers_name ?? '',
+                'applicant_email'     => $request->input('applicant_email'),
                 'applicants_address'  => $request->applicants_address,
                 'd_o_b'               => $request->dob ?? $request->d_o_b,
                 'age'                 => $request->age,
@@ -1026,11 +1078,17 @@ class FormController extends BaseController
             'work_document.*'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
             'existing_work_document' => 'nullable|array',
             'existing_work_document.*' => 'nullable|string|max:500',
+
+            'applicant_email'      => ($request->form_name === 'S')
+                ? 'required|email|max:191'
+                : 'nullable|email|max:191',
         ];
 
         $messages = [
             'education_document.*.max'    => 'Educational document size permitted only 5 KB to 200 KB.',
             'work_document.*.max'    => 'Experience document size permitted only 5 KB to 200 KB.',
+            'applicant_email.required' => 'Email ID is required.',
+            'applicant_email.email' => 'Enter a valid Email ID.',
             'month_of_passing.required'     => 'Please add at least one educational qualification.',
             'month_of_passing.*.required'   => 'Month of passing is required.',
             'month_of_passing.*.in'         => 'Month of passing must be a valid month.',
@@ -1143,6 +1201,9 @@ class FormController extends BaseController
                 }
             }
         });
+        $validator->after(function ($validator) use ($request) {
+            $this->validateFor9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8($request, $validator);
+        });
         $validator->validate();
 
         DB::beginTransaction();
@@ -1194,6 +1255,7 @@ class FormController extends BaseController
                 'login_id'          => $request->login_id,
                 'applicant_name'    => $request->applicant_name,
                 'fathers_name'      => $request->fathers_name,
+                'applicant_email'   => $request->input('applicant_email'),
                 'applicants_address'=> $request->applicants_address,
                 'd_o_b'             => $request->d_o_b,
                 'age'               => $request->age,
@@ -1627,6 +1689,7 @@ class FormController extends BaseController
                 'login_id'           => 'nullable|string',
                 'applicant_name'     => 'nullable|string|max:255',
                 'fathers_name'       => 'nullable|string|max:255',
+                'applicant_email'    => 'nullable|email|max:191',
                 'applicants_address' => 'nullable|string|max:500',
                 'd_o_b'              => 'nullable|date',
                 'age'                => 'nullable|integer|min:18|max:100',
@@ -1777,6 +1840,7 @@ class FormController extends BaseController
                 'login_id'          => $loginId,
                 'applicant_name'    => $request->applicant_name ?? $request->Applicant_Name,
                 'fathers_name'      => $request->fathers_name ?? $request->Fathers_Name,
+                'applicant_email'   => $request->input('applicant_email'),
                 'applicants_address'=> $request->applicants_address,
                 'd_o_b'             => $request->d_o_b ?? null,
                 'age'               => $request->age,
@@ -2234,6 +2298,7 @@ class FormController extends BaseController
                 'login_id'           => $loginId,
                 'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
                 'fathers_name'       => $request->fathers_name ?? $request->Fathers_Name,
+                'applicant_email'    => $request->input('applicant_email'),
                 'applicants_address' => $request->applicants_address,
                 'd_o_b'              => $request->d_o_b ?? null,
                 'age'                => $request->age,
@@ -2503,6 +2568,7 @@ class FormController extends BaseController
                 'login_id'           => 'nullable|string',
                 'applicant_name'     => 'nullable|string|max:255',
                 'fathers_name'       => 'nullable|string|max:255',
+                'applicant_email'    => 'nullable|email|max:191',
                 'applicants_address' => 'nullable|string|max:500',
                 'd_o_b'              => 'nullable|date',
                 'age'                => 'integer|min:18|max:100',
@@ -2614,6 +2680,7 @@ class FormController extends BaseController
                     'login_id'           => $loginId,
                     'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
                     'fathers_name'       => $request->fathers_name ?? $request->Fathers_Name,
+                    'applicant_email'    => $request->input('applicant_email'),
                     'applicants_address' => $request->applicants_address,
                     'd_o_b'              => $request->d_o_b ?? 0,
                     'age'                => $request->age,

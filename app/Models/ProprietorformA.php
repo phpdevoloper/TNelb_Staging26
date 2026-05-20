@@ -39,6 +39,7 @@ class ProprietorformA extends Model
         'proprietor_flag',
         'ownership_type',
         'ownership_count',
-        'age_proof'
+        'age_proof',
+        'managing_director'
     ];
 }

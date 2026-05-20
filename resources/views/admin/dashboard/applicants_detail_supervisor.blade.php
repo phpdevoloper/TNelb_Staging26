@@ -815,7 +815,7 @@
                                                                 <span class="asp-detail-value">{{ $applicant->previously_number ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Issue</span>
+                                                                <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span class="asp-detail-value">{{ !empty($applicant->previously_issue_date) ? format_date($applicant->previously_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
@@ -854,7 +854,7 @@
                                                                 <span class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Issue</span>
+                                                                <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
@@ -896,7 +896,7 @@
                                                                 <span class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Issue</span>
+                                                                <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
@@ -936,7 +936,7 @@
                                                                 <span class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Issue</span>
+                                                                <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">

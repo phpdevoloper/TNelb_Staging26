@@ -597,7 +597,10 @@ $("#competency_form_a").on("submit", function (e) {
         //         exit;
         directors.push({
             id: id,
-            proprietor_name: $tds.eq(0).text().trim(),
+            proprietor_name: $tds.eq(0).attr("data-name") || "",
+    
+             managing_director:
+              $tds.eq(0).attr("data-managing_director") || "no",
             fathers_name: $tds.eq(1).text().trim(),
 
             dob: $tds.eq(2).attr("data-dob"),
@@ -641,6 +644,11 @@ $("#competency_form_a").on("submit", function (e) {
         formData.append(`director_id[${index}]`, p.id ?? "");
 
         formData.append(`director_name[${index}]`, p.proprietor_name);
+
+        formData.append(
+            `director_managing_director[${index}]`,
+            p.managing_director
+        );
         formData.append(`director_fathers_name[${index}]`, p.fathers_name);
         formData.append(`director_ownership_type[${index}]`, p.ownership_type);
 
@@ -4119,7 +4127,10 @@ $("#competency_form_a_return").on("submit", function (e) {
         //         exit;
         directors.push({
             id: id,
-            proprietor_name: $tds.eq(0).text().trim(),
+            proprietor_name: $tds.eq(0).attr("data-name") || "",
+    
+             managing_director:
+              $tds.eq(0).attr("data-managing_director") || "no",
             fathers_name: $tds.eq(1).text().trim(),
 
             dob: $tds.eq(2).attr("data-dob"),
@@ -4163,6 +4174,11 @@ $("#competency_form_a_return").on("submit", function (e) {
         formData.append(`director_id[${index}]`, p.id ?? "");
 
         formData.append(`director_name[${index}]`, p.proprietor_name);
+
+        formData.append(
+            `director_managing_director[${index}]`,
+            p.managing_director
+        );
         formData.append(`director_fathers_name[${index}]`, p.fathers_name);
         formData.append(`director_ownership_type[${index}]`, p.ownership_type);
 
@@ -6840,4 +6856,179 @@ function fillProprietorForm(data) {
 
     // Scroll
     $section[0].scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+
+// qcstaff-----------
+function addStaffqcRow() {
+
+    
+
+    let rowCount = $('#staffqc-container tr').length;
+
+    // Check last row before adding
+    let lastRow = $('#staffqc-container tr').last();
+
+    let name = $.trim(lastRow.find('input[name="staffqc_name[]"]').val());
+
+    let category = $.trim(
+        lastRow.find('input[name="staff_category[]"]').val() ||
+        lastRow.find('select[name="staff_category[]"]').val()
+    );
+
+    let ccNumber = $.trim(
+        lastRow.find('input[name="cc_number[]"]').val()
+    );
+
+    let ccValidity = $.trim(
+        lastRow.find('input[name="cc_validity[]"]').val()
+    );
+
+    // Validation
+    if (!name || !category || !ccNumber || !ccValidity) {
+
+        Swal.fire({
+            icon: 'warning',
+            width: 500,
+            title: 'Incomplete Row',
+            text: 'Please fill Name, Certificate Number and Validity before adding a new row.',
+            confirmButtonText: 'OK'
+        });
+
+        return;
+    }
+
+    // Maximum rows limit
+    if (rowCount >= 5) {
+
+        Swal.fire({
+            icon: 'warning',
+            width: 500,
+            title: 'Maximum Limit Reached',
+            text: 'You can add only 5 QC staff members.',
+            confirmButtonText: 'OK'
+        });
+
+        return;
+    }
+
+    // Remove previous Add buttons
+    $('#staffqc-container .btn-addqc-staff').remove();
+
+    let newRow = `
+        <tr class="staff-fields">
+
+            <td>${rowCount + 1}</td>
+
+            <td>
+                <input type="text"
+                    name="staffqc_name[]"
+                    maxlength="30"
+                    class="form-control"
+                    placeholder="Name of the Person"
+                    oninput="this.value=this.value.replace(/[^a-zA-Z\\s]/g,'')">
+
+                <span class="error text-danger"></span>
+            </td>
+
+            <td>
+                <input type="text"
+                    class="form-control"
+                    name="staff_category[]"
+                    value="QC"
+                    readonly>
+
+                <span class="error text-danger"></span>
+            </td>
+
+            <td>
+                <input type="text"
+                    class="form-control cc_number"
+                    name="cc_number[]"
+                    placeholder="Certificate No"
+                    maxlength="15">
+
+                <span class="error text-danger"></span>
+
+                <div class="competency_verify_result text-danger small mt-1"></div>
+            </td>
+
+            <td>
+                <input type="date"
+                    class="form-control cc_validity"
+                    name="cc_validity[]">
+
+                <span class="error text-danger"></span>
+            </td>
+
+            <td>
+
+                <button type="button"
+                    class="btn btn-primary verifyBtn"
+                    onclick="validatestaffcertificate(event, this)">
+                    Verify
+                </button>
+
+                <input type="hidden"
+                    name="staff_cc_verify[]"
+                    class="staff_cc_verify"
+                    value="">
+
+                <button type="button"
+                    class="btn btn-success btn-addqc-staff mt-1"
+                    onclick="addStaffqcRow()">
+                    + Add
+                </button>
+
+                <button type="button"
+                    class="btn btn-danger mt-1"
+                    onclick="removeStaffqcRow(this)">
+                    Remove
+                </button>
+
+            </td>
+
+        </tr>
+    `;
+
+    $('#staffqc-container').append(newRow);
+}
+
+
+function removeStaffqcRow(button) {
+
+    let totalRows = $('#staffqc-container tr').length;
+
+    if (totalRows === 1) {
+
+        Swal.fire({
+            icon: 'warning',
+            width: 450,
+            title: 'Cannot Remove',
+            text: 'At least one staff row is required.',
+            confirmButtonText: 'OK'
+        });
+
+        return;
+    }
+
+    $(button).closest('tr').remove();
+
+    // Re-index rows
+    $('#staffqc-container tr').each(function(index) {
+
+        $(this).find('td:first').text(index + 1);
+
+    });
+
+    // Keep Add button only in last row
+    $('#staffqc-container .btn-addqc-staff').remove();
+
+    $('#staffqc-container tr:last td:last').append(`
+        <button type="button"
+            class="btn btn-success btn-addqc-staff mt-1"
+            onclick="addStaffqcRow()">
+            + Add
+        </button>
+    `);
 }

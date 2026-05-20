@@ -168,9 +168,9 @@
                                                 <tbody>
                                                         @forelse ($workExperience as $experience)
                                                         <tr>
-                                                            <td>{{ $experience->company_name }}</td>
+                                                            <td>{{ $experience->emp_cate ?? $experience->company_name ?? '' }}</td>
                                                             <td>{{ $experience->designation }}</td>
-                                                            <td>{{ $experience->experience }} years</td>
+                                                            <td>{{ $experience->total_exp ?? $experience->experience ?? 0 }} years</td>
                                                             <td style="text-align:center;">
 
                                                                 @if($experience->upload_document)
@@ -197,25 +197,20 @@
                                             <div class="row">
                                                 <div class="col-lg-6 col-6">
                                                     <p><strong>License Number:</strong></p>
-
-                                                    <p><strong>Date:</strong></p>
+                                                    <p><strong>Date of First Issue:</strong></p>
+                                                    <p><strong>Validity Date:</strong></p>
                                                 </div>
                                                 <div class="col-lg-6 col-6">
                                                     @php
-                                                        if (empty($applicant->previously_number) || empty($applicant->previously_date)){
-                                                            $value = 'No';
-                                                        }else{
-                                                            $value = ($applicant->previously_number ?: '') . ' , ' . (!empty($applicant->previously_date) ? format_date($applicant->previously_date) : '' . '<a href="">view</a>');
-                                                        }
-                                                        
+                                                        $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($applicant->previously_date);
                                                     @endphp
-                                                       
-                                                        
-                                                        <p>
-                                                            {{ $value }}
-                                                        </p>
-
-                                                    {{-- <p>{{ format_date($applicant->previously_date) }}</p> --}}
+                                                    @if (!$hasPreviousEaQual)
+                                                        <p>No</p>
+                                                    @else
+                                                        <p>{{ $applicant->previously_number ?: '—' }}</p>
+                                                        <p>{{ !empty($applicant->previously_issue_date) ? format_date($applicant->previously_issue_date) : '—' }}</p>
+                                                        <p>{{ !empty($applicant->previously_date) ? format_date($applicant->previously_date) : '—' }}</p>
+                                                    @endif
                                                 </div>
                                             </div>
 
@@ -226,20 +221,20 @@
                                             <div class="row">
                                                 <div class="col-lg-6 col-6">
                                                     <p><strong>Wireman License Number:</strong></p>
+                                                    <p><strong>Date of First Issue:</strong></p>
+                                                    <p><strong>Validity Date:</strong></p>
                                                 </div>
                                                 <div class="col-lg-6 col-6">
                                                     @php
-                                                    if (empty($applicant->certificate_no) || empty($applicant->certificate_date)){
-                                                    $cert_no = 'No';
-                                                    }else{
-                                                    $cert_no = 'Yes, '.($applicant->certificate_no ?: '') . ' , ' . (!empty($applicant->certificate_date) ? format_date($applicant->certificate_date) : '' . '<a href="">view</a>');
-                                                    }
-                                                
+                                                        $hasCert = !empty($applicant->certificate_no) && !empty($applicant->certificate_date);
                                                     @endphp
-                                                
-                                                    <p>{{ $cert_no }}</p>
-                                                    {{-- <p>{{ $applicant->previously_date }}</p> --}}
-                                                
+                                                    @if (!$hasCert)
+                                                        <p>No</p>
+                                                    @else
+                                                        <p>{{ $applicant->certificate_no ?: '—' }}</p>
+                                                        <p>{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</p>
+                                                        <p>{{ format_date($applicant->certificate_date) }}</p>
+                                                    @endif
                                                 </div>
                                             </div>
 

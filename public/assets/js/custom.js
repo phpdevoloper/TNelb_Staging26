@@ -50,14 +50,14 @@ $(document).ready(function () {
         errorBox.text(value === "" ? "Date of Expiry is required" : "");
     });
 
-    // ✅ Common Date of Issue Validation
+    // ✅ Common Date of First Issue Validation
     $(document).on("change", ".verify-issue-date", function () {
         let value = $(this).val()?.trim() || "";
         let errorBox = $($(this).data("error"));
-        errorBox.text(value === "" ? "Date of Issue is required" : "");
+        errorBox.text(value === "" ? "Date of First Issue is required" : "");
     });
 
-    // ✅ When Yes/No toggles hide, clear Date of Issue error too
+    // ✅ When Yes/No toggles hide, clear Date of First Issue error too
     $(document).on("change", ".toggle-details", function () {
         if ($(this).val() !== "yes") {
             let target = $(this).data("target");
@@ -128,7 +128,7 @@ $(document).ready(function () {
 
         if (issueDate.length) {
             if (issueDateVal === "") {
-                issueDateErrorBox.text("Date of Issue is required");
+                issueDateErrorBox.text("Date of First Issue is required");
                 isValid = false;
             } else if (!isValidDateString(issueDateVal)) {
                 issueDateErrorBox.text("Enter a valid date");

@@ -1762,7 +1762,16 @@ exit; -->
                                         @foreach ($proprietors as $p)
                                         @if($p->ownership_type === 'dr')
                                         <tr data-id="{{ $p->id }}">
-                                            <td>{{ $p->proprietor_name }}</td>
+                                           <td
+                                                data-name="{{ $p->proprietor_name }}"
+                                                data-managing_director="{{ $p->managing_director }}"
+                                            >
+                                                {{ $p->proprietor_name }}
+
+                                                @if($p->managing_director == 'YES')
+                                                    <span class="managing-director-tag">Managing Director</span>
+                                                @endif
+                                            </td>
                                             <td>{{ $p->fathers_name }}</td>
 
                                             <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}" data-age_proof="{{ asset($p->age_proof) }}">{{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
@@ -1829,6 +1838,19 @@ exit; -->
                         <div class="border box-shadow-blue card p-3 mt-2" id="directorfill-section" style="display:none;">
                             <h5>Director Details</h5>
                             <div class=" p-3 ">
+                                <div class="row mt-2 managing-director-wrapper">
+                                        <div class="col-md-12">
+                                            <div class="form-check">
+                                                <input class="form-check-input managing-director-checkbox"
+                                                    type="checkbox"
+                                                    id="is_managing_director">
+
+                                                <label class="form-check-label" for="is_managing_director">
+                                                    Is this person Managing Director?
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
                                 <div class="row mt-1 ">
 
 
@@ -2457,7 +2479,7 @@ exit; -->
                         <div class="col-md-12">
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label>6. Details of Staff appointed on full time basis: <span style="color: red;">*</span></label>
+                                    <label>6A. Details of QC Staff appointed on full time basis: <span style="color: red;">*</span></label>
 
                                 </div>
 
@@ -2480,8 +2502,389 @@ exit; -->
                                     </thead>
 
                                     @if(!$application)
+                                    <tbody id="staffqc-container">
+                                        @php $staff_qccount = 1; @endphp
+                                        @for ($i = 0; $i < $staff_qccount; $i++)
+                                            <tr class="staff-fields">
+                                            <td>{{ $i + 1 }}</td>
+                                            <td>
+                                                <input type="text" name="staffqc_name[]" maxlength="30"
+                                                    class="form-control"
+                                                    value="{{ old('staffqc_name.' . $i) }}"
+                                                    placeholder="Name of the Person"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                                <span class="error text-danger">{{ $errors->first('staffqc_name.' . $i) }}</span>
+                                            </td>
+
+                                          
+                                            <td>
+                                               
+                                                
+                                                <input type="text" class="form-control" name="staff_category[]" value="QC" readonly>
+                                               
+                                                <span class="error text-danger">{{ $errors->first('staff_category.' . $i) }}</span>
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control cc_number" name="cc_number[]" placeholder="Certificate No" maxlength="15" value="{{ old('cc_number.' . $i) }}">
+                                                <span class="error text-danger">{{ $errors->first('cc_number.' . $i) }}</span>
+                                              
+                                                <span class="text-danger small">At present, we evaluate only C Certificate only </span>
+                                                <div class="text-white competency_verify_result mt-1"></div>
+                                            </td>
+                                            <td>
+                                                <input type="date" class="form-control cc_validity" name="cc_validity[]" placeholder="Validity"
+                                                    value="{{ old('cc_validity.' . $i) }}">
+                                                <span class="error text-danger">{{ $errors->first('cc_validity.' . $i) }}</span>
+                                                
+                                            </td>
+                                            <td>
+                                                <button type="button"
+                                                    class="btn btn-primary verify-btn"
+                                                    onclick="validatestaffcertificate(event,this)">
+                                                    Verify
+                                                </button>
+                                                <input type="hidden" name="staff_qccc_verify[]" class="staff_qccc_verify" value="">
+
+
+                                                @if ($i === $staff_qccount - 1)
+                                                <!-- Show Add button only in 4th row -->
+                                                <button type="button" class="btn btn-success btn-addqc-staff" onclick="addStaffqcRow()">+ Add</button>
+                                                @endif
+                                            </td>
+
+
+                                            </tr>
+                                            @endfor
+                                    </tbody>
+                                    @else
+                                    <tbody id="staffqc-container">
+                                   
+                                         @php
+                                        $staff_count = max(2, count($Qcstaffs ?? []));
+                                        @endphp
+
+                                         @for ($i = 0; $i < $staff_count; $i++)
+                                            @php $staff=$Qcstaffs[$i] ?? null; @endphp
+
+                                        <tr class="staff-fields">
+                                            <td>{{ $i + 1 }}</td>
+
+                                            <td>
+                                                <input type="text"
+                                                    name="staffqc_name[]"
+                                                    maxlength="30"
+                                                    class="form-control"
+                                                    value="{{ old('staffname.0', $staff->staffname ?? '') }}"
+                                                    placeholder="Name of the Person">
+                                            </td>
+
+                                            <td>
+                                                <input type="text"
+                                                    class="form-control"
+                                                    name="staff_category[]"
+                                                    value="QC"
+                                                    readonly>
+                                            </td>
+
+                                            <td>
+                                                <input type="text"
+                                                    class="form-control cc_number"
+                                                    name="cc_number[]"
+                                                    placeholder="Certificate No"
+                                                    maxlength="15"
+                                                    value="{{ old('cc_number.0', $staff->cc_number ?? '') }}">
+                                                    <span class="text-danger small">At present, we evaluate only C Certificate only </span>
+                                            </td>
+
+                                            <td>
+                                                <input type="date"
+                                                    class="form-control cc_validity"
+                                                    name="cc_validity[]"
+                                                    value="{{ old('cc_validity.0', isset($staff->cc_validity) ? \Carbon\Carbon::parse($staff->cc_validity)->format('Y-m-d') : '') }}">
+                                            </td>
+
+                                            <td>
+                                                <input type="hidden"
+                                                    name="staff_qccc_verify[]"
+                                                    class="staff_qccc_verify"
+                                                    value="{{ $staff->staff_qccc_verify ?? '' }}">
+
+                                                @if(isset($staff) && $staff->staff_qccc_verify == '1')
+                                                    <button type="button" class="btn btn-danger clearBtn">Clear</button>
+                                                @else
+                                                    <button type="button" class="btn btn-primary verifyBtn"
+                                                        onclick="validatestaffcertificate(event, this)">
+                                                        Verify
+                                                    </button>
+                                                @endif
+
+                                                @if($i == $staff_count - 1)
+                                                    <button type="button"
+                                                        class="btn btn-success btn-addqc-staff"
+                                                        onclick="addStaffqcRow()">
+                                                        + Add
+                                                    </button>
+                                                @endif
+                                            </td>
+
+                                            <input type="hidden"
+                                                name="staffqc_id[]"
+                                                value="{{ $staff->id ?? '' }}">
+                                        </tr>
+
+                                         @endfor
+
+                                    </tbody>
+
+
+
+                                    @endif
+
+                                </table>
+
+                                <div class="row">
+                                   <div class="col-md-4 ">
+
+
+
+                                        <div class="row ">
+                                            <div class="col-12 col-md-12">
+                                                <label for="comments">(i). QC Certificate One <span style="color: red;">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-12" id="qc_one">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <input type="file" class="form-control"
+                                                            name="qc_one" id="qc_one"
+                                                            accept="application/pdf">
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger qc_doc_upload_error"></span>
+
+                                                    </div>
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="QC DOCUMENT" data-document_category="qc_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                                    <!-- {{ empty($banksolvency->bank_doc) ? 'd-none' : '' }} -->
+                                                <div class="col-md-12 mt-3 col-12  file-link">
+                                                    
+                                                </div>
+
+
+                                                <span class="error text-danger" id="bank_doc_error"></span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <!-- -------2--------------- -->
+                                    <div class="col-md-4">
+
+
+
+                                        <div class="row">
+                                            <div class="col-12 col-md-12">
+                                                <label for="comments">(ii). QC Certificate Two <span style="color: red;">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-12" id="qc_one">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <input type="file" class="form-control"
+                                                            name="qc_one" id="qc_one"
+                                                            accept="application/pdf">
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger qc_doc_upload_error"></span>
+
+                                                    </div>
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="QC DOCUMENT" data-document_category="qc_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                                    <!-- {{ empty($banksolvency->bank_doc) ? 'd-none' : '' }} -->
+                                                <div class="col-md-12 mt-3 col-12  file-link">
+                                                    
+                                                </div>
+
+
+                                                <span class="error text-danger" id="bank_doc_error"></span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <!-- -------------------------- -->
+                                     <div class="col-md-4">
+
+
+
+                                        <div class="row">
+                                            <div class="col-12 col-md-12">
+                                                <label for="comments">(iii). QC Certificate Three <span style="color: red;">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-12" id="qc_one">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <input type="file" class="form-control"
+                                                            name="qc_one" id="qc_one"
+                                                            accept="application/pdf">
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger qc_doc_upload_error"></span>
+
+                                                    </div>
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="QC DOCUMENT" data-document_category="qc_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                                    <!-- {{ empty($banksolvency->bank_doc) ? 'd-none' : '' }} -->
+                                                <div class="col-md-12 mt-3 col-12  file-link">
+                                                    
+                                                </div>
+
+
+                                                <span class="error text-danger" id="bank_doc_error"></span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <!-- -------------------------- -->
+
+                                     <!-- -------------------------- -->
+                                     <div class="col-md-4">
+
+
+
+                                        <div class="row">
+                                            <div class="col-12 col-md-12">
+                                                <label for="comments">(iv). QC Certificate Four <span style="color: red;">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-12" id="qc_one">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <input type="file" class="form-control"
+                                                            name="qc_one" id="qc_one"
+                                                            accept="application/pdf">
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger qc_doc_upload_error"></span>
+
+                                                    </div>
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="QC DOCUMENT" data-document_category="qc_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                                    <!-- {{ empty($banksolvency->bank_doc) ? 'd-none' : '' }} -->
+                                                <div class="col-md-12 mt-3 col-12  file-link">
+                                                    
+                                                </div>
+
+
+                                                <span class="error text-danger" id="bank_doc_error"></span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <!-- -------------------------- -->
+                                      <!-- -------------------------- -->
+                                     <div class="col-md-4">
+
+
+
+                                        <div class="row">
+                                            <div class="col-12 col-md-12">
+                                                <label for="comments">(v). QC Certificate Five <span style="color: red;">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-12" id="qc_one">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <input type="file" class="form-control"
+                                                            name="qc_one" id="qc_one"
+                                                            accept="application/pdf">
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger qc_doc_upload_error"></span>
+
+                                                    </div>
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="QC DOCUMENT" data-document_category="qc_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                                    <!-- {{ empty($banksolvency->bank_doc) ? 'd-none' : '' }} -->
+                                                <div class="col-md-12 mt-3 col-12  file-link">
+                                                    
+                                                </div>
+
+
+                                                <span class="error text-danger" id="bank_doc_error"></span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <!-- -------------------------- -->
+
+                                </div>
+
+
+                                <p class="text-red note_txt">Note : Maximum 5 QC Staffs are allowed and Mandatory 1 QC </p>
+                               
+                            </div>
+
+
+
+                        </div>
+
+                    </div>
+
+                    <div class="row">
+
+                        <div class="col-md-12">
+                            <div class="row align-items-center head_label">
+                                <div class="col-12 col-md-12 title_bar">
+                                    <label>6B. Details of Staff appointed on full time basis: <span style="color: red;">*</span></label>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="staff-table">
+                                    <thead>
+                                        <tr>
+                                            <th>S.NO</th>
+                                            <th>Name of the Person <span class="text-red">*</span></th>
+                                            
+                                            <th>Category <span class="text-red">*</span></th>
+                                            <th colspan="2">Competency Certificate Number and Validity <span class="text-red">*</span></th>
+                                            <th>Verify License </th>
+
+                                        </tr>
+                                    </thead>
+
+                                    @if(!$application)
                                     <tbody id="staff-container">
-                                        @php $staff_count = 4; @endphp
+                                        @php $staff_count = 2; @endphp
                                         @for ($i = 0; $i < $staff_count; $i++)
                                             <tr class="staff-fields">
                                             <td>{{ $i + 1 }}</td>
@@ -2494,45 +2897,68 @@ exit; -->
                                                 <span class="error text-danger">{{ $errors->first('staff_name.' . $i) }}</span>
                                             </td>
 
-                                            <!-- <td>
-                                                <select class="form-control" name="staff_qualification[]">
-                                                    <option disabled selected>Qualification</option>
-                                                    @foreach (['PG', 'UG', 'Diploma', '+2', '10'] as $qual)
-                                                    <option value="{{ $qual }}" {{ old('staff_qualification.' . $i) == $qual ? 'selected' : '' }}>{{ $qual }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <span class="error text-danger">{{ $errors->first('staff_qualification.' . $i) }}</span>
-                                            </td> -->
-                                            <td>
-                                                @if ($i === 0)
-                                                <input type="text" class="form-control" name="staff_category[]" value="QC" readonly>
-                                                @elseif ($i === 1 || $i === 2)
-                                                <input type="text" class="form-control" name="staff_category[]" value="B" readonly>
+                                          <td>
+                                                @if ($i === 0 || $i === 1)
+                                                    <input type="text"
+                                                        class="form-control staff-category"
+                                                        name="staff_category[]"
+                                                        value="B"
+                                                        readonly>
                                                 @else
-                                                <select class="form-control" name="staff_category[]">
-                                                    <option disabled {{ old('staff_category.' . $i) ? '' : 'selected' }}>Select Category</option>
-                                                    @foreach (['QC', 'BC', 'B'] as $cat)
-                                                    <option value="{{ $cat }}" {{ old('staff_category.' . $i) == $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                                                    @endforeach
-                                                </select>
+                                                    <select class="form-control staff-category" name="staff_category[]">
+                                                        <option value="">Select Category</option>
+                                                        <option value="C"
+                                                            {{ old('staff_category.'.$i, $staff->staff_category ?? '') == 'C' ? 'selected' : '' }}>
+                                                            C
+                                                        </option>
+                                                        <option value="B"
+                                                            {{ old('staff_category.'.$i, $staff->staff_category ?? '') == 'B' ? 'selected' : '' }}>
+                                                            B
+                                                        </option>
+                                                        <option value="OTHERS"
+                                                            {{ old('staff_category.'.$i, $staff->staff_category ?? '') == 'OTHERS' ? 'selected' : '' }}>
+                                                            OTHERS
+                                                        </option>
+                                                    </select>
                                                 @endif
-                                                <span class="error text-danger">{{ $errors->first('staff_category.' . $i) }}</span>
                                             </td>
-                                            <td>
-                                                <input type="text" class="form-control cc_number" name="cc_number[]" placeholder="Certificate No" maxlength="15" value="{{ old('cc_number.' . $i) }}">
-                                                <span class="error text-danger">{{ $errors->first('cc_number.' . $i) }}</span>
-                                                @if ($i === 0)
-                                                <span class="text-danger small">At present, we evaluate only C Certificate only </span><br>
-                                                @endif
+                                           <td class="cc-fields"
+                                                style="{{ ($staff->staff_category ?? '') == 'OTHERS' ? 'display:none;' : '' }}">
 
-                                                <div class="text-white competency_verify_result mt-1"></div>
-                                            </td>
-                                            <td>
-                                                <input type="date" class="form-control cc_validity" name="cc_validity[]" placeholder="Validity"
-                                                    value="{{ old('cc_validity.' . $i) }}">
-                                                <span class="error text-danger">{{ $errors->first('cc_validity.' . $i) }}</span>
+                                                <input type="text"
+                                                    class="form-control cc_number"
+                                                    name="cc_number[]"
+                                                    placeholder="Certificate No"
+                                                    maxlength="15"
+                                                    value="{{ old('cc_number.'.$i, $staff->cc_number ?? '') }}">
 
+                                                <span class="error text-danger"></span>
                                             </td>
+
+                                            <td class="cc-validity-fields"
+                                                style="{{ ($staff->staff_category ?? '') == 'OTHERS' ? 'display:none;' : '' }}">
+
+                                                <input type="date"
+                                                    class="form-control cc_validity"
+                                                    name="cc_validity[]"
+                                                    value="{{ old('cc_validity.'.$i, isset($staff->cc_validity) ? \Carbon\Carbon::parse($staff->cc_validity)->format('Y-m-d') : '') }}">
+
+                                                <span class="error text-danger"></span>
+                                            </td>
+
+                                            <td class="designation-fields"
+                                                colspan="2"
+                                                style="{{ ($staff->staff_category ?? '') == 'OTHERS' ? '' : 'display:none;' }}">
+
+                                                <input type="text"
+                                                    class="form-control designation"
+                                                    name="designation[]"
+                                                    value="{{ old('designation.'.$i, $staff->designation ?? '') }}"
+                                                    placeholder="Enter Designation">
+
+                                                <span class="error text-danger"></span>
+                                            </td>
+
                                             <td>
                                                 <button type="button" class="btn btn-primary" onclick="validatestaffcertificate(event, this)">Verify</button>
                                                 <input type="hidden" name="staff_cc_verify[]" class="staff_cc_verify" value="">
@@ -2551,7 +2977,7 @@ exit; -->
                                     @else
                                     <tbody id="staff-container">
                                         @php
-                                        $staff_count = max(4, count($staffs ?? []));
+                                        $staff_count = max(2, count($staffs ?? []));
                                         @endphp
 
                                         @for ($i = 0; $i < $staff_count; $i++)
@@ -2567,25 +2993,14 @@ exit; -->
                                                 <span class="error text-danger">{{ $errors->first('staff_name.' . $i) }}</span>
                                             </td>
 
-                                            <!-- <td>
-                                                <select class="form-control" name="staff_qualification[]">
-                                                    <option disabled {{ old('staff_qualification.' . $i, $staff->staff_qualification ?? '') == '' ? 'selected' : '' }}>Qualification </option>
-                                                    @foreach (['PG ', 'UG', 'DIPLOMA', '+2', '10'] as $qual)
-                                                    <option value="{{ $qual }}" {{ old('staff_qualification.' . $i, $staff->staff_qualification ?? '') == $qual ? 'selected' : '' }}>{{ $qual }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <span class="error text-danger">{{ $errors->first('staff_qualification.' . $i) }}</span>
-                                            </td> -->
-
                                             <td>
-                                                @if ($i === 0)
-                                                <input type="text" class="form-control" name="staff_category[]" value="QC" readonly>
-                                                @elseif ($i === 1 || $i === 2)
+                                                
+                                                @if ($i === 0 || $i === 1)
                                                 <input type="text" class="form-control" name="staff_category[]" value="B" readonly>
                                                 @else
                                                 <select class="form-control" name="staff_category[]">
                                                     <option disabled {{ old('staff_category.' . $i, $staff->staff_category ?? '') == '' ? 'selected' : '' }}>Select Category</option>
-                                                    @foreach (['QC ', 'BC', 'B'] as $cat)
+                                                    @foreach (['C', 'B', 'OTHERS'] as $cat)
                                                     <option value="{{ $cat }}" {{ old('staff_category.' . $i, $staff->staff_category ?? '') == $cat ? 'selected' : '' }}>{{ $cat }}</option>
                                                     @endforeach
                                                 </select>
@@ -2602,17 +3017,9 @@ exit; -->
                                                     value="{{ old('cc_number.' . $i, $staff->cc_number ?? '') }}"
                                                     @if(isset($staff) && $staff->staff_cc_verify === '1') readonly @endif>
                                                 <span class="error text-danger">{{ $errors->first('cc_number.' . $i) }}</span>
-                                                @if ($i === 0)
-                                                <span class="text-danger small">At present, we evaluate only C Certificate only </span><br>
-                                                @endif
+                                              
                                                 <div class="competency_verify_result text-danger small mt-1"></div>
-                                                <!-- @if(isset($staff) && $staff->staff_cc_verify === '1')
-                                                <span class="license-status text-success small">
-                                                    <i class="fa fa-check"></i> License Verified
-                                                </span>
-                                                @elseif(isset($staff) && $staff->staff_cc_verify === '0')
-                                                <span class="license-status text-danger small"> Invalid License</span>
-                                                @endif -->
+                                         
                                             </td>
 
                                             <td>
@@ -2658,14 +3065,8 @@ exit; -->
                                     @endif
 
                                 </table>
-                                <p class="text-red note_txt">Note : Maximum 20 Staffs are allowed and Mandatory (1 QC & 2 B) </p>
-                                <!-- <div class="row">
-                                    <div class="col-12 col-md-12">
-                                      
-
-                                    </div>
-
-                                </div> -->
+                                <p class="text-red note_txt">Note : Maximum 20 Staffs are allowed and Mandatory (2 B) </p>
+                             
                             </div>
 
 
@@ -4789,146 +5190,284 @@ let proprietorCount = initialDraftCount || 0;
             }
         });
 
-
-
-
-
-
-
         // -----------------add staff row---------------------
 
-        function addStaffRow() {
-            let rowCount = $('#staff-container tr').length;
+      // ================= ADD STAFF ROW =================
+function addStaffRow() {
 
-            // ✅ Check if first 4 staff rows are filled before adding a new one
-            let allFilled = true;
-            $('#staff-container tr').slice(0, 4).each(function(index, tr) {
-                let name = $(tr).find('input[name="staff_name[]"]').val().trim();
-                // let qualification = $(tr).find('select[name="staff_qualification[]"]').val();
-                let category = $(tr).find('select[name="staff_category[]"]').val() || $(tr).find('input[name="staff_category[]"]').val();
-                let ccNumber = $(tr).find('input[name="cc_number[]"]').val().trim();
-                let ccValidity = $(tr).find('input[name="cc_validity[]"]').val().trim();
+    let rowCount = $('#staff-container tr').length;
 
-                // If any required field is missing, block adding
-                if (!name || !category || !ccNumber || !ccValidity) {
-                    allFilled = false;
-                    return false; // stop the loop
-                }
-            });
+    // Check first 2 mandatory rows
+    let allFilled = true;
 
-            if (!allFilled) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Fill Required Fields',
-                    text: 'Please fill all details for the first 4 staff members before adding a new one.',
-                    confirmButtonText: 'OK',
-                    width: 500
-                });
-                return;
-            }
+    $('#staff-container tr').slice(0, 2).each(function () {
 
+        let name = $(this).find('input[name="staff_name[]"]').val()?.trim();
+        let category = $(this).find('select[name="staff_category[]"]').val() ||
+                       $(this).find('input[name="staff_category[]"]').val();
 
+        let ccNumber = $(this).find('input[name="cc_number[]"]').val()?.trim();
+        let ccValidity = $(this).find('input[name="cc_validity[]"]').val()?.trim();
+        let designation = $(this).find('.designation').val()?.trim();
 
-            let lastRow = $('#staff-container tr').last();
-
-            // ✅ Step 3: Get field values from the last row
-            let name = lastRow.find('input[name="staff_name[]"]').val()?.trim();
-            // let qualification = lastRow.find('select[name="staff_qualification[]"]').val();
-            let category = lastRow.find('select[name="staff_category[]"]').val();
-            let ccNumber = lastRow.find('input[name="cc_number[]"]').val()?.trim();
-            let ccValidity = lastRow.find('input[name="cc_validity[]"]').val()?.trim();
-
-            // ✅ Step 4: Check if any required field is empty
-            if (!name || !category || !ccNumber || !ccValidity) {
-                Swal.fire({
-                    icon: 'warning',
-                    width: 450,
-                    title: 'Incomplete Row',
-                    text: 'Please fill all fields in the last staff row before adding a new one.',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-
-            // ✅ Limit check
-            if (rowCount >= 20) {
-                Swal.fire({
-                    icon: 'error',
-                    width: 450,
-                    title: 'Limit Reached',
-                    text: 'You can add a maximum of 8 staff members.',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            // ✅ Append new row
-            let newRow = `
-        <tr class="staff-fields">
-            <td>${rowCount + 1}</td>
-            <td>
-                <input type="text" name="staff_name[]" maxlength="30" 
-                    class="form-control"
-                    placeholder="Name of the Person"
-                    oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
-                <span class="error text-danger"></span>
-            </td>
-        
-            <td>
-                <select class="form-control" name="staff_category[]">
-                    <option disabled selected>Select Category</option>
-                    <option value="QC">QC</option>
-                    <option value="BC">BC</option>
-                    <option value="B">B</option>
-                </select>
-                <span class="error text-danger"></span>
-            </td>
-            <td>
-                <input type="text" class="form-control cc_number" name="cc_number[]" placeholder="Certificate No" maxlength="15">
-                <span class="error text-danger"></span>
-                <div class="text-white competency_verify_result mt-1"></div>
-            </td>
-            <td>
-                <input type="date" class="form-control cc_validity" name="cc_validity[]" placeholder="Validity" 
-                    >
-                <span class="error text-danger"></span>
-            </td>
-           <td>
-                <button type="button" class="btn btn-primary" onclick="validatestaffcertificate(event, this)">Verify</button>
-                <input type="hidden" name="staff_cc_verify[]" class="staff_cc_verify" value="">
-                <br><br>
-                <button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add Staff</button> 
-                <button type="button" class="btn btn-danger" onclick="removeStaffRow(this)">- Remove</button>
-            </td>
-        </tr>
-    `;
-
-            $('#staff-container').append(newRow);
-
-            // Remove Add button from all previous rows
-            $('#staff-container tr').each(function(index, tr) {
-                $(tr).find('.btn-success').remove();
-            });
-
-            // Add Add button only to the last row
-            $('#staff-container tr:last td:last').append('<button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add</button>');
+        if (!name || !category) {
+            allFilled = false;
+            return false;
         }
 
-        // -----------------// removeStaffRow----------------------------------
-        function removeStaffRow(button) {
-            let row = $(button).closest('tr');
-            row.remove();
+        if (category === 'OTHERS') {
 
-            // Re-index remaining rows
-            $('#staff-container tr').each(function(index, tr) {
-                $(tr).find('td:first').text(index + 1);
-                // Add Add button to last row if missing
-                if (index === $('#staff-container tr').length - 1 && $(tr).find('.btn-success').length === 0) {
-                    $(tr).find('td:last').append('<button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add</button>');
-                }
-            });
+            if (!designation) {
+                allFilled = false;
+                return false;
+            }
+
+        } else {
+
+            if (!ccNumber || !ccValidity) {
+                allFilled = false;
+                return false;
+            }
+
         }
+    });
+
+    if (!allFilled) {
+
+        Swal.fire({
+            icon: 'warning',
+            width:450,
+            title: 'Fill Required Fields',
+            text: 'Please fill all mandatory details before adding a new staff.',
+            confirmButtonText: 'OK'
+        });
+
+        return;
+    }
+
+    // ================= CHECK LAST ROW =================
+
+    let lastRow = $('#staff-container tr').last();
+
+    let name = lastRow.find('input[name="staff_name[]"]').val()?.trim();
+
+    let category = lastRow.find('select[name="staff_category[]"]').val() ||
+                   lastRow.find('input[name="staff_category[]"]').val();
+
+    let ccNumber = lastRow.find('input[name="cc_number[]"]').val()?.trim();
+    let ccValidity = lastRow.find('input[name="cc_validity[]"]').val()?.trim();
+    let designation = lastRow.find('.designation').val()?.trim();
+
+    if (!name || !category) {
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Row',
+            text: 'Please fill all required fields.'
+        });
+
+        return;
+    }
+
+    if (category === 'OTHERS') {
+
+        if (!designation) {
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Designation Required',
+                text: 'Please enter designation.'
+            });
+
+            return;
+        }
+
+    } else {
+
+        if (!ccNumber || !ccValidity) {
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Incomplete Row',
+                text: 'Please fill Certificate Number and Validity.'
+            });
+
+            return;
+        }
+    }
+
+    // ================= MAX LIMIT =================
+
+    if (rowCount >= 20) {
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Limit Reached',
+            text: 'Maximum 20 staff members are allowed.'
+        });
+
+        return;
+    }
+
+    // Remove old Add button
+    $('#staff-container .btn-add-row').remove();
+
+    // ================= NEW ROW =================
+
+    let newRow = `
+    <tr class="staff-fields">
+
+        <td>${rowCount + 1}</td>
+
+        <td>
+            <input type="text"
+                   name="staff_name[]"
+                   maxlength="30"
+                   class="form-control"
+                   placeholder="Name of the Person"
+                   oninput="this.value=this.value.replace(/[^a-zA-Z\\s]/g,'')">
+
+            <span class="error text-danger"></span>
+        </td>
+
+        <td>
+            <select class="form-control staff-category"
+                    name="staff_category[]">
+
+                <option value="">Select Category</option>
+                <option value="C">C</option>
+                <option value="B">B</option>
+                <option value="OTHERS">OTHERS</option>
+
+            </select>
+
+            <span class="error text-danger"></span>
+        </td>
+
+        <td class="cc-fields">
+            <input type="text"
+                   class="form-control cc_number"
+                   name="cc_number[]"
+                   maxlength="15"
+                   placeholder="Certificate No">
+
+            <span class="error text-danger"></span>
+        </td>
+
+        <td class="cc-validity-fields">
+            <input type="date"
+                   class="form-control cc_validity"
+                   name="cc_validity[]">
+
+            <span class="error text-danger"></span>
+        </td>
+
+        <td class="designation-fields"
+            style="display:none;">
+
+            <input type="text"
+                   class="form-control designation"
+                   name="designation[]"
+                   placeholder="Enter Designation">
+
+            <span class="error text-danger"></span>
+        </td>
+
+        <td>
+
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="validatestaffcertificate(event,this)">
+                Verify
+            </button>
+
+            <input type="hidden"
+                   name="staff_cc_verify[]"
+                   class="staff_cc_verify"
+                   value="">
+
+            <br><br>
+
+            <button type="button"
+                    class="btn btn-success btn-add-row"
+                    onclick="addStaffRow()">
+                + Add
+            </button>
+
+            <button type="button"
+                    class="btn btn-danger"
+                    onclick="removeStaffRow(this)">
+                - Remove
+            </button>
+
+        </td>
+
+    </tr>`;
+
+    $('#staff-container').append(newRow);
+}
+
+
+// ================= CATEGORY CHANGE =================
+
+$(document).on('change', '.staff-category', function () {
+
+    let row = $(this).closest('tr');
+    let category = $(this).val();
+
+    if (category === 'OTHERS') {
+
+        // Hide Certificate fields
+        row.find('.cc-fields').hide();
+        row.find('.cc-validity-fields').hide();
+
+        row.find('.cc_number').val('');
+        row.find('.cc_validity').val('');
+
+        // Show Designation field
+        row.find('.designation-fields').show();
+
+        // Hide Verify button
+        row.find('.verify-btn').hide();
+
+    } else {
+
+        // Hide Designation field
+        row.find('.designation-fields').hide();
+        row.find('.designation').val('');
+
+        // Show Certificate fields
+        row.find('.cc-fields').show();
+        row.find('.cc-validity-fields').show();
+
+        // Show Verify button
+        row.find('.verify-btn').show();
+    }
+});
+
+
+// ================= REMOVE STAFF ROW =================
+
+function removeStaffRow(button) {
+
+    $(button).closest('tr').remove();
+
+    $('#staff-container tr').each(function (index) {
+
+        $(this).find('td:first').text(index + 1);
+    });
+
+    // Keep Add button only in last row
+    $('#staff-container .btn-add-row').remove();
+
+    $('#staff-container tr:last td:last').append(`
+        <button type="button"
+                class="btn btn-success btn-add-row"
+                onclick="addStaffRow()">
+            + Add
+        </button>
+    `);
+}
 
         // ------instrumrnts report 1----------------------
         $('input[name="tested_documents"]').on('change', function() {
@@ -6699,7 +7238,7 @@ let proprietorCount = initialDraftCount || 0;
                 Swal.fire({
                     title: "Directors Entry Exists!",
                     width: 450,
-                    text: "You can only add a maximum of 6 Directors..",
+                    text: "You can only add a maximum of 10 Directors..",
                     icon: "warning",
                     confirmButtonText: "OK",
                     confirmButtonColor: "#3085d6"
@@ -6708,6 +7247,37 @@ let proprietorCount = initialDraftCount || 0;
                 // alert("You can only add a maximum of 6 partners.");
                 return;
             }
+
+             /* ===========================
+                CHECK MANAGING DIRECTOR EXISTS
+                ============================ */
+
+                let mdExists = false;
+
+                $("#director-section table tbody tr").each(function () {
+
+                    let md = $(this)
+                        .find("td.md-column")
+                        .attr("data-managing_director");
+
+                    if (md === "yes") {
+                        mdExists = true;
+                    }
+                });
+
+                if (mdExists) {
+
+                    $(".managing-director-wrapper").hide();
+
+                    $("#is_managing_director")
+                        .prop("checked", false);
+
+                } else {
+
+                    $(".managing-director-wrapper").show();
+                }
+
+
             resetDirectorForm();
             $("#directorfill-section").slideDown();
 
@@ -6805,6 +7375,16 @@ let proprietorCount = initialDraftCount || 0;
             // Date format----------------
             let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
             let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
+
+             /* ===========================
+                MANAGING DIRECTOR
+                ============================ */
+
+                let isManagingDirector = $section
+                    .find(".managing-director-checkbox")
+                    .is(":checked") ? "yes" : "no";
+
+
             // ✅ Validation
             $section.find(".error").text(""); // clear old errors
             let isValid = true;
@@ -6819,7 +7399,7 @@ let proprietorCount = initialDraftCount || 0;
             if (!name) {
                 setError($section.find("input[name='proprietor_name[]']"),
                     // let name = $section.find("input[name='proprietor_name[]']").val().trim();
-                    "Proprietor name is required");
+                    "Director name is required");
             }
 
             // ADDRESS
@@ -7062,7 +7642,22 @@ let proprietorCount = initialDraftCount || 0;
                 // alert('not null');
 
                 let $row = $("#director-section table tbody tr").eq(directoreditIndex);
-                $row.find("td").eq(0).text(name);
+                $row.find("td").eq(0)
+                .attr({
+                    "data-name": name,
+                    "data-managing_director": isManagingDirector
+                })
+                .html(`
+                    <div class="director-name-wrapper">
+                        <span class="director-name">${name}</span>
+
+                        ${
+                            isManagingDirector === "yes"
+                            ? `<span class="managing-director-tag">Managing Director</span>`
+                            : ""
+                        }
+                    </div>
+                `);
                 $row.find("td").eq(1).text(fathersName);
 
                 $row.find("td").eq(2)
@@ -7093,6 +7688,23 @@ let proprietorCount = initialDraftCount || 0;
 
 
                 $row.find("td").eq(5).text(presentBusiness);
+
+                    $row.find("td.md-column")
+                        .attr("data-managing_director", isManagingDirector)
+                        .html(
+                            isManagingDirector === "yes"
+                                ? `<span class="badge bg-success">Managing Director</span>`
+                                : `-`
+                        );
+
+                    /* ===========================
+                    HIDE CHECKBOX IF MD EXISTS
+                    ============================ */
+
+                    if (isManagingDirector === "yes") {
+
+                        $(".managing-director-wrapper").hide();
+                    }
                 let ccValidityYMD = formatDateToYMD(ccValidity); // for data-attributes
                 let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
                 let expValidityYMD = formatDateToYMD(expValidity);
@@ -7137,20 +7749,31 @@ let proprietorCount = initialDraftCount || 0;
                 let rowCount = $("#director-section table tbody tr").length;
                 if (rowCount >= 6) {
                     Swal.fire({
-                        title: "Partner Entry Exists!",
+                        title: "Director Entry Exists!",
                         width: 450,
-                        text: "You can only add a maximum of 6 partners..",
+                        text: "You can only add a maximum of 10 directors..",
                         icon: "warning",
                         confirmButtonText: "OK",
                         confirmButtonColor: "#3085d6"
                     });
-                    alert("You can only add a maximum of 6 partners.");
+                    alert("You can only add a maximum of 6 directors.");
                     return;
                 }
 
                 $("#director-section table tbody").append(`
                     <tr>
-                        <td>${name}</td>
+                       
+                   <td data-name="${name}" data-managing_director="${isManagingDirector}">
+                        <div class="director-name-wrapper">
+                            <span class="director-name">${name}</span>
+
+                            ${
+                                isManagingDirector === "yes"
+                                ? `<span class="managing-director-tag">Managing Director</span>`
+                                : ""
+                            }
+                        </div>
+                    </td>
                         <td>${fathersName}</td>
 
                          <td data-dob="${dob}" data-age="${age}" data-age_proof="${finalAgeFileUrl}">
@@ -7171,6 +7794,7 @@ let proprietorCount = initialDraftCount || 0;
                             </td>
 
                         <td>${presentBusiness}</td>
+                     
                           <td 
                             data-competency="${competency}" 
                             data-certno="${ccNum}" 
@@ -7196,6 +7820,15 @@ let proprietorCount = initialDraftCount || 0;
                     </tr>
                 `);
 
+                   /* ===========================
+                    HIDE CHECKBOX IF MD ADDED
+                    ============================ */
+
+                    if (isManagingDirector === "yes") {
+
+                        $(".managing-director-wrapper").hide();
+                    }
+
                 resetDirectorForm(true);
                 directorIndex++;
             }
@@ -7218,6 +7851,9 @@ let proprietorCount = initialDraftCount || 0;
             $section.find(".age-file-link").html("");
 
             $section.removeAttr("data-edit-id");
+
+             $section.find(".managing-director-checkbox")
+                .prop("checked", false);
 
             // Hide all conditional fields
             $(".competency-fields-director, .employment-fields-director, .experience-fields-director").hide();
@@ -7249,8 +7885,24 @@ let proprietorCount = initialDraftCount || 0;
 
 
         // Remove partner row
-        $(document).on("click", ".remove-director-row", function() {
-            $(this).closest("tr").remove();
+        $(document).on("click", ".remove-director-row", function () {
+
+            let $row = $(this).closest("tr");
+
+            let isMD = $row
+                .find("td.md-column")
+                .attr("data-managing_director");
+
+            $row.remove();
+
+            /* ===========================
+            SHOW AGAIN IF MD REMOVED
+            ============================ */
+
+            if (isMD === "yes") {
+
+                $(".managing-director-wrapper").show();
+            }
         });
 
         // Update partner row
@@ -7277,7 +7929,9 @@ let proprietorCount = initialDraftCount || 0;
             // let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
             // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());    
             // Fill form with row data
-            $section.find("input[name='proprietor_name[]']").val($row.find("td").eq(0).text());
+            let directorName = $row.find("td").eq(0).attr("data-name");
+
+            $section.find("input[name='proprietor_name[]']").val(directorName);
             $section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text());
 
 
@@ -7326,6 +7980,26 @@ let proprietorCount = initialDraftCount || 0;
             }
 
             $section.find("textarea[name='proprietor_address[]']").val($row.find("td").eq(3).text());
+
+             /* ===========================
+                MANAGING DIRECTOR EDIT
+                ============================ */
+
+              let managingDirector = (
+                    $row.find("td").eq(0).attr("data-managing_director") || ""
+                ).toUpperCase();
+
+                if (managingDirector === "YES") {
+
+                    $(".managing-director-wrapper").show();
+
+                    $("#is_managing_director").prop("checked", true);
+
+                } else {
+
+                    $("#is_managing_director").prop("checked", false);
+                }
+
 
             let tdqualification = $row.find("td").eq(4);
 

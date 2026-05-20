@@ -892,7 +892,6 @@ $(document).ready(function() {
 
             dedupeSemanticDuplicateEducationRows();
 
-
             normalizeMirroredDynamicRows(
                 $('#work-container'),
                 '.work-fields',
@@ -997,6 +996,8 @@ $(document).ready(function() {
             // Remove action blocks and make the clone strictly read-only preview.
             // `.verify-btn` strips the frontend license/certificate Verify buttons (Q7/Q8 on Form S, Q7 on Form W, Q6 on Form WH) from the preview popup.
             // `.remove_verify` strips the "Delete" button that appears next to an already-verified license (Q7/Q8) so the preview stays read-only.
+            // `#ProceedtoPayment` and `.fs-action-bar` strip Form P's bottom Save-Draft / Preview-&-Proceed bar so the SweetAlert footer (Pay Now / Edit Details) is the only set of actions in the popup.
+            // `.remove-docs`, `.remove-doc_edu`, `.remove-doc_work`, `.remove-doc_inst` strip the per-document "Remove" button next to existing-doc View links.
             $clone.find('#submitPaymentBtn, #ProceedtoPayment, .fs-action-bar, .submit-payment, .save-draft, .add-more, .add-more-education, .add-more-work, .add-more-institute, .remove-education, .remove-work, .remove-institute, .remove_edu, .remove_exp, .remove_inst, .remove-doc_edu_confirm, .remove-doc_edu, .remove-doc_work, .remove-doc_inst, .remove-work-doc-confirm, .remove-aadhaar-doc, .remove-pan-doc, .remove-docs, .verify-btn, .remove_verify, [onclick*="togglePhotoInput"], [onclick*="toggleSignInput"], [onclick*="verify_form"], [onclick*="verify_form_s"]').remove();
             $clone.find('input, textarea, select, button').prop('disabled', true);
             $clone.find('input[type="checkbox"], input[type="radio"]').each(function () {
@@ -1091,8 +1092,7 @@ $(document).ready(function() {
                 $el.replaceWith(display);
             });
 
-
-                 // Replace each file input in the clone with a clean read-only display:
+                // Replace each file input in the clone with a clean read-only display:
                 // if the live source already shows a "View Document" link (.local-file-preview / .fs-doc-existing nearby) just drop the input;
                 // if the user picked a file (still in srcInput.files), show "<icon> filename";
                 // otherwise show a dash. Photo and signature have their own filename UI and are left alone.
@@ -1298,6 +1298,23 @@ $(document).ready(function() {
                             margin: 0 auto;
                             justify-content: center;
                         }
+                        .preview-modal-wrap .preview-file-name {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: .35rem;
+                            font-size: 0.84rem;
+                            color: #1f2d3d;
+                            font-weight: 500;
+                            word-break: break-word;
+                        }
+                        .preview-modal-wrap .preview-file-name .fa-file-pdf-o {
+                            color: #d9363e !important;
+                        }
+                        .preview-modal-wrap .preview-file-empty {
+                            min-height: 30px;
+                            color: #8aa0bf;
+                            font-style: italic;
+                        }
                         .preview-modal-wrap a,
                         .preview-modal-wrap .preview-link {
                             font-family: inherit !important;
@@ -1371,6 +1388,8 @@ $(document).ready(function() {
             });
             return result.isConfirmed === true;
         }
+
+        window.showCompetencyPreviewModal = showCompetencyPreviewModal;
 
         $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
             e.preventDefault();
@@ -1461,6 +1480,20 @@ $(document).ready(function() {
                 } else if (!nameRegex.test(fathersName)) {
                     fathersNameEl.after('<span class="error-message text-danger d-block mt-1">Only alphabets and spaces are allowed.</span>');
                     if (!firstErrorField) firstErrorField = fathersNameEl;
+                    isValid = false;
+                }
+            }
+
+            let applicantEmailEl = $('#applicant_email');
+            if (applicantEmailEl.length) {
+                let ev = (applicantEmailEl.val() || '').trim();
+                if (ev === '') {
+                    applicantEmailEl.after('<span class="error-message text-danger d-block mt-1">Email ID is required.</span>');
+                    if (!firstErrorField) firstErrorField = applicantEmailEl;
+                    isValid = false;
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)) {
+                    applicantEmailEl.after('<span class="error-message text-danger d-block mt-1">Enter a valid Email ID.</span>');
+                    if (!firstErrorField) firstErrorField = applicantEmailEl;
                     isValid = false;
                 }
             }
@@ -1647,10 +1680,20 @@ $(document).ready(function() {
                     if (fromDate.length && toDate.length && fromDate.val() && toDate.val()) {
                         const from = new Date(fromDate.val() + 'T12:00:00');
                         const to = new Date(toDate.val() + 'T12:00:00');
-                        if (!isNaN(from.getTime()) && !isNaN(to.getTime()) && to < from) {
-                            toDate.after('<span class="error-message text-danger d-block mt-1">To date must be greater than or equal to From date.</span>');
-                            if (!firstErrorField) firstErrorField = toDate;
-                            isValid = false;
+                        if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
+                            if (to < from) {
+                                toDate.after('<span class="error-message text-danger d-block mt-1">To date must be greater than or equal to From date.</span>');
+                                if (!firstErrorField) firstErrorField = toDate;
+                                isValid = false;
+                            } else {
+                                const minTo = new Date(from.getTime());
+                                minTo.setFullYear(minTo.getFullYear() + 2);
+                                if (to < minTo) {
+                                    toDate.after('<span class="error-message text-danger d-block mt-1">Minimum 2 Years Experience needed</span>');
+                                    if (!firstErrorField) firstErrorField = toDate;
+                                    isValid = false;
+                                }
+                            }
                         }
                     }
 
@@ -3112,14 +3155,13 @@ $(document).ready(function() {
 
         if (SAVED_OWNERSHIP === 'pt') {
             $("#partnershipdeed").show();
-        } else if (SAVED_OWNERSHIP === 'pvt' || SAVED_OWNERSHIP === 'public'  || SAVED_OWNERSHIP === 'ltd') {
+        } else if (SAVED_OWNERSHIP === 'pvt' || SAVED_OWNERSHIP === 'public' || SAVED_OWNERSHIP === 'ltd') {
             $("#directormom").show();
         }
     }
     });
-
-    /* 🔁 Ownership change */
- $(document).on("change", "#ownership_type_select", function () {
+/* 🔁 Ownership change */
+$(document).on("change", "#ownership_type_select", function () {
 
     let type = $(this).val();
 
@@ -3128,7 +3170,7 @@ $(document).ready(function() {
     $(".ownershipdoc_upload_error").text("");
 
     // Hide all sections first
-    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section")
+    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section")
         .hide();
 
     // Reset readonly + values
@@ -3136,31 +3178,25 @@ $(document).ready(function() {
         .val("")
         .prop("readonly", false);
 
-    // Partnership
+    // ================= PARTNERSHIP =================
     if (type === 'pt') {
-        
 
         $("#partnershipdeed").slideDown();
-         $("#partnersfill-section").slideDown();
+        $("#partnersfill-section").slideDown();
 
         let rowCount = $("#partnersfill-section table tbody tr").length;
 
-
         @if(Auth::check())
-
-        if (rowCount == 0) {
-
+        if (rowCount === 0) {
             $("#partnersfill-section")
                 .find("input[name='proprietor_name[]']")
                 .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
                 .prop("readonly", true);
         }
-
         @endif
-
     }
 
-    // Company Types
+    // ================= COMPANY TYPES =================
     else if (
         type === 'pvt' ||
         type === 'public' ||
@@ -3173,32 +3209,28 @@ $(document).ready(function() {
         let rowCount = $("#director-section table tbody tr").length;
 
         @if(Auth::check())
-
-        if (rowCount == 0) {
-
+        if (rowCount === 0) {
             $("#directorfill-section")
                 .find("input[name='proprietor_name[]']")
                 .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
                 .prop("readonly", true);
         }
-
         @endif
     }
 
-    // Proprietor
+    // ================= PROPRIETOR =================
     else if (type === 'pr') {
 
         $("#proprietor-sectionfresh").slideDown();
 
         @if(Auth::check())
-
         $("#proprietor-sectionfresh")
             .find("input[name='proprietor_name[]']")
             .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
             .prop("readonly", true);
-
         @endif
     }
+
 });
 
     

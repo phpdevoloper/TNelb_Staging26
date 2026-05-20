@@ -411,7 +411,7 @@
                                         <span id="license_message" class="mt-1"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Issue <span class="req">*</span></div>
+                                        <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-issue-date" id="previously_issue_date_h" name="certificate_issue_date" type="date" data-error="#previouslyIssueDateError" value="">
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
@@ -648,7 +648,7 @@
                     <div id="prv_cert_details_block" style="display:none;">
                         <div class="row">
                             <div class="col-12 col-sm-4"><div class="prv-field mb-1"><div class="prv-label">Certificate No</div><div class="prv-value" id="prv_cert_no">—</div></div></div>
-                            <div class="col-12 col-sm-4"><div class="prv-field mb-1"><div class="prv-label">Date of Issue</div><div class="prv-value" id="prv_cert_issue_date">—</div></div></div>
+                            <div class="col-12 col-sm-4"><div class="prv-field mb-1"><div class="prv-label">Date of First Issue</div><div class="prv-value" id="prv_cert_issue_date">—</div></div></div>
                             <div class="col-12 col-sm-4"><div class="prv-field mb-1"><div class="prv-label">Date of Expiry</div><div class="prv-value" id="prv_cert_expiry_date">—</div></div></div>
                         </div>
                     </div>

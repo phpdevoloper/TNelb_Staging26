@@ -449,17 +449,17 @@
 
                         <div class="col-lg-6 mb-3">
                             <label for="inputEmail4" class="form-label">Module Type<span class="text-danger">*</span> </label>
-                          <select class="form-select" name="form_module" id="form_module">
-                            <option value="" data-code="">Select Module Name</option>
+                            <select class="form-select" name="form_module" id="form_module">
+                                <option value="" data-code="">Select Module Name</option>
 
-                            @foreach ($all_formmodule as $item)
-                                <option 
-                                    value="{{ $item->module_name }}"
-                                    data-code="{{ $item->module_code }}">
-                                    {{ $item->module_name }}
-                                </option>
-                            @endforeach
-                        </select>
+                                @foreach ($all_formmodule as $item)
+                                    <option 
+                                        value="{{ $item->module_name }}"
+                                        data-code="{{ $item->module_code }}">
+                                        {{ $item->module_name }}
+                                    </option>
+                                @endforeach
+                            </select>
 
                             <input type="hidden" value="" id="module_code" name="module_code">
 

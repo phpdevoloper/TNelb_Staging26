@@ -121,7 +121,7 @@
                                                         <th>Institution</th>
                                                         <th>Year of Passing</th>
                                                         <th>Certificate No</th>
-                                                        <th>Documents</th>
+                                                        <th>Document Upload</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -194,15 +194,15 @@
                                                         <th>Company Name</th>
                                                         <th>Designation</th>
                                                         <th>Years of Experience</th>
-                                                        <th>Documents</th>
+                                                        <th>Document Upload</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                         @forelse ($workExperience as $experience)
                                                         <tr>
-                                                            <td>{{ $experience->company_name }}</td>
+                                                            <td>{{ $experience->emp_cate ?? $experience->company_name ?? '' }}</td>
                                                             <td>{{ $experience->designation }}</td>
-                                                            <td>{{ $experience->experience }} years</td>
+                                                            <td>{{ $experience->total_exp ?? $experience->experience ?? 0 }} years</td>
                                                             <td style="text-align:center;">
                                                                 @php
                                                                 $document = \Illuminate\Support\Facades\Schema::hasTable('mst_documents')
@@ -249,13 +249,13 @@
                                             <div class="row">
                                                 <div class="col-lg-6 col-6">
                                                     <p><strong>License Number:</strong></p>
-
-                                                    <p><strong>Date:</strong></p>
+                                                    <p><strong>Date of First Issue:</strong></p>
+                                                    <p><strong>Validity Date:</strong></p>
                                                 </div>
                                                 <div class="col-lg-6 col-6">
-                                                    <p>{{ $applicant->previously_number }}</p>
-
-                                                    <p>{{ $applicant->previously_date }}</p>
+                                                    <p>{{ $applicant->previously_number ?: '—' }}</p>
+                                                    <p>{{ !empty($applicant->previously_issue_date) ? format_date($applicant->previously_issue_date) : '—' }}</p>
+                                                    <p>{{ !empty($applicant->previously_date) ? format_date($applicant->previously_date) : '—' }}</p>
                                                 </div>
                                             </div>
 
@@ -266,13 +266,13 @@
                                             <div class="row">
                                                 <div class="col-lg-6 col-6">
                                                     <p><strong>Wireman License Number:</strong></p>
-
-                                                    <p><strong>Date:</strong></p>
+                                                    <p><strong>Date of First Issue:</strong></p>
+                                                    <p><strong>Validity Date:</strong></p>
                                                 </div>
                                                 <div class="col-lg-6 col-6">
-                                                    <p>{{ $applicant->wireman_details }}</p>
-
-                                                    <p>{{ $applicant->previously_date }}</p>
+                                                    <p>{{ $applicant->certificate_no ?: '—' }}</p>
+                                                    <p>{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</p>
+                                                    <p>{{ !empty($applicant->certificate_date) ? format_date($applicant->certificate_date) : '—' }}</p>
                                                 </div>
                                             </div>
                                         </div>

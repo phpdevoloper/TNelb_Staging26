@@ -2581,3 +2581,28 @@ font-size: 14px!important;
 }
 
 
+.director-name-wrapper{
+    display:flex;
+    align-items:center;
+    flex-wrap:nowrap;
+    gap:6px;
+}
+
+.director-name{
+    white-space:nowrap;
+}
+
+.managing-director-tag{
+    background:#e8f1ff;
+    color:#0d6efd;
+    border:1px solid #b6d4fe;
+    border-radius:20px;
+    padding:2px 10px;
+    font-size:12px;
+    font-weight:600;
+    white-space:nowrap;
+}
+
+.border_qc{
+  border: 1px solid #000;
+}
