@@ -70,6 +70,7 @@ async function showInstructPopup(licence_code,login_id) {
         
                 if (delta && delta.ops) {
                     const converter = new QuillDeltaToHtmlConverter(delta.ops, {
+                        inlineStyles: true,
                         multiLineParagraph: false,
                         listItemTag: "li",
                         paragraphTag: "p"

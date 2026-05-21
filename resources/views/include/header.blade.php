@@ -132,6 +132,12 @@ use Illuminate\Support\Facades\Auth;
             display: list-item !important;
         }
 
+        /* Nested ordered list (sub-list) uses lower-roman: i, ii, iii */
+        .show-list-numbers ol ol,
+        .show-list-numbers ol ol li {
+            list-style-type: lower-roman !important;
+        }
+
         .info-grid {
             display: grid;
             grid-template-columns: auto 1fr;

@@ -4179,8 +4179,8 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
 
             const delta = JSON.parse(form_instruct);
             
-            console.log(delta);
             const converter = new QuillDeltaToHtmlConverter(delta.ops, {
+                inlineStyles: true,
                 multiLineParagraph: false,
                 listItemTag: "li",
                 paragraphTag: "p"

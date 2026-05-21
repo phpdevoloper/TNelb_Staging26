@@ -844,6 +844,54 @@
     @include('include.footer')
 
     <script>
+
+        $(document).ready(async function() {
+            var modalEl = document.getElementById('competencyInstructionsModal');
+            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+            var agreeCheckbox = modalEl.querySelector('#declaration-agree-renew');
+            var errorText = modalEl.querySelector('#declaration-error-renew');
+            var proceedBtn = modalEl.querySelector('#proceedPayment');
+            if (!agreeCheckbox || !errorText || !proceedBtn) return;
+            var acceptModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+            var modalBody = modalEl.querySelector('#instructionContent');
+            if (modalBody) modalBody.innerHTML = '<p class="mb-0 text-muted">Loading instructions...</p>';
+            try {
+                var instructionResponse = await $.ajax({
+                    url: "{{ route('licences.getFormInstruction') }}", type: "POST",
+                    data: { appl_type: ($('#appl_type').val() || 'N'), licence_code: ($('#license_name').val() || 'C'), _token: $('meta[name="csrf-token"]').attr('content') }
+                });
+                if (modalBody) {
+                    if (instructionResponse && Number(instructionResponse.status) === 200 && instructionResponse.data) {
+                        try {
+                            var delta = JSON.parse(instructionResponse.data);
+                            if (typeof QuillDeltaToHtmlConverter !== 'undefined' && delta && delta.ops) {
+                                var converter = new QuillDeltaToHtmlConverter(delta.ops, { inlineStyles: true, multiLineParagraph: false, listItemTag: "li", paragraphTag: "p" });
+                                var html = converter.convert();
+                                html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
+                                html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
+                                modalBody.innerHTML = html;
+                            } else { modalBody.textContent = instructionResponse.data; }
+                        } catch(parseErr) { modalBody.textContent = instructionResponse.data; }
+                    } else { modalBody.innerHTML = '<p class="mb-0 text-danger">Instruction not available.</p>'; }
+                }
+            } catch(err) { if (modalBody) modalBody.innerHTML = '<p class="mb-0 text-danger">Unable to load instructions right now.</p>'; }
+            agreeCheckbox.checked = false;
+            errorText.classList.add('d-none');
+            acceptModal.show();
+            if (!modalEl.dataset.acceptGateBound) {
+                modalEl.dataset.acceptGateBound = '1';
+                modalEl.addEventListener('hide.bs.modal', function(e) { if (!agreeCheckbox.checked) { e.preventDefault(); errorText.classList.remove('d-none'); } });
+                proceedBtn.addEventListener('click', function(e) {
+                    if (!agreeCheckbox.checked) { e.preventDefault(); errorText.classList.remove('d-none'); return; }
+                    errorText.classList.add('d-none'); acceptModal.hide();
+                });
+                agreeCheckbox.addEventListener('change', function() { if (agreeCheckbox.checked) errorText.classList.add('d-none'); });
+            }
+        });
+
+
+
+
         function closeDraftModal() {
             document.getElementById('draftModal').style.display = 'none';
         }

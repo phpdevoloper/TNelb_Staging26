@@ -2034,7 +2034,7 @@
                         try {
                             var delta = JSON.parse(instructionResponse.data);
                             if (typeof QuillDeltaToHtmlConverter !== 'undefined' && delta && delta.ops) {
-                                var converter = new QuillDeltaToHtmlConverter(delta.ops, { multiLineParagraph: false, listItemTag: "li", paragraphTag: "p" });
+                                var converter = new QuillDeltaToHtmlConverter(delta.ops, { inlineStyles: true, multiLineParagraph: false, listItemTag: "li", paragraphTag: "p" });
                                 var html = converter.convert();
                                 html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
                                 html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');

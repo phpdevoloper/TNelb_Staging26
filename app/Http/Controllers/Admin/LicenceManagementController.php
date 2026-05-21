@@ -1315,8 +1315,11 @@ class LicenceManagementController extends BaseController
 
     /**
      * Join consecutive Delta string inserts so split merge tags become one string,
-     * WITHOUT touching newline-carrying ops — those hold line-level formatting (list, align, header, blockquote)
-     * that the renderer needs. Merging a "\n" op kills those attributes and turns ordered lists into plain paragraphs.
+     * WITHOUT touching newline-carrying ops — those hold line-level formatting (list, align, header, blockquote).
+     *
+     * Important: only coalesce when both ops have identical attributes.
+     * If we merge different-attribute chunks, inline styles such as color/bold are lost
+     * because the second op's attributes would be dropped.
      *
      * @param  array<int, array<string, mixed>>  $ops
      * @return array<int, array<string, mixed>>
@@ -1344,6 +1347,14 @@ class LicenceManagementController extends BaseController
                 && is_string($prev['insert'])
                 && strpos($prev['insert'], "\n") === false
             ) {
+                $prevAttrs = (isset($prev['attributes']) && is_array($prev['attributes'])) ? $prev['attributes'] : [];
+                $currAttrs = (isset($op['attributes']) && is_array($op['attributes'])) ? $op['attributes'] : [];
+                if ($prevAttrs !== $currAttrs) {
+                    $out[] = $op;
+
+                    continue;
+                }
+
                 $i = count($out) - 1;
                 $out[$i]['insert'] = $out[$i]['insert'] . $op['insert'];
 
