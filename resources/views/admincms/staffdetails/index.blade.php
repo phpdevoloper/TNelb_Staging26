@@ -290,6 +290,323 @@ table.dataTable thead .sorting_desc:after {
     font-weight: 600;
 }
 
+/* Staff thumbnail in the table */
+.staff-thumb {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #eef2f7;
+    border: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+.staff-thumb-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+/* Photo preview in modals */
+.profile-photo-preview {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+}
+.profile-photo-preview-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Accordion polish for staff modals */
+.staff-accordion .accordion-button {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #212529;
+}
+.staff-accordion .accordion-button:not(.collapsed) {
+    background: #e7f1ff;
+    color: #0d6efd;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,.075);
+}
+.staff-accordion .accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0,0,0,.125);
+}
+.staff-accordion .accordion-item {
+    margin-bottom: 8px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* =========================================================
+   Modern Edit User Details modal
+   ========================================================= */
+#editStaffDetailsModal .modal-content {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+}
+
+#editStaffDetailsModal .modal-header {
+    border: none;
+    padding: 0;
+    position: relative;
+}
+
+#editStaffDetailsModal .modal-body { padding: 0; }
+#editStaffDetailsModal .modal-footer {
+    border: none;
+    background: #ffffff;
+    padding: 16px 28px;
+    box-shadow: 0 -1px 0 #eef1f6;
+}
+
+/* Hero banner */
+.staff-hero {
+    position: relative;
+    padding: 24px 28px 78px 28px;
+    background: linear-gradient(135deg, #4f46e5 0%, #2563eb 55%, #06b6d4 100%);
+    color: #fff;
+}
+.staff-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(800px 200px at 80% 0%, rgba(255,255,255,0.18), transparent 60%);
+    pointer-events: none;
+}
+.staff-hero .hero-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.85;
+    margin-bottom: 4px;
+}
+.staff-hero .hero-emp-code {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.staff-hero .hero-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 3;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.staff-hero .hero-close:hover { background: rgba(255,255,255,0.32); }
+
+/* Avatar with edit overlay */
+.staff-hero-card {
+    position: absolute;
+    left: 28px;
+    right: 28px;
+    bottom: -46px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+    padding: 14px 18px 14px 110px;
+    min-height: 92px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 2;
+}
+.staff-avatar-uploader {
+    position: absolute;
+    left: 18px;
+    bottom: 14px;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: #e0e7ff;
+    border: 4px solid #fff;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 700;
+    color: #4f46e5;
+    user-select: none;
+}
+.staff-avatar-uploader img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.staff-avatar-uploader .avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.18s;
+    font-size: 13px;
+    flex-direction: column;
+    gap: 2px;
+}
+.staff-avatar-uploader:hover .avatar-edit-overlay { opacity: 1; }
+.staff-avatar-uploader .avatar-edit-overlay i { font-size: 18px; }
+
+.staff-avatar-actions {
+    position: absolute;
+    left: 18px;
+    bottom: -12px;
+    display: flex;
+    gap: 4px;
+}
+.staff-avatar-actions .btn {
+    border-radius: 999px;
+    font-size: 11px;
+    padding: 2px 10px;
+    line-height: 1.4;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.staff-hero-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+    margin: 0 0 4px 0;
+}
+.staff-hero-meta { font-size: 13px; color: #64748b; }
+.staff-hero-meta .badge {
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 3px 10px;
+}
+.staff-hero-meta .badge-status-active { background: #dcfce7; color: #166534; }
+.staff-hero-meta .badge-status-inactive { background: #fee2e2; color: #991b1b; }
+
+/* Pill tab navigation */
+.staff-tab-nav {
+    padding: 78px 28px 0 28px;
+    background: #ffffff;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #eef1f6;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+}
+.staff-tab-nav .nav-link {
+    border: none;
+    border-radius: 999px;
+    padding: 8px 18px;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    transition: all 0.18s;
+    white-space: nowrap;
+}
+.staff-tab-nav .nav-link i { font-size: 14px; }
+.staff-tab-nav .nav-link:hover { background: #f1f5f9; color: #0f172a; }
+.staff-tab-nav .nav-link.active {
+    background: linear-gradient(135deg, #4f46e5, #2563eb);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+.staff-tab-nav .nav-link.tab-invalid { color: #dc2626; }
+.staff-tab-nav .nav-link.tab-invalid::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #dc2626;
+    margin-left: 4px;
+}
+
+/* Tab body padding */
+.staff-tab-body { padding: 24px 28px 12px 28px; background: #fff; }
+
+/* Floating labels styled */
+#editStaffDetailsModal .form-floating > label {
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 14px 14px;
+}
+#editStaffDetailsModal .form-floating > .form-control,
+#editStaffDetailsModal .form-floating > .form-select {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 14px 8px 14px;
+    min-height: 54px;
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+#editStaffDetailsModal .form-floating > .form-control:focus,
+#editStaffDetailsModal .form-floating > .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+#editStaffDetailsModal .form-floating > .form-control.is-invalid,
+#editStaffDetailsModal .form-floating > .form-select.is-invalid {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
+}
+#editStaffDetailsModal .form-floating > .form-control:focus ~ label,
+#editStaffDetailsModal .form-floating > .form-control:not(:placeholder-shown) ~ label,
+#editStaffDetailsModal .form-floating > .form-select ~ label {
+    color: #475569;
+    font-weight: 500;
+}
+#editStaffDetailsModal .error-text { font-size: 12px; margin-top: 4px; display: block; }
+
+/* Modern submit button */
+.btn-modern-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 26px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+    transition: transform 0.12s, box-shadow 0.12s;
+}
+.btn-modern-primary:hover {
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.36);
+}
+.btn-modern-primary:disabled { opacity: 0.7; transform: none; }
+.btn-modern-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-weight: 600;
+}
+.btn-modern-secondary:hover { background: #e2e8f0; color: #0f172a; }
 
 
 </style>
@@ -354,13 +671,13 @@ table.dataTable thead .sorting_desc:after {
                             </div>
                         </div>
                         <div class="card">
-                            {{-- <div class="card-header">
-                                <div class="float-right">
-                                    <button type="button" class="btn btn-info mb-2 me-4 float-end" data-bs-toggle="modal" data-bs-target="#inputFormModaladdstaffs">
+                            <div class="card-header bg-transparent border-0 pb-0">
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#inputFormModaladdstaffs">
                                         <i class="fa fa-plus"></i>&nbsp; Add New Staff
                                     </button>
                                 </div>
-                            </div> --}}
+                            </div>
                             <div class="card-body">
                                 <select id="customColumnFilter" class="form-select form-select-sm" style="display: none;">
                                     <option value="">All</option>
@@ -385,7 +702,29 @@ table.dataTable thead .sorting_desc:after {
                                         
                                         <tr>
                                             <td class="text-center">{{ $loop->iteration }}</td>
-                                            <td class="text-center">{{ $user->user_name }}</td>
+                                            <td class="align-middle">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    @if(!empty($user->profile_photo))
+                                                        <img src="{{ asset($user->profile_photo) }}" class="staff-thumb" alt="">
+                                                    @else
+                                                        <div class="staff-thumb staff-thumb-placeholder">
+                                                            {{ strtoupper(substr($user->full_name ?? $user->user_name, 0, 1)) }}
+                                                        </div>
+                                                    @endif
+                                                    <div class="lh-sm">
+                                                        <div class="fw-semibold">{{ $user->full_name ?: $user->user_name }}</div>
+                                                        <div class="small text-muted">
+                                                            @if($user->employee_code)
+                                                                <span class="badge bg-light text-dark border me-1">{{ $user->employee_code }}</span>
+                                                            @endif
+                                                            <span>@</span>{{ $user->user_name }}
+                                                        </div>
+                                                        @if($user->designation)
+                                                            <div class="small text-muted fst-italic">{{ $user->designation }}</div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td class="text-center">{{ $user->role_name }}</td>
                                             <td class="align-middle">
                                                 <div class="d-flex justify-content-between align-items-center">
@@ -497,15 +836,29 @@ table.dataTable thead .sorting_desc:after {
                                                 </div>
                                             </td>
                                             <td class="text-center">
-                                                <a href="javascript:void(0);" class="editstaffdata"
+                                                <a href="javascript:void(0);" class="editstaffdetails me-2"
                                                     data-user_id="{{ $user->s_id }}"
-                                                    data-bs-toggle="modal" data-bs-target="#inputFormModaleditstaffs">
-                                                    <i class="fa fa-key text-primary me-2 cursor-pointer" title="Reset Password"></i>
+                                                    title="Edit User Details">
+                                                    <i class="fa fa-pencil text-success cursor-pointer"></i>
                                                 </a>
-                                                <a href="javascript:void(0);" class="getUserHistory"
+                                                <a href="javascript:void(0);" class="editstaffdata me-2"
                                                     data-user_id="{{ $user->s_id }}"
-                                                    data-bs-toggle="modal" data-bs-target="#userHistoryModal">
-                                                    <i class="fa fa-history text-primary me-2 cursor-pointer" title="Form History"></i>
+                                                    data-bs-toggle="modal" data-bs-target="#inputFormModaleditstaffs"
+                                                    title="Reset Password">
+                                                    <i class="fa fa-key text-primary cursor-pointer"></i>
+                                                </a>
+                                                <a href="javascript:void(0);" class="getUserHistory me-2"
+                                                    data-user_id="{{ $user->s_id }}"
+                                                    data-user_name="{{ $user->user_name }}"
+                                                    data-bs-toggle="modal" data-bs-target="#userHistoryModal"
+                                                    title="Form History">
+                                                    <i class="fa fa-history text-primary cursor-pointer"></i>
+                                                </a>
+                                                <a href="javascript:void(0);" class="deletestaff"
+                                                    data-user_id="{{ $user->s_id }}"
+                                                    data-user_name="{{ $user->user_name }}"
+                                                    title="Delete User">
+                                                    <i class="fa fa-trash text-danger cursor-pointer"></i>
                                                 </a>
                                             </td>
                                         </tr>
@@ -523,7 +876,7 @@ table.dataTable thead .sorting_desc:after {
                         <div class="modal-content">
 
                             <div class="modal-header">
-                                <h5 class="modal-title">User Form History</h5>
+                                <h5 class="modal-title">User Form History &nbsp;<small class="text-muted" id="historyUserName"></small></h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
 
@@ -534,42 +887,8 @@ table.dataTable thead .sorting_desc:after {
                                             <th>S.No</th>
                                             <th>Form Type</th>
                                             <th>Assigned Forms</th>
-                                            <th>User Status</th>
-                                            <th>Started At</th>
-                                            <th>Ended At</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    Close
-                                </button>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-                <!-- ------ View Form history --------- -->
-                <div class="modal fade" id="userHistoryModal" tabindex="-1">
-                    <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-
-                            <div class="modal-header">
-                                <h5 class="modal-title">User Form History</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-
-                            <div class="modal-body">
-                                <table class="table table-bordered table-sm" id="historyTable">
-                                    <thead>
-                                        <tr>
-                                            <th>S.No</th>
-                                            <th>Form Type</th>
-                                            <th>Assigned Forms</th>
-                                            <th>User Status</th>
+                                            <th>Action</th>
+                                            <th>Status</th>
                                             <th>Started At</th>
                                             <th>Ended At</th>
                                         </tr>
@@ -826,7 +1145,7 @@ table.dataTable thead .sorting_desc:after {
 
                 <!-- -------- Add User Login ------- -->
                 <div class="modal fade inputForm-modal reset-on-open" id="inputFormModaladdstaffs" tabindex="-1" role="dialog" aria-labelledby="inputFormModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
                         <div class="modal-content">
 
                             <div class="modal-header" id="inputFormModalLabel">
@@ -841,70 +1160,165 @@ table.dataTable thead .sorting_desc:after {
 
                             <div class="modal-body">
                                 <form id="newstaffmaster" novalidate enctype="multipart/form-data">
-                                    <!-- Page Type Selection -->
-                                    <div class="row">
-                                        <div class="col-md-12 mb-2">
-                                            <div class="form-group">
-                                                <label for="inputEmail4" class="form-label">User Name<span>*</span></label>
-                                                <div class="input-group mb-1">
-                                                    <input type="text" class="form-control" name="staff_name" id="staff_name">
+                                    @csrf
+
+                                    <div class="accordion staff-accordion" id="addStaffAccordion">
+
+                                        <!-- Section 1: Login & Role -->
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#addSec1">
+                                                    <i class="fa fa-id-card-o me-2 text-primary"></i> Login &amp; Role <span class="text-danger ms-1">*</span>
+                                                </button>
+                                            </h2>
+                                            <div id="addSec1" class="accordion-collapse collapse show" data-bs-parent="#addStaffAccordion">
+                                                <div class="accordion-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_staff_name" class="form-label">User Name<span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="staff_name" id="add_staff_name" autocomplete="off" placeholder="Login handle (e.g. supervisor1)">
+                                                            <small class="text-danger error-text" data-error="staff_name"></small>
+                                                        </div>
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_role_id" class="form-label">User Role<span class="text-danger">*</span></label>
+                                                            <select class="form-select" name="role_id" id="add_role_id">
+                                                                <option value="">Please select the user role</option>
+                                                                @foreach ($userRoles as $item)
+                                                                    <option value="{{ $item->r_id }}">{{ $item->role_name }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                            <small class="text-danger error-text" data-error="role_id"></small>
+                                                        </div>
+
+                                                        <div class="col-md-12 mb-2">
+                                                            <label for="add_staff_email" class="form-label">User Login Email<span class="text-danger">*</span></label>
+                                                            <input type="email" class="form-control" name="staff_email" id="add_staff_email" autocomplete="off" placeholder="user@tnelb.com">
+                                                            <small class="text-danger error-text" data-error="staff_email"></small>
+                                                        </div>
+
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <label class="form-label mb-0" for="add_user_password">Password <span class="text-danger">*</span></label>
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnGeneratePassword" title="Generate a strong random password">
+                                                                    <i class="fa fa-magic me-1"></i>Generate
+                                                                </button>
+                                                            </div>
+                                                            <div class="input-group mt-1">
+                                                                <input type="text" class="form-control" name="user_random_pass" id="add_user_password" placeholder="Enter password" autocomplete="new-password">
+                                                                <span class="input-group-text cursor-pointer toggle-password" data-target="#add_user_password" title="Show / hide password">
+                                                                    <i class="fa fa-eye"></i>
+                                                                </span>
+                                                            </div>
+                                                            <small class="text-muted">Min 8 chars: uppercase, number &amp; special char.</small><br>
+                                                            <small class="text-danger error-text" data-error="user_random_pass"></small>
+                                                        </div>
+
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label" for="add_user_password_confirmation">Confirm Password <span class="text-danger">*</span></label>
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control" name="user_random_pass_confirmation" id="add_user_password_confirmation" placeholder="Re-enter password" autocomplete="new-password">
+                                                                <span class="input-group-text cursor-pointer toggle-password" data-target="#add_user_password_confirmation" title="Show / hide password">
+                                                                    <i class="fa fa-eye"></i>
+                                                                </span>
+                                                            </div>
+                                                            <small class="text-danger error-text" data-error="user_random_pass_confirmation"></small>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <small class="text-danger error-text" data-error="staff_name"></small>
                                             </div>
                                         </div>
 
-                                        <div class="col-md-12 mb-2">
-                                            <div class="form-group">
-                                                <label>User Role<span>*</span></label>
-                                                <select class="form-select" name="role_id" id="role_id">
-                                                    <option value="">Please select the user role</option>
-                                                    @foreach ($userRoles as $item)
-                                                        <option value="{{ $item->r_id }}">{{ $item->role_name }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <small class="text-danger error-text" data-error="role_id"></small>
+                                        <!-- Section 2: Personal Information -->
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#addSec2">
+                                                    <i class="fa fa-user-o me-2 text-success"></i> Personal Information
+                                                </button>
+                                            </h2>
+                                            <div id="addSec2" class="accordion-collapse collapse" data-bs-parent="#addStaffAccordion">
+                                                <div class="accordion-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_full_name" class="form-label">Full Name<span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="full_name" id="add_full_name" placeholder="As per official records">
+                                                            <small class="text-danger error-text" data-error="full_name"></small>
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <label for="add_date_of_birth" class="form-label">Date of Birth</label>
+                                                            <input type="date" class="form-control" name="date_of_birth" id="add_date_of_birth">
+                                                            <small class="text-danger error-text" data-error="date_of_birth"></small>
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <label for="add_gender" class="form-label">Gender</label>
+                                                            <select class="form-select" name="gender" id="add_gender">
+                                                                <option value="">-- Select --</option>
+                                                                <option value="M">Male</option>
+                                                                <option value="F">Female</option>
+                                                                <option value="O">Other</option>
+                                                            </select>
+                                                            <small class="text-danger error-text" data-error="gender"></small>
+                                                        </div>
+
+                                                        <div class="col-md-4 mb-2">
+                                                            <label for="add_mobile" class="form-label">Mobile Number<span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="mobile" id="add_mobile" maxlength="15" placeholder="10-digit mobile">
+                                                            <small class="text-danger error-text" data-error="mobile"></small>
+                                                        </div>
+                                                        <div class="col-md-4 mb-2">
+                                                            <label for="add_alt_phone" class="form-label">Alternate Phone</label>
+                                                            <input type="text" class="form-control" name="alt_phone" id="add_alt_phone" maxlength="15" placeholder="Optional">
+                                                            <small class="text-danger error-text" data-error="alt_phone"></small>
+                                                        </div>
+                                                        <div class="col-md-4 mb-2">
+                                                            <label for="add_profile_photo" class="form-label">Profile Photo</label>
+                                                            <input type="file" class="form-control" name="profile_photo" id="add_profile_photo" accept="image/jpeg,image/png,image/webp">
+                                                            <small class="text-muted">JPG/PNG/WEBP &middot; max 2 MB</small>
+                                                            <div class="mt-2" id="add_profile_photo_preview"></div>
+                                                            <small class="text-danger error-text" data-error="profile_photo"></small>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+
+                                        <!-- Section 3: Work Information -->
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#addSec3">
+                                                    <i class="fa fa-briefcase me-2 text-warning"></i> Work Information <span class="text-danger ms-1">*</span>
+                                                </button>
+                                            </h2>
+                                            <div id="addSec3" class="accordion-collapse collapse" data-bs-parent="#addStaffAccordion">
+                                                <div class="accordion-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-2">
+                                                            <label class="form-label">Employee Code</label>
+                                                            <input type="text" class="form-control bg-light" value="Auto-generated on save (TNELB-EMP-####)" disabled>
+                                                            <small class="text-muted">Generated by the system on creation.</small>
+                                                        </div>
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_designation" class="form-label">Designation<span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="designation" id="add_designation" placeholder="e.g. Supervisor, Auditor">
+                                                            <small class="text-danger error-text" data-error="designation"></small>
+                                                        </div>
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_joining_date" class="form-label">Joining Date<span class="text-danger">*</span></label>
+                                                            <input type="date" class="form-control" name="joining_date" id="add_joining_date">
+                                                            <small class="text-danger error-text" data-error="joining_date"></small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </div>
 
-                                    <div class="row">
-                                        <div class="col-md-12 mb-2">
-                                            <div class="form-group">
-                                                <label for="inputEmail4" class="form-label">User Login Email<span>*</span></label>
-                                                <div class="input-group mb-2">
-                                                    <input type="email" class="form-control" name="staff_email" id="staff_email">
-                                                </div>
-                                                <small class="text-danger error-text" data-error="staff_email"></small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-12 mb-3">
-                                            <div class="form-group">
-                                                <label class="form-label">User Login Password <span>*</span></label>
-                                                <div class="input-group">
-                                                    <input type="text" class="form-control" name="user_random_pass" id="user_random_pass" placeholder="Enter password">&nbsp;
-                                                </div>
-                                                <small class="text-danger error-text" data-error="user_random_pass"></small>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-12 mb-3">
-                                            <div class="form-group">
-                                                <label class="form-label">Confirm Password <span>*</span></label>
-                                                <div class="input-group">
-                                                    <input type="text" class="form-control" name="user_random_pass" id="user_random_pass" placeholder="Enter password">&nbsp;
-                                                </div>
-                                                <small class="text-danger error-text" data-error="user_random_pass"></small>
-                                            </div>
-                                        </div>
+                                    <div class="modal-footer justify-content-center">
+                                        <button type="button" class="btn btn-light-danger mt-2 mb-2 btn-no-effect" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary mt-2 mb-2 btn-no-effect">Add Staff</button>
                                     </div>
-
-                                </div>
-                                <!-- Modal Footer -->
-                                <div class="modal-footer justify-content-center">
-                                    <button type="button" class="btn btn-light-danger mt-2 mb-2 btn-no-effect" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-primary mt-2 mb-2 btn-no-effect">Add</button>
-                                </div>
-                            </form>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -926,7 +1340,7 @@ table.dataTable thead .sorting_desc:after {
 
                             <div class="modal-body">
                                 <form id="resetForm" novalidate enctype="multipart/form-data">
-                                    <input type="hidden" name="user_id" id="user_id">
+                                    <input type="hidden" name="user_id" id="reset_user_id">
                                     <div class="row">
                                         <div class="col-md-12 mb-3">
                                             <div class="form-group">
@@ -964,6 +1378,201 @@ table.dataTable thead .sorting_desc:after {
                         </div>
                     </div>
                 </div>
+
+                <!-- -------- Edit Staff Details (Modern) ------- -->
+                <div class="modal fade" id="editStaffDetailsModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+                        <div class="modal-content">
+
+                            <form id="editStaffDetailsForm" novalidate enctype="multipart/form-data">
+                                @csrf
+                                <input type="hidden" name="user_id" id="edit_user_id">
+                                <input type="hidden" name="remove_photo" id="edit_remove_photo" value="0">
+                                <input type="file" name="profile_photo" id="edit_profile_photo" accept="image/jpeg,image/png,image/webp" class="d-none">
+
+                                <div class="modal-header">
+                                    <!-- Hero banner -->
+                                    <div class="staff-hero w-100">
+                                        <button type="button" class="hero-close" data-bs-dismiss="modal" aria-label="Close">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                                            </svg>
+                                        </button>
+                                        <div class="hero-title">Edit Staff Profile</div>
+                                        <div class="hero-emp-code" id="edit_hero_emp_code">&mdash;</div>
+
+                                        <!-- Floating profile card -->
+                                        <div class="staff-hero-card">
+                                            <div class="staff-avatar-uploader" id="editAvatarUploader" title="Click to change photo">
+                                                <span id="edit_avatar_initial">U</span>
+                                                <img id="edit_avatar_img" src="" alt="" style="display:none;">
+                                                <div class="avatar-edit-overlay">
+                                                    <i class="fa fa-camera"></i>
+                                                    <span>Change</span>
+                                                </div>
+                                            </div>
+                                            <div class="staff-avatar-actions">
+                                                <button type="button" class="btn btn-light btn-sm" id="btnRemoveEditPhoto" style="display:none;" title="Remove photo">
+                                                    <i class="fa fa-trash text-danger"></i>
+                                                </button>
+                                            </div>
+                                            <div class="staff-hero-name" id="edit_hero_name">&mdash;</div>
+                                            <div class="staff-hero-meta">
+                                                <span class="badge" id="edit_hero_role">Role</span>
+                                                <span class="badge ms-1" id="edit_hero_status">Status</span>
+                                                <span class="ms-2 text-truncate" id="edit_hero_email" style="vertical-align: middle;">&mdash;</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-body">
+                                    <!-- Pill tab navigation -->
+                                    <ul class="nav staff-tab-nav" role="tablist" id="editStaffTabs">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" type="button" data-bs-toggle="tab" data-bs-target="#editTab1" data-tab-key="login">
+                                                <i class="fa fa-id-card-o"></i> Login &amp; Role
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#editTab2" data-tab-key="personal">
+                                                <i class="fa fa-user-o"></i> Personal
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#editTab3" data-tab-key="work">
+                                                <i class="fa fa-briefcase"></i> Work
+                                            </button>
+                                        </li>
+                                    </ul>
+
+                                    <div class="tab-content staff-tab-body" id="editStaffTabContent">
+
+                                        <!-- Tab 1: Login & Role -->
+                                        <div class="tab-pane fade show active" id="editTab1" role="tabpanel">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control" name="staff_name" id="edit_staff_name" placeholder=" " autocomplete="off">
+                                                        <label for="edit_staff_name">User Name *</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="staff_name"></small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <select class="form-select" name="role_id" id="edit_role_id">
+                                                            <option value="">-- select --</option>
+                                                            @foreach ($userRoles as $item)
+                                                                <option value="{{ $item->r_id }}">{{ $item->role_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <label for="edit_role_id">User Role *</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="role_id"></small>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="form-floating">
+                                                        <input type="email" class="form-control" name="staff_email" id="edit_staff_email" placeholder=" " autocomplete="off">
+                                                        <label for="edit_staff_email">User Login Email *</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="staff_email"></small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tab 2: Personal -->
+                                        <div class="tab-pane fade" id="editTab2" role="tabpanel">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control" name="full_name" id="edit_full_name" placeholder=" ">
+                                                        <label for="edit_full_name">Full Name *</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="full_name"></small>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-floating">
+                                                        <input type="date" class="form-control" name="date_of_birth" id="edit_date_of_birth" placeholder=" ">
+                                                        <label for="edit_date_of_birth">Date of Birth</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="date_of_birth"></small>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-floating">
+                                                        <select class="form-select" name="gender" id="edit_gender">
+                                                            <option value="">--</option>
+                                                            <option value="M">Male</option>
+                                                            <option value="F">Female</option>
+                                                            <option value="O">Other</option>
+                                                        </select>
+                                                        <label for="edit_gender">Gender</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="gender"></small>
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control" name="mobile" id="edit_mobile" maxlength="15" placeholder=" ">
+                                                        <label for="edit_mobile">Mobile Number *</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="mobile"></small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control" name="alt_phone" id="edit_alt_phone" maxlength="15" placeholder=" ">
+                                                        <label for="edit_alt_phone">Alternate Phone</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="alt_phone"></small>
+                                                </div>
+
+                                                <div class="col-md-12">
+                                                    <small class="text-muted">Profile photo can be changed by clicking the avatar at the top.</small>
+                                                    <small class="text-danger error-text d-block" data-error="profile_photo"></small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tab 3: Work -->
+                                        <div class="tab-pane fade" id="editTab3" role="tabpanel">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control bg-light" id="edit_employee_code" readonly placeholder=" ">
+                                                        <label for="edit_employee_code">Employee Code (auto)</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control" name="designation" id="edit_designation" placeholder=" ">
+                                                        <label for="edit_designation">Designation *</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="designation"></small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="date" class="form-control" name="joining_date" id="edit_joining_date" placeholder=" ">
+                                                        <label for="edit_joining_date">Joining Date *</label>
+                                                    </div>
+                                                    <small class="text-danger error-text" data-error="joining_date"></small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-modern-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-modern-primary">
+                                        <i class="fa fa-check me-1"></i> Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -1322,6 +1931,496 @@ table.dataTable thead .sorting_desc:after {
             selectAllCb.checked = all.length > 0 && checkedCount === all.length;
         });
     })();
+
+    /* ============================================================
+     *  Helpers
+     * ============================================================ */
+    function clearFormErrors($form) {
+        $form.find('.error-text').text('');
+        $form.find('.is-invalid').removeClass('is-invalid');
+    }
+
+    function showFormErrors($form, errors) {
+        clearFormErrors($form);
+        var firstInvalidField = null;
+        var invalidTabPanes = new Set();
+
+        $.each(errors, function (field, msgs) {
+            var msg = Array.isArray(msgs) ? msgs[0] : msgs;
+            var $err = $form.find('.error-text[data-error="' + field + '"]');
+            if ($err.length) {
+                $err.text(msg);
+            }
+            var $input = $form.find('[name="' + field + '"]').first();
+            if ($input.length) {
+                $input.addClass('is-invalid');
+                if (!firstInvalidField) firstInvalidField = $input;
+
+                var $pane = $input.closest('.tab-pane');
+                if ($pane.length) invalidTabPanes.add($pane.attr('id'));
+            }
+        });
+
+        // Flag tab triggers with invalid fields (red dot)
+        $form.find('.staff-tab-nav .nav-link').removeClass('tab-invalid');
+        invalidTabPanes.forEach(function (paneId) {
+            $form.find('.staff-tab-nav .nav-link[data-bs-target="#' + paneId + '"]').addClass('tab-invalid');
+        });
+
+        if (firstInvalidField) {
+            // 1) Open collapsed accordion section (used by Add modal)
+            var $collapse = firstInvalidField.closest('.accordion-collapse');
+            if ($collapse.length && !$collapse.hasClass('show')) {
+                bootstrap.Collapse.getOrCreateInstance($collapse[0], { toggle: false }).show();
+            }
+
+            // 2) Switch tab if invalid field is in a hidden pane (used by Edit modal)
+            var $pane = firstInvalidField.closest('.tab-pane');
+            if ($pane.length && !$pane.hasClass('active')) {
+                var paneId = $pane.attr('id');
+                var $trigger = $form.find('[data-bs-target="#' + paneId + '"]').first();
+                if ($trigger.length) {
+                    bootstrap.Tab.getOrCreateInstance($trigger[0]).show();
+                }
+            }
+
+            setTimeout(function () {
+                firstInvalidField.focus();
+            }, 300);
+        }
+    }
+
+    function previewImageInto($previewEl, file) {
+        if (!file) { $previewEl.empty(); return; }
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            $previewEl.html(
+                '<div class="profile-photo-preview-wrap">' +
+                    '<img src="' + e.target.result + '" class="profile-photo-preview" alt="preview">' +
+                    '<small class="text-success">' + $('<div>').text(file.name).html() + '</small>' +
+                '</div>'
+            );
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function generateStrongPassword(length) {
+        length = length || 12;
+        var upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        var lower = 'abcdefghijkmnpqrstuvwxyz';
+        var digit = '23456789';
+        var sym   = '@#$%&*!?';
+        var all   = upper + lower + digit + sym;
+        var pwd = [
+            upper.charAt(Math.floor(Math.random() * upper.length)),
+            lower.charAt(Math.floor(Math.random() * lower.length)),
+            digit.charAt(Math.floor(Math.random() * digit.length)),
+            sym.charAt(Math.floor(Math.random() * sym.length))
+        ];
+        for (var i = pwd.length; i < length; i++) {
+            pwd.push(all.charAt(Math.floor(Math.random() * all.length)));
+        }
+        return pwd.sort(function () { return Math.random() - 0.5; }).join('');
+    }
+
+    /* ============================================================
+     *  Reset Password modal – populate hidden user_id on open
+     * ============================================================ */
+    $(document).on('click', '.editstaffdata', function () {
+        $('#reset_user_id').val($(this).data('user_id'));
+        $('#user_passwd, #confirmPasswd').val('');
+        $('#passwordError, #confirmError').addClass('d-none').text('');
+    });
+
+    /* ============================================================
+     *  ADD NEW STAFF
+     * ============================================================ */
+    $('#btnGeneratePassword').on('click', function () {
+        var pwd = generateStrongPassword(12);
+        $('#add_user_password').val(pwd);
+        $('#add_user_password_confirmation').val(pwd);
+        $('#newstaffmaster').find('.error-text[data-error="user_random_pass"], .error-text[data-error="user_random_pass_confirmation"]').text('');
+        $('#newstaffmaster').find('[name="user_random_pass"], [name="user_random_pass_confirmation"]').removeClass('is-invalid');
+    });
+
+    $('#inputFormModaladdstaffs').on('hidden.bs.modal', function () {
+        var $form = $('#newstaffmaster');
+        $form[0].reset();
+        clearFormErrors($form);
+        $('#add_profile_photo_preview').empty();
+        // Re-open section 1 by default
+        var sec1 = document.getElementById('addSec1');
+        var sec2 = document.getElementById('addSec2');
+        var sec3 = document.getElementById('addSec3');
+        if (sec1) bootstrap.Collapse.getOrCreateInstance(sec1, { toggle: false }).show();
+        if (sec2) bootstrap.Collapse.getOrCreateInstance(sec2, { toggle: false }).hide();
+        if (sec3) bootstrap.Collapse.getOrCreateInstance(sec3, { toggle: false }).hide();
+    });
+
+    $('#add_profile_photo').on('change', function () {
+        previewImageInto($('#add_profile_photo_preview'), this.files && this.files[0]);
+    });
+
+    $('#newstaffmaster').on('submit', function (e) {
+        e.preventDefault();
+        var $form = $(this);
+        clearFormErrors($form);
+
+        var pwd  = $('#add_user_password').val();
+        var cpwd = $('#add_user_password_confirmation').val();
+        if (pwd && cpwd && pwd !== cpwd) {
+            showFormErrors($form, { user_random_pass_confirmation: 'Passwords do not match.' });
+            return;
+        }
+
+        var $btn = $form.find('button[type="submit"]');
+        $btn.prop('disabled', true);
+
+        var formData = new FormData(this);
+
+        $.ajax({
+            url: BASE_URL + '/admin/staff/insertstaff',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+        })
+        .done(function (res) {
+            if (!res || res.status !== true) {
+                Swal.fire('Error', (res && res.message) || 'Unable to add staff.', 'error');
+                return;
+            }
+
+            var email = res.user.user_email;
+            var uname = res.user.user_name;
+            var empCode = res.user.employee_code || '';
+            var html =
+                '<div class="staff-success-card text-start">' +
+                  '<div class="staff-id-box">' +
+                    '<small>EMPLOYEE CODE</small>' +
+                    '<h4>' + $('<div>').text(empCode).html() + '</h4>' +
+                    '<div class="text-dark"><b>' + $('<div>').text(uname).html() + '</b></div>' +
+                    '<div class="text-muted small">' + $('<div>').text(email).html() + '</div>' +
+                  '</div>' +
+                  '<div class="login-note-muted">Share the credentials securely with the user.</div>' +
+                  '<div><b>Password:</b> <code id="newStaffPwd">' + $('<div>').text(pwd).html() + '</code> ' +
+                    '<button type="button" class="copy-btn" id="copyNewStaffPwd">Copy</button></div>' +
+                '</div>';
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Staff Added',
+                html: html,
+                customClass: { popup: 'swal-staff-success' },
+                confirmButtonText: 'Done',
+                didOpen: function () {
+                    $('#copyNewStaffPwd').on('click', function () {
+                        navigator.clipboard && navigator.clipboard.writeText(pwd);
+                        $(this).text('Copied!');
+                        var self = this;
+                        setTimeout(function () { $(self).text('Copy'); }, 1500);
+                    });
+                }
+            }).then(function () { location.reload(); });
+        })
+        .fail(function (xhr) {
+            if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                showFormErrors($form, xhr.responseJSON.errors);
+            } else {
+                Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Something went wrong.', 'error');
+            }
+        })
+        .always(function () {
+            $btn.prop('disabled', false);
+        });
+    });
+
+    /* ============================================================
+     *  EDIT STAFF DETAILS  (Name / Email / Role)
+     * ============================================================ */
+    /* Modern Edit-Staff modal — helpers for the hero avatar */
+    function setEditAvatar(srcOrInitial) {
+        var $img = $('#edit_avatar_img');
+        var $ini = $('#edit_avatar_initial');
+        if (srcOrInitial && srcOrInitial.startsWith && (srcOrInitial.startsWith('data:') || srcOrInitial.startsWith('http') || srcOrInitial.startsWith('/'))) {
+            $img.attr('src', srcOrInitial).show();
+            $ini.hide();
+            $('#btnRemoveEditPhoto').show();
+        } else {
+            $img.attr('src', '').hide();
+            $ini.text((srcOrInitial || 'U').charAt(0).toUpperCase()).show();
+            $('#btnRemoveEditPhoto').hide();
+        }
+    }
+
+    function setEditStatusBadge(status) {
+        var $b = $('#edit_hero_status');
+        $b.removeClass('badge-status-active badge-status-inactive');
+        if (status === '1' || status === 1) {
+            $b.text('Active').addClass('badge-status-active');
+        } else {
+            $b.text('Inactive').addClass('badge-status-inactive');
+        }
+    }
+
+    $(document).on('click', '.editstaffdetails', function () {
+        var userId = $(this).data('user_id');
+        var $form = $('#editStaffDetailsForm');
+        clearFormErrors($form);
+
+        $.get(BASE_URL + '/admin/staff/' + userId + '/getstaff')
+            .done(function (res) {
+                if (!res || res.status !== true) {
+                    Swal.fire('Error', (res && res.message) || 'Unable to load staff.', 'error');
+                    return;
+                }
+                var u = res.user;
+
+                $('#edit_user_id').val(u.s_id);
+                $('#edit_remove_photo').val('0');
+
+                // ---- Hero ----
+                $('#edit_hero_emp_code').text(u.employee_code || '(new employee code on save)');
+                $('#edit_hero_name').text(u.full_name || u.user_name || '—');
+                $('#edit_hero_role').text(u.role_name || 'No role');
+                $('#edit_hero_email').text(u.user_email || '');
+                setEditStatusBadge(u.user_status);
+                setEditAvatar(u.profile_photo_url || (u.full_name || u.user_name || 'U'));
+
+                // ---- Tab 1: Login & Role ----
+                $('#edit_staff_name').val(u.user_name || '');
+                $('#edit_staff_email').val(u.user_email || '');
+                $('#edit_role_id').val(u.role_id || '');
+
+                // ---- Tab 2: Personal ----
+                $('#edit_full_name').val(u.full_name || '');
+                $('#edit_date_of_birth').val(u.date_of_birth || '');
+                $('#edit_gender').val(u.gender || '');
+                $('#edit_mobile').val(u.mobile || '');
+                $('#edit_alt_phone').val(u.alt_phone || '');
+                $('#edit_profile_photo').val('');
+
+                // ---- Tab 3: Work ----
+                $('#edit_employee_code').val(u.employee_code || '(generated on save)');
+                $('#edit_designation').val(u.designation || '');
+                $('#edit_joining_date').val(u.joining_date || '');
+
+                // Reset to first tab
+                var firstTabBtn = document.querySelector('#editStaffTabs .nav-link');
+                if (firstTabBtn) bootstrap.Tab.getOrCreateInstance(firstTabBtn).show();
+
+                var modalEl = document.getElementById('editStaffDetailsModal');
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            })
+            .fail(function (xhr) {
+                Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Unable to load staff.', 'error');
+            });
+    });
+
+    // Avatar click → open the hidden file input
+    $(document).on('click', '#editAvatarUploader', function () {
+        $('#edit_profile_photo').trigger('click');
+    });
+
+    // Photo selected → preview inside the avatar
+    $('#edit_profile_photo').on('change', function () {
+        if (!this.files || !this.files[0]) return;
+        $('#edit_remove_photo').val('0');
+        var reader = new FileReader();
+        reader.onload = function (e) { setEditAvatar(e.target.result); };
+        reader.readAsDataURL(this.files[0]);
+    });
+
+    // Remove existing photo
+    $(document).on('click', '#btnRemoveEditPhoto', function (e) {
+        e.stopPropagation();
+        $('#edit_remove_photo').val('1');
+        $('#edit_profile_photo').val('');
+        setEditAvatar($('#edit_hero_name').text() || 'U');
+    });
+
+    // Live-update hero card as the admin edits fields
+    $('#edit_full_name').on('input', function () {
+        var v = $(this).val();
+        if (v) $('#edit_hero_name').text(v);
+    });
+    $('#edit_staff_email').on('input', function () { $('#edit_hero_email').text($(this).val() || ''); });
+    $('#edit_role_id').on('change', function () {
+        $('#edit_hero_role').text($(this).find('option:selected').text() || 'No role');
+    });
+
+    $('#editStaffDetailsForm').on('submit', function (e) {
+        e.preventDefault();
+        var $form = $(this);
+        clearFormErrors($form);
+
+        var $btn = $form.find('button[type="submit"]');
+        $btn.prop('disabled', true);
+
+        var formData = new FormData(this);
+
+        $.ajax({
+            url: BASE_URL + '/admin/staff/updatestaffdetails',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+        })
+        .done(function (res) {
+            if (!res || res.status !== true) {
+                Swal.fire('Error', (res && res.message) || 'Unable to update.', 'error');
+                return;
+            }
+            Swal.fire({
+                icon: 'success',
+                title: 'Updated',
+                text: res.message,
+                timer: 1500,
+                showConfirmButton: false
+            }).then(function () { location.reload(); });
+        })
+        .fail(function (xhr) {
+            if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                showFormErrors($form, xhr.responseJSON.errors);
+            } else {
+                Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Something went wrong.', 'error');
+            }
+        })
+        .always(function () {
+            $btn.prop('disabled', false);
+        });
+    });
+
+    /* ============================================================
+     *  DELETE STAFF  (soft delete with force-confirm flow)
+     * ============================================================ */
+    function requestDeleteStaff(userId, force) {
+        return $.ajax({
+            url: BASE_URL + '/admin/staff/deletestaff',
+            method: 'POST',
+            data: {
+                user_id: userId,
+                force_delete: force ? 1 : 0,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+    }
+
+    $(document).on('click', '.deletestaff', function () {
+        var userId = $(this).data('user_id');
+        var userName = $(this).data('user_name') || 'this user';
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Delete user?',
+            html: 'Are you sure you want to delete <b>' + $('<div>').text(userName).html() + '</b>?<br><small class="text-muted">This action will hide the user from the portal.</small>',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete',
+            confirmButtonColor: '#dc3545'
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+
+            requestDeleteStaff(userId, false)
+                .done(function (res) {
+                    if (res && res.status === true) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted',
+                            text: res.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(function () { location.reload(); });
+                    } else {
+                        Swal.fire('Error', (res && res.message) || 'Unable to delete user.', 'error');
+                    }
+                })
+                .fail(function (xhr) {
+                    var res = xhr.responseJSON || {};
+                    if (xhr.status === 422 && res.needs_confirmation === true) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Forms Assigned',
+                            text: res.message || 'Forms are assigned. Delete and clear all assigned forms?',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, Delete & Clear',
+                            cancelButtonText: 'Cancel',
+                            confirmButtonColor: '#dc3545'
+                        }).then(function (confirmResult) {
+                            if (!confirmResult.isConfirmed) return;
+                            requestDeleteStaff(userId, true)
+                                .done(function (forceRes) {
+                                    if (forceRes && forceRes.status === true) {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'Deleted',
+                                            text: forceRes.message,
+                                            timer: 1500,
+                                            showConfirmButton: false
+                                        }).then(function () { location.reload(); });
+                                    } else {
+                                        Swal.fire('Error', (forceRes && forceRes.message) || 'Unable to delete user.', 'error');
+                                    }
+                                })
+                                .fail(function (fxhr) {
+                                    Swal.fire('Error', (fxhr.responseJSON && fxhr.responseJSON.message) || 'Something went wrong.', 'error');
+                                });
+                        });
+                        return;
+                    }
+                    Swal.fire('Error', res.message || 'Something went wrong.', 'error');
+                });
+        });
+    });
+
+    /* ============================================================
+     *  USER FORM HISTORY  (loads on #userHistoryModal show)
+     * ============================================================ */
+    $(document).on('click', '.getUserHistory', function () {
+        var userId = $(this).data('user_id');
+        var userName = $(this).data('user_name') || '';
+        $('#historyUserName').text(userName ? '(' + userName + ')' : '');
+
+        if (!window.historyTable) return;
+
+        window.historyTable.clear().draw();
+        window.historyTable.settings()[0].oLanguage.sEmptyTable = 'Loading...';
+
+        $.get(BASE_URL + '/admin/staff/getUserHistory', { user_id: userId })
+            .done(function (res) {
+                if (!res || res.status !== true || !Array.isArray(res.data)) {
+                    window.historyTable.settings()[0].oLanguage.sEmptyTable = 'No history found';
+                    window.historyTable.clear().draw();
+                    return;
+                }
+                var rows = res.data.map(function (r, i) {
+                    var statusBadge = r.status_label === 'Active'
+                        ? '<span class="badge bg-success">Active</span>'
+                        : '<span class="badge bg-danger">Inactive</span>';
+                    var actionBadge = r.action_status === 'START'
+                        ? '<span class="badge bg-primary">START</span>'
+                        : (r.action_status === 'STOP'
+                            ? '<span class="badge bg-secondary">STOP</span>'
+                            : '<span class="badge bg-info">' + $('<div>').text(r.action_status).html() + '</span>');
+                    return [
+                        i + 1,
+                        $('<div>').text(r.form_type_label).html(),
+                        $('<div>').text(r.form_names).html(),
+                        actionBadge,
+                        statusBadge,
+                        $('<div>').text(r.started_at).html(),
+                        $('<div>').text(r.ended_at).html()
+                    ];
+                });
+                window.historyTable.settings()[0].oLanguage.sEmptyTable = 'No history found';
+                window.historyTable.clear().rows.add(rows).draw();
+            })
+            .fail(function () {
+                window.historyTable.settings()[0].oLanguage.sEmptyTable = 'Failed to load history';
+                window.historyTable.clear().draw();
+            });
+    });
 
 </script>
 
