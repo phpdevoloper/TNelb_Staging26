@@ -417,6 +417,7 @@ class DocumentUploadController extends Controller
                     $qc_code = is_numeric($request->qc_code) ? $request->qc_code : null;
 
                     $file->move($folderPath, $fileName);
+                    
 
                     
 

@@ -319,6 +319,11 @@ $(document).on("click", ".upload-btn", function () {
 
 $("#competency_form_a").on("submit", function (e) {
     e.preventDefault();
+console.log($('input[name="staff_name[]"]').length);
+console.log($('input[name="cc_number[]"]').length);
+//     console.log($('input[name="staff_name[]"]').length);
+// console.log($('input[name="cc_number[]"]').length);
+// console.log($('input[name="cc_validity[]"]').length);
 
     let formData = new FormData(this);
     let submitter = e.originalEvent?.submitter;
@@ -1935,200 +1940,7 @@ $("#competency_form_a").on("submit", function (e) {
         }
     });
 
-    let staffValid = true;
-    let staffCount = 0;
-    let licenseNumbers = [];
-    let duplicateFound = false;
-    let stopValidation = false; 
-
-    $(".staff-fields").each(function (index) {
-        const name = $(this).find('input[name="staff_name[]"]');
-        const qual = $(this).find('select[name="staff_qualification[]"]');
-        const ccNum = $(this).find('input[name="cc_number[]"]');
-        const ccValid = $(this).find('input[name="cc_validity[]"]');
-        const category = $(this).find('select[name="staff_category[]"]');
-
-        // Clear error on typing
-        name.on("keyup", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        qual.on("change", function () {
-            if ($(this).val() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        category.on("change", function () {
-            if ($(this).val() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        ccNum.on("keyup input", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        ccValid.on("keyup change", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-
-        const nameVal = name.val().trim();
-        const qualVal = qual.val();
-        const ccNumVal = ccNum.val().trim().toUpperCase();
-        const ccValidVal = ccValid.val().trim();
-        const categoryVal = category.val();
-
-        // ---- Mandatory validation for first 4 rows ----
-        if (index < 4) {
-            if (nameVal === "") {
-                name.closest("td").find(".error").text("Name is required.");
-                staffValid = false;
-            }
-            if (qualVal === "" || qualVal === null) {
-                qual.closest("td")
-                    .find(".error")
-                    .text("Qualification is required.");
-                staffValid = false;
-            }
-            if (ccNumVal === "") {
-                ccNum
-                    .closest("td")
-                    .find(".error")
-                    .text("CC Number is required.");
-                staffValid = false;
-            }
-            if (ccValidVal === "") {
-                ccValid
-                    .closest("td")
-                    .find(".error")
-                    .text("CC Validity is required.");
-                staffValid = false;
-            }
-            if (categoryVal === "" || categoryVal === null) {
-                category
-                    .closest("td")
-                    .find(".error")
-                    .text("Category is required.");
-                staffValid = false;
-            }
-        }
-
-        // ---- Proceed when a complete row is filled ----
-        if (
-            nameVal !== "" &&
-            qualVal !== "" &&
-            ccNumVal !== "" &&
-            ccValidVal !== "" &&
-            categoryVal !== ""
-        ) {
-            staffCount++;
-
-            let certCheck = checkCertificateValidity(
-                ccNumVal,
-                ccValidVal,
-                ccNum,
-                staffCount - 1, // pass 0-based index
-            );
-
-            if (!certCheck.valid) {
-                staffValid = false;
-            }
-
-            // Duplicate CC Number (inside UI)
-            if (licenseNumbers.includes(ccNumVal)) {
-                duplicateFound = true;
-                staffValid = false;
-                ccNum
-                    .siblings(".error")
-                    .text("Duplicate CC Number not allowed.");
-            } else {
-                licenseNumbers.push(ccNumVal);
-            }
-
-            // ---- Prefix rule ----
-            const prefix = ccNumVal.startsWith("LC")
-                ? "LC"
-                : ccNumVal.charAt(0);
-
-            // 🔥 LC AGE VALIDATION (only LC prefix)
-            if (prefix === "LC") {
-                $.ajax({
-                    url: BASE_URL + "/checkLcAge",
-                    type: "POST",
-                    async: false,
-                    data: {
-                        _token: $('meta[name="csrf-token"]').attr("content"),
-                        cc_number: ccNumVal,
-                    },
-                    success: function (res) {
-                        if (res.status === "not_found") {
-                            ccNum
-                                .siblings(".error")
-                                .text("Invalid LC license number.");
-                            staffValid = false;
-                            return;
-                        } else if (res.status === "age_above_limit") {
-                            Swal.fire({
-                                icon: "error",
-                                width: 500,
-                                title: "Age Limit Exceeded",
-                                text: "QC staff age more than 75 is not allowed to apply this license.",
-                                confirmButtonText: "OK",
-                            });
-
-                            ccNum
-                                .siblings(".error")
-                                .text(
-                                    "QC staff age more than 75 is not allowed to apply this license.",
-                                );
-
-                            $(".nav-item").each(function () {
-                                if (
-                                    $(this).text().trim() ===
-                                    "Staff & Bank Details"
-                                ) {
-                                    $(this).addClass("tab-error-bg");
-                                    $(this).trigger("click");
-                                }
-                            });
-
-                            const ownershipNotice =
-                                document.querySelector(".text-red");
-                            if (ownershipNotice) {
-                                ownershipNotice.style.color = "red";
-                                ownershipNotice.style.fontWeight = "bold";
-                                ownershipNotice.scrollIntoView({
-                                    behavior: "smooth",
-                                    block: "center",
-                                });
-                            }
-
-                            stopValidation = true; // 🚨 STOP all remaining checks
-                            staffValid = false;
-                            return;
-                        }
-                    },
-                    error: function () {
-                        ccNum
-                            .siblings(".error")
-                            .text("Error validating LC age. Try again.");
-                        staffValid = false;
-                        return;
-                    },
-                });
-            }
-
-            if (index === 0 && !["C", "LC"].includes(prefix)) {
-                ccNum
-                    .siblings(".error")
-                    .text("First staff's license must start with 'C' or 'LC'.");
-                staffValid = false;
-            } else if (index > 0 && !["C", "B", "H", "LC"].includes(prefix)) {
-                ccNum
-                    .siblings(".error")
-                    .text("License must start with 'C', 'B', 'H', or 'L'.");
-                staffValid = false;
-            }
-        }
-    });
+   
 
     // let bankValidity = $("input[name='bank_validity']").val().trim();
     if (!checkBankValidity(bankValidity)) {
@@ -2155,155 +1967,7 @@ $("#competency_form_a").on("submit", function (e) {
         return false;
     }
 
-    function checkCertificateValidity(
-        ccNumVal,
-        ccValidVal,
-        ccNumInput,
-        rowIndex,
-    ) {
-        // console.log(ccNumVal, ccValidVal, ccNumInput, rowIndex);
-
-        let resultStatus = { valid: true };
-
-        // ✅ SAFETY: ensure number
-        const certOrder = Number(rowIndex) + 1;
-
-        if (isNaN(certOrder)) {
-            ccNumInput
-                .closest("td")
-                .find(".error")
-                .text("Internal error: invalid row order.");
-            return { valid: false };
-        }
-
-        $.ajax({
-            url: BASE_URL + "/checkCertificateValidity",
-            type: "POST",
-            async: false,
-            data: {
-                _token: $('meta[name="csrf-token"]').attr("content"),
-                validity_date: ccValidVal,
-                l_number: ccNumVal,
-                cert_order: certOrder, // ✅ 1,2,3,4
-            },
-            success: function (res) {
-                if (res.status === "invalid_license") {
-                    ccNumInput.closest("td").find(".error").text(res.msg);
-                    resultStatus.valid = false;
-                } else if (res.status === "expired") {
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .text("Expired Certificate Not Allowed.");
-                    resultStatus.valid = false;
-                } else if (res.status === "less_than_one_year") {
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .text(
-                            "Minimum 1 year validity is required for QC Category certificate.",
-                        );
-                    resultStatus.valid = false;
-                } else if (res.status === "invalid_wcert") {
-                    ccNumInput
-                        // .siblings(".error")
-                        .closest("td")
-                        .find(".error")
-                        .text(
-                            "Certificate must exist in Wireman Certificate register.",
-                        );
-                    resultStatus.valid = false;
-                } else if (res.status === "error") {
-                    // ✅ IMPORTANT
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .html(
-                            "Certificate is active with Contractor Licence: <b>" +
-                                res.form_name +
-                                "</b>",
-                        );
-                    resultStatus.valid = false;
-                } else {
-                    ccNumInput.closest("td").find(".error").text("");
-                    resultStatus.valid = true;
-                }
-            },
-        });
-
-        return resultStatus;
-    }
-
-    // 🚨 If LC age > 75 detected → Stop here (do NOT show global popup)
-    if (stopValidation) return;
-
-    if (!staffValid) {
-        // Swal.fire({
-        //     icon: 'warning',
-        //     width:450,
-        //     title: 'Incomplete Staff Details',
-        //     text: 'Fill all 4 staff details Properly in staff Section.',
-        //     confirmButtonText: 'OK'
-        // });
-
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return false;
-    }
-
-    if (staffCount < 4) {
-        Swal.fire({
-            icon: "warning",
-            width: 450,
-            title: "Incomplete Staff Details",
-            text: "Fill all 4 staff details correctly before adding another one.",
-            confirmButtonText: "OK",
-        });
-
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return false;
-    }
-
-    if (duplicateFound) {
-        Swal.fire({
-            icon: "error",
-            title: "Duplicate License Number",
-            html: "Two or more staff members have the same CC Number.<br>Please correct it before submitting.",
-            width: "450px",
-        });
-        isValid = false;
-    }
+   
 
     // --------------------equipment data--------------------
     let equipmentValid = true;
@@ -2653,6 +2317,7 @@ function showDeclarationPopupformA(formData) {
             formData.set("late_months", response.fees_details.late_months);
             formData.set("dbNow", response.fees_details.dbNow);
             formData.set("licenseName", response.licenseName);
+            formData.set("qcfee", response.fees_details.qcfee);
 
             // Get fee details
             let fees_start_date = response.fees_start_date;
@@ -2797,6 +2462,10 @@ function submitFormAFinal(formData, actionType) {
 
             let dbNow = formData.get("dbNow");
 
+            let qcfees = formData.get("qcfee");
+
+            alert(qcfees);
+
             let licenseName = formData.get("licenseName");
 
             const formName = $("#form_name").val();
@@ -2835,6 +2504,7 @@ function submitFormAFinal(formData, actionType) {
                     applicantName,
                     amount,
                     dbNow,
+                    qcfees,
                     licenseName,
                     formName,
                 );
@@ -2874,6 +2544,7 @@ function showPaymentInitiationPopupformA(
     applicantName,
     amount,
     dbNow,
+    qcfees,
     licenseName,
     formName,
 ) {
@@ -2906,15 +2577,20 @@ function showPaymentInitiationPopupformA(
                                                 <th style="text-align: left; padding: 6px 10px; color: #555;">Date</th>
                                                 <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${dbNow}</td>
                                             </tr>
+                                           
+                                             <tr>
+                                            <th style="text-align: left; padding: 10px; color: #333;">QC Staff Fee</th>
+                                                <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${qcfees} </td>
+                                            </tr>
                                             <tr>
-                                                    <th style="text-align: left; padding: 10px; color: #333;">Application Fees</th>
-                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${basic_fees} </td>
-                                                    </tr>
-                                                            ${lateFeeRow}
-                                                                <tr>
-                                                                    <th style="text-align: left; padding: 6px 10px; color: #555;">Total</th>
-                                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${amount}</td>
-                                                                    </tr>
+                                            <th style="text-align: left; padding: 10px; color: #333;">Application Fees</th>
+                                                <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${basic_fees} </td>
+                                            </tr>
+                                                ${lateFeeRow}
+                                             <tr>
+                                                 <th style="text-align: left; padding: 6px 10px; color: #555;">Total</th>
+                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${amount}</td>
+                                            </tr>
 
                                             
                                           
@@ -6657,8 +6333,8 @@ function validateqcstaffcertificate(e, btn) {
     let $btn = $(btn);
     let $row = $btn.closest("tr");
 
-    let licenseNumber = $.trim($row.find(".cc_number").val()).toUpperCase();
-    let validityDate = $.trim($row.find(".cc_validity").val());
+    let licenseNumber = $.trim($row.find(".cc_qc_number").val()).toUpperCase();
+    let validityDate = $.trim($row.find(".cc_qc_validity").val());
 
     let resultBox = $row.find(".competency_verify_result");
     let hiddenInput = $row.find(".staff_qccc_verify");
@@ -6977,16 +6653,16 @@ function addStaffqcRow() {
     let name = $.trim(lastRow.find('input[name="staffqc_name[]"]').val());
 
     let category = $.trim(
-        lastRow.find('input[name="staff_category[]"]').val() ||
-        lastRow.find('select[name="staff_category[]"]').val()
+        lastRow.find('input[name="staffqc_category[]"]').val() ||
+        lastRow.find('select[name="staffqc_category[]"]').val()
     );
 
     let ccNumber = $.trim(
-        lastRow.find('input[name="cc_number[]"]').val()
+        lastRow.find('input[name="cc_qc_number[]"]').val()
     );
 
     let ccValidity = $.trim(
-        lastRow.find('input[name="cc_validity[]"]').val()
+        lastRow.find('input[name="cc_qc_validity[]"]').val()
     );
 
     let uploadRow = lastRow.next('.qc-upload-row');
@@ -7025,21 +6701,21 @@ function addStaffqcRow() {
     }
 
     if (!category) {
-        lastRow.find('input[name="staff_category[]"], select[name="staff_category[]"]')
+        lastRow.find('input[name="staffqc_category[]"], select[name="staffqc_category[]"]')
             .next('.error')
             .text('Please enter Category');
         hasError = true;
     }
 
     if (!ccNumber) {
-        lastRow.find('input[name="cc_number[]"]')
+        lastRow.find('input[name="cc_qc_number[]"]')
             .next('.error')
             .text('Please enter Certificate Number');
         hasError = true;
     }
 
     if (!ccValidity) {
-        lastRow.find('input[name="cc_validity[]"]')
+        lastRow.find('input[name="cc_qc_validity[]"]')
             .next('.error')
             .text('Please select Validity Date');
         hasError = true;
@@ -7096,7 +6772,7 @@ const formCode = "{{ $form_code->id }}";
     <td>
         <input type="text"
             class="form-control"
-            name="staff_category[]"
+            name="staffqc_category[]"
             value="QC"
             readonly>
 
@@ -7105,8 +6781,8 @@ const formCode = "{{ $form_code->id }}";
 
     <td>
        <input type="text"
-       class="form-control cc_number"
-       name="cc_number[]"
+       class="form-control cc_qc_number"
+       name="cc_qc_number[]"
        oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()"
        maxlength="15"
        placeholder="Certificate No"
@@ -7123,8 +6799,8 @@ const formCode = "{{ $form_code->id }}";
 
     <td>
         <input type="date"
-            class="form-control cc_validity"
-            name="cc_validity[]">
+            class="form-control cc_qc_validity"
+            name="cc_qc_validity[]">
 
         <span class="error text-danger"></span>
     </td>

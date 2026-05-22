@@ -364,6 +364,9 @@ class FormAController extends BaseController
 
         unset($dataToSave['bank_address'], $dataToSave['bank_validity'], $dataToSave['bank_amount']);
 
+
+        // -----------QC process---------------
+
         $processedStaffIdsQC = [];
 
         if ($request->has('staffqc_name')) {
@@ -377,16 +380,17 @@ class FormAController extends BaseController
             // $processedStaffIdsQC = [];
 
             // dd($request->qc_code);exit;
+            $qc_code = 1;
 
             foreach ($request->staffqc_name as $index => $staffName) {
                 if (
                     !empty($staffName) ||
                     // !empty($request->staff_qualification[$index]) ||
-                    !empty($request->cc_number[$index]) ||
-                    !empty($request->cc_validity[$index]) 
+                    !empty($request->cc_qc_number[$index]) ||
+                    !empty($request->cc_qc_validity[$index])
                 ) {
                     $staffId = $staffIdsFromForm[$index] ?? null;
-                    $validity = $request->cc_validity[$index] ?? null;
+                    $validity = $request->cc_qc_validity[$index] ?? null;
 
                     $staffData = [
                         'application_id'      => $applicationId,
@@ -394,11 +398,11 @@ class FormAController extends BaseController
                         'form_name'            => $request->form_name,
                         'license_name'         => $request->license_name,
                         'staffname'         => strtoupper($staffName),
-                        'category' => strtoupper($request->category[$index] ?? ''),
-                        'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
-                        'cc_validity'         => $validity,
-                        'qc_code'        => $request->qc_code[$index] ?? null,
-                        
+                        'staffqc_category' => strtoupper($request->staffqc_category[$index] ?? ''),
+                        'cc_qc_number'           => strtoupper($request->cc_qc_number[$index] ?? ''),
+                        'cc_qc_validity'         => $validity,
+                        'qc_code'        => $qc_code ?? null,
+
                         'flag'      => '1',
                         // 'staff_qccc_verify'     => $request->staff_qccc_verify[$index]
                     ];
@@ -409,9 +413,9 @@ class FormAController extends BaseController
                         if (
                             strtoupper($existingStaff->staff_name) !== strtoupper($staffName) ||
                             strtoupper($existingStaff->staff_qualification) !== strtoupper($request->staff_qualification[$index] ?? '') ||
-                            strtoupper($existingStaff->cc_number) !== strtoupper($request->cc_number[$index] ?? '') ||
-                            $existingStaff->cc_validity !== $validity ||
-                            strtoupper($existingStaff->staff_category) !== strtoupper($request->staff_category[$index] ?? '')
+                            strtoupper($existingStaff->cc_qc_number) !== strtoupper($request->cc_qc_number[$index] ?? '') ||
+                            $existingStaff->cc_qc_validity !== $validity ||
+                            strtoupper($existingStaff->staffqc_category) !== strtoupper($request->staffqc_category[$index] ?? '')
                         ) {
                             $existingStaff->update($staffData);
                         }
@@ -422,8 +426,10 @@ class FormAController extends BaseController
                         $newStaff = Tnelb_EA_QC_model::create($staffData);
                         $processedStaffIdsQC[] = $newStaff->id;
                     }
+                    $qc_code++;
                 }
             }
+
 
 
 
@@ -434,7 +440,7 @@ class FormAController extends BaseController
 
 
 
-                $tempDocs = DB::table('tnelb_temp_uploaded_documents')
+            $tempDocs = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('form_name', $request->form_name)
                 ->where('license_name', $request->license_name)
@@ -444,17 +450,19 @@ class FormAController extends BaseController
 
                 ->get();
 
-                // dd($tempDocs); exit;
+            // dd($tempDocs->pluck('qc_code')->toArray());
 
             foreach ($tempDocs as $tempDoc) {
 
 
+
+
                 $matchedPartner = Tnelb_EA_QC_model::where('application_id', $applicationId)
-                    
+
                     ->where('qc_code', $tempDoc->qc_code)
                     ->first();
 
-                    // dd($matchedPartner); exit;
+                // dd($matchedPartner); exit;
 
                 if (!$matchedPartner) {
                     continue; // No match → skip
@@ -503,7 +511,7 @@ class FormAController extends BaseController
                 $matchedPartner->qc_document = $dbFilePath_all->filepath_pro . $tempDoc->file_name;
 
                 // dd($matchedPartner->qc_document);exit;
-                $matchedPartner->qc_code = $tempDoc->qc_code;
+                // $matchedPartner->qc_code = $tempDoc->qc_code;
                 $matchedPartner->save();
 
                 // -----------------------------------------
@@ -518,7 +526,6 @@ class FormAController extends BaseController
                         'updated_at' => now()
                     ]);
             }
-
         }
 
 
@@ -526,77 +533,62 @@ class FormAController extends BaseController
 
 
         if ($request->has('staff_name')) {
+
+            // dd($request->staff_category);exit;
             $processedStaffIds = [];
-            if ($request->appl_type === 'N') {
-                $staffIdsFromForm = $request->staff_id ?? [];
-                $existingStaffIds = TnelbApplicantStaffDetail::where('application_id', $applicationId)->pluck('id')->toArray();
 
-                // $processedStaffIds = [];
+            $staffIdsFromForm = $request->staff_id ?? [];
+            $existingStaffIds = TnelbApplicantStaffDetail::where('application_id', $applicationId)->pluck('id')->toArray();
 
-                foreach ($request->staff_name as $index => $staffName) {
-                    if (
-                        !empty($staffName) ||
-                        // !empty($request->staff_qualification[$index]) ||
-                        !empty($request->cc_number[$index]) ||
-                        !empty($request->cc_validity[$index]) ||
-                        !empty($request->staff_category[$index])
-                    ) {
-                        $staffId = $staffIdsFromForm[$index] ?? null;
-                        $validity = $request->cc_validity[$index] ?? null;
+            // $processedStaffIds = [];
 
-                        $staffData = [
-                            'application_id'      => $applicationId,
-                            'login_id'            => $request->login_id_store,
-                            'staff_name'          => strtoupper($staffName),
-                            'staff_qualification' => strtoupper($request->staff_qualification[$index] ?? ''),
-                            'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
-                            'cc_validity'         => $validity,
-                            'staff_category'      => strtoupper($request->staff_category[$index] ?? ''),
-                            'staff_cc_verify'     => $request->staff_cc_verify[$index]
-                        ];
+            foreach ($request->staff_name as $index => $staffName) {
+                if (
+                    !empty($staffName) ||
+                    // !empty($request->staff_qualification[$index]) ||
+                    !empty($request->cc_number[$index]) ||
+                    !empty($request->cc_validity[$index]) ||
+                    !empty($request->staff_category[$index]) ||
+                    !empty($request->designation[$index])
+                ) {
+                    $staffId = $staffIdsFromForm[$index] ?? null;
+                    $validity = $request->cc_validity[$index] ?? null;
 
-                        if ($staffId && in_array($staffId, $existingStaffIds)) {
-                            $existingStaff = TnelbApplicantStaffDetail::find($staffId);
+                    $staffData = [
+                        'application_id'      => $applicationId,
+                        'login_id'            => $request->login_id_store,
+                        'staff_name'          => strtoupper($staffName),
+                        'staff_qualification' => strtoupper($request->staff_qualification[$index] ?? ''),
+                        'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
+                        'cc_validity'         => $validity,
+                        'staff_category'      => strtoupper($request->staff_category[$index] ?? ''),
+                        'staff_cc_verify'     => $request->staff_cc_verify[$index],
+                        'designation'     => $request->designation[$index]
+                    ];
 
-                            if (
-                                strtoupper($existingStaff->staff_name) !== strtoupper($staffName) ||
-                                strtoupper($existingStaff->staff_qualification) !== strtoupper($request->staff_qualification[$index] ?? '') ||
-                                strtoupper($existingStaff->cc_number) !== strtoupper($request->cc_number[$index] ?? '') ||
-                                $existingStaff->cc_validity !== $validity ||
-                                strtoupper($existingStaff->staff_category) !== strtoupper($request->staff_category[$index] ?? '')
-                            ) {
-                                $existingStaff->update($staffData);
-                            }
+                    if ($staffId && in_array($staffId, $existingStaffIds)) {
+                        $existingStaff = TnelbApplicantStaffDetail::find($staffId);
 
-                            $processedStaffIds[] = $staffId;
-                        } else {
-                            // Create new entry
-                            $newStaff = TnelbApplicantStaffDetail::create($staffData);
-                            $processedStaffIds[] = $newStaff->id;
+                        if (
+                            strtoupper($existingStaff->staff_name) !== strtoupper($staffName) ||
+                            strtoupper($existingStaff->staff_qualification) !== strtoupper($request->staff_qualification[$index] ?? '') ||
+                            strtoupper($existingStaff->cc_number) !== strtoupper($request->cc_number[$index] ?? '') ||
+                            $existingStaff->cc_validity !== $validity ||
+                            strtoupper($existingStaff->staff_category) !== strtoupper($request->staff_category[$index] ?? '') ||
+                            strtoupper($existingStaff->designation) !== strtoupper($request->designation[$index] ?? '')
+                        ) {
+                            $existingStaff->update($staffData);
                         }
-                    }
-                }
-            } elseif ($request->appl_type === 'R') {
-                foreach ($request->staff_name as $index => $staffName) {
-                    if (!empty($staffName) || !empty($request->cc_number[$index]) || !empty($request->cc_validity[$index]) || !empty($request->staff_category[$index])) {
 
-                        $validity = $request->cc_validity[$index] ?? null;
-
-                        $staffData = [
-                            'application_id'      => $applicationId,
-                            'login_id'            => $request->login_id_store,
-                            'staff_name'          => strtoupper($staffName),
-                            'staff_qualification' => strtoupper($request->staff_qualification[$index] ?? ''),
-                            'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
-                            'cc_validity'         => $validity,
-                            'staff_category'      => strtoupper($request->staff_category[$index] ?? ''),
-                            'staff_cc_verify'     => $request->staff_cc_verify[$index] ?? null
-                        ];
-
-                        TnelbApplicantStaffDetail::create($staffData);
+                        $processedStaffIds[] = $staffId;
+                    } else {
+                        // Create new entry
+                        $newStaff = TnelbApplicantStaffDetail::create($staffData);
+                        $processedStaffIds[] = $newStaff->id;
                     }
                 }
             }
+
 
 
             // Remove deleted staff
@@ -1397,7 +1389,7 @@ class FormAController extends BaseController
                 if (!empty($directorId)) {
 
 
-                
+
 
                     ProprietorformA::where('id', $directorId)
                         ->update($data);
@@ -1833,6 +1825,9 @@ class FormAController extends BaseController
             // =======================================================
 
             // if ($request->has('equipments')) {
+            // =======================================================
+            // 8️⃣ MOVE EQUIPMENT FILES + INSERT/UPDATE INTO PERMANENT TABLE
+            // =======================================================
 
             $dbFilePath_all = DocPathController::getPath($request);
             $proFolderPath  = public_path($dbFilePath_all->filepath_pro);
@@ -1850,12 +1845,6 @@ class FormAController extends BaseController
                 ->get()
                 ->groupBy('equip_code');
 
-            // Delete old records
-            DB::table('tnelb_equimentsuser_cl')
-                ->where('application_id', $applicationId)
-                ->delete();
-
-            // Loop equipments
             foreach ($request->equipments as $index => $equipment) {
 
                 if (
@@ -1873,24 +1862,31 @@ class FormAController extends BaseController
                 $modelNo    = $request->model[$index] ?? null;
                 $dateOfTest = $request->date_of_test[$index] ?? null;
 
+                // ===================================================
+                // GET EXISTING RECORD TO PRESERVE OLD FILES
+                // ===================================================
+
+                $existingEquipment = DB::table('tnelb_equimentsuser_cl')
+                    ->where('application_id', $applicationId)
+                    ->where('equipment_id', $equipmentId)
+                    ->first();
+
+                $testReportPath = $existingEquipment->testreport_file ?? null;
+                $purchaseReportPath = $existingEquipment->purchasereport_file ?? null;
+
                 $equipmentDocs = $allEquipmentDocs[$equipmentId] ?? collect();
 
-                // ✅ Get latest files only
+                // ===================================================
+                // TEST REPORT
+                // ===================================================
+
                 $testDoc = $equipmentDocs
                     ->where('document_category', 'instrument_test_report')
                     ->sortByDesc('id')
                     ->first();
 
-                $purchaseDoc = $equipmentDocs
-                    ->where('document_category', 'instrument_purchase_report')
-                    ->sortByDesc('id')
-                    ->first();
-
-                $testReportPath = null;
-                $purchaseReportPath = null;
-                // dd($equipmentDocs->pluck('document_category'));exit;
-                // ✅ Move and assign TEST REPORT
                 if ($testDoc) {
+
                     $tempFullPath = public_path($testDoc->file_path . '/' . $testDoc->file_name);
                     $proFullPath  = $proFolderPath . '/' . $testDoc->file_name;
 
@@ -1909,8 +1905,17 @@ class FormAController extends BaseController
                         ]);
                 }
 
-                // ✅ Move and assign PURCHASE REPORT
+                // ===================================================
+                // PURCHASE REPORT
+                // ===================================================
+
+                $purchaseDoc = $equipmentDocs
+                    ->where('document_category', 'instrument_purchase_report')
+                    ->sortByDesc('id')
+                    ->first();
+
                 if ($purchaseDoc) {
+
                     $tempFullPath = public_path($purchaseDoc->file_path . '/' . $purchaseDoc->file_name);
                     $proFullPath  = $proFolderPath . '/' . $purchaseDoc->file_name;
 
@@ -1929,23 +1934,30 @@ class FormAController extends BaseController
                         ]);
                 }
 
-                // ✅ FINAL INSERT (Correct)
-                DB::table('tnelb_equimentsuser_cl')->insert([
-                    'login_id'            => $request->login_id_store ?? null,
-                    'application_id'      => $applicationId,
-                    'form_name'           => $request->form_name,
-                    'license_name'        => $request->license_name,
-                    'licence_id'          => $licenceId,
-                    'equipment_id'        => $equipmentId,
-                    'serial_no'           => $serialNo,
-                    'model_no'            => $modelNo,
-                    'testreport_file'     => $testReportPath,
-                    'purchasereport_file' => $purchaseReportPath,
-                    'dateoftest'          => $dateOfTest,
-                    'ipaddress'           => $request->ip(),
-                    'created_at'          => now(),
-                    'updated_at'          => now(),
-                ]);
+                // ===================================================
+                // INSERT OR UPDATE RECORD
+                // ===================================================
+
+                DB::table('tnelb_equimentsuser_cl')->updateOrInsert(
+                    [
+                        'application_id' => $applicationId,
+                        'equipment_id'   => $equipmentId,
+                    ],
+                    [
+                        'login_id'            => $request->login_id_store,
+                        'form_name'           => $request->form_name,
+                        'license_name'        => $request->license_name,
+                        'licence_id'          => $licenceId,
+                        'serial_no'           => $serialNo,
+                        'model_no'            => $modelNo,
+                        'testreport_file'     => $testReportPath,
+                        'purchasereport_file' => $purchaseReportPath,
+                        'dateoftest'          => $dateOfTest,
+                        'ipaddress'           => $request->ip(),
+                        'updated_at'          => now(),
+                        'created_at'          => now(),
+                    ]
+                );
             }
             // }
 
@@ -2080,6 +2092,7 @@ class FormAController extends BaseController
                 // HH24:MI:SS
                 $dbNow  = DB::selectOne("SELECT TO_CHAR(NOW(), 'DD-MM-YYYY ') AS db_now")->db_now;
                 $fees_details['dbNow'] = $dbNow;
+                $fees_details['qcfee'] = $paymentDetails[0]->qcfee;
                 $fees_details['total_fees'] = $paymentDetails[0]->total_fee;
                 $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
@@ -2087,7 +2100,7 @@ class FormAController extends BaseController
 
                 // $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
-                // dd($fees_details['basic_fees']);
+                // dd($fees_details['qcfee']);
                 // exit;
 
             }
@@ -2758,11 +2771,12 @@ class FormAController extends BaseController
 
 
         // --------------------------QC Details------------------------------------------
-         $processedStaffIdsQC = [];
+        $processedStaffIdsQC = [];
 
         if ($request->has('staffqc_name')) {
 
-        dd('QC Details');exit;
+            dd('QC Details');
+            exit;
 
 
             $staffIdsFromForm = $request->staff_id ?? [];
@@ -3313,6 +3327,7 @@ class FormAController extends BaseController
                 // HH24:MI:SS
                 $dbNow  = DB::selectOne("SELECT TO_CHAR(NOW(), 'DD-MM-YYYY ') AS db_now")->db_now;
                 $fees_details['dbNow'] = $dbNow;
+
                 $fees_details['total_fees'] = $paymentDetails[0]->total_fee;
                 $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
@@ -3459,10 +3474,13 @@ class FormAController extends BaseController
                 // HH24:MI:SS
                 $dbNow  = DB::selectOne("SELECT TO_CHAR(NOW(), 'DD-MM-YYYY ') AS db_now")->db_now;
                 $fees_details['dbNow'] = $dbNow;
+                
                 $fees_details['total_fees'] = $paymentDetails[0]->total_fee;
                 $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
+
+                $fees_details['qcfee'] = $paymentDetails[0]->qcfee;
 
                 // $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
