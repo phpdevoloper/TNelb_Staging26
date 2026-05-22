@@ -716,7 +716,7 @@
                                                         }
                                                     }
                                                     $expColspan = $isFormS
-                                                        ? (7 + ($hasContractorRow ? 1 : 0))
+                                                        ? (9 + ($hasContractorRow ? 1 : 0))
                                                         : 3;
                                                 @endphp
                                                 <h6 class="asp-section-title">Work Experience</h6>
@@ -731,14 +731,16 @@
                                                                     @if ($hasContractorRow)
                                                                         <th rowspan="2">Intimation Date</th>
                                                                     @endif
-                                                                    <th colspan="3">Year of Experience</th>
+                                                                    <th colspan="5">Year of Experience</th>
                                                                     <th rowspan="2">Designation</th>
                                                                     <th rowspan="2">Document Upload</th>
                                                                 </tr>
                                                                 <tr>
                                                                     <th>From (Date)</th>
                                                                     <th>To (Date)</th>
-                                                                    <th>Total Yrs</th>
+                                                                    <th>Yrs</th>
+                                                                    <th>Mo</th>
+                                                                    <th>Days</th>
                                                                 </tr>
                                                             @else
                                                                 <tr>
@@ -759,6 +761,37 @@
                                                                         $fromDate = !empty($experience->from_date) ? \Carbon\Carbon::parse($experience->from_date)->format('d-m-Y') : '-';
                                                                         $toDate = !empty($experience->to_date) ? \Carbon\Carbon::parse($experience->to_date)->format('d-m-Y') : '-';
                                                                         $intimationDate = !empty($experience->intimation_date) ? \Carbon\Carbon::parse($experience->intimation_date)->format('d-m-Y') : '-';
+                                                                        $expY = $experience->total_y;
+                                                                        $expM = $experience->total_m;
+                                                                        $expD = $experience->total_d;
+                                                                        if ($expY === null && $expM === null && $expD === null && !empty($experience->from_date) && !empty($experience->to_date)) {
+                                                                            $from = \Carbon\Carbon::parse($experience->from_date)->startOfDay();
+                                                                            $to = \Carbon\Carbon::parse($experience->to_date)->startOfDay();
+                                                                            if ($to->gte($from)) {
+                                                                                $expY = $to->year - $from->year;
+                                                                                $expM = $to->month - $from->month;
+                                                                                $expD = $to->day - $from->day;
+                                                                                if ($expD < 0) {
+                                                                                    $expM--;
+                                                                                    $expD += \Carbon\Carbon::create($to->year, $to->month, 1)->subDay()->day;
+                                                                                }
+                                                                                if ($expM < 0) {
+                                                                                    $expY--;
+                                                                                    $expM += 12;
+                                                                                }
+                                                                                if ($expD < 0) {
+                                                                                    $expM--;
+                                                                                    if ($expM < 0) {
+                                                                                        $expY--;
+                                                                                        $expM += 12;
+                                                                                    }
+                                                                                    $expD += \Carbon\Carbon::create($to->year, $to->month, 1)->subDay()->day;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        $expY = $expY ?? 0;
+                                                                        $expM = $expM ?? 0;
+                                                                        $expD = $expD ?? 0;
                                                                     @endphp
                                                                     <td class="col-wrap">{{ $index + 1 }}</td>
                                                                     <td class="col-wrap">{{ $empTypeLabel }}</td>
@@ -768,7 +801,9 @@
                                                                     @endif
                                                                     <td class="col-wrap">{{ $fromDate }}</td>
                                                                     <td class="col-wrap">{{ $toDate }}</td>
-                                                                    <td class="col-wrap">{{ $experience->total_exp ?? $experience->experience ?? 0 }}</td>
+                                                                    <td class="col-wrap">{{ $expY }}</td>
+                                                                    <td class="col-wrap">{{ $expM }}</td>
+                                                                    <td class="col-wrap">{{ $expD }}</td>
                                                                     <td class="col-wrap">{{ $experience->designation ?? '-' }}</td>
                                                                     <td class="col-doc">
                                                                         @if (!empty($experience->upload_document))

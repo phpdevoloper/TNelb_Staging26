@@ -1028,24 +1028,16 @@ $(document).ready(function() {
             // `.remove_verify` strips the "Delete" button that appears next to an already-verified license (Q7/Q8) so the preview stays read-only.
             // `#ProceedtoPayment` and `.fs-action-bar` strip Form P's bottom Save-Draft / Preview-&-Proceed bar so the SweetAlert footer (Pay Now / Edit Details) is the only set of actions in the popup.
             // `.remove-docs`, `.remove-doc_edu`, `.remove-doc_work`, `.remove-doc_inst` strip the per-document "Remove" button next to existing-doc View links.
-            $clone.find('#submitPaymentBtn, #ProceedtoPayment, .fs-action-bar, .submit-payment, .save-draft, .add-more, .add-more-education, .add-more-work, .add-more-institute, .remove-education, .remove-work, .remove-institute, .remove_edu, .remove_exp, .remove_inst, .remove-doc_edu_confirm, .remove-doc_edu, .remove-doc_work, .remove-doc_inst, .remove-work-doc-confirm, .remove-aadhaar-doc, .remove-pan-doc, .remove-docs, .verify-btn, .remove_verify, [onclick*="togglePhotoInput"], [onclick*="toggleSignInput"], [onclick*="verify_form"], [onclick*="verify_form_s"]').remove();
+            $clone.find('#submitPaymentBtn, #ProceedtoPayment, .fs-action-bar, .submit-payment, .save-draft, .add-more, .add-more-education, .add-more-work, .add-more-institute, .remove-education, .remove-work, .remove-institute, .remove_edu, .remove_exp, .remove_inst, .remove-doc_edu_confirm, .remove-doc_edu, .remove-doc_work, .remove-doc_inst, .remove-work-doc-confirm, .remove-aadhaar-doc, .remove-pan-doc, .remove-docs, .verify-btn, .remove_verify, .fs-section-edit-toggle, [onclick*="togglePhotoInput"], [onclick*="toggleSignInput"], [onclick*="verify_form"], [onclick*="verify_form_s"]').remove();
             $clone.find('input, textarea, select, button').prop('disabled', true);
             $clone.find('input[type="checkbox"], input[type="radio"]').each(function () {
                 this.disabled = true;
             });
-            // Keep declaration checkbox interactive for user confirmation in preview.
-            $clone.find('#declarationCheckbox').prop('disabled', false).prop('checked', false);
-            if ($clone.find('#previewDeclarationError').length === 0) {
-                const $declHost = $clone.find('#declarationCheckbox').closest('.declaration-container');
-                if ($declHost.length) {
-                    $declHost.after('<div id="previewDeclarationError" class="text-danger mt-1" style="display:none; font-size:0.82rem; line-height:1.25;">Please check the declaration before clicking Pay Now.</div>');
-                } else {
-                    $clone.find('#declarationCheckbox').parent().after('<div id="previewDeclarationError" class="text-danger mt-1" style="display:none; font-size:0.82rem; line-height:1.25;">Please check the declaration before clicking Pay Now.</div>');
-                }
-            }
+            // The declaration block is not part of the read-only preview document.
+            $clone.find('.fs-declaration').remove();
             $clone.find('input[type="file"]').closest('.form-s-file-upload-wrap, .file-section').addClass('preview-file-block');
             $clone.find('.error-message, .certificate-error').remove();
-            $clone.find('.text-danger').not('#previewDeclarationError').remove();
+            $clone.find('.text-danger').remove();
             // The work-experience table's actions column (Add row / Remove row buttons) is
             // emptied by the .add-more-work / .remove-work cleanup above, leaving a blank
             // trailing column in the preview. Drop the entire column (header + body cells).
@@ -1102,11 +1094,22 @@ $(document).ready(function() {
                 }
                 value = (value || '-').toString().toUpperCase();
 
-                const $container = $group.first().closest('td, .col-12, .col-md-2, .col-md-3, .col-md-4');
-                if ($container.length) {
-                    $container.empty().append($('<div class="preview-value preview-value-inline text-center"></div>').text(value));
+                // The radio set lives inside `.fs-radio-group`; replace just that wrapper
+                // so any sibling detail panel (shown for a "Yes" answer) is preserved.
+                const $radioWrap = $group.first().closest('.fs-radio-group');
+                if ($radioWrap.length) {
+                    $radioWrap.empty().append($('<div class="preview-value"></div>').text(value));
                 } else {
-                    $group.remove();
+                    const $container = $group.first().closest('td, .col-12, .col-md-2, .col-md-3, .col-md-4');
+                    if ($container.length) {
+                        $container.empty().append($('<div class="preview-value preview-value-inline text-center"></div>').text(value));
+                    } else {
+                        // No safe wrapper — drop each radio together with its label.
+                        $group.each(function () {
+                            const $fc = $(this).closest('.form-check, .form-check-inline');
+                            ($fc.length ? $fc : $(this)).remove();
+                        });
+                    }
                 }
             });
 
@@ -1114,7 +1117,6 @@ $(document).ready(function() {
             $clone.find('input:not([type="hidden"]):not([type="file"]):not([type="radio"]), select, textarea').each(function () {
                 const el = this;
                 const $el = $(el);
-                if ($el.attr('id') === 'declarationCheckbox') return; // keep declaration checkbox
                 const value = toDisplayValue(el);
                 const cls = $el.attr('class') || '';
                 const display = $('<div class="preview-value"></div>').text(value);
@@ -1158,6 +1160,10 @@ $(document).ready(function() {
             // Hide helper wrappers/empty blocks after conversion.
             $clone.find('.form-s-file-upload-wrap').remove();
             $clone.find('.file-section:empty').remove();
+            // Photo / signature upload controls (file picker, size hints, "Change" buttons)
+            // are not relevant in the preview — keep only the rendered image. Done after the
+            // file-input pass above so its source/clone index matching stays intact.
+            $clone.find('.fs-upload-controls').remove();
             const formTypeCode = (
                 $sourceForm.find('input[name="form_name"]').val() ||
                 $sourceForm.find('#form_name').val() ||
@@ -1177,8 +1183,39 @@ $(document).ready(function() {
                 ''
             ).trim();
 
+            // ── Document-style preview header data ──────────────────
+            const escPreview = (s) => $('<div>').text((s === null || s === undefined) ? '' : String(s)).html();
+            const previewDocTitle = escPreview(previewFormTitle || 'Competency Certificate');
+            const rawPreviewAppId = (
+                $sourceForm.find('#application_id').val() ||
+                $sourceForm.find('input[name="application_id"]').val() ||
+                ''
+            ).toString().trim();
+            const previewDocAppId = rawPreviewAppId ? escPreview(rawPreviewAppId) : 'Not yet generated';
+            const rawPreviewName = (
+                $sourceForm.find('#Applicant_Name').val() ||
+                $sourceForm.find('input[name="applicant_name"]').val() ||
+                $sourceForm.find('[data-view-for="Applicant_Name"]').first().text() ||
+                ''
+            ).toString().trim();
+            const previewDocName = rawPreviewName ? escPreview(rawPreviewName) : '—';
+            const previewDocDate = (() => {
+                const d = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+            })();
+
+            // The lead applicant block has only in-grid field heads — give it a clean document heading.
+            let previewSectionTitled = false;
+            $clone.find('.fs-section').each(function () {
+                const $sec = $(this);
+                if ($sec.find('.fs-section-header, .head_label, .preview-section-title').length) return;
+                if (previewSectionTitled) return;
+                previewSectionTitled = true;
+                $sec.prepend('<div class="preview-section-title">Applicant / Personal Details</div>');
+            });
+
             const result = await Swal.fire({
-                title: 'Preview Form',
                 html: `
                     <style>
                         .swal2-popup.preview-theme-popup {
@@ -1186,13 +1223,13 @@ $(document).ready(function() {
                             padding-top: 1.05rem;
                         }
                         .preview-modal-wrap {
-                            max-height: 72vh;
+                            max-height: 70vh;
                             overflow: auto;
                             text-align: left;
-                            padding: 12px 12px 8px;
-                            background: #f8fbff;
-                            border-radius: 12px;
-                            border: 1px solid #e7eef8;
+                            padding: 16px 22px 14px;
+                            background: #ffffff;
+                            border-radius: 10px;
+                            border: 1px solid #e6ebf2;
                         }
                         .preview-modal-wrap .row {
                             background: transparent;
@@ -1222,15 +1259,21 @@ $(document).ready(function() {
                             padding-bottom: 0;
                         }
                         .preview-modal-wrap .head_label {
-                            background: linear-gradient(90deg, #0d6efd 0%, #198754 100%);
-                            color: #fff;
-                            border-radius: 8px;
-                            margin: 0 0 8px !important;
-                            padding: 7px 10px !important;
+                            background: transparent;
+                            border: 0;
+                            border-bottom: 1.5px solid #d8e2f0;
+                            border-radius: 0;
+                            margin: 16px 0 10px !important;
+                            padding: 0 0 5px !important;
                         }
-                        .preview-modal-wrap .head_label label,
+                        .preview-modal-wrap .head_label label {
+                            color: #1f3a63 !important;
+                            font-size: 0.92rem !important;
+                            font-weight: 800 !important;
+                            margin-bottom: 2px;
+                        }
                         .preview-modal-wrap .head_label .tamil {
-                            color: #fff !important;
+                            color: #6b7894 !important;
                             margin-bottom: 2px;
                         }
                         .preview-modal-wrap label,
@@ -1304,24 +1347,24 @@ $(document).ready(function() {
                             padding: 8px 16px !important;
                         }
                         .preview-modal-wrap .preview-value {
-                            min-height: 34px;
-                            padding: 7px 10px;
-                            border-radius: 6px;
-                            background: #ffffff;
-                            border: 1px solid #dfe8f6;
+                            min-height: 0;
+                            padding: 1px 0 5px;
+                            border-radius: 0;
+                            background: transparent;
+                            border: 0;
                             color: #1f2d3d;
-                            font-weight: 500;
-                            line-height: 1.25;
-                            display: flex;
-                            align-items: center;
+                            font-weight: 600;
+                            line-height: 1.4;
+                            display: block;
                             word-break: break-word;
+                            overflow-wrap: anywhere;
                             font-family: inherit !important;
-                            font-size: 0.84rem;
+                            font-size: 0.9rem;
                         }
                         .preview-modal-wrap .preview-value-sm {
-                            min-height: 30px;
-                            padding: 6px 8px;
-                            font-size: 0.86rem;
+                            min-height: 0;
+                            padding: 1px 0 4px;
+                            font-size: 0.88rem;
                         }
                         /* Form S — work experience Yrs/Mo/Days: prevent digit wrap in narrow SweetAlert clone */
                         .preview-modal-wrap #work-table .work-exp-col-years .work-exp-inline {
@@ -1392,19 +1435,297 @@ $(document).ready(function() {
                         .preview-modal-wrap [class*="col-sm-"] {
                             margin-bottom: 6px;
                         }
-                        .preview-form-subtitle {
+                        /* ── Document header ─────────────────────────────── */
+                        .preview-doc-headwrap {
+                            position: relative;
+                            padding-top: 2px;
+                        }
+                        .preview-print-btn {
+                            position: absolute;
+                            top: 0;
+                            right: 0;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 5px;
+                            background: #1f3a63;
+                            color: #fff;
+                            border: 0;
+                            border-radius: 5px;
+                            padding: 6px 13px;
+                            font-size: 0.78rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                            font-family: inherit;
+                        }
+                        .preview-print-btn:hover { background: #16294a; }
+                        .preview-doc-head {
                             text-align: center;
-                            font-size: 1.08rem;
+                            padding: 2px 80px 12px;
+                            border-bottom: 2px solid #1f3a63;
+                        }
+                        .preview-doc-org {
+                            font-size: 0.72rem;
                             font-weight: 700;
-                            color: #2a3f5f;
-                            margin: 0 0 10px;
-                            line-height: 1.35;
+                            letter-spacing: .6px;
+                            text-transform: uppercase;
+                            color: #5a6b85;
+                        }
+                        .preview-doc-formtitle {
+                            font-size: 1.12rem;
+                            font-weight: 800;
+                            color: #1f3a63;
+                            margin-top: 3px;
+                            line-height: 1.3;
+                        }
+                        .preview-doc-tag {
+                            display: inline-block;
+                            margin-top: 6px;
+                            font-size: 0.7rem;
+                            font-weight: 600;
+                            letter-spacing: .8px;
+                            text-transform: uppercase;
+                            color: #8a98ad;
+                        }
+                        .preview-doc-meta {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 10px 30px;
+                            padding: 12px 4px 14px;
+                            margin-bottom: 4px;
+                            border-bottom: 1px solid #e6ebf2;
+                        }
+                        .pd-meta-item {
+                            display: flex;
+                            flex-direction: column;
+                            min-width: 120px;
+                        }
+                        .pd-meta-k {
+                            font-size: 0.64rem;
+                            font-weight: 700;
+                            letter-spacing: .5px;
+                            text-transform: uppercase;
+                            color: #8a98ad;
+                        }
+                        .pd-meta-v {
+                            font-size: 0.9rem;
+                            font-weight: 700;
+                            color: #1f2d3d;
+                            margin-top: 3px;
+                            word-break: break-word;
+                        }
+                        .pd-status {
+                            display: inline-block;
+                            background: #fff3d6;
+                            color: #8a6100;
+                            border-radius: 4px;
+                            padding: 1px 9px;
+                            font-size: 0.8rem;
+                            font-weight: 700;
+                        }
+                        @media (max-width: 560px) {
+                            .preview-doc-head { padding: 32px 4px 12px; }
+                            .preview-print-btn { font-size: 0.72rem; padding: 5px 9px; }
+                        }
+                        /* ── Section headings ────────────────────────────── */
+                        .preview-modal-wrap .preview-section-title {
+                            font-size: 0.92rem;
+                            font-weight: 800;
+                            color: #1f3a63;
+                            text-transform: uppercase;
+                            letter-spacing: .3px;
+                            border-bottom: 1.5px solid #d8e2f0;
+                            padding: 6px 0 5px;
+                            margin: 4px 0 12px;
+                        }
+                        .preview-modal-wrap .fs-section-header {
+                            background: transparent !important;
+                            border: 0 !important;
+                            border-bottom: 1.5px solid #d8e2f0 !important;
+                            border-radius: 0 !important;
+                            padding: 6px 0 6px !important;
+                            margin: 16px 0 12px !important;
+                        }
+                        .preview-modal-wrap .fs-section-header.fs-section-header--in-grid {
+                            margin: 4px 0 8px !important;
+                            border-bottom: 0 !important;
+                        }
+                        .preview-modal-wrap .fs-section-title {
+                            font-size: 0.92rem !important;
+                            font-weight: 800 !important;
+                            color: #1f3a63 !important;
+                        }
+                        .preview-modal-wrap .fs-section-header--in-grid .fs-section-title {
+                            font-size: 0.84rem !important;
+                        }
+                        .preview-modal-wrap .fs-section-tamil,
+                        .preview-modal-wrap .fs-field-tamil {
+                            color: #6b7894 !important;
+                            font-size: 0.74rem !important;
+                            font-weight: 400 !important;
+                        }
+                        .preview-modal-wrap .fs-section-num,
+                        .preview-modal-wrap .fs-field-num {
+                            background: #eef2f8 !important;
+                            color: #5a6b85 !important;
+                            width: 20px !important;
+                            height: 20px !important;
+                            min-width: 20px !important;
+                            font-size: 0.68rem !important;
+                            box-shadow: none !important;
+                            flex-shrink: 0;
+                        }
+                        /* ── Field values: plain text, no input boxes ────── */
+                        .preview-modal-wrap .fs-view-grid-value-box {
+                            background: transparent !important;
+                            border: 0 !important;
+                            border-radius: 0 !important;
+                            padding: 1px 0 5px !important;
+                            min-height: 0 !important;
+                        }
+                        .preview-modal-wrap .fs-view-value,
+                        .preview-modal-wrap .fs-view-grid-value {
+                            font-size: 0.9rem !important;
+                            font-weight: 600 !important;
+                            color: #1f2d3d !important;
+                            line-height: 1.4 !important;
+                            word-break: break-word;
+                        }
+                        .preview-modal-wrap .fs-view-value--empty {
+                            font-weight: 400 !important;
+                            color: #9aa7bd !important;
+                            font-style: italic;
+                        }
+                        .preview-modal-wrap .fs-field-head,
+                        .preview-modal-wrap .fs-field-label {
+                            margin-bottom: 3px;
+                        }
+                        .preview-modal-wrap .fs-dob-age-badge-row {
+                            border: 0 !important;
+                            background: transparent !important;
+                            padding: 0 !important;
+                        }
+                        /* ── Tight, left-aligned label / value pairs ─────── */
+                        .preview-modal-wrap .fs-field-head .fs-section-num,
+                        .preview-modal-wrap .fs-field-head .fs-field-num {
+                            display: none !important;
+                        }
+                        .preview-modal-wrap .fs-field-head {
+                            margin-bottom: 2px !important;
+                        }
+                        .preview-modal-wrap .fs-field-label {
+                            margin-bottom: 1px !important;
+                        }
+                        .preview-modal-wrap .fs-field-tamil {
+                            margin-top: 0 !important;
+                            margin-bottom: 3px !important;
+                        }
+                        .preview-modal-wrap .fs-view-block { padding: 0 !important; }
+                        .preview-modal-wrap .fs-view-grid-value-box { padding: 0 !important; }
+                        /* ── Photo / signature: show only the rendered image ─ */
+                        .preview-modal-wrap .fs-upload-card {
+                            display: block !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            background: transparent !important;
+                            border: 0 !important;
+                            box-shadow: none !important;
+                            min-height: 0 !important;
+                        }
+                        .preview-modal-wrap .fs-upload-preview {
+                            display: inline-block !important;
+                            margin: 0 !important;
+                            padding: 4px !important;
+                            background: #fff !important;
+                            border: 1px solid #e6ebf2 !important;
+                            border-radius: 6px !important;
+                            min-height: 0 !important;
+                            min-width: 0 !important;
+                        }
+                        .preview-modal-wrap .fs-upload-preview img {
+                            display: block;
+                            max-width: 150px;
+                            height: auto;
+                        }
+                        .preview-modal-wrap .fs-upload-placeholder {
+                            color: #9aa7bd;
+                            font-size: 0.8rem;
+                        }
+                        /* ── Print: render as a standalone document ──────── */
+                        @media print {
+                            body * { visibility: hidden !important; }
+                            .swal2-container,
+                            .swal2-container * { visibility: visible !important; }
+                            .swal2-container {
+                                position: absolute !important;
+                                left: 0 !important;
+                                top: 0 !important;
+                                right: 0 !important;
+                                width: 100% !important;
+                                height: auto !important;
+                                padding: 0 !important;
+                                margin: 0 !important;
+                                background: #fff !important;
+                                display: block !important;
+                            }
+                            .swal2-popup.preview-theme-popup {
+                                box-shadow: none !important;
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                margin: 0 !important;
+                                padding: 12px !important;
+                                display: block !important;
+                            }
+                            .swal2-html-container {
+                                overflow: visible !important;
+                                margin: 0 !important;
+                                max-height: none !important;
+                            }
+                            .preview-modal-wrap {
+                                max-height: none !important;
+                                overflow: visible !important;
+                                border: 0 !important;
+                                padding: 6px 0 0 !important;
+                            }
+                            .swal2-actions,
+                            .preview-print-btn,
+                            .swal2-title,
+                            .swal2-close { display: none !important; }
+                            .preview-modal-wrap .fs-section,
+                            .preview-modal-wrap .table { page-break-inside: auto; }
+                            @page { margin: 12mm; }
                         }
                     </style>
-                    ${previewFormTitle ? `<div class="preview-form-subtitle">${$('<div>').text(previewFormTitle).html()}</div>` : ''}
+                    <div class="preview-doc-headwrap">
+                        <button type="button" id="previewPrintBtn" class="preview-print-btn" title="Print preview">
+                            <i class="fa fa-print" aria-hidden="true"></i> Print
+                        </button>
+                        <div class="preview-doc-head">
+                            <div class="preview-doc-org">Tamil Nadu Electrical Licencing Board</div>
+                            <div class="preview-doc-formtitle">${previewDocTitle}</div>
+                            <div class="preview-doc-tag">Application Preview</div>
+                        </div>
+                    </div>
+                    <div class="preview-doc-meta">
+                        <div class="pd-meta-item">
+                            <span class="pd-meta-k">Application ID</span>
+                            <span class="pd-meta-v">${previewDocAppId}</span>
+                        </div>
+                        <div class="pd-meta-item">
+                            <span class="pd-meta-k">Applicant Name</span>
+                            <span class="pd-meta-v">${previewDocName}</span>
+                        </div>
+                        <div class="pd-meta-item">
+                            <span class="pd-meta-k">Status</span>
+                            <span class="pd-meta-v"><span class="pd-status">Pending Payment</span></span>
+                        </div>
+                        <div class="pd-meta-item">
+                            <span class="pd-meta-k">Date</span>
+                            <span class="pd-meta-v">${previewDocDate}</span>
+                        </div>
+                    </div>
                     <div id="fullFormPreviewMount" class="preview-modal-wrap"></div>
                 `,
-                width: '92%',
+                width: '900px',
                 customClass: {
                     popup: 'preview-theme-popup',
                     actions: 'preview-actions',
@@ -1415,19 +1736,6 @@ $(document).ready(function() {
                 buttonsStyling: false,
                 confirmButtonText: 'Pay Now',
                 cancelButtonText: 'Edit Details',
-                preConfirm: () => {
-                    const mount = document.getElementById('fullFormPreviewMount');
-                    const declaration = mount ? mount.querySelector('#declarationCheckbox') : null;
-                    const declarationError = mount ? mount.querySelector('#previewDeclarationError') : null;
-                    if (declarationError) declarationError.style.display = 'none';
-                    if (declaration && !declaration.checked) {
-                        if (declarationError) {
-                            declarationError.style.display = 'block';
-                        }
-                        return false;
-                    }
-                    return true;
-                },
                 didOpen: () => {
                     const mount = document.getElementById('fullFormPreviewMount');
                     if (mount) {
@@ -1436,10 +1744,10 @@ $(document).ready(function() {
                         $(mount).find('button').filter(function () {
                             return ($(this).text() || '').trim().toLowerCase() === 'save as draft';
                         }).remove();
-                        $(mount).on('change', '#declarationCheckbox', function () {
-                            const err = mount.querySelector('#previewDeclarationError');
-                            if (err) err.style.display = this.checked ? 'none' : 'block';
-                        });
+                    }
+                    const printBtn = document.getElementById('previewPrintBtn');
+                    if (printBtn) {
+                        printBtn.addEventListener('click', function () { window.print(); });
                     }
                 }
             });
@@ -1771,15 +2079,9 @@ $(document).ready(function() {
                                 showWorkExpDateRangeError($(this), 'To date must be greater than or equal to From date.');
                                 if (!firstErrorField) firstErrorField = toDate;
                                 isValid = false;
-                            } else {
-                                const minTo = new Date(from.getTime());
-                                minTo.setFullYear(minTo.getFullYear() + 2);
-                                if (to < minTo) {
-                                    showWorkExpDateRangeError($(this), 'Minimum 2 Years Experience needed');
-                                    if (!firstErrorField) firstErrorField = toDate;
-                                    isValid = false;
-                                }
                             }
+                            // 2-year minimum is enforced as a combined total across all rows
+                            // after this .each() loop (Form S only).
                         }
                     }
 
@@ -1931,6 +2233,39 @@ $(document).ready(function() {
                     }
                 }
             });
+
+            // Form S only: combined-total experience must be >= 2 calendar years (730 days).
+            if (isSWorkForm) {
+                var twoYearsMs = 730 * 86400000;
+                var totalMs = 0;
+                var anyFilled = false;
+                var $firstFilledToDate = null;
+                $('#work-container .work-fields').each(function () {
+                    var $tr = $(this);
+                    var $fr = $tr.find('.work-date-from');
+                    var $to = $tr.find('.work-date-to');
+                    var fIso = readWorkDateIso($fr);
+                    var tIso = readWorkDateIso($to);
+                    if (!fIso || !tIso) return;
+                    var fromD = new Date(fIso + 'T12:00:00');
+                    var toD = new Date(tIso + 'T12:00:00');
+                    if (isNaN(fromD.getTime()) || isNaN(toD.getTime())) return;
+                    if (toD < fromD) return;
+                    anyFilled = true;
+                    totalMs += (toD - fromD);
+                    if (!$firstFilledToDate) $firstFilledToDate = $to;
+                });
+                if (anyFilled && totalMs < twoYearsMs) {
+                    var $combinedMsg = $('#work-exp-total-msg');
+                    if ($combinedMsg.length) {
+                        $combinedMsg.html('<div class="work-exp-total-error text-danger small" role="alert">Minimum 2 Years Experience needed across all entries.</div>');
+                    }
+                    if (!firstErrorField && $firstFilledToDate && $firstFilledToDate.length) {
+                        firstErrorField = $firstFilledToDate;
+                    }
+                    isValid = false;
+                }
+            }
 
             // Max length validation for competency form (S/W/WH/P) – validate all text/number fields
             if ($('#competency_form_ws').length) {
@@ -2342,10 +2677,14 @@ $(document).ready(function() {
                 showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
                 return;
             }
-            var minTo = new Date(from.getTime());
-            minTo.setFullYear(minTo.getFullYear() + 2);
-            if (to < minTo) {
-                showWorkExpDateRangeError($row, 'Minimum 2 Years Experience needed');
+            // Per-row 2-year check applies to WH only.
+            // Form S uses a combined-total check (across all rows) shown below the work table.
+            if (formName === 'WH') {
+                var minTo = new Date(from.getTime());
+                minTo.setFullYear(minTo.getFullYear() + 2);
+                if (to < minTo) {
+                    showWorkExpDateRangeError($row, 'Minimum 2 Years Experience needed');
+                }
             }
         });
 
@@ -4136,38 +4475,54 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 return;
             }
             
-            const data = await  getPaymentsService(licence_code, issued_licence, appl_type);
+            const data = await getPaymentsService(licence_code, issued_licence, appl_type);
 
-
-            if (data) {
-                if (data.lateFees < 0) {
-                    actual_fees = data.basic_fees;
-                    total_fees = data.total_fees;
-                    lateMonths = data.late_months;
-                }else{
-                    actual_fees = data.basic_fees;
-                    lateMonths = data.late_months;
-                    total_fees = data.total_fees;
-                    lateFee = data.lateFees;
-                }
+            if (!data) {
+                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
+                return;
             }
 
-            fees_date = data.fees_start_date
-            certificate_name = data.certificate_name
+            if (data.lateFees < 0) {
+                actual_fees = data.basic_fees;
+                total_fees = data.total_fees;
+                lateMonths = data.late_months;
+            } else {
+                actual_fees = data.basic_fees;
+                lateMonths = data.late_months;
+                total_fees = data.total_fees;
+                lateFee = data.lateFees;
+            }
 
-            console.log(certificate_name);
-            
+            fees_date = data.fees_start_date;
+            certificate_name = data.certificate_name;
 
-            
-            // 🔹 Now you can safely use form_cost everywhere below
             const modalEl = document.getElementById('competencyInstructionsModal');
+            if (!modalEl) {
+                Swal.fire("Error", "Payment instructions modal is not available. Please refresh the page.", "error");
+                return;
+            }
+
             const agreeCheckbox = modalEl.querySelector('#declaration-agree-renew');
             const errorText = modalEl.querySelector('#declaration-error-renew');
             const proceedBtn = modalEl.querySelector('#proceedPayment');
-            
-            document.getElementById('certificate_name').textContent = certificate_name;
-            document.getElementById('fees_starts_from').textContent = fees_date;
-            document.getElementById('form_fees').textContent = 'Rs.' + actual_fees + '/-';
+
+            if (!agreeCheckbox || !errorText || !proceedBtn) {
+                Swal.fire("Error", "Payment form controls are missing. Please refresh the page.", "error");
+                return;
+            }
+
+            const certNameEl = document.getElementById('certificate_name');
+            if (certNameEl) {
+                certNameEl.textContent = certificate_name || '';
+            }
+            const feesStartEl = document.getElementById('fees_starts_from');
+            if (feesStartEl) {
+                feesStartEl.textContent = fees_date || '';
+            }
+            const formFeesEl = document.getElementById('form_fees');
+            if (formFeesEl) {
+                formFeesEl.textContent = 'Rs.' + actual_fees + '/-';
+            }
             
             // Reset state
             agreeCheckbox.checked = false;
@@ -4476,23 +4831,12 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 return;
             }
         } catch (err) {
-            // console.error("Error fetching form cost or saving form:", err);
-        
-            // console.error("❌ Uncaught AJAX Error:", xhr);
-
-            // Check if Laravel validation failed (422)
-            // if (xhr.status === 422 && xhr.responseJSON?.errors) {
-            //     // You can show validation messages here
-            //     $.each(xhr.responseJSON.errors, function (key, msg) {
-            //         console.log(key, msg);
-            //     });
-            // } else {
-            //     Swal.fire({
-            //         icon: "error",
-            //         title: "Request Failed",
-            //         text: xhr.responseText || "Something went wrong. Please try again."
-            //     });
-            // }
+            console.error('showDeclarationPopup failed:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Unable to proceed to payment',
+                text: err && err.message ? err.message : 'Something went wrong. Please try again.'
+            });
         }
     }
                                             

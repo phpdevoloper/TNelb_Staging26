@@ -214,6 +214,140 @@ class FormController extends BaseController
     }
 
     /**
+     * Upsert one work-experience row for draft saves. When work_id[] is absent (apply-form-s after
+     * preview), match an existing row by natural key so Save as Draft does not insert duplicates.
+     */
+    private function upsertWorkExperienceDraftRow(
+        Request $request,
+        $key,
+        string $loginId,
+        string $applicationId,
+        array $workRow,
+        int &$lastExpSerialNum,
+        array &$claimedWorkIds,
+        bool $requireAllFields = true
+    ): void {
+        $company = $workRow['company_name'];
+        $expYears = $workRow['experience'];
+        $designation = $workRow['designation'];
+
+        if ($requireAllFields) {
+            if (empty($company) || empty($expYears) || empty($designation)) {
+                return;
+            }
+        } elseif (empty($company) && empty($expYears) && empty($designation)) {
+            return;
+        }
+
+        $workId = trim((string) ($request->work_id[$key] ?? ''));
+        $work = ($workId !== '') ? Mst_experience::find($workId) : null;
+        if ($work && (string) $work->application_id !== (string) $applicationId) {
+            $work = null;
+        }
+
+        $isFileRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
+        $filePath = null;
+
+        $existingW = $request->existing_work_document[$key] ?? null;
+        if (! $isFileRemoved && $existingW !== null && $existingW !== ''
+            && $this->isValidCompetencyAjaxDocPath($existingW, 'work')) {
+            $filePath = $existingW;
+        }
+
+        if (isset($request->file('work_document')[$key])) {
+            $file = $request->file('work_document')[$key];
+            if ($file && $file->isValid()) {
+                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('work_experience');
+                $file->move($destinationPath, $filename);
+                $filePath = 'work_experience/' . $filename;
+            }
+        }
+
+        $rowPayload = [
+            'emp_type'        => $workRow['emp_type'],
+            'emp_cate'        => $workRow['emp_cate'],
+            'intimation_date' => $workRow['intimation_date'],
+            'from_date'       => $workRow['from_date'],
+            'to_date'         => $workRow['to_date'],
+            ...$this->mstExperienceDurationForDb($workRow),
+            'designation'     => $designation ?: null,
+        ];
+
+        if ($work) {
+            $claimedWorkIds[] = (int) $work->id;
+            $work->update(array_merge($rowPayload, [
+                'upload_document' => $filePath !== null
+                    ? $filePath
+                    : ($isFileRemoved ? null : $work->upload_document),
+            ]));
+
+            return;
+        }
+
+        $existing = null;
+        if ($workRow['emp_cate'] !== null && $workRow['emp_cate'] !== '') {
+            $matchQuery = Mst_experience::where('login_id', $loginId)
+                ->where('application_id', $applicationId)
+                ->where('emp_cate', $workRow['emp_cate']);
+
+            if ($workRow['emp_type'] !== null) {
+                $matchQuery->where('emp_type', $workRow['emp_type']);
+            }
+            if ($workRow['from_date'] !== null) {
+                $matchQuery->whereDate('from_date', $workRow['from_date']);
+            }
+            if ($workRow['to_date'] !== null) {
+                $matchQuery->whereDate('to_date', $workRow['to_date']);
+            }
+            if (! empty($claimedWorkIds)) {
+                $matchQuery->whereNotIn('id', $claimedWorkIds);
+            }
+
+            $existing = $matchQuery->first();
+        }
+
+        if ($existing) {
+            $claimedWorkIds[] = (int) $existing->id;
+            $uploadToStore = $filePath;
+            if ($uploadToStore === null && ! $isFileRemoved && $existing->upload_document) {
+                $uploadToStore = $existing->upload_document;
+            } elseif ($isFileRemoved) {
+                $uploadToStore = null;
+            }
+
+            $existing->update(array_merge($rowPayload, [
+                'upload_document' => $uploadToStore,
+            ]));
+
+            return;
+        }
+
+        if ($filePath === null && ! $isFileRemoved) {
+            $fallback = Mst_experience::where('login_id', $loginId)
+                ->where('application_id', $applicationId)
+                ->where('emp_cate', $workRow['emp_cate'])
+                ->when(! empty($claimedWorkIds), fn ($q) => $q->whereNotIn('id', $claimedWorkIds))
+                ->value('upload_document');
+            if ($fallback) {
+                $filePath = $fallback;
+            }
+        }
+
+        $lastExpSerialNum++;
+        $newExpSerial = 'exp_' . $lastExpSerialNum;
+
+        $created = Mst_experience::create(array_merge($rowPayload, [
+            'login_id'        => $loginId,
+            'application_id'  => $applicationId,
+            'exp_serial'      => $newExpSerial,
+            'upload_document' => $isFileRemoved ? null : $filePath,
+        ]));
+
+        $claimedWorkIds[] = (int) $created->id;
+    }
+
+    /**
      * Form W / WH / P — work experience is optional; if any field in a row is filled, require the full row including dates.
      */
     private function validateOptionalCompetencyWorkRows(Request $request, \Illuminate\Validation\Validator $validator): void
@@ -284,9 +418,10 @@ class FormController extends BaseController
     }
 
     /**
-     * Form S §7 — work experience: To date must be at least two calendar years after From date.
+     * Form S §7 — work experience: combined duration across ALL rows must be at least 2 calendar years (730 days).
+     * (Per-row check was replaced with a combined-total check so that multiple short stints can add up.)
      */
-    private function validateFor9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8(Request $request, \Illuminate\Validation\Validator $validator): void
+    private function validateFormSWorkExperienceMinimumYears(Request $request, \Illuminate\Validation\Validator $validator): void
     {
         if (($request->form_name ?? '') !== 'S') {
             return;
@@ -297,6 +432,10 @@ class FormController extends BaseController
         if (! is_array($fromDates)) {
             return;
         }
+
+        $totalDays = 0;
+        $anyFilled = false;
+        $firstFilledKey = null;
 
         foreach (array_keys($fromDates) as $key) {
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
@@ -312,17 +451,24 @@ class FormController extends BaseController
                 continue;
             }
 
+            // Skip invalid date ordering — caller / other rules report the row-level error.
             if ($to->lt($from)) {
                 continue;
             }
 
-            $minimumToDate = $from->copy()->addYears(2);
-            if ($to->lt($minimumToDate)) {
-                $validator->errors()->add(
-                    'work_date_to.'.$key,
-                    'Minimum 2 Years Experience needed'
-                );
+            $anyFilled = true;
+            $totalDays += $from->diffInDays($to);
+            if ($firstFilledKey === null) {
+                $firstFilledKey = $key;
             }
+        }
+
+        // 2 calendar years = 730 days (allows exact 2-year ranges without false negatives).
+        if ($anyFilled && $totalDays < 730) {
+            $validator->errors()->add(
+                'work_date_to.'.($firstFilledKey ?? 0),
+                'Minimum 2 Years Experience needed across all entries.'
+            );
         }
     }
 
@@ -886,7 +1032,7 @@ class FormController extends BaseController
             }
         });
         $validator->after(function ($validator) use ($request) {
-            $this->validateFor9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8($request, $validator);
+            $this->validateFormSWorkExperienceMinimumYears($request, $validator);
         });
         $validator->validate();
         
@@ -1391,7 +1537,7 @@ class FormController extends BaseController
             }
         });
         $validator->after(function ($validator) use ($request) {
-            $this->validateFor9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8($request, $validator);
+            $this->validateFormSWorkExperienceMinimumYears($request, $validator);
         });
         $validator->validate();
 
@@ -1532,76 +1678,28 @@ class FormController extends BaseController
             
 
             if ($this->hasWorkExperiencePayload($request)) {
-                // ✅ Fetch last exp_serial from DB once
                 $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
                 $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
-            
+                $claimedWorkIds = [];
+
                 foreach ($this->getWorkRowIndexes($request) as $key) {
                     $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
-                    $company = $workRow['company_name'];
-                    $expYears = $workRow['experience'];
-                    $designation = $workRow['designation'];
+                    $this->upsertWorkExperienceDraftRow(
+                        $request,
+                        $key,
+                        $loginId,
+                        $applicationId,
+                        $workRow,
+                        $lastNum,
+                        $claimedWorkIds,
+                        true
+                    );
+                }
 
-                    // ✅ Skip empty rows
-                    if (
-                        empty($company) ||
-                        empty($expYears) ||
-                        empty($designation)
-                    ) {
-                        continue;
-                    }
-            
-                    // ✅ Check if row already exists
-                    $workId = $request->work_id[$key] ?? null;
-                    $work = $workId ? Mst_experience::find($workId) : null;
-            
-                    // ✅ Handle file upload
-                    $existingW = $request->existing_work_document[$key] ?? null;
-                    $filePath = ($existingW !== null && $existingW !== ''
-                        && $this->isValidCompetencyAjaxDocPath($existingW, 'work'))
-                        ? $existingW
-                        : null;
-                    if ($request->hasFile("work_document.$key")) {
-                        $file = $request->file("work_document")[$key];
-                        if ($file && $file->isValid()) {
-                            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                            $destinationPath = public_path('work_experience');
-                            $file->move($destinationPath, $filename);
-                            $filePath = 'work_experience/' . $filename;
-                        }
-                    }
-            
-                    if ($work) {
-                        // 🔹 UPDATE existing record
-                        $work->update([
-                            'emp_type'        => $workRow['emp_type'],
-                            'emp_cate'        => $workRow['emp_cate'],
-                            'intimation_date' => $workRow['intimation_date'],
-                            'from_date'       => $workRow['from_date'],
-                            'to_date'         => $workRow['to_date'],
-                            ...$this->mstExperienceDurationForDb($workRow),
-                            'designation'     => $designation,
-                            'upload_document' => $filePath,
-                        ]);
-                    } else {
-                        // 🔹 INSERT new record
-                        $lastNum++;
-                        $newExpSerial = 'exp_' . $lastNum;
-
-                        Mst_experience::create([
-                            'login_id'        => $loginId,
-                            'emp_type'        => $workRow['emp_type'],
-                            'emp_cate'        => $workRow['emp_cate'],
-                            'intimation_date' => $workRow['intimation_date'],
-                            'from_date'       => $workRow['from_date'],
-                            'to_date'         => $workRow['to_date'],
-                            ...$this->mstExperienceDurationForDb($workRow),
-                            'designation'     => $designation,
-                            'application_id'  => $applicationId,
-                            'exp_serial'      => $newExpSerial,
-                            'upload_document' => $filePath,
-                        ]);
-                    }
+                if (! empty($claimedWorkIds)) {
+                    Mst_experience::where('application_id', $applicationId)
+                        ->whereNotIn('id', $claimedWorkIds)
+                        ->delete();
                 }
             }
 
@@ -2200,81 +2298,30 @@ class FormController extends BaseController
             
 
             if ($this->hasWorkExperiencePayload($request)) {
-                // ✅ Fetch last exp_serial from DB once
                 $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
                 $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
-            
+                $claimedWorkIds = [];
+
                 foreach ($this->getWorkRowIndexes($request) as $key) {
                     $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
-                    $company = $workRow['company_name'];
-                    $expYears = $workRow['experience'];
-                    $designation = $workRow['designation'];
+                    $this->upsertWorkExperienceDraftRow(
+                        $request,
+                        $key,
+                        $loginId,
+                        $applicationId,
+                        $workRow,
+                        $lastNum,
+                        $claimedWorkIds,
+                        false
+                    );
+                }
 
-                    // ✅ Skip empty rows
-                    if (
-                        empty($company) &&
-                        empty($expYears) &&
-                        empty($designation)
-                    ) {
-                        continue;
-                    }
-            
-                    // ✅ Check if row already exists
-                    $workId = $request->work_id[$key] ?? null;
-                    $work = $workId ? Mst_experience::find($workId) : null;
-            
-                    // ✅ File Handling
-                    // A new valid upload must be processed even when "Remove" was clicked first (replace flow).
-                    $filePath = null;
-                    $isFileRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
-            
-                    if (isset($request->file('work_document')[$key])) {
-                        $file = $request->file('work_document')[$key];
-            
-                        if ($file && $file->isValid()) {
-                            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                            $destinationPath = public_path('work_experience');
-                            $file->move($destinationPath, $filename);
-                            $filePath = 'work_experience/' . $filename;
-                        }
-                    }
-            
-                    if ($work) {
-                        // 🔹 UPDATE existing record
-                        $work->update([
-                            'emp_type'        => $workRow['emp_type'],
-                            'emp_cate'        => $workRow['emp_cate'],
-                            'intimation_date' => $workRow['intimation_date'],
-                            'from_date'       => $workRow['from_date'],
-                            'to_date'         => $workRow['to_date'],
-                            ...$this->mstExperienceDurationForDb($workRow),
-                            'designation'     => $designation ?: null,
-                            'upload_document' => $filePath !== null
-                                ? $filePath
-                                : ($isFileRemoved ? null : $work->upload_document),
-                        ]);
-                    } else {
-                        // 🔹 INSERT new record
-                        $lastNum++;
-                        $newExpSerial = 'exp_' . $lastNum;
-            
-                        Mst_experience::create([
-                            'login_id'        => $loginId,
-                            'emp_type'        => $workRow['emp_type'],
-                            'emp_cate'        => $workRow['emp_cate'],
-                            'intimation_date' => $workRow['intimation_date'],
-                            'from_date'       => $workRow['from_date'],
-                            'to_date'         => $workRow['to_date'],
-                            ...$this->mstExperienceDurationForDb($workRow),
-                            'designation'     => $designation,
-                            'application_id'  => $applicationId,
-                            'exp_serial'      => $newExpSerial,
-                            'upload_document' => $filePath,
-                        ]);
-                    }
+                if (! empty($claimedWorkIds)) {
+                    Mst_experience::where('application_id', $applicationId)
+                        ->whereNotIn('id', $claimedWorkIds)
+                        ->delete();
                 }
             }
-            
 
             // 🔹 Save Photo if New Upload
             if ($request->hasFile('upload_photo')) {

@@ -302,7 +302,7 @@ class LoginController extends Controller
         if (!empty($assignedFormIDs)) {
             if ($isSupervisorRole) {
                 // Use canonical Supervisor role id for resubmitted check (same as FormController when resubmitting)
-                $supervisorRoleId = (int) (DB::table('mst__staffs__tbls')->where('name', 'Supervisor')->value('roles_id') ?? 0);
+                $supervisorRoleId = (int) (DB::table('mst_roles')->where('role_name', 'Supervisor')->value('r_id') ?? 0);
                 if ($supervisorRoleId === 0) {
                     $supervisorRoleId = (int) ($staff->roles_id ?? 0);
                 }
@@ -312,6 +312,7 @@ class LoginController extends Controller
                 $twLastSub = DB::table('tnelb_workflow')
                     ->select('application_id', DB::raw('MAX(id) as max_id'))
                     ->groupBy('application_id');
+                
 
                 $pendingCounts = DB::table('tnelb_application_tbl as ta')
                     ->leftJoinSub($twLastSub, 'tw_last', function ($join) {
@@ -430,6 +431,7 @@ class LoginController extends Controller
                 $pendingCountsMap[$fid][$type] = (int) $row->cnt;
             }
 
+            // dd($pendingCountsMap);exit;
             
 
             // Form P uses tnelb_form_p; add its pending counts if Form P is assigned
@@ -696,6 +698,7 @@ class LoginController extends Controller
 
         $amendmentIds = $amendmentCardsCollection->pluck('id')->all();
         $contractorOrAmendmentIds = array_merge($contractorIds, $amendmentIds);
+        
 
         $competencyCardsCollection = $summaryCollection
             ->reject(function ($item) use ($contractorOrAmendmentIds) {
@@ -709,9 +712,10 @@ class LoginController extends Controller
 
         $competencyCards = $competencyCardsCollection->all();
         
+
+        
         $contractorCards = $contractorCardsCollection->all();
 
-        // dd($contractorCards);exit;
         
         
         $amendmentCards = $amendmentCardsCollection->all();
