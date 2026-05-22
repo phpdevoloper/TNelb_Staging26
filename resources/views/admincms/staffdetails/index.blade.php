@@ -309,20 +309,6 @@ table.dataTable thead .sorting_desc:after {
     color: #6c757d;
 }
 
-/* Photo preview in modals */
-.profile-photo-preview {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #e9ecef;
-}
-.profile-photo-preview-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
 /* Accordion polish for staff modals */
 .staff-accordion .accordion-button {
     background: #f8f9fa;
@@ -412,7 +398,7 @@ table.dataTable thead .sorting_desc:after {
 }
 .staff-hero .hero-close:hover { background: rgba(255,255,255,0.32); }
 
-/* Avatar with edit overlay */
+/* Floating profile card (no avatar) */
 .staff-hero-card {
     position: absolute;
     left: 28px;
@@ -421,68 +407,12 @@ table.dataTable thead .sorting_desc:after {
     background: #fff;
     border-radius: 14px;
     box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
-    padding: 14px 18px 14px 110px;
-    min-height: 92px;
+    padding: 14px 18px;
+    min-height: 72px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     z-index: 2;
-}
-.staff-avatar-uploader {
-    position: absolute;
-    left: 18px;
-    bottom: 14px;
-    width: 84px;
-    height: 84px;
-    border-radius: 50%;
-    background: #e0e7ff;
-    border: 4px solid #fff;
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
-    overflow: hidden;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    font-weight: 700;
-    color: #4f46e5;
-    user-select: none;
-}
-.staff-avatar-uploader img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.staff-avatar-uploader .avatar-edit-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.55);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.18s;
-    font-size: 13px;
-    flex-direction: column;
-    gap: 2px;
-}
-.staff-avatar-uploader:hover .avatar-edit-overlay { opacity: 1; }
-.staff-avatar-uploader .avatar-edit-overlay i { font-size: 18px; }
-
-.staff-avatar-actions {
-    position: absolute;
-    left: 18px;
-    bottom: -12px;
-    display: flex;
-    gap: 4px;
-}
-.staff-avatar-actions .btn {
-    border-radius: 999px;
-    font-size: 11px;
-    padding: 2px 10px;
-    line-height: 1.4;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 .staff-hero-name {
@@ -1159,19 +1089,65 @@ table.dataTable thead .sorting_desc:after {
                             </div>
 
                             <div class="modal-body">
-                                <form id="newstaffmaster" novalidate enctype="multipart/form-data">
+                                <form id="newstaffmaster" novalidate>
                                     @csrf
 
                                     <div class="accordion staff-accordion" id="addStaffAccordion">
 
-                                        <!-- Section 1: Login & Role -->
+                                        <!-- Section 1: Personal Information -->
                                         <div class="accordion-item">
                                             <h2 class="accordion-header">
-                                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#addSec1">
+                                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#addSec2">
+                                                    <i class="fa fa-user-o me-2 text-success"></i> Personal Information
+                                                </button>
+                                            </h2>
+                                            <div id="addSec2" class="accordion-collapse collapse show" data-bs-parent="#addStaffAccordion">
+                                                <div class="accordion-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_full_name" class="form-label">Full Name<span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="full_name" id="add_full_name" placeholder="As per official records">
+                                                            <small class="text-danger error-text" data-error="full_name"></small>
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <label for="add_date_of_birth" class="form-label">Date of Birth</label>
+                                                            <input type="date" class="form-control" name="date_of_birth" id="add_date_of_birth">
+                                                            <small class="text-danger error-text" data-error="date_of_birth"></small>
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <label for="add_gender" class="form-label">Gender</label>
+                                                            <select class="form-select" name="gender" id="add_gender">
+                                                                <option value="">-- Select --</option>
+                                                                <option value="M">Male</option>
+                                                                <option value="F">Female</option>
+                                                                <option value="O">Other</option>
+                                                            </select>
+                                                            <small class="text-danger error-text" data-error="gender"></small>
+                                                        </div>
+
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_mobile" class="form-label">Mobile Number<span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="mobile" id="add_mobile" maxlength="15" placeholder="10-digit mobile">
+                                                            <small class="text-danger error-text" data-error="mobile"></small>
+                                                        </div>
+                                                        <div class="col-md-6 mb-2">
+                                                            <label for="add_alt_phone" class="form-label">Alternate Phone</label>
+                                                            <input type="text" class="form-control" name="alt_phone" id="add_alt_phone" maxlength="15" placeholder="Optional">
+                                                            <small class="text-danger error-text" data-error="alt_phone"></small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Section 2: Login & Role -->
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#addSec1">
                                                     <i class="fa fa-id-card-o me-2 text-primary"></i> Login &amp; Role <span class="text-danger ms-1">*</span>
                                                 </button>
                                             </h2>
-                                            <div id="addSec1" class="accordion-collapse collapse show" data-bs-parent="#addStaffAccordion">
+                                            <div id="addSec1" class="accordion-collapse collapse" data-bs-parent="#addStaffAccordion">
                                                 <div class="accordion-body">
                                                     <div class="row">
                                                         <div class="col-md-6 mb-2">
@@ -1222,59 +1198,6 @@ table.dataTable thead .sorting_desc:after {
                                                                 </span>
                                                             </div>
                                                             <small class="text-danger error-text" data-error="user_random_pass_confirmation"></small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Section 2: Personal Information -->
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#addSec2">
-                                                    <i class="fa fa-user-o me-2 text-success"></i> Personal Information
-                                                </button>
-                                            </h2>
-                                            <div id="addSec2" class="accordion-collapse collapse" data-bs-parent="#addStaffAccordion">
-                                                <div class="accordion-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6 mb-2">
-                                                            <label for="add_full_name" class="form-label">Full Name<span class="text-danger">*</span></label>
-                                                            <input type="text" class="form-control" name="full_name" id="add_full_name" placeholder="As per official records">
-                                                            <small class="text-danger error-text" data-error="full_name"></small>
-                                                        </div>
-                                                        <div class="col-md-3 mb-2">
-                                                            <label for="add_date_of_birth" class="form-label">Date of Birth</label>
-                                                            <input type="date" class="form-control" name="date_of_birth" id="add_date_of_birth">
-                                                            <small class="text-danger error-text" data-error="date_of_birth"></small>
-                                                        </div>
-                                                        <div class="col-md-3 mb-2">
-                                                            <label for="add_gender" class="form-label">Gender</label>
-                                                            <select class="form-select" name="gender" id="add_gender">
-                                                                <option value="">-- Select --</option>
-                                                                <option value="M">Male</option>
-                                                                <option value="F">Female</option>
-                                                                <option value="O">Other</option>
-                                                            </select>
-                                                            <small class="text-danger error-text" data-error="gender"></small>
-                                                        </div>
-
-                                                        <div class="col-md-4 mb-2">
-                                                            <label for="add_mobile" class="form-label">Mobile Number<span class="text-danger">*</span></label>
-                                                            <input type="text" class="form-control" name="mobile" id="add_mobile" maxlength="15" placeholder="10-digit mobile">
-                                                            <small class="text-danger error-text" data-error="mobile"></small>
-                                                        </div>
-                                                        <div class="col-md-4 mb-2">
-                                                            <label for="add_alt_phone" class="form-label">Alternate Phone</label>
-                                                            <input type="text" class="form-control" name="alt_phone" id="add_alt_phone" maxlength="15" placeholder="Optional">
-                                                            <small class="text-danger error-text" data-error="alt_phone"></small>
-                                                        </div>
-                                                        <div class="col-md-4 mb-2">
-                                                            <label for="add_profile_photo" class="form-label">Profile Photo</label>
-                                                            <input type="file" class="form-control" name="profile_photo" id="add_profile_photo" accept="image/jpeg,image/png,image/webp">
-                                                            <small class="text-muted">JPG/PNG/WEBP &middot; max 2 MB</small>
-                                                            <div class="mt-2" id="add_profile_photo_preview"></div>
-                                                            <small class="text-danger error-text" data-error="profile_photo"></small>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1384,11 +1307,9 @@ table.dataTable thead .sorting_desc:after {
                     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
                         <div class="modal-content">
 
-                            <form id="editStaffDetailsForm" novalidate enctype="multipart/form-data">
+                            <form id="editStaffDetailsForm" novalidate>
                                 @csrf
                                 <input type="hidden" name="user_id" id="edit_user_id">
-                                <input type="hidden" name="remove_photo" id="edit_remove_photo" value="0">
-                                <input type="file" name="profile_photo" id="edit_profile_photo" accept="image/jpeg,image/png,image/webp" class="d-none">
 
                                 <div class="modal-header">
                                     <!-- Hero banner -->
@@ -1402,21 +1323,7 @@ table.dataTable thead .sorting_desc:after {
                                         <div class="hero-title">Edit Staff Profile</div>
                                         <div class="hero-emp-code" id="edit_hero_emp_code">&mdash;</div>
 
-                                        <!-- Floating profile card -->
                                         <div class="staff-hero-card">
-                                            <div class="staff-avatar-uploader" id="editAvatarUploader" title="Click to change photo">
-                                                <span id="edit_avatar_initial">U</span>
-                                                <img id="edit_avatar_img" src="" alt="" style="display:none;">
-                                                <div class="avatar-edit-overlay">
-                                                    <i class="fa fa-camera"></i>
-                                                    <span>Change</span>
-                                                </div>
-                                            </div>
-                                            <div class="staff-avatar-actions">
-                                                <button type="button" class="btn btn-light btn-sm" id="btnRemoveEditPhoto" style="display:none;" title="Remove photo">
-                                                    <i class="fa fa-trash text-danger"></i>
-                                                </button>
-                                            </div>
                                             <div class="staff-hero-name" id="edit_hero_name">&mdash;</div>
                                             <div class="staff-hero-meta">
                                                 <span class="badge" id="edit_hero_role">Role</span>
@@ -1524,11 +1431,6 @@ table.dataTable thead .sorting_desc:after {
                                                         <label for="edit_alt_phone">Alternate Phone</label>
                                                     </div>
                                                     <small class="text-danger error-text" data-error="alt_phone"></small>
-                                                </div>
-
-                                                <div class="col-md-12">
-                                                    <small class="text-muted">Profile photo can be changed by clicking the avatar at the top.</small>
-                                                    <small class="text-danger error-text d-block" data-error="profile_photo"></small>
                                                 </div>
                                             </div>
                                         </div>
@@ -1990,20 +1892,6 @@ table.dataTable thead .sorting_desc:after {
         }
     }
 
-    function previewImageInto($previewEl, file) {
-        if (!file) { $previewEl.empty(); return; }
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            $previewEl.html(
-                '<div class="profile-photo-preview-wrap">' +
-                    '<img src="' + e.target.result + '" class="profile-photo-preview" alt="preview">' +
-                    '<small class="text-success">' + $('<div>').text(file.name).html() + '</small>' +
-                '</div>'
-            );
-        };
-        reader.readAsDataURL(file);
-    }
-
     function generateStrongPassword(length) {
         length = length || 12;
         var upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -2047,18 +1935,13 @@ table.dataTable thead .sorting_desc:after {
         var $form = $('#newstaffmaster');
         $form[0].reset();
         clearFormErrors($form);
-        $('#add_profile_photo_preview').empty();
-        // Re-open section 1 by default
+        // Re-open Personal Information section by default
         var sec1 = document.getElementById('addSec1');
         var sec2 = document.getElementById('addSec2');
         var sec3 = document.getElementById('addSec3');
-        if (sec1) bootstrap.Collapse.getOrCreateInstance(sec1, { toggle: false }).show();
-        if (sec2) bootstrap.Collapse.getOrCreateInstance(sec2, { toggle: false }).hide();
+        if (sec1) bootstrap.Collapse.getOrCreateInstance(sec1, { toggle: false }).hide();
+        if (sec2) bootstrap.Collapse.getOrCreateInstance(sec2, { toggle: false }).show();
         if (sec3) bootstrap.Collapse.getOrCreateInstance(sec3, { toggle: false }).hide();
-    });
-
-    $('#add_profile_photo').on('change', function () {
-        previewImageInto($('#add_profile_photo_preview'), this.files && this.files[0]);
     });
 
     $('#newstaffmaster').on('submit', function (e) {
@@ -2139,21 +2022,6 @@ table.dataTable thead .sorting_desc:after {
     /* ============================================================
      *  EDIT STAFF DETAILS  (Name / Email / Role)
      * ============================================================ */
-    /* Modern Edit-Staff modal — helpers for the hero avatar */
-    function setEditAvatar(srcOrInitial) {
-        var $img = $('#edit_avatar_img');
-        var $ini = $('#edit_avatar_initial');
-        if (srcOrInitial && srcOrInitial.startsWith && (srcOrInitial.startsWith('data:') || srcOrInitial.startsWith('http') || srcOrInitial.startsWith('/'))) {
-            $img.attr('src', srcOrInitial).show();
-            $ini.hide();
-            $('#btnRemoveEditPhoto').show();
-        } else {
-            $img.attr('src', '').hide();
-            $ini.text((srcOrInitial || 'U').charAt(0).toUpperCase()).show();
-            $('#btnRemoveEditPhoto').hide();
-        }
-    }
-
     function setEditStatusBadge(status) {
         var $b = $('#edit_hero_status');
         $b.removeClass('badge-status-active badge-status-inactive');
@@ -2178,7 +2046,6 @@ table.dataTable thead .sorting_desc:after {
                 var u = res.user;
 
                 $('#edit_user_id').val(u.s_id);
-                $('#edit_remove_photo').val('0');
 
                 // ---- Hero ----
                 $('#edit_hero_emp_code').text(u.employee_code || '(new employee code on save)');
@@ -2186,7 +2053,6 @@ table.dataTable thead .sorting_desc:after {
                 $('#edit_hero_role').text(u.role_name || 'No role');
                 $('#edit_hero_email').text(u.user_email || '');
                 setEditStatusBadge(u.user_status);
-                setEditAvatar(u.profile_photo_url || (u.full_name || u.user_name || 'U'));
 
                 // ---- Tab 1: Login & Role ----
                 $('#edit_staff_name').val(u.user_name || '');
@@ -2199,7 +2065,6 @@ table.dataTable thead .sorting_desc:after {
                 $('#edit_gender').val(u.gender || '');
                 $('#edit_mobile').val(u.mobile || '');
                 $('#edit_alt_phone').val(u.alt_phone || '');
-                $('#edit_profile_photo').val('');
 
                 // ---- Tab 3: Work ----
                 $('#edit_employee_code').val(u.employee_code || '(generated on save)');
@@ -2216,28 +2081,6 @@ table.dataTable thead .sorting_desc:after {
             .fail(function (xhr) {
                 Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Unable to load staff.', 'error');
             });
-    });
-
-    // Avatar click → open the hidden file input
-    $(document).on('click', '#editAvatarUploader', function () {
-        $('#edit_profile_photo').trigger('click');
-    });
-
-    // Photo selected → preview inside the avatar
-    $('#edit_profile_photo').on('change', function () {
-        if (!this.files || !this.files[0]) return;
-        $('#edit_remove_photo').val('0');
-        var reader = new FileReader();
-        reader.onload = function (e) { setEditAvatar(e.target.result); };
-        reader.readAsDataURL(this.files[0]);
-    });
-
-    // Remove existing photo
-    $(document).on('click', '#btnRemoveEditPhoto', function (e) {
-        e.stopPropagation();
-        $('#edit_remove_photo').val('1');
-        $('#edit_profile_photo').val('');
-        setEditAvatar($('#edit_hero_name').text() || 'U');
     });
 
     // Live-update hero card as the admin edits fields
