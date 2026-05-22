@@ -23,5 +23,7 @@ class Tnelb_EA_QC_model extends Model
         'status',
         'flag',
         'other',
+        'qc_code',
+        'qc_document'
     ];
 }

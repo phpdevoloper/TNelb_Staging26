@@ -39,6 +39,7 @@ use App\Http\Controllers\OldCertificateRenewalController;
 use App\Http\Controllers\OldContractorRenewalController;
 
 use App\Http\Controllers\DocumentUploadController;
+use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
 
 // ------------------------ Public Pages ------------------------
@@ -289,6 +290,7 @@ Route::post('/verifylicenseformeb_appl', [LicenseController::class, 'verifylicen
 
 
 
+Route::post('/verifylicenseformAqc', [QCStaffController::class, 'verifylicenseformAqc'])->name('verifylicenseformAqc');
 
 Route::post('/verifylicenseformAccc', [LicenseController::class, 'verifylicenseformAccc'])->name('verifylicenseformAccc');
 
@@ -297,6 +299,8 @@ Route::post('/verifylicenseformAea_appl', [LicenseController::class, 'verifylice
 
 
 Route::post('/verifylicensecc_slicense', [LicenseController::class, 'verifylicensecc_slicense'])->name('verifylicensecc_slicense');
+
+Route::post('/verifylicensecc_blicense', [LicenseController::class, 'verifylicensecc_blicense'])->name('verifylicensecc_blicense');
 
 
 // -----------update -payment status after payment initiation------------

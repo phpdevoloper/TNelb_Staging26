@@ -376,15 +376,14 @@ class FormAController extends BaseController
 
             // $processedStaffIdsQC = [];
 
-            // dd($request->login_id_store);exit;
+            // dd($request->qc_code);exit;
 
             foreach ($request->staffqc_name as $index => $staffName) {
                 if (
                     !empty($staffName) ||
                     // !empty($request->staff_qualification[$index]) ||
                     !empty($request->cc_number[$index]) ||
-                    !empty($request->cc_validity[$index]) ||
-                    !empty($request->staff_category[$index])
+                    !empty($request->cc_validity[$index]) 
                 ) {
                     $staffId = $staffIdsFromForm[$index] ?? null;
                     $validity = $request->cc_validity[$index] ?? null;
@@ -398,6 +397,7 @@ class FormAController extends BaseController
                         'category' => strtoupper($request->category[$index] ?? ''),
                         'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
                         'cc_validity'         => $validity,
+                        'qc_code'        => $request->qc_code[$index] ?? null,
                         
                         'flag'      => '1',
                         // 'staff_qccc_verify'     => $request->staff_qccc_verify[$index]
@@ -431,6 +431,94 @@ class FormAController extends BaseController
             Tnelb_EA_QC_model::where('application_id', $applicationId)
                 ->whereNotIn('id', $processedStaffIdsQC)
                 ->delete();
+
+
+
+                $tempDocs = DB::table('tnelb_temp_uploaded_documents')
+                ->where('login_id', $request->login_id_store)
+                ->where('form_name', $request->form_name)
+                ->where('license_name', $request->license_name)
+                ->where('document_category', 'qc_doc')
+                ->where('appl_type', 'N')
+                // ->whereIn('is_final', ['0', '2'])
+
+                ->get();
+
+                // dd($tempDocs); exit;
+
+            foreach ($tempDocs as $tempDoc) {
+
+
+                $matchedPartner = Tnelb_EA_QC_model::where('application_id', $applicationId)
+                    
+                    ->where('qc_code', $tempDoc->qc_code)
+                    ->first();
+
+                    // dd($matchedPartner); exit;
+
+                if (!$matchedPartner) {
+                    continue; // No match → skip
+                }
+
+                // -----------------------------------------
+                // 4️⃣ GET FINAL PRO PATH
+                // -----------------------------------------
+                $dynamicRequest = clone $request;
+                $dynamicRequest->merge([
+                    'module' => $tempDoc->module
+                ]);
+
+                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
+                $dbFilePath     = $dbFilePath_all->filepath_pro;
+
+                $tempFullPath = public_path(
+                    $tempDoc->file_path . '/' . $tempDoc->file_name
+                );
+
+                $proFolderPath = public_path($dbFilePath);
+
+                if (!File::exists($proFolderPath)) {
+                    File::makeDirectory($proFolderPath, 0755, true);
+                }
+
+                $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
+
+                // dd($dbFilePath);exit;
+
+                // -----------------------------------------
+                // 5️⃣ COPY FILE
+                // -----------------------------------------
+                if (File::exists($tempFullPath)) {
+                    File::copy($tempFullPath, $proFullPath);
+                } else {
+                    continue;
+                }
+
+                // dd($tempDoc->file_path . '/' . $tempDoc->file_name);
+                // exit;
+
+                // -----------------------------------------
+                // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
+                // -----------------------------------------
+                $matchedPartner->qc_document = $dbFilePath_all->filepath_pro . $tempDoc->file_name;
+
+                // dd($matchedPartner->qc_document);exit;
+                $matchedPartner->qc_code = $tempDoc->qc_code;
+                $matchedPartner->save();
+
+                // -----------------------------------------
+                // 7️⃣ MARK TEMP DOC AS FINAL
+                // -----------------------------------------
+                DB::table('tnelb_temp_uploaded_documents')
+                    ->where('id', $tempDoc->id)
+                    ->update([
+                        'is_final'   => '1',
+                        'moved_as'   => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
+                        'updated_at' => now()
+                    ]);
+            }
+
         }
 
 
