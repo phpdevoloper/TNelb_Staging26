@@ -157,12 +157,17 @@
             <td>
                 @if ($workflow->payment_status == 'draft')
                     @php
-                        $view_page =
-                            isset($workflow->appl_type) && $workflow->appl_type == 'R'
-                                ? 'renew_form'
-                                : (in_array(strtoupper($workflow->form_name), ['P']) ? 'edit-application_p' : 'edit-application');
+                        $isFormPRenewalDraft = strtoupper($workflow->form_name ?? '') === 'P'
+                            && strtoupper($workflow->appl_type ?? '') === 'R';
+                        if ($isFormPRenewalDraft) {
+                            $draftRoute = 'renew_form_p';
+                            $draftApplicationId = $workflow->old_application ?? $workflow->application_id;
+                        } else {
+                            $draftRoute = in_array(strtoupper($workflow->form_name), ['P']) ? 'edit-application_p' : 'edit-application';
+                            $draftApplicationId = $workflow->application_id;
+                        }
                     @endphp
-                    <a href="{{ route($view_page, ['application_id' => $workflow->application_id]) }}">
+                    <a href="{{ route($draftRoute, ['application_id' => $draftApplicationId]) }}">
                         <button class="btn btn-info btn-sm"><i class="fa fa-pencil"></i> Draft</button>
                     </a>
                 @else
@@ -283,7 +288,7 @@
                             }
                         @endphp
                         @if ($workflow->is_under_validity_period && !($isFormW && $hasCertificateC))
-                            <a href="{{ route('renew_form', ['application_id' => $workflow->application_id]) }}"
+                            <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'renew_form', ['application_id' => $workflow->application_id]) }}"
                                 class="text-primary">
                                 (Apply for renewal)
                             </a>

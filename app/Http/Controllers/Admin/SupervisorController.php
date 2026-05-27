@@ -1738,12 +1738,24 @@ public function approveApplication(Request $request)
 
             $now = db_now();
 
+            // dd($previousCertExpiry, $now);exit;
 
 
             if (!$licenseDetails || $now->greaterThan(Carbon::parse($licenseDetails->expires_at))) {
-                $issuedAt = $now;
+                
+
+                $issuedAt = Carbon::parse($previousCertExpiry)
+                ->addDays(1)
+                ->format('Y-m-d');
+
+                
+                if($now > $previousCertExpiry){
+                    $applType = 'N';
+                }
+                
 
                 $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
+
                 $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
                 
                 // $expiresAtone     = $now->copy()->addMonths($monthsToAdd)->format('Y-m-d');
@@ -1759,7 +1771,7 @@ public function approveApplication(Request $request)
                     'application_id' => $applicationId,
                     'issued_by'      => $processedBy,
                     'issued_at'      => $now,
-                    'issued_from'    => $previousCertExpiry,
+                    'issued_from'    => $issuedAt,
                     'expires_at'     => $expiresAt,
                     'created_at'     => $now,
                 ]);

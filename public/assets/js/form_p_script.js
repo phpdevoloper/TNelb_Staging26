@@ -355,7 +355,8 @@ async function showInstructPopup(licence_code,login_id) {
 
 // Proceed for Payment
 $(document).ready(function () {
-    $('#ProceedtoPayment').on('click', async function (e) {
+    $(document).on('click', '#ProceedtoPayment', async function (e) {
+        if (!$('#competency_form_p').length) return;
         e.preventDefault();
 
         $('.error-message').remove();
@@ -600,36 +601,34 @@ $(document).ready(function () {
         let pancardInput = document.getElementById("pancard");
         let pancardError = document.getElementById("pancard-error");
         if (pancardInput && pancardError) {
-            const pancardValue = pancardInput.value.trim();
+            const pancardValue = pancardInput.value.replace(/\s+/g, '').toUpperCase();
+            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
             if (pancardValue === "") {
-                pancardError.textContent = "PAN number is required.";
+                pancardError.textContent = "";
+            } else if (!panRegex.test(pancardValue)) {
+                pancardError.textContent = "Enter a valid 10-character PAN (e.g. ABCDE1234F).";
                 if (!firstErrorField) firstErrorField = $(pancardInput);
                 isValid = false;
+            } else {
+                pancardError.textContent = "";
             }
         }
 
-
         let pancardDocInput = document.getElementById("pancard_doc");
 
-        if (pancardDocInput && $(pancardDocInput).is(":visible")) {
-            if (pancardDocInput && pancardDocInput.files.length === 0) {
-                $('#pancard_doc').after('<span class="error-message text-danger d-block mt-1">PAN card document is required.</span>');
-                if (!firstErrorField) firstErrorField = $('#pancard_doc');
-                isValid = false;
-            } else if (pancardDocInput && pancardDocInput.files.length > 0) {
-                const file = pancardDocInput.files[0];
-                if (file) {
-                    const allowedType = 'application/pdf';
-                    const maxSize = 250 * 1024;
-                    if (file.type !== allowedType) {
-                        $('#pancard_doc').after('<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for PAN document.</span>');
-                        if (!firstErrorField) firstErrorField = $('#pancard_doc');
-                        isValid = false;
-                    } else if (file.size > maxSize) {
-                        $('#pancard_doc').after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 250.</span>');
-                        if (!firstErrorField) firstErrorField = $('#pancard_doc');
-                        isValid = false;
-                    }
+        if (pancardDocInput && pancardDocInput.files.length > 0) {
+            const file = pancardDocInput.files[0];
+            if (file) {
+                const allowedType = 'application/pdf';
+                const maxSize = 250 * 1024;
+                if (file.type !== allowedType) {
+                    $('#pancard_doc').after('<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for PAN document.</span>');
+                    if (!firstErrorField) firstErrorField = $('#pancard_doc');
+                    isValid = false;
+                } else if (file.size > maxSize) {
+                    $('#pancard_doc').after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 250 KB.</span>');
+                    if (!firstErrorField) firstErrorField = $('#pancard_doc');
+                    isValid = false;
                 }
             }
         }
@@ -718,6 +717,13 @@ $(document).ready(function () {
             return;
         }
 
+        if (typeof window.saveCompetencyDraftSilently === 'function' && $('#competency_form_p').length) {
+            const draftSaved = await window.saveCompetencyDraftSilently();
+            if (!draftSaved || draftSaved.status !== "success") {
+                return;
+            }
+        }
+
         let license_name = $("#license_name").val();
         let login_id = $("#login_id_store").val();
 
@@ -734,15 +740,16 @@ $(document).ready(function () {
     $("#pancard").on("keyup", function () {
         let value = $(this).val().toUpperCase();
 
-        // Limit to 10 characters
         if (value.length > 10) {
             value = value.slice(0, 10);
         }
 
-        $(this).val(value); // Force uppercase and max length
+        $(this).val(value);
 
-        if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value)) {
-            $("#pancard-error").text(""); // valid
+        if (value === "") {
+            $("#pancard-error").text("");
+        } else if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value)) {
+            $("#pancard-error").text("");
         } else {
             $("#pancard-error").text("Enter valid 10-character PAN (e.g., ABCDE1234F).");
         }
@@ -918,9 +925,9 @@ $(document).ready(function () {
     });
 
     // Save As Draft or Submit Returned Form P
-
-    $('#DraftBtn').on('click', function(e) {
-        e.preventDefault(); 
+    $(document).on('click', '#DraftBtn, #saveDraftBtn', function(e) {
+        if (!$('#competency_form_p').length) return;
+        e.preventDefault();
 
         $('.error-message').remove(); 
         let isValid = true;
@@ -1061,9 +1068,15 @@ $(document).ready(function () {
 
         const pancardInput = document.getElementById("pancard");
         const pancardError = document.getElementById("pancard-error");
-        const pancardValue = pancardInput ? pancardInput.value.trim() : "";
-        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-
+        const pancardValue = pancardInput ? pancardInput.value.replace(/\s+/g, '').toUpperCase() : "";
+        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+        if (pancardInput && pancardError && pancardValue !== "" && !panRegex.test(pancardValue)) {
+            pancardError.textContent = "Enter a valid 10-character PAN (e.g. ABCDE1234F).";
+            if (!firstErrorField) firstErrorField = $(pancardInput);
+            isValid = false;
+        } else if (pancardError) {
+            pancardError.textContent = "";
+        }
 
         const pancardDocInput = document.getElementById("pancard_doc");
         
@@ -1083,28 +1096,6 @@ $(document).ready(function () {
                 }
             }
         }
-
-
-
-        // PAN document validation if PAN number is entered
-        $("#pancard").on("keyup", function() {
-            let value = $(this).val().toUpperCase();
-
-            // Limit to 10 characters
-            if (value.length > 10) {
-                value = value.slice(0, 10);
-            }
-
-            $(this).val(value); // Force uppercase and max length
-
-            if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value)) {
-                $("#pancard-error").text(""); // valid
-            } else {
-                $("#pancard-error").text("Enter valid 10-character PAN (e.g., ABCDE1234F).");
-            }
-        });
-
-
 
         let photoInput = document.getElementById("upload_photo");
         
@@ -1146,6 +1137,7 @@ $(document).ready(function () {
             // For normal applications, this button saves as draft.
             // For returned Form P (app_status = QU), it submits corrections.
             var isReturnedFormP = (typeof window.isReturnedFormP !== 'undefined') && window.isReturnedFormP;
+            let url;
 
             if (isReturnedFormP) {
                 url = BASE_URL + "/form_p/submit_returned/" + applicationId;
@@ -1153,8 +1145,7 @@ $(document).ready(function () {
                 formData.append('form_action', 'draft');
 
                 if (applType === "R") {
-                    // Renewal draft submit route
-                    url = BASE_URL + "/form/draft_renewal_submit";
+                    url = BASE_URL + "/form_p/draft_renewal_submit/" + encodeURIComponent(applicationId);
                 } else {
                     // New application draft submit route
                     url = BASE_URL + "/form_p/saveDraft";
@@ -1180,6 +1171,9 @@ $(document).ready(function () {
                 },
                 success: function(response) {
                     if (response.status == 'success') {
+                        if (response.application_id) {
+                            $('#application_id').val(response.application_id);
+                        }
                         if (isReturnedFormP) {
                             Swal.fire({
                                 title: 'Application Submitted',

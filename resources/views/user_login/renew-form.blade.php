@@ -1425,6 +1425,7 @@
                                     </tbody>
                                 </table>
                             </div>
+                            <div id="work-exp-validation-msg" class="work-exp-validation-msg-wrap mt-2" aria-live="polite"></div>
                             @if($isRenewS)
                             <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
                             @endif

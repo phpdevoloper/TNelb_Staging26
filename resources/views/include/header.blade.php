@@ -1013,7 +1013,7 @@ use Illuminate\Support\Facades\Auth;
                         <small class="modal-subtitle">Please review the details below before proceeding to payment.</small>
                     </div>
                 </div>
-                <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+                {{-- <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button> --}}
             </div>
 
             <div class="modal-body">

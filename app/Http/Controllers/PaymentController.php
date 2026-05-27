@@ -145,10 +145,14 @@ class PaymentController extends Controller
         );
 
         if ($payment) {
-                TnelbFormP::where('application_id', $validated['application_id'])
-                ->update([
-                    'payment_status' => 'payment', // e.g., 'payment', 'draft', etc.
-                ]);
+            $formUpdate = [
+                'payment_status' => 'payment',
+                'updated_at'     => now(),
+            ];
+            if (empty($form->submitted_date)) {
+                $formUpdate['submitted_date'] = now();
+            }
+            TnelbFormP::where('application_id', $validated['application_id'])->update($formUpdate);
         }
 
         return response()->json([

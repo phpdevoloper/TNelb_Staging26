@@ -103,6 +103,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/apply-form-w', [RegisterController::class, 'apply_form_w'])->name('apply-form-w');
     Route::get('/apply-form-wh', [RegisterController::class, 'apply_form_wh'])->name('apply-form-wh');
     Route::get('/apply_form_p', [FormPController::class, 'apply_form_p'])->name('apply_form_p');
+    Route::get('/renew-form-p/{application_id}', [FormPController::class, 'renew_form_p'])->name('renew_form_p');
 
 
     Route::get('/apply-form-a', [RegisterController::class, 'apply_form_a'])->name('apply-form-a');
@@ -447,6 +448,7 @@ Route::get('/form/get-form-cost', [FormController::class, 'getFormCost'])->name(
 Route::post('/form_p/store', [FormPController::class, 'store'])->name('form_p.store');
 Route::post('/form_p/saveDraft', [FormPController::class, 'saveDraft'])->name('form_p.saveDraft');
 Route::post('/form_p/update', [FormPController::class, 'update'])->name('form_p.update');
+Route::post('/form_p/draft_renewal_submit/{appl_id?}', [FormPController::class, 'draft_renewal_submit_p'])->name('form_p.draft_renewal_submit');
 Route::get('/editApplication_p/{application_id}', [FormPController::class, 'editApplication'])->name('edit-application_p');
 Route::post('/payment/updatePaymentFormP', [PaymentController::class, 'updatePaymentFormP'])->name('payment.updatePaymentFormP');
 Route::post('/delete_institute', [FormPController::class, 'delete_institute'])->name('delete_institute');
