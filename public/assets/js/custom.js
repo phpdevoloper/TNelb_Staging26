@@ -244,6 +244,9 @@ $(document).ready(function () {
     window.normalizeIsoDateInputs = normalizeIsoDateInputs;
 
     $('#saveDraftBtn').on('click', async function(e) {
+        if ($('#competency_form_p').length && !$('#competency_form_ws').length) {
+            return;
+        }
         e.preventDefault(); 
 
         if ($('#competency_form_ws').length && typeof window.normalizeCompetencyDynamicSections === 'function') {

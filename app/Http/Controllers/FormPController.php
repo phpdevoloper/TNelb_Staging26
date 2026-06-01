@@ -52,6 +52,218 @@ class FormPController extends BaseController
         return $s !== '' ? $s : null;
     }
 
+    /**
+     * Load Form P application data for edit / renewal views.
+     *
+     * @return array<string, mixed>
+     */
+    protected function loadFormPViewData(string $appl_id): array
+    {
+        $application_details = TnelbFormP::where('application_id', $appl_id)->first();
+        if (!$application_details) {
+            return [];
+        }
+
+        $edu_details = DB::table('tnelb_applicants_edu')
+            ->where('application_id', $appl_id)
+            ->orderBy('year_of_passing', 'desc')
+            ->get();
+
+        $exp_details = DB::table('tnelb_applicants_exp')
+            ->where('application_id', $appl_id)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $apps_doc = Schema::hasTable('mst_documents')
+            ? DB::table('mst_documents')->where('application_id', $appl_id)->get()
+            : collect([]);
+
+        $license_details = DB::table('tnelb_license')
+            ->where('application_id', $appl_id)
+            ->first();
+
+        if (!$license_details && !empty($application_details->license_number)) {
+            $license_details = DB::table('tnelb_license')
+                ->where('license_number', $application_details->license_number)
+                ->first();
+        }
+
+        $applicant_photo = TnelbApplicantPhoto::where('application_id', $appl_id)->first();
+        $applicant_sign = TnelbApplicantsSign::where('application_id', $appl_id)->first();
+        $proof_doc = Schema::hasTable('mst_documents')
+            ? Mst_documents::where('application_id', $appl_id)->first()
+            : null;
+
+        $institutes = TnelbAppsInstitute::where('application_id', $appl_id)
+            ->where('institute_status', 1)
+            ->get();
+
+        return compact(
+            'application_details',
+            'edu_details',
+            'exp_details',
+            'apps_doc',
+            'license_details',
+            'applicant_photo',
+            'applicant_sign',
+            'proof_doc',
+            'institutes'
+        );
+    }
+
+    /**
+     * Renewal entry: pre-fill from approved application (or resume in-progress renewal draft).
+     */
+    public function renew_form_p($appl_id)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('logout');
+        }
+
+        if (!$appl_id) {
+            return redirect()->route('dashboard')->with('error', 'Application ID is required.');
+        }
+
+        $original = TnelbFormP::where('application_id', $appl_id)->first();
+        if (!$original) {
+            return redirect()->route('dashboard')->with('error', 'Application not found.');
+        }
+
+        $loginId = Auth::user()->login_id;
+
+        if (strtoupper((string) ($original->appl_type ?? '')) === 'R') {
+            if (!empty($original->old_application)) {
+                return redirect()->route('renew_form_p', ['application_id' => $original->old_application]);
+            }
+            return redirect()->route('dashboard')->with('error', 'Invalid renewal application.');
+        }
+
+        if ((string) ($original->login_id ?? '') !== (string) $loginId) {
+            return redirect()->route('dashboard')->with('error', 'Unauthorized access.');
+        }
+
+        if (strtoupper((string) ($original->form_name ?? '')) !== 'P') {
+            return redirect()->route('dashboard')->with('error', 'Invalid form type for renewal.');
+        }
+
+        if (strtoupper((string) ($original->app_status ?? '')) !== 'A') {
+            return redirect()->route('dashboard')->with('error', 'Only approved applications can be renewed.');
+        }
+
+        $renewalDraft = TnelbFormP::where('old_application', $appl_id)
+            ->where('appl_type', 'R')
+            ->where('login_id', $loginId)
+            ->where(function ($q) {
+                $q->where('payment_status', 'draft')
+                    ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) = 'draft'");
+            })
+            ->orderByDesc('id')
+            ->first();
+
+        $dataSourceId = $renewalDraft ? $renewalDraft->application_id : $appl_id;
+
+        $viewData = $this->loadFormPViewData($dataSourceId);
+        if ($viewData === []) {
+            return redirect()->route('dashboard')->with('error', 'Application not found.');
+        }
+
+        if ($renewalDraft && !empty($appl_id) && (string) $dataSourceId !== (string) $appl_id) {
+            $parentPhoto = TnelbApplicantPhoto::where('application_id', $appl_id)->first();
+            if ($parentPhoto && !empty($parentPhoto->upload_path)) {
+                $currentPhoto = $viewData['applicant_photo'] ?? null;
+                if (!$currentPhoto || empty($currentPhoto->upload_path)) {
+                    $viewData['applicant_photo'] = $parentPhoto;
+                }
+            }
+
+            $parentSign = TnelbApplicantsSign::where('application_id', $appl_id)->first();
+            if ($parentSign && !empty($parentSign->uploaded_doc)) {
+                $currentSign = $viewData['applicant_sign'] ?? null;
+                if (!$currentSign || empty($currentSign->uploaded_doc)) {
+                    $viewData['applicant_sign'] = $parentSign;
+                }
+            }
+
+            $renewalForm = $viewData['application_details'] ?? null;
+            $parentForm = TnelbFormP::where('application_id', $appl_id)->first();
+            if ($renewalForm && $parentForm) {
+                if (empty($renewalForm->aadhaar_doc) && !empty($parentForm->aadhaar_doc)) {
+                    $renewalForm->aadhaar_doc = $parentForm->aadhaar_doc;
+                }
+                if (empty($renewalForm->pan_doc) && !empty($parentForm->pan_doc)) {
+                    $renewalForm->pan_doc = $parentForm->pan_doc;
+                }
+                if (empty($renewalForm->applicant_email) && !empty($parentForm->applicant_email)) {
+                    $renewalForm->applicant_email = $parentForm->applicant_email;
+                }
+            }
+
+            $parentInstitutes = TnelbAppsInstitute::where('application_id', $appl_id)
+                ->where('institute_status', 1)
+                ->get();
+            $renewalInstitutes = $viewData['institutes'] ?? collect([]);
+            if ($renewalInstitutes->isNotEmpty() && $parentInstitutes->isNotEmpty()) {
+                $viewData['institutes'] = $renewalInstitutes->map(function ($institute) use ($parentInstitutes) {
+                    if (!empty($institute->upload_doc)) {
+                        return $institute;
+                    }
+                    $parentMatch = $parentInstitutes->first(function ($parent) use ($institute) {
+                        return trim((string) ($parent->institute_name_address ?? '')) === trim((string) ($institute->institute_name_address ?? ''));
+                    });
+                    if ($parentMatch && !empty($parentMatch->upload_doc)) {
+                        $institute->upload_doc = $parentMatch->upload_doc;
+                    }
+                    return $institute;
+                });
+            }
+        }
+
+        $issuedForRenew = '';
+        if (!empty($viewData['license_details']->license_number ?? null)) {
+            $issuedForRenew = trim((string) $viewData['license_details']->license_number);
+        } elseif (!empty($original->license_number)) {
+            $issuedForRenew = trim((string) $original->license_number);
+        } else {
+            $licRow = DB::table('tnelb_license')->where('application_id', $appl_id)->first();
+            $issuedForRenew = trim((string) ($licRow->license_number ?? ''));
+        }
+
+        if ($issuedForRenew !== '') {
+            if (!$viewData['license_details']) {
+                $viewData['license_details'] = (object) ['license_number' => $issuedForRenew];
+            } elseif (trim((string) ($viewData['license_details']->license_number ?? '')) === '') {
+                $viewData['license_details']->license_number = $issuedForRenew;
+            }
+        }
+
+        $applicationid = $renewalDraft ? $renewalDraft->application_id : $appl_id;
+        $old_application_id = $appl_id;
+        $isRenewFormP = true;
+
+        return view('user_login.renew-form-p', array_merge($viewData, compact(
+            'applicationid',
+            'old_application_id',
+            'isRenewFormP'
+        )));
+    }
+
+    /**
+     * Silent draft save before preview / Save as Draft on Form P renewal (create or update same renewal row).
+     */
+    public function draft_renewal_submit_p(Request $request, $id = null)
+    {
+        $request->merge([
+            'form_action' => $request->input('form_action', 'draft'),
+            'appl_type'   => 'R',
+        ]);
+
+        if ($id && !$request->filled('application_id')) {
+            $request->merge(['application_id' => $id]);
+        }
+
+        return $this->update($request);
+    }
+
     public function apply_form_p()
     {
         if (!Auth::check()) {
@@ -96,6 +308,7 @@ class FormPController extends BaseController
             'previously_number'    => 'nullable|string|max:80',
             'previously_date'      => 'nullable|date',
             'aadhaar'              => 'required|string|digits:12',
+            'applicant_email'      => 'nullable|email|max:191',
             'pancard'               => ['nullable', 'string', 'regex:/^([A-Z]{5}[0-9]{4}[A-Z])?$/'],
             'form_name'            => 'required|string|max:2',
             'license_name'         => 'required|string|max:2',
@@ -134,7 +347,12 @@ class FormPController extends BaseController
             'institute_name_address'  => 'required|array|min:1',
             'institute_name_address.*'            => 'required|string|max:255',
             'duration'              => 'required|array|min:1',
-            'duration.*'            => 'required|integer|min:0|max:50',
+            // duration is auto-computed on the FE as a "Y.M" string where the
+            // decimal point is a separator, NOT a math decimal:
+            //   "2.0"  = 2 years exact, "1.2"  = 1y 2m, "1.11" = 1y 11m.
+            // Stored as VARCHAR(8) in tnelb_applicant_institute.duration so the
+            // literal Y.M string round-trips. Year part is capped at 50.
+            'duration.*'            => ['required', 'regex:/^(?:[0-4]?\d|50)\.(?:[0-9]|1[01])$/'],
             'from_date'             => 'required|array|min:1',
             'from_date.*'                => 'required|date',
             'to_date'                        => 'required|array|min:1',
@@ -204,9 +422,7 @@ class FormPController extends BaseController
             'duration.required' => 'Duration field is required.',
             'duration.min' => 'At least one duration entry is required.',
             'duration.*.required' => 'Each duration value is required.',
-            'duration.*.integer' => 'Duration must be a valid number.',
-            'duration.*.min' => 'Duration must be at least 0 years.',
-            'duration.*.max' => 'Duration may not be greater than 50 years.',
+            'duration.*.regex'    => 'Duration must be in Year.Month format (e.g. 1.2, 2.0, 3.5) with months 0–11 and years 0–50.',
 
             'from_date.required' => 'From date is required.',
             'from_date.min' => 'At least one from date is required.',
@@ -302,10 +518,15 @@ class FormPController extends BaseController
                 file_put_contents($destinationPathPan . '/' . $panFilename, $panEncrypted);
             }
 
+            $emailStore = $request->exists('applicant_email')
+                ? (($e = trim((string) $request->input('applicant_email', ''))) !== '' ? $e : null)
+                : null;
+
             $form = TnelbFormP::create([
                 'login_id'            => $loginId,
                 'applicant_name'      => $request->applicant_name ?? '',
                 'fathers_name'        => $request->fathers_name ?? '',
+                'applicant_email'     => $emailStore,
                 'applicants_address'  => $request->applicants_address,
                 'd_o_b'               => $request->dob ?? $request->d_o_b,
                 'age'                 => $request->age,
@@ -327,8 +548,10 @@ class FormPController extends BaseController
                 'certificate_date'    => is_array($request->certificate_date ?? null) ? null : ($request->certificate_date ?? null),
                 'cert_verify'         => $request->cert_verify ?? '0',
                 'license_verify'      => $request->l_verify ?? '0',
-                'submitted_date'      => $this->dbNow,
+                // submitted_date is intentionally NOT set here; it is owned by PaymentController
+                // when the application transitions out of draft after a successful payment.
                 'created_at'          => $this->dbNow,
+                'updated_at'          => $this->dbNow,
             ]);
 
             $applicationId = $form->application_id;
@@ -538,12 +761,23 @@ class FormPController extends BaseController
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar),
             'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) $request->input('pancard', ''))),
         ]);
-        $applicationId = $request->application_id;
-        $existingForm = TnelbFormP::where('application_id', $applicationId)->first();
-        $existingPhoto = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
-        $existingSign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
+        $applicationId = trim((string) $request->application_id);
+        $parentApplicationId = trim((string) ($request->input('old_application') ?: ''));
+        $parentSourceId = $parentApplicationId;
+        $existingForm = $applicationId ? TnelbFormP::where('application_id', $applicationId)->first() : null;
+        if ($parentSourceId === '' && $existingForm && strtoupper((string) ($existingForm->appl_type ?? '')) === 'N') {
+            $parentSourceId = (string) $existingForm->application_id;
+        }
+        $existingPhoto = $applicationId ? TnelbApplicantPhoto::where('application_id', $applicationId)->first() : null;
+        $existingSign = $applicationId ? TnelbApplicantsSign::where('application_id', $applicationId)->first() : null;
+        if ((!$existingPhoto || empty($existingPhoto->upload_path)) && $parentSourceId !== '' && $parentSourceId !== $applicationId) {
+            $existingPhoto = TnelbApplicantPhoto::where('application_id', $parentSourceId)->first() ?: $existingPhoto;
+        }
+        if ((!$existingSign || empty($existingSign->uploaded_doc)) && $parentSourceId !== '' && $parentSourceId !== $applicationId) {
+            $existingSign = TnelbApplicantsSign::where('application_id', $parentSourceId)->first() ?: $existingSign;
+        }
 
-        if (!$existingForm && $applicationId) {
+        if (!$existingForm && $applicationId && ($request->appl_type ?? '') !== 'R') {
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
         }
         $uploadPhotoRule = (!$existingPhoto || empty($existingPhoto->upload_path))
@@ -569,6 +803,7 @@ class FormPController extends BaseController
             'form_id'            => 'nullable|integer',
             // 'amount'             => 'nullable|numeric|min:0',
             'pancard'             => ['nullable', 'string', 'regex:/^([A-Z]{5}[0-9]{4}[A-Z])?$/'],
+            'applicant_email'     => 'nullable|email|max:191',
             'educational_level'    => 'nullable|array|min:1',
             'educational_level.*'  => 'nullable|string|max:50',
             'institute_name'       => 'nullable|array|min:1',
@@ -627,14 +862,32 @@ class FormPController extends BaseController
 
 
             $appl_type = $request->appl_type ?? '';
-            $form = TnelbFormP::where('application_id', $applicationId)
-                ->where('appl_type', $appl_type)
-                ->first();
+            $form = null;
+
+            if ($applicationId && $appl_type !== '') {
+                $form = TnelbFormP::where('application_id', $applicationId)
+                    ->where('appl_type', $appl_type)
+                    ->first();
+            }
+
+            if (!$form && $appl_type === 'R' && $parentApplicationId !== '') {
+                $form = TnelbFormP::where('old_application', $parentApplicationId)
+                    ->where('appl_type', 'R')
+                    ->where('login_id', $loginId)
+                    ->where(function ($q) {
+                        $q->where('payment_status', 'draft')
+                            ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) = 'draft'");
+                    })
+                    ->orderByDesc('id')
+                    ->first();
+            }
 
             if ($form) {
                 $applicationId = $form->application_id;
-            } else {
-
+                if ($parentSourceId === '' && !empty($form->old_application)) {
+                    $parentSourceId = trim((string) $form->old_application);
+                }
+            } elseif ($appl_type === 'R') {
                 $lastApplication = TnelbFormP::latest('id')->value('application_id');
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
@@ -663,11 +916,9 @@ class FormPController extends BaseController
                 // ✅ Removed but not replaced
                 $aadhaarFilename = null;
             } else {
-                // ✅ Keep the old one
                 $aadhaarFilename = $form?->aadhaar_doc ?? null;
-
-                if ($aadhaarFilename == null) {
-                    $aadhaarFilename = TnelbFormP::where('application_id', $applicationId)->value('aadhaar_doc');
+                if ($aadhaarFilename === null && $parentSourceId !== '') {
+                    $aadhaarFilename = TnelbFormP::where('application_id', $parentSourceId)->value('aadhaar_doc');
                 }
             }
 
@@ -695,43 +946,58 @@ class FormPController extends BaseController
                 $panFilename = null;
             } else {
                 $panFilename = $form?->pan_doc ?? null;
-                if ($panFilename == null) {
-                    $panFilename = TnelbFormP::where('application_id', $applicationId)->value('pan_doc');
+                if ($panFilename === null && $parentSourceId !== '') {
+                    $panFilename = TnelbFormP::where('application_id', $parentSourceId)->value('pan_doc');
                 }
             }
 
-            $renewal_form = TnelbFormP::updateOrCreate(
-                [
-                    'application_id' => $applicationId
-                ],
-                [
-                    'login_id'           => $loginId,
-                    'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
-                    'fathers_name'       => $request->fathers_name ?? $request->Fathers_Name,
-                    'applicants_address' => $request->applicants_address,
-                    'd_o_b'              => $request->d_o_b ?? 0,
-                    'age'                => $request->age,
-                    'app_status'             => 'P',
-                    'previously_number'  => $request->previously_number ?? 0,
-                    'previously_date'    => $request->previously_date ?? 0,
-                    'employer_detail'     => $request->employer_name,
-                    'form_name'          => $request->form_name,
-                    'form_id'            => $request->form_id,
-                    'license_name'       => $request->license_name,
-                    'aadhaar'            => $encrypted_aadhaar,
-                    'pancard'            => $encrypted_pancard,
-                    'certificate_no'     => is_array($request->certificate_no ?? null) ? null : ($request->certificate_no ?? null),
-                    'certificate_date'   => is_array($request->certificate_date ?? null) ? null : ($request->certificate_date ?? null),
-                    'appl_type'          => $appl_type,
-                    'license_number'     => $request->license_number,
-                    'payment_status'     => 'draft',
-                    'aadhaar_doc'        => $aadhaarFilename ?? $form?->aadhaar_doc ?? null,
-                    'pan_doc'            => $panFilename ?? $form?->pan_doc ?? null,
-                    'cert_verify'        => $request->cert_verify ?? '0',
-                    'license_verify'     => $request->l_verify ?? '0',
-                    'old_application'    => $applicationId ?? '',
-                ]
-            );
+            $emailUpdate = $request->exists('applicant_email')
+                ? (($e = trim((string) $request->input('applicant_email', ''))) !== '' ? $e : null)
+                : ($form?->applicant_email ?? null);
+
+            $formPayload = [
+                'login_id'           => $loginId,
+                'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
+                'fathers_name'       => $request->fathers_name ?? $request->Fathers_Name,
+                'applicant_email'    => $emailUpdate,
+                'applicants_address' => $request->applicants_address,
+                'd_o_b'              => $request->d_o_b ?? 0,
+                'age'                => $request->age,
+                'app_status'             => 'P',
+                'previously_number'  => $request->previously_number ?? 0,
+                'previously_date'    => $request->previously_date ?? 0,
+                'employer_detail'     => $request->employer_name,
+                'form_name'          => $request->form_name,
+                'form_id'            => $request->form_id,
+                'license_name'       => $request->license_name,
+                'aadhaar'            => $encrypted_aadhaar,
+                'pancard'            => $encrypted_pancard,
+                'certificate_no'     => is_array($request->certificate_no ?? null) ? null : ($request->certificate_no ?? null),
+                'certificate_date'   => is_array($request->certificate_date ?? null) ? null : ($request->certificate_date ?? null),
+                'appl_type'          => $appl_type,
+                'license_number'     => $request->license_number,
+                'payment_status'     => 'draft',
+                'aadhaar_doc'        => $aadhaarFilename ?? $form?->aadhaar_doc ?? null,
+                'pan_doc'            => $panFilename ?? $form?->pan_doc ?? null,
+                'cert_verify'        => $request->cert_verify ?? '0',
+                'license_verify'     => $request->l_verify ?? '0',
+                'old_application'    => $form?->old_application
+                    ?? ($parentApplicationId !== '' ? $parentApplicationId : null)
+                    ?? (($existingForm && ($existingForm->appl_type ?? '') === 'N') ? $existingForm->application_id : null),
+                // submitted_date is intentionally NOT set here; it is owned by PaymentController
+                // when the application transitions out of draft after a successful payment.
+                'updated_at'         => $this->dbNow,
+            ];
+
+            $existingRecord = TnelbFormP::where('application_id', $applicationId)->first();
+            if ($existingRecord) {
+                $existingRecord->update($formPayload);
+                $renewal_form = $existingRecord->fresh();
+            } else {
+                $formPayload['application_id'] = $applicationId;
+                $formPayload['created_at'] = $this->dbNow;
+                $renewal_form = TnelbFormP::create($formPayload);
+            }
 
             $applicationId = $renewal_form->application_id;
 
@@ -886,19 +1152,39 @@ class FormPController extends BaseController
             }
 
             if ($request->has('institute_name_address')) {
-
-
                 foreach ($request->institute_name_address as $key => $institute_name_address) {
                     $institute_name = $institute_name_address ?? null;
-                    $duration    = $request->duration[$key] ?? null;
+                    $duration = $request->duration[$key] ?? null;
                     $from_date = $request->from_date[$key] ?? null;
                     $to_date = $request->to_date[$key] ?? null;
 
-                    $removed     = isset($request->removed_document_inst[$key]) && $request->removed_document_inst[$key] == '1';
-                    $newDoc      = (isset($request->file('institute_document')[$key]) && $request->file('institute_document')[$key]->isValid())
+                    if (
+                        empty($institute_name) &&
+                        empty($duration) &&
+                        empty($from_date) &&
+                        empty($to_date)
+                    ) {
+                        continue;
+                    }
+
+                    $removed = isset($request->removed_document_inst[$key]) && $request->removed_document_inst[$key] == '1';
+                    $newDoc = (isset($request->file('institute_document')[$key]) && $request->file('institute_document')[$key]->isValid())
                         ? $request->file('institute_document')[$key]
                         : null;
-                    $oldDoc      = $request->institute_document[$key] ?? null;
+                    $oldDoc = $request->exist_institute_document[$key]
+                        ?? $request->institute_existdocument[$key]
+                        ?? null;
+
+                    $instituteId = $request->institute_id[$key] ?? null;
+                    $instituteRecord = null;
+                    if ($instituteId) {
+                        $candidate = TnelbAppsInstitute::find($instituteId);
+                        if ($candidate && (string) $candidate->application_id === (string) $applicationId) {
+                            $instituteRecord = $candidate;
+                        } elseif ($candidate && $oldDoc === null && !$removed) {
+                            $oldDoc = $candidate->upload_doc;
+                        }
+                    }
 
                     if ($removed) {
                         $finalDoc = null;
@@ -911,30 +1197,33 @@ class FormPController extends BaseController
                     }
 
                     $hasAnyData = !empty($institute_name) || !empty($duration) || !empty($from_date) || !empty($to_date) || !empty($finalDoc);
-                    if (!$hasAnyData) continue;
+                    if (!$hasAnyData) {
+                        continue;
+                    }
 
-                    $lastNum++;
-                    $newSerial = 'exp_' . $lastNum;
-
-                    TnelbAppsInstitute::updateOrCreate(
-                        [
-                            'login_id'       => $loginId,
-                            'application_id' => $applicationId,
-                            'institute_name_address'   => $institute_name,
-                        ],
-                        [
-                            'duration'      => $duration,
-                            'from_date'     => $from_date,
-                            'to_date'     => $to_date,
-                            'upload_doc' => $finalDoc,
-                            // 'exp_serial'      => $newSerial,
-                        ]
-                    );
+                    if ($instituteRecord) {
+                        $instituteRecord->update([
+                            'institute_name_address' => $institute_name,
+                            'duration'               => $duration,
+                            'from_date'              => $from_date,
+                            'to_date'                => $to_date,
+                            'upload_doc'             => $finalDoc,
+                        ]);
+                    } else {
+                        TnelbAppsInstitute::create([
+                            'login_id'               => $loginId,
+                            'application_id'         => $applicationId,
+                            'institute_name_address' => $institute_name,
+                            'duration'               => $duration,
+                            'from_date'              => $from_date,
+                            'to_date'                => $to_date,
+                            'upload_doc'             => $finalDoc,
+                        ]);
+                    }
                 }
             }
 
-            // process photo
-            if ($request->hasFile('upload_photo')) {
+            if ($request->hasFile('upload_photo') && $request->file('upload_photo')->isValid()) {
                 $photoName = 'user_' . time() . '.' . $request->file('upload_photo')->getClientOriginalExtension();
                 $request->file('upload_photo')->move(public_path('attached_documents'), $photoName);
 
@@ -945,9 +1234,23 @@ class FormPController extends BaseController
                         'upload_path' => 'attached_documents/' . $photoName,
                     ]
                 );
+            } else {
+                $photoSource = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+                if ((!$photoSource || empty($photoSource->upload_path)) && $parentSourceId !== '') {
+                    $photoSource = TnelbApplicantPhoto::where('application_id', $parentSourceId)->first();
+                }
+                if ($photoSource && !empty($photoSource->upload_path)) {
+                    TnelbApplicantPhoto::updateOrCreate(
+                        ['application_id' => $applicationId],
+                        [
+                            'login_id' => $loginId,
+                            'upload_path' => $photoSource->upload_path,
+                        ]
+                    );
+                }
             }
 
-            if ($request->hasFile('upload_sign')) {
+            if ($request->hasFile('upload_sign') && $request->file('upload_sign')->isValid()) {
                 $signFile = $request->file('upload_sign');
                 $signName = 'sign_' . time() . '.' . $signFile->getClientOriginalExtension();
                 $signFile->move(public_path('attached_documents'), $signName);
@@ -959,6 +1262,20 @@ class FormPController extends BaseController
                         'uploaded_doc' => 'attached_documents/' . $signName,
                     ]
                 );
+            } else {
+                $signSource = TnelbApplicantsSign::where('application_id', $applicationId)->first();
+                if ((!$signSource || empty($signSource->uploaded_doc)) && $parentSourceId !== '') {
+                    $signSource = TnelbApplicantsSign::where('application_id', $parentSourceId)->first();
+                }
+                if ($signSource && !empty($signSource->uploaded_doc)) {
+                    TnelbApplicantsSign::updateOrCreate(
+                        ['application_id' => $applicationId],
+                        [
+                            'login_id'     => $loginId,
+                            'uploaded_doc' => $signSource->uploaded_doc,
+                        ]
+                    );
+                }
             }
 
             // Process Payment for update
@@ -1214,11 +1531,13 @@ class FormPController extends BaseController
             'previously_number'  => 'nullable|string',
             'previously_date'    => 'nullable|date',
             'wireman_details'    => 'nullable|string|max:255',
+            'employer_name'      => 'nullable|string|max:255',
             'form_name'          => 'nullable|string|max:2',
             'license_name'       => 'nullable|string|max:2',
             'form_id'            => 'nullable|integer',
             'amount'             => 'nullable|numeric|min:0',
             'pancard'             => ['nullable', 'string', 'regex:/^([A-Z]{5}[0-9]{4}[A-Z])?$/'],
+            'applicant_email'     => 'nullable|email|max:191',
 
             'educational_level'    => 'nullable|array|min:1',
             'educational_level.*'  => 'nullable|string|max:50',
@@ -1360,11 +1679,16 @@ class FormPController extends BaseController
             }
 
 
+            $emailDraft = $request->exists('applicant_email')
+                ? (($e = trim((string) $request->input('applicant_email', ''))) !== '' ? $e : null)
+                : ($form?->applicant_email ?? null);
+
             // 🔹 Prepare Data
             $data = [
                 'login_id'          => $loginId,
                 'applicant_name'    => $request->applicant_name ?? $request->Applicant_Name,
                 'fathers_name'      => $request->fathers_name ?? $request->Fathers_Name,
+                'applicant_email'   => $emailDraft,
                 'applicants_address' => $request->applicants_address,
                 'd_o_b'             => $request->d_o_b ?? null,
                 'age'               => $request->age,
@@ -1372,6 +1696,7 @@ class FormPController extends BaseController
                 'previously_number' => $request->previously_number ?? null,
                 'previously_date'   => $request->previously_date ?? null,
                 'wireman_details'   => $request->wireman_details,
+                'employer_detail'   => $request->employer_name,
                 'form_name'         => $request->form_name,
                 'form_id'           => $request->form_id,
                 'license_name'      => $request->license_name,
@@ -1387,18 +1712,18 @@ class FormPController extends BaseController
                 'application_id'    => $applicationId,
                 'cert_verify'    => $request->cert_verify ?? '0',
                 'license_verify'    => $request->l_verify ?? '0',
-                'old_application' => $form->old_application ?? null
+                'old_application' => $form?->old_application ?? null,
+                // submitted_date is intentionally NOT set here; it is owned by PaymentController
+                // when the application transitions out of draft after a successful payment.
+                'updated_at'      => $this->dbNow,
             ];
-
-
 
             // 🔹 Insert or Update
             if ($form) {
-                $data['updated_at'] = $this->dbNow;
-                $form->update($data); // ✅ Update existing
+                $form->update($data);
             } else {
                 $data['created_at'] = $this->dbNow;
-                $form = TnelbFormP::create($data); // ✅ Insert new
+                $form = TnelbFormP::create($data);
             }
 
 
@@ -1585,7 +1910,6 @@ class FormPController extends BaseController
                 // $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
 
                 foreach ($request->institute_name_address as $key => $institute) {
-                    // ✅ Skip empty rows
                     if (
                         empty($institute) &&
                         empty($request->duration[$key] ?? null) &&
@@ -1595,19 +1919,23 @@ class FormPController extends BaseController
                         continue;
                     }
 
-                    // ✅ Check if row already exists
                     $instituteId = $request->institute_id[$key] ?? null;
-                    $institutes = $instituteId ? TnelbAppsInstitute::find($instituteId) : null;
+                    $institutes = null;
+                    if ($instituteId) {
+                        $candidate = TnelbAppsInstitute::find($instituteId);
+                        if ($candidate && (string) $candidate->application_id === (string) $applicationId) {
+                            $institutes = $candidate;
+                        }
+                    }
 
-                    
-
-                    // ✅ File Handling
                     $filePath = null;
                     $isFileRemoved = isset($request->removed_document_inst[$key]) && $request->removed_document_inst[$key] == '1';
-                    
+                    $existingDoc = $request->exist_institute_document[$key]
+                        ?? $request->institute_existdocument[$key]
+                        ?? null;
 
-                    if (!$isFileRemoved && isset($request->file("institute_document")[$key])) {
-                        $file = $request->file("institute_document")[$key];
+                    if (!$isFileRemoved && isset($request->file('institute_document')[$key])) {
+                        $file = $request->file('institute_document')[$key];
 
                         if ($file && $file->isValid()) {
                             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -1617,32 +1945,23 @@ class FormPController extends BaseController
                         }
                     }
 
-
-
-
                     if ($institutes) {
-                        
-                        // 🔹 UPDATE existing record
                         $institutes->update([
-                            'institute_name_address'    => $institute ?? null,
-                            'duration'      => $request->duration[$key] ?? null,
-                            'from_date'     => $request->from_date[$key] ?? null,
-                            'to_date'     => $request->to_date[$key] ?? null,
-                            'upload_doc' => $isFileRemoved ? null : ($filePath ?? $institutes->upload_doc),
+                            'institute_name_address' => $institute ?? null,
+                            'duration'               => $request->duration[$key] ?? null,
+                            'from_date'                => $request->from_date[$key] ?? null,
+                            'to_date'                  => $request->to_date[$key] ?? null,
+                            'upload_doc'               => $isFileRemoved ? null : ($filePath ?? $institutes->upload_doc ?? $existingDoc),
                         ]);
                     } else {
-                        // 🔹 INSERT new record
-                        // $lastNum++;
-                        // $newExpSerial = 'exp_' . $lastNum;
-
                         TnelbAppsInstitute::create([
-                            'login_id'        => $loginId,
-                            'application_id'  => $applicationId,
-                            'institute_name_address'    => $institute,
-                            'duration'      => $request->duration[$key],
-                            'from_date'     => $request->from_date[$key],
-                            'to_date'      => $request->to_date[$key],
-                            'upload_doc' => $filePath,
+                            'login_id'               => $loginId,
+                            'application_id'         => $applicationId,
+                            'institute_name_address' => $institute,
+                            'duration'               => $request->duration[$key],
+                            'from_date'              => $request->from_date[$key],
+                            'to_date'                  => $request->to_date[$key],
+                            'upload_doc'               => $isFileRemoved ? null : ($filePath ?? $existingDoc),
                         ]);
                     }
                 }

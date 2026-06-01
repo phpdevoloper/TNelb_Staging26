@@ -7,6 +7,7 @@ use App\Models\Admin\Mst_Logins;
 use App\Models\Admin\Mst_Roles;
 use App\Models\Admin\Mst_Staffs_Tbl;
 use App\Models\Admin\StaffAssigned;
+use App\Models\Admin\StaffProfile;
 use App\Models\Admin\TnelbForms;
 use App\Models\Admin\UserFormHistory;
 use App\Models\MstLicence;
@@ -71,11 +72,23 @@ class StaffController extends Controller
             $join->on('rf.user_id', '=', 'u.s_id');
         })
         ->leftJoin('mst_roles as r', 'r.r_id', '=', 'u.role_id')
+        ->leftJoin('mst_staff_profiles as p', 'p.s_id', '=', 'u.s_id')
+        ->where(function ($q) {
+            $q->whereNull('u.user_status')
+              ->orWhere('u.user_status', '!=', '3'); // exclude soft-deleted
+        })
         ->select(
             'u.s_id',
             'u.user_name',
+            'u.user_email',
             'r.role_name',
+            'u.role_id',
             'u.user_status',
+            'p.employee_code',
+            'p.full_name',
+            'p.mobile',
+            'p.designation',
+            'p.profile_photo',
             'nf.new_form_ids',
             'rf.renewal_form_ids',
             DB::raw("COALESCE(nf.new_forms, '') as new_forms"),
@@ -115,41 +128,535 @@ class StaffController extends Controller
         ]);
     }
 
+    /**
+     * Generate the next sequential employee code in the format TNELB-EMP-0001.
+     * Pads to 4 digits; grows automatically (TNELB-EMP-10000 etc.).
+     */
+    protected function generateEmployeeCode(): string
+    {
+        $prefix = 'TNELB-EMP-';
+
+        $last = StaffProfile::where('employee_code', 'like', $prefix . '%')
+            ->orderByDesc('id')
+            ->value('employee_code');
+
+        $nextNum = 1;
+        if ($last && preg_match('/(\d+)$/', $last, $m)) {
+            $nextNum = ((int) $m[1]) + 1;
+        }
+
+        return $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Common validator for staff profile fields shared between insert and update.
+     * Photo is validated only when present.
+     */
+    protected function profileFieldRules(?int $ignoreSId = null): array
+    {
+        return [
+            'full_name'     => 'required|string|max:150',
+            'mobile'        => 'required|string|min:10|max:15|regex:/^[0-9+\-\s]{10,15}$/',
+            'designation'   => 'required|string|max:120',
+            'joining_date'  => 'required|date',
+            'date_of_birth' => 'nullable|date|before_or_equal:today',
+            'gender'        => 'nullable|in:M,F,O',
+            'alt_phone'     => 'nullable|string|max:20|regex:/^[0-9+\-\s]{0,20}$/',
+            'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ];
+    }
+
+    /**
+     * Save the uploaded profile photo to public/staff_photos/ and return its relative path.
+     */
+    protected function storeProfilePhoto($file, int $sId): string
+    {
+        $dir = public_path('staff_photos');
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $filename = "staff_{$sId}_" . time() . ".{$ext}";
+        $file->move($dir, $filename);
+        return "staff_photos/{$filename}";
+    }
+
+    /**
+     * Create a new portal user (staff) in mst_login_users + mst_staff_profiles.
+     * Uniqueness on user_name / user_email ignores soft-deleted rows (user_status = '3').
+     */
     public function insertStaff(Request $request)
     {
-        $request->validate([
-            'staff_name'    => 'required|string',
-            'name'          => 'required|string',
-            'name'         => 'required|string|unique:mst__staffs__tbls,name', 
-            'email'        => 'required|email|unique:mst__staffs__tbls,email',
-            'handle_forms'  => 'required|array',
-            'status'        => 'required|in:0,1,2',
-            // 'created_by'    => 'required|string',
-            // 'updated_by'    => 'required|string',
-        ]);
-    
-        // Step 1: Create staff record
-        $staff = Mst_Staffs_Tbl::create([
-            'staff_name'    => $request->staff_name,
-            'name'   => $request->name,
-            'email'         => $request->email,
-            'handle_forms'  => json_encode($request->handle_forms),
-            'status'        => $request->status,
-            // 'created_by'    => $request->created_by,
-            'updated_by'    => $this->updatedBy,
-        ]);
-    
-        // Step 2: Update forms with this staff_id
-        TnelbForms::whereIn('id', $request->handle_forms)->update([
-            'staff_id' => $staff->id,
-            'Assigned' => 'A'
-        ]);
-    
+        $loginRules = [
+            'staff_name'        => [
+                'required', 'string', 'max:120',
+                function ($attribute, $value, $fail) {
+                    $exists = Mst_Logins::where('user_name', $value)
+                        ->where(function ($q) {
+                            $q->whereNull('user_status')->orWhere('user_status', '!=', '3');
+                        })
+                        ->exists();
+                    if ($exists) {
+                        $fail('This user name is already taken.');
+                    }
+                },
+            ],
+            'role_id'           => 'required|integer|exists:mst_roles,r_id',
+            'staff_email'       => [
+                'required', 'email', 'max:150',
+                function ($attribute, $value, $fail) {
+                    $exists = Mst_Logins::where('user_email', $value)
+                        ->where(function ($q) {
+                            $q->whereNull('user_status')->orWhere('user_status', '!=', '3');
+                        })
+                        ->exists();
+                    if ($exists) {
+                        $fail('This email is already registered.');
+                    }
+                },
+            ],
+            'user_random_pass'  => [
+                'required', 'string', 'min:8',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[\W_]/',
+                'confirmed',
+            ],
+        ];
+
+        $validator = Validator::make(
+            $request->all(),
+            array_merge($loginRules, $this->profileFieldRules()),
+            [
+                'user_random_pass.regex'     => 'Password must contain uppercase, number and special character.',
+                'user_random_pass.confirmed' => 'Password and confirm password do not match.',
+                'role_id.exists'             => 'Invalid role selected.',
+                'mobile.regex'               => 'Mobile number must contain digits only (10\u201315 chars).',
+                'alt_phone.regex'            => 'Alternate phone must contain digits only.',
+                'profile_photo.image'        => 'Profile photo must be an image.',
+                'profile_photo.max'          => 'Profile photo must be under 2 MB.',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $result = DB::transaction(function () use ($request) {
+                $user = Mst_Logins::create([
+                    'user_name'   => trim($request->staff_name),
+                    'user_email'  => strtolower(trim($request->staff_email)),
+                    'user_passwd' => Hash::make($request->user_random_pass),
+                    'role_id'     => (int) $request->role_id,
+                    'user_status' => '1',
+                    'created_by'  => Auth::id(),
+                    'updated_by'  => Auth::id(),
+                ]);
+
+                $photoPath = null;
+                if ($request->hasFile('profile_photo')) {
+                    $photoPath = $this->storeProfilePhoto($request->file('profile_photo'), $user->s_id);
+                }
+
+                $profile = StaffProfile::create([
+                    's_id'          => $user->s_id,
+                    'employee_code' => $this->generateEmployeeCode(),
+                    'full_name'     => trim($request->full_name),
+                    'mobile'        => preg_replace('/\s+/', '', $request->mobile),
+                    'designation'   => trim($request->designation),
+                    'joining_date'  => $request->joining_date,
+                    'date_of_birth' => $request->date_of_birth ?: null,
+                    'gender'        => $request->gender ?: null,
+                    'alt_phone'     => $request->alt_phone ? preg_replace('/\s+/', '', $request->alt_phone) : null,
+                    'profile_photo' => $photoPath,
+                    'created_by'    => Auth::id(),
+                    'updated_by'    => Auth::id(),
+                ]);
+
+                return compact('user', 'profile');
+            });
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Staff added successfully.',
+                'user'    => [
+                    's_id'          => $result['user']->s_id,
+                    'user_name'     => $result['user']->user_name,
+                    'user_email'    => $result['user']->user_email,
+                    'employee_code' => $result['profile']->employee_code,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unable to add staff.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch a single staff record (login + profile) for the Edit modal.
+     */
+    public function getStaff($id)
+    {
+        $user = DB::table('mst_login_users as u')
+            ->leftJoin('mst_roles as r', 'r.r_id', '=', 'u.role_id')
+            ->leftJoin('mst_staff_profiles as p', 'p.s_id', '=', 'u.s_id')
+            ->where('u.s_id', $id)
+            ->where(function ($q) {
+                $q->whereNull('u.user_status')->orWhere('u.user_status', '!=', '3');
+            })
+            ->select(
+                'u.s_id', 'u.user_name', 'u.user_email', 'u.role_id', 'u.user_status', 'r.role_name',
+                'p.employee_code', 'p.full_name', 'p.mobile', 'p.designation', 'p.joining_date',
+                'p.date_of_birth', 'p.gender', 'p.alt_phone', 'p.profile_photo'
+            )
+            ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Staff not found.',
+            ], 404);
+        }
+
+        // Normalize dates for date inputs (YYYY-MM-DD)
+        if (!empty($user->joining_date)) {
+            $user->joining_date = date('Y-m-d', strtotime($user->joining_date));
+        }
+        if (!empty($user->date_of_birth)) {
+            $user->date_of_birth = date('Y-m-d', strtotime($user->date_of_birth));
+        }
+        if (!empty($user->profile_photo)) {
+            $user->profile_photo_url = asset($user->profile_photo);
+        } else {
+            $user->profile_photo_url = null;
+        }
+
         return response()->json([
-            'status' => 'success',
-            'message' => 'Staff Added Successfully.',
-            'staff' => $staff,
-            'form_names' => TnelbForms::whereIn('id', $request->handle_forms)->pluck('form_name')->toArray()
+            'status' => true,
+            'user'   => $user,
+        ]);
+    }
+
+    /**
+     * Update staff login details (name / email / role) AND profile fields.
+     * Profile row is upserted, so it also fixes legacy users that didn't have one yet.
+     */
+    public function updateStaffDetails(Request $request)
+    {
+        $userId = (int) $request->input('user_id');
+
+        $loginRules = [
+            'user_id'     => 'required|integer|exists:mst_login_users,s_id',
+            'staff_name'  => [
+                'required', 'string', 'max:120',
+                function ($attribute, $value, $fail) use ($userId) {
+                    $exists = Mst_Logins::where('user_name', $value)
+                        ->where('s_id', '!=', $userId)
+                        ->where(function ($q) {
+                            $q->whereNull('user_status')->orWhere('user_status', '!=', '3');
+                        })
+                        ->exists();
+                    if ($exists) {
+                        $fail('This user name is already taken.');
+                    }
+                },
+            ],
+            'staff_email' => [
+                'required', 'email', 'max:150',
+                function ($attribute, $value, $fail) use ($userId) {
+                    $exists = Mst_Logins::where('user_email', $value)
+                        ->where('s_id', '!=', $userId)
+                        ->where(function ($q) {
+                            $q->whereNull('user_status')->orWhere('user_status', '!=', '3');
+                        })
+                        ->exists();
+                    if ($exists) {
+                        $fail('This email is already registered.');
+                    }
+                },
+            ],
+            'role_id'     => 'required|integer|exists:mst_roles,r_id',
+            'remove_photo' => 'nullable|in:0,1',
+        ];
+
+        $validator = Validator::make(
+            $request->all(),
+            array_merge($loginRules, $this->profileFieldRules($userId)),
+            [
+                'role_id.exists' => 'Invalid role selected.',
+                'mobile.regex'   => 'Mobile number must contain digits only (10\u201315 chars).',
+                'alt_phone.regex' => 'Alternate phone must contain digits only.',
+                'profile_photo.image' => 'Profile photo must be an image.',
+                'profile_photo.max'   => 'Profile photo must be under 2 MB.',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($request, $userId) {
+                Mst_Logins::where('s_id', $userId)->update([
+                    'user_name'  => trim($request->staff_name),
+                    'user_email' => strtolower(trim($request->staff_email)),
+                    'role_id'    => (int) $request->role_id,
+                    'updated_by' => Auth::id(),
+                    'updated_at' => now(),
+                ]);
+
+                $profile = StaffProfile::where('s_id', $userId)->first();
+
+                $photoPath = $profile?->profile_photo;
+
+                if ($request->input('remove_photo') == 1 && $photoPath) {
+                    $abs = public_path($photoPath);
+                    if (is_file($abs)) @unlink($abs);
+                    $photoPath = null;
+                }
+
+                if ($request->hasFile('profile_photo')) {
+                    if ($photoPath) {
+                        $abs = public_path($photoPath);
+                        if (is_file($abs)) @unlink($abs);
+                    }
+                    $photoPath = $this->storeProfilePhoto($request->file('profile_photo'), $userId);
+                }
+
+                $data = [
+                    'full_name'     => trim($request->full_name),
+                    'mobile'        => preg_replace('/\s+/', '', $request->mobile),
+                    'designation'   => trim($request->designation),
+                    'joining_date'  => $request->joining_date,
+                    'date_of_birth' => $request->date_of_birth ?: null,
+                    'gender'        => $request->gender ?: null,
+                    'alt_phone'     => $request->alt_phone ? preg_replace('/\s+/', '', $request->alt_phone) : null,
+                    'profile_photo' => $photoPath,
+                    'updated_by'    => Auth::id(),
+                ];
+
+                if ($profile) {
+                    $profile->update($data);
+                } else {
+                    // Legacy user without a profile row yet — create it with a new employee_code.
+                    StaffProfile::create(array_merge($data, [
+                        's_id'          => $userId,
+                        'employee_code' => $this->generateEmployeeCode(),
+                        'created_by'    => Auth::id(),
+                    ]));
+                }
+            });
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Staff details updated successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unable to update staff details.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft-delete a staff user (user_status = '3').
+     * If user has active form assignments, requires explicit force confirmation,
+     * mirroring the changeStatus() flow.
+     */
+    public function deleteStaff(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id'        => 'required|exists:mst_login_users,s_id',
+            'force_delete'   => 'nullable|in:0,1,true,false,on,off',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Invalid request',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $forceDelete = in_array($request->force_delete, [1, '1', true, 'true', 'on'], true);
+
+        $assignedFormsQuery = StaffAssigned::where('user_id', $request->user_id)
+            ->where('is_active', 1)
+            ->whereIn('form_type', ['N', 'R']);
+
+        if (DB::getDriverName() === 'pgsql') {
+            $assignedFormsQuery->whereRaw("jsonb_array_length(COALESCE(form_id, '[]'::jsonb)) > 0");
+        } else {
+            $assignedFormsQuery->whereRaw("JSON_LENGTH(form_id) > 0");
+        }
+
+        $assignedTypes = (clone $assignedFormsQuery)
+            ->pluck('form_type')
+            ->filter()
+            ->unique()
+            ->map(fn ($t) => $t === 'N' ? 'New' : ($t === 'R' ? 'Renewal' : $t))
+            ->values()
+            ->toArray();
+
+        if (!empty($assignedTypes) && !$forceDelete) {
+            return response()->json([
+                'status'             => false,
+                'needs_confirmation' => true,
+                'message'            => 'Forms are assigned for ' . implode(' and ', $assignedTypes) . '. Do you want to delete this user and clear all assigned forms?',
+                'assigned_types'     => $assignedTypes,
+            ], 422);
+        }
+
+        $formTypesToStop = StaffAssigned::where('user_id', $request->user_id)
+            ->where('is_active', 1)
+            ->whereIn('form_type', ['N', 'R'])
+            ->pluck('form_type')
+            ->filter()
+            ->unique()
+            ->values();
+
+        try {
+            DB::transaction(function () use ($request, $formTypesToStop) {
+                Mst_Logins::where('s_id', $request->user_id)
+                    ->update([
+                        'user_status' => '3',
+                        'updated_by'  => Auth::id(),
+                        'updated_at'  => now(),
+                    ]);
+
+                $formIdValue = DB::getDriverName() === 'pgsql'
+                    ? DB::raw("'[]'::jsonb")
+                    : json_encode([]);
+
+                StaffAssigned::where('user_id', $request->user_id)
+                    ->update([
+                        'form_id'     => $formIdValue,
+                        'is_active'   => 0,
+                        'updated_by'  => Auth::id(),
+                        'assigned_at' => now(),
+                    ]);
+
+                UserFormHistory::where('user_id', $request->user_id)
+                    ->whereNull('ended_at')
+                    ->update([
+                        'ended_at' => now(),
+                    ]);
+
+                foreach ($formTypesToStop as $formType) {
+                    UserFormHistory::create([
+                        'user_id'       => $request->user_id,
+                        'form_id'       => [],
+                        'form_type'     => $formType,
+                        'is_active'     => 0,
+                        'action_status' => 'STOP',
+                        'started_at'    => now(),
+                        'ended_at'      => now(),
+                        'created_by'    => Auth::id(),
+                    ]);
+                }
+            });
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Staff deleted successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unable to delete staff.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch form-assignment history for a given user.
+     * Powers the User Form History modal table.
+     */
+    public function getUserHistory(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer|exists:mst_login_users,s_id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $rows = DB::table('user_assigned_history as h')
+            ->where('h.user_id', $request->user_id)
+            ->orderBy('h.started_at', 'desc')
+            ->orderBy('h.id', 'desc')
+            ->select(
+                'h.id',
+                'h.form_id',
+                'h.form_type',
+                'h.is_active',
+                'h.action_status',
+                'h.started_at',
+                'h.ended_at'
+            )
+            ->get();
+
+        $allFormIds = collect();
+        foreach ($rows as $row) {
+            $ids = $row->form_id;
+            if (is_string($ids)) {
+                $decoded = json_decode($ids, true);
+                $ids = is_array($decoded) ? $decoded : [];
+            } elseif (!is_array($ids)) {
+                $ids = [];
+            }
+            $allFormIds = $allFormIds->merge($ids);
+        }
+        $allFormIds = $allFormIds->map(fn ($v) => (int) $v)->filter()->unique()->values();
+
+        $formNames = $allFormIds->isEmpty()
+            ? collect()
+            : MstLicence::whereIn('id', $allFormIds)->pluck('form_name', 'id');
+
+        $data = $rows->map(function ($row) use ($formNames) {
+            $ids = $row->form_id;
+            if (is_string($ids)) {
+                $decoded = json_decode($ids, true);
+                $ids = is_array($decoded) ? $decoded : [];
+            } elseif (!is_array($ids)) {
+                $ids = [];
+            }
+            $names = collect($ids)
+                ->map(fn ($id) => $formNames[(int) $id] ?? null)
+                ->filter()
+                ->values()
+                ->all();
+
+            return [
+                'form_type_label' => $row->form_type === 'N' ? 'New' : ($row->form_type === 'R' ? 'Renewal' : $row->form_type),
+                'form_names'      => !empty($names) ? implode(', ', $names) : '-',
+                'status_label'    => $row->is_active == 1 ? 'Active' : 'Inactive',
+                'action_status'   => $row->action_status ?? '-',
+                'started_at'      => $row->started_at ? date('d-m-Y H:i', strtotime($row->started_at)) : '-',
+                'ended_at'        => $row->ended_at ? date('d-m-Y H:i', strtotime($row->ended_at)) : '-',
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'data'   => $data,
         ]);
     }
 

@@ -157,12 +157,17 @@
             <td>
                 @if ($workflow->payment_status == 'draft')
                     @php
-                        $view_page =
-                            isset($workflow->appl_type) && $workflow->appl_type == 'R'
-                                ? 'renew_form'
-                                : (in_array(strtoupper($workflow->form_name), ['P']) ? 'edit-application_p' : 'edit-application');
+                        $isFormPRenewalDraft = strtoupper($workflow->form_name ?? '') === 'P'
+                            && strtoupper($workflow->appl_type ?? '') === 'R';
+                        if ($isFormPRenewalDraft) {
+                            $draftRoute = 'renew_form_p';
+                            $draftApplicationId = $workflow->old_application ?? $workflow->application_id;
+                        } else {
+                            $draftRoute = in_array(strtoupper($workflow->form_name), ['P']) ? 'edit-application_p' : 'edit-application';
+                            $draftApplicationId = $workflow->application_id;
+                        }
                     @endphp
-                    <a href="{{ route($view_page, ['application_id' => $workflow->application_id]) }}">
+                    <a href="{{ route($draftRoute, ['application_id' => $draftApplicationId]) }}">
                         <button class="btn btn-info btn-sm"><i class="fa fa-pencil"></i> Draft</button>
                     </a>
                 @else
@@ -232,23 +237,19 @@
                     </a><br>
 
                     @if ($workflow->form_name == 'P')
-                        {{-- Form P: encrypted English and Tamil licence PDFs from private storage --}}
-                        <a href="{{ route('admin.formp.licence.ta', ['application_id' => $workflow->application_id]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (Tamil)">
+                        {{-- Form P: single encrypted PDF (English + Tamil) --}}
+                        <a href="{{ route('admin.formp.licence.en', ['application_id' => $workflow->application_id]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (English & Tamil)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span class="badge outline-badge-info" style="font-size:10px;">தமிழ்</span>
-                        </a>
-                        <a href="{{ route('admin.formp.licence.en', ['application_id' => $workflow->application_id]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (English)">
-                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span class="badge outline-badge-info" style="font-size:10px;">English</span>
+                            <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
                     @else
-                        <a href="{{ route('admin.competency-certificate-tamil.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (Tamil)">
+                        {{-- <a href="{{ route('admin.competency-certificate-tamil.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (Tamil)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
                             <span class="badge outline-badge-info" style="font-size:10px;">தமிழ்</span>
-                        </a>
+                        </a> --}}
                         <a href="{{ route('admin.generateLicensePDF', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (English)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span class="badge outline-badge-info" style="font-size:10px;">English</span>
+                            <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
                     @endif
                     <br>
@@ -287,7 +288,7 @@
                             }
                         @endphp
                         @if ($workflow->is_under_validity_period && !($isFormW && $hasCertificateC))
-                            <a href="{{ route('renew_form', ['application_id' => $workflow->application_id]) }}"
+                            <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'renew_form', ['application_id' => $workflow->application_id]) }}"
                                 class="text-primary">
                                 (Apply for renewal)
                             </a>

@@ -191,47 +191,6 @@
     .comp_certificate .btn-tbl-add .fa, .comp_certificate .btn-tbl-add i.fa,
     .comp_certificate .btn-tbl-remove .fa, .comp_certificate .btn-tbl-remove i.fa { font-family: 'FontAwesome'; display: inline-block; }
 
-    /* ── Application Preview Modal ───────────────────── */
-    .prv-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:10000; display:flex; align-items:flex-end; justify-content:center; }
-    .prv-panel   { background:#f0f4f9; width:100%; max-width:960px; max-height:92vh; display:flex; flex-direction:column; border-radius:16px 16px 0 0; box-shadow:0 -6px 40px rgba(3,90,179,.18); overflow:hidden; animation:prvSlideUp .3s ease; }
-    @keyframes prvSlideUp { from { transform:translateY(60px); opacity:0; } to { transform:translateY(0); opacity:1; } }
-    .prv-header  { background:linear-gradient(135deg,#035ab3,#0472d9); padding:14px 24px 12px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-    .prv-header-left h5 { margin:0; font-size:1rem; font-weight:700; color:#fff; }
-    .prv-header-left .prv-subtitle { font-size:.78rem; color:rgba(255,255,255,.8); margin-top:2px; }
-    .prv-badge  { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff; border-radius:20px; padding:2px 12px; font-size:.75rem; font-weight:600; margin-left:10px; }
-    .prv-close  { background:rgba(255,255,255,.15); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:1.2rem; line-height:1; cursor:pointer; transition:background .2s; flex-shrink:0; }
-    .prv-close:hover { background:rgba(255,255,255,.3); }
-    .prv-body   { overflow-y:auto; padding:20px 24px; flex:1; }
-    .prv-section { background:#fff; border:1px solid #e3e8f0; border-radius:10px; margin-bottom:14px; overflow:hidden; }
-    .prv-section-hd { background:#eef3fb; border-bottom:1px solid #dde5f3; padding:8px 16px; display:flex; align-items:center; gap:8px; }
-    .prv-section-num { width:22px; height:22px; border-radius:50%; background:#035ab3; color:#fff; font-size:.7rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .prv-section-title { font-size:.82rem; font-weight:600; color:#1a2a4a; }
-    .prv-section-body { padding:14px 16px; }
-    .prv-field  { margin-bottom:10px; }
-    .prv-label  { font-size:.72rem; font-weight:600; color:#5a7299; text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
-    .prv-value  { font-size:.88rem; color:#1a2a4a; font-weight:500; padding:6px 10px; background:#f8fafd; border:1px solid #e3e8f0; border-radius:6px; min-height:32px; word-break:break-word; }
-    .prv-value.prv-empty { color:#aab; font-style:italic; }
-    .prv-table  { width:100%; font-size:.78rem; border-collapse:collapse; }
-    .prv-table th { background:#eef3fb; color:#1a2a4a; font-weight:600; padding:.35rem .5rem; border:1px solid #dde5f3; font-size:.72rem; white-space:nowrap; }
-    .prv-table td { padding:.35rem .5rem; border:1px solid #e3e8f0; vertical-align:middle; }
-    .prv-table tr:nth-child(even) td { background:#f8fafd; }
-    .prv-badge-yes  { background:#d4edda; color:#155724; border-radius:4px; padding:2px 8px; font-size:.72rem; font-weight:600; }
-    .prv-badge-no   { background:#f8d7da; color:#721c24; border-radius:4px; padding:2px 8px; font-size:.72rem; font-weight:600; }
-    .prv-thumb { text-align:center; }
-    .prv-thumb img { width:80px; height:96px; object-fit:cover; border:2px solid #dde5f3; border-radius:6px; display:block; margin-bottom:4px; background:#f0f4f9; }
-    .prv-thumb-sign img { width:140px; height:50px; object-fit:contain; }
-    .prv-thumb span { font-size:.7rem; color:#5a7299; }
-    .prv-no-img { width:80px; height:96px; background:#f0f4f9; border:2px dashed #ccd5e3; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#aab; font-size:.7rem; text-align:center; }
-    .prv-footer { background:#fff; border-top:1px solid #e3e8f0; padding:14px 24px; display:flex; align-items:center; gap:12px; flex-shrink:0; flex-wrap:wrap; }
-    .prv-confirm-check { display:flex; align-items:center; gap:8px; flex:1; font-size:.83rem; color:#2c3e5e; cursor:pointer; }
-    .prv-confirm-check input { width:16px; height:16px; accent-color:#035ab3; cursor:pointer; }
-    .prv-btn-back    { background:#fff; color:#035ab3; border:1px solid #035ab3; border-radius:8px; padding:8px 20px; font-size:.85rem; font-weight:600; cursor:pointer; transition:background .2s; white-space:nowrap; }
-    .prv-btn-back:hover { background:#eef3fb; }
-    .prv-btn-confirm { background:linear-gradient(135deg,#1a9e4f,#14813f); color:#fff; border:none; border-radius:8px; padding:8px 22px; font-size:.85rem; font-weight:600; cursor:pointer; transition:opacity .2s; white-space:nowrap; }
-    .prv-btn-confirm:disabled { opacity:.45; cursor:not-allowed; }
-    .prv-btn-confirm:not(:disabled):hover { opacity:.9; }
-    .prv-sub-label { font-size:.75rem; font-weight:600; color:#1a2a4a; margin:10px 0 4px; }
-
     /* ── Local file preview ───────────────────────────── */
     .local-file-preview { display:flex; align-items:center; gap:.4rem; margin-top:.35rem; white-space:nowrap; }
     .local-file-preview .preview-link { color:#0056b3 !important; font-size:.78rem; font-weight:600; text-decoration:none; }
@@ -470,7 +429,7 @@
                                             <td><textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3" maxlength="255"></textarea></td>
                                             <td><input autocomplete="off" class="form-control" name="from_date[]" type="date"></td>
                                             <td><input autocomplete="off" class="form-control" name="to_date[]" type="date"></td>
-                                            <td><input autocomplete="off" class="form-control" name="duration[]" type="number" min="0" max="50" readonly></td>
+                                            <td><input autocomplete="off" class="form-control" name="duration[]" type="text" maxlength="8" readonly placeholder="Y.M"></td>
                                             <td><input class="form-control" name="institute_document[]" type="file" accept=".pdf,application/pdf"></td>
                                             <td class="text-center p-1">
                                                 <div class="form-s-actions-stack">
@@ -736,114 +695,60 @@
     </div>
 </div>
 
-{{-- ── Application Preview Modal ── --}}
-<div id="appPreviewModal" class="prv-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Application Preview">
-    <div class="prv-panel">
-        <div class="prv-header">
-            <div class="prv-header-left">
-                <h5><i class="fa fa-file-text-o"></i> Application Preview <span class="prv-badge">FORM - P / Certificate P</span></h5>
-                <div class="prv-subtitle">Please verify all your details before proceeding to payment</div>
-            </div>
-            <button class="prv-close" onclick="closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}" title="Close preview">&times;</button>
-        </div>
-        <div class="prv-body" id="prvBody">
-            <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">1</span><span class="prv-section-title">Personal Information</span></div>
-                <div class="prv-section-body">
-                    <div class="row">
-                        <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex align-items-start" style="gap:12px;">
-                            <div class="prv-thumb text-center">
-                                <div id="prv_photo_wrap"><div class="prv-no-img">No Photo</div></div>
-                                <span>Photo</span>
-                            </div>
-                            <div class="prv-thumb text-center">
-                                <div id="prv_sign_wrap"><div class="prv-no-img" style="width:120px;height:46px;">No Signature</div></div>
-                                <span>Signature</span>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md">
-                            <div class="row">
-                                <div class="col-12 col-sm-6"><div class="prv-field"><div class="prv-label">Applicant's Name</div><div class="prv-value" id="prv_name">—</div></div></div>
-                                <div class="col-12 col-sm-6"><div class="prv-field"><div class="prv-label">Father's Name</div><div class="prv-value" id="prv_fathers_name">—</div></div></div>
-                                <div class="col-12 col-sm-6"><div class="prv-field"><div class="prv-label">Address</div><div class="prv-value" id="prv_address" style="white-space:pre-line;">—</div></div></div>
-                                <div class="col-6 col-sm-3"><div class="prv-field"><div class="prv-label">Date of Birth</div><div class="prv-value" id="prv_dob">—</div></div></div>
-                                <div class="col-6 col-sm-3"><div class="prv-field"><div class="prv-label">Age</div><div class="prv-value" id="prv_age">—</div></div></div>
-                                <div class="col-12 col-sm-6"><div class="prv-field"><div class="prv-label">Email ID</div><div class="prv-value" id="prv_email">—</div></div></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">6</span><span class="prv-section-title">Technical Qualifications &amp; Experience</span></div>
-                <div class="prv-section-body">
-                    <div class="prv-sub-label">(i) Education Details</div>
-                    <div style="overflow-x:auto;margin-bottom:12px;">
-                        <table class="prv-table">
-                            <thead><tr><th>Education Level</th><th>Institution</th><th>Month</th><th>Year</th><th>Certificate No</th><th>Document</th></tr></thead>
-                            <tbody id="prv_edu_body"><tr><td colspan="6" class="text-center text-muted py-3">—</td></tr></tbody>
-                        </table>
-                    </div>
-                    <div class="prv-sub-label">(ii) Training Institute</div>
-                    <div style="overflow-x:auto;margin-bottom:12px;">
-                        <table class="prv-table">
-                            <thead><tr><th>Institute Name &amp; Address</th><th>From Date</th><th>To Date</th><th>Duration</th><th>Document</th></tr></thead>
-                            <tbody id="prv_inst_body"><tr><td colspan="5" class="text-center text-muted py-3">—</td></tr></tbody>
-                        </table>
-                    </div>
-                    <div class="prv-sub-label">(iii) Power Station</div>
-                    <div style="overflow-x:auto;margin-bottom:12px;">
-                        <table class="prv-table">
-                            <thead><tr><th>Power Station</th><th>From Date</th><th>To Date</th><th>Total yrs</th><th>Designation</th><th>Document</th></tr></thead>
-                            <tbody id="prv_work_body"><tr><td colspan="6" class="text-center text-muted py-3">—</td></tr></tbody>
-                        </table>
-                    </div>
-                    <div class="row">
-                        <div class="col-12 col-md-8"><div class="prv-field mb-0"><div class="prv-label">(iv) Name of the Employer</div><div class="prv-value" id="prv_employer_name" style="white-space:pre-line;">—</div></div></div>
-                    </div>
-                </div>
-            </div>
-            <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">7</span><span class="prv-section-title">Previous Application Details</span></div>
-                <div class="prv-section-body">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Applied Previously:</span>
-                        <span id="prv_cert_yn">—</span>
-                    </div>
-                    <div id="prv_cert_details_block" style="display:none;">
-                        <div class="row">
-                            <div class="col-12 col-sm-4"><div class="prv-field mb-1"><div class="prv-label">Application Number</div><div class="prv-value" id="prv_cert_no">—</div></div></div>
-                            <div class="col-12 col-sm-4"><div class="prv-field mb-1"><div class="prv-label">Date</div><div class="prv-value" id="prv_cert_date">—</div></div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">8</span><span class="prv-section-title">Identity &amp; Uploaded Documents</span></div>
-                <div class="prv-section-body">
-                    <div class="row align-items-center mb-2">
-                        <div class="col-5 col-md-3"><div class="prv-field mb-0"><div class="prv-label">Aadhaar Number</div><div class="prv-value" id="prv_aadhaar">—</div></div></div>
-                        <div class="col-7 col-md-4"><div class="prv-field mb-0"><div class="prv-label">Aadhaar Document</div><div class="prv-value" id="prv_aadhaar_doc">—</div></div></div>
-                    </div>
-                    <div class="row align-items-center">
-                        <div class="col-5 col-md-3"><div class="prv-field mb-0"><div class="prv-label">PAN Card Number</div><div class="prv-value" id="prv_pan">—</div></div></div>
-                        <div class="col-7 col-md-4"><div class="prv-field mb-0"><div class="prv-label">PAN Document</div><div class="prv-value" id="prv_pan_doc">—</div></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="prv-footer">
-            <label class="prv-confirm-check"><input type="checkbox" id="prvConfirmCheck"> I confirm that all the above details are correct and true</label>
-            <button type="button" class="prv-btn-back" onclick="closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}"><i class="fa fa-arrow-left"></i> Back to Edit</button>
-            <button type="button" class="prv-btn-confirm" id="prvConfirmBtn" disabled><i class="fa fa-credit-card"></i> Confirm &amp; Proceed to Payment</button>
-        </div>
-    </div>
-</div>
+@include('user_login.partials.form-p-preview-modal')
 
 <footer class="main-footer">
     @include('include.footer')
 
     <script>
+
+        $(document).ready(async function() {
+            var modalEl = document.getElementById('competencyInstructionsModal');
+            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+            var agreeCheckbox = modalEl.querySelector('#declaration-agree-renew');
+            var errorText = modalEl.querySelector('#declaration-error-renew');
+            var proceedBtn = modalEl.querySelector('#proceedPayment');
+            if (!agreeCheckbox || !errorText || !proceedBtn) return;
+            var acceptModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+            var modalBody = modalEl.querySelector('#instructionContent');
+            if (modalBody) modalBody.innerHTML = '<p class="mb-0 text-muted">Loading instructions...</p>';
+            try {
+                var instructionResponse = await $.ajax({
+                    url: "{{ route('licences.getFormInstruction') }}", type: "POST",
+                    data: { appl_type: ($('#appl_type').val() || 'N'), licence_code: ($('#license_name').val() || 'C'), _token: $('meta[name="csrf-token"]').attr('content') }
+                });
+                if (modalBody) {
+                    if (instructionResponse && Number(instructionResponse.status) === 200 && instructionResponse.data) {
+                        try {
+                            var delta = JSON.parse(instructionResponse.data);
+                            if (typeof QuillDeltaToHtmlConverter !== 'undefined' && delta && delta.ops) {
+                                var converter = new QuillDeltaToHtmlConverter(delta.ops, { inlineStyles: true, multiLineParagraph: false, listItemTag: "li", paragraphTag: "p" });
+                                var html = converter.convert();
+                                html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
+                                html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
+                                modalBody.innerHTML = html;
+                            } else { modalBody.textContent = instructionResponse.data; }
+                        } catch(parseErr) { modalBody.textContent = instructionResponse.data; }
+                    } else { modalBody.innerHTML = '<p class="mb-0 text-danger">Instruction not available.</p>'; }
+                }
+            } catch(err) { if (modalBody) modalBody.innerHTML = '<p class="mb-0 text-danger">Unable to load instructions right now.</p>'; }
+            agreeCheckbox.checked = false;
+            errorText.classList.add('d-none');
+            acceptModal.show();
+            if (!modalEl.dataset.acceptGateBound) {
+                modalEl.dataset.acceptGateBound = '1';
+                modalEl.addEventListener('hide.bs.modal', function(e) { if (!agreeCheckbox.checked) { e.preventDefault(); errorText.classList.remove('d-none'); } });
+                proceedBtn.addEventListener('click', function(e) {
+                    if (!agreeCheckbox.checked) { e.preventDefault(); errorText.classList.remove('d-none'); return; }
+                    errorText.classList.add('d-none'); acceptModal.hide();
+                });
+                agreeCheckbox.addEventListener('change', function() { if (agreeCheckbox.checked) errorText.classList.add('d-none'); });
+            }
+        });
+
+
+
+
         function closeDraftModal() {
             document.getElementById('draftModal').style.display = 'none';
         }
@@ -1039,7 +944,7 @@
                 <td><textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3" maxlength="255"></textarea></td>
                 <td><input type="date" class="form-control" name="from_date[]"></td>
                 <td><input type="date" class="form-control" name="to_date[]"></td>
-                <td><input type="number" class="form-control" name="duration[]" min="0" max="50" readonly></td>
+                <td><input type="text" class="form-control" name="duration[]" maxlength="8" readonly placeholder="Y.M"></td>
                 <td><input type="file" class="form-control" name="institute_document[]" accept=".pdf,.png,.jpg,.jpeg"></td>
                 <td class="text-center p-1"><div class="form-s-actions-stack"><button type="button" class="btn-tbl-remove remove-institute py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button></div></td>`;
                     container.appendChild(newRow);
@@ -1056,16 +961,24 @@
             }
         });
 
+        // Returns the institute attendance duration as a "Y.M" string where the
+        // decimal point is just a separator (NOT a math decimal):
+        //   2 years exactly       -> "2.0"
+        //   1 year 2 months       -> "1.2"
+        //   3 years 5 months      -> "3.5"
+        //   1 year 11 months      -> "1.11"
+        // The day-component is honoured (Feb 15 -> Apr 1 counts as 1 month, not 2).
         function calculateInstituteDurationYears(fromDate, toDate) {
             if (!fromDate || !toDate) return '';
             const from = new Date(fromDate + 'T00:00:00');
             const to = new Date(toDate + 'T00:00:00');
             if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from) return '';
             let years = to.getFullYear() - from.getFullYear();
-            const monthDiff = to.getMonth() - from.getMonth();
-            const dayDiff = to.getDate() - from.getDate();
-            if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) years -= 1;
-            return years < 0 ? '' : String(years);
+            let months = to.getMonth() - from.getMonth();
+            if (to.getDate() < from.getDate()) months -= 1;
+            if (months < 0) { years -= 1; months += 12; }
+            if (years < 0) return '';
+            return years + '.' + months;
         }
 
         function updateInstituteDuration(row) {
@@ -1084,77 +997,5 @@
 
         document.querySelectorAll('#institute-container .institute-fields').forEach(updateInstituteDuration);
     </script>
-    <script>
-    // ── Preview Modal ──────────────────────────────────────────────────────
-    var EDU_LEVEL_MAP_P = {'BEM':'B.E(Mechanical)','BEE':'B.E(Electrical)','DiplomaM':'Diploma(Mechanical)','DiplomaE':'Diploma(Electrical)'};
-    var MONTH_MAP_P = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
-    function fmtDateP(v){if(!v)return'—';var p=v.split('-');return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:v;}
-    function setValP(id,v){var el=document.getElementById(id);if(!el)return;var t=(v||'').toString().trim();el.textContent=t||'—';el.classList.toggle('prv-empty',!t);}
-    function fileLabelP(inp){return inp&&inp.files&&inp.files[0]?inp.files[0].name:'—';}
-
-    function populatePreview(){
-        setValP('prv_name',(document.getElementById('Applicant_Name')||{}).value||'');
-        setValP('prv_fathers_name',(document.getElementById('Fathers_Name')||{}).value||'');
-        setValP('prv_address',(document.getElementById('applicants_address')||{}).value||'');
-        setValP('prv_dob',(document.getElementById('d_o_b')||{}).value||'');
-        setValP('prv_age',(document.getElementById('age')||{}).value||'');
-        setValP('prv_email',(document.getElementById('applicant_email')||{}).value||'');
-        // Education
-        var eduBody=document.getElementById('prv_edu_body');eduBody.innerHTML='';
-        var eduRows=document.querySelectorAll('#education-container .education-fields');
-        if(!eduRows.length){eduBody.innerHTML='<tr><td colspan="6" class="text-center text-muted py-3">No education entries</td></tr>';}
-        else{eduRows.forEach(function(row,i){
-            var lv=row.querySelector('[name="educational_level[]"]'),inst=row.querySelector('[name="institute_name[]"]');
-            var mon=row.querySelector('[name="month_of_passing[]"]'),yr=row.querySelector('[name="year_of_passing[]"]');
-            var cert=row.querySelector('[name="certificate_no[]"]'),doc=row.querySelector('[name="education_document[]"]');
-            var docLink=(doc&&doc.files&&doc.files[0])?'<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>':'<span class="text-muted">—</span>';
-            eduBody.innerHTML+='<tr><td>'+(lv?(EDU_LEVEL_MAP_P[lv.value]||lv.value||'—'):'—')+'</td><td>'+(inst?inst.value||'—':'—')+'</td><td class="text-center">'+(mon?(MONTH_MAP_P[mon.value]||mon.value||'—'):'—')+'</td><td class="text-center">'+(yr?(yr.value==='0'||!yr.value?'—':yr.value):'—')+'</td><td>'+(cert?cert.value||'—':'—')+'</td><td class="text-center">'+docLink+'</td></tr>';
-        });}
-        // Institute
-        var instBody=document.getElementById('prv_inst_body');instBody.innerHTML='';
-        var instRows=document.querySelectorAll('#institute-container .institute-fields');
-        if(!instRows.length){instBody.innerHTML='<tr><td colspan="5" class="text-center text-muted py-3">No institute entries</td></tr>';}
-        else{instRows.forEach(function(row){
-            var nm=row.querySelector('[name="institute_name_address[]"]'),dur=row.querySelector('[name="duration[]"]');
-            var fr=row.querySelector('[name="from_date[]"]'),to=row.querySelector('[name="to_date[]"]');
-            var doc=row.querySelector('[name="institute_document[]"]');
-            var docLink=(doc&&doc.files&&doc.files[0])?'<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>':'<span class="text-muted">—</span>';
-            instBody.innerHTML+='<tr><td style="white-space:pre-line;">'+(nm?nm.value||'—':'—')+'</td><td>'+fmtDateP((fr||{}).value||'')+'</td><td>'+fmtDateP((to||{}).value||'')+'</td><td class="text-center">'+(dur?dur.value||'—':'—')+'</td><td class="text-center">'+docLink+'</td></tr>';
-        });}
-        // Power Station
-        var wBody=document.getElementById('prv_work_body');wBody.innerHTML='';
-        var wRows=document.querySelectorAll('#work-container .work-fields');
-        if(!wRows.length){wBody.innerHTML='<tr><td colspan="6" class="text-center text-muted py-3">No entries</td></tr>';}
-        else{wRows.forEach(function(row){
-            var co=row.querySelector('[name="work_level[]"]'),fr=row.querySelector('[name="work_date_from[]"]'),to=row.querySelector('[name="work_date_to[]"]'),tot=row.querySelector('.work-year-total-display'),de=row.querySelector('[name="designation[]"]'),doc=row.querySelector('[name="work_document[]"]');
-            var docLink=(doc&&doc.files&&doc.files[0])?'<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>':'<span class="text-muted">—</span>';
-            wBody.innerHTML+='<tr><td>'+(co?co.value||'—':'—')+'</td><td class="text-center">'+fmtDateP((fr||{}).value||'')+'</td><td class="text-center">'+fmtDateP((to||{}).value||'')+'</td><td class="text-center">'+(tot?tot.value||'—':'—')+'</td><td>'+(de?de.value||'—':'—')+'</td><td class="text-center">'+docLink+'</td></tr>';
-        });}
-        // Employer
-        setValP('prv_employer_name',(document.getElementById('employer_name')||{}).value||'');
-        // Section 6 — Previous Application
-        var prevYes=document.getElementById('previous_license_yes'),isY=prevYes&&prevYes.checked;
-        var yn=document.getElementById('prv_cert_yn');if(yn)yn.innerHTML=isY?'<span class="prv-badge-yes">Yes</span>':'<span class="prv-badge-no">No</span>';
-        var cb=document.getElementById('prv_cert_details_block');if(cb)cb.style.display=isY?'':'none';
-        if(isY){
-            setValP('prv_cert_no',(document.getElementById('previously_number')||{}).value||'');
-            setValP('prv_cert_date',fmtDateP((document.getElementById('previously_date')||{}).value||''));
-        }
-        // Photo & Sign
-        var pw=document.getElementById('prv_photo_wrap'),ps=document.getElementById('photo_preview');
-        if(pw){var s=ps&&ps.style.display!=='none'?ps.src:'';pw.innerHTML=s?'<img src="'+s+'" alt="Photo" style="width:80px;height:96px;object-fit:cover;border:2px solid #dde5f3;border-radius:6px;">':'<div class="prv-no-img">No Photo</div>';}
-        var sw=document.getElementById('prv_sign_wrap'),si=document.getElementById('sign_preview');
-        if(sw){var sr=si&&si.style.display!=='none'?si.src:'';sw.innerHTML=sr?'<img src="'+sr+'" alt="Signature" style="width:140px;height:50px;object-fit:contain;border:2px solid #dde5f3;border-radius:6px;">':'<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';}
-        // Aadhaar & PAN
-        setValP('prv_aadhaar',(document.getElementById('aadhaar')||{}).value||'');
-        setValP('prv_pan',(document.getElementById('pancard')||{}).value||'');
-        setValP('prv_aadhaar_doc',fileLabelP(document.getElementById('aadhaar_doc')));
-        setValP('prv_pan_doc',fileLabelP(document.getElementById('pancard_doc')));
-    }
-    function openPreviewModal(){populatePreview();var m=document.getElementById('appPreviewModal');m.style.display='flex';document.body.style.overflow='hidden';document.getElementById('prvConfirmCheck').checked=false;document.getElementById('prvConfirmBtn').disabled=true;document.getElementById('prvBody').scrollTop=0;}
-    function closePreviewModal(){document.getElementById('appPreviewModal').style.display='none';document.body.style.overflow='';}
-    document.getElementById('prvConfirmCheck').addEventListener('change',function(){document.getElementById('prvConfirmBtn').disabled=!this.checked;});
-    document.getElementById('prvConfirmBtn').addEventListener('click',function(){closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(true);window._prvResolve=null;}});
-    document.getElementById('appPreviewModal').addEventListener('click',function(e){if(e.target===this){closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}}});
-    </script>
+    @include('user_login.partials.form-p-preview-modal-script')
 </footer>

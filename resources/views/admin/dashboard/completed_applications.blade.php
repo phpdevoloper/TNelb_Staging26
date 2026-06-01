@@ -286,7 +286,7 @@
                             <div class="table-responsive">
                                 <table id="secretary-inprogress-table" class="table dt-table-hover table-striped table-bordered zero-config" style="width:100%">
                                     <thead>
-                                        <tr>
+                                        <tr class="text-center">
                                             <th>S.No</th>
                                             <th>Application Id</th>
                                             <th>Applicant's Name</th>
@@ -294,7 +294,7 @@
                                             <th>Licence No</th>
                                             <th>Issued At</th>
                                             <th>Expires At</th>
-                                            <th>Licence</th>
+                                            <th>Certificate</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -320,8 +320,8 @@
             // English licence PDF (card) for competency/amendment applications
             const licenceEnUrlTemplate = "{{ route('admin.generateLicensePDF', ['application_id' => '__APP__']) }}";
             const licenceTaUrlTemplate = "{{ route('admin.licence.ta', ['application_id' => '__APP__']) }}";
-            const formPLicenceEnUrlTemplate = "{{ route('admin.formp.licence.en', ['application_id' => '__APP__']) }}";
-            const formPLicenceTaUrlTemplate = "{{ route('admin.formp.licence.ta', ['application_id' => '__APP__']) }}";
+            // Form P: single encrypted PDF (English + Tamil merged); any stream route serves the same file.
+            const formPLicenceBilingualUrlTemplate = "{{ route('admin.formp.licence.en', ['application_id' => '__APP__']) }}";
 
 
             const formalicenceEnUrl = "{{ route('admin.licencepdf_cl.pdf', ['application_id' => '__APP__']) }}";
@@ -394,16 +394,12 @@
                     const effectiveCode = formCodeRaw || formNameRaw;
                     const viewUrl = r.license_url ? String(r.license_url) : '#';
 
-                    // Licence PDF links: Form P uses encrypted EN/TA stream routes, others use EN getLicenceDoc + TA streamLicenceTa
-                    const enUrl = applicationIdRaw
-                        ? (effectiveCode === 'P'
-                            ? formPLicenceEnUrlTemplate.replace('__APP__', applicationIdRaw)
-                            : licenceEnUrlTemplate.replace('__APP__', applicationIdRaw))
+                    // Licence PDF links: Form P = one bilingual PDF; others = EN + TA
+                    const enUrl = applicationIdRaw && effectiveCode !== 'P'
+                        ? licenceEnUrlTemplate.replace('__APP__', applicationIdRaw)
                         : '#';
-                    const taUrl = applicationIdRaw
-                        ? (effectiveCode === 'P'
-                            ? formPLicenceTaUrlTemplate.replace('__APP__', applicationIdRaw)
-                            : licenceTaUrlTemplate.replace('__APP__', applicationIdRaw))
+                    const taUrl = applicationIdRaw && effectiveCode !== 'P'
+                        ? licenceTaUrlTemplate.replace('__APP__', applicationIdRaw)
                         : '#';
 
                       const licenseCell = applicationIdRaw
@@ -422,6 +418,15 @@
                             target="_blank"
                             title="Tamil PDF">
                                 <i class="fa fa-file-pdf-o text-danger"></i>  தமிழ்
+                            </a>
+                        `
+                        : effectiveCode === 'P'
+                        ? `
+                            <a href="${formPLicenceBilingualUrlTemplate.replace('__APP__', applicationIdRaw)}"
+                                class="text-decoration-none"
+                                target="_blank"
+                                title="Form P licence (English & Tamil)">
+                                <i class="fa fa-file-pdf-o text-danger"></i> Download
                             </a>
                         `
                         : `

@@ -302,7 +302,7 @@ class LoginController extends Controller
         if (!empty($assignedFormIDs)) {
             if ($isSupervisorRole) {
                 // Use canonical Supervisor role id for resubmitted check (same as FormController when resubmitting)
-                $supervisorRoleId = (int) (DB::table('mst__staffs__tbls')->where('name', 'Supervisor')->value('roles_id') ?? 0);
+                $supervisorRoleId = (int) (DB::table('mst_roles')->where('role_name', 'Supervisor')->value('r_id') ?? 0);
                 if ($supervisorRoleId === 0) {
                     $supervisorRoleId = (int) ($staff->roles_id ?? 0);
                 }
@@ -312,6 +312,7 @@ class LoginController extends Controller
                 $twLastSub = DB::table('tnelb_workflow')
                     ->select('application_id', DB::raw('MAX(id) as max_id'))
                     ->groupBy('application_id');
+                
 
                 $pendingCounts = DB::table('tnelb_application_tbl as ta')
                     ->leftJoinSub($twLastSub, 'tw_last', function ($join) {
@@ -323,16 +324,28 @@ class LoginController extends Controller
                     })
                     ->whereIn('ta.form_id', $assignedFormIDs)
                     ->whereIn('ta.status', ['P', 'RE'])
+                    // Only count paid submissions — drafts (payment_status='unpaid') never reach Supervisor.
+                    // Mirrors the filter used by the non-supervisor, Form P and contractor pending queries.
+                    ->whereIn('ta.payment_status', ['payment', 'paid'])
                     ->whereNotExists(function ($q) {
                         $q->select(DB::raw(1))->from('tnelb_workflow_a as twa')->whereRaw('twa.application_id = ta.application_id');
                     })
                     ->where(function ($q) use ($supervisorRoleId) {
+                        // (1) Brand-new submissions that have never entered the workflow.
                         $q->whereNull('tw.id')
+                            // (2) Resubmissions: canonical fingerprint set by every applicant-resubmit
+                            //     codepath is appl_status='RE' + processed_by='AP'. Matching on that
+                            //     pair is resilient to role-id mismatches between mst_roles vs
+                            //     mst__staffs__tbls (case/trailing-space variants) that can otherwise
+                            //     leave resubmissions uncounted on the Supervisor dashboard.
                             ->orWhere(function ($q2) use ($supervisorRoleId) {
-                                $q2->where('tw.forwarded_to', $supervisorRoleId)->where('tw.appl_status', 'RE');
+                                $q2->where('tw.appl_status', 'RE')
+                                    ->where(function ($q3) use ($supervisorRoleId) {
+                                        $q3->where('tw.processed_by', 'AP')
+                                            ->orWhere('tw.forwarded_to', $supervisorRoleId);
+                                    });
                             });
                     })
-                    // ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
                     ->selectRaw('ta.form_id, ta.appl_type, COUNT(DISTINCT ta.application_id) as cnt')
                     ->groupBy('ta.form_id', 'ta.appl_type')
                     ->get();
@@ -342,6 +355,7 @@ class LoginController extends Controller
                     $fallbackCounts = DB::table('tnelb_application_tbl as ta')
                         ->whereIn('ta.form_id', $assignedFormIDs)
                         ->whereIn('ta.status', ['P', 'RE'])
+                        ->whereIn('ta.payment_status', ['payment', 'paid'])
                         ->whereNotExists(function ($q) {
                             $q->select(DB::raw(1))->from('tnelb_workflow_a as twa')->whereRaw('twa.application_id = ta.application_id');
                         })
@@ -430,21 +444,51 @@ class LoginController extends Controller
                 $pendingCountsMap[$fid][$type] = (int) $row->cnt;
             }
 
+            // dd($pendingCountsMap);exit;
             
 
             // Form P uses tnelb_form_p; add its pending counts if Form P is assigned
             $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
             if ($formPId > 0 && in_array($formPId, $assignedFormIDs, true)) {
                 if ($isSupervisorRole) {
+                    // Form P Supervisor pending = (1) apps with no workflow row at all (initial submission),
+                    // OR (2) latest workflow row is an applicant resubmission (appl_status='RE' &
+                    // processed_by='AP' / forwarded_to=Supervisor — see Admin\FormPController::resubmit).
+                    // Previously this branch did a flat `whereNotExists tnelb_workflow` which silently
+                    // dropped every Form P resubmission (since the original QU row keeps the join alive).
+                    $supRoleIdFp = isset($supervisorRoleId) ? (int) $supervisorRoleId : 0;
+                    if ($supRoleIdFp === 0) {
+                        $supRoleIdFp = (int) (DB::table('mst_roles')->where('role_name', 'Supervisor')->value('r_id') ?? 0);
+                    }
+                    if ($supRoleIdFp === 0) {
+                        $supRoleIdFp = (int) ($staff->roles_id ?? 0);
+                    }
+
+                    $twLastFormPSub = DB::table('tnelb_workflow')
+                        ->select('application_id', DB::raw('MAX(id) as max_id'))
+                        ->groupBy('application_id');
+
                     $formPCounts = DB::table('tnelb_form_p as ta')
+                        ->leftJoinSub($twLastFormPSub, 'tw_last', function ($join) {
+                            $join->on('ta.application_id', '=', 'tw_last.application_id');
+                        })
+                        ->leftJoin('tnelb_workflow as tw', function ($join) {
+                            $join->on('tw.application_id', '=', 'tw_last.application_id')
+                                ->on('tw.id', '=', 'tw_last.max_id');
+                        })
                         ->whereIn('ta.payment_status', ['payment', 'paid'])
                         ->whereIn('ta.app_status', ['P', 'RE'])
-                        ->whereNotExists(function ($q) {
-                            $q->select(DB::raw(1))
-                                ->from('tnelb_workflow as tw')
-                                ->whereRaw('tw.application_id = ta.application_id');
+                        ->where(function ($q) use ($supRoleIdFp) {
+                            $q->whereNull('tw.id')
+                                ->orWhere(function ($q2) use ($supRoleIdFp) {
+                                    $q2->where('tw.appl_status', 'RE')
+                                        ->where(function ($q3) use ($supRoleIdFp) {
+                                            $q3->where('tw.processed_by', 'AP')
+                                                ->orWhere('tw.forwarded_to', $supRoleIdFp);
+                                        });
+                                });
                         })
-                        ->selectRaw('ta.appl_type, COUNT(*) as cnt')
+                        ->selectRaw('ta.appl_type, COUNT(DISTINCT ta.application_id) as cnt')
                         ->groupBy('ta.appl_type')
                         ->get();
                 } else {
@@ -696,6 +740,7 @@ class LoginController extends Controller
 
         $amendmentIds = $amendmentCardsCollection->pluck('id')->all();
         $contractorOrAmendmentIds = array_merge($contractorIds, $amendmentIds);
+        
 
         $competencyCardsCollection = $summaryCollection
             ->reject(function ($item) use ($contractorOrAmendmentIds) {
@@ -709,9 +754,10 @@ class LoginController extends Controller
 
         $competencyCards = $competencyCardsCollection->all();
         
+
+        
         $contractorCards = $contractorCardsCollection->all();
 
-        // dd($contractorCards);exit;
         
         
         $amendmentCards = $amendmentCardsCollection->all();
@@ -824,6 +870,7 @@ class LoginController extends Controller
      */
     public function completedApplications()
     {
+        
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -1083,6 +1130,7 @@ class LoginController extends Controller
      */
     public function completedApplicationsData(Request $request)
     {
+        
         $staff = Auth::user();
         if (!$staff) {
             return response()->json(['message' => 'Unauthorized'], 403);

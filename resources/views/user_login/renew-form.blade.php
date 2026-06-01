@@ -1425,6 +1425,10 @@
                                     </tbody>
                                 </table>
                             </div>
+                            <div id="work-exp-validation-msg" class="work-exp-validation-msg-wrap mt-2" aria-live="polite"></div>
+                            @if($isRenewS)
+                            <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
+                            @endif
                         </div>
                     </div>
                     {{-- /SECTION 3 --}}
@@ -2247,6 +2251,39 @@
             return (diffDays / 365.25).toFixed(2);
         }
 
+        var TWO_YEARS_MS = 730 * 86400000; // 2 years = 730 days (allows exact 2-calendar-year ranges)
+
+        function totalDurationAcrossRows() {
+            var totalMs = 0;
+            var anyFilled = false;
+            $('#work-container .work-fields').each(function() {
+                var $tr = $(this);
+                var fromStr = ($tr.find('.work-date-from').val() || '').trim();
+                var toStr   = ($tr.find('.work-date-to').val() || '').trim();
+                if (!fromStr || !toStr) return;
+                var from = new Date(fromStr + 'T12:00:00');
+                var to   = new Date(toStr + 'T12:00:00');
+                if (isNaN(from.getTime()) || isNaN(to.getTime())) return;
+                if (to < from) return;
+                anyFilled = true;
+                totalMs += (to - from);
+            });
+            return { ms: totalMs, hasAny: anyFilled };
+        }
+
+        function updateOverallTotalYears() {
+            if (!isRenewS) return;
+            var $msg = $('#work-exp-total-msg');
+            if (!$msg.length) return;
+            var t = totalDurationAcrossRows();
+            if (!t.hasAny || t.ms >= TWO_YEARS_MS) { $msg.empty(); return; }
+            $msg.html(
+                '<div class="work-exp-total-error text-danger small" role="alert">' +
+                    'Minimum 2 Years Experience needed across all entries.' +
+                '</div>'
+            );
+        }
+
         var EMP_LABELS = {
             '': '',
             company: 'Name of company *',
@@ -2272,6 +2309,8 @@
                 var employer = $row.find('input[name="work_employer_name[]"]').val() || '';
                 $row.find('input[name="work_level[]"]').val(employer);
             }
+
+            updateOverallTotalYears();
         }
 
         function applyEmploymentType($row) {
@@ -2409,11 +2448,13 @@
                     </tr>`;
                 $('#work-container').append(newRow);
                 refreshWorkSerials();
+                updateOverallTotalYears();
             }
 
             if (e.target.closest('.remove-work')) {
                 e.target.closest('tr').remove();
                 refreshWorkSerials();
+                updateOverallTotalYears();
             }
         });
 
@@ -2461,6 +2502,7 @@
                 }
                 syncWorkRow($row);
             });
+            updateOverallTotalYears();
         });
     })();
 

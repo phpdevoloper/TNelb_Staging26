@@ -359,8 +359,98 @@ $(document).ready(function() {
 
     $(document).ready(function() {
 
-        /** Date order / min-duration for work rows: inject below From–To flex row so columns stay aligned (Form S/W/WH). */
+        /** Date order / min-duration for work rows: below table when #work-exp-validation-msg exists; else inline in row. */
+        function readWorkDateIsoGeneric($input) {
+            if (!$input || !$input.length) {
+                return '';
+            }
+            var raw = String($input.attr('data-raw') || '').trim();
+            if (raw) {
+                return raw;
+            }
+            var v = String($input.val() || '').trim();
+            if (!v) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                return v;
+            }
+            var m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+            if (m) {
+                return m[3] + '-' + m[2] + '-' + m[1];
+            }
+            return '';
+        }
+
+        function refreshWorkExpValidationMsgBelowTable() {
+            var $container = $('#work-exp-validation-msg');
+            if (!$container.length) {
+                return false;
+            }
+
+            var formName = String($('#form_name').val() || '').trim().toUpperCase();
+            var messages = [];
+
+            $('#work-container .work-fields').each(function () {
+                var $row = $(this);
+                var $fromDate = $row.find('.work-date-from').first();
+                var $toDate = $row.find('.work-date-to').first();
+                var fromIso = readWorkDateIsoGeneric($fromDate);
+                var toIso = readWorkDateIsoGeneric($toDate);
+
+                if (formName === 'WH') {
+                    var wl0 = ($row.find('input[name="work_level[]"]').val() || '').trim();
+                    var ex0 = ($row.find('input[name="experience[]"]').val() || '').trim();
+                    var des0 = ($row.find('input[name="designation[]"]').val() || '').trim();
+                    if (!(wl0 !== '' || ex0 !== '' || des0 !== '' || fromIso !== '' || toIso !== '')) {
+                        return;
+                    }
+                }
+
+                if (!fromIso || !toIso) {
+                    return;
+                }
+
+                var from = new Date(fromIso + 'T12:00:00');
+                var to = new Date(toIso + 'T12:00:00');
+                if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+                    return;
+                }
+
+                var serial = ($row.find('.work-serial').text() || '').trim();
+                var prefix = serial ? ('Row ' + serial + ': ') : '';
+
+                if (to < from) {
+                    messages.push(prefix + 'To date must be greater than or equal to From date.');
+                    return;
+                }
+
+                if (formName === 'WH') {
+                    var minTo = new Date(from.getTime());
+                    minTo.setFullYear(minTo.getFullYear() + 2);
+                    if (to < minTo) {
+                        messages.push(prefix + 'Minimum 2 Years Experience needed');
+                    }
+                }
+            });
+
+            if (messages.length) {
+                $container.html(
+                    messages.map(function (msg) {
+                        return '<div class="error-message text-danger work-exp-date-range-error">' + msg + '</div>';
+                    }).join('')
+                );
+            } else {
+                $container.empty();
+            }
+
+            return true;
+        }
+
         function clearWorkExpDateRangeError($row) {
+            if (refreshWorkExpValidationMsgBelowTable()) {
+                return;
+            }
             if (!$row || !$row.length) {
                 return;
             }
@@ -368,11 +458,19 @@ $(document).ready(function() {
             if ($inline.length) {
                 $inline.next('.work-exp-date-range-error').remove();
             } else {
-                $row.find('.work-date-to').first().next('.work-exp-date-range-error').remove();
+                var $flex = $row.find('.d-flex').has('.work-date-from, .work-date-to').first();
+                if ($flex.length) {
+                    $flex.next('.work-exp-date-range-error').remove();
+                } else {
+                    $row.find('.work-date-to').first().next('.work-exp-date-range-error').remove();
+                }
             }
         }
 
         function showWorkExpDateRangeError($row, message) {
+            if (refreshWorkExpValidationMsgBelowTable()) {
+                return;
+            }
             if (!$row || !$row.length) {
                 return;
             }
@@ -383,9 +481,14 @@ $(document).ready(function() {
             if ($inline.length) {
                 $inline.after(html);
             } else {
-                var $toDate = $row.find('.work-date-to').first();
-                if ($toDate.length) {
-                    $toDate.after(html);
+                var $flex = $row.find('.d-flex').has('.work-date-from, .work-date-to').first();
+                if ($flex.length) {
+                    $flex.after(html);
+                } else {
+                    var $toDate = $row.find('.work-date-to').first();
+                    if ($toDate.length) {
+                        $toDate.after(html);
+                    }
                 }
             }
         }
@@ -722,24 +825,45 @@ $(document).ready(function() {
         });
 
         async function saveCompetencyDraftSilently() {
-            const formEl = $('#competency_form_ws')[0];
+            const formWsEl = $('#competency_form_ws')[0];
+            const formPEl = $('#competency_form_p')[0];
+            const formEl = formWsEl || formPEl;
             if (!formEl) return null;
 
             const formData = new FormData(formEl);
             formData.set('form_action', 'draft');
 
+            if (formPEl) {
+                formData.delete('month_passing[]');
+                $('#competency_form_p select[name="month_of_passing[]"]').each(function () {
+                    formData.append('month_passing[]', $(this).val() || '');
+                });
+            }
+
             const applType = $('#appl_type').val();
             const applicationId = ($('#application_id').val() || '').trim();
             let formUrl = '';
 
-            if (applicationId) {
-                if (applType === 'R') {
-                    formUrl = "{{ route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}".replace('__APPL_ID__', applicationId);
+            if (formWsEl) {
+                if (applicationId) {
+                    if (applType === 'R') {
+                        formUrl = "{{ route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}".replace('__APPL_ID__', applicationId);
+                    } else {
+                        formUrl = "{{ route('form.update', ['appl_id' => '__APPL_ID__']) }}".replace('__APPL_ID__', applicationId);
+                    }
                 } else {
-                    formUrl = "{{ route('form.update', ['appl_id' => '__APPL_ID__']) }}".replace('__APPL_ID__', applicationId);
+                    formUrl = "{{ route('form.store') }}";
                 }
-            } else {
-                formUrl = "{{ route('form.store') }}";
+            } else if (formPEl) {
+                if (applicationId) {
+                    if (applType === 'R') {
+                        formUrl = "{{ route('form_p.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}".replace('__APPL_ID__', applicationId);
+                    } else {
+                        formUrl = "{{ route('form_p.update') }}";
+                    }
+                } else {
+                    formUrl = "{{ route('form_p.store') }}";
+                }
             }
 
             try {
@@ -787,6 +911,7 @@ $(document).ready(function() {
                 return null;
             }
         }
+        window.saveCompetencyDraftSilently = saveCompetencyDraftSilently;
 
         function normalizeMirroredDynamicRows($container, rowSelector, fields) {
             if (!$container.length) return;
@@ -942,513 +1067,970 @@ $(document).ready(function() {
 
         normalizeCompetencyDynamicSections();
 
-        async function showCompetencyPreviewModal() {
-            const $sourceForm = $('#competency_form_ws').length ? $('#competency_form_ws') : $('#competency_form_p');
-            if (!$sourceForm.length) {
-                return false;
-            }
+        // ── S/W/WH preview modal: outer chrome (mirrors Form P preview) ────────
+        // Injects shared styles + modal DOM once per page load; safe to call repeatedly.
+        function ensureSwPreviewStyles() {
+            if (document.getElementById('prv-sw-preview-modal-styles')) return;
+            const style = document.createElement('style');
+            style.id = 'prv-sw-preview-modal-styles';
+            style.textContent = `
+                /* ── Outer chrome (Form P parity) ────────────────────────── */
+                .prv-sw-overlay {
+                    position: fixed; inset: 0; z-index: 10050;
+                    background: rgba(10, 24, 48, .58);
+                    display: none; align-items: center; justify-content: center;
+                    padding: 20px 16px;
+                    backdrop-filter: blur(2px);
+                }
+                .prv-sw-overlay.is-open { display: flex; }
+                @media (max-width: 767.98px) { .prv-sw-overlay { align-items: flex-end; padding: 0; } }
+                .prv-sw-modal-root .prv-sw-panel {
+                    background: #f0f4f9; width: 100%; max-width: 940px;
+                    max-height: min(90vh, 920px); display: flex; flex-direction: column;
+                    border-radius: 14px; overflow: hidden;
+                    box-shadow: 0 18px 48px rgba(3, 90, 179, .22);
+                    animation: prvSwIn .28s ease;
+                }
+                @media (max-width: 767.98px) {
+                    .prv-sw-modal-root .prv-sw-panel { max-height: 92vh; border-radius: 16px 16px 0 0; animation: prvSwSlideUp .28s ease; }
+                }
+                @keyframes prvSwIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+                @keyframes prvSwSlideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+                .prv-sw-modal-root .prv-sw-header {
+                    background: linear-gradient(135deg, #035ab3 0%, #0472d9 100%);
+                    padding: 16px 22px 14px; flex-shrink: 0;
+                    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+                }
+                .prv-sw-modal-root .prv-sw-header-main { min-width: 0; }
+                .prv-sw-modal-root .prv-sw-title {
+                    margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; line-height: 1.35;
+                    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+                }
+                .prv-sw-modal-root .prv-sw-title .fa { opacity: .9; }
+                .prv-sw-modal-root .prv-sw-badge {
+                    display: inline-block; background: rgba(255,255,255,.16);
+                    border: 1px solid rgba(255,255,255,.32); color: #fff;
+                    border-radius: 999px; padding: 2px 11px; font-size: .72rem; font-weight: 600;
+                }
+                .prv-sw-modal-root .prv-sw-badge--renew { background: rgba(255, 193, 7, .22); border-color: rgba(255, 220, 100, .45); }
+                .prv-sw-modal-root .prv-sw-subtitle { font-size: .78rem; color: rgba(255,255,255,.82); margin-top: 4px; line-height: 1.4; }
+                .prv-sw-modal-root .prv-sw-close {
+                    background: rgba(255,255,255,.14); border: none; color: #fff;
+                    width: 34px; height: 34px; border-radius: 50%; font-size: 1.25rem;
+                    line-height: 1; cursor: pointer; flex-shrink: 0; transition: background .2s;
+                }
+                .prv-sw-modal-root .prv-sw-close:hover { background: rgba(255,255,255,.28); }
 
-            const $clone = $sourceForm.clone();
-            $clone.attr('id', 'competency_form_preview_clone');
-
-            // jQuery .clone() does NOT carry over dynamic form state
-            // (selects picked via JS, textareas typed into, checkboxes/radios toggled).
-            // Sync the live runtime values from the source into the clone by element index.
-            const syncByIndex = (selector, applyFn) => {
-                const $src = $sourceForm.find(selector);
-                const $dst = $clone.find(selector);
-                $src.each(function (i) {
-                    const target = $dst.get(i);
-                    if (target) applyFn(this, target);
-                });
-            };
-            syncByIndex('select', (src, dst) => {
-                $(dst).val($(src).val());
-            });
-            syncByIndex('textarea', (src, dst) => {
-                $(dst).val(src.value || '');
-            });
-            syncByIndex('input[type="checkbox"], input[type="radio"]', (src, dst) => {
-                dst.checked = src.checked;
-            });
-
-            const ensureImagePreviewInClone = (inputId, previewId, placeholderId) => new Promise((resolve) => {
-                const srcPreview = document.getElementById(previewId);
-                const srcInput = document.getElementById(inputId);
-                const clonePreview = $clone.find(`#${previewId}`).get(0);
-                const clonePlaceholder = $clone.find(`#${placeholderId}`).get(0);
-                if (!clonePreview) {
-                    resolve();
-                    return;
+                .prv-sw-modal-root .prv-sw-meta {
+                    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+                    padding: 14px 22px 0; flex-shrink: 0;
+                }
+                @media (max-width: 575.98px) { .prv-sw-modal-root .prv-sw-meta { grid-template-columns: 1fr; } }
+                .prv-sw-modal-root .prv-sw-meta-card {
+                    background: #fff; border: 1px solid #dde5f3; border-radius: 8px;
+                    padding: 10px 12px; min-width: 0;
+                }
+                .prv-sw-modal-root .prv-sw-meta-label {
+                    font-size: .68rem; font-weight: 600; color: #5a7299;
+                    text-transform: uppercase; letter-spacing: .35px; margin-bottom: 2px;
+                }
+                .prv-sw-modal-root .prv-sw-meta-value {
+                    font-size: .86rem; font-weight: 600; color: #1a2a4a;
+                    word-break: break-word; line-height: 1.35;
                 }
 
-                const applyPreview = (srcVal) => {
-                    if (!srcVal) {
-                        clonePreview.removeAttribute('src');
-                        clonePreview.style.display = 'none';
-                        if (clonePlaceholder) clonePlaceholder.style.display = 'block';
-                        resolve();
-                        return;
-                    }
-                    clonePreview.src = srcVal;
-                    clonePreview.style.display = 'block';
-                    if (clonePlaceholder) clonePlaceholder.style.display = 'none';
-                    resolve();
-                };
+                .prv-sw-modal-root .prv-sw-body { overflow-y: auto; padding: 14px 22px 18px; flex: 1; }
+                .prv-sw-modal-root .prv-sw-section {
+                    background: #fff; border: 1px solid #e3e8f0; border-radius: 10px;
+                    margin-bottom: 12px; overflow: hidden;
+                }
+                .prv-sw-modal-root .prv-sw-section-hd {
+                    background: #eef3fb; border-bottom: 1px solid #dde5f3;
+                    padding: 9px 14px; display: flex; align-items: flex-start; gap: 10px;
+                }
+                .prv-sw-modal-root .prv-sw-section-num {
+                    width: 24px; height: 24px; border-radius: 50%; background: #035ab3; color: #fff;
+                    font-size: .72rem; font-weight: 700; display: inline-flex; align-items: center;
+                    justify-content: center; flex-shrink: 0; margin-top: 1px;
+                }
+                .prv-sw-modal-root .prv-sw-section-title { font-size: .84rem; font-weight: 600; color: #1a2a4a; line-height: 1.35; }
+                .prv-sw-modal-root .prv-sw-section-tamil { font-size: .74rem; color: #5a7299; margin-top: 2px; line-height: 1.35; }
+                .prv-sw-modal-root .prv-sw-section-body { padding: 14px; }
 
-                const currentSrc = srcPreview ? (srcPreview.getAttribute('src') || '') : '';
-                if (currentSrc) {
-                    applyPreview(currentSrc);
-                    return;
+                .prv-sw-modal-root .prv-sw-field { margin-bottom: 10px; }
+                .prv-sw-modal-root .prv-sw-field:last-child { margin-bottom: 0; }
+                .prv-sw-modal-root .prv-sw-label {
+                    font-size: .7rem; font-weight: 600; color: #5a7299;
+                    text-transform: uppercase; letter-spacing: .35px; margin-bottom: 3px;
+                }
+                .prv-sw-modal-root .prv-sw-value {
+                    font-size: .88rem; color: #1a2a4a; font-weight: 500;
+                    padding: 7px 10px; background: #f8fafd; border: 1px solid #e3e8f0;
+                    border-radius: 6px; min-height: 34px; word-break: break-word;
+                }
+                .prv-sw-modal-root .prv-sw-value.prv-sw-empty { color: #9aa8bf; font-style: italic; font-weight: 400; }
+
+                /* Personal & contact — photo + signature column + 2-col details grid */
+                .prv-sw-modal-root .prv-sw-personal-layout {
+                    display: grid;
+                    grid-template-columns: minmax(120px, 148px) minmax(0, 1fr);
+                    gap: 16px;
+                    align-items: start;
+                }
+                @media (max-width: 575.98px) {
+                    .prv-sw-modal-root .prv-sw-personal-layout { grid-template-columns: 1fr; }
+                }
+                .prv-sw-modal-root .prv-sw-media-col {
+                    display: flex; flex-direction: column; gap: 12px;
+                    padding: 10px; background: #f8fafd; border: 1px solid #e3e8f0; border-radius: 8px;
+                }
+                .prv-sw-modal-root .prv-sw-media-label {
+                    font-size: .66rem; font-weight: 700; color: #5a7299;
+                    text-transform: uppercase; letter-spacing: .35px; margin-bottom: 4px; text-align: center;
+                }
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb { width: 100%; }
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb img,
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-no-img { width: 100% !important; max-width: 120px; margin: 0 auto; }
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--photo img,
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--photo .prv-sw-no-img { height: 120px !important; }
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--sign img,
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--sign .prv-sw-no-img { height: 52px !important; max-width: 128px !important; }
+                .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb span { display: none; }
+
+                .prv-sw-modal-root .prv-sw-details-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 10px 14px;
+                    min-width: 0;
+                }
+                @media (max-width: 767.98px) {
+                    .prv-sw-modal-root .prv-sw-details-grid { grid-template-columns: 1fr; }
+                }
+                .prv-sw-modal-root .prv-sw-detail-item { min-width: 0; }
+                .prv-sw-modal-root .prv-sw-detail-item--full { grid-column: 1 / -1; }
+                .prv-sw-modal-root .prv-sw-detail-item .prv-sw-field { margin-bottom: 0; }
+
+                .prv-sw-modal-root .prv-sw-thumb { text-align: center; flex-shrink: 0; }
+                .prv-sw-modal-root .prv-sw-thumb img {
+                    display: block; border: 2px solid #dde5f3; border-radius: 8px; background: #f0f4f9;
+                }
+                .prv-sw-modal-root .prv-sw-thumb--photo img { width: 88px; height: 106px; object-fit: cover; }
+                .prv-sw-modal-root .prv-sw-thumb--sign img { width: 150px; height: 56px; object-fit: contain; }
+                .prv-sw-modal-root .prv-sw-no-img {
+                    background: #f0f4f9; border: 2px dashed #ccd5e3; border-radius: 8px;
+                    display: flex; align-items: center; justify-content: center;
+                    color: #9aa8bf; font-size: .68rem; text-align: center; padding: 6px;
+                }
+                .prv-sw-modal-root .prv-sw-thumb span { font-size: .68rem; color: #5a7299; margin-top: 4px; display: block; }
+
+                .prv-sw-modal-root .prv-sw-table-wrap { overflow-x: auto; border: 1px solid #e3e8f0; border-radius: 8px; margin-bottom: 12px; }
+                .prv-sw-modal-root .prv-sw-table { width: 100%; font-size: .76rem; border-collapse: collapse; margin: 0; min-width: 520px; }
+                .prv-sw-modal-root .prv-sw-table th {
+                    background: #eef3fb; color: #1a2a4a; font-weight: 600;
+                    padding: .4rem .45rem; border: 1px solid #dde5f3; font-size: .7rem;
+                    white-space: nowrap; text-align: center; vertical-align: middle;
+                }
+                .prv-sw-modal-root .prv-sw-table td {
+                    padding: .4rem .45rem; border: 1px solid #e8edf6; vertical-align: middle;
+                    color: #2c3e5e; text-align: center;
+                }
+                .prv-sw-modal-root .prv-sw-table td.prv-sw-td-left { text-align: left; white-space: pre-line; }
+                .prv-sw-modal-root .prv-sw-table tr:nth-child(even) td { background: #f8fafd; }
+
+                .prv-sw-modal-root .prv-sw-doc-pill {
+                    display: inline-flex; align-items: center; gap: 4px;
+                    background: #e8f2ff; color: #035ab3; border-radius: 999px;
+                    padding: 3px 10px; font-size: .72rem; font-weight: 600; text-decoration: none;
+                    max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                }
+                .prv-sw-modal-root .prv-sw-doc-pill:hover { background: #d6e8ff; text-decoration: none; color: #024a98; }
+                .prv-sw-modal-root .prv-sw-doc-empty { color: #9aa8bf; font-size: .75rem; }
+
+                .prv-sw-modal-root .prv-sw-yesno-yes {
+                    background: #d4edda; color: #155724; border-radius: 4px;
+                    padding: 2px 9px; font-size: .72rem; font-weight: 600;
+                }
+                .prv-sw-modal-root .prv-sw-yesno-no {
+                    background: #f8d7da; color: #721c24; border-radius: 4px;
+                    padding: 2px 9px; font-size: .72rem; font-weight: 600;
                 }
 
-                const hasFile = srcInput && srcInput.files && srcInput.files[0];
-                if (!hasFile) {
-                    applyPreview('');
-                    return;
+                .prv-sw-modal-root .prv-sw-footer {
+                    background: #fff; border-top: 1px solid #e3e8f0; padding: 14px 22px;
+                    display: flex; align-items: center; justify-content: center; gap: 10px;
+                    flex-shrink: 0; flex-wrap: wrap;
                 }
-
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    applyPreview((e && e.target && e.target.result) ? e.target.result : '');
-                };
-                reader.onerror = function () {
-                    applyPreview('');
-                };
-                reader.readAsDataURL(srcInput.files[0]);
-            });
-
-            await Promise.all([
-                ensureImagePreviewInClone('upload_photo', 'photo_preview', 'photo_placeholder'),
-                ensureImagePreviewInClone('upload_sign', 'sign_preview', 'sign_placeholder')
-            ]);
-
-            // Remove action blocks and make the clone strictly read-only preview.
-            // `.verify-btn` strips the frontend license/certificate Verify buttons (Q7/Q8 on Form S, Q7 on Form W, Q6 on Form WH) from the preview popup.
-            // `.remove_verify` strips the "Delete" button that appears next to an already-verified license (Q7/Q8) so the preview stays read-only.
-            // `#ProceedtoPayment` and `.fs-action-bar` strip Form P's bottom Save-Draft / Preview-&-Proceed bar so the SweetAlert footer (Pay Now / Edit Details) is the only set of actions in the popup.
-            // `.remove-docs`, `.remove-doc_edu`, `.remove-doc_work`, `.remove-doc_inst` strip the per-document "Remove" button next to existing-doc View links.
-            $clone.find('#submitPaymentBtn, #ProceedtoPayment, .fs-action-bar, .submit-payment, .save-draft, .add-more, .add-more-education, .add-more-work, .add-more-institute, .remove-education, .remove-work, .remove-institute, .remove_edu, .remove_exp, .remove_inst, .remove-doc_edu_confirm, .remove-doc_edu, .remove-doc_work, .remove-doc_inst, .remove-work-doc-confirm, .remove-aadhaar-doc, .remove-pan-doc, .remove-docs, .verify-btn, .remove_verify, [onclick*="togglePhotoInput"], [onclick*="toggleSignInput"], [onclick*="verify_form"], [onclick*="verify_form_s"]').remove();
-            $clone.find('input, textarea, select, button').prop('disabled', true);
-            $clone.find('input[type="checkbox"], input[type="radio"]').each(function () {
-                this.disabled = true;
-            });
-            // Keep declaration checkbox interactive for user confirmation in preview.
-            $clone.find('#declarationCheckbox').prop('disabled', false).prop('checked', false);
-            if ($clone.find('#previewDeclarationError').length === 0) {
-                const $declHost = $clone.find('#declarationCheckbox').closest('.declaration-container');
-                if ($declHost.length) {
-                    $declHost.after('<div id="previewDeclarationError" class="text-danger mt-1" style="display:none; font-size:0.82rem; line-height:1.25;">Please check the declaration before clicking Pay Now.</div>');
-                } else {
-                    $clone.find('#declarationCheckbox').parent().after('<div id="previewDeclarationError" class="text-danger mt-1" style="display:none; font-size:0.82rem; line-height:1.25;">Please check the declaration before clicking Pay Now.</div>');
+                .prv-sw-modal-root .prv-sw-btn-back {
+                    background: #fff; color: #035ab3; border: 1px solid #035ab3; border-radius: 8px;
+                    padding: 8px 18px; font-size: .84rem; font-weight: 600; cursor: pointer; white-space: nowrap;
                 }
-            }
-            $clone.find('input[type="file"]').closest('.form-s-file-upload-wrap, .file-section').addClass('preview-file-block');
-            $clone.find('.error-message, .certificate-error').remove();
-            $clone.find('.text-danger').not('#previewDeclarationError').remove();
-            // The work-experience table's actions column (Add row / Remove row buttons) is
-            // emptied by the .add-more-work / .remove-work cleanup above, leaving a blank
-            // trailing column in the preview. Drop the entire column (header + body cells).
-            $clone.find('.work-exp-col-actions').remove();
-
-            const toDisplayValue = (el) => {
-                const $el = $(el);
-                const formatDateForPreview = (value) => {
-                    const raw = (value || '').toString().trim();
-                    if (!raw) return '-';
-                    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-                    const m2 = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-                    if (m2) return raw;
-                    return raw;
-                };
-                if (el.tagName === 'SELECT') {
-                    const txt = $el.find('option:selected').text().trim();
-                    return txt || ($el.val() || '-');
+                .prv-sw-modal-root .prv-sw-btn-back:hover { background: #eef3fb; }
+                .prv-sw-modal-root .prv-sw-btn-print {
+                    background: #fff; color: #4f5f79; border: 1px solid #99a7c0; border-radius: 8px;
+                    padding: 8px 18px; font-size: .84rem; font-weight: 600; cursor: pointer; white-space: nowrap;
                 }
-                if ((el.type || '').toLowerCase() === 'checkbox') {
-                    return el.checked ? 'Yes' : 'No';
+                .prv-sw-modal-root .prv-sw-btn-print:hover { background: #f3f6fb; }
+                .prv-sw-modal-root .prv-sw-btn-go {
+                    background: linear-gradient(135deg, #1a9e4f, #14813f); color: #fff; border: none;
+                    border-radius: 8px; padding: 8px 20px; font-size: .84rem; font-weight: 600;
+                    cursor: pointer; white-space: nowrap;
                 }
-                if ((el.type || '').toLowerCase() === 'radio') {
-                    return el.checked ? ($el.val() || 'Yes') : '';
+                .prv-sw-modal-root .prv-sw-btn-go:disabled { opacity: .45; cursor: not-allowed; }
+                .prv-sw-modal-root .prv-sw-btn-go:not(:disabled):hover { opacity: .92; }
+                .prv-sw-modal-root .prv-sw-print-head { display: none; }
+
+                /* ── Print (isolated iframe activates via html.prv-sw-print-active) ── */
+                @page { size: A4 portrait; margin: 8mm 10mm; }
+                @media print {
+                    html, body { height: auto !important; overflow: visible !important; background: #fff !important; margin: 0 !important; padding: 0 !important; }
+                    html.prv-sw-print-active #prvSwPrintRoot { display: block !important; position: static !important; width: 100% !important; max-width: none !important; height: auto !important; overflow: visible !important; background: #fff !important; padding: 0 !important; margin: 0 !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-panel { display: block !important; max-height: none !important; width: 100% !important; box-shadow: none !important; border-radius: 0 !important; background: #fff !important; overflow: visible !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-header,
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-footer,
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-close,
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-subtitle { display: none !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-print-head { display: block !important; text-align: center; padding: 0 0 6px; margin-bottom: 6px; border-bottom: 2px solid #1f3a63; page-break-after: avoid; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-print-head-org { font-size: 8.5pt; font-weight: 700; text-transform: uppercase; color: #444; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-print-head-title { font-size: 12pt; font-weight: 800; color: #1f3a63; margin-top: 2px; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-print-head-tag { font-size: 7.5pt; color: #666; margin-top: 2px; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-meta { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; padding: 0 0 6px !important; page-break-after: avoid; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-meta-card { border: 1px solid #bbb !important; padding: 4px 6px !important; background: #fff !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-meta-label { font-size: 6.5pt !important; margin-bottom: 0 !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-meta-value { font-size: 8.5pt !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-body { overflow: visible !important; padding: 0 !important; max-height: none !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section { border: 1px solid #aaa !important; box-shadow: none !important; page-break-inside: auto !important; margin-bottom: 5px !important; border-radius: 0 !important; background: #fff !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section-hd { background: #eee !important; padding: 4px 8px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section-tamil { display: none !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section-title { font-size: 9pt !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section-num { width: 18px !important; height: 18px !important; font-size: 8pt !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section-body { padding: 6px 8px !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-personal-layout { display: grid !important; grid-template-columns: 88px minmax(0, 1fr) !important; gap: 8px !important; align-items: start !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-media-col { display: flex !important; flex-direction: column !important; gap: 6px !important; padding: 4px !important; background: transparent !important; border: 1px solid #bbb !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-media-label { font-size: 6pt !important; margin-bottom: 2px !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--photo img,
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--photo .prv-sw-no-img { width: 72px !important; height: 86px !important; max-width: 72px !important; margin: 0 auto !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--sign img,
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-media-col .prv-sw-thumb--sign .prv-sw-no-img { width: 72px !important; height: 34px !important; max-width: 72px !important; margin: 0 auto !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-details-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 5px 8px !important; width: 100% !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-detail-item--full { grid-column: 1 / -1 !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-label { font-size: 6.5pt !important; margin-bottom: 1px !important; color: #333 !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-value { font-size: 8.5pt !important; padding: 3px 5px !important; min-height: 0 !important; line-height: 1.25 !important; background: transparent !important; border: 1px solid #bbb !important; color: #111 !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-table-wrap { overflow: visible !important; margin-bottom: 6px !important; page-break-inside: auto; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-table { font-size: 7.5pt !important; min-width: 0 !important; width: 100% !important; table-layout: fixed !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-table th,
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-table td { border: 1px solid #bbb !important; background: transparent !important; padding: 2px 3px !important; color: #111 !important; word-break: break-word !important; white-space: normal !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-doc-pill { background: transparent !important; border: 0 !important; padding: 0 !important; color: #111 !important; max-width: none !important; white-space: normal !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section--identity .row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 5px 8px !important; margin: 0 !important; }
+                    html.prv-sw-print-active .prv-sw-modal-root .prv-sw-section--identity .col-12 { width: auto !important; max-width: none !important; flex: none !important; padding: 0 !important; }
                 }
-                if ((el.type || '').toLowerCase() === 'date') {
-                    return formatDateForPreview($el.val());
-                }
-                const v = ($el.val() || '').toString().trim();
-                return v === '' ? '-' : v;
-            };
-
-            // Convert radio groups (Yes/No etc.) into one clean display value.
-            const handledRadioNames = new Set();
-            $clone.find('input[type="radio"]').each(function () {
-                const name = $(this).attr('name') || '';
-                if (!name || handledRadioNames.has(name)) return;
-                handledRadioNames.add(name);
-
-                const $group = $clone.find(`input[type="radio"][name="${name}"]`);
-                const $checked = $group.filter(':checked').first();
-                let value = '-';
-                if ($checked.length) {
-                    value = ($checked.val() || '').toString().trim();
-                    if (!value || value.toLowerCase() === 'on') {
-                        const id = $checked.attr('id');
-                        const labelText = id ? $clone.find(`label[for="${id}"]`).first().text().trim() : '';
-                        value = labelText || 'Yes';
-                    }
-                    const up = value.toUpperCase();
-                    if (up === 'Y') value = 'Yes';
-                    if (up === 'N') value = 'No';
-                }
-                value = (value || '-').toString().toUpperCase();
-
-                const $container = $group.first().closest('td, .col-12, .col-md-2, .col-md-3, .col-md-4');
-                if ($container.length) {
-                    $container.empty().append($('<div class="preview-value preview-value-inline text-center"></div>').text(value));
-                } else {
-                    $group.remove();
-                }
-            });
-
-            // Replace form controls with plain text values for clean preview.
-            $clone.find('input:not([type="hidden"]):not([type="file"]):not([type="radio"]), select, textarea').each(function () {
-                const el = this;
-                const $el = $(el);
-                if ($el.attr('id') === 'declarationCheckbox') return; // keep declaration checkbox
-                const value = toDisplayValue(el);
-                const cls = $el.attr('class') || '';
-                const display = $('<div class="preview-value"></div>').text(value);
-                if (cls.indexOf('form-control-sm') !== -1) display.addClass('preview-value-sm');
-                $el.replaceWith(display);
-            });
-
-                // Replace each file input in the clone with a clean read-only display:
-                // if the live source already shows a "View Document" link (.local-file-preview / .fs-doc-existing nearby) just drop the input;
-                // if the user picked a file (still in srcInput.files), show "<icon> filename";
-                // otherwise show a dash. Photo and signature have their own filename UI and are left alone.
-                // Target the surrounding .form-s-file-upload-wrap when present so the later wrap-cleanup pass doesn't delete our replacement.
-                const $srcFileInputs = $sourceForm.find('input[type="file"]');
-                $clone.find('input[type="file"]').each(function (i) {
-                    const $fileInput = $(this);
-                    const inputId = ($fileInput.attr('id') || '').toLowerCase();
-                    if (inputId === 'upload_photo' || inputId === 'upload_sign') return;
-
-                    const $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-                    const $target = $wrap.length ? $wrap : $fileInput;
-                    const $cell = $fileInput.closest('td, .file-section, .aadhaar-doc-input, .pancard-doc-input, .form-group, .col-12, [class*="col-md-"], [class*="col-sm-"]');
-                    const hasLocalView = $fileInput.parent().find('.local-file-preview').length > 0
-                                    || $cell.find('.local-file-preview, .fs-doc-existing').length > 0;
-                    if (hasLocalView) {
-                        $target.remove();
-                        return;
-                    }
-
-                    const srcInput = $srcFileInputs.get(i);
-                    const file = srcInput && srcInput.files && srcInput.files[0];
-                    if (file) {
-                        const $name = $('<div class="preview-file-name"></div>')
-                            .append('<i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i> ')
-                            .append(document.createTextNode(file.name));
-                        $target.replaceWith($name);
-                    } else {
-                        $target.replaceWith('<div class="preview-value preview-file-empty">—</div>');
-                    }
-                });
-
-            // Hide helper wrappers/empty blocks after conversion.
-            $clone.find('.form-s-file-upload-wrap').remove();
-            $clone.find('.file-section:empty').remove();
-            const formTypeCode = (
-                $sourceForm.find('input[name="form_name"]').val() ||
-                $sourceForm.find('#form_name').val() ||
-                ''
-            ).toString().trim().toUpperCase();
-            const formTypeTitleMap = {
-                S: 'Supervisor Competency Certificate',
-                W: 'Wireman Competency Certificate',
-                WH: 'Wireman Helper Competency Certificate',
-                P: 'Power Generating Station Operation & Maintenance Competency Certificate',
-            };
-            const previewFormTitle = (
-                formTypeTitleMap[formTypeCode] ||
-                (formTypeCode ? `Form ${formTypeCode}` : '') ||
-                $('.fs-card-header .header-titles h5').first().text() ||
-                $('.header-titles h5').first().text() ||
-                ''
-            ).trim();
-
-            const result = await Swal.fire({
-                title: 'Preview Form',
-                html: `
-                    <style>
-                        .swal2-popup.preview-theme-popup {
-                            border-radius: 14px;
-                            padding-top: 1.05rem;
-                        }
-                        .preview-modal-wrap {
-                            max-height: 72vh;
-                            overflow: auto;
-                            text-align: left;
-                            padding: 12px 12px 8px;
-                            background: #f8fbff;
-                            border-radius: 12px;
-                            border: 1px solid #e7eef8;
-                        }
-                        .preview-modal-wrap .row {
-                            background: transparent;
-                            border: 0;
-                            border-radius: 0;
-                            margin: 0 !important;
-                            padding: 10px 0 6px;
-                            box-shadow: none;
-                        }
-                        .preview-modal-wrap .fs-section {
-                            border: 0 !important;
-                            box-shadow: none !important;
-                            margin-bottom: 0 !important;
-                            background: transparent !important;
-                        }
-                        .preview-modal-wrap .fs-section + .fs-section {
-                            border-top: 1px solid #e2eaf6 !important;
-                            margin-top: 4px !important;
-                            padding-top: 8px;
-                        }
-                        .preview-modal-wrap .fs-section-header,
-                        .preview-modal-wrap .fs-section-body {
-                            border-bottom: 0 !important;
-                        }
-                        .preview-modal-wrap .fs-section-body > .row:last-child {
-                            margin-bottom: 0 !important;
-                            padding-bottom: 0;
-                        }
-                        .preview-modal-wrap .head_label {
-                            background: linear-gradient(90deg, #0d6efd 0%, #198754 100%);
-                            color: #fff;
-                            border-radius: 8px;
-                            margin: 0 0 8px !important;
-                            padding: 7px 10px !important;
-                        }
-                        .preview-modal-wrap .head_label label,
-                        .preview-modal-wrap .head_label .tamil {
-                            color: #fff !important;
-                            margin-bottom: 2px;
-                        }
-                        .preview-modal-wrap label,
-                        .preview-modal-wrap .fs-field-label {
-                            font-weight: 600;
-                            color: #23344d;
-                            margin-bottom: 4px;
-                            font-size: 0.84rem;
-                            letter-spacing: .1px;
-                            font-family: inherit !important;
-                        }
-                        .preview-modal-wrap .tamil {
-                            color: #4d5f75;
-                            font-size: 0.78rem;
-                            font-family: inherit !important;
-                        }
-                        .preview-modal-wrap .file-limit {
-                            color: #5b7092 !important;
-                            font-size: 0.78rem !important;
-                            font-weight: 500;
-                            line-height: 1.35;
-                            font-family: inherit !important;
-                        }
-                        .preview-modal-wrap .table {
-                            background: #fff;
-                            border-radius: 8px;
-                            overflow: hidden;
-                        }
-                        .preview-modal-wrap .table thead th {
-                            background: #f7faff;
-                            color: #0f3a77;
-                            font-weight: 700;
-                            border-color: #eef3fb;
-                        }
-                        .preview-modal-wrap .table td,
-                        .preview-modal-wrap .table th {
-                            border-color: #eef3fb;
-                            vertical-align: middle;
-                            font-family: inherit !important;
-                            font-size: 0.84rem;
-                            color: #23344d;
-                        }
-                        .preview-modal-wrap hr {
-                            display: none !important;
-                        }
-                        .preview-modal-wrap .preview-file-block input[type="file"] { display: none !important; }
-                        .preview-modal-wrap .btn { pointer-events: none; }
-                        .preview-modal-wrap a { pointer-events: auto; text-decoration: none; }
-                        .preview-modal-wrap .add-more,
-                        .preview-modal-wrap .save-draft,
-                        .preview-modal-wrap .submit-payment,
-                        .preview-modal-wrap [id="submitPaymentBtn"] { display: none !important; }
-                        .swal2-actions.preview-actions {
-                            justify-content: center !important;
-                            gap: 10px;
-                            width: 100%;
-                            padding-right: 0;
-                        }
-                        .swal2-confirm.preview-pay-btn {
-                            background: #007bff !important;
-                            color: #fff !important;
-                            border-radius: 4px !important;
-                            border: 1px solid #007bff !important;
-                            padding: 8px 16px !important;
-                        }
-                        .swal2-cancel.preview-edit-btn {
-                            background: #28a745 !important;
-                            color: #fff !important;
-                            border-radius: 4px !important;
-                            border: 1px solid #28a745 !important;
-                            padding: 8px 16px !important;
-                        }
-                        .preview-modal-wrap .preview-value {
-                            min-height: 34px;
-                            padding: 7px 10px;
-                            border-radius: 6px;
-                            background: #ffffff;
-                            border: 1px solid #dfe8f6;
-                            color: #1f2d3d;
-                            font-weight: 500;
-                            line-height: 1.25;
-                            display: flex;
-                            align-items: center;
-                            word-break: break-word;
-                            font-family: inherit !important;
-                            font-size: 0.84rem;
-                        }
-                        .preview-modal-wrap .preview-value-sm {
-                            min-height: 30px;
-                            padding: 6px 8px;
-                            font-size: 0.86rem;
-                        }
-                        /* Form S — work experience Yrs/Mo/Days: prevent digit wrap in narrow SweetAlert clone */
-                        .preview-modal-wrap #work-table .work-exp-col-years .work-exp-inline {
-                            flex-wrap: nowrap;
-                        }
-                        .preview-modal-wrap #work-table .work-exp-total-inline {
-                            flex: 1 1 auto !important;
-                            min-width: 9rem;
-                            max-width: none;
-                        }
-                        .preview-modal-wrap #work-table .work-duration-ymd {
-                            flex-wrap: nowrap;
-                            gap: 0.35rem;
-                            justify-content: center;
-                        }
-                        .preview-modal-wrap #work-table .work-duration-cell {
-                            flex: 1 1 0;
-                            min-width: 2.85rem;
-                        }
-                        .preview-modal-wrap #work-table .work-duration-cell .preview-value,
-                        .preview-modal-wrap #work-table .work-duration-cell .preview-value.preview-value-sm {
-                            display: block;
-                            white-space: nowrap;
-                            word-break: normal;
-                            overflow-wrap: normal;
-                            text-align: center;
-                            justify-content: unset;
-                        }
-                        .preview-modal-wrap .preview-value-inline {
-                            max-width: 120px;
-                            margin: 0 auto;
-                            justify-content: center;
-                        }
-                        .preview-modal-wrap .preview-file-name {
-                            display: inline-flex;
-                            align-items: center;
-                            gap: .35rem;
-                            font-size: 0.84rem;
-                            color: #1f2d3d;
-                            font-weight: 500;
-                            word-break: break-word;
-                        }
-                        .preview-modal-wrap .preview-file-name .fa-file-pdf-o {
-                            color: #d9363e !important;
-                        }
-                        .preview-modal-wrap .preview-file-empty {
-                            min-height: 30px;
-                            color: #8aa0bf;
-                            font-style: italic;
-                        }
-                        .preview-modal-wrap a,
-                        .preview-modal-wrap .preview-link {
-                            font-family: inherit !important;
-                            font-size: 0.84rem !important;
-                        }
-                        .preview-modal-wrap .col-12,
-                        .preview-modal-wrap .col-md-2,
-                        .preview-modal-wrap .col-md-3,
-                        .preview-modal-wrap .col-md-4,
-                        .preview-modal-wrap .col-md-5,
-                        .preview-modal-wrap .col-md-6,
-                        .preview-modal-wrap .col-md-7,
-                        .preview-modal-wrap .col-md-8,
-                        .preview-modal-wrap .col-md-9,
-                        .preview-modal-wrap .col-md-10,
-                        .preview-modal-wrap .col-md-11,
-                        .preview-modal-wrap .col-md-12,
-                        .preview-modal-wrap [class*="col-sm-"] {
-                            margin-bottom: 6px;
-                        }
-                        .preview-form-subtitle {
-                            text-align: center;
-                            font-size: 1.08rem;
-                            font-weight: 700;
-                            color: #2a3f5f;
-                            margin: 0 0 10px;
-                            line-height: 1.35;
-                        }
-                    </style>
-                    ${previewFormTitle ? `<div class="preview-form-subtitle">${$('<div>').text(previewFormTitle).html()}</div>` : ''}
-                    <div id="fullFormPreviewMount" class="preview-modal-wrap"></div>
-                `,
-                width: '92%',
-                customClass: {
-                    popup: 'preview-theme-popup',
-                    actions: 'preview-actions',
-                    confirmButton: 'preview-pay-btn',
-                    cancelButton: 'preview-edit-btn'
-                },
-                showCancelButton: true,
-                buttonsStyling: false,
-                confirmButtonText: 'Pay Now',
-                cancelButtonText: 'Edit Details',
-                preConfirm: () => {
-                    const mount = document.getElementById('fullFormPreviewMount');
-                    const declaration = mount ? mount.querySelector('#declarationCheckbox') : null;
-                    const declarationError = mount ? mount.querySelector('#previewDeclarationError') : null;
-                    if (declarationError) declarationError.style.display = 'none';
-                    if (declaration && !declaration.checked) {
-                        if (declarationError) {
-                            declarationError.style.display = 'block';
-                        }
-                        return false;
-                    }
-                    return true;
-                },
-                didOpen: () => {
-                    const mount = document.getElementById('fullFormPreviewMount');
-                    if (mount) {
-                        mount.appendChild($clone.get(0));
-                        // Extra safeguard: remove any residual Save As Draft button in cloned markup.
-                        $(mount).find('button').filter(function () {
-                            return ($(this).text() || '').trim().toLowerCase() === 'save as draft';
-                        }).remove();
-                        $(mount).on('change', '#declarationCheckbox', function () {
-                            const err = mount.querySelector('#previewDeclarationError');
-                            if (err) err.style.display = this.checked ? 'none' : 'block';
-                        });
-                    }
-                }
-            });
-            return result.isConfirmed === true;
+            `;
+            document.head.appendChild(style);
         }
 
-        window.showCompetencyPreviewModal = showCompetencyPreviewModal;
+        function ensureSwPreviewModalDom() {
+            if (document.getElementById('appPreviewModalSw')) return;
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `
+                <div id="appPreviewModalSw" class="prv-sw-overlay prv-sw-modal-root" role="dialog" aria-modal="true" aria-labelledby="prvSwTitle" aria-hidden="true">
+                    <div class="prv-sw-panel">
+                        <div class="prv-sw-header">
+                            <div class="prv-sw-header-main">
+                                <h2 class="prv-sw-title" id="prvSwTitle">
+                                    <i class="fa fa-file-text-o"></i>
+                                    Application Preview
+                                    <span class="prv-sw-badge" id="prvSwFormBadge">FORM</span>
+                                    <span class="prv-sw-badge prv-sw-badge--renew" id="prvSwRenewBadge" style="display:none;">Renewal</span>
+                                </h2>
+                                <div class="prv-sw-subtitle">Review every section carefully before proceeding to payment. Use <strong>Back to Edit</strong> if anything needs correction.</div>
+                            </div>
+                            <button type="button" class="prv-sw-close" id="prvSwCloseBtn" title="Close preview" aria-label="Close preview">&times;</button>
+                        </div>
+
+                        <div class="prv-sw-print-head" aria-hidden="true">
+                            <div class="prv-sw-print-head-org">Tamil Nadu Electrical Licencing Board</div>
+                            <div class="prv-sw-print-head-title" id="prvSwPrintTitle">Competency Certificate</div>
+                            <div class="prv-sw-print-head-tag" id="prvSwPrintTag">Application Preview</div>
+                        </div>
+
+                        <div class="prv-sw-meta">
+                            <div class="prv-sw-meta-card">
+                                <div class="prv-sw-meta-label">Applicant</div>
+                                <div class="prv-sw-meta-value" id="prvSwMetaName">&mdash;</div>
+                            </div>
+                            <div class="prv-sw-meta-card">
+                                <div class="prv-sw-meta-label">Application ID</div>
+                                <div class="prv-sw-meta-value" id="prvSwMetaAppId">&mdash;</div>
+                            </div>
+                            <div class="prv-sw-meta-card">
+                                <div class="prv-sw-meta-label">Licence / Certificate</div>
+                                <div class="prv-sw-meta-value" id="prvSwMetaLicence">&mdash;</div>
+                            </div>
+                        </div>
+
+                        <div class="prv-sw-body" id="prvSwBody">
+                            <!-- Section: Personal & Contact Details -->
+                            <div class="prv-sw-section" id="prvSwSecPersonal">
+                                <div class="prv-sw-section-hd">
+                                    <span class="prv-sw-section-num" data-section-num="personal">1</span>
+                                    <div>
+                                        <div class="prv-sw-section-title">Personal &amp; Contact Details</div>
+                                        <div class="prv-sw-section-tamil">விண்ணப்பதாரர் தனிப்பட்ட மற்றும் தொடர்பு விவரங்கள்</div>
+                                    </div>
+                                </div>
+                                <div class="prv-sw-section-body">
+                                    <div class="prv-sw-personal-layout">
+                                        <div class="prv-sw-media-col">
+                                            <div>
+                                                <div class="prv-sw-thumb prv-sw-thumb--photo">
+                                                    <div id="prvSwPhotoWrap"><div class="prv-sw-no-img" style="width:100%;height:120px;">No Photo</div></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="prv-sw-media-label">Signature</div>
+                                                <div class="prv-sw-thumb prv-sw-thumb--sign">
+                                                    <div id="prvSwSignWrap"><div class="prv-sw-no-img" style="width:100%;height:52px;">No Signature</div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="prv-sw-details-grid">
+                                            <div class="prv-sw-detail-item">
+                                                <div class="prv-sw-field"><div class="prv-sw-label">Applicant's Name</div><div class="prv-sw-value" id="prvSwName">&mdash;</div></div>
+                                            </div>
+                                            <div class="prv-sw-detail-item">
+                                                <div class="prv-sw-field"><div class="prv-sw-label">Father's Name</div><div class="prv-sw-value" id="prvSwFather">&mdash;</div></div>
+                                            </div>
+                                            <div class="prv-sw-detail-item">
+                                                <div class="prv-sw-field"><div class="prv-sw-label">Email ID</div><div class="prv-sw-value" id="prvSwEmail">&mdash;</div></div>
+                                            </div>
+                                            <div class="prv-sw-detail-item">
+                                                <div class="prv-sw-field"><div class="prv-sw-label">Date of Birth</div><div class="prv-sw-value" id="prvSwDob">&mdash;</div></div>
+                                            </div>
+                                            <div class="prv-sw-detail-item">
+                                                <div class="prv-sw-field"><div class="prv-sw-label">Age</div><div class="prv-sw-value" id="prvSwAge">&mdash;</div></div>
+                                            </div>
+                                            <div class="prv-sw-detail-item prv-sw-detail-item--full">
+                                                <div class="prv-sw-field"><div class="prv-sw-label">Address</div><div class="prv-sw-value" id="prvSwAddress" style="white-space:pre-line;">&mdash;</div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Education -->
+                            <div class="prv-sw-section" id="prvSwSecEdu">
+                                <div class="prv-sw-section-hd">
+                                    <span class="prv-sw-section-num" data-section-num="edu">6</span>
+                                    <div>
+                                        <div class="prv-sw-section-title" id="prvSwSecEduTitle">Educational / Technical Qualification</div>
+                                        <div class="prv-sw-section-tamil">விண்ணப்பதாரரின் கல்வி தகுதி மற்றும் தேர்ச்சி விவரங்கள்</div>
+                                    </div>
+                                </div>
+                                <div class="prv-sw-section-body">
+                                    <div class="prv-sw-table-wrap">
+                                        <table class="prv-sw-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Education Level</th>
+                                                    <th>University / Institute</th>
+                                                    <th>Month</th>
+                                                    <th>Year</th>
+                                                    <th>Certificate No.</th>
+                                                    <th>Document</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="prvSwEduBody"><tr><td colspan="7" class="text-muted py-3">&mdash;</td></tr></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Work Experience (S/W only) -->
+                            <div class="prv-sw-section" id="prvSwSecWork">
+                                <div class="prv-sw-section-hd">
+                                    <span class="prv-sw-section-num" data-section-num="work">7</span>
+                                    <div>
+                                        <div class="prv-sw-section-title">Previous &amp; Current Work Experience</div>
+                                        <div class="prv-sw-section-tamil">முந்தைய மற்றும் தற்போதைய பணி அனுபவம்</div>
+                                    </div>
+                                </div>
+                                <div class="prv-sw-section-body">
+                                    <div class="prv-sw-table-wrap">
+                                        <table class="prv-sw-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Employment Type</th>
+                                                    <th>Employer / Organisation</th>
+                                                    <th>From</th>
+                                                    <th>To</th>
+                                                    <th>Duration</th>
+                                                    <th>Designation</th>
+                                                    <th>Document</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="prvSwWorkBody"><tr><td colspan="8" class="text-muted py-3">&mdash;</td></tr></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Previous Same-Type Certificate -->
+                            <div class="prv-sw-section" id="prvSwSecPrev">
+                                <div class="prv-sw-section-hd">
+                                    <span class="prv-sw-section-num" data-section-num="prev">8</span>
+                                    <div>
+                                        <div class="prv-sw-section-title" id="prvSwSecPrevTitle">Previous Competency Certificate</div>
+                                        <div class="prv-sw-section-tamil" id="prvSwSecPrevTamil">முந்தைய தகுதி சான்றிதழ் விவரம்</div>
+                                    </div>
+                                </div>
+                                <div class="prv-sw-section-body">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span style="font-size:.78rem;color:#5a7299;font-weight:600;">Has Previous Certificate:</span>
+                                        <span id="prvSwPrevYn">&mdash;</span>
+                                    </div>
+                                    <div id="prvSwPrevBlock" style="display:none;">
+                                        <div class="row g-2">
+                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwPrevNo">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwPrevIssueDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of Expiry</div><div class="prv-sw-value" id="prvSwPrevExpiryDate">&mdash;</div></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Wireman Competency Certificate (Form S only) -->
+                            <div class="prv-sw-section" id="prvSwSecWiremanCert">
+                                <div class="prv-sw-section-hd">
+                                    <span class="prv-sw-section-num" data-section-num="wireman">9</span>
+                                    <div>
+                                        <div class="prv-sw-section-title">Wireman Competency Certificate</div>
+                                        <div class="prv-sw-section-tamil">கம்பி இணைப்பாளர் திறன் சான்றிதழ் விவரம்</div>
+                                    </div>
+                                </div>
+                                <div class="prv-sw-section-body">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span style="font-size:.78rem;color:#5a7299;font-weight:600;">Holds Wireman Certificate:</span>
+                                        <span id="prvSwWcYn">&mdash;</span>
+                                    </div>
+                                    <div id="prvSwWcBlock" style="display:none;">
+                                        <div class="row g-2">
+                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwWcNo">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwWcIssueDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of Expiry</div><div class="prv-sw-value" id="prvSwWcExpiryDate">&mdash;</div></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Identity Documents (Aadhaar + PAN) -->
+                            <div class="prv-sw-section prv-sw-section--identity" id="prvSwSecDocs" data-section="identity">
+                                <div class="prv-sw-section-hd">
+                                    <span class="prv-sw-section-num" data-section-num="docs">10</span>
+                                    <div>
+                                        <div class="prv-sw-section-title">Identity Documents</div>
+                                        <div class="prv-sw-section-tamil">அடையாள ஆவண விவரங்கள்</div>
+                                    </div>
+                                </div>
+                                <div class="prv-sw-section-body">
+                                    <div class="row g-2">
+                                        <div class="col-12 col-sm-5"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Aadhaar Number</div><div class="prv-sw-value" id="prvSwAadhaar">&mdash;</div></div></div>
+                                        <div class="col-12 col-sm-7"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Aadhaar Document</div><div class="prv-sw-value" id="prvSwAadhaarDoc">&mdash;</div></div></div>
+                                        <div class="col-12 col-sm-5"><div class="prv-sw-field mb-0"><div class="prv-sw-label">PAN Number</div><div class="prv-sw-value" id="prvSwPan">&mdash;</div></div></div>
+                                        <div class="col-12 col-sm-7"><div class="prv-sw-field mb-0"><div class="prv-sw-label">PAN Document</div><div class="prv-sw-value" id="prvSwPanDoc">&mdash;</div></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="prv-sw-footer">
+                            <button type="button" class="prv-sw-btn-back" id="prvSwBackBtn"><i class="fa fa-arrow-left"></i> Back to Edit</button>
+                            <button type="button" class="prv-sw-btn-print" id="prvSwPrintBtn" title="Print preview"><i class="fa fa-print"></i> Print</button>
+                            <button type="button" class="prv-sw-btn-go" id="prvSwConfirmBtn"><i class="fa fa-check"></i> Confirm &amp; Proceed</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(wrapper.firstElementChild);
+        }
+
+        function printSwPreview() {
+            const swModal = document.getElementById('appPreviewModalSw');
+            if (!swModal) return;
+            const swPanel = swModal.querySelector('.prv-sw-panel');
+            if (!swPanel) return;
+
+            const old = document.getElementById('prvSwPrintFrame');
+            if (old) old.remove();
+
+            const iframe = document.createElement('iframe');
+            iframe.id = 'prvSwPrintFrame';
+            iframe.setAttribute('aria-hidden', 'true');
+            iframe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;border:0;visibility:hidden;';
+            document.body.appendChild(iframe);
+
+            const styleEl = document.getElementById('prv-sw-preview-modal-styles');
+            const styles = styleEl ? styleEl.textContent : '';
+
+            // Inline force-show the print-head in case iframe @media print rules don't activate before print()
+            let panelHtml = swPanel.innerHTML;
+            const headMatch = panelHtml.match(/<div class="prv-sw-print-head"[^>]*>/);
+            if (headMatch) {
+                panelHtml = panelHtml.replace(headMatch[0], headMatch[0].replace('>', ' style="display:block !important;">'));
+            }
+
+            // Bring page-level stylesheets into the iframe so Bootstrap/FontAwesome render in print
+            const linkSheets = Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"]'))
+                .map(function (l) { return '<link rel="stylesheet" href="' + l.getAttribute('href') + '">'; })
+                .join('');
+
+            const printDoc = iframe.contentWindow.document;
+            printDoc.open();
+            printDoc.write('<!DOCTYPE html><html class="prv-sw-print-active" lang="en"><head><meta charset="utf-8">');
+            printDoc.write('<title>Application Preview</title>');
+            printDoc.write(linkSheets);
+            printDoc.write('<style>' + styles + '</style>');
+            printDoc.write('</head><body>');
+            printDoc.write('<div id="prvSwPrintRoot" class="prv-sw-modal-root">');
+            printDoc.write('<div class="prv-sw-panel">');
+            printDoc.write(panelHtml);
+            printDoc.write('</div></div></body></html>');
+            printDoc.close();
+
+            const runPrint = function () {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                } catch (err) {
+                    console.error('S/W/WH preview print failed:', err);
+                }
+                window.setTimeout(function () { iframe.remove(); }, 1000);
+            };
+            window.setTimeout(runPrint, 300);
+        }
+
+        // ── Read form values and populate the S/W/WH preview modal ─────────────
+        // Mirrors the Form P preview's populate pattern (read by element ID/name, set
+        // text/HTML on placeholder targets). Visibility / section numbers / labels are
+        // computed from the form_name hidden field so a single modal serves S, W and WH.
+        function populateSwPreview() {
+            const v = function (id) {
+                const el = document.getElementById(id);
+                return el ? String(el.value || '').trim() : '';
+            };
+            const valByName = function (name) {
+                const el = document.querySelector('[name="' + name + '"]');
+                return el ? String(el.value || '').trim() : '';
+            };
+            const esc = function (s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            };
+            const fmtDate = function (s) {
+                if (!s) return '';
+                const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (m) return m[3] + '-' + m[2] + '-' + m[1];
+                return s;
+            };
+            const setField = function (id, txt) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const t = (txt || '').toString().trim();
+                el.textContent = t || '—';
+                el.classList.toggle('prv-sw-empty', !t);
+            };
+            const setNum = function (key, num) {
+                const el = document.querySelector('#appPreviewModalSw [data-section-num="' + key + '"]');
+                if (el) el.textContent = num;
+            };
+            const setSecVisible = function (id, visible) {
+                const el = document.getElementById(id);
+                if (el) el.style.display = visible ? '' : 'none';
+            };
+            const resolveAssetUrl = function (path) {
+                if (!path) return '';
+                path = String(path).trim();
+                if (!path) return '';
+                if (/^https?:\/\//i.test(path)) return path;
+                const base = (typeof BASE_URL !== 'undefined' ? BASE_URL : '').replace(/\/$/, '');
+                if (path.charAt(0) === '/') return base + path;
+                return base + '/' + path.replace(/^\/+/, '');
+            };
+            // Uniform document pill — always renders the PDF icon + "View Document" label.
+            // Filenames are intentionally hidden in the preview so every row looks consistent
+            // regardless of whether the file was just attached or comes from an existing record.
+            const DOC_PILL_LABEL = 'View Document';
+            const docPillLink = function (href) {
+                return '<a class="prv-sw-doc-pill" href="' + esc(href) + '" target="_blank" rel="noopener">'
+                    + '<i class="fa fa-file-pdf-o"></i> ' + DOC_PILL_LABEL + '</a>';
+            };
+            const docPillStatic = function () {
+                return '<span class="prv-sw-doc-pill" style="cursor:default;">'
+                    + '<i class="fa fa-file-pdf-o"></i> ' + DOC_PILL_LABEL + '</span>';
+            };
+            const docCellFromRow = function (row, fileSel, existingSel) {
+                const inp = row.querySelector(fileSel);
+                if (inp && inp.files && inp.files[0]) {
+                    return docPillLink(URL.createObjectURL(inp.files[0]));
+                }
+                if (existingSel) {
+                    const exi = row.querySelector(existingSel);
+                    if (exi && exi.value && String(exi.value).trim()) {
+                        return docPillLink(resolveAssetUrl(exi.value));
+                    }
+                }
+                const link = row.querySelector('.fs-doc-existing a, .local-file-preview a');
+                if (link && link.getAttribute('href')) {
+                    return docPillLink(link.getAttribute('href'));
+                }
+                return '<span class="prv-sw-doc-empty">—</span>';
+            };
+            const docLabelForInput = function (inputId) {
+                const inp = document.getElementById(inputId);
+                if (!inp) return '<span class="prv-sw-doc-empty">—</span>';
+                if (inp.files && inp.files[0]) {
+                    return docPillStatic();
+                }
+                const sib = inp.nextElementSibling;
+                if (sib && sib.classList && sib.classList.contains('local-file-preview')) {
+                    const a = sib.querySelector('a');
+                    if (a) return docPillLink(a.getAttribute('href'));
+                }
+                const wrap = inp.closest('td, .fs-upload-card, tr');
+                if (wrap) {
+                    const a = wrap.querySelector('.fs-doc-existing a, a[href*="private_documents"], a[href*="attached_documents"]');
+                    if (a) return docPillLink(a.getAttribute('href'));
+                }
+                return '<span class="prv-sw-doc-empty">—</span>';
+            };
+            const imageSrcAny = function (ids) {
+                for (let i = 0; i < ids.length; i++) {
+                    const el = document.getElementById(ids[i]);
+                    if (!el) continue;
+                    const s = (el.getAttribute('src') || '').trim();
+                    if (s) return s;
+                }
+                return '';
+            };
+            const renderThumb = function (wrapId, imgIds, w, h, alt) {
+                const wrap = document.getElementById(wrapId);
+                if (!wrap) return;
+                const src = imageSrcAny(Array.isArray(imgIds) ? imgIds : [imgIds]);
+                if (src) {
+                    wrap.innerHTML = '<img src="' + esc(src) + '" alt="' + esc(alt) + '" style="width:' + w + 'px;height:' + h + 'px;">';
+                } else {
+                    wrap.innerHTML = '<div class="prv-sw-no-img" style="width:' + w + 'px;height:' + h + 'px;">No ' + esc(alt) + '</div>';
+                }
+            };
+            const selectedText = function (sel) {
+                if (!sel) return '';
+                const opt = sel.options && sel.options[sel.selectedIndex];
+                const t = opt ? (opt.textContent || '').trim() : '';
+                if (!t || /^select /i.test(t)) return '';
+                return t;
+            };
+
+            const formCode = (v('form_name') || valByName('form_name') || 'S').toUpperCase();
+            const applType = (v('appl_type') || valByName('appl_type') || 'N').toUpperCase();
+            const showWork = (formCode === 'S' || formCode === 'W');
+            const showWiremanCert = (formCode === 'S');
+
+            // Section visibility + numbering — matches each form's native section numbers.
+            // S:  1 (1-5) · 6 Edu · 7 Work · 8 Prev S · 9 Wireman · 10 Docs
+            // W:  1 (1-5) · 6 Edu · 7 Work · 8 Prev W · ──        · 9  Docs
+            // WH: 1 (1-5) · 6 Edu · ──     · 7 Prev H · ──        · 8  Docs
+            setSecVisible('prvSwSecWork', showWork);
+            setSecVisible('prvSwSecWiremanCert', showWiremanCert);
+            setNum('personal', '1');
+            setNum('edu', '6');
+            setNum('work', '7');
+            setNum('wireman', '9');
+            if (formCode === 'S') {
+                setNum('prev', '8');
+                setNum('docs', '10');
+            } else if (formCode === 'W') {
+                setNum('prev', '8');
+                setNum('docs', '9');
+            } else {
+                setNum('prev', '7');
+                setNum('docs', '8');
+            }
+
+            // Form / renew badge
+            const formBadgeEl = document.getElementById('prvSwFormBadge');
+            if (formBadgeEl) formBadgeEl.textContent = 'FORM ' + formCode;
+            const renewBadgeEl = document.getElementById('prvSwRenewBadge');
+            if (renewBadgeEl) renewBadgeEl.style.display = (applType === 'R') ? '' : 'none';
+
+            // Header / meta cards + print head
+            const formTitleMap = {
+                S: 'Supervisor Competency Certificate',
+                W: 'Wireman Competency Certificate',
+                WH: 'Wireman Helper Competency Certificate'
+            };
+            const formFullTitle = formTitleMap[formCode] || ('Form ' + formCode);
+            const applicantName = v('Applicant_Name') || valByName('applicant_name');
+            const appId = v('application_id') || valByName('application_id');
+            const licenceVal = v('license_number') || valByName('license_number');
+            setField('prvSwMetaName', applicantName);
+            setField('prvSwMetaAppId', appId || 'Draft (not saved yet)');
+            setField('prvSwMetaLicence', licenceVal || ('Certificate ' + formCode));
+
+            const printTagEl = document.getElementById('prvSwPrintTag');
+            if (printTagEl) {
+                const tagParts = [];
+                if (applType === 'R') tagParts.push('Renewal');
+                tagParts.push('Form ' + formCode);
+                if (licenceVal) tagParts.push('Licence: ' + licenceVal);
+                printTagEl.textContent = tagParts.join(' · ');
+            }
+            const printTitleEl = document.getElementById('prvSwPrintTitle');
+            if (printTitleEl) printTitleEl.textContent = formFullTitle;
+
+            // Personal & contact details
+            setField('prvSwName', applicantName);
+            setField('prvSwFather', v('Fathers_Name') || valByName('fathers_name'));
+            setField('prvSwEmail', v('applicant_email'));
+            setField('prvSwAddress', v('applicants_address'));
+            setField('prvSwDob', fmtDate(v('d_o_b')));
+            setField('prvSwAge', v('age'));
+            renderThumb('prvSwPhotoWrap', ['photo_preview', 'preview_applicant'], 88, 106, 'Photo');
+            renderThumb('prvSwSignWrap', ['sign_preview', 'preview_signature'], 150, 56, 'Signature');
+
+            // Education table
+            const eduTitleEl = document.getElementById('prvSwSecEduTitle');
+            if (eduTitleEl) {
+                eduTitleEl.textContent = (formCode === 'S')
+                    ? "Applicant's Educational / Technical Qualification"
+                    : 'Educational / Technical Qualification';
+            }
+            const eduBody = document.getElementById('prvSwEduBody');
+            if (eduBody) {
+                const eduRows = document.querySelectorAll('#education-container .education-fields, #education-container tr');
+                eduBody.innerHTML = '';
+                let printed = 0;
+                eduRows.forEach(function (row) {
+                    const lv = row.querySelector('[name="educational_level[]"]');
+                    const inst = row.querySelector('[name="institute_name[]"]');
+                    const mon = row.querySelector('[name="month_of_passing[]"]');
+                    const yr = row.querySelector('[name="year_of_passing[]"]');
+                    const cert = row.querySelector('[name="certificate_no[]"]');
+                    if (!lv && !inst && !cert) return;
+                    printed++;
+                    const lvText = lv ? (selectedText(lv) || lv.value || '—') : '—';
+                    const monText = mon ? (selectedText(mon) || mon.value || '—') : '—';
+                    const yrText = yr && yr.value && yr.value !== '0' ? yr.value : '—';
+                    eduBody.innerHTML += '<tr>'
+                        + '<td>' + printed + '</td>'
+                        + '<td class="prv-sw-td-left">' + esc(lvText) + '</td>'
+                        + '<td class="prv-sw-td-left">' + esc(inst ? inst.value || '—' : '—') + '</td>'
+                        + '<td>' + esc(monText) + '</td>'
+                        + '<td>' + esc(yrText) + '</td>'
+                        + '<td>' + esc(cert ? cert.value || '—' : '—') + '</td>'
+                        + '<td>' + docCellFromRow(row, '[name="education_document[]"]', '[name="existing_document[]"]') + '</td>'
+                        + '</tr>';
+                });
+                if (!printed) {
+                    eduBody.innerHTML = '<tr><td colspan="7" class="text-muted py-3" style="text-align:center;">No education entries</td></tr>';
+                }
+            }
+
+            // Work experience table (S/W only)
+            if (showWork) {
+                const workBody = document.getElementById('prvSwWorkBody');
+                if (workBody) {
+                    const workRows = document.querySelectorAll('#work-container .work-fields, #work-container tr');
+                    workBody.innerHTML = '';
+                    let printed = 0;
+                    workRows.forEach(function (row) {
+                        const typeSel = row.querySelector('[name="work_employment_type[]"]');
+                        const emp = row.querySelector('[name="work_employer_name[]"]');
+                        const fr = row.querySelector('[name="work_date_from[]"]');
+                        const to = row.querySelector('[name="work_date_to[]"]');
+                        const yrs = row.querySelector('.work-duration-y');
+                        const mos = row.querySelector('.work-duration-m');
+                        const days = row.querySelector('.work-duration-d');
+                        const totHidden = row.querySelector('[name="work_experience_total[]"]');
+                        const des = row.querySelector('[name="designation[]"]');
+                        if (!typeSel && !emp && !fr && !to && !des) return;
+                        printed++;
+                        const typeText = typeSel ? (selectedText(typeSel) || typeSel.value || '—') : '—';
+                        let durText = '';
+                        if (yrs && mos && days) {
+                            const y = (yrs.value || '').trim();
+                            const m = (mos.value || '').trim();
+                            const d = (days.value || '').trim();
+                            const parts = [];
+                            if (y) parts.push(y + 'y');
+                            if (m) parts.push(m + 'm');
+                            if (d) parts.push(d + 'd');
+                            durText = parts.join(' ');
+                        }
+                        if (!durText && totHidden) durText = totHidden.value || '';
+                        workBody.innerHTML += '<tr>'
+                            + '<td>' + printed + '</td>'
+                            + '<td class="prv-sw-td-left">' + esc(typeText) + '</td>'
+                            + '<td class="prv-sw-td-left">' + esc(emp ? emp.value || '—' : '—') + '</td>'
+                            + '<td>' + esc(fmtDate(fr ? fr.value : '') || '—') + '</td>'
+                            + '<td>' + esc(fmtDate(to ? to.value : '') || '—') + '</td>'
+                            + '<td>' + esc(durText || '—') + '</td>'
+                            + '<td class="prv-sw-td-left">' + esc(des ? des.value || '—' : '—') + '</td>'
+                            + '<td>' + docCellFromRow(row, '[name="work_document[]"]', '[name="existing_work_document[]"]') + '</td>'
+                            + '</tr>';
+                    });
+                    if (!printed) {
+                        workBody.innerHTML = '<tr><td colspan="8" class="text-muted py-3" style="text-align:center;">No work experience entries</td></tr>';
+                    }
+                }
+            }
+
+            // Previous same-type certificate section
+            let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevExpiryId;
+            if (formCode === 'S') {
+                prevTitle = 'Previous Supervisor Competency Certificate';
+                prevTamil = 'மேற்பார்வையாளர் தகுதி சான்றிதழ் விவரம்';
+                prevYesValue = !!((document.getElementById('previous_license_yes') || {}).checked);
+                prevNumId = 'previously_number';
+                prevIssueId = 'previously_issue_date';
+                prevExpiryId = 'previously_date';
+            } else if (formCode === 'W') {
+                prevTitle = 'Previous Wireman / Helper Certificate';
+                prevTamil = 'மின்கம்பியாளர் / உதவியாளர் தகுதி சான்றிதழ் விவரம்';
+                prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
+                prevNumId = 'previously_number';
+                prevIssueId = 'previously_issue_date';
+                prevExpiryId = 'previously_date';
+            } else {
+                prevTitle = 'Previous Wireman Helper Certificate';
+                prevTamil = 'மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் விவரம்';
+                prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
+                prevNumId = 'previously_number_h';
+                prevIssueId = 'previously_issue_date_h';
+                prevExpiryId = 'previously_date_h';
+            }
+            const prevTitleEl = document.getElementById('prvSwSecPrevTitle');
+            if (prevTitleEl) prevTitleEl.textContent = prevTitle;
+            const prevTamilEl = document.getElementById('prvSwSecPrevTamil');
+            if (prevTamilEl) prevTamilEl.textContent = prevTamil;
+            const prevYnEl = document.getElementById('prvSwPrevYn');
+            if (prevYnEl) {
+                prevYnEl.innerHTML = prevYesValue
+                    ? '<span class="prv-sw-yesno-yes">Yes</span>'
+                    : '<span class="prv-sw-yesno-no">No</span>';
+            }
+            const prevBlockEl = document.getElementById('prvSwPrevBlock');
+            if (prevBlockEl) prevBlockEl.style.display = prevYesValue ? '' : 'none';
+            if (prevYesValue) {
+                setField('prvSwPrevNo', v(prevNumId));
+                setField('prvSwPrevIssueDate', fmtDate(v(prevIssueId)));
+                setField('prvSwPrevExpiryDate', fmtDate(v(prevExpiryId)));
+            } else {
+                setField('prvSwPrevNo', '');
+                setField('prvSwPrevIssueDate', '');
+                setField('prvSwPrevExpiryDate', '');
+            }
+
+            // Wireman certificate section (S only)
+            if (showWiremanCert) {
+                const wcYesEl = document.getElementById('yesOption');
+                const wcYesValue = !!(wcYesEl && wcYesEl.checked);
+                const wcYnEl = document.getElementById('prvSwWcYn');
+                if (wcYnEl) {
+                    wcYnEl.innerHTML = wcYesValue
+                        ? '<span class="prv-sw-yesno-yes">Yes</span>'
+                        : '<span class="prv-sw-yesno-no">No</span>';
+                }
+                const wcBlockEl = document.getElementById('prvSwWcBlock');
+                if (wcBlockEl) wcBlockEl.style.display = wcYesValue ? '' : 'none';
+                if (wcYesValue) {
+                    setField('prvSwWcNo', v('certificate_no'));
+                    setField('prvSwWcIssueDate', fmtDate(v('certificate_issue_date')));
+                    setField('prvSwWcExpiryDate', fmtDate(v('certificate_date')));
+                } else {
+                    setField('prvSwWcNo', '');
+                    setField('prvSwWcIssueDate', '');
+                    setField('prvSwWcExpiryDate', '');
+                }
+            }
+
+            // Identity documents
+            setField('prvSwAadhaar', v('aadhaar'));
+            setField('prvSwPan', v('pancard'));
+            const aadhaarDocEl = document.getElementById('prvSwAadhaarDoc');
+            if (aadhaarDocEl) aadhaarDocEl.innerHTML = docLabelForInput('aadhaar_doc');
+            const panDocEl = document.getElementById('prvSwPanDoc');
+            if (panDocEl) panDocEl.innerHTML = docLabelForInput('pancard_doc');
+        }
+
+        async function showCompetencyPreviewModal() {
+            const $sourceForm = $('#competency_form_ws').length ? $('#competency_form_ws') : $('#competency_form_p');
+            if (!$sourceForm.length) return false;
+
+            ensureSwPreviewStyles();
+            ensureSwPreviewModalDom();
+
+            const swModal = document.getElementById('appPreviewModalSw');
+            if (!swModal) return false;
+
+            populateSwPreview();
+
+            swModal.classList.add('is-open');
+            swModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            const swBodyEl = document.getElementById('prvSwBody');
+            if (swBodyEl) swBodyEl.scrollTop = 0;
+
+            return new Promise(function (resolve) {
+                let resolved = false;
+                const confirmBtn = document.getElementById('prvSwConfirmBtn');
+                const backBtn = document.getElementById('prvSwBackBtn');
+                const closeBtn = document.getElementById('prvSwCloseBtn');
+                const printBtn = document.getElementById('prvSwPrintBtn');
+
+                const escHandler = function (e) {
+                    if (e.key === 'Escape' && swModal.classList.contains('is-open')) cleanup(false);
+                };
+                const overlayClick = function (e) {
+                    if (e.target === swModal) cleanup(false);
+                };
+
+                function cleanup(val) {
+                    if (resolved) return;
+                    resolved = true;
+                    swModal.classList.remove('is-open');
+                    swModal.setAttribute('aria-hidden', 'true');
+                    document.body.style.overflow = '';
+                    document.removeEventListener('keydown', escHandler);
+                    swModal.removeEventListener('click', overlayClick);
+                    if (confirmBtn) confirmBtn.onclick = null;
+                    if (backBtn) backBtn.onclick = null;
+                    if (closeBtn) closeBtn.onclick = null;
+                    if (printBtn) printBtn.onclick = null;
+                    resolve(!!val);
+                }
+
+                if (confirmBtn) confirmBtn.onclick = function () { cleanup(true); };
+                if (backBtn) backBtn.onclick = function () { cleanup(false); };
+                if (closeBtn) closeBtn.onclick = function () { cleanup(false); };
+                if (printBtn) printBtn.onclick = function () {
+                    // Refresh values in case the user changed something while previewing (unlikely but cheap)
+                    populateSwPreview();
+                    printSwPreview();
+                };
+                document.addEventListener('keydown', escHandler);
+                swModal.addEventListener('click', overlayClick);
+            });
+        }
+
+        if (!document.getElementById('appPreviewModalFormP')) {
+            window.showCompetencyPreviewModal = showCompetencyPreviewModal;
+        }
 
         $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
+            if ($('#competency_form_p').length && !$('#competency_form_ws').length) {
+                return;
+            }
             e.preventDefault();
             const $submitBtn = $(this);
             if ($submitBtn.data('isProcessing') === true) {
@@ -1771,15 +2353,9 @@ $(document).ready(function() {
                                 showWorkExpDateRangeError($(this), 'To date must be greater than or equal to From date.');
                                 if (!firstErrorField) firstErrorField = toDate;
                                 isValid = false;
-                            } else {
-                                const minTo = new Date(from.getTime());
-                                minTo.setFullYear(minTo.getFullYear() + 2);
-                                if (to < minTo) {
-                                    showWorkExpDateRangeError($(this), 'Minimum 2 Years Experience needed');
-                                    if (!firstErrorField) firstErrorField = toDate;
-                                    isValid = false;
-                                }
                             }
+                            // 2-year minimum is enforced as a combined total across all rows
+                            // after this .each() loop (Form S only).
                         }
                     }
 
@@ -1931,6 +2507,39 @@ $(document).ready(function() {
                     }
                 }
             });
+
+            // Form S only: combined-total experience must be >= 2 calendar years (730 days).
+            if (isSWorkForm) {
+                var twoYearsMs = 730 * 86400000;
+                var totalMs = 0;
+                var anyFilled = false;
+                var $firstFilledToDate = null;
+                $('#work-container .work-fields').each(function () {
+                    var $tr = $(this);
+                    var $fr = $tr.find('.work-date-from');
+                    var $to = $tr.find('.work-date-to');
+                    var fIso = readWorkDateIso($fr);
+                    var tIso = readWorkDateIso($to);
+                    if (!fIso || !tIso) return;
+                    var fromD = new Date(fIso + 'T12:00:00');
+                    var toD = new Date(tIso + 'T12:00:00');
+                    if (isNaN(fromD.getTime()) || isNaN(toD.getTime())) return;
+                    if (toD < fromD) return;
+                    anyFilled = true;
+                    totalMs += (toD - fromD);
+                    if (!$firstFilledToDate) $firstFilledToDate = $to;
+                });
+                if (anyFilled && totalMs < twoYearsMs) {
+                    var $combinedMsg = $('#work-exp-total-msg');
+                    if ($combinedMsg.length) {
+                        $combinedMsg.html('<div class="work-exp-total-error text-danger small" role="alert">Minimum 2 Years Experience needed across all entries.</div>');
+                    }
+                    if (!firstErrorField && $firstFilledToDate && $firstFilledToDate.length) {
+                        firstErrorField = $firstFilledToDate;
+                    }
+                    isValid = false;
+                }
+            }
 
             // Max length validation for competency form (S/W/WH/P) – validate all text/number fields
             if ($('#competency_form_ws').length) {
@@ -2342,10 +2951,14 @@ $(document).ready(function() {
                 showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
                 return;
             }
-            var minTo = new Date(from.getTime());
-            minTo.setFullYear(minTo.getFullYear() + 2);
-            if (to < minTo) {
-                showWorkExpDateRangeError($row, 'Minimum 2 Years Experience needed');
+            // Per-row 2-year check applies to WH only.
+            // Form S uses a combined-total check (across all rows) shown below the work table.
+            if (formName === 'WH') {
+                var minTo = new Date(from.getTime());
+                minTo.setFullYear(minTo.getFullYear() + 2);
+                if (to < minTo) {
+                    showWorkExpDateRangeError($row, 'Minimum 2 Years Experience needed');
+                }
             }
         });
 
@@ -4136,38 +4749,54 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 return;
             }
             
-            const data = await  getPaymentsService(licence_code, issued_licence, appl_type);
+            const data = await getPaymentsService(licence_code, issued_licence, appl_type);
 
-
-            if (data) {
-                if (data.lateFees < 0) {
-                    actual_fees = data.basic_fees;
-                    total_fees = data.total_fees;
-                    lateMonths = data.late_months;
-                }else{
-                    actual_fees = data.basic_fees;
-                    lateMonths = data.late_months;
-                    total_fees = data.total_fees;
-                    lateFee = data.lateFees;
-                }
+            if (!data) {
+                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
+                return;
             }
 
-            fees_date = data.fees_start_date
-            certificate_name = data.certificate_name
+            if (data.lateFees < 0) {
+                actual_fees = data.basic_fees;
+                total_fees = data.total_fees;
+                lateMonths = data.late_months;
+            } else {
+                actual_fees = data.basic_fees;
+                lateMonths = data.late_months;
+                total_fees = data.total_fees;
+                lateFee = data.lateFees;
+            }
 
-            console.log(certificate_name);
-            
+            fees_date = data.fees_start_date;
+            certificate_name = data.certificate_name;
 
-            
-            // 🔹 Now you can safely use form_cost everywhere below
             const modalEl = document.getElementById('competencyInstructionsModal');
+            if (!modalEl) {
+                Swal.fire("Error", "Payment instructions modal is not available. Please refresh the page.", "error");
+                return;
+            }
+
             const agreeCheckbox = modalEl.querySelector('#declaration-agree-renew');
             const errorText = modalEl.querySelector('#declaration-error-renew');
             const proceedBtn = modalEl.querySelector('#proceedPayment');
-            
-            document.getElementById('certificate_name').textContent = certificate_name;
-            document.getElementById('fees_starts_from').textContent = fees_date;
-            document.getElementById('form_fees').textContent = 'Rs.' + actual_fees + '/-';
+
+            if (!agreeCheckbox || !errorText || !proceedBtn) {
+                Swal.fire("Error", "Payment form controls are missing. Please refresh the page.", "error");
+                return;
+            }
+
+            const certNameEl = document.getElementById('certificate_name');
+            if (certNameEl) {
+                certNameEl.textContent = certificate_name || '';
+            }
+            const feesStartEl = document.getElementById('fees_starts_from');
+            if (feesStartEl) {
+                feesStartEl.textContent = fees_date || '';
+            }
+            const formFeesEl = document.getElementById('form_fees');
+            if (formFeesEl) {
+                formFeesEl.textContent = 'Rs.' + actual_fees + '/-';
+            }
             
             // Reset state
             agreeCheckbox.checked = false;
@@ -4179,16 +4808,17 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
 
             const delta = JSON.parse(form_instruct);
             
-            console.log(delta);
             const converter = new QuillDeltaToHtmlConverter(delta.ops, {
+                inlineStyles: true,
                 multiLineParagraph: false,
                 listItemTag: "li",
                 paragraphTag: "p"
             });
 
-            const html = converter.convert();
-            
-            
+            let html = converter.convert();
+            /* Stray "@" before (ii) / list markers when Quill split merge-tag text */
+            html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
+            html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
             modalBody.innerHTML = html;
             const el = document.querySelector("#instructionContent");
             
@@ -4475,23 +5105,12 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 return;
             }
         } catch (err) {
-            // console.error("Error fetching form cost or saving form:", err);
-        
-            // console.error("❌ Uncaught AJAX Error:", xhr);
-
-            // Check if Laravel validation failed (422)
-            // if (xhr.status === 422 && xhr.responseJSON?.errors) {
-            //     // You can show validation messages here
-            //     $.each(xhr.responseJSON.errors, function (key, msg) {
-            //         console.log(key, msg);
-            //     });
-            // } else {
-            //     Swal.fire({
-            //         icon: "error",
-            //         title: "Request Failed",
-            //         text: xhr.responseText || "Something went wrong. Please try again."
-            //     });
-            // }
+            console.error('showDeclarationPopup failed:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Unable to proceed to payment',
+                text: err && err.message ? err.message : 'Something went wrong. Please try again.'
+            });
         }
     }
                                             

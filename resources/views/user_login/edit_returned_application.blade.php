@@ -1860,6 +1860,9 @@
                                                         </tbody>
                                                     </table>
                                                 </div>
+                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                                <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
+                                                @endif
                         </div>
                     </div>
                     {{-- /SECTION 6 --}}
@@ -2846,9 +2849,39 @@
             return { y: y, m: m, d: d };
         }
 
+        var TWO_YEARS_MS = 730 * 86400000; // 2 years = 730 days (allows exact 2-calendar-year ranges)
+
+        function totalDurationAcrossRows() {
+            var totalMs = 0;
+            var anyFilled = false;
+            $('#work-container .work-fields').each(function() {
+                var $tr = $(this);
+                var fromStr = readIsoDate($tr.find('.work-date-from'));
+                var toStr   = readIsoDate($tr.find('.work-date-to'));
+                if (!fromStr || !toStr) return;
+                var from = new Date(fromStr + 'T12:00:00');
+                var to   = new Date(toStr + 'T12:00:00');
+                if (isNaN(from.getTime()) || isNaN(to.getTime())) return;
+                if (to < from) return;
+                anyFilled = true;
+                totalMs += (to - from);
+            });
+            return { ms: totalMs, hasAny: anyFilled };
+        }
+
+        function updateOverallTotalYears() {
+            var $msg = $('#work-exp-total-msg');
+            if (!$msg.length) return;
+            var t = totalDurationAcrossRows();
+            if (!t.hasAny || t.ms >= TWO_YEARS_MS) { $msg.empty(); return; }
+            $msg.html(
+                '<div class="work-exp-total-error text-danger small" role="alert">' +
+                    'Minimum 2 Years Experience needed across all entries.' +
+                '</div>'
+            );
+        }
+
         function updateTotalYears($tr) {
-            var $yearsCell = $tr.find('td.work-exp-col-years');
-            $yearsCell.find('.work-exp-two-year-msg').remove();
             var $from = $tr.find('.work-date-from');
             var $to = $tr.find('.work-date-to');
             var fromStr = readIsoDate($from);
@@ -2856,6 +2889,7 @@
             if (!fromStr || !toStr) {
                 clearWorkDuration($tr);
                 syncLegacyHidden($tr);
+                updateOverallTotalYears();
                 return;
             }
             var from = new Date(fromStr + 'T12:00:00');
@@ -2863,24 +2897,20 @@
             if (isNaN(from.getTime()) || isNaN(to.getTime())) {
                 clearWorkDuration($tr);
                 syncLegacyHidden($tr);
+                updateOverallTotalYears();
                 return;
             }
             if (to < from) {
                 clearWorkDuration($tr);
                 syncLegacyHidden($tr);
+                updateOverallTotalYears();
                 return;
-            }
-            var minTo = new Date(from.getTime());
-            minTo.setFullYear(minTo.getFullYear() + 2);
-            if (to < minTo) {
-                $yearsCell.append(
-                    '<div class="work-exp-two-year-msg text-danger small mt-1" role="alert">Minimum 2 Years Experience needed</div>'
-                );
             }
             var diff = calendarDiffYMD(from, to);
             if (!diff) {
                 clearWorkDuration($tr);
                 syncLegacyHidden($tr);
+                updateOverallTotalYears();
                 return;
             }
             $tr.find('.work-duration-y').val(String(diff.y));
@@ -2891,6 +2921,7 @@
             var rounded = Math.round(years * 10) / 10;
             $tr.find('.work-experience-total-hidden').val(rounded.toFixed(1));
             syncLegacyHidden($tr);
+            updateOverallTotalYears();
         }
 
         function applyEmploymentType($tr) {
@@ -2940,6 +2971,7 @@
                 initWorkRow($(this));
             });
             refreshWorkSerials();
+            updateOverallTotalYears();
         });
 
         $(document).on('change', '.work-employment-type', function() {
@@ -3049,6 +3081,7 @@
                 }
                 initWorkRow($(newRow));
                 refreshWorkSerials();
+                updateOverallTotalYears();
                 return;
             }
 
@@ -3061,6 +3094,7 @@
                 }
                 e.target.closest('tr').remove();
                 refreshWorkSerials();
+                updateOverallTotalYears();
             }
         });
     })();

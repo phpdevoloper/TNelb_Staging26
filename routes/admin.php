@@ -447,7 +447,10 @@
             Route::post('/staff/insertstaff', [StaffController::class, 'insertStaff'])->name('insertstaff');
             Route::post('/staff/updatestaff', [StaffController::class, 'updateStaff'])->name('updatestaff');
 
-            Route::get('/staff/getUserHistory', [StaffController::class, 'getUserHistory']);
+            Route::get('/staff/getUserHistory', [StaffController::class, 'getUserHistory'])->name('staff.getUserHistory');
+            Route::get('/staff/{id}/getstaff', [StaffController::class, 'getStaff'])->whereNumber('id')->name('staff.getstaff');
+            Route::post('/staff/updatestaffdetails', [StaffController::class, 'updateStaffDetails'])->name('staff.updatestaffdetails');
+            Route::post('/staff/deletestaff', [StaffController::class, 'deleteStaff'])->name('staff.deletestaff');
             Route::post('/staff/reset-password', [StaffController::class, 'resetPassword'])->name('reset-password');
             Route::post('/staff/change-status', [StaffController::class, 'changeStatus'])->name('change-status');
 
