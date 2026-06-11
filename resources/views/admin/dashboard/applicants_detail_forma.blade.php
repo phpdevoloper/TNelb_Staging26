@@ -202,7 +202,7 @@
                                                               <th>Father/s
                                                                 Husband/s
                                                                 Name</th>
-                                                            <th>D.O.B, Age</th>
+                                                            <th>D.O.B, Age and Proof</th>
                                                             <th>Address </th>
                                                             <th>Qualifications and Proof</th>
                                                              
@@ -252,7 +252,7 @@
                                                             <td>{{ $proprietor->proprietor_name }} </td>
                                                             <td> {{ $proprietor->fathers_name }}</td>
                                                             <td>{{ \Carbon\Carbon::parse($proprietor->dob)->format('d-m-Y') 
-                                                                 }}, {{ $proprietor->age }} </td>
+                                                                 }}, {{ $proprietor->age }} <a href="{{asset($proprietor->age_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
                                                             <td>{{ $proprietor->proprietor_address }} </td>
                                                              <td> {{ $proprietor->qualification }}, {{ $proprietor->qualification_text }} <a href="{{asset($proprietor->educational_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
                                                            
@@ -470,7 +470,70 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
                                     </div>
                                     <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
-                                        <p class="mt-4 mb-2 fw-bold text-info">6. Staff Details</p>
+                                        <p class="mt-4 mb-2 fw-bold text-info">6A . QC Staff Details</p>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Staff Name</th>
+                                                        
+                                                
+                                                        <th>Competency Certificate Number <br>
+                                                            Competency Certificate Validity
+                                                        </th>
+
+                                                        <th>History of Staff
+                                                        </th>
+                                                                                                                
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse ($Qcstaffs as $index => $staff)
+                                                    <tr>
+                                                         <td>{{ $staff->staffname }}</td>
+                                                        
+                                                       
+                                                        <td>{{ $staff->cc_qc_number }},{{ \Carbon\Carbon::parse($staff->cc_qc_validity)->format('d-m-Y') }} 
+                                                            
+                                                            <button class="btn btn-primary verify-btn_staff"
+                                                                data-license="{{ $staff->cc_qc_number }}"
+                                                                data-date="{{ \Carbon\Carbon::parse($staff->cc_qc_validity)->format('d-m-Y') }}">
+                                                                Verify 
+                                                            </button>
+                                                              <span class="verify-result_staff"></span>
+                                                              
+                                                               <!-- Warning only for FIRST QC ------------ -->
+                                                               @if($index === 0 && $showQcWarning)
+                                                                    <p class="text-danger fw-bold mt-1">
+                                                                        QC certificate validity period is less than  EA licence period
+                                                                    </p>
+                                                                @endif
+                                                        </td>
+                                                     
+                                                    
+                                                    <td>
+                                                        <button class="btn btn-info history-btn_staff"
+                                                            data-license="{{ $staff->cc_qc_number }}"
+                                                            data-date="{{ \Carbon\Carbon::parse($staff->cc_qc_validity)->format('d-m-Y') }}"
+                                                            data-application_id="{{ $staff->application_id }}"
+                                                            data-bs-toggle="modal" data-bs-target="#showlicense"
+                                                            >
+                                                            
+                                                            View History
+                                                        </button>
+                                                        <div class="history-result_staff mt-2"></div>
+                                                    </td>
+
+                                                    </tr>
+                                                    @empty
+                                                    <tr>
+                                                        <td colspan="3" class="text-center">No Staffs available.</td>
+                                                    </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="mt-4 mb-2 fw-bold text-info">6B. Other Staff Details</p>
                                         <div class="table-responsive">
                                             <table class="table table-bordered">
                                                 <thead>
@@ -494,7 +557,13 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                          <td>{{ $staff->staff_name }}</td>
                                                         
                                                         <td>{{ $staff->staff_category }}</td>
-                                                        <td>{{ $staff->cc_number }},{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }} 
+                                                        <td>
+                                                            
+                                                        @if( $staff->staff_category == 'OTHERS')
+                                                            {{ $staff->designation }}
+
+                                                        @else
+                                                        {{ $staff->cc_number }},{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }} 
                                                             
                                                             <button class="btn btn-primary verify-btn_staff"
                                                                 data-license="{{ $staff->cc_number }}"
@@ -509,10 +578,12 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                                         QC certificate validity period is less than  EA licence period
                                                                     </p>
                                                                 @endif
+                                                        @endif
                                                         </td>
                                                      
                                                     
                                                     <td>
+                                                        @if( $staff->staff_category != 'OTHERS')
                                                         <button class="btn btn-info history-btn_staff"
                                                             data-license="{{ $staff->cc_number }}"
                                                             data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}"
@@ -523,88 +594,8 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                             View History
                                                         </button>
                                                         <div class="history-result_staff mt-2"></div>
+                                                        @endif
                                                     </td>
-
-                   
-                                                
-<!-- 
-<button class="btn btn-info history-btn_staff" data-license="{{ $staff->cc_number }}"
-                                                            data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}" data-application_id="{{ $staff->application_id }}">Check History</button>
-                                                                <span class="history-result_staff"></span>       
-                                                    @php
-                                                        $history = DB::table('tnelb_applicant_cl_staffdetails as s')
-                                                            ->leftJoin('tnelb_ea_applications as a', 's.application_id', '=', 'a.application_id')
-                                                            ->where('s.cc_number', $staff->cc_number)
-                                                            ->where('s.cc_validity', $staff->cc_validity)
-                                                            ->where('a.application_status', 'A')
-                                                            ->get();
-
-                                                        $today = \Carbon\Carbon::today();
-                                                    @endphp
-
-                                                    @if($history->count() > 0)
-                                                        <div class="staff-history mt-2">
-                                                            
-                                                           <ul>
-                                                                @foreach($history as $h)
-                                                                    @php
-                                                                        $today = \Carbon\Carbon::today();
-
-                                                                        // Get original license
-                                                                        $license = DB::table('tnelb_license')
-                                                                            ->where('application_id', $h->application_id)
-                                                                            ->first();
-
-                                                                        // Get renewal license
-                                                                        $renewal = DB::table('tnelb_renewal_license')
-                                                                            ->where('application_id', $h->application_id)
-                                                                            ->first();
-
-                                                                        $finalLicense = null;
-
-                                                                        if ($license && $renewal) {
-                                                                            // Pick the one with the latest expiry
-                                                                            $licenseDate = \Carbon\Carbon::parse($license->expires_at);
-                                                                            $renewalDate = \Carbon\Carbon::parse($renewal->expires_at);
-
-                                                                            $finalLicense = $licenseDate->gt($renewalDate) ? $license : $renewal;
-                                                                        } elseif ($license) {
-                                                                            $finalLicense = $license;
-                                                                        } elseif ($renewal) {
-                                                                            $finalLicense = $renewal;
-                                                                        }
-
-                                                                        $active = false;
-                                                                        if ($finalLicense && \Carbon\Carbon::parse($finalLicense->expires_at)->gt($today)) {
-                                                                            $active = true;
-                                                                        }
-                                                                    @endphp
-
-                                                                    @if($finalLicense)
-                                                                        <li>
-                                                                            License Number: {{ $finalLicense->license_number }} <br>
-                                                                            Expiry: {{ \Carbon\Carbon::parse($finalLicense->expires_at)->format('d-m-Y') }} <br>
-
-                                                                            @if($active)
-                                                                                <span class="badge bg-success">Active License</span>
-                                                                            @else
-                                                                                <span class="badge bg-danger">Expired License</span>
-                                                                            @endif
-                                                                        </li>
-                                                                    @else
-                                                                        <li>
-                                                                            <span class="text-muted">No license record found</span>
-                                                                        </li>
-                                                                    @endif
-                                                                @endforeach
-                                                            </ul>                   
-                                                        </div>
-                                                    @else
-                                                        <span class="text-muted">No history found</span>
-                                                    @endif -->
-                                                    
-                                                        
-
 
                                                     </tr>
                                                     @empty

@@ -568,30 +568,24 @@ exit; -->
                                                 <a href="{{ asset($p->educational_proof) }}" target="_blank"><i class="fa fa-file-pdf-o" style="color: red;"></i></a>
                                             </td>
                                             <td>{{ $p->present_business }}</td>
-                                            <td
-                                                data-competency="${competency}"
-                                                data-certno="${ccNum}"
-                                                data-validity="${ccValidity}"
-                                                data-workingunder="${workingUnder}"
-                                                data-expname="${expName}"
-                                                data-expaddress="${expAddress}"
-                                                data-explicense="${expLicense}"
-                                                data-expvalidity="${expValidity}"
-                                                data-ccverify="${ccverify === null ? '' : ccverify}">
-                                                
-                                                ${
-                                                    competency === 'yes'
-                                                    ? `
-                                                        CC No : ${ccNum}<br>
-                                                        Validity : ${ccValidityFormatted}<br>
-                                                        Working Under : ${workingUnder}<br>
-                                                        Name : ${expName}<br>
-                                                        Address : ${expAddress}<br>
-                                                        Licence No : ${expLicense}<br>
-                                                        Licence Validity : ${expValidityFormatted}
-                                                    `
-                                                    : 'No'
-                                                }
+                                            <td data-competency="{{ $p->competency_certificate_holding }}" data-certno="{{ $p->competency_certificate_number }}" data-validity="{{ $p->competency_certificate_validity }}">
+                                                @if($p->competency_certificate_holding == 'yes')
+                                                Yes - CC_No: {{ $p->competency_certificate_number }},
+                                                Validity: {{ \Carbon\Carbon::parse($p->competency_certificate_validity)->format('d-m-Y') }}
+                                                @else
+                                                No
+                                                @endif
+                                            </td>
+                                            <td data-employed="{{ $p->presently_employed }}" data-employer="{{ $p->presently_employed_name }}" data-empaddress="{{ $p->presently_employed_address }}">
+                                                {{ $p->presently_employed == 'yes' ? "Yes - {$p->presently_employed_name}, {$p->presently_employed_address}" : "No" }}
+                                            </td>
+                                            <td data-experience="{{ $p->previous_experience }}" data-expname="{{ $p->previous_experience_name }}" data-expaddress="{{ $p->previous_experience_address }}" data-explicense="{{ $p->previous_experience_lnumber }}" data-expvalidity="{{ $p->previous_experience_lnumber_validity }}">
+
+                                                {{
+                                                    $p->previous_experience == 'yes' 
+                                                        ? "Yes - {$p->previous_experience_name}, {$p->previous_experience_address}, Lic No: {$p->previous_experience_lnumber}, Validity: " . \Carbon\Carbon::parse($p->previous_experience_lnumber_validity)->format('d-m-Y') 
+                                                        : "No" 
+                                                }}
 
                                             </td>
                                             <td style="display: none;">
@@ -619,7 +613,13 @@ exit; -->
                                     </tbody>
                                 </table>
                             </div>
-                       
+                            <!-- <div class="col-12 col-md-5  text-md-right">
+                                <h5>Number of Partners? (Min 2, Max 6)</h5>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <input type="number" class="form-control" id="partner-count-input" min="2" max="6" />
+                                <span class="error text-danger" id="partner-count-error"></span>
+                            </div> -->
 
 
                         </div>
@@ -627,6 +627,7 @@ exit; -->
                         <!-- style="display:none;" -->
                         <div class="border box-shadow-blue p-3 mt-3" id="proprietor-sectionfresh" style="display:none;">
 
+                            <!-- <h4 class="text-center">---------Proprietor Details --------------</h4> -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <h5>Proprietor Details </h5>
@@ -858,14 +859,68 @@ exit; -->
                             </div>
                             <!-- ---------------------- -->
                             <div class="row mt-2">
-                               
+                                <!-- <div class="col-md-6">
+                                    <div class="row align-items-center">
+                                        <div class="col-12 col-md-12">
+                                            <label for="competency_certificate_holding">(v) Whether holding a competency certificate and if so, the number and validity of the competency certificate</label>
+                                        </div>
+                                        <div class="col-12 col-md-12">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" id="competency_yes" name="competency_certificate_holding[]" value="yes" onclick="toggleCompetencyFields(true)">
+                                                <label class="form-check-label" for="competency_yes">Yes</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio"
+                                                    id="competency_no"
+                                                    name="competency_certificate_holding[]"
+                                                    value="no"
+                                                    onclick="toggleCompetencyFields(false)"
+                                                    checked>
+                                                <label class="form-check-label" for="competency_no">No</label>
+                                            </div>
+                                            <span class="text-danger competency_certificate_holding_error_radio" style="font-size: 0.875rem; display: none;"></span>
+                                            <span class="text-danger competency_certificate_holding_error ms-3"></span>
+                                        </div>
 
-                                <div class="col-md-12">
+
+                                        <div class="col-12 col-md-5 mt-1  competency-fields" style="display: none;">
+                                            <label>Competency Certificate No <span style="color: red;">*</span></label>
+                                            <input type="text" class="form-control mt-1 competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="Certificate Number">
+                                            <span class="error text-danger competency_number_error"></span>
+                                        </div>
+                                        <div class="col-12 col-md-5 mt-1 competency-fields" style="display: none;">
+                                            <label> Validity <span style="color: red;">*</span></label>
+                                            <input type="date"
+                                                class="form-control competency_validity"
+                                                name="competency_certificate_validity[]"
+                                                placeholder="Validity">
+
+                                            <span class="error text-danger competency_validity_error"></span>
+
+
+
+                                        </div>
+
+                                        <div class="col-12 col-md-2 mt-3  competency-fields" style="display: none;">
+                                            <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
+                                            <input type="hidden" name="proprietor_cc_verify[]" class="competency_status" value="0">
+
+                                            <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
+
+
+                                        </div>
+
+                                        <div class="col-12 mt-1">
+                                            <div class="text-danger competency_verify_result"></div>
+                                        </div>
+                                    </div>
+                                </div> -->
+
+                                <div class="col-md-6">
                                     <div class="row align-items-center">
                                         <div class="col-12 col-md-12">
                                             <label>(v) Whether holding a competency certificate and if so, the number and validity</label>
                                         </div>
-                                        
 
                                         <div class="col-12 col-md-12">
                                             <div class="form-check form-check-inline">
@@ -887,109 +942,75 @@ exit; -->
                                             </div>
                                         </div>
 
-                                       <div class="col-12 col-md-12 mt-1 competency-fields-proprietor" style="display: none;">
-                                            <table class="table table-bordered head_label_proprietor_cc">
-                                               <thead>
-                                                    <tr>
-                                                        <th style="width:25%;">Competency Certificate Number & Validity Date</th>
-                                                        <th style="width:12%;">Working Under</th>
-                                                        <th class="td-name">Name</th>
-                                                        <th class="td-address">Address</th>
-                                                        <th class="td-license">Contractor Licence Number</th>
-                                                        <th class="td-validity">Validity Date</th>
-                                                        <th>Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                <tr>
-                                                    <td>
-                                            <div class="row">
-                                                        <div class="col-12 col-md-6 mt-1 " >
-                                                
-                                                                <input type="text" class="form-control competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="CC Number">
-                                                                <span class="error text-danger competency_number_error"></span>
-                                                            </div>
+                                        <div class="col-12 col-md-5 mt-1 competency-fields-proprietor" style="display: none;">
+                                            <label>Competency Certificate No <span style="color: red;">*</span></label>
+                                            <input type="text" class="form-control mt-1 competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="Competency Certificate Number">
+                                            <span class="error text-danger competency_number_error"></span>
+                                        </div>
 
-                                                            <div class="col-12 col-md-6 mt-1 " >
-                                                            
-                                                                <input type="date"
-                                                                    class="form-control competency_validity"
-                                                                    name="competency_certificate_validity[]"
-                                                                    placeholder="Validity">
+                                        <div class="col-12 col-md-5 mt-1 competency-fields-proprietor" style="display: none;">
+                                            <label> Validity Date <span style="color: red;">*</span></label>
+                                            <input type="date"
+                                                class="form-control competency_validity"
+                                                name="competency_certificate_validity[]"
+                                                placeholder="Validity">
 
-                                                            <span class="error text-danger competency_validity_error"></span>
-                                                        </div>
+                                            <span class="error text-danger competency_validity_error"></span>
+                                        </div>
 
-                                                        <div class="col-12 col-md-12 justify-content-center mt-1">
-                                                            <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
-                                                            <!-- <input type="hidden" name="proprietor_cc_verify[]" class="competency_status" value="0"> -->
+                                        <div class="col-12 col-md-2 mt-3 competency-fields-proprietor" style="display: none;">
+                                            <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
+                                            <!-- <input type="hidden" name="proprietor_cc_verify[]" class="competency_status" value="0"> -->
 
-                                                            <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
-
-                                                        </div>
-                                                        <div class="col-12 mt-1">
-                                                                <div class="text-danger competency_verify_result"></div>
-                                                        </div>
-
-                                                       </div>
-                                                        
-                                                    </td>
-                                                    <td>
-                                                        <select class="form-control working_under" name="working_under[]">
-                                                            <option value="">Select Anyone</option>
-                                                            <option value="CONTRACTOR">CONTRACTOR</option>
-                                                            <option value="BUSINESS">BUSINESS</option>
-                                                            <option value="NIL">NIL</option>
-                                                        </select>
-                                                        <span class="error text-danger working_under_error"></span>
-                                                    </td>
-
-                                                    <td class="td-name">
-                                                        <input class="form-control" type="text"
-                                                            name="previous_experience_name[]"
-                                                            placeholder="Name">
-                                                        <span class="error text-danger previous_experience_name_error"></span>
-                                                    </td>
-
-                                                    <td class="td-address">
-                                                        <textarea class="form-control"
-                                                            name="previous_experience_address[]"
-                                                            placeholder="Address"></textarea>
-                                                        <span class="error text-danger previous_experience_address_error"></span>
-                                                    </td>
-
-                                                    <td class="td-license">
-                                                        <input class="form-control ea_license_number" type="text"
-                                                            maxlength="15"
-                                                            name="previous_experience_lnumber[]"
-                                                            placeholder="Licence Number">
-                                                        <span class="error text-danger previous_experience_lnumber_error"></span>
-                                                    </td>
-
-                                                    <td class="td-validity">
-                                                        <input class="form-control ea_validity" type="date"
-                                                            name="previous_experience_lnumber_validity[]"
-                                                            placeholder="Validity">
-                                                        <span class="error text-danger previous_experience_lnumber_validity_error"></span>
-                                                    </td>
-                                                    <td> <button type="button" class="btn btn-success" id="add_cc_pr" >Add</button></td>
-                                                </tr>
-                                            </tbody>
-
-                                            </table>
+                                            <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
 
                                         </div>
 
-                                     
-
-                                    
-
-                                        
+                                        <div class="col-12 mt-1">
+                                            <div class="text-danger competency_verify_result"></div>
+                                        </div>
                                     </div>
                                 </div>
 
 
-                                
+                                <div class="col-md-6">
+                                    <div class="row align-items-center">
+                                        <div class="col-12 col-md-12">
+                                            <label for="Name">(vi) Whether he is presently employed
+                                                anywhere, If so the name and
+                                                address of the employer.<br>
+                                                If not details of the Present
+                                                business.
+                                            </label>
+                                        </div>
+                                        <div class="col-12 col-md-12">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" id="employed_yes" name="presently_employed[]" value="yes" onclick="toggleEmploymentFields('proprietor', true)">
+                                                <label class="form-check-label" for="employed_yes">Yes</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" id="employed_no" name="presently_employed[]" value="no" onclick="toggleEmploymentFields('proprietor', false)" checked>
+                                                <label class="form-check-label" for="employed_no">No</label>
+                                            </div>
+                                            <span class="error text-danger presently_employed_error" id="presently_employed_error"></span>
+                                        </div>
+
+                                        <div class="col-12 col-md-6 mt-1 employment-fields-proprietor" style="display: none;">
+                                            <label>Name of the Employer <span class="text-red">*</span></label>
+                                            <input type="text" class="form-control" id="presently_employed_name" name="presently_employed_name[]" maxlength="50" placeholder="Name of the Employer">
+                                            <span class="error text-danger presently_employed_name_error"></span>
+                                        </div>
+                                        <div class="col-12 col-md-6 mt-1  employment-fields-proprietor" style="display: none;">
+                                            <label>Address of the Employer <span class="text-red">*</span></label>
+                                            <textarea class="form-control" id="presently_employed_address" name="presently_employed_address[]" placeholder="Address of the Employer"></textarea>
+
+                                            <span class="error text-danger presently_employed_address_error"></span>
+                                        </div>
+
+
+
+                                    </div>
+                                </div>
 
                             </div>
 
@@ -997,7 +1018,76 @@ exit; -->
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="row align-items-center">
-                              
+                                        <div class="col-12 col-md-12">
+                                            <label for="Name">(vii) If holding a competency certificate, details of previous experience with
+                                                period. If the applicant has worked under a contractor, licensed by this
+                                                Licensing Board, the name, address, and licence No. of the contractor.<br>
+                                                <span style="color: #023466;">(Note: Details should be furnished for each partner/Director) </span>
+                                            </label>
+                                        </div>
+
+                                        <div class="col-12 col-md-12">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[]" value="yes" onclick="toggleExperienceFields('proprietor', true)">
+                                                <label class="form-check-label" for="previous_experience">Yes</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[]" value="no" onclick="toggleExperienceFields('proprietor', false)" checked>
+                                                <label class="form-check-label" for="previous_experience">No</label>
+                                            </div>
+
+
+                                            <span class="error text-danger previous_experience_error" id="previous_experience_error"></span>
+                                        </div>
+
+
+                                        <div class="col-12 col-md-12  experience-fields-proprietor" style="display: none;">
+                                            <div class="row">
+                                                <div class="col-12 col-md-5 mt-1">
+                                                    <label>Name of the Contractor <span class="text-red">*</span></label>
+                                                    <input class="form-control" type="text" id="previous_experience_name" name="previous_experience_name[]" placeholder="Name of the Contractor">
+
+                                                    <span class="error text-danger previous_experience_name_error"></span>
+                                                </div>
+                                                <div class="col-12 col-md-5 mt-1">
+                                                    <label>Address of the Contractor <span class="text-red">*</span></label>
+                                                    <textarea class="form-control" id="previous_experience_address" name="previous_experience_address[]" placeholder="Address of the Contractor"></textarea>
+
+                                                    <span class="error text-danger previous_experience_address_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-5 mt-1">
+                                                    <label>Previous EA Licence A Grade Licence Number <span class="text-red">*</span></label>
+                                                    <input class="form-control ea_license_number" type="text" id="previous_experience_lnumber" maxlength="15" name="previous_experience_lnumber[]" placeholder="Previous EA Licence A Grade Licence Number">
+
+                                                    <span class="error text-danger previous_experience_lnumber_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-5 mt-1">
+                                                    <label>Previous EA Licence A Grade Validity Date <span class="text-red">*</span></label>
+                                                    <input class="form-control ea_validity" type="date"
+                                                        onfocus="(this.type='date')"
+                                                        id="previous_experience_lnumber_validity" name="previous_experience_lnumber_validity[]" placeholder="License Number Validity">
+
+                                                    <span class="error text-danger previous_experience_lnumber_validity_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-2 mt-5">
+                                                    <button type="button" class="btn btn-primary" onclick="verifyeaCertificate(event, this)">Verify</button>
+                                                    <!-- <input type="text" name="proprietor_contractor_verify[]" class="contactor_license_verify" value="0"> -->
+                                                    <input type="hidden" name="proprietor_contractor_verify[]" class="proprietor_contractor_verify" value="0">
+
+                                                </div>
+
+
+
+                                                <div class="col-12 mt-1">
+                                                    <div class="text-danger competency_verifyea_result"></div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
                                         <div class="col-12 col-md-12 text-md-right">
 
                                             <button type="button" class="btn btn-success" id="save_proprietor">Save</button>
@@ -1008,14 +1098,25 @@ exit; -->
                                     </div>
                                 </div>
                             </div>
-               
+                            <!-- <div class=" mt-4 ">
+                       <h3>Proprietor/Partner Details</h3> 
+                        <div class="col-12 col-md-12 text-md-right" id="static-add-button-wrapper">
+                            <button id="add-more-proprietor" class="btn btn-primary text-md-right"><i class="fa fa-plus"></i> Add Proprietor /Partner</button>
+                        </div>
+                        <div id="proprietor-container"></div> 
+                    </div> -->
                         </div>
                     </div>
                     <!-- style="display:none;" -->
                     <div id="partner-section" class="mt-3">
 
                         <div class="row mt-2">
-                     
+                            <!-- <div class="col-md-12 col-12 text-md-right pb-20">
+                                <button type="button" class="btn btn-primary" id="add-partner">
+                                    <i class="fa fa-plus"></i> Add Partner
+                                </button>
+
+                            </div> -->
 
                             <div class="col-md-12 col-12  pb-20">
                                 <h5 class="card-title_apply">Partners Details (if any)</h5>
@@ -5582,145 +5683,25 @@ let proprietorCount = initialDraftCount || 0;
 
 
         // ---------------add proprietor-----------------
-$(document).on("change", ".working_under", function () {
 
-    let value = $(this).val();
-    let $tr = $(this).closest("tr");
-
-    // Show everything first
-    $tr.find("input[name='previous_experience_name[]']").show();
-    $tr.find("textarea[name='previous_experience_address[]']").show();
-
-    $tr.find("input[name='previous_experience_lnumber[]']").show();
-    $tr.find("input[name='previous_experience_lnumber_validity[]']").show();
-
-    if (value === "BUSINESS") {
-
-        // Hide only Licence Number & Validity inputs
-        $tr.find("input[name='previous_experience_lnumber[]']").hide().val('');
-        $tr.find("input[name='previous_experience_lnumber_validity[]']").hide().val('');
-
-    } else if (value === "NIL") {
-
-        // Hide all input fields
-        $tr.find("input[name='previous_experience_name[]']").hide().val('');
-        $tr.find("textarea[name='previous_experience_address[]']").hide().val('');
-
-        $tr.find("input[name='previous_experience_lnumber[]']").hide().val('');
-        $tr.find("input[name='previous_experience_lnumber_validity[]']").hide().val('');
-    }
-
-    // CONTRACTOR or blank => all fields visible
-});
-
-
-$(document).on("click", "#add_cc_pr", function () {
-
-    let newRow = `
-    <tr class="cc-row">
-        <td>
-            <div class="row">
-                <div class="col-md-6 mt-1">
-                    <input type="text" class="form-control competency_number"
-                        name="competency_certificate_number[]" maxlength="15"
-                        placeholder="CC Number">
-                    <span class="error text-danger competency_number_error"></span>
-                </div>
-
-                <div class="col-md-6 mt-1">
-                    <input type="date" class="form-control competency_validity"
-                        name="competency_certificate_validity[]">
-                    <span class="error text-danger competency_validity_error"></span>
-                </div>
-
-                <div class="col-md-12 text-center mt-1">
-                    <button type="button" class="btn btn-primary"
-                        onclick="verifyCompetencyCertificate(event,this)">
-                        Verify
-                    </button>
-
-                    <input type="hidden"
-                        name="proprietor_cc_verify[]"
-                        class="proprietor_cc_verify"
-                        value="0">
-                </div>
-
-                <div class="col-md-12 mt-1">
-                    <div class="text-danger competency_verify_result"></div>
-                </div>
-            </div>
-        </td>
-
-        <td>
-            <select class="form-control working_under" name="working_under[]">
-                <option value="">Select Anyone</option>
-                <option value="CONTRACTOR">CONTRACTOR</option>
-                <option value="BUSINESS">BUSINESS</option>
-                <option value="NIL">NIL</option>
-            </select>
-            <span class="error text-danger working_under_error"></span>
-        </td>
-
-        <td class="td-name">
-            <input class="form-control"
-                type="text"
-                name="previous_experience_name[]"
-                placeholder="Name">
-            <span class="error text-danger previous_experience_name_error"></span>
-        </td>
-
-        <td class="td-address">
-            <textarea class="form-control"
-                name="previous_experience_address[]"
-                placeholder="Address"></textarea>
-            <span class="error text-danger previous_experience_address_error"></span>
-        </td>
-
-        <td class="td-license">
-            <input class="form-control ea_license_number"
-                type="text"
-                maxlength="15"
-                name="previous_experience_lnumber[]"
-                placeholder="Licence Number">
-            <span class="error text-danger previous_experience_lnumber_error"></span>
-        </td>
-
-        <td class="td-validity">
-            <input class="form-control ea_validity"
-                type="date"
-                name="previous_experience_lnumber_validity[]">
-            <span class="error text-danger previous_experience_lnumber_validity_error"></span>
-        </td>
-
-        <td>
-            <button type="button"
-                class="btn btn-danger remove_cc_row">
-                Remove
-            </button>
-        </td>
-    </tr>
-    `;
-
-    $(".head_label_proprietor_cc tbody").append(newRow);
-});
         let proprietorIndex = 0;
         let proprietoreditIndex = null;
 
         // Show form on Add Proprietor button click
         $("#add-proprietor").on("click", function() {
 
-            // let rowCount = $("#proprietor-section table tbody tr").length;
-            // if (rowCount > 0) {
-            //     Swal.fire({
-            //         title: "Proprietor Entry Exists!",
-            //         width: 450,
-            //         text: "Only one proprietor entry is allowed.",
-            //         icon: "warning",
-            //         confirmButtonText: "OK",
-            //         confirmButtonColor: "#3085d6"
-            //     });
-            //     return;
-            // }
+            let rowCount = $("#proprietor-section table tbody tr").length;
+            if (rowCount > 0) {
+                Swal.fire({
+                    title: "Proprietor Entry Exists!",
+                    width: 450,
+                    text: "Only one proprietor entry is allowed.",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
+                });
+                return;
+            }
 
             // Reset form before showing
             resetproprietor(false);
@@ -5732,8 +5713,8 @@ $(document).on("click", "#add_cc_pr", function () {
                 // .attr("data-row_index", rowCount)
                 // .data("row_index", rowCount);
 
-                // .attr("data-row-index", rowCount)
-                // .data("rowIndex", rowCount);
+                .attr("data-row-index", rowCount)
+                .data("rowIndex", rowCount);
         });
 
 
@@ -5778,37 +5759,29 @@ $(document).on("click", "#add_cc_pr", function () {
                 $section.find("input[name^='previous_experience'][value='no']").prop("checked", true);
             }
 
-           let competency =
-            $section.find("input[name='competency_certificate_holding[]']:checked").val() || "no";
+            // ✅ Radio button values
+            let competency = $section.find("input[name^='competency_certificate_holding']:checked").val() || "no";
+            let ccNum = $section.find("input[name='competency_certificate_number[]']").val().trim();
+            let ccValidity = $section.find("input[name='competency_certificate_validity[]']").val().trim();
 
-        let ccNum =
-            $.trim($section.find("input[name='competency_certificate_number[]']").val());
+            // let ccverify = $section.find("input[name='proprietor_cc_verify[]']").val().trim();
+            let ccverifyInput = $section.find("input[name='proprietor_cc_verify[]']").val();
+            let ccverify = (ccverifyInput === null || ccverifyInput.trim() === "") ?
+                null :
+                parseInt(ccverifyInput, 10);
 
-        let ccValidity =
-            $.trim($section.find("input[name='competency_certificate_validity[]']").val());
+            let competencyDetails = competency === "yes" ? `Yes - CC_No: ${ccNum}, Validity: ${ccValidity}` : "No";
 
-        let workingUnder =
-            $.trim($section.find("select[name='working_under[]']").val());
+            let employed = $section.find("input[name^='presently_employed']:checked").val() || "no";
+            let empName = $section.find("input[name='presently_employed_name[]']").val().trim();
+            let empAddress = $section.find("textarea[name='presently_employed_address[]']").val().trim();
+            let employedDetails = employed === "yes" ? `Yes - ${empName}, ${empAddress}` : "No";
 
-        let expName =
-            $.trim($section.find("input[name='previous_experience_name[]']").val());
-
-        let expAddress =
-            $.trim($section.find("textarea[name='previous_experience_address[]']").val());
-
-        let expLicense =
-            $.trim($section.find("input[name='previous_experience_lnumber[]']").val());
-
-        let expValidity =
-            $.trim($section.find("input[name='previous_experience_lnumber_validity[]']").val());
-
-        let ccverifyInput =
-            $section.find("input[name='proprietor_cc_verify[]']").val();
-
-        let ccverify =
-            ccverifyInput === null || ccverifyInput.trim() === ""
-                ? null
-                : parseInt(ccverifyInput, 10);
+            let experience = $section.find("input[name^='previous_experience']:checked").val() || "no";
+            let expName = $section.find("input[name='previous_experience_name[]']").val().trim();
+            let expAddress = $section.find("textarea[name='previous_experience_address[]']").val().trim();
+            let expLicense = $section.find("input[name='previous_experience_lnumber[]']").val().trim();
+            let expValidity = $section.find("input[name='previous_experience_lnumber_validity[]']").val().trim();
 
             // let expverify = $section.find("input[name='proprietor_contractor_verify[]']").val().trim();
             let expverifyInput = $section.find("input[name='proprietor_contractor_verify[]']").val();
@@ -5816,9 +5789,9 @@ $(document).on("click", "#add_cc_pr", function () {
                 null :
                 parseInt(expverifyInput, 10);
 
-          let experienceDetails = competency === "yes"
-            ? `${workingUnder}, ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidityFormatted}`
-            : "No";
+            let experienceDetails = experience === "yes" ?
+                `Yes - ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidity}` :
+                "No";
             // Date format----------------
             let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
             let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
@@ -5980,7 +5953,7 @@ $(document).on("click", "#add_cc_pr", function () {
 
             // -----------cc details--------------
 
-           if (competency === "yes") {
+            if (competency === "yes") {
 
                 if (!ccNum) {
                     setError(
@@ -5995,70 +5968,57 @@ $(document).on("click", "#add_cc_pr", function () {
                         "Competency Certificate Validity is required"
                     );
                 }
+            }
 
-                if (!workingUnder) {
+            // emp details--------------------
+
+            if (employed === "yes") {
+
+                if (!empName) {
                     setError(
-                        $section.find("select[name='working_under[]']"),
-                        "Working Under is required"
+                        $section.find("input[name='presently_employed_name[]']"),
+                        "Employer name is required"
                     );
                 }
 
-               if (competency === "yes") {
+                if (!empAddress) {
+                    setError(
+                        $section.find("textarea[name='presently_employed_address[]']"),
+                        "Employer address is required"
+                    );
+                }
+            }
 
-                    if (!ccNum) {
-                        setError(
-                            $section.find("input[name='competency_certificate_number[]']"),
-                            "Competency Certificate Number is required"
-                        );
-                    }
 
-                    if (!ccValidity) {
-                        setError(
-                            $section.find("input[name='competency_certificate_validity[]']"),
-                            "Competency Certificate Validity is required"
-                        );
-                    }
+            // EXPERIENCE VALIDATION
+            if (experience === "yes") {
 
-                    if (!workingUnder) {
-                        setError(
-                            $section.find("select[name='working_under[]']"),
-                            "Working Under is required"
-                        );
-                    }
+                if (!expName) {
+                    setError(
+                        $section.find("input[name='previous_experience_name[]']"),
+                        "Experience name is required"
+                    );
+                }
 
-                    // Validate only when Contractor is selected
-                    if (workingUnder === "CONTRACTOR") {
+                if (!expAddress) {
+                    setError(
+                        $section.find("textarea[name='previous_experience_address[]']"),
+                        "Experience address is required"
+                    );
+                }
 
-                        if (!expName) {
-                            setError(
-                                $section.find("input[name='previous_experience_name[]']"),
-                                "Name is required"
-                            );
-                        }
+                if (!expLicense) {
+                    setError(
+                        $section.find("input[name='previous_experience_lnumber[]']"),
+                        "License number is required"
+                    );
+                }
 
-                        if (!expAddress) {
-                            setError(
-                                $section.find("textarea[name='previous_experience_address[]']"),
-                                "Address is required"
-                            );
-                        }
-
-                        if (!expLicense) {
-                            setError(
-                                $section.find("input[name='previous_experience_lnumber[]']"),
-                                "Licence Number is required"
-                            );
-                        }
-
-                        if (!expValidity) {
-                            setError(
-                                $section.find("input[name='previous_experience_lnumber_validity[]']"),
-                                "Validity Date is required"
-                            );
-                        }
-                    }
-
-                    // NIL selected → no validation
+                if (!expValidity) {
+                    setError(
+                        $section.find("input[name='previous_experience_lnumber_validity[]']"),
+                        "License validity is required"
+                    );
                 }
             }
 
@@ -6437,31 +6397,50 @@ $(document).on("click", "#add_cc_pr", function () {
 
 
             // === Competency Section ===
-          let tdCompetency = $row.find("td").eq(6);
+            let tdCompetency = $row.find("td").eq(6);
+            let competency = tdCompetency.attr('data-competency') || "no";
+            let certNo = tdCompetency.attr('data-certno') || "";
+            let validity = tdCompetency.attr('data-validity') || "";
+            let ccValidityFormatted = formatDateToDDMMYYYY(validity);
+            let formattedValidity = formatDateToYMD(validity);
+            // alert(ccValidityFormatted);
 
-            let competency =
-                tdCompetency.attr("data-competency") || "no";
+            $section.find("input[name^='competency_certificate_holding'][value='" + competency + "']").prop("checked", true);
+            $section.find("input[name='competency_certificate_number[]']").val(certNo);
+            $section.find("input[name='competency_certificate_validity[]']").val(formattedValidity);
 
-            let certNo =
-                tdCompetency.attr("data-certno") || "";
+            // Show/hide related inputs
+            if (competency === "yes") {
+                $(".competency-fields-proprietor").slideDown();
+            } else {
+                $(".competency-fields-proprietor").slideUp();
+            }
 
-            let validity =
-                tdCompetency.attr("data-validity") || "";
+            // === Presently Employed Section ===
+            let tdEmployed = $row.find("td").eq(7);
+            let employed = tdEmployed.attr('data-employed') || "no";
+            let empName = tdEmployed.attr('data-employer') || "";
+            let empAddress = tdEmployed.attr('data-empaddress') || "";
 
-            let workingUnder =
-                tdCompetency.attr("data-workingunder") || "";
+            $section.find("input[name^='presently_employed'][value='" + employed + "']").prop("checked", true);
+            $section.find("input[name='presently_employed_name[]']").val(empName);
+            $section.find("textarea[name='presently_employed_address[]']").val(empAddress);
 
-            let expName =
-                tdCompetency.attr("data-expname") || "";
+            if (employed === "yes") {
+                $(".employment-fields-proprietor").slideDown();
+            } else {
+                $(".employment-fields-proprietor").slideUp();
+            }
 
-            let expAddress =
-                tdCompetency.attr("data-expaddress") || "";
-
-            let expLicense =
-                tdCompetency.attr("data-explicense") || "";
-
-            let expValidity =
-                tdCompetency.attr("data-expvalidity") || "";
+            // === Previous Experience Section ===
+            let tdExperience = $row.find("td").eq(8);
+            let experience = tdExperience.attr('data-experience') || "no";
+            let expName = tdExperience.attr('data-expname') || "";
+            let expAddress = tdExperience.attr('data-expaddress') || "";
+            let expLicense = tdExperience.attr('data-explicense') || "";
+            let expValidity = tdExperience.attr('data-expvalidity') || "";
+            let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
+            let formattedexpValidity = formatDateToYMD(expValidity);
 
 
             $section.find("input[name^='previous_experience'][value='" + experience + "']").prop("checked", true);

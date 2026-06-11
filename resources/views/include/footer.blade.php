@@ -129,6 +129,10 @@
 
 <script src="{{ url('assets/js/forma.js') }}"></script>
 
+
+
+
+
 <script src="{{ url('assets/js/formsa.js') }}"></script>
 
 <script src="{{ url('assets/js/formsb.js') }}"></script>

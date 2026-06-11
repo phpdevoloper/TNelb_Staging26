@@ -28,7 +28,7 @@ $(document).on("click", ".upload-btn", function () {
     let formData = new FormData();
     formData.append(fileInput.name, fileInput.files[0]);
 
-    let staffRow = btn.closest('tr.qc-upload-row').prev('tr.staff-fields');
+    let staffRow = btn.closest('tr.qc-upload-row').prev('tr.staffqc-fields');
     // let qcCode = btn.closest('.row').find('.qc_code').val();
     let qcCode = btn.attr('data-qc_code');
 
@@ -2420,7 +2420,9 @@ function submitFormAFinal(formData, actionType) {
             : BASE_URL + "/forma/store";
     //  let amount = formData.get("fees") || 0;
 
-    let amount = formData.get("total_fees") || 0;
+    let totalfee = formData.get("total_fees") || 0;
+
+    let amount = totalfee + qcfee;
 
     // alert(amount);
 
@@ -2464,7 +2466,7 @@ function submitFormAFinal(formData, actionType) {
 
             let qcfees = formData.get("qcfee");
 
-            alert(qcfees);
+            
 
             let licenseName = formData.get("licenseName");
 
@@ -6646,10 +6648,10 @@ function addStaffqcRow() {
 
     
 
-    let staffCount = $('#staffqc-container tr.staff-fields').length;
+    let staffCount = $('#staffqc-container tr.staffqc-fields').length;
 
     // Check last row before adding
-    let lastRow = $('#staffqc-container tr.staff-fields').last();
+    let lastRow = $('#staffqc-container tr.staffqc-fields').last();
     let name = $.trim(lastRow.find('input[name="staffqc_name[]"]').val());
 
     let category = $.trim(
@@ -6754,7 +6756,7 @@ let qcCode = generateQCCode();
 const formCode = "{{ $form_code->id }}";
    let newRows = `
 
-<tr class="staff-fields">
+<tr class="staffqc-fields">
 
     <td>${Math.floor(staffCount / 2) + 1}</td>
 
@@ -6921,7 +6923,7 @@ function removeStaffqcRow(button) {
     // Re-number staff rows
     let sno = 1;
 
-    $('#staffqc-container tr.staff-fields').each(function () {
+    $('#staffqc-container tr.staffqc-fields').each(function () {
         $(this).find('td:first').text(sno++);
     });
 
@@ -6938,7 +6940,7 @@ function removeStaffqcRow(button) {
 }
 
 function generateQCCode() {
-    return $('#staffqc-container tr.staff-fields').length + 1;
+    return $('#staffqc-container tr.staffqc-fields').length + 1;
 }
 
 

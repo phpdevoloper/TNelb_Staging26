@@ -3922,8 +3922,8 @@ class FormAController extends BaseController
     public function update(Request $request, $id)
     {
 
-        dd($id);
-        exit;
+        // dd($id);
+        // exit;
 
         $isDraft = $request->input('form_action') === 'draft';
 
@@ -4354,7 +4354,11 @@ class FormAController extends BaseController
             ->select('id', 'application_id', 'license_number', 'expires_at')
             ->unionAll(
                 DB::table('tnelb_renewal_license')
+<<<<<<< Updated upstream
                     ->select('ren_id', 'application_id', 'license_number', 'expires_at')
+=======
+                    ->selectRaw('ren_id as id, application_id, license_number, expires_at')
+>>>>>>> Stashed changes
             )
             ->orderBy('id', 'ASC')
             ->get();
