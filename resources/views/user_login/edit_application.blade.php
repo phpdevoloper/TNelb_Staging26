@@ -1671,7 +1671,7 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <div class="col-12 col-md-3">
+                                    <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
@@ -1680,13 +1680,22 @@
                                                value="{{ $application_details->previously_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
+                                               id="previously_valid_from" name="previously_valid_from" type="date"
+                                               data-error="#previouslyFromDateError"
+                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
+                                               value="{{ $application_details->previously_valid_from ?? '' }}">
+                                        <span id="previouslyFromDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
-                                               id="previously_date" name="previously_date" type="date"
+                                               id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
                                                {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_date }}">
+                                               value="{{ $application_details->previously_valid_to ?? $application_details->previously_date }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1738,7 +1747,7 @@
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_date) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_valid_to ?? $application_details->certificate_date) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
@@ -1771,7 +1780,7 @@
                                                             </span>
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
+                                                        <div class="col-12 col-md-2">
                                                             <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
@@ -1780,12 +1789,21 @@
                                                                    {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">From date <span class="req">*</span></div>
+                                                            <input class="form-control text-box single-line verify-valid-from"
+                                                                   id="certificate_valid_from" name="certificate_valid_from"
+                                                                   data-error="#certFromDateError" type="date"
+                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}"
+                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                            <span id="certFromDateError" class="text-danger"></span>
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">To date <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-date"
-                                                                   id="certificate_date" name="certificate_date"
+                                                                   id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->certificate_date }}"
+                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}"
                                                                    {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>

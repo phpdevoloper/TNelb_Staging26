@@ -1637,9 +1637,10 @@ $(document).ready(function() {
                                     </div>
                                     <div id="prvSwPrevBlock" style="display:none;">
                                         <div class="row g-2">
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwPrevNo">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwPrevIssueDate">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of Expiry</div><div class="prv-sw-value" id="prvSwPrevExpiryDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwPrevNo">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwPrevIssueDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">From date</div><div class="prv-sw-value" id="prvSwPrevFromDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">To date</div><div class="prv-sw-value" id="prvSwPrevExpiryDate">&mdash;</div></div></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1661,9 +1662,10 @@ $(document).ready(function() {
                                     </div>
                                     <div id="prvSwWcBlock" style="display:none;">
                                         <div class="row g-2">
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwWcNo">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwWcIssueDate">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of Expiry</div><div class="prv-sw-value" id="prvSwWcExpiryDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwWcNo">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwWcIssueDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">From date</div><div class="prv-sw-value" id="prvSwWcFromDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">To date</div><div class="prv-sw-value" id="prvSwWcExpiryDate">&mdash;</div></div></div>
                                         </div>
                                     </div>
                                 </div>
@@ -2274,27 +2276,30 @@ $(document).ready(function() {
             }
 
             // Previous same-type certificate section
-            let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevExpiryId;
+            let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevFromId, prevExpiryId;
             if (formCode === 'S') {
                 prevTitle = 'Previous Supervisor Competency Certificate';
                 prevTamil = 'மேற்பார்வையாளர் தகுதி சான்றிதழ் விவரம்';
                 prevYesValue = !!((document.getElementById('previous_license_yes') || {}).checked);
                 prevNumId = 'previously_number';
                 prevIssueId = 'previously_issue_date';
-                prevExpiryId = 'previously_date';
+                prevFromId = 'previously_valid_from';
+                prevExpiryId = 'previously_valid_to';
             } else if (formCode === 'W') {
                 prevTitle = 'Previous Wireman / Helper Certificate';
                 prevTamil = 'மின்கம்பியாளர் / உதவியாளர் தகுதி சான்றிதழ் விவரம்';
                 prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
                 prevNumId = 'previously_number';
                 prevIssueId = 'previously_issue_date';
-                prevExpiryId = 'previously_date';
+                prevFromId = 'previously_valid_from';
+                prevExpiryId = 'previously_valid_to';
             } else {
                 prevTitle = 'Previous Wireman Helper Certificate';
                 prevTamil = 'மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் விவரம்';
                 prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
                 prevNumId = 'previously_number_h';
                 prevIssueId = 'previously_issue_date_h';
+                prevFromId = 'previously_valid_from_h';
                 prevExpiryId = 'previously_date_h';
             }
             const prevTitleEl = document.getElementById('prvSwSecPrevTitle');
@@ -2312,10 +2317,12 @@ $(document).ready(function() {
             if (prevYesValue) {
                 setField('prvSwPrevNo', v(prevNumId));
                 setField('prvSwPrevIssueDate', fmtDate(v(prevIssueId)));
+                setField('prvSwPrevFromDate', fmtDate(v(prevFromId)));
                 setField('prvSwPrevExpiryDate', fmtDate(v(prevExpiryId)));
             } else {
                 setField('prvSwPrevNo', '');
                 setField('prvSwPrevIssueDate', '');
+                setField('prvSwPrevFromDate', '');
                 setField('prvSwPrevExpiryDate', '');
             }
 
@@ -2334,10 +2341,12 @@ $(document).ready(function() {
                 if (wcYesValue) {
                     setField('prvSwWcNo', v('certificate_no'));
                     setField('prvSwWcIssueDate', fmtDate(v('certificate_issue_date')));
-                    setField('prvSwWcExpiryDate', fmtDate(v('certificate_date')));
+                    setField('prvSwWcFromDate', fmtDate(v('certificate_valid_from')));
+                    setField('prvSwWcExpiryDate', fmtDate(v('certificate_valid_to')));
                 } else {
                     setField('prvSwWcNo', '');
                     setField('prvSwWcIssueDate', '');
+                    setField('prvSwWcFromDate', '');
                     setField('prvSwWcExpiryDate', '');
                 }
             }

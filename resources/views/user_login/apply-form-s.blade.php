@@ -1722,7 +1722,7 @@
                                                         <th>Designation</th>
                                                         <th>Nature of Work</th>
                                                         <th>Voltage Level</th>
-                                                        <th>Transformer kVA</th>
+                                                        <th>Transformer kVA(max 1000kVA)</th>
                                                         <th>Total Experience</th>
                                                         <th>Attachment</th>
                                                         <th class="wx-summary-th-actions">Actions</th>
@@ -1762,7 +1762,7 @@
                                                 </select>
                                             </div>
                                             <div class="work-card-field" data-field="contractor-cat">
-                                                <label class="work-card-field-label">Contractor Cat. <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+                                                <label class="work-card-field-label">Grade of Licence <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
                                                 <select class="form-control work-contractor-cat" name="work_contractor_category[]" disabled>
                                                     <option value="">—</option>
                                                     <option value="ESA">ESA</option>
@@ -1773,8 +1773,8 @@
                                                 <span class="work-card-field-hint" data-hint="cat" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
                                             </div>
                                             <div class="work-card-field" data-field="licence-number">
-                                                <label class="work-card-field-label">Licence <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-                                                <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="40" autocomplete="off" disabled placeholder="e.g. ESA/12345">
+                                                <label class="work-card-field-label">Licence No <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+                                                <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="40" autocomplete="off" disabled placeholder="e.g. 5645">
                                                 <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
                                             </div>
                                             <div class="work-card-field">
@@ -1907,15 +1907,21 @@
                                         <input type="hidden" id="l_verify" name="l_verify" value="0">
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
+                                    <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-issue-date" id="previously_issue_date" name="previously_issue_date" type="date"
                                             data-error="#previouslyIssueDateError" value="">
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
-                                        <input autocomplete="off" class="form-control verify-date" id="previously_date" name="previously_date" type="date"
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control verify-valid-from" id="previously_valid_from" name="previously_valid_from" type="date"
+                                            data-error="#previouslyFromDateError" value="">
+                                        <span id="previouslyFromDateError" class="text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control verify-date" id="previously_valid_to" name="previously_valid_to" type="date"
                                             data-error="#dateError" value="">
                                         <span id="dateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
@@ -1961,7 +1967,7 @@
                             </div>
                             <div id="wireman_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234)</span></div>
                                         <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text"
                                             data-type="supervisor" data-error="#certError" data-msg="#license_message"
@@ -1970,15 +1976,21 @@
                                         <span id="license_message" class="mt-1"></span>
                                         <span id="certError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
+                                    <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input class="form-control verify-issue-date" id="certificate_issue_date" name="certificate_issue_date"
                                             data-error="#certIssueDateError" type="date" value="">
                                         <span id="certIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
-                                        <input class="form-control verify-date" id="certificate_date" name="certificate_date"
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input class="form-control verify-valid-from" id="certificate_valid_from" name="certificate_valid_from"
+                                            data-error="#certFromDateError" type="date" value="">
+                                        <span id="certFromDateError" class="text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
+                                        <input class="form-control verify-date" id="certificate_valid_to" name="certificate_valid_to"
                                             data-error="#certDateError" type="date" value="{{ $oldExpiry }}">
                                         <span id="certDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
@@ -2280,7 +2292,7 @@
                                     <th>Designation</th>
                                     <th>Nature of Work</th>
                                     <th>Voltage Level</th>
-                                    <th>Transformer kVA</th>
+                                    <th>Transformer kVA(max 1000kVA)</th>
                                     <th>From Date</th>
                                     <th>To Date</th>
                                     <th>Period (Y/M/D)</th>
@@ -2311,22 +2323,28 @@
                             </div>
                             <div id="prv_prev_details_block" style="display:none;">
                                 <div class="row">
-                                    <div class="col-12 col-sm-4">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
                                             <div class="prv-label">Certificate No</div>
                                             <div class="prv-value" id="prv_prev_cert_no">—</div>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-4">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
                                             <div class="prv-label">Date of First Issue</div>
                                             <div class="prv-value" id="prv_prev_issue_date">—</div>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-4">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of Expiry</div>
-                                            <div class="prv-value" id="prv_prev_expiry_date">—</div>
+                                            <div class="prv-label">From date</div>
+                                            <div class="prv-value" id="prv_prev_from_date">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-3">
+                                        <div class="prv-field mb-1">
+                                            <div class="prv-label">To date</div>
+                                            <div class="prv-value" id="prv_prev_to_date">—</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2347,16 +2365,28 @@
                             </div>
                             <div id="prv_wireman_details_block" style="display:none;">
                                 <div class="row">
-                                    <div class="col-12 col-sm-6">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
                                             <div class="prv-label">Certificate No</div>
                                             <div class="prv-value" id="prv_wireman_cert_no">—</div>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-6">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of Expiry</div>
-                                            <div class="prv-value" id="prv_wireman_expiry">—</div>
+                                            <div class="prv-label">Date of First Issue</div>
+                                            <div class="prv-value" id="prv_wireman_issue_date">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-3">
+                                        <div class="prv-field mb-1">
+                                            <div class="prv-label">From date</div>
+                                            <div class="prv-value" id="prv_wireman_from_date">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-3">
+                                        <div class="prv-field mb-1">
+                                            <div class="prv-label">To date</div>
+                                            <div class="prv-value" id="prv_wireman_to_date">—</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2659,6 +2689,15 @@
                             class: 'preview-link wx-sum-doc-link'
                         }).html('<i class="fa ' + icon + '"></i> View Document')
                     );
+                } else if (existingHref) {
+                    $block.append(
+                        $('<a>', {
+                            href: existingHref,
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            class: 'preview-link wx-sum-doc-link'
+                        }).html('<i class="fa fa-file-pdf-o"></i> View Document')
+                    );
                 } else if ($input.attr('data-has-local-file')) {
                     $block.append($('<span class="wx-sum-attach-value">').text('File attached'));
                 } else {
@@ -2854,9 +2893,7 @@
 
             /** Complete rows collapse to summary strip unless manually expanded for editing. */
             function applyRowLayout($tr) {
-                var complete = $tr.hasClass('is-complete');
                 var expanded = $tr.hasClass('work-row--expanded');
-                $tr.toggleClass('work-row--compact', complete && !expanded);
                 $tr.find('.work-row-toggle-btn')
                     .attr('aria-expanded', expanded ? 'true' : 'false')
                     .attr('title', expanded ? 'Submit and return to summary card' : 'Expand to edit')
@@ -2865,9 +2902,8 @@
 
             /** Refresh summary and collapse expanded complete row back to order-card view. */
             function collapseToSummary($tr) {
-                updateRowStatus($tr);
                 $tr.find('.work-row-done-hint').remove();
-                if (!$tr.hasClass('is-complete')) {
+                if (!isRowComplete($tr)) {
                     var $bar = $tr.find('.work-row-done-bar');
                     if ($bar.length && !$bar.find('.work-row-done-hint').length) {
                         $bar.append('<p class="work-row-done-hint" role="alert">Fill all required fields and upload documents before you can submit.</p>');
@@ -3064,6 +3100,9 @@
                     return;
                 }
                 $tr.toggleClass('work-row--expanded', shouldExpand);
+                if (shouldExpand) {
+                    $tr.removeClass('work-row--compact');
+                }
                 applyRowLayout($tr);
                 syncSummaryTable();
                 $tr.find('.work-row-done-hint').remove();
@@ -3214,6 +3253,7 @@
                 var $till = $tr.find('.work-date-till');
                 var $doc = $tr.find('.work-doc-input');
                 var $rel = $tr.find('.work-relieve-input');
+                var $qsRadios = $tr.find('.work-qualified-supervisor-radio');
 
                 if (!hasType) {
                     /* No type selected → blank every column 3–13. */
@@ -3299,6 +3339,7 @@
                     var n = idx + 1;
                     var $row = $(this);
                     $row.attr('data-row-index', idx);
+                    $row.find('.work-row-entry-num').text(n);
                     var $str = $row.data('wxSummaryTr');
                     if ($str && $str.length) $str.find('.work-row-summary-sno').text(n);
                 });
@@ -3479,7 +3520,7 @@
 
         $('#verify_form_s').on('click', function() {
             const licenseNumber = $('#certificate_no').val().trim().toUpperCase();
-            const date = $('#certificate_date').val().trim();
+            const date = $('#certificate_valid_to').val().trim();
             const regex = /^(B|C|LC|LB)\d+$/;
             licenseError.textContent = '';
             $('#dateError').text('');
@@ -3709,11 +3750,13 @@
             setVal('prv_prev_cert_no', document.getElementById('previously_number') ? document.getElementById('previously_number').value : '');
             var issEl = document.getElementById('previously_issue_date');
             setVal('prv_prev_issue_date', issEl ? fmtDate(issEl.value) : '');
-            var expEl = document.getElementById('previously_date');
-            setVal('prv_prev_expiry_date', expEl ? fmtDate(expEl.value) : '');
+            var fromEl = document.getElementById('previously_valid_from');
+            setVal('prv_prev_from_date', fromEl ? fmtDate(fromEl.value) : '');
+            var toEl = document.getElementById('previously_valid_to');
+            setVal('prv_prev_to_date', toEl ? fmtDate(toEl.value) : '');
         }
 
-        // Section 8 — Wireman
+        // Section 9 — Wireman
         var wireYes = document.getElementById('yesOption');
         var isYes8 = wireYes && wireYes.checked;
         var yn8 = document.getElementById('prv_wireman_yn');
@@ -3721,8 +3764,12 @@
         var wb = document.getElementById('prv_wireman_details_block'); if (wb) wb.style.display = isYes8 ? '' : 'none';
         if (isYes8) {
             setVal('prv_wireman_cert_no', document.getElementById('certificate_no') ? document.getElementById('certificate_no').value : '');
-            var wExpEl = document.getElementById('certificate_date');
-            setVal('prv_wireman_expiry', wExpEl ? fmtDate(wExpEl.value) : '');
+            var wIssEl = document.getElementById('certificate_issue_date');
+            setVal('prv_wireman_issue_date', wIssEl ? fmtDate(wIssEl.value) : '');
+            var wFromEl = document.getElementById('certificate_valid_from');
+            setVal('prv_wireman_from_date', wFromEl ? fmtDate(wFromEl.value) : '');
+            var wToEl = document.getElementById('certificate_valid_to');
+            setVal('prv_wireman_to_date', wToEl ? fmtDate(wToEl.value) : '');
         }
 
         // Documents — Photo

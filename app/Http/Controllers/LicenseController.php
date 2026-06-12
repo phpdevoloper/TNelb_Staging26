@@ -23,23 +23,21 @@ class LicenseController extends Controller
 
     public function verifylicense(Request $request)
     {
-
-        
         $request->validate([
             'license_number' => 'required|string',
-            'date' => 'required|date',
-            'issue_date' => 'required|date',
+            'fromdate' => 'required|date',
+            'todate' => 'required|date',
         ], [
-            'date' => 'Enter the valid date',
-            'issue_date' => 'Enter the valid date of issue',
+            'fromdate' => 'Enter a valid from date',
+            'todate' => 'Enter a valid to date',
         ]);
 
         $licenseNumber = $request->license_number;
 
         // ✅ Split letters and numbers
         if (preg_match('/^([A-Za-z]+)(\d+)$/', $licenseNumber, $matches)) {
-            $licensePrefix = strtoupper($matches[1]); // W, WH, S
-            $licenseNum    = $matches[2];             // 87810
+            $licensePrefix = strtoupper($matches[1]); // W, WH, C, etc.
+            $licenseNum    = $matches[2];
         } else {
             return response()->json(['exists' => false]);
         }
@@ -47,29 +45,36 @@ class LicenseController extends Controller
         // ✅ Determine table dynamically
         $tableMap = [
             'B'  => 'wcert',
-            'H' => 'whcert',
-            'C'  => 'scert'
+            'W'  => 'wcert',
+            'LB' => 'wcert',
+            'H'  => 'whcert',
+            'WH' => 'whcert',
+            'LWH'=> 'whcert',
+            'C'  => 'scert',
+            'S'  => 'scert',
+            'LC' => 'scert',
         ];
-        $table = $tableMap[$licensePrefix];
+        $table = $tableMap[$licensePrefix] ?? 'tnelb_license';
+        $column_name = 'certno';
 
-        if($table == 'tnelb_license'){
+        if ($table === 'tnelb_license') {
             $licenseNum = $licenseNumber;
             $column_name = 'license_number';
         }
 
+        $fromDate = Carbon::parse($request->fromdate)->toDateString();
+        $toDate = Carbon::parse($request->todate)->toDateString();
 
-        // ✅ Correct column names for each table
         $baseQuery = DB::table($table)
-            ->selectRaw($table === 'tnelb_license'
-                ? "CAST(license_number AS VARCHAR) AS license_number, expires_at"
-                : "CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at"
-            )
-            ->where($column_name ?? 'certno', $licenseNum) // or license_number for tnelb_license
-            ->whereDate($table === 'tnelb_license' ? 'expires_at' : 'vdate', $request->date);
+            ->where($column_name, $licenseNum);
 
-        // ✅ Also validate Date of Issue (issuedt column in legacy cert tables)
-        if ($table !== 'tnelb_license') {
-            $baseQuery->whereDate('issuedt', $request->issue_date);
+        if ($table === 'tnelb_license') {
+            // To date is stored as expires_at on issued licenses
+            $baseQuery->whereDate('expires_at', $toDate);
+        } else {
+            // Legacy cert tables: fromdate + expiry (vdate), not the todate column
+            $baseQuery->whereDate('fromdate', $fromDate)
+                ->whereDate('vdate', $toDate);
         }
 
         $query = $baseQuery->exists();

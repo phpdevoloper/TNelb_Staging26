@@ -790,14 +790,16 @@ class FormController extends BaseController
             'd_o_b' => $fmtDate($existingForm->d_o_b) ?? '',
             'age' => $existingForm->age,
             'previously_number' => $existingForm->previously_number,
-            'previously_date' => $fmtDate($existingForm->previously_date),
+            'previously_valid_to' => $fmtDate($existingForm->previously_valid_to ?? $existingForm->previously_date ?? null),
             'previously_issue_date' => $fmtDate($existingForm->previously_issue_date),
+            'previously_valid_from' => $fmtDate($existingForm->previously_valid_from ?? null),
             'wireman_details' => $existingForm->wireman_details,
             'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
             'pancard' => $panPlain !== null && $panPlain !== '' ? strtoupper(preg_replace('/\s+/', '', (string) $panPlain)) : null,
             'competency_certificate_no' => $existingForm->certificate_no,
-            'certificate_date' => $fmtDate($existingForm->certificate_date),
+            'certificate_valid_to' => $fmtDate($existingForm->certificate_valid_to ?? $existingForm->certificate_date ?? null),
             'certificate_issue_date' => $fmtDate($existingForm->certificate_issue_date),
+            'certificate_valid_from' => $fmtDate($existingForm->certificate_valid_from ?? null),
             'l_verify' => (string) ($existingForm->license_verify ?? '0'),
             'cert_verify' => (string) ($existingForm->cert_verify ?? '0'),
         ]);
@@ -1091,7 +1093,9 @@ class FormController extends BaseController
             'age'                  => 'required|integer|min:18|max:100',
             'previously_number'    => 'nullable|string',
             'previously_date'      => 'nullable|date',
+            'previously_valid_to'  => 'nullable|date',
             'previously_issue_date' => 'nullable|date',
+            'previously_valid_from' => 'nullable|date',
             'wireman_details'      => 'nullable|string|max:255',
             'aadhaar'              => 'required|string|digits:12',
             'form_name'            => 'required|string|max:2',
@@ -1372,7 +1376,7 @@ class FormController extends BaseController
                 file_put_contents($destinationPath . '/' . $panFilename, $panEncrypted);
             }
             
-            $form = Mst_Form_s_w::create([
+            $form = Mst_Form_s_w::create(array_merge([
                 'login_id'            => $loginId,
                 'applicant_name'      => $request->applicant_name ?? '',
                 'fathers_name'        => $request->fathers_name ?? '',
@@ -1381,8 +1385,9 @@ class FormController extends BaseController
                 'd_o_b'               => $request->dob ?? $request->d_o_b,
                 'age'                 => $request->age,
                 'previously_number'   => $request->previously_number ?? 0,
-                'previously_date'     => $request->previously_date ?? 0,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'application_id'      => $newApplicationId,
                 'wireman_details'     => $request->wireman_details,
                 'form_name'           => $request->form_name,
@@ -1396,13 +1401,14 @@ class FormController extends BaseController
                 'aadhaar_doc'         => $aadhaarFilename,
                 'pan_doc'             => $panFilename,
                 'certificate_no'      => $request->competency_certificate_no,
-                'certificate_date'    => $request->certificate_date,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'cert_verify'         => $request->cert_verify ?? '0',
                 'license_verify'      => $request->l_verify ?? '0',
                 'submitted_date'      => $this->dbNow,
                 'created_at'          => $this->dbNow,
-            ]);
+            ]));
 
 
             $applicationId = $form->application_id;
@@ -1638,8 +1644,13 @@ class FormController extends BaseController
             'age'                => 'required|integer|min:18|max:100',
             'previously_number'  => 'nullable|string',
             'previously_date'    => 'nullable|date',
+            'previously_valid_to' => 'nullable|date',
             'previously_issue_date' => 'nullable|date',
+            'previously_valid_from' => 'nullable|date',
+            'certificate_date'   => 'nullable|date',
+            'certificate_valid_to' => 'nullable|date',
             'certificate_issue_date' => 'nullable|date',
+            'certificate_valid_from' => 'nullable|date',
             'wireman_details'    => 'nullable|string|max:255',
             'aadhaar'            => 'required|string|digits:12',
             'pancard'            => $pancardRule,
@@ -1785,6 +1796,7 @@ class FormController extends BaseController
         });
         $validator->after(function ($validator) use ($request) {
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
+            $this->validateFormSQualifiedSupervisor($request, $validator);
         });
         $validator->validate();
 
@@ -1833,7 +1845,7 @@ class FormController extends BaseController
 
 
             // ✅ Update existing draft
-            $existingForm->update([
+            $existingForm->update(array_merge([
                 'login_id'          => $request->login_id,
                 'applicant_name'    => $request->applicant_name,
                 'fathers_name'      => $request->fathers_name,
@@ -1842,8 +1854,9 @@ class FormController extends BaseController
                 'd_o_b'             => $request->d_o_b,
                 'age'               => $request->age,
                 'previously_number' => $request->previously_number,
-                'previously_date'   => $request->previously_date,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'wireman_details'   => $request->wireman_details,
                 'aadhaar'           => $encrypted_aadhaar,
                 'pancard'           => $encrypted_pancard_update,
@@ -1851,11 +1864,12 @@ class FormController extends BaseController
                 'pan_doc'           => $panFilenameUpdate,
                 'payment_status'    => 'payment',
                 'certificate_no'      => $request->competency_certificate_no,
-                'certificate_date'    => $request->certificate_date,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'submitted_date'      => $this->dbNow,
                 'updated_at'          => $this->dbNow,
-            ]);
+            ]));
 
 
 
@@ -2242,8 +2256,13 @@ class FormController extends BaseController
                 'age'                => 'nullable|integer|min:18|max:100',
                 'previously_number'  => 'nullable|string',
                 'previously_date'    => 'nullable|date',
+                'previously_valid_to' => 'nullable|date',
                 'previously_issue_date' => 'nullable|date',
+                'previously_valid_from' => 'nullable|date',
+                'certificate_date'   => 'nullable|date',
+                'certificate_valid_to' => 'nullable|date',
                 'certificate_issue_date' => 'nullable|date',
+                'certificate_valid_from' => 'nullable|date',
                 'wireman_details'    => 'nullable|string|max:255',
                 'form_name'          => 'nullable|string|max:2',
                 'license_name'       => 'nullable|string|max:2',
@@ -2383,7 +2402,7 @@ class FormController extends BaseController
            
              
             // 🔹 Prepare Data
-            $data = [
+            $data = array_merge([
                 'login_id'          => $loginId,
                 'applicant_name'    => $request->applicant_name ?? $request->Applicant_Name,
                 'fathers_name'      => $request->fathers_name ?? $request->Fathers_Name,
@@ -2393,8 +2412,9 @@ class FormController extends BaseController
                 'age'               => $request->age,
                 'status'            => 'P', // Pending (for both draft/submit)
                 'previously_number' => $request->previously_number ?? null,
-                'previously_date'   => $request->previously_date ?? null,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'wireman_details'   => $request->wireman_details,
                 'form_name'         => $request->form_name,
                 'form_id'           => $request->form_id,
@@ -2407,13 +2427,14 @@ class FormController extends BaseController
                 'aadhaar_doc'         => $aadhaarFilename,
                 'pan_doc'             => $panFilename,
                 'certificate_no'      => $request->competency_certificate_no ?? null,
-                'certificate_date'   => $request->certificate_date ?? null,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'application_id'    => $applicationId,
                 'cert_verify'    => $request->cert_verify ?? '0',
                 'license_verify'    => $request->l_verify ?? '0',
                 'old_application'=> $form->old_application ?? null
-            ];
+            ]);
 
 
 
@@ -2671,8 +2692,13 @@ class FormController extends BaseController
             'age'                => 'nullable|integer|min:18|max:100',
             'previously_number'  => 'nullable|string',
             'previously_date'    => 'nullable|date',
+            'previously_valid_to' => 'nullable|date',
             'previously_issue_date' => 'nullable|date',
+            'previously_valid_from' => 'nullable|date',
+            'certificate_date'   => 'nullable|date',
+            'certificate_valid_to' => 'nullable|date',
             'certificate_issue_date' => 'nullable|date',
+            'certificate_valid_from' => 'nullable|date',
             'wireman_details'    => 'nullable|string|max:255',
             'form_name'          => 'nullable|string|max:2',
             'license_name'       => 'nullable|string|max:2',
@@ -2803,8 +2829,9 @@ class FormController extends BaseController
                 'age'                => $request->age,
                 'status'             => 'P',
                 'previously_number'  => $request->previously_number ?? null,
-                'previously_date'    => $request->previously_date ?? null,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'wireman_details'    => $request->wireman_details,
                 'form_name'          => $request->form_name,
                 'form_id'            => $request->form_id,
@@ -2817,8 +2844,9 @@ class FormController extends BaseController
                 'aadhaar_doc'        => $aadhaarFilename ?? null,
                 'pan_doc'            => $panFilenameRenewal,
                 'certificate_no'     => $request->competency_certificate_no ?? null,
-                'certificate_date'   => $request->certificate_date ?? null,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'application_id'     => $applicationId,
                 'cert_verify'        => $request->cert_verify ?? '0',
                 'license_verify'     => $request->l_verify ?? '0',
@@ -3028,8 +3056,13 @@ class FormController extends BaseController
                 'age'                => 'integer|min:18|max:100',
                 'previously_number'  => 'nullable|string',
                 'previously_date'    => 'nullable|date',
+                'previously_valid_to' => 'nullable|date',
                 'previously_issue_date' => 'nullable|date',
+                'previously_valid_from' => 'nullable|date',
+                'certificate_date'   => 'nullable|date',
+                'certificate_valid_to' => 'nullable|date',
                 'certificate_issue_date' => 'nullable|date',
+                'certificate_valid_from' => 'nullable|date',
                 'wireman_details'    => 'nullable|string|max:255',
                 'form_name'          => 'nullable|string|max:2',
                 'license_name'       => 'nullable|string|max:2',
@@ -3130,7 +3163,7 @@ class FormController extends BaseController
                 }
             }
 
-            $renewalPayload = [
+            $renewalPayload = array_merge([
                     'login_id'           => $loginId,
                     'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
                     'fathers_name'       => $request->fathers_name ?? $request->Fathers_Name,
@@ -3140,16 +3173,18 @@ class FormController extends BaseController
                     'age'                => $request->age,
                     'status'             => 'P',
                     'previously_number'  => $request->previously_number ?? 0,
-                    'previously_date'    => $request->previously_date ?? 0,
+                    'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                     'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                     'wireman_details'    => $request->wireman_details,
                     'form_name'          => $request->form_name,
                     'form_id'            => $request->form_id,
                     'license_name'       => $request->license_name,
                     'aadhaar'            => $encrypted_aadhaar,
                     'certificate_no'     => $request->competency_certificate_no ?? null,
-                    'certificate_date'   => $request->certificate_date ?? null,
+                    'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                     'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                     'appl_type'          => $appl_type,
                     'license_number'     => $request->license_number,
                     'payment_status'     => 'draft',
@@ -3157,7 +3192,7 @@ class FormController extends BaseController
                     'cert_verify'        => $request->cert_verify ?? '0',
                     'license_verify'     => $request->l_verify ?? '0',
                     'old_application'    => $id ?? '',
-            ];
+            ]);
 
             if ($this->isCompetencyForm($request->form_name ?? null)) {
                 $encrypted_pancard_u = null;

@@ -186,11 +186,11 @@ class PDFController extends Controller
         };
         $certificateTextUpper = mb_strtoupper($certificateText, 'UTF-8');
 
-        if (empty($form->previously_number) || empty($form->previously_date)) {
+        if (empty($form->previously_number) || empty(($form->previously_valid_to ?? $form->previously_date))) {
             $prevAppValue = 'NO';
         } else {
             $prevAppValue = 'YES, ' . mb_strtoupper((string) ($form->previously_number ?? ''), 'UTF-8')
-                . ', ' . mb_strtoupper(format_date($form->previously_date) ?? '', 'UTF-8');
+                . ', ' . mb_strtoupper(format_date(($form->previously_valid_to ?? $form->previously_date)) ?? '', 'UTF-8');
         }
 
         $employerUpper = mb_strtoupper(trim($form->employer_detail ?? '') !== '' ? trim($form->employer_detail) : 'NIL', 'UTF-8');
@@ -1150,15 +1150,20 @@ class PDFController extends Controller
         }
 
         // ── Compute Yes/No flags ─────────────────────────────────────────────
-        $value  = (empty($form->previously_number) || empty($form->previously_date)) ? 'No' : 'Yes';
-        $certno = (empty($form->certificate_no)    || empty($form->certificate_date)) ? 'No' : 'Yes';
+        $previousValidToRaw = $form->previously_valid_to ?? $form->previously_date ?? null;
+        $certificateValidToRaw = $form->certificate_valid_to ?? $form->certificate_date ?? null;
 
-        $previousRefNo        = trim((string) ($form->previously_number ?? ''));
-        $previousIssueDate    = !empty($form->previously_issue_date) ? format_date($form->previously_issue_date) : '-';
-        $previousValidityDate = !empty($form->previously_date)       ? format_date($form->previously_date)       : '-';
+        $value  = (empty($form->previously_number) || empty($previousValidToRaw)) ? 'No' : 'Yes';
+        $certno = (empty($form->certificate_no) || empty($certificateValidToRaw)) ? 'No' : 'Yes';
+
+        $previousRefNo           = trim((string) ($form->previously_number ?? ''));
+        $previousIssueDate       = !empty($form->previously_issue_date) ? format_date($form->previously_issue_date) : '-';
+        $previousValidFromDate   = !empty($form->previously_valid_from) ? format_date($form->previously_valid_from) : '-';
+        $previousValidToDate     = !empty($previousValidToRaw) ? format_date($previousValidToRaw) : '-';
         $certificateRefNo        = trim((string) ($form->certificate_no ?? ''));
         $certificateIssueDate    = !empty($form->certificate_issue_date) ? format_date($form->certificate_issue_date) : '-';
-        $certificateValidityDate = !empty($form->certificate_date)       ? format_date($form->certificate_date)       : '-';
+        $certificateValidFromDate = !empty($form->certificate_valid_from) ? format_date($form->certificate_valid_from) : '-';
+        $certificateValidToDate  = !empty($certificateValidToRaw) ? format_date($certificateValidToRaw) : '-';
 
         // ── Helper: render one Q&A row (num | inner: text + answer) ────────
         // ── Q rows — same 28pt num col as items 1–4 (+ optional email row for W/WH) ──────
@@ -1176,7 +1181,7 @@ class PDFController extends Controller
               <td ' . $ansStyle  . '>' . $ans . '</td>
             </tr>';
         };
-        $certSubRow = function(string $refNo, string $issueDate, string $validityDate) use ($numStyle) {
+        $certSubRow = function(string $refNo, string $issueDate, string $fromDate, string $toDate) use ($numStyle) {
             return '
             <tr>
               <td ' . $numStyle . '></td>
@@ -1185,7 +1190,8 @@ class PDFController extends Controller
                   <tr>
                     <td><strong>Certificate No</strong><br>' . e($refNo) . '</td>
                     <td><strong>Date of First Issue</strong><br>' . e($issueDate) . '</td>
-                    <td><strong>Validity Date</strong><br>' . e($validityDate) . '</td>
+                    <td><strong>From Date</strong><br>' . e($fromDate) . '</td>
+                    <td><strong>To Date</strong><br>' . e($toDate) . '</td>
                   </tr>
                 </table>
               </td>
@@ -1198,11 +1204,11 @@ class PDFController extends Controller
         if ($form->form_name == 'S') {
             $html .= $qRow('7', 'HAVE YOU MADE ANY PREVIOUS APPLICATION? IF SO, STATE REFERENCE NO AND DATE.', e($value));
             if ($value === 'Yes') {
-                $html .= $certSubRow($previousRefNo ?: '-', $previousIssueDate, $previousValidityDate);
+                $html .= $certSubRow($previousRefNo ?: '-', $previousIssueDate, $previousValidFromDate, $previousValidToDate);
             }
             $html .= $qRow('8', 'DO YOU POSSESS WIREMAN COMPETENCY CERTIFICATE / WIREMAN HELPER COMPETENCY CERTIFICATE ISSUED BY THIS BOARD? IF SO FURNISH THE DETAILS AND SURRENDER THE SAME.', e($certno));
             if ($certno === 'Yes') {
-                $html .= $certSubRow($certificateRefNo ?: '-', $certificateIssueDate, $certificateValidityDate);
+                $html .= $certSubRow($certificateRefNo ?: '-', $certificateIssueDate, $certificateValidFromDate, $certificateValidToDate);
             }
             $html .= $qRow('9', 'AADHAAR NUMBER', $masked);
             $html .= $qRow('10', 'PAN NUMBER',     $maskedPan);
@@ -1406,8 +1412,8 @@ class PDFController extends Controller
         $pdf->Cell(100, 5, '7. Have you made any previous application?', 0, 1, 'L');
         $pdf->Cell(135, 5, 'If so, state reference Number and date', 0, 0, 'L');
 
-        if ($form->previously_number != 0 && $form->previously_date != 0) {
-            $pdf->Cell(90, 5, ': ' . $form->previously_number . ', ' . $form->previously_date, 0, 1, 'L');
+        if ($form->previously_number != 0 && ($form->previously_valid_to ?? $form->previously_date) != 0) {
+            $pdf->Cell(90, 5, ': ' . $form->previously_number . ', ' . ($form->previously_valid_to ?? $form->previously_date), 0, 1, 'L');
         } else {
             $pdf->Cell(90, 5, ': NO', 0, 1, 'L');
         }
@@ -1825,12 +1831,12 @@ class PDFController extends Controller
         }
 
         // ── Compute ஆம்/இல்லை flags ──────────────────────────────────────────
-        $value  = (empty($form->previously_number) || empty($form->previously_date)) ? 'இல்லை' : 'ஆம்';
+        $value  = (empty($form->previously_number) || empty(($form->previously_valid_to ?? $form->previously_date))) ? 'இல்லை' : 'ஆம்';
         $certno = (empty($form->certificate_no)    || empty($form->certificate_date)) ? 'இல்லை' : 'ஆம்';
 
         $previousRefNoTa        = trim((string) ($form->previously_number ?? ''));
         $previousIssueDateTa    = !empty($form->previously_issue_date) ? format_date($form->previously_issue_date) : '-';
-        $previousValidityDateTa = !empty($form->previously_date)       ? format_date($form->previously_date)       : '-';
+        $previousValidityDateTa = !empty(($form->previously_valid_to ?? $form->previously_date))       ? format_date(($form->previously_valid_to ?? $form->previously_date))       : '-';
         $certificateRefNoTa        = trim((string) ($form->certificate_no ?? ''));
         $certificateIssueDateTa    = !empty($form->certificate_issue_date) ? format_date($form->certificate_issue_date) : '-';
         $certificateValidityDateTa = !empty($form->certificate_date)       ? format_date($form->certificate_date)       : '-';

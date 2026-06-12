@@ -721,7 +721,7 @@
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
                                                 @else
-                                                <div class="applicant-detail-table-wrap">
+                                                ```````<div class="applicant-detail-table-wrap">
                                                     <table class="table table-sm table-bordered applicant-detail-compact-table work-exp-table">
                                                         <thead>
                                                             <tr>
@@ -749,7 +749,8 @@
                                             @endif
                                                 @if ($applicant->form_name == 'S')
                                                 @php
-                                                    $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($applicant->previously_date);
+                                                    $prevValidTo = $applicant->previously_valid_to ?? $applicant->previously_date ?? null;
+                                                    $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($prevValidTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -771,13 +772,17 @@
                                                                 <span class="asp-detail-value">{{ !empty($applicant->previously_issue_date) ? format_date($applicant->previously_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Expiry</span>
-                                                                <span class="asp-detail-value">{{ !empty($applicant->previously_date) ? format_date($applicant->previously_date) : '—' }}</span>
+                                                                <span class="asp-detail-label">From date</span>
+                                                                <span class="asp-detail-value">{{ !empty($applicant->previously_valid_from) ? format_date($applicant->previously_valid_from) : '—' }}</span>
+                                                            </div>
+                                                            <div class="asp-detail-cell">
+                                                                <span class="asp-detail-label">To date</span>
+                                                                <span class="asp-detail-value">{{ !empty($prevValidTo) ? format_date($prevValidTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->previously_number }}" data-license_date="{{ $applicant->previously_date }}" data-license_issue_date="{{ $applicant->previously_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->previously_number }}" data-license_from_date="{{ $applicant->previously_valid_from }}" data-license_date="{{ $prevValidTo }}" data-license_issue_date="{{ $applicant->previously_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid Certificate)</span>
                                                             @elseif($applicant->admincverify == 2)
@@ -788,7 +793,8 @@
                                                 </div>
 
                                                 @php
-                                                    $hasWiremanCompCert = !empty($applicant->certificate_no) || !empty($applicant->certificate_date);
+                                                    $certValidTo = $applicant->certificate_valid_to ?? $applicant->certificate_date ?? null;
+                                                    $hasWiremanCompCert = !empty($applicant->certificate_no) || !empty($certValidTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -810,13 +816,17 @@
                                                                 <span class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Expiry</span>
-                                                                <span class="asp-detail-value">{{ !empty($applicant->certificate_date) ? format_date($applicant->certificate_date) : '—' }}</span>
+                                                                <span class="asp-detail-label">From date</span>
+                                                                <span class="asp-detail-value">{{ !empty($applicant->certificate_valid_from) ? format_date($applicant->certificate_valid_from) : '—' }}</span>
+                                                            </div>
+                                                            <div class="asp-detail-cell">
+                                                                <span class="asp-detail-label">To date</span>
+                                                                <span class="asp-detail-value">{{ !empty($certValidTo) ? format_date($certValidTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_date="{{ $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid License)</span>
                                                             @elseif($applicant->admincverify == 2)
@@ -858,7 +868,7 @@
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_date="{{ $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid License)</span>
                                                             @elseif($applicant->admincverify == 2)
@@ -898,7 +908,7 @@
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_date="{{ $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid License)</span>
                                                             @elseif($applicant->admincverify == 2)

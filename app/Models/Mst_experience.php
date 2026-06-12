@@ -53,6 +53,11 @@ class Mst_experience extends Model
         'releive_document',
         'support_document',
         'total_exp',
+        'qualified_supervisor_recognized',
+        'endorsed_license_type',
+        'endorsed_license_number',
+        'endorsed_contractor_name',
+        'endorsed_support_document',
     ];
 
     protected $casts = [

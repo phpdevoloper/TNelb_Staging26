@@ -73,7 +73,7 @@
             </select>
         </div>
         <div class="work-card-field" data-field="contractor-cat">
-            <label class="work-card-field-label">Contractor Cat. <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+            <label class="work-card-field-label">Grade of Licence<span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <select class="form-control work-contractor-cat" name="work_contractor_category[]" disabled>
                 <option value="">—</option>
                 @foreach (['ESA', 'EA', 'ESB', 'EB'] as $cat)

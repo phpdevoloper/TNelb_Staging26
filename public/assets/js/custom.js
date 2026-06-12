@@ -61,7 +61,7 @@ $(document).ready(function () {
     $(document).on("change", ".toggle-details", function () {
         if ($(this).val() !== "yes") {
             let target = $(this).data("target");
-            $(target).find(".verify-issue-date").val("");
+            $(target).find(".verify-issue-date, .verify-valid-from, .verify-date").val("");
         }
     });
 
@@ -70,28 +70,32 @@ $(document).ready(function () {
         // 🔹 Select only from the correct section
         let section = $(this).closest("#previously_details, #wireman_details");
         let input = section.find(".verify-input");
-        let date = section.find(".verify-date");
         let issueDate = section.find(".verify-issue-date");
+        let fromDate = section.find(".verify-valid-from");
+        let toDate = section.find(".verify-date");
 
-        if (input.length === 0 || date.length === 0) {
-            console.error("Input or date field not found!");
+        if (input.length === 0 || toDate.length === 0) {
+            console.error("Certificate or to date field not found!");
+            return;
+        }
+        if (!fromDate.length && !issueDate.length) {
+            console.error("From date or date of first issue field not found!");
             return;
         }
 
         let value = input.val()?.trim().toUpperCase() || "";
-        let dateVal = date.val()?.trim() || "";
-        let issueDateVal = issueDate.length ? (issueDate.val()?.trim() || "") : "";
 
         let type = $(this).data("type");
         let errorBox = $(input.data("error"));
-        let dateErrorBox = $(date.data("error"));
         let issueDateErrorBox = issueDate.length ? $(issueDate.data("error")) : $();
+        let fromDateErrorBox = fromDate.length ? $(fromDate.data("error")) : $();
+        let toDateErrorBox = $(toDate.data("error"));
         let msgBox = $(input.data("msg"));
 
-
         errorBox.text("");
-        dateErrorBox.text("");
         if (issueDateErrorBox.length) issueDateErrorBox.text("");
+        if (fromDateErrorBox.length) fromDateErrorBox.text("");
+        toDateErrorBox.text("");
 
         let isValid = true;
 
@@ -118,37 +122,58 @@ $(document).ready(function () {
             );
         };
 
-        if (dateVal === "") {
-            dateErrorBox.text("Date of Expiry is required");
-            isValid = false;
-        } else if (!isValidDateString(dateVal)) {
-            dateErrorBox.text("Enter a valid date");
-            isValid = false;
-        }
+        const validateDateInput = function ($el, emptyMsg) {
+            let val = ($el.val() || "").trim();
+            if (val === "") {
+                $($el.data("error")).text(emptyMsg);
+                return false;
+            }
+            if (!isValidDateString(val)) {
+                $($el.data("error")).text("Enter a valid date");
+                return false;
+            }
+            return true;
+        };
 
-        if (issueDate.length) {
-            if (issueDateVal === "") {
-                issueDateErrorBox.text("Date of First Issue is required");
-                isValid = false;
-            } else if (!isValidDateString(issueDateVal)) {
-                issueDateErrorBox.text("Enter a valid date");
+        // Date of First Issue (Form S sections 8 & 9 — separate from from-date)
+        if (issueDate.length && fromDate.length) {
+            if (!validateDateInput(issueDate, "Date of First Issue is required")) {
                 isValid = false;
             }
         }
 
+        // From date for API verify (valid-from field, or issue-date on older forms)
+        let fromDateForApi;
+        if (fromDate.length) {
+            if (!validateDateInput(fromDate, "From date is required")) {
+                isValid = false;
+            }
+            fromDateForApi = fromDate;
+        } else {
+            if (!validateDateInput(issueDate, "Date of First Issue is required")) {
+                isValid = false;
+            }
+            fromDateForApi = issueDate;
+        }
+
+        if (!validateDateInput(toDate, "To date is required")) {
+            isValid = false;
+        }
+
         if (!isValid) return;
 
+        let fromDateVal = (fromDateForApi.val() || "").trim();
+        let toDateVal = (toDate.val() || "").trim();
 
         let url = $(this).data("url");
-
 
         $.ajax({
             url: url,
             method: "POST",
             data: {
                 license_number: value,
-                date: dateVal,
-                issue_date: issueDateVal,
+                fromdate: fromDateVal,
+                todate: toDateVal,
                 _token: $('meta[name="csrf-token"]').attr("content"),
             },
             success: function (response) {
@@ -685,7 +710,7 @@ $(document).ready(function () {
 
     function unlockVerifySection($section) {
         if (!$section || !$section.length) return;
-        $section.find('.verify-input, .verify-issue-date, .verify-date').each(function () {
+        $section.find('.verify-input, .verify-issue-date, .verify-valid-from, .verify-date').each(function () {
             unlockVerifyField(this);
         });
         $section.find('.text-danger, .text-success, #verify_status, .verify_status').text('');
@@ -702,16 +727,18 @@ $(document).ready(function () {
             unlockVerifySection($section);
         } else if (type == 'superviser') {
             unlockVerifyField(document.getElementById('previously_number'));
-            unlockVerifyField(document.getElementById('previously_date'));
+            unlockVerifyField(document.getElementById('previously_valid_to'));
             unlockVerifyField(document.getElementById('previously_issue_date'));
+            unlockVerifyField(document.getElementById('previously_valid_from'));
             $('.verify_status').text('');
-            $('#previouslyIssueDateError').text('');
+            $('#previouslyIssueDateError, #previouslyFromDateError, #dateError').text('');
         } else {
             unlockVerifyField(document.getElementById('certificate_no'));
-            unlockVerifyField(document.getElementById('certificate_date'));
+            unlockVerifyField(document.getElementById('certificate_valid_to'));
             unlockVerifyField(document.getElementById('certificate_issue_date'));
+            unlockVerifyField(document.getElementById('certificate_valid_from'));
             $('#verify_status').text('');
-            $('#certIssueDateError').text('');
+            $('#certIssueDateError, #certFromDateError, #certDateError').text('');
         }
 
         $btn.remove();

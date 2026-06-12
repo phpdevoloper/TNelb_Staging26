@@ -73,6 +73,12 @@ final class ReturnedApplicationPayloadMerge
             $existingRelieve = [];
             $removedW = [];
             $removedRelieve = [];
+            $qsRecognized = [];
+            $endorsedLicenseType = [];
+            $endorsedLicenseNo = [];
+            $endorsedContractor = [];
+            $existingEndorsed = [];
+            $removedEndorsed = [];
 
             foreach ($rows as $row) {
                 $type = $row->emp_type ?: 'company';
@@ -103,6 +109,12 @@ final class ReturnedApplicationPayloadMerge
                 $existingRelieve[] = $row->releive_document ?? '';
                 $removedW[] = '0';
                 $removedRelieve[] = '0';
+                $qsRecognized[] = $row->qualified_supervisor_recognized ?? '';
+                $endorsedLicenseType[] = $row->endorsed_license_type ?? '';
+                $endorsedLicenseNo[] = $row->endorsed_license_number ?? '';
+                $endorsedContractor[] = $row->endorsed_contractor_name ?? '';
+                $existingEndorsed[] = $row->endorsed_support_document ?? '';
+                $removedEndorsed[] = '0';
             }
 
             $workLevel = $employer;
@@ -128,6 +140,12 @@ final class ReturnedApplicationPayloadMerge
                 'existing_work_relieving_document' => $existingRelieve,
                 'removed_document_work' => $removedW,
                 'removed_document_work_relieving' => $removedRelieve,
+                'work_qualified_supervisor_recognized' => $qsRecognized,
+                'work_endorsed_license_type' => $endorsedLicenseType,
+                'work_endorsed_license_number' => $endorsedLicenseNo,
+                'work_endorsed_contractor_name' => $endorsedContractor,
+                'existing_work_endorsed_document' => $existingEndorsed,
+                'removed_work_endorsed_document' => $removedEndorsed,
             ]);
 
             return;
@@ -288,12 +306,16 @@ final class ReturnedApplicationPayloadMerge
             'd_o_b' => $fmtDate($form->d_o_b) ?? '',
             'age' => $form->age,
             'previously_number' => $form->previously_number,
-            'previously_date' => $fmtDate($form->previously_date),
+            'previously_valid_to' => $fmtDate($form->previously_valid_to ?? $form->previously_date ?? null),
+            'previously_issue_date' => $fmtDate($form->previously_issue_date ?? null),
+            'previously_valid_from' => $fmtDate($form->previously_valid_from ?? null),
             'wireman_details' => $form->wireman_details ?? null,
             'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
             'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) (safeDecrypt($form->pancard) ?? ''))),
             'certificate_no' => $form->certificate_no,
-            'certificate_date' => $fmtDate($form->certificate_date),
+            'certificate_valid_to' => $fmtDate($form->certificate_valid_to ?? $form->certificate_date ?? null),
+            'certificate_issue_date' => $fmtDate($form->certificate_issue_date ?? null),
+            'certificate_valid_from' => $fmtDate($form->certificate_valid_from ?? null),
             'license_number' => $form->license_number,
             'l_verify' => (string) ($form->license_verify ?? '0'),
             'cert_verify' => (string) ($form->cert_verify ?? '0'),
