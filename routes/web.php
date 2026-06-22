@@ -39,9 +39,19 @@ use App\Http\Controllers\OldCertificateRenewalController;
 use App\Http\Controllers\OldContractorRenewalController;
 
 use App\Http\Controllers\DocumentUploadController;
+use App\Http\Controllers\FormADigitizationController;
+use App\Http\Controllers\FormpDigitizationController;
+use App\Http\Controllers\FormSAlteration;
+use App\Http\Controllers\FormSDigitizationController;
+use App\Http\Controllers\FormWDigitizationController;
+use App\Http\Controllers\FormWHDigitizationController;
+use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
 use App\Http\Controllers\DocumentVersion\DocumentSampleController;
 use App\Http\Controllers\WithoutTmp\WithoutTmpController;
+
+
+use App\Http\Controllers\FormCLAlteration;
 
 // ------------------------ Public Pages ------------------------
 
@@ -102,11 +112,34 @@ Route::get('/reload-captcha', [LoginController::class, 'reloadCaptcha']);
 Route::middleware(['auth'])->group(function () {
     Route::get('/user_login', [RegisterController::class, 'user_login'])->name('user_login');
     Route::get('/apply-form-s', [RegisterController::class, 'apply_form_s'])->name('apply-form-s');
+    
     Route::get('/apply-form-w', [RegisterController::class, 'apply_form_w'])->name('apply-form-w');
     Route::get('/apply-form-wh', [RegisterController::class, 'apply_form_wh'])->name('apply-form-wh');
     Route::get('/apply_form_p', [FormPController::class, 'apply_form_p'])->name('apply_form_p');
     Route::get('/renew-form-p/{application_id}', [FormPController::class, 'renew_form_p'])->name('renew_form_p');
 
+
+    // CC digitization----------------
+
+    Route::get('/apply-form-s_d', [FormSDigitizationController::class, 'index'])->name('apply-form-s_d');
+    Route::post('/digitization/storeDigitization', [FormSDigitizationController::class, 'storeDigitization'])->name('digitization.storeDigitization');
+
+    Route::get('/apply-form-w_d', [FormWDigitizationController::class, 'index'])->name('apply-form-w_d');
+    
+    Route::get('/apply-form-wh_d', [FormWHDigitizationController::class, 'index'])->name('apply-form-wh_d');
+    Route::get('/apply_form_p_d', [FormpDigitizationController::class, 'index'])->name('apply_form_p_d');
+
+    // CL digitization----------------
+     Route::get('/apply-form-a_d', [FormADigitizationController::class, 'index'])->name('apply-form-a_d');
+
+    // CC Alteration-----------------------------
+    Route::get('form_s_alt', [FormSAlteration::class, 'index'])->name('form_s_alt');
+
+    // CL Alteration-----------------------------
+    Route::get('alteration_cl', [FormCLAlteration::class, 'index'])->name('alteration_cl');
+
+
+    // ---------------
 
     Route::get('/apply-form-a', [RegisterController::class, 'apply_form_a'])->name('apply-form-a');
 
@@ -291,7 +324,8 @@ Route::post('/verifylicenseformsa_appl', [LicenseController::class, 'verifylicen
 Route::post('/verifylicenseformeb_appl', [LicenseController::class, 'verifylicenseformeb_appl'])->name('verifylicenseformeb_appl');
 
 
-
+// qc validation--------------
+Route::post('/verifylicenseformAqc', [QCStaffController::class, 'verifylicenseformAqc'])->name('verifylicenseformAqc');
 
 Route::post('/verifylicenseformAccc', [LicenseController::class, 'verifylicenseformAccc'])->name('verifylicenseformAccc');
 
@@ -300,6 +334,8 @@ Route::post('/verifylicenseformAea_appl', [LicenseController::class, 'verifylice
 
 
 Route::post('/verifylicensecc_slicense', [LicenseController::class, 'verifylicensecc_slicense'])->name('verifylicensecc_slicense');
+
+Route::post('/verifylicensecc_blicense', [LicenseController::class, 'verifylicensecc_blicense'])->name('verifylicensecc_blicense');
 
 
 // -----------update -payment status after payment initiation------------

@@ -238,6 +238,8 @@ class DocumentUploadController extends Controller
                     ->where('form_name', $request->form_name)
                     ->where('document_category', $request->document_category);
 
+                // dd($existingQuery);exit;
+
                  if ($request->document_sub_category === 'OED') {
                     $existingQuery->where('document_sub_category', 'OED')
                                 ->where('ownership_type', $request->ownership_type)
@@ -256,6 +258,13 @@ class DocumentUploadController extends Controller
                     $existingQuery->where('document_sub_category', 'ED')
                                     ->where('equip_code', $request->equip_code);
                 }
+
+                if ($request->document_sub_category === 'QD') {
+
+                    $existingQuery->where('document_sub_category', 'QD')
+                                    ->where('qc_code', $request->qc_code);
+                }
+
 
                  if ($request->document_sub_category === 'OHD') {
                     $existingQuery->where('ownership_type', $request->ownership_type);
@@ -312,6 +321,7 @@ class DocumentUploadController extends Controller
                     $form_code = $request->form_code;
 
                     $equip_code = $request->equip_code;
+                    $qc_code = $request->qc_code;
 
                     // dd($equip_code);
                     // exit;
@@ -384,7 +394,13 @@ class DocumentUploadController extends Controller
                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
                                         'L' . $form_code . '_' . $request->ownership_type . '_'.
                                         $moduleCode . $equip_code . '.pdf';
-                        }                    
+                        } 
+                        
+                          elseif($request->document_sub_category === 'QD') {
+
+                            $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                                        'L' . $form_code .$moduleCode . $qc_code . '.pdf';
+                        } 
                         
                         else {
 
@@ -398,7 +414,10 @@ class DocumentUploadController extends Controller
                     // exit;
                     $equip_code = is_numeric($request->equip_code) ? $request->equip_code : null;
 
+                    $qc_code = is_numeric($request->qc_code) ? $request->qc_code : null;
+
                     $file->move($folderPath, $fileName);
+                    
 
                     
 
@@ -421,6 +440,7 @@ class DocumentUploadController extends Controller
                         'row_index' =>            is_numeric($request->row_index) ? (int)$request->row_index : null,
                         
                         'equip_code'             => $equip_code,
+                        'qc_code'               => $qc_code,
                         'uploaded_at'           => now(),
                         'is_final'              => '0',
                         'created_at'            => now(),

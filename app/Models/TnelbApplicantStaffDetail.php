@@ -23,6 +23,7 @@ class TnelbApplicantStaffDetail extends Model
         'staff_category',
         'cc_number',
         'cc_validity',
-        'staff_cc_verify'
+        'staff_cc_verify',
+        'designation'
     ];
 }

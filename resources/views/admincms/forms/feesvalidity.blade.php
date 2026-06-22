@@ -143,6 +143,8 @@
                                                     <td>
                                                         @if(trim($form->fees_type) == 'N')
                                                             Fresh Fees
+                                                        @elseif(trim($form->fees_type) == 'D')
+                                                            Digitization Fees
                                                         @elseif(trim($form->fees_type) == 'R')
                                                             Renewal Fees
                                                         @elseif(trim($form->fees_type) == 'L')
@@ -434,6 +436,9 @@
                         <select class="form-select shadow-sm border-primary-subtle rounded-3" name="fees_type" id="fees_type">
                             <option value="">Please Choose the Type </option>
                             <option value="N">Fresh Fees</option>
+
+                            <option value="D">Digitization Fees</option>
+                            
                             <option value="R">Renewal Fees</option>
                             <option value="L">Late Fees</option>
                         </select>

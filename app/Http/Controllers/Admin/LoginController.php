@@ -42,7 +42,7 @@ class LoginController extends Controller
         return view('admin.index');
     }
 
-     public function login(Request $request)
+    public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'username' => 'required|string',
@@ -220,7 +220,7 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-   
+
         $roleCode     = $staff->role_code ?? optional($staff->role)->role_code ?? null;
 
         $isSuperadmin = $roleCode === 'SUPADMIN';
@@ -233,7 +233,7 @@ class LoginController extends Controller
             $menus = TnelbMenu::whereNotIn('id', [1, 2, 3])
                 ->orderBy('order_id')
                 ->get();
-                
+
             $submenus = Tnelb_submenus::all();
 
             return view('admincms.dashboard.index', compact('staff', 'menus', 'submenus', 'isSuperadmin'));
@@ -253,7 +253,7 @@ class LoginController extends Controller
 
         // Flatten all unique form IDs across N + R
         $assignedFormIDs = $assignedRows
-            ->pluck('form_id')   
+            ->pluck('form_id')
             ->flatten()
             ->map(function ($id) {
                 return (int) $id;
@@ -262,7 +262,7 @@ class LoginController extends Controller
             ->values()
             ->all();
 
-        
+
 
         // Look up licence / form details for those IDs
         $licences = DB::table('mst_licences as f')
@@ -312,7 +312,7 @@ class LoginController extends Controller
                 $twLastSub = DB::table('tnelb_workflow')
                     ->select('application_id', DB::raw('MAX(id) as max_id'))
                     ->groupBy('application_id');
-                
+
 
                 $pendingCounts = DB::table('tnelb_application_tbl as ta')
                     ->leftJoinSub($twLastSub, 'tw_last', function ($join) {
@@ -445,7 +445,7 @@ class LoginController extends Controller
             }
 
             // dd($pendingCountsMap);exit;
-            
+
 
             // Form P uses tnelb_form_p; add its pending counts if Form P is assigned
             $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
@@ -526,7 +526,7 @@ class LoginController extends Controller
                 }
                 return stripos($lic->licence_name ?? '', 'contractor') !== false;
             });
-            
+
             if ($contractorLicences->isNotEmpty()) {
                 // Map contractor form_code (A, B, etc) to one or more mst_licences IDs.
                 // Contractor application tables (e.g. tnelb_ea_applications) store form_name
@@ -539,36 +539,36 @@ class LoginController extends Controller
                     ->map(function ($group) {
                         return $group->pluck('id')->all();
                     });
-                    
+
 
                 $contractorCounts = collect();
 
                 // EA (A/SA) and EB (B/SB) application tables share the same structure
                 $contractorTables = ['tnelb_ea_applications'];
 
-             foreach ($contractorTables as $tbl) {
+                foreach ($contractorTables as $tbl) {
 
-                // dd($staff);exit;
+                    // dd($staff);exit;
 
-                    if($staff->role_id == '1'){
+                    if ($staff->role_id == '1') {
 
 
-                    // recent modify for count form A
+                        // recent modify for count form A
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
                             // in-workflow applications as "pending" so cards show any
                             // application that is not finally approved/rejected.
                             // ->whereIn('ta.application_status', ['P', 'RE', 'F', 'RF'])
-                            ->whereIn('ta.application_status', ['P','RE'])
+                            ->whereIn('ta.application_status', ['P', 'RE'])
                             ->where(function ($query) {
-                                    $query->whereIn('ta.processed_by', ['A', 'SE'])
-                                          ->orWhereNull('ta.processed_by');
-                                })
+                                $query->whereIn('ta.processed_by', ['A', 'SE'])
+                                    ->orWhereNull('ta.processed_by');
+                            })
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
                             ->selectRaw('ta.form_name, ta.appl_type, COUNT(*) as cnt')
                             ->groupBy('ta.form_name', 'ta.appl_type')
                             ->get();
-                    }elseif($staff->role_id == '2'){
+                    } elseif ($staff->role_id == '2') {
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
                             // in-workflow applications as "pending" so cards show any
@@ -580,21 +580,21 @@ class LoginController extends Controller
                             ->selectRaw('ta.form_name, ta.appl_type, COUNT(*) as cnt')
                             ->groupBy('ta.form_name', 'ta.appl_type')
                             ->get();
-                    }elseif($staff->role_id == '3'){
+                    } elseif ($staff->role_id == '3') {
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
                             // in-workflow applications as "pending" so cards show any
                             // application that is not finally approved/rejected.
                             // ->whereIn('ta.application_status', ['P', 'RE', 'F', 'RF'])
 
-                         
-                            ->whereIn('ta.application_status', ['F', 'RF','RE'])
-                             ->whereIn('ta.processed_by', ['A','PR']) 
+
+                            ->whereIn('ta.application_status', ['F', 'RF', 'RE'])
+                            ->whereIn('ta.processed_by', ['A', 'PR'])
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
                             ->selectRaw('ta.form_name, ta.appl_type, COUNT(*) as cnt')
                             ->groupBy('ta.form_name', 'ta.appl_type')
                             ->get();
-                    }elseif($staff->role_id == '4'){
+                    } elseif ($staff->role_id == '4') {
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
                             // in-workflow applications as "pending" so cards show any
@@ -612,13 +612,13 @@ class LoginController extends Controller
 
                     $contractorCounts = $contractorCounts->merge($rows);
                 }
-                
 
-                
+
+
 
                 foreach ($contractorCounts as $row) {
                     $formCode = strtoupper((string) ($row->form_name ?? ''));
-                    
+
                     if (empty($formCode) || !isset($contractorFormToIds[$formCode])) {
                         continue;
                     }
@@ -628,14 +628,13 @@ class LoginController extends Controller
 
 
                     foreach ($contractorFormToIds[$formCode] as $licId) {
-                      
+
                         if (!isset($pendingCountsMap[$licId])) {
                             $pendingCountsMap[$licId] = ['N' => 0, 'R' => 0];
                         }
                         $pendingCountsMap[$licId][$type] += $cnt;
                     }
                 }
-                
             }
         }
 
@@ -643,7 +642,13 @@ class LoginController extends Controller
         $assignedForms = $assignedRows
             ->flatMap(function ($row) use ($licences) {
                 $type = $row->form_type;
-                $typeLabel = $type === 'N' ? 'New' : ($type === 'R' ? 'Renewal' : $type);
+                $typeLabel = $type === 'N'
+                    ? 'New'
+                    : ($type === 'R'
+                        ? 'Renewal'
+                        : ($type === 'D'
+                            ? 'Digitization'
+                            : $type));
 
                 return collect($row->form_id)->map(function ($id) use ($type, $typeLabel, $licences) {
                     $id = (int) $id;
@@ -652,7 +657,7 @@ class LoginController extends Controller
                     return [
                         'id'             => $id,
                         'form_type'      => $type,
-                        'form_type_label'=> $typeLabel,
+                        'form_type_label' => $typeLabel,
                         'form_name'      => $lic->form_name ?? null,
                         'form_code'      => $lic->form_code ?? null,
                         'licence_name'   => $lic->licence_name ?? null,
@@ -663,31 +668,58 @@ class LoginController extends Controller
             })
             ->values();
 
-        // Group by licence/form; New/Renewal counts from tnelb_application_tbl (pending applications)
+
+
+
+        // Digitization Counts
+
+        $digitizationCounts = DB::table('tnelb_application_tbl')
+            ->select('form_id', DB::raw('COUNT(*) as cnt'))
+            ->where('appl_type', 'D')
+            ->groupBy('form_id')
+            ->get();
+
+        foreach ($digitizationCounts as $row) {
+
+            $licId = (int) $row->form_id;
+
+            if (!isset($pendingCountsMap[$licId])) {
+                $pendingCountsMap[$licId] = [
+                    'N' => 0,
+                    'R' => 0,
+                    'D' => 0,
+                ];
+            }
+
+            $pendingCountsMap[$licId]['D'] = (int) $row->cnt;
+        }
+
         $assignedFormSummary = $assignedForms
             ->groupBy('id')
             ->map(function ($items) use ($pendingCountsMap) {
+
                 $first = $items->first();
                 $fid = $first['id'];
-                $counts = $pendingCountsMap[$fid] ?? ['N' => 0, 'R' => 0];
+
+                $counts = array_merge(
+                    ['N' => 0, 'R' => 0, 'D' => 0],
+                    $pendingCountsMap[$fid] ?? []
+                );
+
                 return [
                     'id'            => $fid,
                     'form_name'     => $first['form_name'],
                     'licence_name'  => $first['licence_name'],
                     'color_code'    => $first['color_code'],
                     'category_id'   => $first['category_id'],
-                    'form_code'  => $first['form_code'],
+                    'form_code'     => $first['form_code'],
                     'new_count'     => $counts['N'],
                     'renewal_count' => $counts['R'],
+                    'digi_count'    => $counts['D'],
                 ];
             })
             ->values()
             ->all();
-
-
-            // dd($assignedFormSummary);exit;
-        
-
 
         $formColors = [
             'C'   => 'bg-yellow',
@@ -695,7 +727,7 @@ class LoginController extends Controller
             'H'   => 'bg-H',
             'P'   => 'bg-green',
             // Contractor licence  colors
-           'EA' => 'bg-thickgreen',
+            'EA' => 'bg-thickgreen',
             'EB' => 'bg-dark',
             'ESA' => 'bg-thickblue',
             'ESB' => 'bg-gray',
@@ -740,7 +772,7 @@ class LoginController extends Controller
 
         $amendmentIds = $amendmentCardsCollection->pluck('id')->all();
         $contractorOrAmendmentIds = array_merge($contractorIds, $amendmentIds);
-        
+
 
         $competencyCardsCollection = $summaryCollection
             ->reject(function ($item) use ($contractorOrAmendmentIds) {
@@ -753,13 +785,13 @@ class LoginController extends Controller
             ->values();
 
         $competencyCards = $competencyCardsCollection->all();
-        
 
-        
+
+
         $contractorCards = $contractorCardsCollection->all();
 
-        
-        
+
+
         $amendmentCards = $amendmentCardsCollection->all();
 
         // Pendancy Report data (used for Secretary and President dashboards)
@@ -841,27 +873,27 @@ class LoginController extends Controller
         }
 
         $isPresident = $roleCode === 'PR';
-// dd($isPresident);exit;
+        // dd($isPresident);exit;
 
 
-      $view = \in_array($roleCode, ['PR', 'SE'], true)
+        $view = \in_array($roleCode, ['PR', 'SE'], true)
             ? 'admin.dashboard.president_dashboard'
             : 'admin.dashboard.staff_dashboard';
 
         $data =  compact(
-                'staff',
-                'assignedFormIDs',
-                'assignedForms',
-                'assignedFormSummary',
-                'competencyCards',
-                'contractorCards',
-                'amendmentCards',
-                'formColors',
-                'recieved_apps',
-                'inprogress'
-            );
+            'staff',
+            'assignedFormIDs',
+            'assignedForms',
+            'assignedFormSummary',
+            'competencyCards',
+            'contractorCards',
+            'amendmentCards',
+            'formColors',
+            'recieved_apps',
+            'inprogress'
+        );
 
-              return view($view, $data);
+        return view($view, $data);
     }
 
     /**
@@ -870,7 +902,7 @@ class LoginController extends Controller
      */
     public function completedApplications()
     {
-        
+
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -895,7 +927,7 @@ class LoginController extends Controller
         $assignedFormIDs = $assignedRows
             ->pluck('form_id')
             ->flatten()
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
             ->values()
             ->all();
@@ -925,12 +957,12 @@ class LoginController extends Controller
 
         $contractorCategoryIds = \App\Models\Admin\LicenceCategory::whereRaw("LOWER(category_name) LIKE ?", ['%contractor%'])
             ->pluck('id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->all();
 
         $amendmentCategoryIds = \App\Models\Admin\LicenceCategory::whereRaw("LOWER(category_name) LIKE ?", ['%amend%'])
             ->pluck('id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->all();
 
         $completedCountsMap = [];
@@ -977,7 +1009,7 @@ class LoginController extends Controller
             return stripos($lic->licence_name ?? '', 'contractor') !== false;
         });
 
-           if ($contractorLicences->isNotEmpty()) {
+        if ($contractorLicences->isNotEmpty()) {
             $contractorLicences = DB::table('mst_licences')
                 ->select('id', 'form_name', 'cert_licence_code', 'licence_name', 'category_id')
                 ->get();
@@ -1012,7 +1044,7 @@ class LoginController extends Controller
                     ->groupBy('ta.form_name', 'ta.appl_type')
                     ->get();
 
-                 $formShortToCode = [
+                $formShortToCode = [
                     'A'  => 'EA',
                     'B'  => 'EB',
                     'SA' => 'ESA',
@@ -1078,7 +1110,7 @@ class LoginController extends Controller
             ];
         })->values()->all();
 
-      $formColors = [
+        $formColors = [
             'C'  => 'bg-yellow',
             'B'  => 'bg-red',
             'H'  => 'bg-H',
@@ -1099,7 +1131,7 @@ class LoginController extends Controller
         $contractorIds = $contractorCardsCollection->pluck('id')->all();
 
         $amendmentCardsCollection = $summaryCollection
-            ->reject(fn ($item) => in_array($item['id'], $contractorIds, true))
+            ->reject(fn($item) => in_array($item['id'], $contractorIds, true))
             ->filter(function ($item) use ($amendmentCategoryIds) {
                 if (empty($amendmentCategoryIds)) {
                     return strpos(mb_strtolower($item['licence_name'] ?? ''), 'amend') !== false;
@@ -1130,7 +1162,7 @@ class LoginController extends Controller
      */
     public function completedApplicationsData(Request $request)
     {
-        
+
         $staff = Auth::user();
         if (!$staff) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -1171,7 +1203,7 @@ class LoginController extends Controller
         $assignedFormIDs = $assignedFormsQuery->get(['form_id'])
             ->pluck('form_id')
             ->flatten()
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
             ->values()
             ->all();
@@ -1195,15 +1227,15 @@ class LoginController extends Controller
                 ->where('ta.app_status', 'A');
             $applyApplTypeScope($rows, 'ta');
             $rows = $rows->select(
-                    'ta.application_id',
-                    'ta.applicant_name',
-                    'ta.created_at',
-                    DB::raw("'A' as status"),
-                    DB::raw('COALESCE(ta.license_number, tl.license_number, tr.license_number) as license_number'),
-                    DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
-                    DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
-                    DB::raw("'P' as form_name")
-                )
+                'ta.application_id',
+                'ta.applicant_name',
+                'ta.created_at',
+                DB::raw("'A' as status"),
+                DB::raw('COALESCE(ta.license_number, tl.license_number, tr.license_number) as license_number'),
+                DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
+                DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
+                DB::raw("'P' as form_name")
+            )
                 ->orderByDesc('ta.id')
                 ->get();
         } else {
@@ -1223,15 +1255,15 @@ class LoginController extends Controller
                     ->where('ta.application_status', 'A');
                 $applyApplTypeScope($rows, 'ta');
                 $rows = $rows->select(
-                        'ta.application_id',
-                        'ta.applicant_name',
-                        'ta.created_at',
-                        DB::raw("'A' as status"),
-                        DB::raw('COALESCE(tl.license_number, tr.license_number) as license_number'),
-                        DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
-                        DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
-                        DB::raw('ta.form_name as form_name')
-                    )
+                    'ta.application_id',
+                    'ta.applicant_name',
+                    'ta.created_at',
+                    DB::raw("'A' as status"),
+                    DB::raw('COALESCE(tl.license_number, tr.license_number) as license_number'),
+                    DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
+                    DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
+                    DB::raw('ta.form_name as form_name')
+                )
                     ->orderByDesc('ta.updated_at')
                     ->get();
             } else {
@@ -1244,15 +1276,15 @@ class LoginController extends Controller
                     ->where('ta.status', 'A');
                 $applyApplTypeScope($rows, 'ta');
                 $rows = $rows->select(
-                        'ta.application_id',
-                        'ta.applicant_name',
-                        'ta.created_at',
-                        'ta.status',
-                        DB::raw('COALESCE(tl.license_number, tr.license_number) as license_number'),
-                        DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
-                        DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
-                        DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name')
-                    )
+                    'ta.application_id',
+                    'ta.applicant_name',
+                    'ta.created_at',
+                    'ta.status',
+                    DB::raw('COALESCE(tl.license_number, tr.license_number) as license_number'),
+                    DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
+                    DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
+                    DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name')
+                )
                     ->orderByDesc('ta.id')
                     ->get();
             }
@@ -1260,7 +1292,7 @@ class LoginController extends Controller
 
         $data = collect($rows)->values()->map(function ($r, $idx) use ($formCode) {
             $applicationId = $r->application_id ?? '';
-              if ($formCode == 'EA') {
+            if ($formCode == 'EA') {
                 // dd('111');exit;
                 $viewUrl = route('admin.applicants_detail_forma_completed', ['applicant_id' => $applicationId]);
             } else {
@@ -1531,7 +1563,7 @@ class LoginController extends Controller
     public function showApplicantDetails($applicant_id)
     {
 
-    
+
         $returnForwardUser = null;
         // Fetch applicant details
         $applicant = DB::table('tnelb_application_tbl')
@@ -1617,7 +1649,7 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        
+
 
         // Fetch next role dynamically from the roles table
         if (in_array($staff->name, ["Supervisor", "Supervisor2"])) {
@@ -1630,28 +1662,27 @@ class LoginController extends Controller
             //         ->select('name', 'roles_id')
             //         ->first();
             // } else {
-                $nextForwardUser = DB::table('mst_login_users')
-                    ->where('user_name', 'assistantsecretary')
-                    ->select('user_name as name', 'role_id as roles_id')
-                    ->first();
+            $nextForwardUser = DB::table('mst_login_users')
+                ->where('user_name', 'assistantsecretary')
+                ->select('user_name as name', 'role_id as roles_id')
+                ->first();
             // }
         }
-       
 
 
-// dd($applicant->status);exit;
+
+        // dd($applicant->status);exit;
         if ($staff->name === "Assistant Secretary") {
 
-         
+
             $nextForwardUser = DB::table('mst__staffs__tbls')
                 ->where('name', 'Secretary')
                 ->select('name', 'roles_id')
                 ->first();
-             $returnForwardUser = DB::table('mst__staffs__tbls')
+            $returnForwardUser = DB::table('mst__staffs__tbls')
                 ->where('name', 'Supervisor')
                 ->select('name', 'roles_id')
                 ->first();
-            
         }
         if ($staff->name === "Secretary") {
 
@@ -1692,10 +1723,10 @@ class LoginController extends Controller
                 ->select('name', 'roles_id')
                 ->first();
         }
-// dd($staff->name);exit;
+        // dd($staff->name);exit;
 
-// dd($returnForwardUser);exit;
-//  dd($nextForwardUser->roles_id);exit;
+        // dd($returnForwardUser);exit;
+        //  dd($nextForwardUser->roles_id);exit;
         $user_entry = DB::table('tnelb_application_tbl')
             ->where('application_id', $applicant_id) // Filter by specific application
             ->select('*')
@@ -1818,7 +1849,7 @@ class LoginController extends Controller
                 'payments.late_fee',
             );
 
-    
+
 
         $applicant = $applicantQuery1
             // ->unionAll($applicantQuery2)
@@ -1855,8 +1886,7 @@ class LoginController extends Controller
             // exit;
         } else {
 
-        $old_issued_at_date = '0';
-
+            $old_issued_at_date = '0';
         }
 
 
@@ -1871,12 +1901,12 @@ class LoginController extends Controller
 
         if ($staff->name === "Supervisor") {
 
-          
-                $nextForwardUser = DB::table('mst__staffs__tbls')
-                    ->where('name', 'Assistant Secretary')
-                    ->select('name', 'roles_id')
-                    ->first();
-            
+
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Assistant Secretary')
+                ->select('name', 'roles_id')
+                ->first();
+
 
             // if ($applicant->application_status == 'RE') {
 
@@ -2058,17 +2088,17 @@ class LoginController extends Controller
 
         $equipmentlist = DB::table('tnelb_equimentsuser_cl')
             // ->where('login_id', Auth::user()->login_id)
-            ->where('application_id', $applicant_id) 
+            ->where('application_id', $applicant_id)
             ->get();
 
         $attachments_cl = DB::table('tnelb_attachments_cl')
-            
-            ->where('application_id', $applicant_id) 
+
+            ->where('application_id', $applicant_id)
             ->get();
 
-            $addressproof = DB::table('tnelb_addressproof_cl')
-            
-            ->where('application_id', $applicant_id) 
+        $addressproof = DB::table('tnelb_addressproof_cl')
+
+            ->where('application_id', $applicant_id)
             ->first();
 
         // $view = match ($staff->name) {
@@ -2081,7 +2111,7 @@ class LoginController extends Controller
         //     default      => abort(403, 'Unauthorized'),
         // };
 
-
+        $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $applicant_id)->orderBy('id', 'ASC')->get();
 
 
         $view = match ($staff->name) {
@@ -2113,7 +2143,8 @@ class LoginController extends Controller
             'showbankWarning',
             'old_issued_at_date',
             'attachments_cl',
-            'addressproof'
+            'addressproof',
+            'Qcstaffs'
         ));
     }
 
@@ -2121,7 +2152,7 @@ class LoginController extends Controller
 
 
     // Form A completed
-public function applicants_detail_forma_completed($applicant_id)
+    public function applicants_detail_forma_completed($applicant_id)
     {
 
         $returnForwardUser = null;
@@ -3027,7 +3058,7 @@ public function applicants_detail_forma_completed($applicant_id)
     //     return response()->json(['success' => true, 'message' => 'Menu added successfully!', 'data' => $menu]);
     // }
 
-     public function view_application_details($applicant_id)
+    public function view_application_details($applicant_id)
     {
 
 
@@ -3208,7 +3239,7 @@ public function applicants_detail_forma_completed($applicant_id)
             true
         );
 
-        
+
 
         $queries = DB::table('tnelb_query_applicable as qa')
             ->leftJoin('tnelb_application_tbl as ta', 'qa.application_id', '=', 'ta.application_id')
@@ -3237,7 +3268,7 @@ public function applicants_detail_forma_completed($applicant_id)
      * View a completed application with workflow timeline (read-only).
      * Used from the Completed Applications list.
      */
-     public function viewCompletedApplicationDetail($applicant_id)
+    public function viewCompletedApplicationDetail($applicant_id)
     {
         $staff = Auth::user();
         if (!$staff) {
@@ -3352,7 +3383,7 @@ public function applicants_detail_forma_completed($applicant_id)
         ));
     }
 
-     /**
+    /**
      * Competency (tnelb_workflow) rows with correlated subqueries to
      * tnelb_return_to_applicant_log for QU + SE/PR (return-to-applicant audit).
      * PostgreSQL only (uses interval, extract(epoch)).

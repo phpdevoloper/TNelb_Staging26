@@ -129,6 +129,10 @@
 
 <script src="{{ url('assets/js/forma.js') }}"></script>
 
+
+
+
+
 <script src="{{ url('assets/js/formsa.js') }}"></script>
 
 <script src="{{ url('assets/js/formsb.js') }}"></script>
@@ -4575,7 +4579,7 @@ $(document).on("change", "#ownership_type_select", function () {
         if (rowCount === 0) {
             $("#partnersfill-section")
                 .find("input[name='proprietor_name[]']")
-                .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
+                .val("{{ Auth::user()->first_name.' '.Auth::user()->last_name }}")
                 .prop("readonly", true);
         }
         @endif
@@ -4597,7 +4601,7 @@ $(document).on("change", "#ownership_type_select", function () {
         if (rowCount === 0) {
             $("#directorfill-section")
                 .find("input[name='proprietor_name[]']")
-                .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
+                .val("{{ Auth::user()->first_name.' '.Auth::user()->last_name }}")
                 .prop("readonly", true);
         }
         @endif
@@ -4611,7 +4615,7 @@ $(document).on("change", "#ownership_type_select", function () {
         @if(Auth::check())
         $("#proprietor-sectionfresh")
             .find("input[name='proprietor_name[]']")
-            .val("{{ Auth::user()->salutation.'. '.Auth::user()->first_name.' '.Auth::user()->last_name }}")
+            .val("{{ Auth::user()->first_name.' '.Auth::user()->last_name }}")
             .prop("readonly", true);
         @endif
     }

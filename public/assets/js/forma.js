@@ -7,6 +7,7 @@ $(document).on("click", ".upload-btn", function () {
     let fileInput = btn.closest(".row, td").find("input[type='file']")[0];
     let errorBox = btn.closest(".row, td").find(".Doc_upload_error");
 
+
     errorBox.text(""); // clear old error
 
     if (!fileInput.files.length) {
@@ -27,6 +28,14 @@ $(document).on("click", ".upload-btn", function () {
     let formData = new FormData();
     formData.append(fileInput.name, fileInput.files[0]);
 
+    let staffRow = btn.closest('tr.qc-upload-row').prev('tr.staffqc-fields');
+    // let qcCode = btn.closest('.row').find('.qc_code').val();
+    let qcCode = btn.attr('data-qc_code');
+
+    // alert(qcCode);
+
+    formData.append("qc_code", qcCode);
+
     // ✅ Get values from button data attributes
     formData.append("login_id", btn.data("login_id"));
 
@@ -37,6 +46,7 @@ $(document).on("click", ".upload-btn", function () {
     // alert($("input[name='record_id']").val());
     formData.append("module", btn.data("module"));
     formData.append("equip_code", btn.data("equip_code"));
+    
     formData.append("ownership_type", btn.data("ownership_type"));
     formData.append("document_category", btn.data("document_category"));
     formData.append("document_sub_category", btn.data("document_sub_category"));
@@ -68,6 +78,9 @@ $(document).on("click", ".upload-btn", function () {
 
             let file = res.files[0];
             let subCategory = btn.data("document_sub_category");
+
+
+            // alert(subCategory);
 
             // EQUIPMENT (TD based)
           if (btn.closest("td").length) {
@@ -173,7 +186,9 @@ $(document).on("click", ".upload-btn", function () {
                                 <i class="fa fa-file-pdf-o text-danger"></i> View Document
                             </a>
                         `);
-            } else {
+            }
+          
+            else {
                 errorBox.text("");
 
                 if (!fileLink.length) {
@@ -304,6 +319,11 @@ $(document).on("click", ".upload-btn", function () {
 
 $("#competency_form_a").on("submit", function (e) {
     e.preventDefault();
+console.log($('input[name="staff_name[]"]').length);
+console.log($('input[name="cc_number[]"]').length);
+//     console.log($('input[name="staff_name[]"]').length);
+// console.log($('input[name="cc_number[]"]').length);
+// console.log($('input[name="cc_validity[]"]').length);
 
     let formData = new FormData(this);
     let submitter = e.originalEvent?.submitter;
@@ -1920,200 +1940,7 @@ $("#competency_form_a").on("submit", function (e) {
         }
     });
 
-    let staffValid = true;
-    let staffCount = 0;
-    let licenseNumbers = [];
-    let duplicateFound = false;
-    let stopValidation = false; // 🚨 To stop when LC age > 75
-
-    $(".staff-fields").each(function (index) {
-        const name = $(this).find('input[name="staff_name[]"]');
-        const qual = $(this).find('select[name="staff_qualification[]"]');
-        const ccNum = $(this).find('input[name="cc_number[]"]');
-        const ccValid = $(this).find('input[name="cc_validity[]"]');
-        const category = $(this).find('select[name="staff_category[]"]');
-
-        // Clear error on typing
-        name.on("keyup", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        qual.on("change", function () {
-            if ($(this).val() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        category.on("change", function () {
-            if ($(this).val() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        ccNum.on("keyup input", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        ccValid.on("keyup change", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-
-        const nameVal = name.val().trim();
-        const qualVal = qual.val();
-        const ccNumVal = ccNum.val().trim().toUpperCase();
-        const ccValidVal = ccValid.val().trim();
-        const categoryVal = category.val();
-
-        // ---- Mandatory validation for first 4 rows ----
-        if (index < 4) {
-            if (nameVal === "") {
-                name.closest("td").find(".error").text("Name is required.");
-                staffValid = false;
-            }
-            if (qualVal === "" || qualVal === null) {
-                qual.closest("td")
-                    .find(".error")
-                    .text("Qualification is required.");
-                staffValid = false;
-            }
-            if (ccNumVal === "") {
-                ccNum
-                    .closest("td")
-                    .find(".error")
-                    .text("CC Number is required.");
-                staffValid = false;
-            }
-            if (ccValidVal === "") {
-                ccValid
-                    .closest("td")
-                    .find(".error")
-                    .text("CC Validity is required.");
-                staffValid = false;
-            }
-            if (categoryVal === "" || categoryVal === null) {
-                category
-                    .closest("td")
-                    .find(".error")
-                    .text("Category is required.");
-                staffValid = false;
-            }
-        }
-
-        // ---- Proceed when a complete row is filled ----
-        if (
-            nameVal !== "" &&
-            qualVal !== "" &&
-            ccNumVal !== "" &&
-            ccValidVal !== "" &&
-            categoryVal !== ""
-        ) {
-            staffCount++;
-
-            let certCheck = checkCertificateValidity(
-                ccNumVal,
-                ccValidVal,
-                ccNum,
-                staffCount - 1, // pass 0-based index
-            );
-
-            if (!certCheck.valid) {
-                staffValid = false;
-            }
-
-            // Duplicate CC Number (inside UI)
-            if (licenseNumbers.includes(ccNumVal)) {
-                duplicateFound = true;
-                staffValid = false;
-                ccNum
-                    .siblings(".error")
-                    .text("Duplicate CC Number not allowed.");
-            } else {
-                licenseNumbers.push(ccNumVal);
-            }
-
-            // ---- Prefix rule ----
-            const prefix = ccNumVal.startsWith("LC")
-                ? "LC"
-                : ccNumVal.charAt(0);
-
-            // 🔥 LC AGE VALIDATION (only LC prefix)
-            if (prefix === "LC") {
-                $.ajax({
-                    url: BASE_URL + "/checkLcAge",
-                    type: "POST",
-                    async: false,
-                    data: {
-                        _token: $('meta[name="csrf-token"]').attr("content"),
-                        cc_number: ccNumVal,
-                    },
-                    success: function (res) {
-                        if (res.status === "not_found") {
-                            ccNum
-                                .siblings(".error")
-                                .text("Invalid LC license number.");
-                            staffValid = false;
-                            return;
-                        } else if (res.status === "age_above_limit") {
-                            Swal.fire({
-                                icon: "error",
-                                width: 500,
-                                title: "Age Limit Exceeded",
-                                text: "QC staff age more than 75 is not allowed to apply this license.",
-                                confirmButtonText: "OK",
-                            });
-
-                            ccNum
-                                .siblings(".error")
-                                .text(
-                                    "QC staff age more than 75 is not allowed to apply this license.",
-                                );
-
-                            $(".nav-item").each(function () {
-                                if (
-                                    $(this).text().trim() ===
-                                    "Staff & Bank Details"
-                                ) {
-                                    $(this).addClass("tab-error-bg");
-                                    $(this).trigger("click");
-                                }
-                            });
-
-                            const ownershipNotice =
-                                document.querySelector(".text-red");
-                            if (ownershipNotice) {
-                                ownershipNotice.style.color = "red";
-                                ownershipNotice.style.fontWeight = "bold";
-                                ownershipNotice.scrollIntoView({
-                                    behavior: "smooth",
-                                    block: "center",
-                                });
-                            }
-
-                            stopValidation = true; // 🚨 STOP all remaining checks
-                            staffValid = false;
-                            return;
-                        }
-                    },
-                    error: function () {
-                        ccNum
-                            .siblings(".error")
-                            .text("Error validating LC age. Try again.");
-                        staffValid = false;
-                        return;
-                    },
-                });
-            }
-
-            if (index === 0 && !["C", "LC"].includes(prefix)) {
-                ccNum
-                    .siblings(".error")
-                    .text("First staff's license must start with 'C' or 'LC'.");
-                staffValid = false;
-            } else if (index > 0 && !["C", "B", "H", "LC"].includes(prefix)) {
-                ccNum
-                    .siblings(".error")
-                    .text("License must start with 'C', 'B', 'H', or 'L'.");
-                staffValid = false;
-            }
-        }
-    });
+   
 
     // let bankValidity = $("input[name='bank_validity']").val().trim();
     if (!checkBankValidity(bankValidity)) {
@@ -2140,155 +1967,7 @@ $("#competency_form_a").on("submit", function (e) {
         return false;
     }
 
-    function checkCertificateValidity(
-        ccNumVal,
-        ccValidVal,
-        ccNumInput,
-        rowIndex,
-    ) {
-        // console.log(ccNumVal, ccValidVal, ccNumInput, rowIndex);
-
-        let resultStatus = { valid: true };
-
-        // ✅ SAFETY: ensure number
-        const certOrder = Number(rowIndex) + 1;
-
-        if (isNaN(certOrder)) {
-            ccNumInput
-                .closest("td")
-                .find(".error")
-                .text("Internal error: invalid row order.");
-            return { valid: false };
-        }
-
-        $.ajax({
-            url: BASE_URL + "/checkCertificateValidity",
-            type: "POST",
-            async: false,
-            data: {
-                _token: $('meta[name="csrf-token"]').attr("content"),
-                validity_date: ccValidVal,
-                l_number: ccNumVal,
-                cert_order: certOrder, // ✅ 1,2,3,4
-            },
-            success: function (res) {
-                if (res.status === "invalid_license") {
-                    ccNumInput.closest("td").find(".error").text(res.msg);
-                    resultStatus.valid = false;
-                } else if (res.status === "expired") {
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .text("Expired Certificate Not Allowed.");
-                    resultStatus.valid = false;
-                } else if (res.status === "less_than_one_year") {
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .text(
-                            "Minimum 1 year validity is required for QC Category certificate.",
-                        );
-                    resultStatus.valid = false;
-                } else if (res.status === "invalid_wcert") {
-                    ccNumInput
-                        // .siblings(".error")
-                        .closest("td")
-                        .find(".error")
-                        .text(
-                            "Certificate must exist in Wireman Certificate register.",
-                        );
-                    resultStatus.valid = false;
-                } else if (res.status === "error") {
-                    // ✅ IMPORTANT
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .html(
-                            "Certificate is active with Contractor Licence: <b>" +
-                                res.form_name +
-                                "</b>",
-                        );
-                    resultStatus.valid = false;
-                } else {
-                    ccNumInput.closest("td").find(".error").text("");
-                    resultStatus.valid = true;
-                }
-            },
-        });
-
-        return resultStatus;
-    }
-
-    // 🚨 If LC age > 75 detected → Stop here (do NOT show global popup)
-    if (stopValidation) return;
-
-    if (!staffValid) {
-        // Swal.fire({
-        //     icon: 'warning',
-        //     width:450,
-        //     title: 'Incomplete Staff Details',
-        //     text: 'Fill all 4 staff details Properly in staff Section.',
-        //     confirmButtonText: 'OK'
-        // });
-
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return false;
-    }
-
-    if (staffCount < 4) {
-        Swal.fire({
-            icon: "warning",
-            width: 450,
-            title: "Incomplete Staff Details",
-            text: "Fill all 4 staff details correctly before adding another one.",
-            confirmButtonText: "OK",
-        });
-
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return false;
-    }
-
-    if (duplicateFound) {
-        Swal.fire({
-            icon: "error",
-            title: "Duplicate License Number",
-            html: "Two or more staff members have the same CC Number.<br>Please correct it before submitting.",
-            width: "450px",
-        });
-        isValid = false;
-    }
+   
 
     // --------------------equipment data--------------------
     let equipmentValid = true;
@@ -2638,6 +2317,7 @@ function showDeclarationPopupformA(formData) {
             formData.set("late_months", response.fees_details.late_months);
             formData.set("dbNow", response.fees_details.dbNow);
             formData.set("licenseName", response.licenseName);
+            formData.set("qcfee", response.fees_details.qcfee);
 
             // Get fee details
             let fees_start_date = response.fees_start_date;
@@ -2740,7 +2420,9 @@ function submitFormAFinal(formData, actionType) {
             : BASE_URL + "/forma/store";
     //  let amount = formData.get("fees") || 0;
 
-    let amount = formData.get("total_fees") || 0;
+    let totalfee = formData.get("total_fees") || 0;
+
+    let amount = totalfee + qcfee;
 
     // alert(amount);
 
@@ -2782,6 +2464,10 @@ function submitFormAFinal(formData, actionType) {
 
             let dbNow = formData.get("dbNow");
 
+            let qcfees = formData.get("qcfee");
+
+            
+
             let licenseName = formData.get("licenseName");
 
             const formName = $("#form_name").val();
@@ -2820,6 +2506,7 @@ function submitFormAFinal(formData, actionType) {
                     applicantName,
                     amount,
                     dbNow,
+                    qcfees,
                     licenseName,
                     formName,
                 );
@@ -2859,6 +2546,7 @@ function showPaymentInitiationPopupformA(
     applicantName,
     amount,
     dbNow,
+    qcfees,
     licenseName,
     formName,
 ) {
@@ -2891,15 +2579,20 @@ function showPaymentInitiationPopupformA(
                                                 <th style="text-align: left; padding: 6px 10px; color: #555;">Date</th>
                                                 <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${dbNow}</td>
                                             </tr>
+                                           
+                                             <tr>
+                                            <th style="text-align: left; padding: 10px; color: #333;">QC Staff Fee</th>
+                                                <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${qcfees} </td>
+                                            </tr>
                                             <tr>
-                                                    <th style="text-align: left; padding: 10px; color: #333;">Application Fees</th>
-                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${basic_fees} </td>
-                                                    </tr>
-                                                            ${lateFeeRow}
-                                                                <tr>
-                                                                    <th style="text-align: left; padding: 6px 10px; color: #555;">Total</th>
-                                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${amount}</td>
-                                                                    </tr>
+                                            <th style="text-align: left; padding: 10px; color: #333;">Application Fees</th>
+                                                <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${basic_fees} </td>
+                                            </tr>
+                                                ${lateFeeRow}
+                                             <tr>
+                                                 <th style="text-align: left; padding: 6px 10px; color: #555;">Total</th>
+                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${amount}</td>
+                                            </tr>
 
                                             
                                           
@@ -6633,8 +6326,95 @@ function verifyeaCertificateprevoius(e, btn) {
     });
 }
 
+
+// -----------------QC staff check--------------
+function validateqcstaffcertificate(e, btn) {
+
+    e.preventDefault();
+
+    let $btn = $(btn);
+    let $row = $btn.closest("tr");
+
+    let licenseNumber = $.trim($row.find(".cc_qc_number").val()).toUpperCase();
+    let validityDate = $.trim($row.find(".cc_qc_validity").val());
+
+    let resultBox = $row.find(".competency_verify_result");
+    let hiddenInput = $row.find(".staff_qccc_verify");
+
+    if (!licenseNumber || !validityDate) {
+        resultBox.html(
+            '<span class="text-danger">Please enter Certificate Number and Validity Date.</span>'
+        );
+        hiddenInput.val("0");
+        return;
+    }
+
+    // Allow only C or LC certificate numbers
+    const regex = /^(C|LC)/i;
+
+    if (!regex.test(licenseNumber)) {
+        resultBox.html(
+            '<span class="text-danger">Only C or LC Certificate Numbers are allowed.</span>'
+        );
+        hiddenInput.val("0");
+        return;
+    }
+
+    // Remove prefix before sending to API
+    let strippedNumber = licenseNumber.replace(/^(LC|C)/i, '');
+
+    resultBox.html(
+        '<span class="text-info">Verifying...</span>'
+    );
+
+    $.ajax({
+        url: BASE_URL + "/verifylicenseformAqc",
+        type: "POST",
+        data: {
+            license_number: strippedNumber,
+            date: validityDate,
+            _token: $('meta[name="csrf-token"]').attr("content")
+        },
+
+        success: function (response) {
+
+            if (response.exists) {
+
+                resultBox.html(
+                    '<span class="text-success"><i class="fa fa-check"></i> Valid Certificate</span>'
+                );
+
+                hiddenInput.val("1");
+
+                
+
+            } else {
+
+                resultBox.html(
+                    '<span class="text-danger">Invalid Certificate.</span>'
+                );
+
+                hiddenInput.val("0");
+            }
+        },
+
+        error: function (xhr) {
+
+            resultBox.html(
+                '<span class="text-danger">Error verifying certificate.</span>'
+            );
+
+            hiddenInput.val("0");
+
+            console.log(xhr.responseText);
+        }
+    });
+}
+
 // -----------------staff recent certificate check------------------------
-function validatestaffcertificate(e, btn) {
+function validatestaffcertificateEA(e, btn) {
+
+    
     e.preventDefault();
 
     const $row = $(btn).closest("tr");
@@ -6657,32 +6437,36 @@ function validatestaffcertificate(e, btn) {
         return;
     }
 
-    // ✅ First row rule
-    if (index === 0) {
-        const startsWithC = /^C|LC/i.test(licenseNumber);
-        if (!startsWithC) {
-            resultBox.html(
-                `<span class="text-danger">⚠️ First row license must start with 'C' or 'LC'.</span>`,
-            );
-            hiddenInput.val("0");
-            return;
-        }
-    } else {
-        const prefixPattern = /^(H|C|B|LH|LB|LC)/i;
-        if (!prefixPattern.test(licenseNumber)) {
-            resultBox.html(
-                `<span class="text-danger">⚠️ License must start with H, C, B or L.</span>`,
-            );
-            hiddenInput.val("0");
-            return;
-        }
+    //  First row rule
+   if (index === 0 || index === 1) {
+    const startsWithB = /^(B|LB)/i.test(licenseNumber);
+
+    if (!startsWithB) {
+        resultBox.html(
+            `<span class="text-danger">⚠️ License must start with 'B' or 'LB'.</span>`
+        );
+        hiddenInput.val("0");
+        return;
     }
+} else {
+    const prefixPattern = /^(H|C|B|LH|LB|LC)/i;
+
+    if (!prefixPattern.test(licenseNumber)) {
+        resultBox.html(
+            `<span class="text-danger">⚠️ License must start with H, C, B, LH, LB or LC.</span>`
+        );
+        hiddenInput.val("0");
+        return;
+    }
+}
 
     const strippedNumber = licenseNumber.replace(/^(WH|C|B|L|H)/i, "");
     resultBox.html(`<span class="text-info">Verifying...</span>`);
 
     const ajaxUrl =
-        index === 0 ? "/verifylicensecc_slicense" : "/verifylicenseformAccc";
+    [0, 1].includes(index)
+        ? "/verifylicensecc_blicense"
+        : "/verifylicenseformAccc";
 
     $.ajax({
         url: BASE_URL + ajaxUrl,
@@ -6864,25 +6648,35 @@ function addStaffqcRow() {
 
     
 
-    let rowCount = $('#staffqc-container tr').length;
+    let staffCount = $('#staffqc-container tr.staffqc-fields').length;
 
     // Check last row before adding
-    let lastRow = $('#staffqc-container tr').last();
-
+    let lastRow = $('#staffqc-container tr.staffqc-fields').last();
     let name = $.trim(lastRow.find('input[name="staffqc_name[]"]').val());
 
     let category = $.trim(
-        lastRow.find('input[name="staff_category[]"]').val() ||
-        lastRow.find('select[name="staff_category[]"]').val()
+        lastRow.find('input[name="staffqc_category[]"]').val() ||
+        lastRow.find('select[name="staffqc_category[]"]').val()
     );
 
     let ccNumber = $.trim(
-        lastRow.find('input[name="cc_number[]"]').val()
+        lastRow.find('input[name="cc_qc_number[]"]').val()
     );
 
     let ccValidity = $.trim(
-        lastRow.find('input[name="cc_validity[]"]').val()
+        lastRow.find('input[name="cc_qc_validity[]"]').val()
     );
+
+    let uploadRow = lastRow.next('.qc-upload-row');
+
+
+    uploadRow.find('.upload-error').text('');
+
+    let fileUploaded = uploadRow.find('.file-link a').length > 0;
+
+   lastRow.find('.error').text('');
+
+  
 
     // Validation
     if (!name || !category || !ccNumber || !ccValidity) {
@@ -6895,11 +6689,55 @@ function addStaffqcRow() {
             confirmButtonText: 'OK'
         });
 
+        
+    }
+    
+
+    let hasError = false;
+
+    if (!name) {
+        lastRow.find('input[name="staffqc_name[]"]')
+            .next('.error')
+            .text('Please enter Name');
+        hasError = true;
+    }
+
+    if (!category) {
+        lastRow.find('input[name="staffqc_category[]"], select[name="staffqc_category[]"]')
+            .next('.error')
+            .text('Please enter Category');
+        hasError = true;
+    }
+
+    if (!ccNumber) {
+        lastRow.find('input[name="cc_qc_number[]"]')
+            .next('.error')
+            .text('Please enter Certificate Number');
+        hasError = true;
+    }
+
+    if (!ccValidity) {
+        lastRow.find('input[name="cc_qc_validity[]"]')
+            .next('.error')
+            .text('Please select Validity Date');
+        hasError = true;
+    }
+
+    if (!fileUploaded) {
+        uploadRow.find('.upload-error')
+            .text('Please upload QC certificate document.');
+
+        hasError = true;
+        }
+
+    if (hasError) {
         return;
     }
 
+    
+
     // Maximum rows limit
-    if (rowCount >= 5) {
+    if (staffCount >= 5) {
 
         Swal.fire({
             icon: 'warning',
@@ -6914,121 +6752,196 @@ function addStaffqcRow() {
 
     // Remove previous Add buttons
     $('#staffqc-container .btn-addqc-staff').remove();
+let qcCode = generateQCCode();
+const formCode = "{{ $form_code->id }}";
+   let newRows = `
 
-    let newRow = `
-        <tr class="staff-fields">
+<tr class="staffqc-fields">
 
-            <td>${rowCount + 1}</td>
+    <td>${Math.floor(staffCount / 2) + 1}</td>
 
-            <td>
-                <input type="text"
-                    name="staffqc_name[]"
-                    maxlength="30"
+    <td>
+        <input type="text"
+            name="staffqc_name[]"
+            maxlength="30"
+            class="form-control"
+            placeholder="Name of the Person"
+            oninput="this.value=this.value.replace(/[^a-zA-Z\\s]/g,'')">
+
+        <span class="error text-danger"></span>
+    </td>
+
+    <td>
+        <input type="text"
+            class="form-control"
+            name="staffqc_category[]"
+            value="QC"
+            readonly>
+
+        <span class="error text-danger"></span>
+    </td>
+
+    <td>
+       <input type="text"
+       class="form-control cc_qc_number"
+       name="cc_qc_number[]"
+       oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()"
+       maxlength="15"
+       placeholder="Certificate No"
+       oninput="this.value=this.value.toUpperCase()">
+
+        <span class="error text-danger"></span>
+
+        <span class="text-danger small">
+            At present, we evaluate only C Certificate only
+        </span>
+
+        <div class="competency_verify_result text-danger small mt-1"></div>
+    </td>
+
+    <td>
+        <input type="date"
+            class="form-control cc_qc_validity"
+            name="cc_qc_validity[]">
+
+        <span class="error text-danger"></span>
+    </td>
+
+    <td>
+
+        <button type="button"
+            class="btn btn-primary verifyBtn"
+            onclick="validateqcstaffcertificate(event,this)">
+            Verify
+        </button>
+
+        <input type="hidden"
+            name="staff_qccc_verify[]"
+            class="staff_qccc_verify"
+            value="">
+
+        <button type="button"
+            class="btn btn-danger mt-1"
+            onclick="removeStaffqcRow(this)">
+            Remove
+        </button>
+
+    </td>
+
+</tr>
+
+<tr class="qc-upload-row">
+
+    <td colspan="5">
+
+        <div class="row">
+
+            <div class="col-md-6 col-lg-5">
+
+                <div class="text-center fw-bold">
+                    QC Certificates Upload
+                </div>
+
+               <div class="text-center ">
+                    QC Certificates One, QC Certificates Two, QC Certificates Three
+                      <br>
+                    <span class="file-limit">(Merge All the Documents into One file and upload it)</span>
+                </div>
+
+                 <input type="hidden"
+       name="qc_code[]"
+       class="qc_code"
+       value="${qcCode}">
+
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+
+                <input type="file"
                     class="form-control"
-                    placeholder="Name of the Person"
-                    oninput="this.value=this.value.replace(/[^a-zA-Z\\s]/g,'')">
+                    name="qc_one[]"
+                    accept="application/pdf">
 
-                <span class="error text-danger"></span>
-            </td>
+                <span class="file-limit">
+                    PDF only (Max 250 KB)
+                </span>
 
-            <td>
-                <input type="text"
-                    class="form-control"
-                    name="staff_category[]"
-                    value="QC"
-                    readonly>
+                <br>
 
-                <span class="error text-danger"></span>
-            </td>
+                <span class="text-danger qc_doc_upload_error"></span>
 
-            <td>
-                <input type="text"
-                    class="form-control cc_number"
-                    name="cc_number[]"
-                    placeholder="Certificate No"
-                    maxlength="15">
+            </div>
 
-                <span class="error text-danger"></span>
+            <div class="col-12 col-md-2">
+               <button type="button"
+    class="btn btn-info upload-btn"
+    data-login_id="{{ Auth::user()->login_id }}"
+    data-module="QC DOCUMENT"
+    data-document_category="qc_doc"
+    data-document_sub_category="QD"
+    data-ownership_type=""
+    data-form_code="8"
+    data-qc_code="${qcCode}">
+    <i class="fa fa-upload"></i> Upload
+</button>
+               
+            </div>
 
-                <div class="competency_verify_result text-danger small mt-1"></div>
-            </td>
+            <div class="col-md-6 mt-3 col-lg-2 file-link">
+                                                    
+            </div>
 
-            <td>
-                <input type="date"
-                    class="form-control cc_validity"
-                    name="cc_validity[]">
+        </div>
 
-                <span class="error text-danger"></span>
-            </td>
+    </td>
 
-            <td>
+    <td>
 
-                <button type="button"
-                    class="btn btn-primary verifyBtn"
-                    onclick="validatestaffcertificate(event, this)">
-                    Verify
-                </button>
+        <button type="button"
+            class="btn btn-success btn-addqc-staff"
+            onclick="addStaffqcRow()">
+            + Add
+        </button>
 
-                <input type="hidden"
-                    name="staff_cc_verify[]"
-                    class="staff_cc_verify"
-                    value="">
+    </td>
 
-                <button type="button"
-                    class="btn btn-success btn-addqc-staff mt-1"
-                    onclick="addStaffqcRow()">
-                    + Add
-                </button>
+</tr>
 
-                <button type="button"
-                    class="btn btn-danger mt-1"
-                    onclick="removeStaffqcRow(this)">
-                    Remove
-                </button>
+`;
 
-            </td>
-
-        </tr>
-    `;
-
-    $('#staffqc-container').append(newRow);
+    $('#staffqc-container').append(newRows);
 }
-
 
 function removeStaffqcRow(button) {
 
-    let totalRows = $('#staffqc-container tr').length;
+    let currentRow = $(button).closest('tr');
+    let uploadRow = currentRow.next('.qc-upload-row');
 
-    if (totalRows === 1) {
+    currentRow.remove();
+    uploadRow.remove();
 
-        Swal.fire({
-            icon: 'warning',
-            width: 450,
-            title: 'Cannot Remove',
-            text: 'At least one staff row is required.',
-            confirmButtonText: 'OK'
-        });
+    // Re-number staff rows
+    let sno = 1;
 
-        return;
-    }
-
-    $(button).closest('tr').remove();
-
-    // Re-index rows
-    $('#staffqc-container tr').each(function(index) {
-
-        $(this).find('td:first').text(index + 1);
-
+    $('#staffqc-container tr.staffqc-fields').each(function () {
+        $(this).find('td:first').text(sno++);
     });
 
-    // Keep Add button only in last row
-    $('#staffqc-container .btn-addqc-staff').remove();
+    // Keep Add button only on last upload row
+    $('.btn-addqc-staff').remove();
 
-    $('#staffqc-container tr:last td:last').append(`
+    $('#staffqc-container tr.qc-upload-row:last td:last').append(`
         <button type="button"
-            class="btn btn-success btn-addqc-staff mt-1"
+            class="btn btn-success btn-addqc-staff"
             onclick="addStaffqcRow()">
             + Add
         </button>
     `);
 }
+
+function generateQCCode() {
+    return $('#staffqc-container tr.staffqc-fields').length + 1;
+}
+
+
+// --validation---------------------------

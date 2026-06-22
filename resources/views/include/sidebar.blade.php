@@ -461,6 +461,158 @@
             </div>
         </li>
 
+
+        <li class="sb-nav__group">
+            <div class="sb-nav__card sb-nav__card--competency">
+                <a class="sb-nav__card-toggle" data-toggle="collapse" href="#oldRenewalsMenu" role="button"
+                    aria-expanded="true" aria-controls="oldRenewalsMenu">
+                    <span class="sb-nav__card-toggle-icon"><i class="fa fa-refresh" aria-hidden="true"></i></span>
+                    <span class="sb-nav__card-toggle-title">Digitization Competency Certificate</span>
+                    <i class="fa fa-chevron-down sb-nav__card-toggle-caret" aria-hidden="true"></i>
+                </a>
+                <div class="collapse show sb-nav__card-body" id="oldRenewalsMenu">
+                    <ul class="sb-nav__sublist">
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormWh ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-wh_d') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Wireman Helper Competency Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form H]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormW ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-w_d') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Wireman Competency Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form W]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormP ? 'is-active' : '' }}"
+                                href="{{ route('apply_form_p_d') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Power Generating Station Operation &amp; Maintenance Competency
+                                        Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form P]</span>
+                                </span>
+                            </a>
+                        </li>
+                   
+                        <li>
+                            <a class="sb-nav__sublink " href="{{ route('apply-form-s_d') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Supervisor Competency Certificate</span>
+                                    <span class="sb-nav__sublink-form">[Form S]</span>
+                                </span>
+                            </a>
+                        </li>
+                       
+                    </ul>
+                </div>
+            </div>
+        </li>
+
+        <li class="sb-nav__group">
+            <div class="sb-nav__card sb-nav__card--contractor">
+                <a class="sb-nav__card-toggle" data-toggle="collapse" href="#contractorMenu" role="button"
+                    aria-expanded="true" aria-controls="contractorMenu">
+                    <span class="sb-nav__card-toggle-icon"><i class="fa fa-file-text-o" aria-hidden="true"></i></span>
+                    <span class="sb-nav__card-toggle-title">Digitization Contractor Licences</span>
+                    <i class="fa fa-chevron-down sb-nav__card-toggle-caret" aria-hidden="true"></i>
+                </a>
+                <div class="collapse show sb-nav__card-body" id="contractorMenu">
+                    <ul class="sb-nav__sublist">
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormA ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-a_d') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractor's Licence-Grade 'A'</span>
+                                    <span class="sb-nav__sublink-form">[Form A]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormSa ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-sa') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractors Licence Grade Super 'A'</span>
+                                    <span class="sb-nav__sublink-form">[Form SA]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormSb ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-sb') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractor's Licence-Grade `SB'</span>
+                                    <span class="sb-nav__sublink-form">[Form SB]</span>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeFormB ? 'is-active' : '' }}"
+                                href="{{ route('apply-form-b') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span>Electrical Contractor License 'EB'</span>
+                                    <span class="sb-nav__sublink-form">[Form B]</span>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </li>
+
+
+         <li class="sb-nav__group">
+            <div class="sb-nav__card sb-nav__card--renewals">
+                <a class="sb-nav__card-toggle" data-toggle="collapse" href="#oldRenewalsMenu" role="button"
+                    aria-expanded="true" aria-controls="oldRenewalsMenu">
+                    <span class="sb-nav__card-toggle-icon"><i class="fa fa-refresh" aria-hidden="true"></i></span>
+                    <span class="sb-nav__card-toggle-title">Alteration</span>
+                    <i class="fa fa-chevron-down sb-nav__card-toggle-caret" aria-hidden="true"></i>
+                </a>
+                <div class="collapse show sb-nav__card-body" id="oldRenewalsMenu">
+                    <ul class="sb-nav__sublist">
+                        <li>
+                            <a class="sb-nav__sublink {{ $activeOldCertRenewal ? 'is-active' : '' }}"
+                                href="{{ route('form_s_alt') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span> Competency Certificate</span>
+                                    
+                                </span>
+                            </a>
+                        </li>
+
+                        <!-- ---------------------------------------------------- -->
+                         <li>
+                            <a class="sb-nav__sublink {{ $activeOldCertRenewal ? 'is-active' : '' }}"
+                                href="{{ route('alteration_cl') }}">
+                                <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
+                                <span class="sb-nav__sublink-text">
+                                    <span> Contractor Licence</span>
+                                    
+                                </span>
+                            </a>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+        </li>
+
         <li class="sb-nav__section-title" role="presentation">
             <i class="fa fa-ellipsis-h" aria-hidden="true"></i>
             <span>Others</span>
