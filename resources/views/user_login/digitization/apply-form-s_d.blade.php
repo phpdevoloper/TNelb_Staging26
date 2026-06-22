@@ -2133,7 +2133,7 @@
                     <input type="hidden" id="form_name" name="form_name" value="S">
                     <input type="hidden" id="license_name" name="license_name" value="C">
                     <input type="hidden" id="form_id" name="form_id" value="1">
-                    <input type="hidden" id="appl_type" name="appl_type" value="N">
+                    <input type="hidden" id="appl_type" name="appl_type" value="D">
                     <input type="hidden" id="form_action" name="form_action" value="draft">
                     @csrf
 
@@ -2474,48 +2474,44 @@
             var $preview = $wrap.next('.local-file-preview');
             var oldUrl = $preview.data('blobUrl');
             if (oldUrl) URL.revokeObjectURL(oldUrl);
-            if (preview) {
-                preview.remove();
-            }
+            $preview.remove();
             $fileInput.removeAttr('data-has-local-file');
         }
 
-        $(document).on('change', 'input[type="file"][name="education_document[]"], input[type="file"][name="work_document[]"]', function() {
+        function clearWorkRowUploadErrors($scope) {
+            if (!$scope || !$scope.length) return;
+            $scope.find('.error-message').each(function() {
+                var txt = ($(this).text() || '').toLowerCase();
+                if (
+                    txt.indexOf('supporting document is required') !== -1 ||
+                    txt.indexOf('relieving letter is required') !== -1 ||
+                    txt.indexOf('highest transformer capacity') !== -1 ||
+                    txt.indexOf('only pdf') !== -1 ||
+                    txt.indexOf('file size permitted') !== -1
+                ) {
+                    $(this).remove();
+                }
+            });
+        }
+
+        $(document).on('change', 'input[type="file"][name="education_document[]"], input[type="file"][name="work_document[]"], input[type="file"][name="work_relieving_letter[]"]', function() {
             var $input = $(this);
             clearLocalPreview($input);
             var file = this.files && this.files[0] ? this.files[0] : null;
             if (!file) return;
             var allowed = ['application/pdf', 'image/jpeg', 'image/png'];
             var maxSize = 200 * 1024;
-            if (allowed.indexOf(file.type) === -1) {
-                window.alert('Only PDF, JPG, PNG files are allowed.');
-                this.value = '';
-                $input.removeAttr('data-has-local-file');
-                return;
-            }
-            if (file.size > maxSize) {
-                window.alert('File size should not exceed 200 KB.');
-                this.value = '';
-                $input.removeAttr('data-has-local-file');
-                return;
-            }
+            if (allowed.indexOf(file.type) === -1) { window.alert('Only PDF, JPG, PNG files are allowed.'); this.value = ''; $input.removeAttr('data-has-local-file'); return; }
+            if (file.size > maxSize) { window.alert('File size should not exceed 200 KB.'); this.value = ''; $input.removeAttr('data-has-local-file'); return; }
             $input.attr('data-has-local-file', '1');
             var blobUrl = URL.createObjectURL(file);
             var isImage = file.type.indexOf('image/') === 0;
             var $preview = $('<div class="local-file-preview"></div>').data('blobUrl', blobUrl);
-            if (isImage) $preview.append($('<img>', {
-                src: blobUrl,
-                class: 'img-preview',
-                alt: 'Selected image preview'
-            }));
-            $preview.append($('<a>', {
-                    href: blobUrl,
-                    target: '_blank',
-                    rel: 'noopener noreferrer',
-                    class: 'preview-link'
-                })
+            if (isImage) $preview.append($('<img>', { src: blobUrl, class: 'img-preview', alt: 'Selected image preview' }));
+            $preview.append($('<a>', { href: blobUrl, target: '_blank', rel: 'noopener noreferrer', class: 'preview-link' })
                 .html(isImage ? '<i class="fa fa-image"></i> Preview image' : '<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
             $input.closest('.form-s-file-upload-wrap').after($preview);
+            clearWorkRowUploadErrors($input.closest('.work-fields'));
         });
 
         $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
@@ -2523,31 +2519,13 @@
             clearLocalPreview($input);
             var file = this.files && this.files[0] ? this.files[0] : null;
             if (!file) return;
-            var minSize = 10 * 1024,
-                maxSize = 250 * 1024;
-            if (file.type !== 'application/pdf') {
-                window.alert('Only PDF files are allowed.');
-                this.value = '';
-                return;
-            }
-            if (file.size < minSize) {
-                window.alert('File size must be at least 10 KB.');
-                this.value = '';
-                return;
-            }
-            if (file.size > maxSize) {
-                window.alert('File size should not exceed 250 KB.');
-                this.value = '';
-                return;
-            }
+            var minSize = 10 * 1024, maxSize = 250 * 1024;
+            if (file.type !== 'application/pdf') { window.alert('Only PDF files are allowed.'); this.value = ''; return; }
+            if (file.size < minSize) { window.alert('File size must be at least 10 KB.'); this.value = ''; return; }
+            if (file.size > maxSize) { window.alert('File size should not exceed 250 KB.'); this.value = ''; return; }
             var blobUrl = URL.createObjectURL(file);
             var $preview = $('<div class="local-file-preview"></div>').data('blobUrl', blobUrl);
-            $preview.append($('<a>', {
-                    href: blobUrl,
-                    target: '_blank',
-                    rel: 'noopener noreferrer',
-                    class: 'preview-link'
-                })
+            $preview.append($('<a>', { href: blobUrl, target: '_blank', rel: 'noopener noreferrer', class: 'preview-link' })
                 .html('<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
             $input.closest('.form-s-file-upload-wrap').after($preview);
         });
@@ -2586,18 +2564,14 @@
             let container = document.getElementById("education-container");
             let educationRows = container.querySelectorAll(".education-fields");
             const refreshEducationSerials = () => {
-                container.querySelectorAll('.education-fields .edu-serial').forEach((cell, idx) => {
-                    cell.textContent = String(idx + 1);
-                });
+                container.querySelectorAll('.education-fields .edu-serial').forEach((cell, idx) => { cell.textContent = String(idx + 1); });
             };
 
             if (e.target.closest(".add-more")) {
                 if (educationRows.length >= 5) {
                     $('#education-table').next('.education-error').remove();
                     $('<div class="text-danger mt-2 education-error">You can add a maximum of 5 education entries.</div>').insertAfter('#education-table');
-                    setTimeout(() => {
-                        $('.education-error').fadeOut();
-                    }, 7000);
+                    setTimeout(() => { $('.education-error').fadeOut(); }, 7000);
                     return;
                 }
                 let newRow = document.createElement("tr");
@@ -2635,9 +2609,7 @@
                 if (educationRows.length <= 1) {
                     $('#education-table').next('.education-error').remove();
                     $('<div class="text-danger mt-2 education-error">You must have at least one education entry.</div>').insertAfter('#education-table');
-                    setTimeout(() => {
-                        $('.education-error').fadeOut();
-                    }, 7000);
+                    setTimeout(() => { $('.education-error').fadeOut(); }, 7000);
                     return;
                 }
                 e.target.closest("tr").remove();
@@ -2647,20 +2619,98 @@
     </script>
 
     <script>
+        /*
+         * Section 7 – Work Experience (Form S, card + accordion redesign).
+         *
+         * Conditional behaviour (column numbers per the SCC application table):
+         *   • Col 2 = Employment Type.
+         *       – "" (no type):          cols 3–13 all disabled.
+         *       – "electrical_contractor": cols 3–13 enabled.
+         *       – any other type:         cols 3 & 4 disabled, cols 5–13 enabled.
+         *   • Col 9 = Voltage Level → col 10 (Transformer kVA) disabled when voltage = "up_to_650v".
+         *   • Col 11 = Period of Experience. "Till date" checkbox locks To-date and
+         *     also disables col 13 (Relieving Letter).
+         *   • Combined-2-year minimum is checked across all rows (Till date = today for
+         *     the calc) and surfaced under the table in #work-exp-total-msg.
+         *
+         * UI extras driven by the same state functions:
+         *   • Header chips (type pill, employer, period chip, duration chip, status pill).
+         *   • Combined-experience meter (progress bar + caption + status pill).
+         *   • Per-field lock indicators (.work-card-field.is-locked + .lock-icon + hint).
+         *   • Card chevron toggle for collapse / expand.
+         */
         (function() {
-            var EMP_LABELS = {
-                '': '—',
-                company: 'Company name',
-                contractor: 'Contractor / firm name',
-                apprentice: 'Establishment / training organization',
-                electrical_inspector: 'Office / department',
-                retired_employees: 'Name of PSU (State / Central / Corporation)'
+            var CONTRACTOR_TYPE = 'electrical_contractor';
+            var VOLTAGE_DISABLES_KVA = 'up_to_650v';
+            var MAX_WORK_ROWS = 3;
+            var TWO_YEARS_MS = 730 * 86400000;
+            var EMP_LABEL = {
+                '': 'Select employment type',
+                private_organisation: 'Private organisation',
+                electrical_contractor: 'Electrical contractor',
+                retired_employee: 'Retired Employee',
+                govt_organisation: 'Govt organisation',
+                apprenticeship: 'Apprenticeship'
             };
+            var NATURE_LABEL = {
+                erection: 'Erection',
+                maintenance: 'Maintenance',
+                erection_maintenance: 'Erection & Maintenance'
+            };
+            var VOLTAGE_LABEL = {
+                up_to_650v: 'Up to 650V',
+                '650v_to_33kv': 'Above 650V to 33KV',
+                above_33kv: 'Above 33KV'
+            };
+            var MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-            function $workRow(el) {
-                return $(el).closest('tr.work-fields');
+            function summaryFilePreviewUrl($input) {
+                if (!$input || !$input.length) return '';
+                var $preview = $input.closest('.form-s-file-upload-wrap').next('.local-file-preview');
+                return ($preview.length && $preview.data('blobUrl')) ? $preview.data('blobUrl') : '';
             }
 
+            function summaryAttachmentBlock(label, $input, naText) {
+                var $block = $('<div class="wx-sum-attach-block">');
+                $block.append($('<span class="wx-sum-attach-label">').text(label + ' :'));
+                if (naText) {
+                    $block.append($('<span class="wx-sum-attach-value">').text(naText));
+                    return $block;
+                }
+                var blobUrl = summaryFilePreviewUrl($input);
+                var file = ($input[0] && $input[0].files && $input[0].files[0]) ? $input[0].files[0] : null;
+                var isImage = file && file.type && file.type.indexOf('image/') === 0;
+                if (blobUrl) {
+                    var icon = isImage ? 'fa-image' : 'fa-file-pdf-o';
+                    $block.append(
+                        $('<a>', {
+                            href: blobUrl,
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            class: 'preview-link wx-sum-doc-link'
+                        }).html('<i class="fa ' + icon + '"></i> View Document')
+                    );
+                } else if (existingHref) {
+                    $block.append(
+                        $('<a>', {
+                            href: existingHref,
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            class: 'preview-link wx-sum-doc-link'
+                        }).html('<i class="fa fa-file-pdf-o"></i> View Document')
+                    );
+                } else if ($input.attr('data-has-local-file')) {
+                    $block.append($('<span class="wx-sum-attach-value">').text('File attached'));
+                } else {
+                    $block.append($('<span class="wx-sum-attach-value">').text('—'));
+                }
+                return $block;
+            }
+
+            function $workRow(el) { return $(el).closest('.work-fields'); }
+
+            /* Legacy backend (work_level[], experience[]) still expects something; mirror it from the
+               new fields so server-side `required` rules pass. */
             function syncLegacyHidden($tr) {
                 var emp = ($tr.find('.work-employer-input').val() || '').trim();
                 var tot = ($tr.find('.work-experience-total-hidden').val() || '').trim();
@@ -2673,7 +2723,7 @@
                 $tr.find('.work-experience-total-hidden').val('');
             }
 
-            /** Calendar-style Y/M/D between two local dates (inclusive-style components). */
+            /** Calendar Y/M/D between two local dates (mirrors the server `workExperienceCalendarYmd`). */
             function calendarDiffYMD(from, to) {
                 if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return null;
                 var y = to.getFullYear() - from.getFullYear();
@@ -2695,516 +2745,1070 @@
                     }
                     d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
                 }
-                return {
-                    y: y,
-                    m: m,
-                    d: d
-                };
+                return { y: y, m: m, d: d };
             }
 
-            var TWO_YEARS_MS = 730 * 86400000; // 2 years = 730 days (allows exact 2-calendar-year ranges)
+            function todayIso() {
+                var n = new Date();
+                return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+            }
+
+            function fmtPretty(iso) {
+                if (!iso) return '';
+                var p = iso.split('-');
+                if (p.length !== 3) return iso;
+                var y = parseInt(p[0], 10), m = parseInt(p[1], 10), d = parseInt(p[2], 10);
+                if (isNaN(y) || isNaN(m) || isNaN(d) || m < 1 || m > 12) return iso;
+                return d + ' ' + MONTH_SHORT[m - 1] + ' ' + y;
+            }
+
+            /** Parse work date input to ISO yyyy-mm-dd (native date + DD-MM-YYYY display). */
+            function parseWorkDateToIso(str) {
+                var s = String(str || '').trim();
+                if (!s) return '';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+                var m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+                return m ? (m[3] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0')) : '';
+            }
+
+            function readWorkDateFromInput($input) {
+                if (typeof window.readWorkDateIsoGeneric === 'function') {
+                    return window.readWorkDateIsoGeneric($input);
+                }
+                var $el = ($input && $input.length) ? $input.first() : $();
+                var node = $el.get(0);
+                if (!node) return '';
+                var candidates = [];
+                if (node.type === 'date' && node.value) {
+                    candidates.push(String(node.value).trim());
+                }
+                candidates.push(String($el.val() || node.value || '').trim());
+                candidates.push(String(node.getAttribute('data-raw') || '').trim());
+                for (var i = 0; i < candidates.length; i++) {
+                    var iso = parseWorkDateToIso(candidates[i]);
+                    if (iso) return iso;
+                }
+                return '';
+            }
+
+            function syncWorkDateRaw($input) {
+                var iso = readWorkDateFromInput($input);
+                if (iso && $input && $input.length) {
+                    $input.get(0).setAttribute('data-raw', iso);
+                }
+            }
+
+            function clearWorkDateFieldErrors($input) {
+                if (typeof window.clearWorkDateRequiredErrors === 'function') {
+                    window.clearWorkDateRequiredErrors($input);
+                    return;
+                }
+                if (!$input || !$input.length) return;
+                $input.nextAll('.error-message').each(function() {
+                    var txt = ($(this).text() || '').toLowerCase();
+                    if (txt.indexOf('to date is required') !== -1 || txt.indexOf('from date is required') !== -1) {
+                        $(this).remove();
+                    }
+                });
+            }
+
+            /** Effective To date for a row: explicit value, or today if "Till date" is checked. */
+            function effectiveToStr($tr) {
+                if ($tr.find('.work-date-till').is(':checked')) return todayIso();
+                return readWorkDateFromInput($tr.find('.work-date-to'));
+            }
 
             function totalDurationAcrossRows() {
                 var totalMs = 0;
                 var anyFilled = false;
                 $('#work-container .work-fields').each(function() {
                     var $tr = $(this);
-                    var fromStr = ($tr.find('.work-date-from').val() || '').trim();
-                    var toStr = ($tr.find('.work-date-to').val() || '').trim();
+                    var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
+                    var toStr = effectiveToStr($tr);
                     if (!fromStr || !toStr) return;
                     var from = new Date(fromStr + 'T12:00:00');
-                    var to = new Date(toStr + 'T12:00:00');
+                    var to   = new Date(toStr + 'T12:00:00');
                     if (isNaN(from.getTime()) || isNaN(to.getTime())) return;
                     if (to < from) return;
                     anyFilled = true;
                     totalMs += (to - from);
                 });
-                return {
-                    ms: totalMs,
-                    hasAny: anyFilled
-                };
+                return { ms: totalMs, hasAny: anyFilled };
             }
 
+            /** Section meter + legacy combined-message kept in sync. */
             function updateOverallTotalYears() {
-                var $msg = $('#work-exp-total-msg');
-                if (!$msg.length) return;
                 var t = totalDurationAcrossRows();
-                if (!t.hasAny || t.ms >= TWO_YEARS_MS) {
-                    $msg.empty();
+                /* Legacy banner under the cards (kept for backward compatibility with footer.blade.php). */
+                var $msg = $('#work-exp-total-msg');
+                if ($msg.length) {
+                    if (!t.hasAny || t.ms >= TWO_YEARS_MS) { $msg.empty(); }
+                    else {
+                        $msg.html(
+                            '<div class="work-exp-total-error text-danger small" role="alert">' +
+                                'Minimum 2 Years Experience needed across all entries.' +
+                            '</div>'
+                        );
+                    }
+                }
+                updateWorkAddBtn();
+            }
+
+            /** Row-count badge + disable state on the Add button. */
+            function updateWorkAddBtn() {
+                var rows = $('#work-container .work-fields').length;
+                $('#work-exp-row-count').text('(' + rows + '/' + MAX_WORK_ROWS + ')');
+                $('#work-exp-add-btn').prop('disabled', rows >= MAX_WORK_ROWS);
+            }
+
+            /** Toggle the .is-locked class + lock-icon visibility + conditional hint on a field wrapper. */
+            function setFieldLock($tr, fieldName, locked) {
+                var $f = $tr.find('.work-card-field[data-field="' + fieldName + '"]');
+                if (!$f.length) return;
+                $f.toggleClass('is-locked', !!locked);
+                $f.find('.lock-icon').toggle(!!locked);
+                if (locked) {
+                    $f.find('.work-card-field-hint[data-hint="' + fieldName + '"], ' +
+                            '.work-card-field-hint[data-hint="' + mapHintName(fieldName) + '"]').show();
+                    if (fieldName === 'relieve') $f.find('.work-card-field-hint[data-hint="relieve-default"]').hide();
+                } else {
+                    $f.find('.work-card-field-hint[data-hint="' + fieldName + '"], ' +
+                            '.work-card-field-hint[data-hint="' + mapHintName(fieldName) + '"]').hide();
+                    if (fieldName === 'relieve') $f.find('.work-card-field-hint[data-hint="relieve-default"]').show();
+                }
+            }
+            /* data-field uses kebab; some hints use shorter names. */
+            function mapHintName(fieldName) {
+                switch (fieldName) {
+                    case 'contractor-cat': return 'cat';
+                    case 'licence-number': return 'licence';
+                    case 'transformer-kva': return 'kva';
+                    default: return fieldName;
+                }
+            }
+
+            /** Row header: status pill, compact summary, expand/collapse. */
+            function updateRowHeader($tr) {
+                updateRowStatus($tr);
+            }
+
+            /** Complete rows collapse to summary strip unless manually expanded for editing. */
+            function applyRowLayout($tr) {
+                var expanded = $tr.hasClass('work-row--expanded');
+                $tr.find('.work-row-toggle-btn')
+                    .attr('aria-expanded', expanded ? 'true' : 'false')
+                    .attr('title', expanded ? 'Submit and return to summary card' : 'Expand to edit')
+                    .attr('aria-label', expanded ? 'Submit entry and return to summary card' : 'Expand entry to edit');
+            }
+
+            /** Refresh summary and collapse expanded complete row back to order-card view. */
+            function collapseToSummary($tr) {
+                $tr.find('.work-row-done-hint').remove();
+                if (!isRowComplete($tr)) {
+                    var $bar = $tr.find('.work-row-done-bar');
+                    if ($bar.length && !$bar.find('.work-row-done-hint').length) {
+                        $bar.append('<p class="work-row-done-hint" role="alert">Fill all required fields and upload documents before you can submit.</p>');
+                    }
+                    return false;
+                }
+                $tr.removeClass('work-row--expanded');
+                applyRowLayout($tr);
+                updateRowSummary($tr);
+                syncSummaryTable();
+                return true;
+            }
+
+            /** Resolve the form row linked to a shared summary table row. */
+            function workRowFromSummaryTr($summaryTr) {
+                var linked = null;
+                $('#work-container .work-fields').each(function() {
+                    var $str = $(this).data('wxSummaryTr');
+                    if ($str && $str.length && $str[0] === $summaryTr[0]) {
+                        linked = $(this);
+                        return false;
+                    }
+                });
+                return linked;
+            }
+
+            /** Create (once) the shared-table row for a work-fields block. */
+            function getSummaryTr($tr) {
+                var $str = $tr.data('wxSummaryTr');
+                if ($str && $str.length) return $str;
+                $str = $('<tr class="work-exp-summary-tr">').append(
+                    $('<td class="work-row-summary-sno">'),
+                    $('<td class="work-row-summary-employment">'),
+                    $('<td class="work-row-summary-org-address">'),
+                    $('<td class="work-row-summary-designation">'),
+                    $('<td class="work-row-summary-nature">'),
+                    $('<td class="work-row-summary-voltage">'),
+                    $('<td class="work-row-summary-kva">'),
+                    $('<td class="work-row-summary-period">'),
+                    $('<td class="work-row-summary-attachments">'),
+                    $('<td class="work-row-summary-actions">').append(
+                        $('<button type="button" class="wx-order-edit-link work-row-edit-trigger" aria-label="Edit this work experience entry">')
+                            .html('<i class="fa fa-pencil" aria-hidden="true"></i> Edit'),
+                        $('<button type="button" class="work-row-remove remove-work" title="Remove this entry" aria-label="Remove this work experience entry">')
+                            .html('<i class="fa fa-trash-o" aria-hidden="true"></i>')
+                    )
+                );
+                $tr.data('wxSummaryTr', $str);
+                $('#work-exp-summary-tbody').append($str);
+                return $str;
+            }
+
+            /** Show complete collapsed rows in the shared table; hide their form cards. */
+            function syncSummaryTable() {
+                var $panel = $('#work-exp-summary-panel');
+                var $tbody = $('#work-exp-summary-tbody');
+                var hasVisible = false;
+                var linkedRows = [];
+                $('#work-container .work-fields').each(function() {
+                    var $wf = $(this);
+                    var inTable = $wf.hasClass('is-complete') && $wf.hasClass('work-row--compact');
+                    if ($wf.hasClass('is-complete')) getSummaryTr($wf);
+                    var $str = $wf.data('wxSummaryTr');
+                    if (inTable && $str && $str.length) {
+                        $tbody.append($str);
+                        $str.show();
+                        $wf.addClass('work-row--in-summary');
+                        linkedRows.push($str[0]);
+                        hasVisible = true;
+                    } else {
+                        if ($str && $str.length) $str.hide();
+                        $wf.removeClass('work-row--in-summary');
+                    }
+                });
+                $tbody.find('.work-exp-summary-tr').each(function() {
+                    if (linkedRows.indexOf(this) === -1) {
+                        $(this).hide();
+                    }
+                });
+                $panel.toggleClass('is-visible', hasVisible);
+                refreshWorkSerials();
+            }
+            window.wxSyncWorkSummaryTable = syncSummaryTable;
+
+            /** Summary table row — filled details shown when collapsed. */
+            function updateRowSummary($tr) {
+                if (!$tr.hasClass('is-complete')) return;
+                var $str = getSummaryTr($tr);
+                var type = ($tr.find('.work-employment-type').val() || '').trim();
+                var employer = ($tr.find('.work-employer-input').val() || '').trim();
+                var address = ($tr.find('.work-org-address').val() || '').trim();
+                var designation = ($tr.find('.work-designation').val() || '').trim();
+                var cat = ($tr.find('.work-contractor-cat').val() || '').trim();
+                var licence = ($tr.find('.work-licence-number').val() || '').trim();
+                var nature = ($tr.find('.work-nature').val() || '').trim();
+                var voltage = ($tr.find('.work-voltage').val() || '').trim();
+                var kva = ($tr.find('.work-transformer-kva').val() || '').trim();
+                var fromIso = ($tr.find('.work-date-from').val() || '').trim();
+                var toIso = ($tr.find('.work-date-to').val() || '').trim();
+                var isTill = $tr.find('.work-date-till').is(':checked');
+                var y = ($tr.find('.work-duration-y').val() || '').trim();
+                var m = ($tr.find('.work-duration-m').val() || '').trim();
+                var d = ($tr.find('.work-duration-d').val() || '').trim();
+                var isContractor = (type === CONTRACTOR_TYPE);
+
+                /* Col 1 — Employment Type (+ contractor cat / licence) */
+                var $empCell = $str.find('.work-row-summary-employment');
+                $empCell.empty();
+                $empCell.append($('<span class="wx-sum-main">').text(type ? (EMP_LABEL[type] || type) : '—'));
+                if (isContractor && cat) {
+                    $empCell.append($('<span class="wx-sum-sub">').text('Cat: ' + cat));
+                }
+                if (isContractor && licence) {
+                    $empCell.append($('<span class="wx-sum-sub">').text('Licence: ' + licence));
+                }
+
+                /* Col 2 — Organisation & Address */
+                var $orgCell = $str.find('.work-row-summary-org-address');
+                $orgCell.empty();
+                $orgCell.append($('<span class="wx-sum-main">').text(employer || '—'));
+                if (address) {
+                    $orgCell.append($('<span class="wx-sum-sub">').text(address));
+                }
+
+                /* Col 3–6 */
+                $str.find('.work-row-summary-designation').text(designation || '—');
+                $str.find('.work-row-summary-nature').text(nature ? (NATURE_LABEL[nature] || nature) : '—');
+                $str.find('.work-row-summary-voltage').text(voltage ? (VOLTAGE_LABEL[voltage] || voltage) : '—');
+                if (voltage === VOLTAGE_DISABLES_KVA) {
+                    $str.find('.work-row-summary-kva').text('Not applicable');
+                } else {
+                    $str.find('.work-row-summary-kva').text(kva ? (kva + ' kVA') : '—');
+                }
+
+                /* Col 7 — From / To / Duration (mini boxes) */
+                var $periodCell = $str.find('.work-row-summary-period');
+                $periodCell.empty();
+                var toEffIso = isTill ? todayIso() : toIso;
+                var toText = isTill ? 'Till date' : (toIso ? fmtPretty(toIso) : '—');
+                var yN = parseInt(y, 10) || 0, mN = parseInt(m, 10) || 0, dN = parseInt(d, 10) || 0;
+                if (!y && !m && !d && fromIso && toEffIso) {
+                    var fromDt = new Date(fromIso + 'T12:00:00');
+                    var toDt = new Date(toEffIso + 'T12:00:00');
+                    var diff = calendarDiffYMD(fromDt, toDt);
+                    if (diff) { yN = diff.y; mN = diff.m; dN = diff.d; }
+                }
+                var $box = $('<div class="wx-period-box">');
+                var $dates = $('<div class="wx-period-dates">');
+                $dates.append(
+                    $('<div class="wx-period-mini">')
+                        .append($('<span class="wx-period-label">').text('From'))
+                        .append($('<span class="wx-period-val">').text(fromIso ? fmtPretty(fromIso) : '—'))
+                );
+                $dates.append(
+                    $('<div class="wx-period-mini">')
+                        .append($('<span class="wx-period-label">').text('To'))
+                        .append($('<span class="wx-period-val">').text(toText))
+                );
+                $box.append($dates);
+                if (fromIso && toEffIso) {
+                    var $durRow = $('<div class="wx-period-duration">');
+                    [
+                        { n: yN, l: 'Years' },
+                        { n: mN, l: 'Months' },
+                        { n: dN, l: 'Days' }
+                    ].forEach(function(item) {
+                        $durRow.append(
+                            $('<div class="wx-period-dur-cell">')
+                                .append($('<span class="wx-period-dur-num">').text(String(item.n)))
+                                .append($('<span class="wx-period-dur-lbl">').text(item.l))
+                        );
+                    });
+                    $box.append($durRow);
+                }
+                $periodCell.append($box);
+
+                /* Col 8 — Attachments */
+                var $docInput = $tr.find('.work-doc-input');
+                var $relInput = $tr.find('.work-relieve-input');
+                var $attachCell = $str.find('.work-row-summary-attachments');
+                $attachCell.empty();
+                var $attachStack = $('<div class="wx-sum-attach-stack">');
+                $attachStack.append(summaryAttachmentBlock('Supporting', $docInput, null));
+                $attachStack.append(summaryAttachmentBlock('Relieving', $relInput, isTill ? 'Not required (Till date)' : null));
+                $attachCell.append($attachStack);
+            }
+
+            function toggleRowExpanded($tr, expand) {
+                if (!$tr.hasClass('is-complete')) return;
+                var wasExpanded = $tr.hasClass('work-row--expanded');
+                var shouldExpand = (typeof expand === 'boolean') ? expand : !wasExpanded;
+                if (wasExpanded && !shouldExpand) {
+                    collapseToSummary($tr);
                     return;
                 }
-                $msg.html(
-                    '<div class="work-exp-total-error text-danger small" role="alert">' +
-                    'Minimum 2 Years Experience needed across all entries.' +
-                    '</div>'
-                );
+                $tr.toggleClass('work-row--expanded', shouldExpand);
+                if (shouldExpand) {
+                    $tr.removeClass('work-row--compact');
+                }
+                applyRowLayout($tr);
+                syncSummaryTable();
+                $tr.find('.work-row-done-hint').remove();
+                if (shouldExpand) {
+                    var $focus = $tr.find('.work-row-grid :input:not([type="hidden"]):not([readonly]):enabled').first();
+                    if ($focus.length) $focus.trigger('focus');
+                }
+            }
+
+            /** Complete rows switch to compact order-card layout (no status badge in UI). */
+            function updateRowStatus($tr) {
+                var wasComplete = !!$tr.data('wxWasComplete');
+                var complete = isRowComplete($tr);
+                $tr.toggleClass('is-complete', complete);
+                if (complete) {
+                    if (!wasComplete) $tr.removeClass('work-row--expanded');
+                } else {
+                    $tr.removeClass('work-row--expanded');
+                }
+                $tr.data('wxWasComplete', complete);
+                applyRowLayout($tr);
+                updateRowSummary($tr);
+                syncSummaryTable();
+            }
+
+            function workInputHasFile($input) {
+                if (!$input || !$input.length) return false;
+                var el = $input[0];
+                if (el && el.files && el.files.length) return true;
+                if ($input.attr('data-has-local-file') === '1') return true;
+                var $wrap = $input.closest('.form-s-file-upload-wrap');
+                if ($wrap.length && $wrap.next('.local-file-preview').find('.preview-link').length) return true;
+                return String($input.val() || '').trim() !== '';
+            }
+
+            function isRowComplete($tr) {
+                var type = ($tr.find('.work-employment-type').val() || '').trim();
+                if (!type) return false;
+                /* Every enabled required text/select must be filled. */
+                var ok = true;
+                $tr.find('select[required], input[type="text"][required], input[type="number"][required]').each(function() {
+                    if ($(this).prop('disabled')) return;
+                    if (($(this).val() || '').trim() === '') { ok = false; return false; }
+                });
+                if (!readWorkDateFromInput($tr.find('.work-date-from'))) ok = false;
+                if (!$tr.find('.work-date-till').is(':checked') && !$tr.find('.work-date-to').prop('disabled')
+                    && !readWorkDateFromInput($tr.find('.work-date-to'))) ok = false;
+                if (!ok) return false;
+                var voltage = ($tr.find('.work-voltage').val() || '').trim();
+                var $kva = $tr.find('.work-transformer-kva');
+                if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                var $doc = $tr.find('.work-doc-input');
+                if (!$doc.prop('disabled') && !workInputHasFile($doc)) return false;
+                var till = $tr.find('.work-date-till').is(':checked');
+                if (!till) {
+                    var $rel = $tr.find('.work-relieve-input');
+                    if (!$rel.prop('disabled') && !workInputHasFile($rel)) return false;
+                }
+                return true;
             }
 
             function updateTotalYears($tr) {
-                var fromStr = ($tr.find('.work-date-from').val() || '').trim();
-                var toStr = ($tr.find('.work-date-to').val() || '').trim();
-                if (!fromStr || !toStr) {
-                    clearWorkDuration($tr);
-                    syncLegacyHidden($tr);
-                    updateOverallTotalYears();
-                    return;
-                }
-                var from = new Date(fromStr + 'T12:00:00'),
-                    to = new Date(toStr + 'T12:00:00');
-                if (isNaN(from.getTime()) || isNaN(to.getTime())) {
-                    clearWorkDuration($tr);
-                    syncLegacyHidden($tr);
-                    updateOverallTotalYears();
-                    return;
-                }
-                if (to < from) {
-                    clearWorkDuration($tr);
-                    syncLegacyHidden($tr);
-                    updateOverallTotalYears();
-                    return;
-                }
+                var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
+                var toStr   = effectiveToStr($tr);
+                var done = function() { syncLegacyHidden($tr); updateOverallTotalYears(); updateRowHeader($tr); };
+                if (!fromStr || !toStr) { clearWorkDuration($tr); done(); return; }
+                var from = new Date(fromStr + 'T12:00:00'), to = new Date(toStr + 'T12:00:00');
+                if (isNaN(from.getTime()) || isNaN(to.getTime())) { clearWorkDuration($tr); done(); return; }
+                if (to < from) { clearWorkDuration($tr); done(); return; }
                 var diff = calendarDiffYMD(from, to);
-                if (!diff) {
-                    clearWorkDuration($tr);
-                    syncLegacyHidden($tr);
-                    updateOverallTotalYears();
-                    return;
-                }
+                if (!diff) { clearWorkDuration($tr); done(); return; }
                 $tr.find('.work-duration-y').val(String(diff.y));
                 $tr.find('.work-duration-m').val(String(diff.m));
                 $tr.find('.work-duration-d').val(String(diff.d));
                 var yearsDec = (to - from) / 86400000 / 365.25;
                 var rounded = Math.round(yearsDec * 10) / 10;
                 $tr.find('.work-experience-total-hidden').val(rounded.toFixed(1));
-                syncLegacyHidden($tr);
-                updateOverallTotalYears();
+                done();
             }
 
+            /** Lock or unlock the row's relieving-letter upload based on the till-date checkbox. */
+            function applyTillDate($tr) {
+                var $till = $tr.find('.work-date-till');
+                var checked = $till.is(':checked');
+                $tr.find('.work-date-till-hidden').val(checked ? '1' : '0');
+
+                var $toDate = $tr.find('.work-date-to');
+                if (checked) {
+                    $toDate.val('').prop('disabled', true).prop('required', false);
+                } else {
+                    $toDate.prop('disabled', false);
+                    // Required-state for $toDate is re-evaluated by applyEmploymentType.
+                }
+                setFieldLock($tr, 'to-date', checked);
+
+                var $relieve = $tr.find('.work-relieve-input');
+                if (checked) {
+                    $relieve.val('').prop('disabled', true).prop('required', false).addClass('is-locked');
+                    var $wrap = $relieve.closest('.form-s-file-upload-wrap');
+                    var $preview = $wrap.next('.local-file-preview');
+                    if ($preview.length) {
+                        var blobUrl = $preview.data('blobUrl');
+                        if (blobUrl) { try { URL.revokeObjectURL(blobUrl); } catch(e) {} }
+                        $preview.remove();
+                    }
+                    $relieve.removeAttr('data-has-local-file');
+                } else {
+                    $relieve.prop('disabled', false).removeClass('is-locked');
+                    // Required-state for $relieve is re-evaluated by applyEmploymentType.
+                }
+                setFieldLock($tr, 'relieve', checked);
+                updateTotalYears($tr);
+                updateRowHeader($tr);
+            }
+
+            /** Lock or unlock the row's Transformer-kVA input based on the voltage dropdown. */
+            function applyVoltage($tr) {
+                var v = ($tr.find('.work-voltage').val() || '').trim();
+                var $kva = $tr.find('.work-transformer-kva');
+                var locked = (v === VOLTAGE_DISABLES_KVA);
+                if (locked) {
+                    $kva.val('').prop('disabled', true).prop('required', false);
+                    $kva.nextAll('.error-message').remove();
+                    $tr.find('.work-card-field[data-field="transformer-kva"] .error-message').remove();
+                } else {
+                    $kva.prop('disabled', false);
+                    // Required-state is re-evaluated by applyEmploymentType (only required when a type is chosen).
+                }
+                setFieldLock($tr, 'transformer-kva', locked);
+            }
+
+            /** Drive every column's enable / required state from the Employment Type. */
             function applyEmploymentType($tr) {
-                var t = $tr.find('.work-employment-type').val() || '';
-                $tr.find('.work-employer-label').text(EMP_LABELS[t] || EMP_LABELS['']);
-                $tr.find('.work-employer-req').toggle(!!t);
+                var t = ($tr.find('.work-employment-type').val() || '').trim();
+                var hasType = t !== '';
+                var isContractor = (t === CONTRACTOR_TYPE);
+
+                var $cat = $tr.find('.work-contractor-cat');
+                var $lic = $tr.find('.work-licence-number');
                 var $emp = $tr.find('.work-employer-input');
-                var $yFrom = $tr.find('.work-date-from'),
-                    $yTo = $tr.find('.work-date-to');
-                var $blockInt = $tr.find('.work-block--intimation'),
-                    $intDate = $tr.find('.work-intimation-date');
-                if (!t) {
-                    $emp.prop('disabled', true).prop('required', false);
-                    $yFrom.prop('required', false);
-                    $yTo.prop('required', false);
-                    $blockInt.hide();
-                    $intDate.prop('disabled', false).prop('required', false).val('');
+                var $addr = $tr.find('.work-org-address');
+                var $des = $tr.find('.work-designation');
+                var $nat = $tr.find('.work-nature');
+                var $volt = $tr.find('.work-voltage');
+                var $kva = $tr.find('.work-transformer-kva');
+                var $yFrom = $tr.find('.work-date-from');
+                var $yTo = $tr.find('.work-date-to');
+                var $till = $tr.find('.work-date-till');
+                var $doc = $tr.find('.work-doc-input');
+                var $rel = $tr.find('.work-relieve-input');
+                var $qsRadios = $tr.find('.work-qualified-supervisor-radio');
+
+                if (!hasType) {
+                    /* No type selected → blank every column 3–13. */
+                    $cat.val('').prop('disabled', true).prop('required', false);
+                    $lic.val('').prop('disabled', true).prop('required', false);
+                    $emp.val('').prop('disabled', true).prop('required', false);
+                    $addr.val('').prop('disabled', true).prop('required', false);
+                    $des.val('').prop('disabled', true).prop('required', false);
+                    $nat.val('').prop('disabled', true).prop('required', false);
+                    $volt.val('').prop('disabled', true).prop('required', false);
+                    $kva.val('').prop('disabled', true).prop('required', false);
+                    $yFrom.val('').prop('disabled', true).prop('required', false);
+                    $yTo.val('').prop('disabled', true).prop('required', false);
+                    $till.prop('checked', false).prop('disabled', true);
+                    $tr.find('.work-date-till-hidden').val('0');
+                    $doc.val('').prop('disabled', true).prop('required', false).removeAttr('data-has-local-file').addClass('is-locked');
+                    $rel.val('').prop('disabled', true).prop('required', false).removeAttr('data-has-local-file').addClass('is-locked');
+                    setFieldLock($tr, 'contractor-cat', false);
+                    setFieldLock($tr, 'licence-number', false);
+                    setFieldLock($tr, 'transformer-kva', false);
+                    setFieldLock($tr, 'to-date', false);
+                    setFieldLock($tr, 'relieve', false);
+                    /* Clear any blob previews left over from a previous selection. */
+                    $tr.find('.local-file-preview').each(function() {
+                        var $p = $(this);
+                        var url = $p.data('blobUrl');
+                        if (url) { try { URL.revokeObjectURL(url); } catch(e) {} }
+                        $p.remove();
+                    });
+                    clearWorkDuration($tr);
                     syncLegacyHidden($tr);
+                    updateOverallTotalYears();
+                    updateRowHeader($tr);
                     return;
                 }
-                $emp.prop('disabled', false).prop('required', true);
-                $yFrom.prop('required', true);
-                $yTo.prop('required', true);
-                if (t === 'contractor') {
-                    $blockInt.show();
-                    $intDate.prop('disabled', false).prop('required', true);
+
+                /* Cols 3 & 4 — Contractor only. */
+                if (isContractor) {
+                    $cat.prop('disabled', false).prop('required', true);
+                    $lic.prop('disabled', false).prop('required', true);
+                    setFieldLock($tr, 'contractor-cat', false);
+                    setFieldLock($tr, 'licence-number', false);
                 } else {
-                    $blockInt.hide();
-                    $intDate.prop('disabled', false).prop('required', false).val('');
+                    $cat.val('').prop('disabled', true).prop('required', false);
+                    $lic.val('').prop('disabled', true).prop('required', false);
+                    setFieldLock($tr, 'contractor-cat', true);
+                    setFieldLock($tr, 'licence-number', true);
                 }
+
+                /* Cols 5–9, 11–12 — required for every chosen type. */
+                $emp.prop('disabled', false).prop('required', true);
+                $addr.prop('disabled', false).prop('required', true);
+                $des.prop('disabled', false).prop('required', true);
+                $nat.prop('disabled', false).prop('required', true);
+                $volt.prop('disabled', false).prop('required', true);
+                $yFrom.prop('disabled', false).prop('required', true);
+                $till.prop('disabled', false);
+                $doc.prop('disabled', false).prop('required', false).removeClass('is-locked');
+
+                /* Col 10 — kVA is conditional on voltage; let applyVoltage finalise it. */
+                $volt.prop('disabled', false);
+                applyVoltage($tr);
+                /* When voltage allows kVA, make it required. */
+                if (!$kva.prop('disabled')) $kva.prop('required', true);
+
+                /* Col 11.To & Col 13 — conditional on Till date. */
+                applyTillDate($tr);
+                if (!$yTo.prop('disabled')) $yTo.prop('required', true);
+                if (!$rel.prop('disabled')) $rel.prop('required', false);
+                /* Note: supporting doc (col 12) AND relieving letter (col 13) are validated
+                   at submit-time (file OR existing path); we don't mark them HTML5-required
+                   because that breaks the cross-row "till date" logic. */
+
                 updateTotalYears($tr);
                 syncLegacyHidden($tr);
+                updateRowHeader($tr);
             }
 
-            function initWorkRow($tr) {
-                applyEmploymentType($tr);
-            }
+            function initWorkRow($tr) { applyEmploymentType($tr); }
 
             function refreshWorkSerials() {
-                $('#work-container .work-fields .work-serial').each(function(idx) {
-                    $(this).text(String(idx + 1));
+                $('#work-container .work-fields').each(function(idx) {
+                    var n = idx + 1;
+                    var $row = $(this);
+                    $row.attr('data-row-index', idx);
+                    $row.find('.work-row-entry-num').text(n);
+                    var $str = $row.data('wxSummaryTr');
+                    if ($str && $str.length) $str.find('.work-row-summary-sno').text(n);
                 });
+                updateWorkAddBtn();
             }
+
+            function showSectionError(msg) {
+                $('.work-error').remove();
+                var $bar = $('#work-container').prev('.work-exp-section-bar');
+                var $err = $('<div class="text-danger small mt-1 work-error" role="alert">' + msg + '</div>');
+                if ($bar.length) $bar.after($err); else $('#work-container').before($err);
+                setTimeout(function() { $('.work-error').fadeOut(400, function() { $(this).remove(); }); }, 5000);
+            }
+
+            window.wxRecalcWorkDuration = function($row) {
+                if ($row && $row.length) {
+                    updateTotalYears($row);
+                }
+            };
 
             $(document).ready(function() {
                 $('#work-container .work-fields').each(function() {
-                    initWorkRow($(this));
+                    var $row = $(this);
+                    initWorkRow($row);
+                    updateTotalYears($row);
                 });
                 refreshWorkSerials();
+                syncSummaryTable();
                 updateOverallTotalYears();
             });
 
-            $(document).on('change', '.work-employment-type', function() {
-                applyEmploymentType($workRow(this));
+            /* Type / voltage / till-date drive all the conditional locks. */
+            $(document).on('change', '#work-container .work-employment-type', function() { applyEmploymentType($workRow(this)); });
+            $(document).on('change', '#work-container .work-voltage', function() {
+                var $tr = $workRow(this);
+                applyVoltage($tr);
+                if (!$tr.find('.work-transformer-kva').prop('disabled')) {
+                    $tr.find('.work-transformer-kva').prop('required', true);
+                } else {
+                    $tr.find('.work-transformer-kva').prop('required', false);
+                }
+                $tr.find('.work-transformer-kva').nextAll('.error-message').remove();
+                $tr.find('.work-card-field[data-field="transformer-kva"] .error-message').remove();
+                updateRowHeader($tr);
             });
-            $(document).on('change input blur', '.work-date-from, .work-date-to', function() {
+            $(document).on('change', '#work-container .work-date-till', function() {
+                var $tr = $workRow(this);
+                applyTillDate($tr);
+            });
+            $(document).on('change input blur', '#work-container .work-date-from, #work-container .work-date-to', function() {
+                var $field = $(this);
+                syncWorkDateRaw($field);
+                clearWorkDateFieldErrors($field);
                 updateTotalYears($workRow(this));
             });
-            $(document).on('input change', '.work-employer-input, .work-intimation-date', function() {
-                syncLegacyHidden($workRow(this));
+            /* Any field change refreshes the live row header + status pill. */
+            $(document).on('input change', '#work-container .work-employer-input', function() {
+                var $tr = $workRow(this);
+                syncLegacyHidden($tr); updateRowHeader($tr);
+            });
+            $(document).on('input change', '#work-container .work-fields :input', function() {
+                var $tr = $workRow(this);
+                updateRowStatus($tr);
+            });
+            /* File-input change also affects "Complete" pill. */
+            $(document).on('change', '#work-container .work-doc-input, #work-container .work-relieve-input', function() {
+                var $tr = $workRow(this);
+                clearWorkRowUploadErrors($tr);
+                updateRowStatus($tr);
             });
 
+            $(document).on('click', '#work-exp-summary-tbody .work-row-edit-trigger', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var $wf = workRowFromSummaryTr($(this).closest('.work-exp-summary-tr'));
+                if ($wf && $wf.length) toggleRowExpanded($wf, true);
+            });
+
+            /* Click compact summary header (or chevron) to expand/collapse for editing. */
+            $(document).on('click', '#work-container .work-row-head', function(e) {
+                if ($(e.target).closest('.work-row-remove, .remove-work').length) return;
+                var $tr = $workRow(this);
+                if (!$tr.hasClass('is-complete')) return;
+                toggleRowExpanded($tr);
+            });
+            $(document).on('click', '#work-container .work-row-edit-trigger', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleRowExpanded($workRow(this), true);
+            });
+            $(document).on('click', '#work-container .work-row-toggle-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleRowExpanded($workRow(this));
+            });
+            $(document).on('click', '#work-container .work-row-done-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                collapseToSummary($workRow(this));
+            });
+
+            /* Add / remove handlers — bound via delegation so cloned rows keep working. */
             document.addEventListener('click', function(e) {
                 var container = document.getElementById('work-container');
                 if (!container) return;
-                var workRows = container.querySelectorAll('.work-fields');
 
                 if (e.target.closest('.add-more-work')) {
-                    if (workRows.length >= 3) {
-                        $('#work-table').next('.work-error').remove();
-                        $('<div class="text-danger mt-2 work-error">You can add a maximum of 3 work experience entries.</div>').insertAfter('#work-table');
-                        setTimeout(function() {
-                            $('.work-error').fadeOut();
-                        }, 7000);
+                    e.preventDefault();
+                    var workRows = container.querySelectorAll('.work-fields');
+                    if (workRows.length >= MAX_WORK_ROWS) {
+                        showSectionError('You can add a maximum of ' + MAX_WORK_ROWS + ' work experience entries.');
                         return;
                     }
                     var first = container.querySelector('.work-fields');
                     var newRow = first.cloneNode(true);
-                    newRow.querySelectorAll('input[type="file"]').forEach(function(el) {
-                        el.value = '';
-                        el.removeAttribute('data-has-local-file');
-                    });
+                    /* Blank the clone before appending. */
+                    newRow.classList.remove('is-collapsed', 'is-complete', 'work-row--compact', 'work-row--expanded', 'work-row--in-summary');
+                    $(newRow).removeData('wxSummaryTr');
+                    newRow.querySelectorAll('input[type="file"]').forEach(function(el) { el.value = ''; el.removeAttribute('data-has-local-file'); });
                     newRow.querySelectorAll('.local-file-preview').forEach(function(preview) {
                         var blobUrl = preview.dataset ? preview.dataset.blobUrl : '';
-                        if (blobUrl) {
-                            try {
-                                URL.revokeObjectURL(blobUrl);
-                            } catch (e) {}
-                        }
+                        if (blobUrl) { try { URL.revokeObjectURL(blobUrl); } catch(err) {} }
                         preview.remove();
                     });
-                    newRow.querySelectorAll('.work-date-from, .work-date-to').forEach(function(inp) {
-                        inp.value = '';
-                    });
-                    var typeSel = newRow.querySelector('.work-employment-type');
-                    if (typeSel) typeSel.selectedIndex = 0;
-                    newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(inp) {
-                        inp.value = '';
-                    });
-                    var hTot = newRow.querySelector('.work-experience-total-hidden');
-                    if (hTot) hTot.value = '';
-                    var hLevel = newRow.querySelector('.work-level-sync');
-                    if (hLevel) hLevel.value = '';
-                    var hEx = newRow.querySelector('.experience-sync');
-                    if (hEx) hEx.value = '';
-                    var empIn = newRow.querySelector('.work-employer-input');
-                    if (empIn) empIn.value = '';
-                    var intIn = newRow.querySelector('.work-intimation-date');
-                    if (intIn) intIn.value = '';
-                    var desIn = newRow.querySelector('input[name="designation[]"]');
-                    if (desIn) desIn.value = '';
+                    newRow.querySelectorAll('input[type="text"], input[type="date"], input[type="number"]').forEach(function(inp) { inp.value = ''; });
+                    newRow.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
+                    var till = newRow.querySelector('.work-date-till'); if (till) till.checked = false;
+                    var tillH = newRow.querySelector('.work-date-till-hidden'); if (tillH) tillH.value = '0';
+                    newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(inp) { inp.value = ''; });
+                    var hTot = newRow.querySelector('.work-experience-total-hidden'); if (hTot) hTot.value = '';
+                    var hLevel = newRow.querySelector('.work-level-sync'); if (hLevel) hLevel.value = '';
+                    var hEx = newRow.querySelector('.experience-sync'); if (hEx) hEx.value = '';
+                    /* Clear inline error messages copied over from the template. */
+                    newRow.querySelectorAll('.error-message').forEach(function(el) { el.remove(); });
                     container.appendChild(newRow);
                     initWorkRow($(newRow));
                     refreshWorkSerials();
+                    syncSummaryTable();
                     updateOverallTotalYears();
+                    /* Smooth scroll the new card into view. */
+                    newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     return;
                 }
 
                 if (e.target.closest('.remove-work')) {
+                    e.preventDefault();
+                    var workRows = container.querySelectorAll('.work-fields');
                     if (workRows.length <= 1) {
-                        $('#work-table').next('.work-error').remove();
-                        $('<div class="text-danger mt-2 work-error">You must have at least one work experience entry.</div>').insertAfter('#work-table');
-                        setTimeout(function() {
-                            $('.work-error').fadeOut();
-                        }, 7000);
+                        showSectionError('You must have at least one work experience entry.');
                         return;
                     }
-                    let row = e.target.closest('tr');
-
-                        if (row) {
-                            row.remove();
+                    var card = e.target.closest('.work-fields');
+                    if (!card) {
+                        var $summaryTr = $(e.target).closest('.work-exp-summary-tr');
+                        if ($summaryTr.length) {
+                            var $linked = workRowFromSummaryTr($summaryTr);
+                            if ($linked && $linked.length) card = $linked[0];
                         }
-                    refreshWorkSerials();
-                    updateOverallTotalYears();
+                    }
+                    if (!card) return;
+                    var $card = $(card);
+                    var $summaryTr = $card.data('wxSummaryTr');
+                    if ($summaryTr && $summaryTr.length) {
+                        $summaryTr.remove();
+                        $card.removeData('wxSummaryTr');
+                    }
+                    /* Animate-out, then remove. */
+                    card.classList.add('is-removing');
+                    setTimeout(function() {
+                        if (card.parentNode) card.parentNode.removeChild(card);
+                        refreshWorkSerials();
+                        syncSummaryTable();
+                        updateOverallTotalYears();
+                    }, 180);
                 }
             });
         })();
 
         $('#verify_form_s').on('click', function() {
             const licenseNumber = $('#certificate_no').val().trim().toUpperCase();
-            const date = $('#certificate_date').val().trim();
+            const date = $('#certificate_valid_to').val().trim();
             const regex = /^(B|C|LC|LB)\d+$/;
             licenseError.textContent = '';
             $('#dateError').text('');
             let isValid = true;
-            if (licenseNumber === '' || !regex.test(licenseNumber)) {
-                licenseError.textContent = 'Enter a valid Certificate Number';
-                isValid = false;
-            }
-            if (date === '') {
-                $('#dateError').text('Date is required');
-                isValid = false;
-            } else {
+            if (licenseNumber === '' || !regex.test(licenseNumber)) { licenseError.textContent = 'Enter a valid Certificate Number'; isValid = false; }
+            if (date === '') { $('#dateError').text('Date is required'); isValid = false; }
+            else {
                 const regexDate = /^(\d{4})-(\d{2})-(\d{2})$/;
                 const parts = date.match(regexDate);
-                if (!parts) {
-                    $('#dateError').text('Enter a valid date');
-                    isValid = false;
-                } else {
-                    const year = parseInt(parts[1], 10),
-                        month = parseInt(parts[2], 10) - 1,
-                        day = parseInt(parts[3], 10);
+                if (!parts) { $('#dateError').text('Enter a valid date'); isValid = false; }
+                else {
+                    const year = parseInt(parts[1],10), month = parseInt(parts[2],10)-1, day = parseInt(parts[3],10);
                     const checkDate = new Date(year, month, day);
-                    if (checkDate.getFullYear() !== year || checkDate.getMonth() !== month || checkDate.getDate() !== day || year < 1800) {
-                        $('#dateError').text('Enter a valid date');
-                        isValid = false;
-                    }
+                    if (checkDate.getFullYear() !== year || checkDate.getMonth() !== month || checkDate.getDate() !== day || year < 1800) { $('#dateError').text('Enter a valid date'); isValid = false; }
                 }
             }
             if (!isValid) return;
             $.ajax({
-                url: "{{ route('verifylicense') }}",
-                method: "POST",
-                data: {
-                    license_number: licenseNumber,
-                    date: date,
-                    _token: $('meta[name="csrf-token"]').attr("content")
-                },
+                url: "{{ route('verifylicense') }}", method: "POST",
+                data: { license_number: licenseNumber, date: date, _token: $('meta[name="csrf-token"]').attr("content") },
                 success: function(response) {
                     let $msgBox = $("#license_message");
                     if (response.exists) $msgBox.removeClass("text-danger").addClass("text-success").html("&#10004; License verified.");
                     else $msgBox.removeClass("text-success").addClass("text-danger").html("&#10060; License not found.");
                 },
-                error: function() {
-                    $("#license_message").removeClass("text-success").addClass("text-danger").html("🚫 Error verifying license. Try again.");
-                }
+                error: function() { $("#license_message").removeClass("text-success").addClass("text-danger").html("🚫 Error verifying license. Try again."); }
             });
         });
 
-      
+       
     </script>
     <script>
-        // ── Preview Modal ────────────────────────────────────────────────────────
-        var EDU_LEVEL_MAP = {
-            DEE: 'Diploma(Electrical Engineering)',
-            BEE: 'B.E(Electrical Engineering)',
-            MEE: 'M.E(Electrical Engineering)',
-            AMIE: 'A pass in AMIE'
-        };
-        var MONTH_MAP = {
-            '01': 'Jan',
-            '02': 'Feb',
-            '03': 'Mar',
-            '04': 'Apr',
-            '05': 'May',
-            '06': 'Jun',
-            '07': 'Jul',
-            '08': 'Aug',
-            '09': 'Sep',
-            '10': 'Oct',
-            '11': 'Nov',
-            '12': 'Dec'
-        };
-        var EMP_LABEL_MAP = {
-            company: 'Company',
-            contractor: 'Contractor',
-            apprentice: 'Apprentice',
-            electrical_inspector: 'Government / Quasi Government / Board',
-            retired_employees: 'Retired Employees'
-        };
+    // ── Preview Modal ────────────────────────────────────────────────────────
+    var EDU_LEVEL_MAP = {
+        DEE:'Diploma(Electrical Engineering)', BEE:'B.E(Electrical Engineering)',
+        MEE:'M.E(Electrical Engineering)', AMIE:'A pass in AMIE'
+    };
+    var MONTH_MAP = { '01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
+                      '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec' };
+    var EMP_LABEL_MAP = {
+        private_organisation: 'Private organisation',
+        electrical_contractor: 'Electrical contractor',
+        retired_employee: 'Retired Employee',
+        govt_organisation: 'Govt organisation',
+        apprenticeship: 'Apprenticeship'
+    };
+    var WORK_NATURE_MAP = {
+        erection: 'Erection',
+        maintenance: 'Maintenance',
+        erection_maintenance: 'Erection & Maintenance'
+    };
+    var VOLTAGE_LEVEL_MAP = {
+        up_to_650v: 'Up to 650V',
+        '650v_to_33kv': 'Above 650V to 33KV',
+        above_33kv: 'Above 33KV'
+    };
 
-        function fmtDate(val) {
-            if (!val) return '—';
-            var p = val.split('-');
-            return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : val;
+    function fmtDate(val) {
+        if (!val) return '—';
+        var p = val.split('-');
+        return p.length === 3 ? p[2]+'-'+p[1]+'-'+p[0] : val;
+    }
+    function setVal(id, v) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var txt = (v || '').toString().trim();
+        el.textContent = txt || '—';
+        el.classList.toggle('prv-empty', !txt);
+    }
+    function fileLabel(input) {
+        return input && input.files && input.files[0] ? input.files[0].name : '—';
+    }
+
+    function populatePreview() {
+        // Personal
+        setVal('prv_name', document.getElementById('Applicant_Name').value);
+        setVal('prv_fathers_name', document.getElementById('Fathers_Name').value);
+        var emailEl = document.getElementById('applicant_email');
+        setVal('prv_email', emailEl ? emailEl.value : '');
+        setVal('prv_address', document.getElementById('applicants_address').value);
+        setVal('prv_dob', document.getElementById('d_o_b').value);
+        setVal('prv_age', document.getElementById('age').value);
+
+        // Education
+        var eduBody = document.getElementById('prv_edu_body');
+        eduBody.innerHTML = '';
+        var eduRows = document.querySelectorAll('#education-container .education-fields');
+        if (!eduRows.length) {
+            eduBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No education entries</td></tr>';
+        } else {
+            eduRows.forEach(function(row, i) {
+                var level = row.querySelector('[name="educational_level[]"]');
+                var inst  = row.querySelector('[name="institute_name[]"]');
+                var mon   = row.querySelector('[name="month_of_passing[]"]');
+                var yr    = row.querySelector('[name="year_of_passing[]"]');
+                var cert  = row.querySelector('[name="certificate_no[]"]');
+                var doc   = row.querySelector('[name="education_document[]"]');
+                var lvlTxt = level ? (EDU_LEVEL_MAP[level.value] || level.value || '—') : '—';
+                var monTxt = mon ? (MONTH_MAP[mon.value] || mon.value || '—') : '—';
+                var yrTxt  = yr ? (yr.value === '0' || !yr.value ? '—' : yr.value) : '—';
+                var docLink = (doc && doc.files && doc.files[0])
+                    ? '<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>'
+                    : '<span class="text-muted">—</span>';
+                var tr = '<tr><td class="text-center">'+(i+1)+'</td><td>'+lvlTxt+'</td>'
+                    +'<td>'+(inst ? inst.value || '—' : '—')+'</td>'
+                    +'<td class="text-center">'+monTxt+'</td><td class="text-center">'+yrTxt+'</td>'
+                    +'<td>'+(cert ? cert.value || '—' : '—')+'</td>'
+                    +'<td class="text-center">'+docLink+'</td></tr>';
+                eduBody.innerHTML += tr;
+            });
         }
 
-        function setVal(id, v) {
-            var el = document.getElementById(id);
-            if (!el) return;
-            var txt = (v || '').toString().trim();
-            el.textContent = txt || '—';
-            el.classList.toggle('prv-empty', !txt);
+        // Work Experience
+        var workBody = document.getElementById('prv_work_body');
+        workBody.innerHTML = '';
+        var workRows = document.querySelectorAll('#work-container .work-fields');
+        if (!workRows.length) {
+            workBody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">No work entries</td></tr>';
+        } else {
+            var fileLink = function(doc) {
+                return (doc && doc.files && doc.files[0])
+                    ? '<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>'
+                    : '<span class="text-muted">—</span>';
+            };
+            var val = function(el) { return el ? ((el.value || '').trim() || '—') : '—'; };
+            workRows.forEach(function(row, i) {
+                var empType  = row.querySelector('.work-employment-type');
+                var cat      = row.querySelector('.work-contractor-cat');
+                var lic      = row.querySelector('.work-licence-number');
+                var employer = row.querySelector('.work-employer-input');
+                var address  = row.querySelector('.work-org-address');
+                var desig    = row.querySelector('[name="designation[]"]');
+                var nature   = row.querySelector('.work-nature');
+                var voltage  = row.querySelector('.work-voltage');
+                var kva      = row.querySelector('.work-transformer-kva');
+                var fromInp  = row.querySelector('.work-date-from');
+                var toInp    = row.querySelector('.work-date-to');
+                var tillChk  = row.querySelector('.work-date-till');
+                var yPart    = row.querySelector('.work-duration-y');
+                var mPart    = row.querySelector('.work-duration-m');
+                var dPart    = row.querySelector('.work-duration-d');
+                var doc      = row.querySelector('[name="work_document[]"]');
+                var rel      = row.querySelector('[name="work_relieving_letter[]"]');
+
+                var yv = yPart ? (yPart.value || '').trim() : '';
+                var mv = mPart ? (mPart.value || '').trim() : '';
+                var dv = dPart ? (dPart.value || '').trim() : '';
+                var totalTxt = (yv === '' && mv === '' && dv === '') ? '—' : (yv + 'y ' + mv + 'm ' + dv + 'd');
+
+                var empTxt    = empType ? (EMP_LABEL_MAP[empType.value] || empType.value || '—') : '—';
+                var natureTxt = nature ? (WORK_NATURE_MAP[nature.value] || nature.value || '—') : '—';
+                var voltTxt   = voltage ? (VOLTAGE_LEVEL_MAP[voltage.value] || voltage.value || '—') : '—';
+                var fromDate  = fromInp ? fmtDate(fromInp.getAttribute('data-raw') || fromInp.value) : '—';
+                var toDate    = (tillChk && tillChk.checked)
+                    ? '<span class="prv-badge-yes">Till date</span>'
+                    : (toInp ? fmtDate(toInp.getAttribute('data-raw') || toInp.value) : '—');
+
+                workBody.innerHTML +=
+                    '<tr><td class="text-center">'+(i+1)+'</td>'
+                    +'<td>'+empTxt+'</td>'
+                    +'<td class="text-center">'+val(cat)+'</td>'
+                    +'<td>'+val(lic)+'</td>'
+                    +'<td>'+val(employer)+'</td>'
+                    +'<td>'+val(address)+'</td>'
+                    +'<td>'+val(desig)+'</td>'
+                    +'<td>'+natureTxt+'</td>'
+                    +'<td>'+voltTxt+'</td>'
+                    +'<td class="text-center">'+val(kva)+'</td>'
+                    +'<td class="text-center">'+fromDate+'</td>'
+                    +'<td class="text-center">'+toDate+'</td>'
+                    +'<td class="text-center">'+totalTxt+'</td>'
+                    +'<td class="text-center">'+fileLink(doc)+'</td>'
+                    +'<td class="text-center">'+(tillChk && tillChk.checked ? '<span class="text-muted">N/A</span>' : fileLink(rel))+'</td>'
+                    +'</tr>';
+            });
         }
 
-        function fileLabel(input) {
-            return input && input.files && input.files[0] ? input.files[0].name : '—';
+        // Section 7 — Previous License
+        var prevLicYes = document.getElementById('previous_license_yes');
+        var isYes7 = prevLicYes && prevLicYes.checked;
+        var yn7 = document.getElementById('prv_prev_license_yn');
+        if (yn7) yn7.innerHTML = isYes7 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
+        var pb = document.getElementById('prv_prev_details_block'); if (pb) pb.style.display = isYes7 ? '' : 'none';
+        if (isYes7) {
+            setVal('prv_prev_cert_no', document.getElementById('previously_number') ? document.getElementById('previously_number').value : '');
+            var issEl = document.getElementById('previously_issue_date');
+            setVal('prv_prev_issue_date', issEl ? fmtDate(issEl.value) : '');
+            var fromEl = document.getElementById('previously_valid_from');
+            setVal('prv_prev_from_date', fromEl ? fmtDate(fromEl.value) : '');
+            var toEl = document.getElementById('previously_valid_to');
+            setVal('prv_prev_to_date', toEl ? fmtDate(toEl.value) : '');
         }
 
-        function populatePreview() {
-            // Personal
-            setVal('prv_name', document.getElementById('Applicant_Name').value);
-            setVal('prv_fathers_name', document.getElementById('Fathers_Name').value);
-            var emailEl = document.getElementById('applicant_email');
-            setVal('prv_email', emailEl ? emailEl.value : '');
-            setVal('prv_address', document.getElementById('applicants_address').value);
-            setVal('prv_dob', document.getElementById('d_o_b').value);
-            setVal('prv_age', document.getElementById('age').value);
-
-            // Education
-            var eduBody = document.getElementById('prv_edu_body');
-            eduBody.innerHTML = '';
-            var eduRows = document.querySelectorAll('#education-container .education-fields');
-            if (!eduRows.length) {
-                eduBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No education entries</td></tr>';
-            } else {
-                eduRows.forEach(function(row, i) {
-                    var level = row.querySelector('[name="educational_level[]"]');
-                    var inst = row.querySelector('[name="institute_name[]"]');
-                    var mon = row.querySelector('[name="month_of_passing[]"]');
-                    var yr = row.querySelector('[name="year_of_passing[]"]');
-                    var cert = row.querySelector('[name="certificate_no[]"]');
-                    var doc = row.querySelector('[name="education_document[]"]');
-                    var lvlTxt = level ? (EDU_LEVEL_MAP[level.value] || level.value || '—') : '—';
-                    var monTxt = mon ? (MONTH_MAP[mon.value] || mon.value || '—') : '—';
-                    var yrTxt = yr ? (yr.value === '0' || !yr.value ? '—' : yr.value) : '—';
-                    var docLink = (doc && doc.files && doc.files[0]) ?
-                        '<a href="' + URL.createObjectURL(doc.files[0]) + '" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>' :
-                        '<span class="text-muted">—</span>';
-                    var tr = '<tr><td class="text-center">' + (i + 1) + '</td><td>' + lvlTxt + '</td>' +
-                        '<td>' + (inst ? inst.value || '—' : '—') + '</td>' +
-                        '<td class="text-center">' + monTxt + '</td><td class="text-center">' + yrTxt + '</td>' +
-                        '<td>' + (cert ? cert.value || '—' : '—') + '</td>' +
-                        '<td class="text-center">' + docLink + '</td></tr>';
-                    eduBody.innerHTML += tr;
-                });
-            }
-
-            // Work Experience
-            var workBody = document.getElementById('prv_work_body');
-            workBody.innerHTML = '';
-            var workRows = document.querySelectorAll('#work-container .work-fields');
-            if (!workRows.length) {
-                workBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No work entries</td></tr>';
-            } else {
-                workRows.forEach(function(row, i) {
-                    var empType = row.querySelector('.work-employment-type');
-                    var employer = row.querySelector('.work-employer-input');
-                    var fromInp = row.querySelector('.work-date-from');
-                    var toInp = row.querySelector('.work-date-to');
-                    var yPart = row.querySelector('.work-duration-y');
-                    var mPart = row.querySelector('.work-duration-m');
-                    var dPart = row.querySelector('.work-duration-d');
-                    var yv = yPart ? (yPart.value || '').trim() : '';
-                    var mv = mPart ? (mPart.value || '').trim() : '';
-                    var dv = dPart ? (dPart.value || '').trim() : '';
-                    var totalTxt = (yv === '' && mv === '' && dv === '') ? '—' : (yv + 'y ' + mv + 'm ' + dv + 'd');
-                    var desig = row.querySelector('[name="designation[]"]');
-                    var doc = row.querySelector('[name="work_document[]"]');
-                    var empTxt = empType ? (EMP_LABEL_MAP[empType.value] || empType.value || '—') : '—';
-                    var fromDate = fromInp ? fmtDate(fromInp.getAttribute('data-raw') || fromInp.value) : '—';
-                    var toDate = toInp ? fmtDate(toInp.getAttribute('data-raw') || toInp.value) : '—';
-                    var docLink = (doc && doc.files && doc.files[0]) ?
-                        '<a href="' + URL.createObjectURL(doc.files[0]) + '" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>' :
-                        '<span class="text-muted">—</span>';
-                    var tr = '<tr><td class="text-center">' + (i + 1) + '</td><td>' + empTxt + '</td>' +
-                        '<td>' + (employer ? employer.value || '—' : '—') + '</td>' +
-                        '<td>' + fromDate + '</td><td>' + toDate + '</td>' +
-                        '<td class="text-center">' + totalTxt + '</td>' +
-                        '<td>' + (desig ? desig.value || '—' : '—') + '</td>' +
-                        '<td class="text-center">' + docLink + '</td></tr>';
-                    workBody.innerHTML += tr;
-                });
-            }
-
-            // Section 7 — Previous License
-            var prevLicYes = document.getElementById('previous_license_yes');
-            var isYes7 = prevLicYes && prevLicYes.checked;
-            var yn7 = document.getElementById('prv_prev_license_yn');
-            if (yn7) yn7.innerHTML = isYes7 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
-            var pb = document.getElementById('prv_prev_details_block');
-            if (pb) pb.style.display = isYes7 ? '' : 'none';
-            if (isYes7) {
-                setVal('prv_prev_cert_no', document.getElementById('previously_number') ? document.getElementById('previously_number').value : '');
-                var issEl = document.getElementById('previously_issue_date');
-                setVal('prv_prev_issue_date', issEl ? fmtDate(issEl.value) : '');
-                var expEl = document.getElementById('previously_date');
-                setVal('prv_prev_expiry_date', expEl ? fmtDate(expEl.value) : '');
-            }
-
-            // Section 8 — Wireman
-            var wireYes = document.getElementById('yesOption');
-            var isYes8 = wireYes && wireYes.checked;
-            var yn8 = document.getElementById('prv_wireman_yn');
-            if (yn8) yn8.innerHTML = isYes8 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
-            var wb = document.getElementById('prv_wireman_details_block');
-            if (wb) wb.style.display = isYes8 ? '' : 'none';
-            if (isYes8) {
-                setVal('prv_wireman_cert_no', document.getElementById('certificate_no') ? document.getElementById('certificate_no').value : '');
-                var wExpEl = document.getElementById('certificate_date');
-                setVal('prv_wireman_expiry', wExpEl ? fmtDate(wExpEl.value) : '');
-            }
-
-            // Documents — Photo
-            var photoWrap = document.getElementById('prv_photo_wrap');
-            var photoSrc = document.getElementById('photo_preview');
-            if (photoWrap) {
-                var src = photoSrc && photoSrc.style.display !== 'none' ? photoSrc.src : '';
-                photoWrap.innerHTML = src ?
-                    '<img src="' + src + '" alt="Photo" style="width:80px;height:96px;object-fit:cover;border:2px solid #dde5f3;border-radius:6px;">' :
-                    '<div class="prv-no-img">No Photo</div>';
-            }
-
-            // Documents — Signature
-            var signWrap = document.getElementById('prv_sign_wrap');
-            var signSrc = document.getElementById('sign_preview');
-            if (signWrap) {
-                var ssrc = signSrc && signSrc.style.display !== 'none' ? signSrc.src : '';
-                signWrap.innerHTML = ssrc ?
-                    '<img src="' + ssrc + '" alt="Signature" style="width:140px;height:50px;object-fit:contain;border:2px solid #dde5f3;border-radius:6px;">' :
-                    '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
-            }
-
-            // Aadhaar & PAN
-            setVal('prv_aadhaar', document.getElementById('aadhaar') ? document.getElementById('aadhaar').value : '');
-            setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
-            var aDoc = document.getElementById('aadhaar_doc');
-            setVal('prv_aadhaar_doc', fileLabel(aDoc));
-            var pDoc = document.getElementById('pancard_doc');
-            setVal('prv_pan_doc', fileLabel(pDoc));
+        // Section 9 — Wireman
+        var wireYes = document.getElementById('yesOption');
+        var isYes8 = wireYes && wireYes.checked;
+        var yn8 = document.getElementById('prv_wireman_yn');
+        if (yn8) yn8.innerHTML = isYes8 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
+        var wb = document.getElementById('prv_wireman_details_block'); if (wb) wb.style.display = isYes8 ? '' : 'none';
+        if (isYes8) {
+            setVal('prv_wireman_cert_no', document.getElementById('certificate_no') ? document.getElementById('certificate_no').value : '');
+            var wIssEl = document.getElementById('certificate_issue_date');
+            setVal('prv_wireman_issue_date', wIssEl ? fmtDate(wIssEl.value) : '');
+            var wFromEl = document.getElementById('certificate_valid_from');
+            setVal('prv_wireman_from_date', wFromEl ? fmtDate(wFromEl.value) : '');
+            var wToEl = document.getElementById('certificate_valid_to');
+            setVal('prv_wireman_to_date', wToEl ? fmtDate(wToEl.value) : '');
         }
 
-        function openPreviewModal() {
-            populatePreview();
-            var modal = document.getElementById('appPreviewModal');
-            modal.style.display = 'flex';
-            modal.classList.add('prv-open');
-            document.body.style.overflow = 'hidden';
-            document.getElementById('prvConfirmCheck').checked = false;
-            document.getElementById('prvConfirmBtn').disabled = true;
-            document.getElementById('prvBody').scrollTop = 0;
+        // Documents — Photo
+        var photoWrap = document.getElementById('prv_photo_wrap');
+        var photoSrc  = document.getElementById('photo_preview');
+        if (photoWrap) {
+            var src = photoSrc && photoSrc.style.display !== 'none' ? photoSrc.src : '';
+            photoWrap.innerHTML = src
+                ? '<img src="'+src+'" alt="Photo" style="width:80px;height:96px;object-fit:cover;border:2px solid #dde5f3;border-radius:6px;">'
+                : '<div class="prv-no-img">No Photo</div>';
         }
 
-        function closePreviewModal() {
-            var modal = document.getElementById('appPreviewModal');
-            modal.style.display = 'none';
-            modal.classList.remove('prv-open');
-            document.body.style.overflow = '';
-            if (typeof window.normalizeCompetencyDynamicSections === 'function') {
-                window.normalizeCompetencyDynamicSections();
-            }
+        // Documents — Signature
+        var signWrap = document.getElementById('prv_sign_wrap');
+        var signSrc  = document.getElementById('sign_preview');
+        if (signWrap) {
+            var ssrc = signSrc && signSrc.style.display !== 'none' ? signSrc.src : '';
+            signWrap.innerHTML = ssrc
+                ? '<img src="'+ssrc+'" alt="Signature" style="width:140px;height:50px;object-fit:contain;border:2px solid #dde5f3;border-radius:6px;">'
+                : '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
         }
 
-        document.getElementById('prvConfirmCheck').addEventListener('change', function() {
-            document.getElementById('prvConfirmBtn').disabled = !this.checked;
-        });
+        // Aadhaar & PAN
+        setVal('prv_aadhaar', document.getElementById('aadhaar') ? document.getElementById('aadhaar').value : '');
+        setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
+        var aDoc = document.getElementById('aadhaar_doc');
+        setVal('prv_aadhaar_doc', fileLabel(aDoc));
+        var pDoc = document.getElementById('pancard_doc');
+        setVal('prv_pan_doc', fileLabel(pDoc));
+    }
 
-        // Confirm button — resolve the promise so footer's flow continues
-        document.getElementById('prvConfirmBtn').addEventListener('click', function() {
+    function openPreviewModal() {
+        populatePreview();
+        var modal = document.getElementById('appPreviewModal');
+        modal.style.display = 'flex';
+        modal.classList.add('prv-open');
+        document.body.style.overflow = 'hidden';
+        document.getElementById('prvConfirmCheck').checked = false;
+        document.getElementById('prvConfirmBtn').disabled = true;
+        document.getElementById('prvBody').scrollTop = 0;
+    }
+
+    function closePreviewModal() {
+        var modal = document.getElementById('appPreviewModal');
+        modal.style.display = 'none';
+        modal.classList.remove('prv-open');
+        document.body.style.overflow = '';
+        if (typeof window.normalizeCompetencyDynamicSections === 'function') {
+            window.normalizeCompetencyDynamicSections();
+        }
+    }
+
+    document.getElementById('prvConfirmCheck').addEventListener('change', function() {
+        document.getElementById('prvConfirmBtn').disabled = !this.checked;
+    });
+
+    // Confirm button — resolve the promise so footer's flow continues
+    document.getElementById('prvConfirmBtn').addEventListener('click', function() {
+        closePreviewModal();
+        if (typeof window._prvResolve === 'function') {
+            window._prvResolve(true);
+            window._prvResolve = null;
+        }
+    });
+
+    document.getElementById('prvPrintBtn').addEventListener('click', function() {
+        window.print();
+    });
+
+    // Close / back button — cancel the flow
+    document.getElementById('appPreviewModal').addEventListener('click', function(e) {
+        if (e.target === this) {
             closePreviewModal();
             if (typeof window._prvResolve === 'function') {
-                window._prvResolve(true);
+                window._prvResolve(false);
                 window._prvResolve = null;
             }
-        });
+        }
+    });
 
-        document.getElementById('prvPrintBtn').addEventListener('click', function() {
-            window.print();
-        });
-
-        // Close / back button — cancel the flow
-        document.getElementById('appPreviewModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePreviewModal();
-                if (typeof window._prvResolve === 'function') {
-                    window._prvResolve(false);
-                    window._prvResolve = null;
-                }
-            }
-        });
-
-        // Override footer's showCompetencyPreviewModal so OUR preview opens after validation passes
-        window.showCompetencyPreviewModal = function() {
-            return new Promise(function(resolve) {
-                window._prvResolve = resolve;
-                openPreviewModal();
-            });
-        };
+    // Use shared footer preview (#appPreviewModalSw) — populated in footer.blade.php populateSwPreview()
     </script>
 </footer>
