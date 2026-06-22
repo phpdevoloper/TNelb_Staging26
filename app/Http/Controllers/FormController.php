@@ -61,13 +61,25 @@ class FormController extends BaseController
     {
         return $request->has('work_level')
             || $request->has('work_employer_name')
+            || $request->has('work_employment_type')
             || $request->has('designation');
     }
 
     private function getWorkRowIndexes(Request $request): array
     {
         $indexes = [];
-        foreach (['work_level', 'work_employer_name', 'designation', 'experience', 'work_experience_total'] as $field) {
+        foreach ([
+            'work_level',
+            'work_employer_name',
+            'work_employment_type',
+            'work_organisation_address',
+            'work_contractor_category',
+            'work_nature_of_work',
+            'work_date_from',
+            'designation',
+            'experience',
+            'work_experience_total',
+        ] as $field) {
             $values = $request->input($field, []);
             if (is_array($values)) {
                 $indexes = array_merge($indexes, array_keys($values));
@@ -159,6 +171,146 @@ class FormController extends BaseController
         return $out;
     }
 
+    /**
+     * Form S contractor category + licence share `emp_cate` (no separate licence column).
+     *
+     * @return array{category: ?string, licence: ?string}
+     */
+    private function decodeFormSContractorEmpCate(?string $stored): array
+    {
+        if ($stored === null || $stored === '') {
+            return ['category' => null, 'licence' => null];
+        }
+        if (str_contains($stored, '||')) {
+            $parts = explode('||', $stored, 2);
+
+            return [
+                'category' => (($parts[0] ?? '') !== '') ? $parts[0] : null,
+                'licence' => (($parts[1] ?? '') !== '') ? $parts[1] : null,
+            ];
+        }
+
+        return ['category' => $stored, 'licence' => null];
+    }
+
+    private function encodeFormSContractorEmpCate(?string $category, ?string $licence): ?string
+    {
+        $category = $category !== null ? trim($category) : '';
+        $licence = $licence !== null ? trim($licence) : '';
+        if ($category === '' && $licence === '') {
+            return null;
+        }
+        if ($licence === '') {
+            return $category;
+        }
+        if ($category === '') {
+            return '||'.$licence;
+        }
+
+        return $category.'||'.$licence;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mstExperienceRowToDbPayload(array $workRow, array $documents = []): array
+    {
+        $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? null;
+
+        $payload = [
+            'emp_type' => $workRow['emp_type'] ?? null,
+            'emp_cate' => $workRow['emp_cate'] ?? null,
+            'org_name' => ($orgName !== null && $orgName !== '') ? $orgName : null,
+            'org_address' => $workRow['org_address'] ?? null,
+            'from_date' => $workRow['from_date'] ?? null,
+            'to_date' => $workRow['to_date'] ?? null,
+            'designation' => ($workRow['designation'] ?? '') !== '' ? $workRow['designation'] : null,
+            'nature_work' => $workRow['nature_work'] ?? null,
+            'voltage_level' => $workRow['voltage_level'] ?? null,
+            'transformer_kva' => $workRow['transformer_kva'] ?? null,
+            ...$this->mstExperienceDurationForDb($workRow),
+        ];
+
+        if (Schema::hasColumn('tnelb_applicants_exp', 'intimation_date')
+            && array_key_exists('intimation_date', $workRow)) {
+            $payload['intimation_date'] = $workRow['intimation_date'];
+        }
+
+        if (array_key_exists('support_document', $documents)) {
+            $payload['support_document'] = $documents['support_document'];
+        }
+        if (array_key_exists('releive_document', $documents)) {
+            $payload['releive_document'] = $documents['releive_document'];
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array{support_document: ?string, releive_document: ?string}
+     */
+    private function resolveWorkRowDocuments(
+        Request $request,
+        $key,
+        ?Mst_experience $existing,
+        bool $supportRemoved,
+        bool $relieveRemoved
+    ): array {
+        $support = null;
+        $existingSupport = $request->existing_work_document[$key] ?? null;
+        if (! $supportRemoved && $existingSupport !== null && $existingSupport !== ''
+            && $this->isValidCompetencyAjaxDocPath($existingSupport, 'work')) {
+            $support = $existingSupport;
+        }
+        if (isset($request->file('work_document')[$key])) {
+            $file = $request->file('work_document')[$key];
+            if ($file && $file->isValid()) {
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+                $file->move(public_path('work_experience'), $filename);
+                $support = 'work_experience/'.$filename;
+            }
+        }
+        if ($support === null && $existing !== null && ! $supportRemoved) {
+            $support = $existing->support_document ?? $existing->upload_document;
+        }
+
+        $relieve = null;
+        $existingRelieve = $request->existing_work_relieving_document[$key] ?? null;
+        if (! $relieveRemoved && $existingRelieve !== null && $existingRelieve !== ''
+            && $this->isValidCompetencyAjaxDocPath($existingRelieve, 'work')) {
+            $relieve = $existingRelieve;
+        }
+        if (isset($request->file('work_relieving_letter')[$key])) {
+            $file = $request->file('work_relieving_letter')[$key];
+            if ($file && $file->isValid()) {
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+                $file->move(public_path('work_experience'), $filename);
+                $relieve = 'work_experience/'.$filename;
+            }
+        }
+        if ($relieve === null && $existing !== null && ! $relieveRemoved) {
+            $relieve = $existing->releive_document;
+        }
+
+        return [
+            'support_document' => $supportRemoved ? null : $support,
+            'releive_document' => $relieveRemoved ? null : $relieve,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function optionalExpSerialPayload(int &$lastExpSerialNum): array
+    {
+        if (! Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
+            return [];
+        }
+        $lastExpSerialNum++;
+
+        return ['exp_serial' => 'exp_'.$lastExpSerialNum];
+    }
+
     private function mapWorkExperienceRow(Request $request, $key, ?string $formName): array
     {
         $normalizedForm = strtoupper((string) $formName);
@@ -166,9 +318,13 @@ class FormController extends BaseController
         /** Form S, W, WH, P: persist decimal years to `total_exp` (uses `work_experience_total[]` first). */
         $storesTotalExp = in_array($normalizedForm, ['S', 'W', 'WH', 'P'], true);
 
-        $companyName = $isFormS
+        $orgName = $isFormS
             ? trim((string) ($request->work_employer_name[$key] ?? $request->work_level[$key] ?? ''))
             : trim((string) ($request->work_level[$key] ?? ''));
+
+        $orgAddress = $isFormS
+            ? trim((string) ($request->work_organisation_address[$key] ?? ''))
+            : '';
 
         $experience = $storesTotalExp
             ? trim((string) ($request->work_experience_total[$key] ?? $request->experience[$key] ?? ''))
@@ -180,10 +336,28 @@ class FormController extends BaseController
         $toDate = trim((string) ($request->work_date_to[$key] ?? ''));
         $intimationDate = trim((string) ($request->work_intimation_date[$key] ?? ''));
 
-        // Intimation letter date only applies to contractors. Clear it for any other
-        // employment type to guard against accidental array-misalignment on submit
-        // (older browsers / disabled inputs that skip from the POST payload).
-        if (strtolower($empType) !== 'contractor') {
+        $natureWork = $isFormS ? trim((string) ($request->work_nature_of_work[$key] ?? '')) : '';
+        $voltageLevel = $isFormS ? trim((string) ($request->work_voltage_level[$key] ?? '')) : '';
+        $kvaRaw = $isFormS ? trim((string) ($request->work_transformer_kva[$key] ?? '')) : '';
+
+        $empCate = null;
+        if ($isFormS && strtolower($empType) === 'electrical_contractor') {
+            $empCate = $this->encodeFormSContractorEmpCate(
+                trim((string) ($request->work_contractor_category[$key] ?? '')),
+                trim((string) ($request->work_licence_number[$key] ?? ''))
+            );
+        } elseif (! $isFormS && $orgName !== '') {
+            $empCate = $orgName;
+        }
+
+        if ($isFormS) {
+            $tillFlags = $request->work_to_till_date ?? [];
+            $isTill = isset($tillFlags[$key]) && (string) $tillFlags[$key] === '1';
+            if ($isTill) {
+                $toDate = '';
+            }
+            $intimationDate = '';
+        } elseif (strtolower($empType) !== 'contractor') {
             $intimationDate = '';
         }
 
@@ -195,11 +369,16 @@ class FormController extends BaseController
             : null;
 
         return [
-            'company_name' => $companyName,
+            'org_name' => $orgName,
+            'org_address' => ($orgAddress !== '' ? $orgAddress : null),
+            'company_name' => $orgName,
             'experience' => $experience,
             'designation' => $designation,
             'emp_type' => ($empType !== '' ? $empType : null),
-            'emp_cate' => ($companyName !== '' ? $companyName : null),
+            'emp_cate' => $empCate,
+            'nature_work' => ($natureWork !== '' ? $natureWork : null),
+            'voltage_level' => ($voltageLevel !== '' ? $voltageLevel : null),
+            'transformer_kva' => ($kvaRaw !== '' ? $kvaRaw : null),
             'from_date' => ($fromDate !== '' ? $fromDate : null),
             'to_date' => ($toDate !== '' ? $toDate : null),
             'intimation_date' => ($intimationDate !== '' ? $intimationDate : null),
@@ -209,7 +388,7 @@ class FormController extends BaseController
             'total_d' => $isFormS ? ($ymd['d'] ?? null) : null,
             'store_work_duration_ymd' => $isFormS,
             'store_total_exp' => $storesTotalExp,
-            'is_empty' => ($companyName === '' && $experience === '' && $designation === ''),
+            'is_empty' => ($orgName === '' && $experience === '' && $designation === ''),
         ];
     }
 
@@ -227,15 +406,15 @@ class FormController extends BaseController
         array &$claimedWorkIds,
         bool $requireAllFields = true
     ): void {
-        $company = $workRow['company_name'];
+        $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? '';
         $expYears = $workRow['experience'];
         $designation = $workRow['designation'];
 
         if ($requireAllFields) {
-            if (empty($company) || empty($expYears) || empty($designation)) {
+            if ($orgName === '' || $expYears === '' || $designation === '') {
                 return;
             }
-        } elseif (empty($company) && empty($expYears) && empty($designation)) {
+        } elseif ($orgName === '' && $expYears === '' && $designation === '') {
             return;
         }
 
@@ -245,51 +424,33 @@ class FormController extends BaseController
             $work = null;
         }
 
-        $isFileRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
-        $filePath = null;
+        $supportRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
+        $relieveRemoved = isset($request->removed_document_work_relieving[$key])
+            && $request->removed_document_work_relieving[$key] == '1';
 
-        $existingW = $request->existing_work_document[$key] ?? null;
-        if (! $isFileRemoved && $existingW !== null && $existingW !== ''
-            && $this->isValidCompetencyAjaxDocPath($existingW, 'work')) {
-            $filePath = $existingW;
-        }
-
-        if (isset($request->file('work_document')[$key])) {
-            $file = $request->file('work_document')[$key];
-            if ($file && $file->isValid()) {
-                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $destinationPath = public_path('work_experience');
-                $file->move($destinationPath, $filename);
-                $filePath = 'work_experience/' . $filename;
-            }
-        }
-
-        $rowPayload = [
-            'emp_type'        => $workRow['emp_type'],
-            'emp_cate'        => $workRow['emp_cate'],
-            'intimation_date' => $workRow['intimation_date'],
-            'from_date'       => $workRow['from_date'],
-            'to_date'         => $workRow['to_date'],
-            ...$this->mstExperienceDurationForDb($workRow),
-            'designation'     => $designation ?: null,
-        ];
+        $documents = $this->resolveWorkRowDocuments($request, $key, $work, $supportRemoved, $relieveRemoved);
+        $rowPayload = $this->mstExperienceRowToDbPayload($workRow);
 
         if ($work) {
             $claimedWorkIds[] = (int) $work->id;
-            $work->update(array_merge($rowPayload, [
-                'upload_document' => $filePath !== null
-                    ? $filePath
-                    : ($isFileRemoved ? null : $work->upload_document),
-            ]));
+            $updateDocs = [];
+            if ($documents['support_document'] !== null || $supportRemoved) {
+                $updateDocs['support_document'] = $documents['support_document'];
+            }
+            if ($documents['releive_document'] !== null || $relieveRemoved) {
+                $updateDocs['releive_document'] = $documents['releive_document'];
+            }
+            $work->update(array_merge($rowPayload, $updateDocs));
 
             return;
         }
 
         $existing = null;
-        if ($workRow['emp_cate'] !== null && $workRow['emp_cate'] !== '') {
+        $matchOrg = $workRow['org_name'] ?? $workRow['company_name'] ?? null;
+        if ($matchOrg !== null && $matchOrg !== '') {
             $matchQuery = Mst_experience::where('login_id', $loginId)
                 ->where('application_id', $applicationId)
-                ->where('emp_cate', $workRow['emp_cate']);
+                ->where('org_name', $matchOrg);
 
             if ($workRow['emp_type'] !== null) {
                 $matchQuery->where('emp_type', $workRow['emp_type']);
@@ -309,42 +470,123 @@ class FormController extends BaseController
 
         if ($existing) {
             $claimedWorkIds[] = (int) $existing->id;
-            $uploadToStore = $filePath;
-            if ($uploadToStore === null && ! $isFileRemoved && $existing->upload_document) {
-                $uploadToStore = $existing->upload_document;
-            } elseif ($isFileRemoved) {
-                $uploadToStore = null;
+            $updateDocs = [];
+            if ($documents['support_document'] !== null) {
+                $updateDocs['support_document'] = $documents['support_document'];
+            } elseif ($supportRemoved) {
+                $updateDocs['support_document'] = null;
+            } elseif (! $supportRemoved && $existing->support_document) {
+                $updateDocs['support_document'] = $existing->support_document;
+            } elseif (! $supportRemoved && $existing->upload_document) {
+                $updateDocs['support_document'] = $existing->upload_document;
+            }
+            if ($documents['releive_document'] !== null) {
+                $updateDocs['releive_document'] = $documents['releive_document'];
+            } elseif ($relieveRemoved) {
+                $updateDocs['releive_document'] = null;
+            } elseif (! $relieveRemoved && $existing->releive_document) {
+                $updateDocs['releive_document'] = $existing->releive_document;
             }
 
-            $existing->update(array_merge($rowPayload, [
-                'upload_document' => $uploadToStore,
-            ]));
+            $existing->update(array_merge($rowPayload, $updateDocs));
 
             return;
         }
 
-        if ($filePath === null && ! $isFileRemoved) {
-            $fallback = Mst_experience::where('login_id', $loginId)
-                ->where('application_id', $applicationId)
-                ->where('emp_cate', $workRow['emp_cate'])
-                ->when(! empty($claimedWorkIds), fn ($q) => $q->whereNotIn('id', $claimedWorkIds))
-                ->value('upload_document');
-            if ($fallback) {
-                $filePath = $fallback;
-            }
-        }
-
-        $lastExpSerialNum++;
-        $newExpSerial = 'exp_' . $lastExpSerialNum;
-
-        $created = Mst_experience::create(array_merge($rowPayload, [
-            'login_id'        => $loginId,
-            'application_id'  => $applicationId,
-            'exp_serial'      => $newExpSerial,
-            'upload_document' => $isFileRemoved ? null : $filePath,
-        ]));
+        $created = Mst_experience::create(array_merge(
+            $rowPayload,
+            $this->optionalExpSerialPayload($lastExpSerialNum),
+            [
+                'login_id' => $loginId,
+                'application_id' => $applicationId,
+                'support_document' => $documents['support_document'],
+                'releive_document' => $documents['releive_document'],
+            ]
+        ));
 
         $claimedWorkIds[] = (int) $created->id;
+    }
+
+    /**
+     * Renewal / competency flows that upsert work rows by natural key (org + dates for Form S).
+     */
+    private function persistWorkExperienceUpdateOrCreate(
+        Request $request,
+        string $loginId,
+        string $applicationId,
+        ?string $formName
+    ): void {
+        if (! $this->hasWorkExperiencePayload($request)) {
+            return;
+        }
+
+        $lastNum = 0;
+        if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
+            $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
+            $lastNum = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
+        }
+
+        $isFormS = strtoupper((string) $formName) === 'S';
+
+        foreach ($this->getWorkRowIndexes($request) as $key) {
+            $workRow = $this->mapWorkExperienceRow($request, $key, $formName);
+            $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? '';
+            $expYears = $workRow['experience'] ?? '';
+            $designation = $workRow['designation'] ?? '';
+
+            $supportRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
+            $relieveRemoved = isset($request->removed_document_work_relieving[$key])
+                && $request->removed_document_work_relieving[$key] == '1';
+
+            $existingRow = null;
+            $workId = trim((string) ($request->work_id[$key] ?? ''));
+            if ($workId !== '') {
+                $existingRow = Mst_experience::find($workId);
+                if ($existingRow && (string) $existingRow->application_id !== (string) $applicationId) {
+                    $existingRow = null;
+                }
+            }
+
+            $documents = $this->resolveWorkRowDocuments(
+                $request,
+                $key,
+                $existingRow,
+                $supportRemoved,
+                $relieveRemoved
+            );
+
+            $hasAnyData = $orgName !== '' || $expYears !== '' || $designation !== ''
+                || ! empty($documents['support_document']) || ! empty($documents['releive_document']);
+            if (! $hasAnyData) {
+                continue;
+            }
+
+            $identity = [
+                'login_id' => $loginId,
+                'application_id' => $applicationId,
+            ];
+
+            if ($workId !== '' && $existingRow) {
+                $identity = ['id' => $existingRow->id];
+            } elseif ($isFormS && $orgName !== '') {
+                $identity['org_name'] = $orgName;
+                if (! empty($workRow['from_date'])) {
+                    $identity['from_date'] = $workRow['from_date'];
+                }
+            } elseif ($orgName !== '') {
+                $identity['emp_cate'] = $orgName;
+            } elseif (! empty($workRow['emp_cate'])) {
+                $identity['emp_cate'] = $workRow['emp_cate'];
+            }
+
+            Mst_experience::updateOrCreate(
+                $identity,
+                array_merge(
+                    $this->mstExperienceRowToDbPayload($workRow, $documents),
+                    $this->optionalExpSerialPayload($lastNum)
+                )
+            );
+        }
     }
 
     /**
@@ -420,6 +662,9 @@ class FormController extends BaseController
     /**
      * Form S §7 — work experience: combined duration across ALL rows must be at least 2 calendar years (730 days).
      * (Per-row check was replaced with a combined-total check so that multiple short stints can add up.)
+     *
+     * "Till date" rows (work_to_till_date[$key] === '1') are evaluated against today's date when
+     * the explicit To-date is blank, mirroring the front-end behaviour.
      */
     private function validateFormSWorkExperienceMinimumYears(Request $request, \Illuminate\Validation\Validator $validator): void
     {
@@ -429,24 +674,36 @@ class FormController extends BaseController
 
         $fromDates = $request->input('work_date_from', []);
         $toDates = $request->input('work_date_to', []);
+        $tillFlags = $request->input('work_to_till_date', []);
         if (! is_array($fromDates)) {
             return;
+        }
+        if (! is_array($tillFlags)) {
+            $tillFlags = [];
         }
 
         $totalDays = 0;
         $anyFilled = false;
         $firstFilledKey = null;
+        $today = Carbon::now()->startOfDay();
 
         foreach (array_keys($fromDates) as $key) {
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            if ($fromRaw === '' || $toRaw === '') {
+            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+
+            if ($fromRaw === '') {
+                continue;
+            }
+            if ($toRaw === '' && ! $isTill) {
                 continue;
             }
 
             try {
                 $from = Carbon::parse($fromRaw)->startOfDay();
-                $to = Carbon::parse($toRaw)->startOfDay();
+                $to = ($toRaw !== '')
+                    ? Carbon::parse($toRaw)->startOfDay()
+                    : $today;
             } catch (\Throwable $e) {
                 continue;
             }
@@ -533,14 +790,16 @@ class FormController extends BaseController
             'd_o_b' => $fmtDate($existingForm->d_o_b) ?? '',
             'age' => $existingForm->age,
             'previously_number' => $existingForm->previously_number,
-            'previously_date' => $fmtDate($existingForm->previously_date),
+            'previously_valid_to' => $fmtDate($existingForm->previously_valid_to ?? $existingForm->previously_date ?? null),
             'previously_issue_date' => $fmtDate($existingForm->previously_issue_date),
+            'previously_valid_from' => $fmtDate($existingForm->previously_valid_from ?? null),
             'wireman_details' => $existingForm->wireman_details,
             'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
             'pancard' => $panPlain !== null && $panPlain !== '' ? strtoupper(preg_replace('/\s+/', '', (string) $panPlain)) : null,
             'competency_certificate_no' => $existingForm->certificate_no,
-            'certificate_date' => $fmtDate($existingForm->certificate_date),
+            'certificate_valid_to' => $fmtDate($existingForm->certificate_valid_to ?? $existingForm->certificate_date ?? null),
             'certificate_issue_date' => $fmtDate($existingForm->certificate_issue_date),
+            'certificate_valid_from' => $fmtDate($existingForm->certificate_valid_from ?? null),
             'l_verify' => (string) ($existingForm->license_verify ?? '0'),
             'cert_verify' => (string) ($existingForm->cert_verify ?? '0'),
         ]);
@@ -834,7 +1093,9 @@ class FormController extends BaseController
             'age'                  => 'required|integer|min:18|max:100',
             'previously_number'    => 'nullable|string',
             'previously_date'      => 'nullable|date',
+            'previously_valid_to'  => 'nullable|date',
             'previously_issue_date' => 'nullable|date',
+            'previously_valid_from' => 'nullable|date',
             'wireman_details'      => 'nullable|string|max:255',
             'aadhaar'              => 'required|string|digits:12',
             'form_name'            => 'required|string|max:2',
@@ -881,8 +1142,12 @@ class FormController extends BaseController
             'existing_document.*'    => 'nullable|string|max:500',
             'work_document'        => 'nullable|array',
             'work_document.*'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+            'work_relieving_letter' => 'nullable|array',
+            'work_relieving_letter.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
             'existing_work_document' => 'nullable|array',
             'existing_work_document.*' => 'nullable|string|max:500',
+            'existing_work_relieving_document' => 'nullable|array',
+            'existing_work_relieving_document.*' => 'nullable|string|max:500',
             
         ];
 
@@ -1111,7 +1376,7 @@ class FormController extends BaseController
                 file_put_contents($destinationPath . '/' . $panFilename, $panEncrypted);
             }
             
-            $form = Mst_Form_s_w::create([
+            $form = Mst_Form_s_w::create(array_merge([
                 'login_id'            => $loginId,
                 'applicant_name'      => $request->applicant_name ?? '',
                 'fathers_name'        => $request->fathers_name ?? '',
@@ -1120,8 +1385,9 @@ class FormController extends BaseController
                 'd_o_b'               => $request->dob ?? $request->d_o_b,
                 'age'                 => $request->age,
                 'previously_number'   => $request->previously_number ?? 0,
-                'previously_date'     => $request->previously_date ?? 0,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'application_id'      => $newApplicationId,
                 'wireman_details'     => $request->wireman_details,
                 'form_name'           => $request->form_name,
@@ -1135,13 +1401,14 @@ class FormController extends BaseController
                 'aadhaar_doc'         => $aadhaarFilename,
                 'pan_doc'             => $panFilename,
                 'certificate_no'      => $request->competency_certificate_no,
-                'certificate_date'    => $request->certificate_date,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'cert_verify'         => $request->cert_verify ?? '0',
                 'license_verify'      => $request->l_verify ?? '0',
                 'submitted_date'      => $this->dbNow,
                 'created_at'          => $this->dbNow,
-            ]);
+            ]));
 
 
             $applicationId = $form->application_id;
@@ -1235,50 +1502,32 @@ class FormController extends BaseController
             
             // process experience
             if ($this->hasWorkExperiencePayload($request)) {
+                $expSerialSeq = 0;
+                if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
+                    $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
+                    $expSerialSeq = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
+                }
+
                 foreach ($this->getWorkRowIndexes($request) as $key) {
                     $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
-                    $company = $workRow['company_name'];
+                    $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? '';
                     $expYears = $workRow['experience'];
                     $designation = $workRow['designation'];
 
-                    if (empty($company) || empty($expYears) || empty($designation)) {
+                    if ($orgName === '' || $expYears === '' || $designation === '') {
                         continue;
                     }
-                    
-                    // compute exp_serial safely
-                    $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                    if ($lastExp) {
-                        $lastNum = (int) str_replace('exp_', '', $lastExp);
-                        $newExpSerial = 'exp_' . ($lastNum + 1);
-                    } else {
-                        $newExpSerial = 'exp_1';
-                    }
-                    
-                    $filePath = null;
-                    if ($request->hasFile("work_document") && isset($request->file("work_document")[$key])) {
-                        $file = $request->file("work_document")[$key];
-                        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                        $destinationPath = public_path('work_experience');
-                        $file->move($destinationPath, $filename);
-                        $filePath = 'work_experience/' . $filename;
-                    } elseif (! empty($request->existing_work_document[$key] ?? null)
-                        && $this->isValidCompetencyAjaxDocPath($request->existing_work_document[$key], 'work')) {
-                        $filePath = $request->existing_work_document[$key];
-                    }
-                    
-                    Mst_experience::create([
-                        'login_id'        => $loginId,
-                        'emp_type'        => $workRow['emp_type'],
-                        'emp_cate'        => $workRow['emp_cate'],
-                        'intimation_date' => $workRow['intimation_date'],
-                        'from_date'       => $workRow['from_date'],
-                        'to_date'         => $workRow['to_date'],
-                        ...$this->mstExperienceDurationForDb($workRow),
-                        'designation'     => $designation,
-                        'application_id'  => $newApplicationId,
-                        'exp_serial'      => $newExpSerial,
-                        'upload_document' => $filePath,
-                    ]);
+
+                    $documents = $this->resolveWorkRowDocuments($request, $key, null, false, false);
+
+                    Mst_experience::create(array_merge(
+                        $this->mstExperienceRowToDbPayload($workRow, $documents),
+                        $this->optionalExpSerialPayload($expSerialSeq),
+                        [
+                            'login_id' => $loginId,
+                            'application_id' => $newApplicationId,
+                        ]
+                    ));
                 }
             }
             
@@ -1395,8 +1644,13 @@ class FormController extends BaseController
             'age'                => 'required|integer|min:18|max:100',
             'previously_number'  => 'nullable|string',
             'previously_date'    => 'nullable|date',
+            'previously_valid_to' => 'nullable|date',
             'previously_issue_date' => 'nullable|date',
+            'previously_valid_from' => 'nullable|date',
+            'certificate_date'   => 'nullable|date',
+            'certificate_valid_to' => 'nullable|date',
             'certificate_issue_date' => 'nullable|date',
+            'certificate_valid_from' => 'nullable|date',
             'wireman_details'    => 'nullable|string|max:255',
             'aadhaar'            => 'required|string|digits:12',
             'pancard'            => $pancardRule,
@@ -1435,8 +1689,12 @@ class FormController extends BaseController
 
             'work_document'        => 'nullable|array',
             'work_document.*'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+            'work_relieving_letter' => 'nullable|array',
+            'work_relieving_letter.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
             'existing_work_document' => 'nullable|array',
             'existing_work_document.*' => 'nullable|string|max:500',
+            'existing_work_relieving_document' => 'nullable|array',
+            'existing_work_relieving_document.*' => 'nullable|string|max:500',
 
             'applicant_email'      => ($request->form_name === 'S')
                 ? 'required|email|max:191'
@@ -1538,6 +1796,7 @@ class FormController extends BaseController
         });
         $validator->after(function ($validator) use ($request) {
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
+            $this->validateFormSQualifiedSupervisor($request, $validator);
         });
         $validator->validate();
 
@@ -1586,7 +1845,7 @@ class FormController extends BaseController
 
 
             // ✅ Update existing draft
-            $existingForm->update([
+            $existingForm->update(array_merge([
                 'login_id'          => $request->login_id,
                 'applicant_name'    => $request->applicant_name,
                 'fathers_name'      => $request->fathers_name,
@@ -1595,8 +1854,9 @@ class FormController extends BaseController
                 'd_o_b'             => $request->d_o_b,
                 'age'               => $request->age,
                 'previously_number' => $request->previously_number,
-                'previously_date'   => $request->previously_date,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'wireman_details'   => $request->wireman_details,
                 'aadhaar'           => $encrypted_aadhaar,
                 'pancard'           => $encrypted_pancard_update,
@@ -1604,11 +1864,12 @@ class FormController extends BaseController
                 'pan_doc'           => $panFilenameUpdate,
                 'payment_status'    => 'payment',
                 'certificate_no'      => $request->competency_certificate_no,
-                'certificate_date'    => $request->certificate_date,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'submitted_date'      => $this->dbNow,
                 'updated_at'          => $this->dbNow,
-            ]);
+            ]));
 
 
 
@@ -1678,8 +1939,11 @@ class FormController extends BaseController
             
 
             if ($this->hasWorkExperiencePayload($request)) {
-                $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
+                $lastNum = 0;
+                if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
+                    $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
+                    $lastNum = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
+                }
                 $claimedWorkIds = [];
 
                 foreach ($this->getWorkRowIndexes($request) as $key) {
@@ -1918,10 +2182,12 @@ class FormController extends BaseController
                 ], 404);
             }
 
-            // Delete uploaded file if it exists
-            if (!empty($experience->upload_document)) {
-                $filePath = public_path($experience->upload_document);
-                if (file_exists($filePath)) {
+            foreach ([$experience->support_document, $experience->releive_document, $experience->upload_document] as $docPath) {
+                if (empty($docPath)) {
+                    continue;
+                }
+                $filePath = public_path($docPath);
+                if (is_file($filePath)) {
                     unlink($filePath);
                 }
             }
@@ -1990,8 +2256,13 @@ class FormController extends BaseController
                 'age'                => 'nullable|integer|min:18|max:100',
                 'previously_number'  => 'nullable|string',
                 'previously_date'    => 'nullable|date',
+                'previously_valid_to' => 'nullable|date',
                 'previously_issue_date' => 'nullable|date',
+                'previously_valid_from' => 'nullable|date',
+                'certificate_date'   => 'nullable|date',
+                'certificate_valid_to' => 'nullable|date',
                 'certificate_issue_date' => 'nullable|date',
+                'certificate_valid_from' => 'nullable|date',
                 'wireman_details'    => 'nullable|string|max:255',
                 'form_name'          => 'nullable|string|max:2',
                 'license_name'       => 'nullable|string|max:2',
@@ -2131,7 +2402,7 @@ class FormController extends BaseController
            
              
             // 🔹 Prepare Data
-            $data = [
+            $data = array_merge([
                 'login_id'          => $loginId,
                 'applicant_name'    => $request->applicant_name ?? $request->Applicant_Name,
                 'fathers_name'      => $request->fathers_name ?? $request->Fathers_Name,
@@ -2141,8 +2412,9 @@ class FormController extends BaseController
                 'age'               => $request->age,
                 'status'            => 'P', // Pending (for both draft/submit)
                 'previously_number' => $request->previously_number ?? null,
-                'previously_date'   => $request->previously_date ?? null,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'wireman_details'   => $request->wireman_details,
                 'form_name'         => $request->form_name,
                 'form_id'           => $request->form_id,
@@ -2155,13 +2427,14 @@ class FormController extends BaseController
                 'aadhaar_doc'         => $aadhaarFilename,
                 'pan_doc'             => $panFilename,
                 'certificate_no'      => $request->competency_certificate_no ?? null,
-                'certificate_date'   => $request->certificate_date ?? null,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'application_id'    => $applicationId,
                 'cert_verify'    => $request->cert_verify ?? '0',
                 'license_verify'    => $request->l_verify ?? '0',
                 'old_application'=> $form->old_application ?? null
-            ];
+            ]);
 
 
 
@@ -2298,8 +2571,11 @@ class FormController extends BaseController
             
 
             if ($this->hasWorkExperiencePayload($request)) {
-                $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
+                $lastNum = 0;
+                if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
+                    $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
+                    $lastNum = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
+                }
                 $claimedWorkIds = [];
 
                 foreach ($this->getWorkRowIndexes($request) as $key) {
@@ -2416,8 +2692,13 @@ class FormController extends BaseController
             'age'                => 'nullable|integer|min:18|max:100',
             'previously_number'  => 'nullable|string',
             'previously_date'    => 'nullable|date',
+            'previously_valid_to' => 'nullable|date',
             'previously_issue_date' => 'nullable|date',
+            'previously_valid_from' => 'nullable|date',
+            'certificate_date'   => 'nullable|date',
+            'certificate_valid_to' => 'nullable|date',
             'certificate_issue_date' => 'nullable|date',
+            'certificate_valid_from' => 'nullable|date',
             'wireman_details'    => 'nullable|string|max:255',
             'form_name'          => 'nullable|string|max:2',
             'license_name'       => 'nullable|string|max:2',
@@ -2548,8 +2829,9 @@ class FormController extends BaseController
                 'age'                => $request->age,
                 'status'             => 'P',
                 'previously_number'  => $request->previously_number ?? null,
-                'previously_date'    => $request->previously_date ?? null,
+                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                 'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                 'wireman_details'    => $request->wireman_details,
                 'form_name'          => $request->form_name,
                 'form_id'            => $request->form_id,
@@ -2562,8 +2844,9 @@ class FormController extends BaseController
                 'aadhaar_doc'        => $aadhaarFilename ?? null,
                 'pan_doc'            => $panFilenameRenewal,
                 'certificate_no'     => $request->competency_certificate_no ?? null,
-                'certificate_date'   => $request->certificate_date ?? null,
+                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                 'application_id'     => $applicationId,
                 'cert_verify'        => $request->cert_verify ?? '0',
                 'license_verify'     => $request->l_verify ?? '0',
@@ -2652,59 +2935,14 @@ class FormController extends BaseController
             }
 
             // -------------------------
-            // ALWAYS-INSERT Work  ✅
+            // Work experience (renewal / competency)
             // -------------------------
-            if ($this->hasWorkExperiencePayload($request)) {
-                $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
-
-                foreach ($this->getWorkRowIndexes($request) as $key) {
-                    $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
-                    $companyName = $workRow['company_name'] ?: null;
-                    $expYears    = $workRow['experience'] ?: null;
-                    $designation = $workRow['designation'] ?: null;
-
-                    $removed     = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
-                    $newDoc      = (isset($request->file('work_document')[$key]) && $request->file('work_document')[$key]->isValid())
-                                    ? $request->file('work_document')[$key]
-                                    : null;
-                    $oldDoc      = $request->existing_work_document[$key] ?? null;
-
-                    if ($removed) {
-                        $finalDoc = null;
-                    } elseif ($newDoc) {
-                        $filename = time() . '_' . uniqid() . '.' . $newDoc->getClientOriginalExtension();
-                        $newDoc->move(public_path('work_experience'), $filename);
-                        $finalDoc = 'work_experience/' . $filename;
-                    } else {
-                        $finalDoc = $oldDoc ?: null;
-                    }
-
-                    $hasAnyData = !empty($companyName) || !empty($expYears) || !empty($designation) || !empty($finalDoc);
-                    if (!$hasAnyData) continue;
-
-                    $lastNum++;
-                    $newSerial = 'exp_' . $lastNum;
-
-                    Mst_experience::updateOrCreate(
-                        [
-                            'login_id'       => $loginId,
-                            'application_id' => $applicationId,
-                            'emp_cate'       => $companyName,
-                        ],
-                        [
-                            'emp_type'        => $workRow['emp_type'],
-                            'intimation_date' => $workRow['intimation_date'],
-                            'from_date'       => $workRow['from_date'],
-                            'to_date'         => $workRow['to_date'],
-                            ...$this->mstExperienceDurationForDb($workRow),
-                            'designation'     => $designation,
-                            'upload_document' => $finalDoc,
-                            'exp_serial'      => $newSerial,
-                        ]
-                    );
-                }
-            }
+            $this->persistWorkExperienceUpdateOrCreate(
+                $request,
+                $loginId,
+                $applicationId,
+                $request->form_name ?? null
+            );
 
 
             // Photo (insert/update for this renewal app_id)
@@ -2818,8 +3056,13 @@ class FormController extends BaseController
                 'age'                => 'integer|min:18|max:100',
                 'previously_number'  => 'nullable|string',
                 'previously_date'    => 'nullable|date',
+                'previously_valid_to' => 'nullable|date',
                 'previously_issue_date' => 'nullable|date',
+                'previously_valid_from' => 'nullable|date',
+                'certificate_date'   => 'nullable|date',
+                'certificate_valid_to' => 'nullable|date',
                 'certificate_issue_date' => 'nullable|date',
+                'certificate_valid_from' => 'nullable|date',
                 'wireman_details'    => 'nullable|string|max:255',
                 'form_name'          => 'nullable|string|max:2',
                 'license_name'       => 'nullable|string|max:2',
@@ -2920,7 +3163,7 @@ class FormController extends BaseController
                 }
             }
 
-            $renewalPayload = [
+            $renewalPayload = array_merge([
                     'login_id'           => $loginId,
                     'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
                     'fathers_name'       => $request->fathers_name ?? $request->Fathers_Name,
@@ -2930,16 +3173,18 @@ class FormController extends BaseController
                     'age'                => $request->age,
                     'status'             => 'P',
                     'previously_number'  => $request->previously_number ?? 0,
-                    'previously_date'    => $request->previously_date ?? 0,
+                    'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
                     'previously_issue_date' => $request->previously_issue_date ?: null,
+                'previously_valid_from' => $request->previously_valid_from ?: null,
                     'wireman_details'    => $request->wireman_details,
                     'form_name'          => $request->form_name,
                     'form_id'            => $request->form_id,
                     'license_name'       => $request->license_name,
                     'aadhaar'            => $encrypted_aadhaar,
                     'certificate_no'     => $request->competency_certificate_no ?? null,
-                    'certificate_date'   => $request->certificate_date ?? null,
+                    'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                     'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                'certificate_valid_from' => $request->certificate_valid_from ?: null,
                     'appl_type'          => $appl_type,
                     'license_number'     => $request->license_number,
                     'payment_status'     => 'draft',
@@ -2947,7 +3192,7 @@ class FormController extends BaseController
                     'cert_verify'        => $request->cert_verify ?? '0',
                     'license_verify'     => $request->l_verify ?? '0',
                     'old_application'    => $id ?? '',
-            ];
+            ]);
 
             if ($this->isCompetencyForm($request->form_name ?? null)) {
                 $encrypted_pancard_u = null;
@@ -3079,57 +3324,12 @@ class FormController extends BaseController
                 }
             }
             
-            if ($this->hasWorkExperiencePayload($request)) {
-                $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
-
-                foreach ($this->getWorkRowIndexes($request) as $key) {
-                    $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
-                    $companyName = $workRow['company_name'] ?: null;
-                    $expYears    = $workRow['experience'] ?: null;
-                    $designation = $workRow['designation'] ?: null;
-
-                    $removed     = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
-                    $newDoc      = (isset($request->file('work_document')[$key]) && $request->file('work_document')[$key]->isValid())
-                                    ? $request->file('work_document')[$key]
-                                    : null;
-                    $oldDoc      = $request->existing_work_document[$key] ?? null;
-
-                    if ($newDoc) {
-                        $filename = time() . '_' . uniqid() . '.' . $newDoc->getClientOriginalExtension();
-                        $newDoc->move(public_path('work_experience'), $filename);
-                        $finalDoc = 'work_experience/' . $filename;
-                    } elseif ($removed) {
-                        $finalDoc = null;
-                    } else {
-                        $finalDoc = $oldDoc ?: null;
-                    }
-
-                    $hasAnyData = !empty($companyName) || !empty($expYears) || !empty($designation) || !empty($finalDoc);
-                    if (!$hasAnyData) continue;
-
-                    $lastNum++;
-                    $newSerial = 'exp_' . $lastNum;
-
-                    Mst_experience::updateOrCreate(
-                        [
-                            'login_id'       => $loginId,
-                            'application_id' => $applicationId,
-                            'emp_cate'       => $companyName,
-                        ],
-                        [
-                            'emp_type'        => $workRow['emp_type'],
-                            'intimation_date' => $workRow['intimation_date'],
-                            'from_date'       => $workRow['from_date'],
-                            'to_date'         => $workRow['to_date'],
-                            ...$this->mstExperienceDurationForDb($workRow),
-                            'designation'     => $designation,
-                            'upload_document' => $finalDoc,
-                            'exp_serial'      => $newSerial,
-                        ]
-                    );
-                }
-            }
+            $this->persistWorkExperienceUpdateOrCreate(
+                $request,
+                $loginId,
+                $applicationId,
+                $request->form_name ?? null
+            );
 
             // process photo
              if ($request->hasFile('upload_photo')) {

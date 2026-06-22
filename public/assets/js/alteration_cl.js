@@ -3,8 +3,9 @@
 
 
 $(document).ready(function () {
-    alterationModal = new bootstrap.Modal(
-        document.getElementById("alteration"),
+    
+    alteration_clModal = new bootstrap.Modal(
+        document.getElementById("alteration_cl"),
         {
             backdrop: "static",
             keyboard: false,
@@ -17,7 +18,7 @@ $(document).ready(function () {
             keyboard: false,
         },
     );
-    alterationModal.show();
+    alteration_clModal.show();
 
     // Check on page load
     toggleQcUpgrade();
@@ -107,8 +108,11 @@ async function loadInstructions() {
     }
 }
 
-// alteration Submit
-$(document).on("click", "#alterationSubmit", async function () {
+// alteration_cl Submit
+$(document).on("click", "#alteration_clSubmit", async function () {
+
+
+    // alert('111');
     $(".error").html("");
 
     let isValid = true;
@@ -197,7 +201,7 @@ $(document).on("click", "#alterationSubmit", async function () {
         .prop("readonly", true);
         }
 
-    alterationModal.hide();
+    alteration_clModal.hide();
 
     $("#declaration-agree-renew").prop("checked", false);
     $("#declaration-error-renew").addClass("d-none");

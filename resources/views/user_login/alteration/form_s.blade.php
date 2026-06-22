@@ -1021,8 +1021,8 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் பெயர்</div>
                                             </div>
                                         </div>
-                                        <div class="fs-view-grid-value-box">
-                                            <div class="fs-view-value {{ empty($applicantNameVal) ? 'fs-view-value--empty' : '' }}" data-view-for="Applicant_Name">{{ $applicantNameVal ?: 'Not provided' }}</div>
+                                        <div class="">
+                                            <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text" value="Mr Saravana Perumal" readonly="">
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -1061,7 +1061,12 @@
                                             </div>
                                         </div>
                                         <div class="fs-view-grid-value-box">
-                                            <div class="fs-view-value {{ empty($addressVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicants_address">{{ $addressVal ?: 'Not provided' }}</div>
+                                            <textarea rows="3"
+                                                class="form-control"
+                                                id="applicants_address"
+                                                name="applicants_address"
+                                                maxlength="255"
+                                                readonly>{{ $addressVal ?: 'Not provided' }}</textarea>
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -1100,7 +1105,7 @@
                                             </div>
                                         </div>
                                         <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text"
-                                            value="{{ str_replace('.', '', $applicantNameVal) }}" readonly>
+                                            value="{{ str_replace('.', '', $applicantNameVal) }}" >
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="fs-field-head">
@@ -1471,7 +1476,7 @@
                                                     <table class="table table-bordered {{ (isset($application_details->form_name) && in_array($application_details->form_name, ['S','W'])) ? 'table-sm work-exp-table' : 'table-striped' }} {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'work-table-w' : '' }}" id="work-table">
                                                         <thead>
                                                             <tr>
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                                               
                                                                 <th class="work-exp-col-sno text-center">S.No</th>
                                                                 <th class="work-exp-col-type">Employment type</th>
                                                                 <th class="work-exp-col-employer">Employer / organization</th>
@@ -1489,22 +1494,7 @@
                                                                         </div>
                                                                     </div>
                                                                 </th>
-                                                                @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
-                                                                <th class="work-exp-col-sno text-center">S.No</th>
-                                                                <th class="work-exp-col-company">Company Name / Contractor</th>
-                                                                <th class="work-exp-col-years work-exp-years-head" scope="col">
-                                                                    <div class="work-exp-years-title">Year of Experience</div>
-                                                                    <div class="work-exp-inline work-exp-inline--head">
-                                                                        <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">From (date)</span></div>
-                                                                        <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">To (date)</span></div>
-                                                                        <div class="work-exp-total-inline"><span class="work-exp-label-fromto d-block">Total yrs</span></div>
-                                                                    </div>
-                                                                </th>
-                                                                @else
-                                                                <th>S.No</th>
-                                                                <th>Company Name / Contractor</th>
-                                                                <th>Years of Experience (Years)</th>
-                                                                @endif
+                                                               
                                                                 <th class="work-exp-col-designation">Designation</th>
                                                                 @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                                                                     <th class="text-center work-exp-col-upload work-exp-upload-head">
@@ -1813,7 +1803,7 @@
                                                 @endif
                         </div>
                     </div>
-                    {{-- /SECTION 6 --}}
+                    
                     @endif
 
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
@@ -1861,7 +1851,7 @@
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
                                                {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_issue_date }}">
+                                               >
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
@@ -1960,8 +1950,7 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ $application_details->certificate_issue_date }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   >
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-3">
@@ -2197,8 +2186,8 @@
                     <input type="hidden" id="form_id" name="form_id"
                         value="{{ isset($application_details) ? $application_details->form_id : '' }}">
                     <input type="hidden" id="amount" name="amount" value="">
-                    <input type="hidden" id="appl_type" name="appl_type"
-                        value="{{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }}">
+                    <!-- {{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }} -->
+                    <input type="hidden" id="appl_type" name="appl_type" value="N">
                     @csrf
 
                     {{-- ── Action buttons ── --}}

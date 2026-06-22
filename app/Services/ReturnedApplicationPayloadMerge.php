@@ -57,27 +57,64 @@ final class ReturnedApplicationPayloadMerge
         if ($formName === 'S') {
             $empType = [];
             $employer = [];
+            $orgAddress = [];
+            $contractorCat = [];
+            $licenceNo = [];
             $intimation = [];
             $from = [];
             $to = [];
             $total = [];
             $designation = [];
+            $nature = [];
+            $voltage = [];
+            $kva = [];
             $workId = [];
             $existingW = [];
+            $existingRelieve = [];
             $removedW = [];
+            $removedRelieve = [];
+            $qsRecognized = [];
+            $endorsedLicenseType = [];
+            $endorsedLicenseNo = [];
+            $endorsedContractor = [];
+            $existingEndorsed = [];
+            $removedEndorsed = [];
 
             foreach ($rows as $row) {
-                $empType[] = $row->emp_type ?: 'company';
-                $employer[] = $row->emp_cate ?? $row->company_name ?? '';
+                $type = $row->emp_type ?: 'company';
+                $empType[] = $type;
+
+                $employerName = $row->org_name ?? $row->company_name ?? '';
+                if ($employerName === '' && strtolower((string) $type) !== 'contractor' && ! empty($row->emp_cate)) {
+                    $employerName = $row->emp_cate;
+                }
+                $employer[] = $employerName;
+                $orgAddress[] = $row->org_address ?? '';
+
+                $decoded = self::decodeFormSContractorEmpCate($row->emp_cate);
+                $contractorCat[] = $decoded['category'] ?? '';
+                $licenceNo[] = $decoded['licence'] ?? '';
+
                 $intimation[] = $row->intimation_date ? Carbon::parse($row->intimation_date)->format('Y-m-d') : '';
                 $from[] = $row->from_date ? Carbon::parse($row->from_date)->format('Y-m-d') : '';
                 $to[] = $row->to_date ? Carbon::parse($row->to_date)->format('Y-m-d') : '';
                 $te = $row->total_exp ?? $row->experience ?? '';
                 $total[] = $te;
                 $designation[] = $row->designation ?? '';
+                $nature[] = $row->nature_work ?? '';
+                $voltage[] = $row->voltage_level ?? '';
+                $kva[] = $row->transformer_kva ?? '';
                 $workId[] = $row->id;
-                $existingW[] = $row->upload_document ?? '';
+                $existingW[] = $row->support_document ?? $row->upload_document ?? '';
+                $existingRelieve[] = $row->releive_document ?? '';
                 $removedW[] = '0';
+                $removedRelieve[] = '0';
+                $qsRecognized[] = $row->qualified_supervisor_recognized ?? '';
+                $endorsedLicenseType[] = $row->endorsed_license_type ?? '';
+                $endorsedLicenseNo[] = $row->endorsed_license_number ?? '';
+                $endorsedContractor[] = $row->endorsed_contractor_name ?? '';
+                $existingEndorsed[] = $row->endorsed_support_document ?? '';
+                $removedEndorsed[] = '0';
             }
 
             $workLevel = $employer;
@@ -85,16 +122,30 @@ final class ReturnedApplicationPayloadMerge
             $request->merge([
                 'work_employment_type' => $empType,
                 'work_employer_name' => $employer,
+                'work_organisation_address' => $orgAddress,
+                'work_contractor_category' => $contractorCat,
+                'work_licence_number' => $licenceNo,
                 'work_intimation_date' => $intimation,
                 'work_date_from' => $from,
                 'work_date_to' => $to,
                 'work_experience_total' => $total,
+                'work_nature_of_work' => $nature,
+                'work_voltage_level' => $voltage,
+                'work_transformer_kva' => $kva,
                 'work_level' => $workLevel,
                 'experience' => $total,
                 'designation' => $designation,
                 'work_id' => $workId,
                 'existing_work_document' => $existingW,
+                'existing_work_relieving_document' => $existingRelieve,
                 'removed_document_work' => $removedW,
+                'removed_document_work_relieving' => $removedRelieve,
+                'work_qualified_supervisor_recognized' => $qsRecognized,
+                'work_endorsed_license_type' => $endorsedLicenseType,
+                'work_endorsed_license_number' => $endorsedLicenseNo,
+                'work_endorsed_contractor_name' => $endorsedContractor,
+                'existing_work_endorsed_document' => $existingEndorsed,
+                'removed_work_endorsed_document' => $removedEndorsed,
             ]);
 
             return;
@@ -112,7 +163,7 @@ final class ReturnedApplicationPayloadMerge
             $removedW = [];
 
             foreach ($rows as $row) {
-                $wl[] = $row->company_name ?? '';
+                $wl[] = $row->org_name ?? $row->company_name ?? '';
                 $from[] = $row->from_date ? Carbon::parse($row->from_date)->format('Y-m-d') : '';
                 $to[] = $row->to_date ? Carbon::parse($row->to_date)->format('Y-m-d') : '';
                 $te = $row->total_exp ?? $row->experience ?? '';
@@ -120,7 +171,7 @@ final class ReturnedApplicationPayloadMerge
                 $exp[] = $te;
                 $designation[] = $row->designation ?? '';
                 $workId[] = $row->id;
-                $existingW[] = $row->upload_document ?? '';
+                $existingW[] = $row->support_document ?? $row->upload_document ?? '';
                 $removedW[] = '0';
             }
 
@@ -148,11 +199,11 @@ final class ReturnedApplicationPayloadMerge
         $removedW = [];
 
         foreach ($rows as $row) {
-            $wl[] = $row->company_name ?? '';
+            $wl[] = $row->org_name ?? $row->company_name ?? '';
             $exp[] = $row->experience ?? $row->total_exp ?? '';
             $designation[] = $row->designation ?? '';
             $workId[] = $row->id;
-            $existingW[] = $row->upload_document ?? '';
+            $existingW[] = $row->support_document ?? $row->upload_document ?? '';
             $removedW[] = '0';
         }
 
@@ -164,6 +215,26 @@ final class ReturnedApplicationPayloadMerge
             'existing_work_document' => $existingW,
             'removed_document_work' => $removedW,
         ]);
+    }
+
+    /**
+     * @return array{category: ?string, licence: ?string}
+     */
+    private static function decodeFormSContractorEmpCate(?string $stored): array
+    {
+        if ($stored === null || $stored === '') {
+            return ['category' => null, 'licence' => null];
+        }
+        if (str_contains($stored, '||')) {
+            $parts = explode('||', $stored, 2);
+
+            return [
+                'category' => (($parts[0] ?? '') !== '') ? $parts[0] : null,
+                'licence' => (($parts[1] ?? '') !== '') ? $parts[1] : null,
+            ];
+        }
+
+        return ['category' => $stored, 'licence' => null];
     }
 
     public static function mergeFormPInstituteArraysIntoRequest(Request $request, string $applicationId): void
@@ -235,12 +306,16 @@ final class ReturnedApplicationPayloadMerge
             'd_o_b' => $fmtDate($form->d_o_b) ?? '',
             'age' => $form->age,
             'previously_number' => $form->previously_number,
-            'previously_date' => $fmtDate($form->previously_date),
+            'previously_valid_to' => $fmtDate($form->previously_valid_to ?? $form->previously_date ?? null),
+            'previously_issue_date' => $fmtDate($form->previously_issue_date ?? null),
+            'previously_valid_from' => $fmtDate($form->previously_valid_from ?? null),
             'wireman_details' => $form->wireman_details ?? null,
             'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
             'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) (safeDecrypt($form->pancard) ?? ''))),
             'certificate_no' => $form->certificate_no,
-            'certificate_date' => $fmtDate($form->certificate_date),
+            'certificate_valid_to' => $fmtDate($form->certificate_valid_to ?? $form->certificate_date ?? null),
+            'certificate_issue_date' => $fmtDate($form->certificate_issue_date ?? null),
+            'certificate_valid_from' => $fmtDate($form->certificate_valid_from ?? null),
             'license_number' => $form->license_number,
             'l_verify' => (string) ($form->license_verify ?? '0'),
             'cert_verify' => (string) ($form->cert_verify ?? '0'),

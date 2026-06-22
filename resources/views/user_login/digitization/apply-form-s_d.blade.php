@@ -6,20 +6,12 @@
         border: 0;
         border-top: 1px solid #e3e8f0;
     }
-
-    .fs-form .form-group {
-        margin-bottom: 0;
-    }
+    .fs-form .form-group { margin-bottom: 0; }
+    .apply-card label { font-size: 12px; }
 
     /* ── SweetAlert overrides ─────────────────────────── */
-    .swal2-popup li {
-        font-size: 15px;
-        margin-bottom: 8px;
-    }
-
-    .swal2-popup li ul {
-        margin-left: 15px;
-    }
+    .swal2-popup li            { font-size: 15px; margin-bottom: 8px; }
+    .swal2-popup li ul         { margin-left: 15px; }
 
     /* ── Page wrapper ─────────────────────────────────── */
     .fs-page-wrap {
@@ -34,13 +26,11 @@
         border-bottom: 1px solid #e3e8f0;
         padding: 10px 0;
     }
-
     .fs-breadcrumb-bar #breadcrumb,
     .fs-breadcrumb-bar #breadcrumb li,
     .fs-breadcrumb-bar #breadcrumb li a {
         all: unset;
     }
-
     .fs-breadcrumb-bar #breadcrumb {
         display: flex !important;
         flex-wrap: wrap;
@@ -52,7 +42,6 @@
         font-size: 0.85rem;
         background: none !important;
     }
-
     .fs-breadcrumb-bar #breadcrumb li {
         display: flex !important;
         align-items: center;
@@ -62,15 +51,13 @@
         margin: 0 !important;
         float: none !important;
     }
-
-    .fs-breadcrumb-bar #breadcrumb li+li::before {
+    .fs-breadcrumb-bar #breadcrumb li + li::before {
         content: '›';
         color: #adb5bd;
         margin-right: 6px;
         font-size: 1rem;
         line-height: 1;
     }
-
     .fs-breadcrumb-bar #breadcrumb a {
         color: #035ab3 !important;
         text-decoration: none !important;
@@ -78,17 +65,13 @@
         background: none !important;
         padding: 0 !important;
     }
-
-    .fs-breadcrumb-bar #breadcrumb a:hover {
-        text-decoration: underline !important;
-        cursor: pointer;
-    }
+    .fs-breadcrumb-bar #breadcrumb a:hover { text-decoration: underline !important; cursor: pointer; }
 
     /* ── Main card ────────────────────────────────────── */
     .fs-card {
         background: #fff;
         border-radius: 12px;
-        box-shadow: 0 2px 16px rgba(3, 90, 179, .10);
+        box-shadow: 0 2px 16px rgba(3,90,179,.10);
         overflow: hidden;
         margin-top: 24px;
     }
@@ -99,11 +82,7 @@
         padding: 10px 24px 6px;
         position: relative;
     }
-
-    .fs-card-header .header-titles {
-        text-align: center;
-    }
-
+    .fs-card-header .header-titles { text-align: center; }
     .fs-card-header .header-titles h5 {
         margin: 0 0 2px;
         font-size: 1.05rem;
@@ -113,17 +92,15 @@
         text-transform: uppercase;
         line-height: 1.4;
     }
-
     .fs-card-header .header-titles h5.tamil-title {
         font-size: .98rem;
         font-weight: 400;
         opacity: .9;
     }
-
     .fs-card-header .header-titles .form-badge {
         display: inline-block;
-        background: rgba(255, 255, 255, .18);
-        border: 1px solid rgba(255, 255, 255, .35);
+        background: rgba(255,255,255,.18);
+        border: 1px solid rgba(255,255,255,.35);
         color: #fff;
         border-radius: 20px;
         padding: 2px 14px;
@@ -132,7 +109,6 @@
         margin-top: 4px;
         letter-spacing: .5px;
     }
-
     .fs-card-header .instructions-link {
         text-align: right;
         margin-top: 0;
@@ -140,17 +116,12 @@
         font-size: .82rem;
         line-height: 1;
     }
-
     .fs-card-header .instructions-link a {
-        color: rgba(255, 255, 255, .9);
+        color: rgba(255,255,255,.9);
         text-decoration: none;
-        border-bottom: 1px dashed rgba(255, 255, 255, .5);
+        border-bottom: 1px dashed rgba(255,255,255,.5);
     }
-
-    .fs-card-header .instructions-link a:hover {
-        color: #fff;
-        border-bottom-color: #fff;
-    }
+    .fs-card-header .instructions-link a:hover { color: #fff; border-bottom-color: #fff; }
 
     /* ── Mandatory notice ─────────────────────────────── */
     .fs-mandatory-bar {
@@ -161,17 +132,10 @@
         color: #555;
         text-align: right;
     }
-
-    .fs-mandatory-bar .req-dot {
-        color: #d9363e;
-        font-weight: 700;
-        margin-right: 2px;
-    }
+    .fs-mandatory-bar .req-dot { color: #d9363e; font-weight: 700; margin-right: 2px; }
 
     /* ── Form body ────────────────────────────────────── */
-    .fs-form-body {
-        padding: 28px 28px 32px;
-    }
+    .fs-form-body { padding: 28px 28px 32px; }
 
     /* ── Section blocks ───────────────────────────────── */
     .fs-section {
@@ -180,7 +144,6 @@
         border-radius: 8px;
         margin-bottom: 20px;
     }
-
     .fs-section-header {
         display: flex;
         align-items: center;
@@ -189,7 +152,6 @@
         background: #eef3fb;
         border-bottom: 1px solid #dde5f3;
     }
-
     .fs-section-num {
         display: inline-flex;
         align-items: center;
@@ -203,35 +165,26 @@
         font-weight: 700;
         flex-shrink: 0;
     }
-
     .fs-section-title {
         font-size: .9rem;
         font-weight: 600;
         color: #1a2a4a;
         line-height: 1.35;
     }
-
-    .fs-section-title .section-req {
-        color: #d9363e;
-    }
-
+    .fs-section-title .section-req { color: #d9363e; }
     .fs-section-title .section-hint {
         font-size: .78rem;
         font-weight: 400;
         color: #5a7299;
         margin-left: 4px;
     }
-
     .fs-section-tamil {
         font-size: .8rem;
         color: #5a7299;
         line-height: 1.4;
         margin-top: 1px;
     }
-
-    .fs-section-body {
-        padding: 18px 18px 14px;
-    }
+    .fs-section-body { padding: 18px 18px 14px; }
 
     .fs-section-header.fs-section-header--in-grid {
         padding: 4px 0 10px;
@@ -240,16 +193,8 @@
         border: 0;
         background: transparent;
     }
-
-    .fs-section-header.fs-section-header--in-grid .fs-section-title {
-        font-size: .83rem;
-    }
-
-    .fs-section-header.fs-section-header--in-grid .fs-section-tamil {
-        font-size: .74rem;
-        margin-top: 2px;
-    }
-
+    .fs-section-header.fs-section-header--in-grid .fs-section-title { font-size: .83rem; }
+    .fs-section-header.fs-section-header--in-grid .fs-section-tamil { font-size: .74rem; margin-top: 2px; }
     .fs-section-header.fs-section-header--in-grid .fs-section-num {
         width: 24px;
         height: 24px;
@@ -264,18 +209,13 @@
         margin-bottom: 3px;
         line-height: 1.3;
     }
-
-    .fs-field-label .req {
-        color: #d9363e;
-    }
-
+    .fs-field-label .req { color: #d9363e; }
     .fs-field-tamil {
         font-size: .76rem;
         color: #7a90b0;
         margin-bottom: 4px;
         line-height: 1.3;
     }
-
     /* DOB + Age: badge 5 inline with labels (same pattern as other in-grid headers) */
     .fs-dob-age-badge-row {
         display: flex;
@@ -284,39 +224,26 @@
         padding: 4px 0 0;
         margin-bottom: 0;
     }
-
-    .fs-dob-age-badge-row>.fs-section-num {
+    .fs-dob-age-badge-row > .fs-section-num {
         width: 24px;
         height: 24px;
         font-size: .7rem;
         flex-shrink: 0;
         margin-top: 1px;
     }
-
     .fs-dob-age-badge-row__body {
         flex: 1 1 0;
         min-width: 0;
     }
-
-    .fs-dob-age-pair.row {
-        align-items: flex-start;
-    }
-
-    .fs-dob-age-pair>[class*="col-"] {
-        align-self: flex-start;
-    }
-
+    .fs-dob-age-pair.row { align-items: flex-start; }
+    .fs-dob-age-pair > [class*="col-"] { align-self: flex-start; }
     .fs-dob-age-label-block {
         min-height: 3.35rem;
         margin-bottom: 2px;
     }
-
     @media (min-width: 576px) {
-        .fs-dob-age-label-block {
-            min-height: 3.5rem;
-        }
+        .fs-dob-age-label-block { min-height: 3.5rem; }
     }
-
     .fs-form .form-control {
         border: 1px solid #ccd5e3;
         border-radius: 6px;
@@ -326,22 +253,17 @@
         transition: border-color .2s, box-shadow .2s;
         background: #fff;
     }
-
     .fs-form .form-control:focus {
         border-color: #035ab3;
-        box-shadow: 0 0 0 3px rgba(3, 90, 179, .12);
+        box-shadow: 0 0 0 3px rgba(3,90,179,.12);
         outline: none;
     }
-
     .fs-form .form-control[readonly],
     .fs-form .form-control:disabled {
         background: #f4f6fb;
         color: #6b7a99;
     }
-
-    .fs-form textarea.form-control {
-        resize: vertical;
-    }
+    .fs-form textarea.form-control { resize: vertical; }
 
     /* ── Radio toggle ─────────────────────────────────── */
     .fs-radio-group {
@@ -350,22 +272,9 @@
         align-items: center;
         flex-wrap: wrap;
     }
-
-    .fs-radio-group .form-check {
-        margin: 0;
-    }
-
-    .fs-radio-group .form-check-input {
-        margin-top: 2px;
-        accent-color: #035ab3;
-    }
-
-    .fs-radio-group .form-check-label {
-        font-size: .875rem;
-        font-weight: 500;
-        color: #2c3e5e;
-        cursor: pointer;
-    }
+    .fs-radio-group .form-check { margin: 0; }
+    .fs-radio-group .form-check-input { margin-top: 2px; accent-color: #035ab3; }
+    .fs-radio-group .form-check-label { font-size: .875rem; font-weight: 500; color: #2c3e5e; cursor: pointer; }
 
     /* ── Toggle sub-panel ─────────────────────────────── */
     .fs-toggle-panel {
@@ -375,10 +284,7 @@
         padding: 16px;
         margin-top: 12px;
     }
-
-    .fs-toggle-panel .fs-field-label {
-        color: #1a3a72;
-    }
+    .fs-toggle-panel .fs-field-label { color: #1a3a72; }
 
     /* ── Verify button ────────────────────────────────── */
     .btn-verify {
@@ -394,24 +300,11 @@
         transition: background .2s;
         white-space: nowrap;
     }
-
-    .btn-verify:hover {
-        background: #024a98;
-        color: #fff;
-    }
+    .btn-verify:hover { background: #024a98; color: #fff; }
 
     /* ── Tables ───────────────────────────────────────── */
-    .fs-table-wrap {
-        overflow-x: auto;
-        border-radius: 6px;
-        border: 1px solid #dde5f3;
-    }
-
-    .fs-form table.table {
-        margin-bottom: 0;
-        font-size: .83rem;
-    }
-
+    .fs-table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #dde5f3; }
+    .fs-form table.table { margin-bottom: 0; font-size: .83rem; }
     .fs-form table.table thead th {
         background: #eef3fb;
         color: #1a2a4a;
@@ -423,26 +316,17 @@
         border-color: #d0ddf5;
         line-height: 1.25;
     }
-
     .fs-form table.table tbody td {
         padding: .45rem .5rem;
         vertical-align: middle;
         border-color: #e8edf6;
     }
-
-    .fs-form table.table tbody tr:nth-child(even) td {
-        background: #f8fafd;
-    }
-
-    .fs-form table.table tbody tr:hover td {
-        background: #eef3fb;
-    }
-
+    .fs-form table.table tbody tr:nth-child(even) td { background: #f8fafd; }
+    .fs-form table.table tbody tr:hover td { background: #eef3fb; }
     .fs-form table.table .form-control {
         font-size: .82rem;
         padding: 5px 8px;
     }
-
     .fs-form .file-limit {
         font-size: .72rem;
         color: #28a745;
@@ -458,14 +342,10 @@
         flex-wrap: wrap;
         gap: .35rem;
     }
-
-    .form-s-file-upload-wrap .form-control {
-        flex: 1 1 auto;
-        min-width: 0;
-    }
+    .form-s-file-upload-wrap .form-control { flex: 1 1 auto; min-width: 0; }
 
     #education-table .form-s-file-upload-wrap--combined,
-    #work-table .form-s-file-upload-wrap--combined {
+    .work-card .form-s-file-upload-wrap--combined {
         display: flex;
         flex-direction: row;
         flex-wrap: nowrap;
@@ -480,11 +360,12 @@
         overflow: hidden;
         background: #fff;
     }
-
+    /* In the card layout, allow the upload pill to grow with the field column. */
+    .work-card .form-s-file-upload-wrap--combined { max-width: none; }
     #education-table .form-s-file-upload-wrap--combined .form-control,
-    #work-table .form-s-file-upload-wrap--combined .form-control,
+    .work-card .form-s-file-upload-wrap--combined .form-control,
     #education-table .form-s-file-upload-wrap--combined input[type="file"],
-    #work-table .form-s-file-upload-wrap--combined input[type="file"] {
+    .work-card .form-s-file-upload-wrap--combined input[type="file"] {
         flex: 1 1 auto;
         min-width: 0;
         width: auto;
@@ -498,11 +379,7 @@
 
     /* ── Table action cells ───────────────────────────── */
     #education-table td.form-s-actions-cell,
-    #work-table td.work-exp-col-actions {
-        vertical-align: middle;
-        width: 3rem;
-    }
-
+    #work-table td.work-exp-col-actions { vertical-align: middle; width: 3rem; }
     #education-table .form-s-actions-stack,
     #work-table .form-s-actions-stack {
         display: flex;
@@ -523,11 +400,7 @@
         cursor: pointer;
         transition: background .2s;
     }
-
-    .btn-tbl-add:hover {
-        background: #024a98;
-    }
-
+    .btn-tbl-add:hover { background: #024a98; }
     .btn-tbl-remove {
         background: #dc3545;
         color: #fff;
@@ -538,10 +411,7 @@
         cursor: pointer;
         transition: background .2s;
     }
-
-    .btn-tbl-remove:hover {
-        background: #b52a37;
-    }
+    .btn-tbl-remove:hover { background: #b52a37; }
 
     /* ── Local file preview ───────────────────────────── */
     .local-file-preview {
@@ -550,16 +420,13 @@
         gap: .4rem;
         margin-top: .35rem;
     }
-
     .local-file-preview .preview-link {
         color: #0056b3 !important;
         font-size: .78rem;
         font-weight: 600;
     }
-
     .local-file-preview .img-preview {
-        width: 44px;
-        height: 44px;
+        width: 44px; height: 44px;
         border: 1px solid #ccd5e3;
         border-radius: 4px;
         object-fit: cover;
@@ -567,250 +434,733 @@
 
     /* ── Education table column widths ───────────────── */
     #education-table thead th:last-child,
-    #work-table thead th.work-exp-col-actions {
-        vertical-align: middle;
-        text-align: center;
-    }
-
+    #work-table thead th.work-exp-col-actions { vertical-align: middle; text-align: center; }
     #education-table thead th {
-        font-size: .72rem;
-        font-weight: 600;
+        font-size: .72rem; font-weight: 600;
         padding: .3rem .35rem;
-        vertical-align: middle;
-        line-height: 1.2;
-        text-align: center;
+        vertical-align: middle; line-height: 1.2; text-align: center;
     }
-
-    #education-table thead tr:nth-child(2) th {
-        font-size: .7rem;
-        padding: .25rem .3rem;
-    }
-
-    #education-table thead th .file-limit {
-        font-size: .66rem;
-    }
-
-    #education-table tbody td {
-        text-align: center;
-        vertical-align: middle;
-    }
-
+    #education-table thead tr:nth-child(2) th { font-size: .7rem; padding: .25rem .3rem; }
+    #education-table thead th .file-limit { font-size: .66rem; }
+    #education-table tbody td { text-align: center; vertical-align: middle; }
     #education-table tbody .form-control,
     #education-table tbody select,
-    #education-table tbody input {
-        font-size: .86rem;
-        line-height: 1.25;
+    #education-table tbody input { font-size: .86rem; line-height: 1.25; }
+    #education-table tbody select option { font-size: .86rem; }
+
+    /* ── Work Experience: row-grid layout (restructured) ──── */
+    .work-exp-wrap {
+        --wx-accent: #035ab3;
+        --wx-accent-2: #0472d9;
+        --wx-bg: #fff;
+        --wx-surface: #f7faff;
+        --wx-border: #dde5f3;
+        --wx-border-strong: #c8d8f5;
+        --wx-muted: #6b7a99;
+        --wx-text: #1a2a4a;
+        --wx-amber: #b76e00;
+        --wx-amber-bg: #fff5e0;
+        --wx-green: #1f7a3a;
+        --wx-green-bg: #e6f7ec;
+        --wx-red: #c1272d;
+        --wx-radius: 10px;
+        --wx-radius-sm: 6px;
+        display: flex; flex-direction: column; gap: 12px;
     }
 
-    #education-table tbody select option {
-        font-size: .86rem;
+    /* Section header bar — Add row button only */
+    .work-exp-section-bar {
+        display: flex; align-items: center; justify-content: flex-end;
+        gap: 12px; flex-wrap: wrap;
+        padding: 0 0 4px;
+        border: none;
+        background: transparent;
+    }
+    .work-exp-section-bar .work-exp-add-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--wx-accent); color: #fff; border: none;
+        border-radius: 7px; padding: 6px 12px; font-size: .8rem; font-weight: 600;
+        cursor: pointer; transition: background .2s, transform .15s, box-shadow .2s;
+        box-shadow: 0 2px 5px rgba(3,90,179,.16);
+    }
+    .work-exp-section-bar .work-exp-add-btn:hover:not(:disabled) {
+        background: #024a98; transform: translateY(-1px); box-shadow: 0 4px 9px rgba(3,90,179,.22);
+    }
+    .work-exp-section-bar .work-exp-add-btn:disabled {
+        background: #b6c2d6; cursor: not-allowed; box-shadow: none; opacity: .8;
     }
 
-    /* ── Work-table specific ──────────────────────────── */
-    #work-table.work-exp-table {
-        font-size: .8125rem;
-        width: 100%;
-        max-width: 100%;
-    }
-
-    #work-table.work-exp-table thead th {
-        font-size: .78rem;
-        font-weight: 600;
-        padding: .35rem .4rem;
-        vertical-align: middle;
-        line-height: 1.25;
-    }
-
-    #work-table.work-exp-table tbody td {
-        padding: .4rem .45rem;
-        vertical-align: middle;
-    }
-
-    #work-table .work-employer-cell {
-        vertical-align: top;
-    }
-
-    #work-table .work-employer-label-row {
+    /* Rows container — light page bg like order list */
+    .work-rows {
         display: flex;
-        align-items: baseline;
-        margin-bottom: .15rem;
-        min-width: 0;
+        flex-direction: column;
+        gap: 12px;
+        padding: 4px 0;
     }
 
-    #work-table .work-employer-label {
-        font-size: .7rem;
-        color: #6c757d;
-        white-space: nowrap;
+    /* ── A single work-experience row (all fields visible inline) ────── */
+    .work-row {
+        background: var(--wx-bg);
+        border: 1px solid var(--wx-border);
+        border-radius: var(--wx-radius);
+        box-shadow: 0 1px 3px rgba(3,90,179,.05);
+        transition: box-shadow .2s, border-color .2s, opacity .18s, transform .18s;
         overflow: hidden;
-        text-overflow: ellipsis;
-        flex: 1 1 0;
-        min-width: 0;
+        animation: wxRowIn .22s ease;
+    }
+    .work-row:hover { box-shadow: 0 3px 10px rgba(3,90,179,.08); border-color: var(--wx-border-strong); }
+    .work-row.is-removing { opacity: 0; transform: translateY(-6px) scale(.98); }
+    @keyframes wxRowIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
 
-    #work-table .work-employer-req {
-        font-size: .7rem;
-        flex: 0 0 auto;
+    /* Row header (always visible — serial + title/summary + status pill + remove) */
+    .work-row-head {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 14px;
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%);
+        border-bottom: 1px solid var(--wx-border);
+        transition: background .18s ease, border-color .18s ease;
     }
-
-    #work-table .work-exp-col-type {
-        width: 12%;
-        max-width: 10.5rem;
-    }
-
-    #work-table .work-exp-col-employer {
-        width: 16%;
-        max-width: 12rem;
-    }
-
-    #work-table .work-exp-col-years {
-        width: 34%;
-        min-width: 19.5rem;
-    }
-
-    #work-table .work-exp-col-designation {
-        width: 12%;
-    }
-
-    #work-table .work-exp-col-upload {
-        width: 22%;
-    }
-
-    #work-table .work-exp-col-sno {
-        width: 2.5rem;
-        min-width: 2.5rem;
-        white-space: nowrap;
-        text-align: center;
-    }
-
-    #work-table .work-exp-col-actions {
-        width: 2.75rem;
-        white-space: nowrap;
-    }
-
-    #work-table .work-exp-upload-head {
-        font-size: .72rem;
-        line-height: 1.2;
-    }
-
-    #work-table .work-exp-upload-head .file-limit {
-        font-size: .68rem;
-    }
-
-    #work-table .work-exp-inline {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: .25rem;
-    }
-
-    #work-table .work-exp-inline:not(.work-exp-inline--head) {
-        align-items: flex-start;
-    }
-
-    #work-table .work-exp-date-group {
+    .work-row-serial,
+    .work-row-serial--card,
+    .work-card-serial { display: none !important; }
+    .work-row-title { display: none !important; }
+    .work-row-summary {
         flex: 1 1 auto;
-        min-width: 7.5rem;
-        max-width: 10rem;
-    }
-
-    #work-table .work-exp-total-inline {
-        flex: 0 0 5.75rem;
-        min-width: 5.5rem;
-        max-width: 6.5rem;
-    }
-
-    #work-table .work-exp-label-fromto {
-        font-size: .72rem;
-        font-weight: 600;
-        color: #212529;
-        margin-bottom: .2rem;
-        line-height: 1.2;
-    }
-
-    #work-table thead th.work-exp-col-years {
-        vertical-align: top;
-    }
-
-    #work-table .work-exp-years-title {
-        text-align: center;
-        margin-bottom: .35rem;
-        font-weight: 600;
-        font-size: .78rem;
-    }
-
-    #work-table .work-exp-inline--head {
-        align-items: flex-end;
-        border-top: 1px solid #dee2e6;
-        padding-top: .25rem;
-    }
-
-    #work-table .work-exp-inline--head .work-exp-label-fromto {
-        margin-bottom: 0;
-    }
-
-    #work-table .work-exp-inline--head .work-exp-date-group,
-    #work-table .work-exp-inline--head .work-exp-total-inline {
-        position: relative;
-        padding-left: .35rem;
-    }
-
-    #work-table .work-exp-inline--head .work-exp-date-group+.work-exp-date-group,
-    #work-table .work-exp-inline--head .work-exp-total-inline {
-        border-left: 1px solid #dee2e6;
-    }
-
-    #work-table .work-date-from,
-    #work-table .work-date-to {
-        font-size: .8125rem;
-        color: #212529;
-        min-width: 9.5rem;
-        width: 100%;
-    }
-
-    #work-table .work-duration-ymd {
-        display: flex;
-        gap: .18rem;
-        align-items: flex-end;
-        justify-content: center;
-        width: 100%;
-    }
-
-    #work-table .work-duration-cell {
-        flex: 1 1 0;
         min-width: 0;
-        text-align: center;
+        display: none;
     }
-
-    #work-table .work-duration-label {
+    /* Collapsed complete entry — summary table */
+    .wx-order-card {
         display: block;
-        font-size: .6rem;
-        font-weight: 600;
-        color: #6c757d;
-        line-height: 1;
-        margin-bottom: .1rem;
+        width: 100%;
+        padding-right: 28px;
     }
-
-    #work-table .work-duration-y,
-    #work-table .work-duration-m,
-    #work-table .work-duration-d {
-        font-size: .66rem;
-        padding: .16rem .06rem;
+    .wx-summary-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0;
+    }
+    .wx-summary-table {
+        width: 100%;
+        min-width: 0;
+        table-layout: auto;
+        border-collapse: collapse;
+        margin: 0;
+        font-size: 12px;
+    }
+    .wx-summary-table .wx-summary-th-sno,
+    .wx-summary-table .work-row-summary-sno {
+        width: 52px;
+        min-width: 52px;
+        max-width: 52px;
+        text-align: center;
+        vertical-align: middle;
+    }
+    .wx-summary-table .work-row-summary-sno {
+        font-weight: 700;
+        color: var(--wx-accent);
+        font-size: .85rem;
+    }
+    .wx-summary-table thead th {
+        font-size: 12px;
+        font-weight: 700;
+        color: #1a3a6b;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        padding: 9px 8px;
+        border: 1px solid #b8cfe8;
+        background: linear-gradient(180deg, #dce8f8 0%, #c8daf2 100%);
+        vertical-align: middle;
         line-height: 1.25;
         text-align: center;
-        width: 100%;
+        white-space: normal;
+    }
+    .wx-summary-table .wx-summary-th-org,
+    .wx-summary-table .work-row-summary-org-address {
+        min-width: 108px;
+        max-width: 124px;
+    }
+    .wx-summary-table .wx-summary-th-org .wx-th-org-line {
+        display: block;
+        white-space: nowrap;
+        line-height: 1.2;
+    }
+    .wx-summary-table thead th small {
+        display: block;
+        font-size: .62rem;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: 0;
+        color: #4a6288;
+        margin-top: 3px;
+        line-height: 1.2;
+    }
+    .wx-summary-table tbody td {
+        padding: 10px;
+        border: 1px solid #e8edf6;
+        vertical-align: top;
+        font-size: 12px;
+        font-weight: 600;
+        color: #212121;
+        line-height: 1.35;
+        word-break: break-word;
+        background: #fff;
+    }
+    .wx-summary-table .wx-sum-main { display: block; font-weight: 600; color: #212121; }
+    .wx-summary-table .wx-sum-sub,
+    .wx-summary-table .wx-sum-line {
+        display: block;
+        font-size: .92em;
+        font-weight: 500;
+        color: #555;
+        margin-top: 4px;
+        line-height: 1.3;
+    }
+    .wx-summary-table .wx-sum-line strong {
+        font-weight: 600;
+        color: #878787;
+        font-size: .88em;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+    }
+    .wx-summary-table .wx-sum-dur { color: var(--wx-green); font-weight: 600; }
+    /* Period column — date + duration mini boxes */
+    .wx-summary-table .work-row-summary-period { min-width: 168px; padding: 8px; }
+    .wx-period-box {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
         min-width: 0;
     }
+    .wx-period-dates {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+    }
+    .wx-period-mini {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 5px 6px;
+        background: #f7faff;
+        border: 1px solid #ccd9ec;
+        border-radius: 5px;
+        text-align: center;
+        min-width: 0;
+    }
+    .wx-period-mini .wx-period-label {
+        font-size: .58rem;
+        font-weight: 700;
+        color: #878787;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        line-height: 1;
+    }
+    .wx-period-mini .wx-period-val {
+        font-size: .72rem;
+        font-weight: 600;
+        color: #212121;
+        line-height: 1.25;
+        word-break: break-word;
+    }
+    .wx-period-duration {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px 5px;
+        border: 1px solid #b8dfc4;
+        border-radius: 5px;
+        background: linear-gradient(135deg, #f4fbf6 0%, #e6f7ec 100%);
+    }
+    .wx-period-dur-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        text-align: center;
+        min-width: 0;
+    }
+    .wx-period-dur-cell .wx-period-dur-num {
+        font-size: .82rem;
+        font-weight: 700;
+        color: var(--wx-green);
+        line-height: 1.1;
+    }
+    .wx-period-dur-cell .wx-period-dur-lbl {
+        font-size: .5rem;
+        font-weight: 600;
+        color: #5a8a6a;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        line-height: 1;
+    }
+    .wx-summary-table .wx-sum-doc-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #0056b3 !important;
+        font-size: .78rem;
+        font-weight: 600;
+        text-decoration: none;
+        margin-top: 2px;
+    }
+    .wx-summary-table .wx-sum-doc-link:hover { text-decoration: underline; }
+    .wx-summary-table .wx-sum-doc-link .fa-file-pdf-o { color: #d9534f !important; }
+    .wx-summary-table .wx-sum-doc-link .fa-image { color: var(--wx-accent); }
+    /* Attachment column — centered stacked label + link */
+    .wx-summary-table .work-row-summary-attachments {
+        text-align: center;
+        vertical-align: middle;
+        min-width: 108px;
+    }
+    .wx-summary-table .wx-sum-attach-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .wx-summary-table .wx-sum-attach-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        line-height: 1.3;
+    }
+    .wx-summary-table .wx-sum-attach-label {
+        display: block;
+        font-size: .78em;
+        font-weight: 600;
+        color: #878787;
+        text-transform: capitalize;
+    }
+    .wx-summary-table .wx-sum-attach-value {
+        display: block;
+        font-size: .78rem;
+        font-weight: 600;
+        color: #555;
+    }
+    .wx-summary-table .wx-sum-attach-block .wx-sum-doc-link {
+        margin-top: 0;
+    }
+    .wx-summary-footer {
+        display: flex;
+        align-items: center;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid #f0f0f0;
+    }
+    /* Shared summary table — all complete entries in one thead */
+    .work-exp-summary-panel {
+        display: none;
+        margin-bottom: 12px;
+    }
+    .work-exp-summary-panel.is-visible { display: block; }
+    .work-exp-summary-panel .wx-order-card { padding-right: 0; }
+    .wx-summary-table .wx-summary-th-actions,
+    .wx-summary-table .work-row-summary-actions {
+        width: 72px;
+        min-width: 72px;
+        max-width: 72px;
+        text-align: center;
+        vertical-align: middle;
+    }
+    .wx-summary-table .work-row-summary-actions {
+        white-space: nowrap;
+    }
+    .wx-summary-table .work-row-summary-actions .work-row-remove {
+        margin-left: 4px;
+    }
+    .work-row.work-row--in-summary { display: none !important; }
+    .wx-order-edit-link {
+        appearance: none;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: .78rem;
+        font-weight: 600;
+        color: var(--wx-accent);
+        line-height: 1.2;
+    }
+    .wx-order-edit-link:hover { color: #024a98; text-decoration: underline; }
+    .wx-order-edit-link i { font-size: .72rem; }
+    .work-row-summary-subline,
+    .work-row-summary-top,
+    .work-row-summary-meta,
+    .work-row-summary-hint,
+    .work-row-summary-main,
+    .work-row-summary-duration,
+    .wx-order-cell,
+    .wx-order-label,
+    .wx-order-main { display: none !important; }
+    .work-row-head-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+    .work-row-toggle-btn {
+        appearance: none;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        cursor: pointer;
+        width: 26px; height: 26px;
+        display: none;
+        align-items: center; justify-content: center;
+        border-radius: 5px;
+        color: var(--wx-accent);
+        line-height: 1;
+        transition: background .15s, transform .2s;
+    }
+    .work-row-toggle-btn:hover { background: rgba(3,90,179,.08); }
+    .work-row-toggle-btn i { transition: transform .22s ease; }
+    .work-row--expanded .work-row-toggle-btn i { transform: rotate(180deg); }
+    .work-row-spacer { flex: 1 1 auto; }
+    .work-card-status-pill { display: none !important; }
+    .work-card-remove,
+    .work-row-remove {
+        appearance: none;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        cursor: pointer;
+        width: 26px; height: 26px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 5px;
+        color: var(--wx-red);
+        line-height: 1;
+        transition: background .15s;
+    }
+    .work-card-remove:hover,
+    .work-row-remove:hover { background: rgba(193,39,45,.08); }
 
-    /* ── Documents upload table ───────────────────────── */
-    .fs-docs-table {
+    /* Row grid — uniform compact field sizing */
+    .work-row-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px 14px;
+        padding: 14px 16px;
+        transition: opacity .22s ease, padding .22s ease;
+    }
+
+    /* Field cell: label on top, input below */
+    .work-card-field {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+    }
+    .work-card-field-label {
+        font-size: 12px; font-weight: 600; color: var(--wx-text);
+        line-height: 1.2;
+        display: inline-flex; align-items: center; gap: 4px;
+    }
+    .work-card-field-label .req { color: var(--wx-red); font-weight: 700; }
+    .work-card-field .form-control {
+        font-size: .78rem; padding: 5px 9px; line-height: 1.28;
+        border: 1px solid #ccd5e3; border-radius: 5px;
+        height: auto;
         width: 100%;
     }
-
-    .fs-docs-table td {
-        vertical-align: middle;
-        padding: 10px 12px;
-        border-color: #e8edf6;
+    .work-card-field .form-control:focus {
+        border-color: var(--wx-accent);
+        box-shadow: 0 0 0 3px rgba(3,90,179,.12);
+        outline: none;
+    }
+    .work-card-field .form-control:disabled,
+    .work-card-field input[readonly]:not(.work-duration-y):not(.work-duration-m):not(.work-duration-d) {
+        background: #f1f3f5; color: var(--wx-muted); cursor: not-allowed;
+    }
+    .work-card-field input[type="file"].is-locked {
+        background: #f1f3f5; pointer-events: none; opacity: .55;
+    }
+    .work-card-field-hint {
+        font-size: .62rem; color: var(--wx-muted);
+        display: inline-flex; align-items: center; gap: 4px; line-height: 1.2;
+    }
+    .work-card-field-hint i { font-size: .64rem; }
+    .work-card-field.is-locked .work-card-field-label { color: var(--wx-muted); }
+    .work-card-field.is-locked .work-card-field-label .lock-icon {
+        font-size: .68rem; opacity: .65;
     }
 
+    /* Till-date toggle sits just below the To-date input inside its field cell */
+    .work-card-till-toggle {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: .66rem; color: var(--wx-text);
+        background: #fff; border: 1px dashed var(--wx-border-strong);
+        padding: 3px 9px; border-radius: 5px; cursor: pointer;
+        margin-top: 2px; user-select: none;
+        transition: background .15s, border-color .15s;
+        width: max-content; max-width: 100%;
+    }
+    .work-card-till-toggle:hover { background: #f7faff; border-color: var(--wx-accent); }
+    .work-card-till-toggle input { accent-color: var(--wx-accent); margin: 0; }
+    .work-card-till-toggle input:checked + span { color: var(--wx-accent); font-weight: 600; }
+
+    /* File upload pill — fills its field cell */
+    .work-row .form-s-file-upload-wrap--combined {
+        max-width: none; width: 100%;
+        border-radius: 5px;
+    }
+    .work-row .form-s-file-upload-wrap--combined .form-control,
+    .work-row .form-s-file-upload-wrap--combined input[type="file"] {
+        font-size: .78rem !important;
+        padding: 5px 9px !important;
+    }
+
+    /* Duration readout — compact single cell (not full row width) */
+    .work-card-field--duration {
+        grid-column: span 1;
+        max-width: 220px;
+    }
+    .work-card-field--duration .work-card-duration-readout {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px 5px;
+        max-width: 220px;
+        background: #fff;
+        border: 1px solid var(--wx-border);
+        border-radius: 5px;
+    }
+    .work-card-duration-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        text-align: center;
+        min-width: 0;
+    }
+    .work-card-duration-cell .work-duration-label {
+        font-size: .48rem;
+        font-weight: 600;
+        color: var(--wx-muted);
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        line-height: 1;
+    }
+    .work-card-duration-cell .form-control {
+        font-size: .72rem;
+        font-weight: 700;
+        color: var(--wx-accent);
+        text-align: center;
+        padding: 0 1px;
+        border: 0;
+        background: transparent !important;
+        line-height: 1.1;
+        min-height: 0;
+        height: auto;
+    }
+    .work-card-duration-cell .form-control:focus { box-shadow: none; }
+
+    /* Inline error messages within a row */
+    .work-row .error-message,
+    .work-card .error-message {
+        font-size: .7rem;
+        color: var(--wx-red);
+        line-height: 1.2;
+        display: block;
+    }
+
+    @media (max-width: 767.98px) {
+        .work-row-grid { gap: 12px 14px; padding: 12px 14px; }
+    }
+    @media (max-width: 575.98px) {
+        .work-row-head { padding: 7px 12px; gap: 8px; }
+        .work-row-grid { grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 10px 12px; }
+        .work-card-field--duration { max-width: 100%; }
+        .work-card-field--duration .work-card-duration-readout { max-width: 100%; }
+        .work-exp-section-bar { padding: 8px 10px; gap: 8px; }
+    }
+    @media (max-width: 419.98px) {
+        .work-row-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Completed entry — Flipkart-style order card (collapsed) ─── */
+    .work-row--compact {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .work-row--compact:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        border-color: #d0d0d0;
+    }
+    .work-row--compact .work-row-head {
+        display: block;
+        padding: 0;
+        cursor: default;
+        user-select: none;
+        border-bottom: none;
+        background: transparent;
+        position: relative;
+    }
+    .work-row--compact .work-row-head:hover { background: transparent; }
+    .work-row--compact .work-row-summary {
+        display: block;
+        width: 100%;
+        cursor: pointer;
+    }
+    .work-row--compact .wx-order-card {
+        padding: 16px 40px 16px 18px;
+        border-radius: 8px;
+        background: #fff;
+    }
+    .work-row--compact .work-row-title,
+    .work-row--compact .work-row-spacer { display: none !important; }
+    .work-row--compact .work-row-head-actions {
+        display: flex !important;
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        gap: 4px;
+        margin-left: 0;
+    }
+    .work-row--compact .work-row-toggle-btn { display: none !important; }
+    .work-row--compact .work-row-remove {
+        width: 28px;
+        height: 28px;
+        color: #878787;
+        font-size: .85rem;
+    }
+    .work-row--compact .work-row-remove:hover {
+        background: #f5f5f5;
+        color: var(--wx-red);
+    }
+
+    /* Summary table stacks above entry cards */
+    .work-exp-summary-panel {
+        position: relative;
+        z-index: 2;
+        isolation: isolate;
+    }
+    .work-rows {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Collapsed rows: delete only in table Actions column */
+    .work-row.is-complete:not(.work-row--expanded) .work-row-head,
+    .work-row.work-row--in-summary .work-row-head {
+        display: none !important;
+    }
+    .work-row.is-complete:not(.work-row--expanded) .work-row-head .work-row-remove,
+    .work-row.work-row--in-summary .work-row-remove {
+        display: none !important;
+    }
+
+    /* Active (incomplete) row — remove stays inside the card */
+    .work-row:not(.is-complete) {
+        position: relative;
+        overflow: hidden;
+    }
+    .work-row:not(.is-complete) .work-row-head {
+        position: relative;
+        top: auto;
+        right: auto;
+        z-index: 1;
+        padding: 8px 14px 0;
+        background: transparent;
+        border: none;
+        width: auto;
+        min-height: 0;
+        display: flex;
+        justify-content: flex-end;
+    }
+    .work-row:not(.is-complete) .work-row-spacer,
+    .work-row:not(.is-complete) .work-row-summary { display: none !important; }
+    .work-row:not(.is-complete) .work-row-grid {
+        padding-top: 14px;
+    }
+
+    /* Collapsed complete row: hide the field grid */
+    .work-row--compact .work-row-grid { display: none; }
+
+    /* Expanded complete row: standard full form header */
+    .work-row.is-complete.work-row--expanded {
+        border: 1px solid var(--wx-border);
+        background: var(--wx-bg);
+        box-shadow: 0 1px 3px rgba(3,90,179,.05);
+    }
+    .work-row.is-complete.work-row--expanded .work-row-head {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        cursor: pointer;
+        border-bottom-color: var(--wx-border);
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%);
+        padding: 8px 14px;
+        position: static;
+    }
+    .work-row.is-complete.work-row--expanded .work-row-spacer { display: none !important; }
+    .work-row.is-complete.work-row--expanded .work-row-summary { display: none; }
+    .work-row.is-complete.work-row--expanded .work-row-head-actions {
+        margin-left: 0;
+        flex-shrink: 0;
+    }
+    .work-row.is-complete.work-row--expanded .work-row-toggle-btn { display: inline-flex; }
+
+    /* Shown only while editing a complete entry (expanded full form) */
+    .work-row-done-bar {
+        display: none;
+        grid-column: 1 / -1;
+        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--wx-border);
+        text-align: right;
+    }
+    .work-row.is-complete.work-row--expanded .work-row-done-bar { display: block; }
+    .work-row-done-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        font-size: .78rem;
+        font-weight: 600;
+        color: #fff;
+        background: var(--wx-accent);
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        line-height: 1.2;
+    }
+    .work-row-done-btn:hover { background: #024a98; }
+    .work-row-done-btn i { font-size: .72rem; }
+    .work-row-done-hint {
+        margin: 8px 0 0;
+        font-size: .72rem;
+        color: var(--wx-red);
+        text-align: right;
+    }
+    @media (max-width: 767.98px) {
+        .wx-summary-table { min-width: 0; }
+        .wx-order-card { padding-right: 32px; }
+    }
+    @media (max-width: 575.98px) {
+        .work-row--compact .work-row-head { padding: 14px; }
+    }
+    /* ── Documents upload table ───────────────────────── */
+    .fs-docs-table { width: 100%; }
+    .fs-docs-table td { vertical-align: middle; padding: 10px 12px; border-color: #e8edf6; }
     .fs-docs-table .doc-serial {
         width: 48px;
         min-width: 48px;
@@ -820,23 +1170,16 @@
         white-space: nowrap;
         text-align: center;
     }
-
-    .fs-docs-table .doc-label-cell {
-        min-width: 180px;
-    }
-
+    .fs-docs-table .doc-label-cell { min-width: 180px; }
     .photo-preview-box {
         display: inline-block;
     }
-
     .photo-preview-box img {
-        width: 90px;
-        height: 108px;
+        width: 90px; height: 108px;
         object-fit: cover;
         border: 2px solid #ccd5e3;
         border-radius: 6px;
     }
-
     .fs-upload-card {
         border: 1px dashed #b8c8e2;
         background: #f8fbff;
@@ -848,7 +1191,6 @@
         gap: 14px;
         flex-wrap: wrap;
     }
-
     .fs-upload-controls {
         display: flex;
         flex-direction: column;
@@ -856,19 +1198,16 @@
         min-width: 220px;
         flex: 1 1 220px;
     }
-
     .fs-upload-input {
         width: 100%;
         max-width: 300px;
     }
-
     .fs-upload-file-name {
         font-size: .75rem;
         color: #60779c;
         line-height: 1.3;
         min-height: 1.1rem;
     }
-
     .fs-upload-preview {
         border: 1px solid #ccd5e3;
         border-radius: 8px;
@@ -879,28 +1218,23 @@
         overflow: hidden;
         flex-shrink: 0;
     }
-
     .fs-upload-preview img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: none;
     }
-
     .fs-upload-preview--photo {
         width: 96px;
         height: 118px;
     }
-
     .fs-upload-preview--sign {
         width: 180px;
         height: 80px;
     }
-
     .fs-upload-preview--sign img {
         object-fit: contain;
     }
-
     .fs-upload-placeholder {
         font-size: .72rem;
         color: #89a0c4;
@@ -908,13 +1242,11 @@
         padding: 0 10px;
         line-height: 1.35;
     }
-
     @media (max-width: 575.98px) {
         .fs-upload-preview--photo {
             width: 84px;
             height: 102px;
         }
-
         .fs-upload-preview--sign {
             width: 144px;
             height: 68px;
@@ -929,7 +1261,6 @@
         padding: 16px 20px;
         margin-top: 4px;
     }
-
     .fs-declaration label.container {
         display: flex;
         align-items: flex-start;
@@ -939,32 +1270,20 @@
         margin: 0;
         width: 100%;
     }
-
     .fs-declaration input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
+        width: 18px; height: 18px;
         accent-color: #035ab3;
         flex-shrink: 0;
         margin-top: 3px;
         cursor: pointer;
     }
-
     .fs-declaration .decl-text {
         font-size: .875rem;
         color: #1a2a4a;
         line-height: 1.6;
     }
-
-    .fs-declaration .decl-text .tamil {
-        display: block;
-        color: #5a7299;
-        margin-top: 4px;
-        font-size: .82rem;
-    }
-
-    .fs-declaration .checkmark {
-        display: none;
-    }
+    .fs-declaration .decl-text .tamil { display: block; color: #5a7299; margin-top: 4px; font-size: .82rem; }
+    .fs-declaration .checkmark { display: none; }
 
     /* ── Action buttons ───────────────────────────────── */
     .fs-action-bar {
@@ -974,7 +1293,6 @@
         flex-wrap: wrap;
         padding: 24px 0 4px;
     }
-
     .btn-fs-draft {
         background: #fff;
         color: #035ab3;
@@ -986,11 +1304,7 @@
         cursor: pointer;
         transition: all .2s;
     }
-
-    .btn-fs-draft:hover {
-        background: #eef3fb;
-    }
-
+    .btn-fs-draft:hover { background: #eef3fb; }
     .btn-fs-submit {
         background: linear-gradient(135deg, #1a9e4f, #15883f);
         color: #fff;
@@ -1000,455 +1314,101 @@
         font-size: .9rem;
         font-weight: 600;
         cursor: pointer;
-        box-shadow: 0 3px 10px rgba(26, 158, 79, .25);
+        box-shadow: 0 3px 10px rgba(26,158,79,.25);
         transition: all .2s;
     }
-
-    .btn-fs-submit:hover {
-        background: linear-gradient(135deg, #15883f, #116e32);
-        box-shadow: 0 4px 14px rgba(26, 158, 79, .35);
-    }
+    .btn-fs-submit:hover { background: linear-gradient(135deg, #15883f, #116e32); box-shadow: 0 4px 14px rgba(26,158,79,.35); }
 
     /* ── Draft modal ──────────────────────────────────── */
     .overlay-bg {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, .45);
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.45);
         z-index: 9999;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-
     .otp-modal {
         background: #fff;
         border-radius: 12px;
         padding: 32px 36px;
         text-align: center;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, .2);
+        box-shadow: 0 8px 32px rgba(0,0,0,.2);
         max-width: 380px;
         width: 90%;
     }
-
-    .otp-modal h5 {
-        color: #1a9e4f;
-        font-weight: 700;
-        margin-bottom: 16px;
-    }
-
+    .otp-modal h5 { color: #1a9e4f; font-weight: 700; margin-bottom: 16px; }
     .otp-modal button {
-        background: #035ab3;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        padding: 8px 32px;
-        font-size: .9rem;
+        background: #035ab3; color: #fff;
+        border: none; border-radius: 6px;
+        padding: 8px 32px; font-size: .9rem;
         cursor: pointer;
     }
-
-    .otp-modal button:hover {
-        background: #024a98;
-    }
+    .otp-modal button:hover { background: #024a98; }
 
     /* ── Application Preview Modal ───────────────────── */
-    .prv-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, .55);
-        z-index: 10000;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-    }
+    .prv-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:10000; display:flex; align-items:flex-end; justify-content:center; }
+    .prv-panel   { background:#f8fbff; width:100%; max-width:820px; max-height:90vh; display:flex; flex-direction:column; border-radius:14px 14px 0 0; box-shadow:0 -6px 30px rgba(2,63,149,.2); overflow:hidden; animation:prvSlideUp .25s ease; }
+    @keyframes prvSlideUp { from { transform:translateY(40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
 
-    .prv-panel {
-        background: #f8fbff;
-        width: 100%;
-        max-width: 820px;
-        max-height: 90vh;
-        display: flex;
-        flex-direction: column;
-        border-radius: 14px 14px 0 0;
-        box-shadow: 0 -6px 30px rgba(2, 63, 149, .2);
-        overflow: hidden;
-        animation: prvSlideUp .25s ease;
-    }
+    .prv-header  { background:linear-gradient(135deg,#035ab3,#0472d9); padding:12px 18px 10px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .prv-header-left h5 { margin:0; font-size:.95rem; font-weight:700; color:#fff; }
+    .prv-header-left .prv-subtitle { font-size:.72rem; color:rgba(255,255,255,.85); margin-top:1px; }
+    .prv-badge  { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28); color:#fff; border-radius:16px; padding:2px 10px; font-size:.72rem; font-weight:600; margin-left:10px; }
+    .prv-close  { background:rgba(255,255,255,.18); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:1.1rem; line-height:1; cursor:pointer; transition:background .2s; flex-shrink:0; }
+    .prv-close:hover { background:rgba(255,255,255,.32); }
 
-    @keyframes prvSlideUp {
-        from {
-            transform: translateY(40px);
-            opacity: 0;
-        }
+    .prv-body   { overflow-y:auto; padding:16px 18px; flex:1; }
+    .prv-section { background:#fff; border:1px solid #e3e8f0; border-radius:10px; margin-bottom:10px; overflow:hidden; }
+    .prv-section-hd { background:#f2f7ff; border-bottom:1px solid #dce6f3; padding:7px 12px; display:flex; align-items:center; gap:8px; }
+    .prv-section-num { width:20px; height:20px; border-radius:50%; background:#035ab3; color:#fff; font-size:.68rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .prv-section-title { font-size:.78rem; font-weight:600; color:#1a2a4a; }
+    .prv-section-body { padding:10px 12px; }
 
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
+    .prv-field  { margin-bottom:8px; }
+    .prv-label  { font-size:.68rem; font-weight:600; color:#556c8f; text-transform:uppercase; letter-spacing:.35px; margin-bottom:2px; }
+    .prv-value  { font-size:.82rem; color:#17273d; font-weight:500; padding:5px 8px; background:#f7fbff; border:1px solid #dce6f2; border-radius:6px; min-height:auto; word-break:break-word; }
+    .prv-value.prv-empty { color:#9da9b7; font-style:italic; }
 
-    .prv-header {
-        background: linear-gradient(135deg, #035ab3, #0472d9);
-        padding: 12px 18px 10px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-shrink: 0;
-    }
+    .prv-table  { width:100%; font-size:.72rem; border-collapse:collapse; }
+    .prv-table th { background:#f2f7ff; color:#1a2a4a; font-weight:600; padding:.3rem .4rem; border:1px solid #dce6f2; font-size:.7rem; white-space:nowrap; }
+    .prv-table td { padding:.3rem .4rem; border:1px solid #e3e8f0; vertical-align:middle; }
+    .prv-table tr:nth-child(even) td { background:#f9fcff; }
+    .prv-badge-yes  { background:#d4edda; color:#155724; border-radius:4px; padding:2px 7px; font-size:.7rem; font-weight:600; }
+    .prv-badge-no   { background:#f8d7da; color:#721c24; border-radius:4px; padding:2px 7px; font-size:.7rem; font-weight:600; }
 
-    .prv-header-left h5 {
-        margin: 0;
-        font-size: .95rem;
-        font-weight: 700;
-        color: #fff;
-    }
+    .prv-thumb { text-align:center; }
+    .prv-thumb img { width:72px; height:86px; object-fit:cover; border:2px solid #dbe6f1; border-radius:6px; display:block; margin-bottom:4px; background:#eef6ff; }
+    .prv-thumb-sign img { width:120px; height:44px; object-fit:contain; }
+    .prv-thumb span { font-size:.68rem; color:#5a7299; }
+    .prv-no-img { width:72px; height:86px; background:#eef6ff; border:2px dashed #c9d6e5; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#9aa7b9; font-size:.68rem; text-align:center; }
 
-    .prv-header-left .prv-subtitle {
-        font-size: .72rem;
-        color: rgba(255, 255, 255, .85);
-        margin-top: 1px;
-    }
-
-    .prv-badge {
-        background: rgba(255, 255, 255, .16);
-        border: 1px solid rgba(255, 255, 255, .28);
-        color: #fff;
-        border-radius: 16px;
-        padding: 2px 10px;
-        font-size: .72rem;
-        font-weight: 600;
-        margin-left: 10px;
-    }
-
-    .prv-close {
-        background: rgba(255, 255, 255, .18);
-        border: none;
-        color: #fff;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        font-size: 1.1rem;
-        line-height: 1;
-        cursor: pointer;
-        transition: background .2s;
-        flex-shrink: 0;
-    }
-
-    .prv-close:hover {
-        background: rgba(255, 255, 255, .32);
-    }
-
-    .prv-body {
-        overflow-y: auto;
-        padding: 16px 18px;
-        flex: 1;
-    }
-
-    .prv-section {
-        background: #fff;
-        border: 1px solid #e3e8f0;
-        border-radius: 10px;
-        margin-bottom: 10px;
-        overflow: hidden;
-    }
-
-    .prv-section-hd {
-        background: #f2f7ff;
-        border-bottom: 1px solid #dce6f3;
-        padding: 7px 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .prv-section-num {
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #035ab3;
-        color: #fff;
-        font-size: .68rem;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .prv-section-title {
-        font-size: .78rem;
-        font-weight: 600;
-        color: #1a2a4a;
-    }
-
-    .prv-section-body {
-        padding: 10px 12px;
-    }
-
-    .prv-field {
-        margin-bottom: 8px;
-    }
-
-    .prv-label {
-        font-size: .68rem;
-        font-weight: 600;
-        color: #556c8f;
-        text-transform: uppercase;
-        letter-spacing: .35px;
-        margin-bottom: 2px;
-    }
-
-    .prv-value {
-        font-size: .82rem;
-        color: #17273d;
-        font-weight: 500;
-        padding: 5px 8px;
-        background: #f7fbff;
-        border: 1px solid #dce6f2;
-        border-radius: 6px;
-        min-height: auto;
-        word-break: break-word;
-    }
-
-    .prv-value.prv-empty {
-        color: #9da9b7;
-        font-style: italic;
-    }
-
-    .prv-table {
-        width: 100%;
-        font-size: .72rem;
-        border-collapse: collapse;
-    }
-
-    .prv-table th {
-        background: #f2f7ff;
-        color: #1a2a4a;
-        font-weight: 600;
-        padding: .3rem .4rem;
-        border: 1px solid #dce6f2;
-        font-size: .7rem;
-        white-space: nowrap;
-    }
-
-    .prv-table td {
-        padding: .3rem .4rem;
-        border: 1px solid #e3e8f0;
-        vertical-align: middle;
-    }
-
-    .prv-table tr:nth-child(even) td {
-        background: #f9fcff;
-    }
-
-    .prv-badge-yes {
-        background: #d4edda;
-        color: #155724;
-        border-radius: 4px;
-        padding: 2px 7px;
-        font-size: .7rem;
-        font-weight: 600;
-    }
-
-    .prv-badge-no {
-        background: #f8d7da;
-        color: #721c24;
-        border-radius: 4px;
-        padding: 2px 7px;
-        font-size: .7rem;
-        font-weight: 600;
-    }
-
-    .prv-thumb {
-        text-align: center;
-    }
-
-    .prv-thumb img {
-        width: 72px;
-        height: 86px;
-        object-fit: cover;
-        border: 2px solid #dbe6f1;
-        border-radius: 6px;
-        display: block;
-        margin-bottom: 4px;
-        background: #eef6ff;
-    }
-
-    .prv-thumb-sign img {
-        width: 120px;
-        height: 44px;
-        object-fit: contain;
-    }
-
-    .prv-thumb span {
-        font-size: .68rem;
-        color: #5a7299;
-    }
-
-    .prv-no-img {
-        width: 72px;
-        height: 86px;
-        background: #eef6ff;
-        border: 2px dashed #c9d6e5;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9aa7b9;
-        font-size: .68rem;
-        text-align: center;
-    }
-
-    .prv-footer {
-        background: #fff;
-        border-top: 1px solid #e3e8f0;
-        padding: 12px 18px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-shrink: 0;
-        flex-wrap: wrap;
-    }
-
-    .prv-confirm-check {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex: 1;
-        font-size: .8rem;
-        color: #31445f;
-        cursor: pointer;
-    }
-
-    .prv-confirm-check input {
-        width: 16px;
-        height: 16px;
-        accent-color: #035ab3;
-        cursor: pointer;
-    }
-
-    .prv-btn-back,
-    .prv-btn-print,
-    .prv-btn-confirm {
-        border-radius: 8px;
-        padding: 7px 16px;
-        font-size: .82rem;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: all .2s ease;
-    }
-
-    .prv-btn-back {
-        background: #fff;
-        color: #035ab3;
-        border: 1px solid #035ab3;
-    }
-
-    .prv-btn-back:hover {
-        background: #eef3fb;
-    }
-
-    .prv-btn-print {
-        background: #ffffff;
-        color: #4f5f79;
-        border: 1px solid #99a7c0;
-    }
-
-    .prv-btn-print:hover {
-        background: #f3f6fb;
-    }
-
-    .prv-btn-confirm {
-        background: linear-gradient(135deg, #1a9e4f, #14813f);
-        color: #fff;
-        border: none;
-    }
-
-    .prv-btn-confirm:disabled {
-        opacity: .45;
-        cursor: not-allowed;
-    }
-
-    .prv-btn-confirm:not(:disabled):hover {
-        opacity: .92;
-    }
+    .prv-footer { background:#fff; border-top:1px solid #e3e8f0; padding:12px 18px; display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap; }
+    .prv-confirm-check { display:flex; align-items:center; gap:8px; flex:1; font-size:.8rem; color:#31445f; cursor:pointer; }
+    .prv-confirm-check input { width:16px; height:16px; accent-color:#035ab3; cursor:pointer; }
+    .prv-btn-back, .prv-btn-print, .prv-btn-confirm { border-radius:8px; padding:7px 16px; font-size:.82rem; font-weight:600; cursor:pointer; white-space:nowrap; transition:all .2s ease; }
+    .prv-btn-back { background:#fff; color:#035ab3; border:1px solid #035ab3; }
+    .prv-btn-back:hover { background:#eef3fb; }
+    .prv-btn-print { background:#ffffff; color:#4f5f79; border:1px solid #99a7c0; }
+    .prv-btn-print:hover { background:#f3f6fb; }
+    .prv-btn-confirm { background:linear-gradient(135deg,#1a9e4f,#14813f); color:#fff; border:none; }
+    .prv-btn-confirm:disabled { opacity:.45; cursor:not-allowed; }
+    .prv-btn-confirm:not(:disabled):hover { opacity:.92; }
 
     @media print {
-        body * {
-            visibility: hidden !important;
-        }
-
-        #appPreviewModal.prv-open,
-        #appPreviewModal.prv-open * {
-            visibility: visible !important;
-        }
-
-        #appPreviewModal.prv-open {
-            position: static !important;
-            inset: auto;
-            width: auto;
-            max-width: none;
-            overflow: visible !important;
-            background: transparent !important;
-            box-shadow: none !important;
-        }
-
-        .prv-overlay {
-            background: none !important;
-        }
-
-        .prv-panel {
-            box-shadow: none !important;
-            border-radius: 0 !important;
-        }
-
-        .prv-header,
-        .prv-footer,
-        .prv-close,
-        .prv-badge,
-        .prv-subtitle,
-        .prv-confirm-check,
-        .prv-btn-back,
-        .prv-btn-print,
-        .prv-btn-confirm {
-            display: none !important;
-        }
-
-        .prv-section {
-            border: 1px solid #ccc !important;
-            box-shadow: none !important;
-            page-break-inside: avoid;
-        }
-
-        .prv-section-body {
-            padding: 8px 10px !important;
-        }
-
-        .prv-table th,
-        .prv-table td {
-            border-color: #ccc !important;
-            background: transparent !important;
-        }
-
-        .prv-value {
-            background: transparent !important;
-            border-color: #ccc !important;
-        }
-
-        .prv-thumb img,
-        .prv-thumb .prv-no-img {
-            width: 68px !important;
-            height: 80px !important;
-        }
-
-        .prv-thumb-sign img {
-            width: 110px !important;
-            height: 42px !important;
-        }
-
-        #appPreviewModal.prv-open {
-            position: relative !important;
-        }
+        body * { visibility:hidden !important; }
+        #appPreviewModal.prv-open, #appPreviewModal.prv-open * { visibility:visible !important; }
+        #appPreviewModal.prv-open { position:static !important; inset:auto; width:auto; max-width:none; overflow:visible !important; background:transparent !important; box-shadow:none !important; }
+        .prv-overlay { background:none !important; }
+        .prv-panel { box-shadow:none !important; border-radius:0 !important; }
+        .prv-header, .prv-footer, .prv-close, .prv-badge, .prv-subtitle, .prv-confirm-check, .prv-btn-back, .prv-btn-print, .prv-btn-confirm { display:none !important; }
+        .prv-section { border:1px solid #ccc !important; box-shadow:none !important; page-break-inside:avoid; }
+        .prv-section-body { padding:8px 10px !important; }
+        .prv-table th, .prv-table td { border-color:#ccc !important; background:transparent !important; }
+        .prv-value { background:transparent !important; border-color:#ccc !important; }
+        .prv-thumb img, .prv-thumb .prv-no-img { width:68px !important; height:80px !important; }
+        .prv-thumb-sign img { width:110px !important; height:42px !important; }
+        #appPreviewModal.prv-open { position:relative !important; }
     }
 
     /* ── Validation messages — uniform size ─────────── */
@@ -1465,11 +1425,9 @@
     }
 
     /* ── PDF icon always red ─────────────────────────── */
-    .fa-file-pdf-o {
-        color: #d9363e !important;
-    }
+    .fa-file-pdf-o { color: #d9363e !important; }
 
-    /* ── FontAwesome fix ──────────────────────────────── */
+    /* ── FontAwesome fix (buttons with custom reset must not drop icon font) ── */
     .comp_certificate .btn .fa,
     .comp_certificate .btn i.fa,
     .comp_certificate .btn-tbl-add .fa,
@@ -1477,13 +1435,26 @@
     .comp_certificate .btn-tbl-remove .fa,
     .comp_certificate .btn-tbl-remove i.fa,
     .comp_certificate .form-s-file-upload-btn .fa,
-    .comp_certificate .form-s-file-upload-btn i.fa {
-        font-family: 'FontAwesome';
+    .comp_certificate .form-s-file-upload-btn i.fa,
+    .work-exp-wrap .fa,
+    .work-exp-wrap i.fa,
+    .work-exp-wrap button .fa,
+    .work-exp-wrap button i.fa {
+        font: normal normal normal 14px/1 FontAwesome;
         display: inline-block;
+        text-rendering: auto;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    .work-exp-wrap .work-row-remove .fa,
+    .work-exp-wrap .work-row-toggle-btn .fa {
+        font-size: .85rem;
+    }
+    .work-exp-wrap .work-card-field-hint .fa,
+    .work-exp-wrap .wx-order-edit-link .fa {
+        font-size: .7rem;
     }
 </style>
-
-
 
 {{-- ░░ BREADCRUMB ░░ --}}
 <div class="fs-breadcrumb-bar">
@@ -1536,8 +1507,7 @@
                                         </div>
                                     </div>
                                     <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text"
-                                        value="">
-                                        <!-- value="{{ $user['salutation'].' '.$user['applicant_name'] }}" -->
+                                        value="{{ $user['salutation'].' '.$user['applicant_name'] }}" >
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="fs-section-header fs-section-header--in-grid">
@@ -1581,7 +1551,7 @@
                                             <div class="fs-section-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
                                         </div>
                                     </div>
-                                    <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="255"></textarea>
+                                    <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="255">{{Auth::user()->address}}</textarea>
                                     <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
                                 </div>
                                 <div class="col-12 col-md-6">
@@ -1675,18 +1645,12 @@
                                             <td>
                                                 <select name="month_of_passing[]" class="form-control">
                                                     <option value="">Select Month</option>
-                                                    <option value="01">Jan</option>
-                                                    <option value="02">Feb</option>
-                                                    <option value="03">Mar</option>
-                                                    <option value="04">Apr</option>
-                                                    <option value="05">May</option>
-                                                    <option value="06">Jun</option>
-                                                    <option value="07">Jul</option>
-                                                    <option value="08">Aug</option>
-                                                    <option value="09">Sep</option>
-                                                    <option value="10">Oct</option>
-                                                    <option value="11">Nov</option>
-                                                    <option value="12">Dec</option>
+                                                    <option value="01">Jan</option><option value="02">Feb</option>
+                                                    <option value="03">Mar</option><option value="04">Apr</option>
+                                                    <option value="05">May</option><option value="06">Jun</option>
+                                                    <option value="07">Jul</option><option value="08">Aug</option>
+                                                    <option value="09">Sep</option><option value="10">Oct</option>
+                                                    <option value="11">Nov</option><option value="12">Dec</option>
                                                 </select>
                                             </td>
                                             <td>
@@ -1694,7 +1658,7 @@
                                                     <option value="0">Select Year</option>
                                                     @php $currentYear = date('Y'); @endphp
                                                     @for ($year = $currentYear; $year >= 1980; $year--)
-                                                    <option value="{{ $year }}">{{ $year }}</option>
+                                                        <option value="{{ $year }}">{{ $year }}</option>
                                                     @endfor
                                                 </select>
                                             </td>
@@ -1735,112 +1699,181 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
-                            <div class="fs-table-wrap">
-                                <table class="table table-bordered table-sm work-exp-table" id="work-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="work-exp-col-sno text-center">S.No</th>
-                                            <th class="work-exp-col-type">Employment type</th>
-                                            <th class="work-exp-col-employer">Employer / organization</th>
-                                            <th class="work-exp-col-years work-exp-years-head" scope="col">
-                                                <div class="work-exp-years-title">Year of Experience</div>
-                                                <div class="work-exp-inline work-exp-inline--head">
-                                                    <div class="work-exp-date-group">
-                                                        <span class="work-exp-label-fromto d-block">From (date)</span>
-                                                    </div>
-                                                    <div class="work-exp-date-group">
-                                                        <span class="work-exp-label-fromto d-block">To (date)</span>
-                                                    </div>
-                                                    <div class="work-exp-total-inline">
-                                                        <span class="work-exp-label-fromto d-block">Total yrs</span>
-                                                    </div>
-                                                </div>
-                                            </th>
-                                            <th class="work-exp-col-designation">Designation</th>
-                                            <th class="text-center work-exp-col-upload work-exp-upload-head">Upload Document
-                                                <br><span class="file-limit">File type: PDF(Min 5 KB To Max 200 KB)</span>
-                                            </th>
-                                            <th class="work-exp-col-actions text-center p-1">
-                                                <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn-tbl-add add-more-work py-1 px-2" title="Add row">
-                                                        <i class="fa fa-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="work-container">
-                                        <tr class="work-fields">
-                                            <td class="work-serial text-center">1</td>
-                                            <td class="work-exp-col-type">
-                                                <select class="form-control form-control-sm work-employment-type" name="work_employment_type[]" required>
+                            <div class="work-exp-wrap">
+                                {{-- Add row control --}}
+                                <div class="work-exp-section-bar" role="region" aria-label="Work experience actions">
+                                    <button type="button" class="work-exp-add-btn add-more-work" id="work-exp-add-btn" title="Add a work experience entry">
+                                        <i class="fa fa-plus"></i>
+                                        <span>Add row</span>
+                                        <span class="text-muted" style="font-weight:500;font-size:.7rem;opacity:.85;" id="work-exp-row-count">(1/3)</span>
+                                    </button>
+                                </div>
+
+                                {{-- Single summary table for all completed (collapsed) entries --}}
+                                <div class="work-exp-summary-panel" id="work-exp-summary-panel" aria-live="polite">
+                                    <div class="wx-order-card">
+                                        <div class="wx-summary-table-wrap">
+                                            <table class="wx-summary-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="wx-summary-th-sno">S.No</th>
+                                                        <th>Employment Type</th>
+                                                        <th class="wx-summary-th-org"><span class="wx-th-org-line">Organisation &amp;</span><span class="wx-th-org-line">Address</span></th>
+                                                        <th>Designation</th>
+                                                        <th>Nature of Work</th>
+                                                        <th>Voltage Level</th>
+                                                        <th>Transformer kVA(max 1000kVA)</th>
+                                                        <th>Total Experience</th>
+                                                        <th>Attachment</th>
+                                                        <th class="wx-summary-th-actions">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="work-exp-summary-tbody"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Rows container (one row per work-experience entry — all fields visible inline) --}}
+                                <div class="work-rows" id="work-container">
+                                    <div class="work-fields work-row" data-row-index="0">
+                                        <div class="work-row-head" role="group">
+                                            <span class="work-row-spacer"></span>
+                                            <div class="work-row-head-actions">
+                                                <button type="button" class="work-row-toggle-btn" aria-expanded="false" title="Expand to edit" aria-label="Expand entry to edit">
+                                                    <i class="fa fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button" class="work-row-remove remove-work" title="Remove this entry" aria-label="Remove this work experience entry">
+                                                    <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="work-row-grid">
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">Employment Type <span class="req">*</span></label>
+                                                <select class="form-control work-employment-type" name="work_employment_type[]" required>
                                                     <option value="" selected disabled>Select type</option>
-                                                    <option value="company">Company</option>
-                                                    <option value="contractor">Contractor</option>
-                                                    <option value="apprentice">Apprentice</option>
-                                                    <option value="electrical_inspector">Government / Quasi Government / Board</option>
-                                                    <option value="retired_employees">Retired Employees</option>
+                                                    <option value="private_organisation">Private organisation</option>
+                                                    <option value="electrical_contractor">Electrical contractor</option>
+                                                    <option value="retired_employee">Retired Employee</option>
+                                                    <option value="govt_organisation">Govt organisation</option>
+                                                    <option value="apprenticeship">Apprenticeship</option>
                                                 </select>
-                                            </td>
-                                            <td class="work-employer-cell work-exp-col-employer">
-                                                <div class="work-employer-label-row">
-                                                    <span class="work-employer-label">—</span><span class="text-danger work-employer-req" style="display:none;"> *</span>
-                                                </div>
-                                                <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled>
-                                                <div class="work-block work-block--intimation mt-1" style="display:none;">
-                                                    <label class="small mb-0" style="font-size:.7rem;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;"><span style="white-space:nowrap;">Intimation letter</span><span class="text-danger flex-shrink-0">*</span></label>
-                                                    <input type="date" class="form-control form-control-sm work-intimation-date" name="work_intimation_date[]">
-                                                </div>
-                                            </td>
-                                            <td class="work-exp-col-years">
-                                                <div class="work-exp-inline">
-                                                    <div class="work-exp-date-group">
-                                                        <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" title="From date" aria-label="Year of experience from date">
+                                            </div>
+                                            <div class="work-card-field" data-field="contractor-cat">
+                                                <label class="work-card-field-label">Grade of Licence <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+                                                <select class="form-control work-contractor-cat" name="work_contractor_category[]" disabled>
+                                                    <option value="">—</option>
+                                                    <option value="ESA">ESA</option>
+                                                    <option value="EA">EA</option>
+                                                    <option value="ESB">ESB</option>
+                                                    <option value="EB">EB</option>
+                                                </select>
+                                                <span class="work-card-field-hint" data-hint="cat" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
+                                            </div>
+                                            <div class="work-card-field" data-field="licence-number">
+                                                <label class="work-card-field-label">Licence No <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+                                                <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="40" autocomplete="off" disabled placeholder="e.g. 5645">
+                                                <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
+                                            </div>
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">Organisation <span class="req">*</span></label>
+                                                <input type="text" class="form-control work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled placeholder="Organisation name">
+                                            </div>
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">Address <span class="req">*</span></label>
+                                                <input type="text" class="form-control work-org-address" name="work_organisation_address[]" maxlength="255" autocomplete="off" disabled placeholder="Street, City, State, PIN">
+                                            </div>
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">Designation <span class="req">*</span></label>
+                                                <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" disabled placeholder="e.g. Site Engineer">
+                                            </div>
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">Work Nature <span class="req">*</span></label>
+                                                <select class="form-control work-nature" name="work_nature_of_work[]" disabled>
+                                                    <option value="">—</option>
+                                                    <option value="erection">Erection</option>
+                                                    <option value="maintenance">Maintenance</option>
+                                                    <option value="erection_maintenance">Erection &amp; Maintenance</option>
+                                                </select>
+                                            </div>
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">Voltage Level <span class="req">*</span></label>
+                                                <select class="form-control work-voltage" name="work_voltage_level[]" disabled>
+                                                    <option value="">—</option>
+                                                    <option value="up_to_650v">Up to 650V</option>
+                                                    <option value="650v_to_33kv">Above 650V to 33KV</option>
+                                                    <option value="above_33kv">Above 33KV</option>
+                                                </select>
+                                            </div>
+                                            <div class="work-card-field" data-field="transformer-kva">
+                                                <label class="work-card-field-label">Transformer kVA <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+                                                <input type="number" class="form-control work-transformer-kva" name="work_transformer_kva[]" min="0" max="9999999" step="any" inputmode="decimal" autocomplete="off" disabled placeholder="e.g. 250">
+                                                <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
+                                            </div>
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">From date <span class="req">*</span></label>
+                                                <input type="date" class="form-control work-date-from" name="work_date_from[]" title="From date" aria-label="Period of experience: from date" disabled>
+                                            </div>
+                                            <div class="work-card-field" data-field="to-date">
+                                                <label class="work-card-field-label">To date <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+                                                <input type="date" class="form-control work-date-to" name="work_date_to[]" title="To date" aria-label="Period of experience: to date" disabled>
+                                                <label class="work-card-till-toggle">
+                                                    <input type="checkbox" class="work-date-till">
+                                                    <span>Till date (currently working)</span>
+                                                </label>
+                                                <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="0">
+                                            </div>
+                                            <div class="work-card-field work-card-field--duration">
+                                                <label class="work-card-field-label">Duration</label>
+                                                <div class="work-card-duration-readout" role="group" aria-label="Auto-calculated duration">
+                                                    <div class="work-card-duration-cell">
+                                                        <span class="work-duration-label">Years</span>
+                                                        <input type="text" class="form-control work-duration-y" readonly inputmode="none" tabindex="-1" placeholder="0" aria-label="Years in this period">
                                                     </div>
-                                                    <div class="work-exp-date-group">
-                                                        <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" title="To date" aria-label="Year of experience to date">
+                                                    <div class="work-card-duration-cell">
+                                                        <span class="work-duration-label">Months</span>
+                                                        <input type="text" class="form-control work-duration-m" readonly inputmode="none" tabindex="-1" placeholder="0" aria-label="Months in this period">
                                                     </div>
-                                                    <div class="work-exp-total-inline">
-                                                        <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
-                                                            <div class="work-duration-cell">
-                                                                <span class="work-duration-label">Yrs</span>
-                                                                <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
-                                                            </div>
-                                                            <div class="work-duration-cell">
-                                                                <span class="work-duration-label">Mo</span>
-                                                                <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
-                                                            </div>
-                                                            <div class="work-duration-cell">
-                                                                <span class="work-duration-label">Days</span>
-                                                                <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
-                                                            </div>
-                                                        </div>
-                                                        <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
+                                                    <div class="work-card-duration-cell">
+                                                        <span class="work-duration-label">Days</span>
+                                                        <input type="text" class="form-control work-duration-d" readonly inputmode="none" tabindex="-1" placeholder="0" aria-label="Days in this period">
                                                     </div>
                                                 </div>
-                                                <input type="hidden" name="work_level[]" class="work-level-sync" value="" tabindex="-1" aria-hidden="true">
-                                                <input type="hidden" name="experience[]" class="experience-sync" value="" tabindex="-1" aria-hidden="true">
-                                            </td>
-                                            <td class="work-exp-col-designation">
-                                                <input autocomplete="off" class="form-control form-control-sm" name="designation[]" type="text" maxlength="80">
-                                            </td>
-                                            <td class="work-exp-col-upload">
+                                            </div>
+                                            <div class="work-card-field">
+                                                <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>
                                                 <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
-                                                    <input class="form-control form-control-sm p-1" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
+                                                    <input class="form-control work-doc-input" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" disabled>
                                                 </div>
-                                            </td>
-                                            <td class="work-exp-col-actions text-center p-1">
-                                                <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn-tbl-remove remove-work py-1 px-2" title="Remove row">
-                                                        <i class="fa fa-trash-o"></i>
-                                                    </button>
+                                                <span class="work-card-field-hint"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
+                                            </div>
+                                            <div class="work-card-field" data-field="relieve">
+                                                <label class="work-card-field-label">Relieving Letter <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+                                                <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
+                                                    <input class="form-control work-relieve-input" name="work_relieving_letter[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" disabled>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                                <span class="work-card-field-hint" data-hint="relieve" style="display:none;"><i class="fa fa-info-circle"></i> Not required when "Till date" is selected</span>
+                                                <span class="work-card-field-hint" data-hint="relieve-default"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
+                                            </div>
+
+                                            <div class="work-row-done-bar">
+                                                <button type="button" class="work-row-done-btn" aria-label="Submit this entry and return to summary card">
+                                                    <i class="fa fa-check" aria-hidden="true"></i> Submit
+                                                </button>
+                                            </div>
+
+                                            <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
+                                            <input type="hidden" name="work_level[]" class="work-level-sync" value="" tabindex="-1" aria-hidden="true">
+                                            <input type="hidden" name="experience[]" class="experience-sync" value="" tabindex="-1" aria-hidden="true">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Existing combined-2-year validation message target (kept for footer.blade.php submit-time message) --}}
+                                <div id="work-exp-total-msg" class="work-exp-total-msg-wrap" aria-live="polite"></div>
                             </div>
-                            <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
                         </div>
                     </div>
 
@@ -1874,15 +1907,21 @@
                                         <input type="hidden" id="l_verify" name="l_verify" value="0">
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
+                                    <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-issue-date" id="previously_issue_date" name="previously_issue_date" type="date"
                                             data-error="#previouslyIssueDateError" value="">
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
-                                        <input autocomplete="off" class="form-control verify-date" id="previously_date" name="previously_date" type="date"
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control verify-valid-from" id="previously_valid_from" name="previously_valid_from" type="date"
+                                            data-error="#previouslyFromDateError" value="">
+                                        <span id="previouslyFromDateError" class="text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control verify-date" id="previously_valid_to" name="previously_valid_to" type="date"
                                             data-error="#dateError" value="">
                                         <span id="dateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
@@ -1911,10 +1950,10 @@
                         </div>
                         <div class="fs-section-body">
                             @php
-                            $oldCertNo = trim((string) request('old_cert_no', ''));
-                            $oldExpiryRaw = trim((string) request('old_expiry_date', ''));
-                            $oldExpiry = $oldExpiryRaw !== '' ? \Carbon\Carbon::parse($oldExpiryRaw)->format('Y-m-d') : '';
-                            $hasOldPrefill = $oldCertNo !== '';
+                                $oldCertNo   = trim((string) request('old_cert_no', ''));
+                                $oldExpiryRaw = trim((string) request('old_expiry_date', ''));
+                                $oldExpiry   = $oldExpiryRaw !== '' ? \Carbon\Carbon::parse($oldExpiryRaw)->format('Y-m-d') : '';
+                                $hasOldPrefill = $oldCertNo !== '';
                             @endphp
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
@@ -1928,7 +1967,7 @@
                             </div>
                             <div id="wireman_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234)</span></div>
                                         <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text"
                                             data-type="supervisor" data-error="#certError" data-msg="#license_message"
@@ -1937,15 +1976,21 @@
                                         <span id="license_message" class="mt-1"></span>
                                         <span id="certError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
+                                    <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input class="form-control verify-issue-date" id="certificate_issue_date" name="certificate_issue_date"
                                             data-error="#certIssueDateError" type="date" value="">
                                         <span id="certIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
-                                        <input class="form-control verify-date" id="certificate_date" name="certificate_date"
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input class="form-control verify-valid-from" id="certificate_valid_from" name="certificate_valid_from"
+                                            data-error="#certFromDateError" type="date" value="">
+                                        <span id="certFromDateError" class="text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
+                                        <input class="form-control verify-date" id="certificate_valid_to" name="certificate_valid_to"
                                             data-error="#certDateError" type="date" value="{{ $oldExpiry }}">
                                         <span id="certDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
@@ -2147,15 +2192,11 @@
                         {{-- Photo & Signature alongside personal details --}}
                         <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex align-items-start" style="gap:12px;">
                             <div class="prv-thumb text-center">
-                                <div id="prv_photo_wrap">
-                                    <div class="prv-no-img">No Photo</div>
-                                </div>
+                                <div id="prv_photo_wrap"><div class="prv-no-img">No Photo</div></div>
                                 <span>Photo</span>
                             </div>
                             <div class="prv-thumb prv-thumb-sign text-center">
-                                <div id="prv_sign_wrap">
-                                    <div class="prv-no-img" style="width:120px;height:46px;">No Signature</div>
-                                </div>
+                                <div id="prv_sign_wrap"><div class="prv-no-img" style="width:120px;height:46px;">No Signature</div></div>
                                 <span>Signature</span>
                             </div>
                         </div>
@@ -2224,9 +2265,7 @@
                                 </tr>
                             </thead>
                             <tbody id="prv_edu_body">
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-3">—</td>
-                                </tr>
+                                <tr><td colspan="7" class="text-center text-muted py-3">—</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2246,18 +2285,23 @@
                                 <tr>
                                     <th>S.No</th>
                                     <th>Employment Type</th>
-                                    <th>Employer / Organization</th>
+                                    <th>Contractor Cat.</th>
+                                    <th>Licence No.</th>
+                                    <th>Name of Contractor / Organisation / Board</th>
+                                    <th>Organisation Address</th>
+                                    <th>Designation</th>
+                                    <th>Nature of Work</th>
+                                    <th>Voltage Level</th>
+                                    <th>Transformer kVA(max 1000kVA)</th>
                                     <th>From Date</th>
                                     <th>To Date</th>
-                                    <th>Total Yrs</th>
-                                    <th>Designation</th>
-                                    <th>Document</th>
+                                    <th>Period (Y/M/D)</th>
+                                    <th>Supporting Doc.</th>
+                                    <th>Relieving Letter</th>
                                 </tr>
                             </thead>
                             <tbody id="prv_work_body">
-                                <tr>
-                                    <td colspan="8" class="text-center text-muted py-3">—</td>
-                                </tr>
+                                <tr><td colspan="15" class="text-center text-muted py-3">—</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2279,22 +2323,28 @@
                             </div>
                             <div id="prv_prev_details_block" style="display:none;">
                                 <div class="row">
-                                    <div class="col-12 col-sm-4">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
                                             <div class="prv-label">Certificate No</div>
                                             <div class="prv-value" id="prv_prev_cert_no">—</div>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-4">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
                                             <div class="prv-label">Date of First Issue</div>
                                             <div class="prv-value" id="prv_prev_issue_date">—</div>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-4">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of Expiry</div>
-                                            <div class="prv-value" id="prv_prev_expiry_date">—</div>
+                                            <div class="prv-label">From date</div>
+                                            <div class="prv-value" id="prv_prev_from_date">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-3">
+                                        <div class="prv-field mb-1">
+                                            <div class="prv-label">To date</div>
+                                            <div class="prv-value" id="prv_prev_to_date">—</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2315,16 +2365,28 @@
                             </div>
                             <div id="prv_wireman_details_block" style="display:none;">
                                 <div class="row">
-                                    <div class="col-12 col-sm-6">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
                                             <div class="prv-label">Certificate No</div>
                                             <div class="prv-value" id="prv_wireman_cert_no">—</div>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-6">
+                                    <div class="col-12 col-sm-3">
                                         <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of Expiry</div>
-                                            <div class="prv-value" id="prv_wireman_expiry">—</div>
+                                            <div class="prv-label">Date of First Issue</div>
+                                            <div class="prv-value" id="prv_wireman_issue_date">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-3">
+                                        <div class="prv-field mb-1">
+                                            <div class="prv-label">From date</div>
+                                            <div class="prv-value" id="prv_wireman_from_date">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-3">
+                                        <div class="prv-field mb-1">
+                                            <div class="prv-label">To date</div>
+                                            <div class="prv-value" id="prv_wireman_to_date">—</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2395,7 +2457,6 @@
 
     </div>
 </div>
-
 <footer class="main-footer">
     @include('include.footer')
 
@@ -2413,7 +2474,9 @@
             var $preview = $wrap.next('.local-file-preview');
             var oldUrl = $preview.data('blobUrl');
             if (oldUrl) URL.revokeObjectURL(oldUrl);
-            $preview.remove();
+            if (preview) {
+                preview.remove();
+            }
             $fileInput.removeAttr('data-has-local-file');
         }
 
@@ -2842,7 +2905,11 @@
                         }, 7000);
                         return;
                     }
-                    e.target.closest('tr').remove();
+                    let row = e.target.closest('tr');
+
+                        if (row) {
+                            row.remove();
+                        }
                     refreshWorkSerials();
                     updateOverallTotalYears();
                 }

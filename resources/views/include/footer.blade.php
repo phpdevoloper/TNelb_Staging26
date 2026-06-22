@@ -223,12 +223,17 @@ $(document).ready(function() {
         if (dobInput && dobInput.type !== 'date') {
             flatpickr(dobInput, {
                 dateFormat: "d-m-Y",
-                // mode: "range"
+                onChange: function (_selectedDates, dateStr) {
+                    validateDOB(dateStr || dobInput.value);
+                },
+                onClose: function (_selectedDates, dateStr) {
+                    validateDOB(dateStr || dobInput.value);
+                }
             });
 
-            // also trigger validation for manual typing
             dobInput.addEventListener('keyup', () => validateDOB(dobInput.value));
             dobInput.addEventListener('change', () => validateDOB(dobInput.value));
+            dobInput.addEventListener('blur', () => validateDOB(dobInput.value));
         }
 
 
@@ -286,7 +291,7 @@ $(document).ready(function() {
             return;
         }
 
-        const match = value.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        const match = value.trim().match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
         if (!match) {
             errorElement.textContent = "Please enter date in DD-MM-YYYY format.";
             return;
@@ -363,28 +368,111 @@ $(document).ready(function() {
 
     $(document).ready(function() {
 
+        /** Remove pay-validation errors without deleting empty placeholder spans in the form markup. */
+        function clearCompetencyValidationErrors() {
+            $('.error-message.d-block.mt-1, .error-message.work-exp-date-range-error').remove();
+            $('.error-message').each(function () {
+                var $el = $(this);
+                if (($el.text() || '').trim() !== '') {
+                    $el.text('');
+                }
+            });
+        }
+
+        function showCompetencyFieldError($field, message) {
+            if (!$field || !$field.length) {
+                return;
+            }
+            var $err = $field.nextAll('.error-message').first();
+            if (!$err.length) {
+                $err = $('<span class="error-message text-danger d-block mt-1"></span>');
+                $field.after($err);
+            } else {
+                $err.addClass('d-block mt-1');
+            }
+            $err.text(message);
+        }
+
+        function clearCompetencyFieldError($field) {
+            if (!$field || !$field.length) {
+                return;
+            }
+            $field.nextAll('.error-message').each(function () {
+                var $err = $(this);
+                if ($err.hasClass('d-block') && $err.hasClass('mt-1')) {
+                    $err.remove();
+                } else {
+                    $err.text('');
+                }
+            });
+        }
+
+        function readApplicantEmailValue() {
+            var el = document.getElementById('applicant_email');
+            if (!el) {
+                return '';
+            }
+            return String(el.value || $(el).val() || '').trim();
+        }
+
         /** Date order / min-duration for work rows: below table when #work-exp-validation-msg exists; else inline in row. */
+        function parseWorkDateToIso(str) {
+            var s = String(str || '').trim();
+            if (!s) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                return s;
+            }
+            var m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+            if (m) {
+                return m[3] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+            }
+            return '';
+        }
+
         function readWorkDateIsoGeneric($input) {
             if (!$input || !$input.length) {
                 return '';
             }
-            var raw = String($input.attr('data-raw') || '').trim();
-            if (raw) {
-                return raw;
-            }
-            var v = String($input.val() || '').trim();
-            if (!v) {
+            var $el = $input.first();
+            var node = $el.get(0);
+            if (!node) {
                 return '';
             }
-            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                return v;
+            var candidates = [];
+            if (node.type === 'date' && node.value) {
+                candidates.push(String(node.value).trim());
             }
-            var m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-            if (m) {
-                return m[3] + '-' + m[2] + '-' + m[1];
+            candidates.push(String($el.val() || node.value || '').trim());
+            candidates.push(String($el.attr('data-raw') || node.getAttribute('data-raw') || '').trim());
+
+            for (var i = 0; i < candidates.length; i++) {
+                var iso = parseWorkDateToIso(candidates[i]);
+                if (iso) {
+                    return iso;
+                }
             }
             return '';
         }
+
+        function clearWorkDateRequiredErrors($field) {
+            if (!$field || !$field.length) {
+                return;
+            }
+            $field.nextAll('.error-message').each(function () {
+                var txt = ($(this).text() || '').toLowerCase();
+                if (
+                    txt.indexOf('to date is required') !== -1 ||
+                    txt.indexOf('from date is required') !== -1
+                ) {
+                    $(this).remove();
+                }
+            });
+        }
+
+        window.readWorkDateIsoGeneric = readWorkDateIsoGeneric;
+        window.clearWorkDateRequiredErrors = clearWorkDateRequiredErrors;
 
         function refreshWorkExpValidationMsgBelowTable() {
             var $container = $('#work-exp-validation-msg');
@@ -401,6 +489,11 @@ $(document).ready(function() {
                 var $toDate = $row.find('.work-date-to').first();
                 var fromIso = readWorkDateIsoGeneric($fromDate);
                 var toIso = readWorkDateIsoGeneric($toDate);
+                /* Form S only: a "Till date" checkbox can replace the explicit To-date with today. */
+                if (formName === 'S' && $row.find('.work-date-till').is(':checked')) {
+                    var t = new Date();
+                    toIso = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+                }
 
                 if (formName === 'WH') {
                     var wl0 = ($row.find('input[name="work_level[]"]').val() || '').trim();
@@ -458,16 +551,10 @@ $(document).ready(function() {
             if (!$row || !$row.length) {
                 return;
             }
+            $row.find('.work-exp-date-range-error').remove();
             var $inline = $row.find('.work-exp-col-years .work-exp-inline').not('.work-exp-inline--head').first();
             if ($inline.length) {
                 $inline.next('.work-exp-date-range-error').remove();
-            } else {
-                var $flex = $row.find('.d-flex').has('.work-date-from, .work-date-to').first();
-                if ($flex.length) {
-                    $flex.next('.work-exp-date-range-error').remove();
-                } else {
-                    $row.find('.work-date-to').first().next('.work-exp-date-range-error').remove();
-                }
             }
         }
 
@@ -479,8 +566,24 @@ $(document).ready(function() {
                 return;
             }
             clearWorkExpDateRangeError($row);
-            var cls = 'error-message text-danger d-block mt-1 work-exp-date-range-error';
-            var html = '<span class="' + cls + '">' + message + '</span>';
+            var cls = 'error-message text-danger d-block work-exp-date-range-error';
+            var html = '<span class="' + cls + '" role="alert">' + message + '</span>';
+            var $dateSlot = $row.closest('.work-entry-block').children('.work-row-date-validation').first();
+            if (!$dateSlot.length) {
+                $dateSlot = $row.next('.work-row-date-validation').first();
+            }
+            if (!$dateSlot.length) {
+                $dateSlot = $row.find('.work-row-date-validation').first();
+            }
+            if ($dateSlot.length) {
+                $dateSlot.html(html);
+                return;
+            }
+            var $toCell = $row.find('.work-card-field[data-field="to-date"]').first();
+            if ($toCell.length) {
+                $toCell.append(html);
+                return;
+            }
             var $inline = $row.find('.work-exp-col-years .work-exp-inline').not('.work-exp-inline--head').first();
             if ($inline.length) {
                 $inline.after(html);
@@ -1056,13 +1159,21 @@ $(document).ready(function() {
                 '.work-fields',
                 [
                     '.work-employment-type',
+                    '.work-contractor-cat',
+                    '.work-licence-number',
                     '.work-employer-input',
+                    '.work-org-address',
+                    'input[name="designation[]"]',
+                    '.work-nature',
+                    '.work-voltage',
+                    '.work-transformer-kva',
                     '.work-date-from',
                     '.work-date-to',
+                    '.work-date-till-hidden',
                     '.work-experience-total-hidden',
-                    'input[name="designation[]"]',
                     'input[name="existing_work_document[]"]',
-                    'input[name="work_document[]"]'
+                    'input[name="work_document[]"]',
+                    'input[name="work_relieving_letter[]"]'
                 ]
             );
         }
@@ -1228,6 +1339,40 @@ $(document).ready(function() {
                 .prv-sw-modal-root .prv-sw-thumb span { font-size: .68rem; color: #5a7299; margin-top: 4px; display: block; }
 
                 .prv-sw-modal-root .prv-sw-table-wrap { overflow-x: auto; border: 1px solid #e3e8f0; border-radius: 8px; margin-bottom: 12px; }
+                .prv-sw-modal-root .prv-sw-section-hint { font-weight: 500; font-size: .78rem; color: #5a7299; }
+                .prv-sw-modal-root .prv-sw-work-table { font-size: .72rem; min-width: 880px; }
+                .prv-sw-modal-root .prv-sw-work-table th { white-space: nowrap; font-size: .68rem; padding: 6px 8px; }
+                .prv-sw-modal-root .prv-sw-work-table td { padding: 6px 8px; vertical-align: top; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-summary-th-sno,
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .work-row-summary-sno { width: 3rem; text-align: center; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-summary-th-org,
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .work-row-summary-org-address { min-width: 140px; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-th-org-line { display: block; line-height: 1.2; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-sum-main { display: block; font-weight: 600; color: #212121; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-sum-sub { display: block; font-size: .68rem; color: #5a7299; margin-top: 2px; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .work-row-summary-period { min-width: 168px; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-box { display: flex; flex-direction: column; gap: 6px; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-dates { display: flex; flex-wrap: wrap; gap: 6px; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-mini {
+                    flex: 1 1 72px; min-width: 72px; background: #f4f7fc; border: 1px solid #dde5f3;
+                    border-radius: 6px; padding: 4px 6px; text-align: center;
+                }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-label { display: block; font-size: .62rem; color: #5a7299; font-weight: 600; text-transform: uppercase; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-val { display: block; font-size: .7rem; font-weight: 600; color: #1a2a4a; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-duration { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-dur-cell {
+                    flex: 1 1 52px; min-width: 48px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; padding: 4px 4px; text-align: center;
+                }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-dur-num { display: block; font-size: .85rem; font-weight: 700; color: #2e7d32; line-height: 1.1; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-period-dur-lbl { display: block; font-size: .58rem; color: #5a7299; text-transform: uppercase; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-sum-attach-stack { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-sum-attach-block { font-size: .68rem; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-sum-attach-label { font-weight: 600; color: #5a7299; }
+                .prv-sw-modal-root .prv-sw-work-table.wx-summary-table .wx-sum-attach-value { color: #2c3e5e; }
+                .prv-sw-modal-root .prv-sw-badge-till {
+                    display: inline-block; background: #e8f4fd; color: #035ab3;
+                    border: 1px solid #b8d4f0; border-radius: 4px; padding: 1px 6px; font-size: .68rem; font-weight: 600;
+                }
                 .prv-sw-modal-root .prv-sw-table { width: 100%; font-size: .76rem; border-collapse: collapse; margin: 0; min-width: 520px; }
                 .prv-sw-modal-root .prv-sw-table th {
                     background: #eef3fb; color: #1a2a4a; font-weight: 600;
@@ -1455,14 +1600,14 @@ $(document).ready(function() {
                                 <div class="prv-sw-section-hd">
                                     <span class="prv-sw-section-num" data-section-num="work">7</span>
                                     <div>
-                                        <div class="prv-sw-section-title">Previous &amp; Current Work Experience</div>
-                                        <div class="prv-sw-section-tamil">முந்தைய மற்றும் தற்போதைய பணி அனுபவம்</div>
+                                        <div class="prv-sw-section-title" id="prvSwWorkTitle">Details of Previous and Current Work experiences <span class="prv-sw-section-hint">(Upload the documents)</span></div>
+                                        <div class="prv-sw-section-tamil" id="prvSwWorkTamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள் (ஆவணங்களை பதிவேற்ற வேண்டும்)</div>
                                     </div>
                                 </div>
                                 <div class="prv-sw-section-body">
                                     <div class="prv-sw-table-wrap">
-                                        <table class="prv-sw-table">
-                                            <thead>
+                                        <table class="prv-sw-table prv-sw-work-table" id="prvSwWorkTable">
+                                            <thead id="prvSwWorkThead">
                                                 <tr>
                                                     <th>#</th>
                                                     <th>Employment Type</th>
@@ -1496,9 +1641,10 @@ $(document).ready(function() {
                                     </div>
                                     <div id="prvSwPrevBlock" style="display:none;">
                                         <div class="row g-2">
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwPrevNo">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwPrevIssueDate">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of Expiry</div><div class="prv-sw-value" id="prvSwPrevExpiryDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwPrevNo">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwPrevIssueDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">From date</div><div class="prv-sw-value" id="prvSwPrevFromDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">To date</div><div class="prv-sw-value" id="prvSwPrevExpiryDate">&mdash;</div></div></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1520,9 +1666,10 @@ $(document).ready(function() {
                                     </div>
                                     <div id="prvSwWcBlock" style="display:none;">
                                         <div class="row g-2">
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwWcNo">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwWcIssueDate">&mdash;</div></div></div>
-                                            <div class="col-12 col-sm-4"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of Expiry</div><div class="prv-sw-value" id="prvSwWcExpiryDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwWcNo">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Date of First Issue</div><div class="prv-sw-value" id="prvSwWcIssueDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">From date</div><div class="prv-sw-value" id="prvSwWcFromDate">&mdash;</div></div></div>
+                                            <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">To date</div><div class="prv-sw-value" id="prvSwWcExpiryDate">&mdash;</div></div></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1840,24 +1987,265 @@ $(document).ready(function() {
                 }
             }
 
+            const EMP_LABEL_SW = {
+                private_organisation: 'Private organisation',
+                electrical_contractor: 'Electrical contractor',
+                retired_employee: 'Retired Employee',
+                govt_organisation: 'Govt organisation',
+                apprenticeship: 'Apprenticeship'
+            };
+            const WORK_NATURE_SW = {
+                erection: 'Erection',
+                maintenance: 'Maintenance',
+                erection_maintenance: 'Erection & Maintenance'
+            };
+            const VOLTAGE_LEVEL_SW = {
+                up_to_650v: 'Up to 650V',
+                '650v_to_33kv': 'Above 650V to 33KV',
+                above_33kv: 'Above 33KV'
+            };
+            const CONTRACTOR_TYPE_SW = 'electrical_contractor';
+            const VOLTAGE_DISABLES_KVA_SW = 'up_to_650v';
+            const MONTH_SHORT_SW = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const readRowDateIso = function (inp) {
+                if (!inp) return '';
+                if (typeof readWorkDateIsoGeneric === 'function') {
+                    return readWorkDateIsoGeneric($(inp));
+                }
+                return String(inp.value || inp.getAttribute('data-raw') || '').trim();
+            };
+            const fmtRowDate = function (inp) {
+                const iso = readRowDateIso(inp);
+                if (!iso) return '—';
+                const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                return m ? (m[3] + '-' + m[2] + '-' + m[1]) : iso;
+            };
+            const fmtPrettySw = function (iso) {
+                if (!iso) return '—';
+                const p = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!p) return iso;
+                const y = parseInt(p[1], 10);
+                const m = parseInt(p[2], 10);
+                const d = parseInt(p[3], 10);
+                if (isNaN(y) || isNaN(m) || isNaN(d) || m < 1 || m > 12) return iso;
+                return d + ' ' + MONTH_SHORT_SW[m - 1] + ' ' + y;
+            };
+            const todayIsoSw = function () {
+                const n = new Date();
+                return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+            };
+            const calendarDiffYMDSw = function (fromIso, toIso) {
+                const from = new Date(fromIso + 'T12:00:00');
+                const to = new Date(toIso + 'T12:00:00');
+                if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return null;
+                let y = to.getFullYear() - from.getFullYear();
+                let m = to.getMonth() - from.getMonth();
+                let d = to.getDate() - from.getDate();
+                if (d < 0) {
+                    m--;
+                    d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+                }
+                if (m < 0) {
+                    y--;
+                    m += 12;
+                }
+                return { y: y, m: m, d: d };
+            };
+            const rowVal = function (el) {
+                return el ? (String(el.value || '').trim() || '—') : '—';
+            };
+            const swAttachBlockHtml = function (label, row, fileSel, existingSel, naText) {
+                let inner = '';
+                if (naText) {
+                    inner = '<span class="wx-sum-attach-value">' + esc(naText) + '</span>';
+                } else {
+                    const docHtml = docCellFromRow(row, fileSel, existingSel);
+                    if (docHtml.indexOf('prv-sw-doc-pill') !== -1) {
+                        inner = docHtml.replace('prv-sw-doc-pill', 'prv-sw-doc-pill wx-sum-doc-link');
+                    } else if (docHtml.indexOf('prv-sw-doc-empty') !== -1) {
+                        inner = '<span class="wx-sum-attach-value">—</span>';
+                    } else {
+                        inner = '<span class="wx-sum-attach-value">File attached</span>';
+                    }
+                }
+                return '<div class="wx-sum-attach-block"><span class="wx-sum-attach-label">' + esc(label) + ' :</span>' + inner + '</div>';
+            };
+            const buildSwWorkPeriodHtml = function (fr, to, tillChk, yPart, mPart, dPart) {
+                const fromIso = readRowDateIso(fr);
+                const toIso = readRowDateIso(to);
+                const isTill = tillChk && tillChk.checked;
+                const toEffIso = isTill ? todayIsoSw() : toIso;
+                const toText = isTill ? 'Till date' : (toIso ? fmtPrettySw(toIso) : '—');
+                let yN = yPart ? (parseInt(yPart.value, 10) || 0) : 0;
+                let mN = mPart ? (parseInt(mPart.value, 10) || 0) : 0;
+                let dN = dPart ? (parseInt(dPart.value, 10) || 0) : 0;
+                if (!yN && !mN && !dN && fromIso && toEffIso) {
+                    const diff = calendarDiffYMDSw(fromIso, toEffIso);
+                    if (diff) {
+                        yN = diff.y;
+                        mN = diff.m;
+                        dN = diff.d;
+                    }
+                }
+                let html = '<div class="wx-period-box"><div class="wx-period-dates">'
+                    + '<div class="wx-period-mini"><span class="wx-period-label">From</span><span class="wx-period-val">' + esc(fromIso ? fmtPrettySw(fromIso) : '—') + '</span></div>'
+                    + '<div class="wx-period-mini"><span class="wx-period-label">To</span><span class="wx-period-val">' + (isTill ? '<span class="prv-sw-badge-till">Till date</span>' : esc(toText)) + '</span></div>'
+                    + '</div>';
+                if (fromIso && toEffIso) {
+                    html += '<div class="wx-period-duration">'
+                        + '<div class="wx-period-dur-cell"><span class="wx-period-dur-num">' + yN + '</span><span class="wx-period-dur-lbl">Years</span></div>'
+                        + '<div class="wx-period-dur-cell"><span class="wx-period-dur-num">' + mN + '</span><span class="wx-period-dur-lbl">Months</span></div>'
+                        + '<div class="wx-period-dur-cell"><span class="wx-period-dur-num">' + dN + '</span><span class="wx-period-dur-lbl">Days</span></div>'
+                        + '</div>';
+                }
+                html += '</div>';
+                return html;
+            };
+            const buildSwWorkThead = function (code) {
+                const thead = document.getElementById('prvSwWorkThead');
+                const workTable = document.getElementById('prvSwWorkTable');
+                if (!thead) return;
+                if (workTable) {
+                    workTable.classList.toggle('wx-summary-table', code === 'S');
+                }
+                if (code === 'S') {
+                    thead.innerHTML = '<tr>'
+                        + '<th class="wx-summary-th-sno">S.No</th>'
+                        + '<th>Employment Type</th>'
+                        + '<th class="wx-summary-th-org"><span class="wx-th-org-line">Organisation &amp;</span><span class="wx-th-org-line">Address</span></th>'
+                        + '<th>Designation</th>'
+                        + '<th>Nature of Work</th>'
+                        + '<th>Voltage Level</th>'
+                        + '<th>Transformer kVA</th>'
+                        + '<th>Total Experience</th>'
+                        + '<th>Attachment</th></tr>';
+                } else {
+                    thead.innerHTML = '<tr>'
+                        + '<th>#</th><th>Employment Type</th><th>Employer / Organisation</th>'
+                        + '<th>From</th><th>To</th><th>Duration</th><th>Designation</th><th>Document</th></tr>';
+                }
+            };
+            const buildFormSWorkSummaryRow = function (row, sno) {
+                const typeSel = row.querySelector('.work-employment-type');
+                const emp = row.querySelector('.work-employer-input') || row.querySelector('[name="work_employer_name[]"]');
+                const address = row.querySelector('.work-org-address');
+                const des = row.querySelector('.work-designation') || row.querySelector('[name="designation[]"]');
+                const cat = row.querySelector('.work-contractor-cat');
+                const licence = row.querySelector('.work-licence-number');
+                const natureSel = row.querySelector('.work-nature');
+                const voltSel = row.querySelector('.work-voltage');
+                const kvaEl = row.querySelector('.work-transformer-kva');
+                const fr = row.querySelector('.work-date-from');
+                const to = row.querySelector('.work-date-to');
+                const tillChk = row.querySelector('.work-date-till');
+                const yPart = row.querySelector('.work-duration-y');
+                const mPart = row.querySelector('.work-duration-m');
+                const dPart = row.querySelector('.work-duration-d');
+
+                const empTypeVal = typeSel ? (typeSel.value || '').trim() : '';
+                const isContractor = (empTypeVal === CONTRACTOR_TYPE_SW);
+                const empTxt = EMP_LABEL_SW[empTypeVal] || selectedText(typeSel) || empTypeVal || '—';
+                const employer = emp ? (emp.value || '').trim() : '';
+                const addrTxt = address ? (address.value || '').trim() : '';
+                const catTxt = cat ? (cat.value || '').trim() : '';
+                const licTxt = licence ? (licence.value || '').trim() : '';
+                const natureVal = natureSel ? (natureSel.value || '').trim() : '';
+                const voltVal = voltSel ? (voltSel.value || '').trim() : '';
+                const kvaRaw = kvaEl ? (kvaEl.value || '').trim() : '';
+
+                let empCell = '<span class="wx-sum-main">' + esc(empTxt) + '</span>';
+                if (isContractor && catTxt) {
+                    empCell += '<span class="wx-sum-sub">Cat: ' + esc(catTxt) + '</span>';
+                }
+                if (isContractor && licTxt) {
+                    empCell += '<span class="wx-sum-sub">Licence: ' + esc(licTxt) + '</span>';
+                }
+
+                let orgCell = '<span class="wx-sum-main">' + esc(employer || '—') + '</span>';
+                if (addrTxt) {
+                    orgCell += '<span class="wx-sum-sub">' + esc(addrTxt) + '</span>';
+                }
+
+                const kvaTxt = (voltVal === VOLTAGE_DISABLES_KVA_SW)
+                    ? 'Not applicable'
+                    : (kvaRaw ? esc(kvaRaw + ' kVA') : '—');
+
+                const periodHtml = buildSwWorkPeriodHtml(fr, to, tillChk, yPart, mPart, dPart);
+                const isTill = tillChk && tillChk.checked;
+                const attachHtml = '<div class="wx-sum-attach-stack">'
+                    + swAttachBlockHtml('Supporting', row, '[name="work_document[]"]', '[name="existing_work_document[]"]', null)
+                    + swAttachBlockHtml('Relieving', row, '[name="work_relieving_letter[]"]', '[name="existing_work_relieving_document[]"]', isTill ? 'Not required (Till date)' : null)
+                    + '</div>';
+
+                return '<tr>'
+                    + '<td class="work-row-summary-sno">' + sno + '</td>'
+                    + '<td class="work-row-summary-employment prv-sw-td-left">' + empCell + '</td>'
+                    + '<td class="work-row-summary-org-address prv-sw-td-left">' + orgCell + '</td>'
+                    + '<td class="work-row-summary-designation prv-sw-td-left">' + esc(rowVal(des)) + '</td>'
+                    + '<td class="work-row-summary-nature">' + esc(WORK_NATURE_SW[natureVal] || natureVal || '—') + '</td>'
+                    + '<td class="work-row-summary-voltage">' + esc(VOLTAGE_LEVEL_SW[voltVal] || voltVal || '—') + '</td>'
+                    + '<td class="work-row-summary-kva">' + kvaTxt + '</td>'
+                    + '<td class="work-row-summary-period">' + periodHtml + '</td>'
+                    + '<td class="work-row-summary-attachments prv-sw-td-left">' + attachHtml + '</td>'
+                    + '</tr>';
+            };
+
+            const workTitleEl = document.getElementById('prvSwWorkTitle');
+            const workTamilEl = document.getElementById('prvSwWorkTamil');
+            if (workTitleEl && workTamilEl) {
+                if (formCode === 'S') {
+                    workTitleEl.innerHTML = 'Details of Previous and Current Work experiences <span class="prv-sw-section-hint">(Upload the documents)</span>';
+                    workTamilEl.textContent = 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள் (ஆவணங்களை பதிவேற்ற வேண்டும்)';
+                } else {
+                    workTitleEl.textContent = 'Previous & Current Work Experience';
+                    workTamilEl.textContent = 'முந்தைய மற்றும் தற்போதைய பணி அனுபவம்';
+                }
+            }
+
             // Work experience table (S/W only)
             if (showWork) {
                 const workBody = document.getElementById('prvSwWorkBody');
+                const swPanel = document.querySelector('#appPreviewModalSw .prv-sw-panel');
+                if (swPanel) {
+                    swPanel.style.maxWidth = (formCode === 'S') ? 'min(96vw, 1100px)' : '940px';
+                }
+                buildSwWorkThead(formCode);
                 if (workBody) {
-                    const workRows = document.querySelectorAll('#work-container .work-fields, #work-container tr');
+                    const workRows = document.querySelectorAll('#work-container .work-fields');
                     workBody.innerHTML = '';
                     let printed = 0;
+                    const colSpan = (formCode === 'S') ? 9 : 8;
+
                     workRows.forEach(function (row) {
-                        const typeSel = row.querySelector('[name="work_employment_type[]"]');
-                        const emp = row.querySelector('[name="work_employer_name[]"]');
-                        const fr = row.querySelector('[name="work_date_from[]"]');
-                        const to = row.querySelector('[name="work_date_to[]"]');
+                        if (!row.classList.contains('work-fields')) return;
+
+                        if (formCode === 'S') {
+                            const typeSel = row.querySelector('.work-employment-type');
+                            const emp = row.querySelector('.work-employer-input') || row.querySelector('[name="work_employer_name[]"]');
+                            const fr = row.querySelector('.work-date-from');
+                            const to = row.querySelector('.work-date-to');
+                            const des = row.querySelector('.work-designation') || row.querySelector('[name="designation[]"]');
+                            const hasRow = typeSel || emp || fr || to || des
+                                || row.querySelector('.work-contractor-cat')
+                                || row.querySelector('.work-org-address');
+                            if (!hasRow) return;
+
+                            printed++;
+                            workBody.innerHTML += buildFormSWorkSummaryRow(row, printed);
+                            return;
+                        }
+
+                        const typeSel = row.querySelector('[name="work_employment_type[]"]') || row.querySelector('.work-employment-type');
+                        const emp = row.querySelector('[name="work_employer_name[]"]') || row.querySelector('input[name="work_level[]"]');
+                        const fr = row.querySelector('[name="work_date_from[]"]') || row.querySelector('.work-date-from');
+                        const to = row.querySelector('[name="work_date_to[]"]') || row.querySelector('.work-date-to');
                         const yrs = row.querySelector('.work-duration-y');
                         const mos = row.querySelector('.work-duration-m');
                         const days = row.querySelector('.work-duration-d');
                         const totHidden = row.querySelector('[name="work_experience_total[]"]');
                         const des = row.querySelector('[name="designation[]"]');
                         if (!typeSel && !emp && !fr && !to && !des) return;
+
                         printed++;
                         const typeText = typeSel ? (selectedText(typeSel) || typeSel.value || '—') : '—';
                         let durText = '';
@@ -1872,45 +2260,50 @@ $(document).ready(function() {
                             durText = parts.join(' ');
                         }
                         if (!durText && totHidden) durText = totHidden.value || '';
+
                         workBody.innerHTML += '<tr>'
                             + '<td>' + printed + '</td>'
                             + '<td class="prv-sw-td-left">' + esc(typeText) + '</td>'
                             + '<td class="prv-sw-td-left">' + esc(emp ? emp.value || '—' : '—') + '</td>'
-                            + '<td>' + esc(fmtDate(fr ? fr.value : '') || '—') + '</td>'
-                            + '<td>' + esc(fmtDate(to ? to.value : '') || '—') + '</td>'
+                            + '<td>' + esc(fmtRowDate(fr)) + '</td>'
+                            + '<td>' + esc(fmtRowDate(to)) + '</td>'
                             + '<td>' + esc(durText || '—') + '</td>'
                             + '<td class="prv-sw-td-left">' + esc(des ? des.value || '—' : '—') + '</td>'
                             + '<td>' + docCellFromRow(row, '[name="work_document[]"]', '[name="existing_work_document[]"]') + '</td>'
                             + '</tr>';
                     });
+
                     if (!printed) {
-                        workBody.innerHTML = '<tr><td colspan="8" class="text-muted py-3" style="text-align:center;">No work experience entries</td></tr>';
+                        workBody.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted py-3" style="text-align:center;">No work experience entries</td></tr>';
                     }
                 }
             }
 
             // Previous same-type certificate section
-            let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevExpiryId;
+            let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevFromId, prevExpiryId;
             if (formCode === 'S') {
                 prevTitle = 'Previous Supervisor Competency Certificate';
                 prevTamil = 'மேற்பார்வையாளர் தகுதி சான்றிதழ் விவரம்';
                 prevYesValue = !!((document.getElementById('previous_license_yes') || {}).checked);
                 prevNumId = 'previously_number';
                 prevIssueId = 'previously_issue_date';
-                prevExpiryId = 'previously_date';
+                prevFromId = 'previously_valid_from';
+                prevExpiryId = 'previously_valid_to';
             } else if (formCode === 'W') {
                 prevTitle = 'Previous Wireman / Helper Certificate';
                 prevTamil = 'மின்கம்பியாளர் / உதவியாளர் தகுதி சான்றிதழ் விவரம்';
                 prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
                 prevNumId = 'previously_number';
                 prevIssueId = 'previously_issue_date';
-                prevExpiryId = 'previously_date';
+                prevFromId = 'previously_valid_from';
+                prevExpiryId = 'previously_valid_to';
             } else {
                 prevTitle = 'Previous Wireman Helper Certificate';
                 prevTamil = 'மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் விவரம்';
                 prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
                 prevNumId = 'previously_number_h';
                 prevIssueId = 'previously_issue_date_h';
+                prevFromId = 'previously_valid_from_h';
                 prevExpiryId = 'previously_date_h';
             }
             const prevTitleEl = document.getElementById('prvSwSecPrevTitle');
@@ -1928,10 +2321,12 @@ $(document).ready(function() {
             if (prevYesValue) {
                 setField('prvSwPrevNo', v(prevNumId));
                 setField('prvSwPrevIssueDate', fmtDate(v(prevIssueId)));
+                setField('prvSwPrevFromDate', fmtDate(v(prevFromId)));
                 setField('prvSwPrevExpiryDate', fmtDate(v(prevExpiryId)));
             } else {
                 setField('prvSwPrevNo', '');
                 setField('prvSwPrevIssueDate', '');
+                setField('prvSwPrevFromDate', '');
                 setField('prvSwPrevExpiryDate', '');
             }
 
@@ -1950,10 +2345,12 @@ $(document).ready(function() {
                 if (wcYesValue) {
                     setField('prvSwWcNo', v('certificate_no'));
                     setField('prvSwWcIssueDate', fmtDate(v('certificate_issue_date')));
-                    setField('prvSwWcExpiryDate', fmtDate(v('certificate_date')));
+                    setField('prvSwWcFromDate', fmtDate(v('certificate_valid_from')));
+                    setField('prvSwWcExpiryDate', fmtDate(v('certificate_valid_to')));
                 } else {
                     setField('prvSwWcNo', '');
                     setField('prvSwWcIssueDate', '');
+                    setField('prvSwWcFromDate', '');
                     setField('prvSwWcExpiryDate', '');
                 }
             }
@@ -2051,7 +2448,7 @@ $(document).ready(function() {
                 return;
             }
 
-            $('.error-message').remove();
+            clearCompetencyValidationErrors();
             $('.certificate-error').text('');
             $('.certificate-input').removeClass('is-invalid');
             let isValid = true;
@@ -2073,8 +2470,8 @@ $(document).ready(function() {
                 if (inputType === 'date') {
                     dob = new Date(dobStr + 'T00:00:00');
                 } else {
-                    // Expect DD-MM-YYYY for text inputs (flatpickr)
-                    const match = dobStr.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
+                    // Expect DD-MM-YYYY or DD/MM/YYYY for text inputs (flatpickr)
+                    const match = dobStr.trim().match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
                     if (match) {
                         const dd = parseInt(match[1], 10);
                         const mm = parseInt(match[2], 10);
@@ -2127,19 +2524,24 @@ $(document).ready(function() {
                 }
             }
 
-            let applicantEmailEl = $('#applicant_email');
+            let applicantEmailEl = $('#competency_form_ws #applicant_email, #competency_form_ws [name="applicant_email"]').first();
+            if (!applicantEmailEl.length) {
+                applicantEmailEl = $('#applicant_email').first();
+            }
             if (applicantEmailEl.length) {
-                let ev = (applicantEmailEl.val() || '').trim();
+                let ev = readApplicantEmailValue();
                 let formNameEmail = ($('#form_name').val() || '').toString().trim().toUpperCase();
                 let emailRequired = formNameEmail === 'S';
                 if (emailRequired && ev === '') {
-                    applicantEmailEl.after('<span class="error-message text-danger d-block mt-1">Email ID is required.</span>');
+                    showCompetencyFieldError(applicantEmailEl, 'Email ID is required.');
                     if (!firstErrorField) firstErrorField = applicantEmailEl;
                     isValid = false;
                 } else if (ev !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)) {
-                    applicantEmailEl.after('<span class="error-message text-danger d-block mt-1">Enter a valid Email ID.</span>');
+                    showCompetencyFieldError(applicantEmailEl, 'Enter a valid Email ID.');
                     if (!firstErrorField) firstErrorField = applicantEmailEl;
                     isValid = false;
+                } else {
+                    clearCompetencyFieldError(applicantEmailEl);
                 }
             }
 
@@ -2274,17 +2676,31 @@ $(document).ready(function() {
             const workOptional = (formName === 'W' || formName === 'WH' || formName === 'P');
             const isSWorkForm = (formName === 'S');
 
-            /** Work experience row dates may show DD-MM-YYYY (data-raw holds ISO); match edit-form JS. */
-            function readWorkDateIso($input) {
-                if (!$input || !$input.length) return '';
-                const raw = String($input.attr('data-raw') || '').trim();
-                if (raw) return raw;
-                const v = String($input.val() || '').trim();
-                if (!v) return '';
-                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-                const m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-                if (m) return m[3] + '-' + m[2] + '-' + m[1];
-                return '';
+            /** True when a work file input has a new selection, local preview, or marked upload (Form S card layout). */
+            function workFileInputHasSelection($input) {
+                if (!$input || !$input.length) return false;
+                const el = $input.get(0);
+                if (!el) return false;
+                if (el.files && el.files.length > 0) return true;
+                if (String(el.value || '').trim() !== '') return true;
+                if (String(el.getAttribute('data-has-local-file') || '') === '1') return true;
+                const $wrap = $input.closest('.form-s-file-upload-wrap');
+                if ($wrap.length && $wrap.next('.local-file-preview').find('.preview-link').length) return true;
+                return false;
+            }
+
+            function workRowHasSupportingDoc($row) {
+                const $file = $row.find('input[name="work_document[]"], input[name^="work_document["]').first();
+                if (workFileInputHasSelection($file)) return true;
+                const $existing = $row.find('input[name="existing_work_document[]"]').first();
+                return $existing.length && String($existing.val() || '').trim() !== '';
+            }
+
+            function workRowHasRelievingDoc($row) {
+                const $file = $row.find('input[name="work_relieving_letter[]"], input[name^="work_relieving_letter["]').first();
+                if (workFileInputHasSelection($file)) return true;
+                const $existing = $row.find('input[name="existing_work_relieving_document[]"]').first();
+                return $existing.length && String($existing.val() || '').trim() !== '';
             }
 
             /* Recompute work duration hidden fields before validating (native change + blur for jQuery handlers). */
@@ -2301,93 +2717,178 @@ $(document).ready(function() {
 
             $('#work-container .work-fields').each(function () {
                 if (isSWorkForm) {
-                    const employmentType = $(this).find('.work-employment-type');
-                    const employerInput = $(this).find('.work-employer-input');
-                    const fromDate = $(this).find('.work-date-from');
-                    const toDate = $(this).find('.work-date-to');
-                    const fromIso = readWorkDateIso(fromDate);
-                    const toIso = readWorkDateIso(toDate);
-                    const designation = $(this).find('input[name="designation[]"]');
-                    const workDocument = $(this).find('input[name="work_document[]"], input[name^="work_document["]');
-                    const existingDocInput = $(this).find('input[name="existing_work_document[]"]');
-                    const hasExistingDoc = existingDocInput.length && (existingDocInput.val() || '').trim() !== '';
-                    const hasFile = workDocument.length && workDocument[0].files.length > 0;
+                    /* Form S (13-column SCC layout):
+                       Required per row:
+                         • Employment Type (col 2)
+                         • Contractor Category (col 3) + Licence Number (col 4) — ONLY if Electrical contractor
+                         • Name of Contractor / org / board (col 5), Organisation Address (col 6),
+                           Designation (col 7), Nature of Work (col 8), Voltage Level (col 9)
+                         • Highest Transformer kVA (col 10) — UNLESS Voltage = "Up to 650V"
+                         • Period of Experience From (col 11), and To unless "Till date" is checked
+                         • Supporting documents (col 12)
+                         • Relieving Letter (col 13) — UNLESS "Till date" is checked */
+                    const $row = $(this);
+                    const employmentType  = $row.find('.work-employment-type');
+                    const contractorCat   = $row.find('.work-contractor-cat');
+                    const licenceNumber   = $row.find('.work-licence-number');
+                    const employerInput   = $row.find('.work-employer-input');
+                    const orgAddress      = $row.find('.work-org-address');
+                    const designation     = $row.find('input[name="designation[]"]');
+                    const natureOfWork    = $row.find('.work-nature');
+                    const voltageLevel    = $row.find('.work-voltage');
+                    const transformerKva  = $row.find('.work-transformer-kva');
+                    const fromDate        = $row.find('.work-date-from').first();
+                    const toDate          = $row.find('.work-date-to').first();
+                    const tillDateChk     = $row.find('.work-date-till');
+                    const isTillDate      = tillDateChk.length && tillDateChk.is(':checked');
+                    const fromIso         = readWorkDateIsoGeneric(fromDate);
+                    const toIso           = readWorkDateIsoGeneric(toDate);
+
+                    const workDocument    = $row.find('input[name="work_document[]"], input[name^="work_document["]').first();
+                    const hasSupportingDoc = workRowHasSupportingDoc($row);
                     const $workUploadWrap = workDocument.closest('.form-s-file-upload-wrap');
                     const $workErrorTarget = $workUploadWrap.length ? $workUploadWrap : workDocument;
 
+                    const relieveInput    = $row.find('input[name="work_relieving_letter[]"], input[name^="work_relieving_letter["]').first();
+                    const hasRelieveFile  = workRowHasRelievingDoc($row);
+                    const $relieveWrap    = relieveInput.closest('.form-s-file-upload-wrap');
+                    const $relieveErrorTarget = $relieveWrap.length ? $relieveWrap : relieveInput;
+
+                    /* Column 2 — Employment Type */
                     if (employmentType.length && (!employmentType.val() || employmentType.val().trim() === '')) {
                         employmentType.after('<span class="error-message text-danger d-block mt-1">Please select employment type.</span>');
                         if (!firstErrorField) firstErrorField = employmentType;
                         isValid = false;
                     }
+                    const selectedEmploymentType = (employmentType.val() || '').trim().toLowerCase();
+                    const isContractor = (selectedEmploymentType === 'electrical_contractor');
 
-                const selectedEmploymentType = (employmentType.val() || '').trim().toLowerCase();
-                if (selectedEmploymentType === 'contractor') {
-                    const intimationDate = $(this).find('.work-intimation-date');
-                    if (intimationDate.length && (intimationDate.val() || '').trim() === '') {
-                        intimationDate.after('<span class="error-message text-danger d-block mt-1">Intimation letter date is required for contractor.</span>');
-                        if (!firstErrorField) firstErrorField = intimationDate;
-                        isValid = false;
+                    /* Columns 3 & 4 — Contractor only */
+                    if (isContractor) {
+                        if (contractorCat.length && (contractorCat.val() || '').trim() === '') {
+                            contractorCat.after('<span class="error-message text-danger d-block mt-1">Contractor category is required.</span>');
+                            if (!firstErrorField) firstErrorField = contractorCat;
+                            isValid = false;
+                        }
+                        if (licenceNumber.length && (licenceNumber.val() || '').trim() === '') {
+                            licenceNumber.after('<span class="error-message text-danger d-block mt-1">Licence number is required.</span>');
+                            if (!firstErrorField) firstErrorField = licenceNumber;
+                            isValid = false;
+                        }
                     }
-                }
 
+                    /* Column 5 — Name of Contractor / organisation / Board */
                     if (employerInput.length && employerInput.val().trim() === '') {
-                        employerInput.after('<span class="error-message text-danger d-block mt-1">Please enter employer / organization name.</span>');
+                        employerInput.after('<span class="error-message text-danger d-block mt-1">Please enter Name of Contractor / organization / Board.</span>');
                         if (!firstErrorField) firstErrorField = employerInput;
                         isValid = false;
                     }
 
-                    if (fromDate.length && !fromIso) {
-                        fromDate.after('<span class="error-message text-danger d-block mt-1">From date is required.</span>');
-                        if (!firstErrorField) firstErrorField = fromDate;
+                    /* Column 6 — Organisation Address */
+                    if (orgAddress.length && (orgAddress.val() || '').trim() === '') {
+                        orgAddress.after('<span class="error-message text-danger d-block mt-1">Organisation address is required.</span>');
+                        if (!firstErrorField) firstErrorField = orgAddress;
                         isValid = false;
                     }
 
-                    if (toDate.length && !toIso) {
-                        toDate.after('<span class="error-message text-danger d-block mt-1">To date is required.</span>');
-                        if (!firstErrorField) firstErrorField = toDate;
-                        isValid = false;
-                    }
-
-                    if (fromDate.length && toDate.length && fromIso && toIso) {
-                        const from = new Date(fromIso + 'T12:00:00');
-                        const to = new Date(toIso + 'T12:00:00');
-                        if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-                            if (to < from) {
-                                showWorkExpDateRangeError($(this), 'To date must be greater than or equal to From date.');
-                                if (!firstErrorField) firstErrorField = toDate;
-                                isValid = false;
-                            }
-                            // 2-year minimum is enforced as a combined total across all rows
-                            // after this .each() loop (Form S only).
-                        }
-                    }
-
+                    /* Column 7 — Designation */
                     if (designation.length && designation.val().trim() === '') {
                         designation.after('<span class="error-message text-danger d-block mt-1">Designation is required.</span>');
                         if (!firstErrorField) firstErrorField = designation;
                         isValid = false;
                     }
 
-                    if (!hasFile && !hasExistingDoc) {
-                        $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">Experience document is required.</span>');
+                    /* Column 8 — Nature of Work */
+                    if (natureOfWork.length && (natureOfWork.val() || '').trim() === '') {
+                        natureOfWork.after('<span class="error-message text-danger d-block mt-1">Nature of Work Experience is required.</span>');
+                        if (!firstErrorField) firstErrorField = natureOfWork;
+                        isValid = false;
+                    }
+
+                    /* Column 9 — Voltage Level */
+                    const voltageVal = (voltageLevel.val() || '').trim();
+                    if (voltageLevel.length && voltageVal === '') {
+                        voltageLevel.after('<span class="error-message text-danger d-block mt-1">Voltage level is required.</span>');
+                        if (!firstErrorField) firstErrorField = voltageLevel;
+                        isValid = false;
+                    }
+
+                    /* Column 10 — Transformer kVA (required unless Voltage = Up to 650V) */
+                    const kvaIsLocked = (voltageVal === 'up_to_650v') || transformerKva.prop('disabled');
+                    if (!kvaIsLocked && transformerKva.length && (transformerKva.val() || '').trim() === '') {
+                        transformerKva.after('<span class="error-message text-danger d-block mt-1">Highest Transformer capacity (kVA) is required.</span>');
+                        if (!firstErrorField) firstErrorField = transformerKva;
+                        isValid = false;
+                    }
+
+                    /* Column 11 — Period of Experience (dates) */
+                    if (fromDate.length && !fromIso) {
+                        fromDate.after('<span class="error-message text-danger d-block mt-1">From date is required.</span>');
+                        if (!firstErrorField) firstErrorField = fromDate;
+                        isValid = false;
+                    }
+                    if (!isTillDate) {
+                        if (toDate.length && !toIso) {
+                            toDate.after('<span class="error-message text-danger d-block mt-1">To date is required (or tick "Till date").</span>');
+                            if (!firstErrorField) firstErrorField = toDate;
+                            isValid = false;
+                        }
+                        if (fromDate.length && toDate.length && fromIso && toIso) {
+                            const from = new Date(fromIso + 'T12:00:00');
+                            const to = new Date(toIso + 'T12:00:00');
+                            if (!isNaN(from.getTime()) && !isNaN(to.getTime()) && to < from) {
+                                showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
+                                if (!firstErrorField) firstErrorField = toDate;
+                                isValid = false;
+                            }
+                        }
+                    }
+                    /* 2-year minimum is enforced as a combined total across all rows (after this .each() loop). */
+
+                    /* Column 12 — Supporting documents (always required for S) */
+                    if (!hasSupportingDoc) {
+                        $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">Supporting document is required.</span>');
                         if (!firstErrorField) firstErrorField = workDocument.length ? workDocument : designation;
                         isValid = false;
-                    } else if (hasFile) {
-                        const file = workDocument[0].files[0];
+                    } else if (workDocument.length && workDocument.get(0) && workDocument.get(0).files && workDocument.get(0).files.length) {
+                        const file = workDocument.get(0).files[0];
                         if (file) {
-                            const allowedType = 'application/pdf';
+                            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
                             const minSize = 5 * 1024;
-                            const maxSize = 250 * 1024;
-
-                            if (file.type !== allowedType) {
-                                $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for Experience certificate.</span>');
+                            const maxSize = 200 * 1024;
+                            if (allowedTypes.indexOf(file.type) === -1) {
+                                $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">Only PDF, JPG or PNG files are allowed.</span>');
                                 if (!firstErrorField) firstErrorField = workDocument;
                                 isValid = false;
                             } else if (file.size < minSize || file.size > maxSize) {
                                 $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 200 KB.</span>');
                                 if (!firstErrorField) firstErrorField = workDocument;
                                 isValid = false;
+                            }
+                        }
+                    }
+
+                    /* Column 13 — Relieving Letter (required unless Till date is checked) */
+                    if (!isTillDate && relieveInput.length) {
+                        if (!hasRelieveFile) {
+                            $relieveErrorTarget.after('<span class="error-message text-danger d-block mt-1">Relieving letter is required.</span>');
+                            if (!firstErrorField) firstErrorField = relieveInput;
+                            isValid = false;
+                        } else {
+                            const rf = relieveInput[0].files[0];
+                            if (rf) {
+                                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+                                const minSize = 5 * 1024;
+                                const maxSize = 200 * 1024;
+                                if (allowedTypes.indexOf(rf.type) === -1) {
+                                    $relieveErrorTarget.after('<span class="error-message text-danger d-block mt-1">Only PDF, JPG or PNG files are allowed.</span>');
+                                    if (!firstErrorField) firstErrorField = relieveInput;
+                                    isValid = false;
+                                } else if (rf.size < minSize || rf.size > maxSize) {
+                                    $relieveErrorTarget.after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 200 KB.</span>');
+                                    if (!firstErrorField) firstErrorField = relieveInput;
+                                    isValid = false;
+                                }
                             }
                         }
                     }
@@ -2404,8 +2905,8 @@ $(document).ready(function() {
                 const workDocument = $(this).find('input[name="work_document[]"], input[name^="work_document["]');
                 const fromDate = $(this).find('.work-date-from');
                 const toDate = $(this).find('.work-date-to');
-                const fromIso = readWorkDateIso(fromDate);
-                const toIso = readWorkDateIso(toDate);
+                const fromIso = readWorkDateIsoGeneric(fromDate);
+                const toIso = readWorkDateIsoGeneric(toDate);
 
                 const wl = (workLevel.val() || '').trim();
                 const ex = (experience.val() || '').trim();
@@ -2513,17 +3014,23 @@ $(document).ready(function() {
             });
 
             // Form S only: combined-total experience must be >= 2 calendar years (730 days).
+            // "Till date" rows are evaluated against today's date for the duration calc.
             if (isSWorkForm) {
                 var twoYearsMs = 730 * 86400000;
                 var totalMs = 0;
                 var anyFilled = false;
                 var $firstFilledToDate = null;
+                var todayIso = (function () {
+                    var d = new Date();
+                    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                })();
                 $('#work-container .work-fields').each(function () {
                     var $tr = $(this);
                     var $fr = $tr.find('.work-date-from');
                     var $to = $tr.find('.work-date-to');
-                    var fIso = readWorkDateIso($fr);
-                    var tIso = readWorkDateIso($to);
+                    var till = $tr.find('.work-date-till').is(':checked');
+                    var fIso = readWorkDateIsoGeneric($fr);
+                    var tIso = till ? todayIso : readWorkDateIsoGeneric($to);
                     if (!fIso || !tIso) return;
                     var fromD = new Date(fIso + 'T12:00:00');
                     var toD = new Date(tIso + 'T12:00:00');
@@ -2759,6 +3266,16 @@ $(document).ready(function() {
             }
 
             if (!isValid) {
+                /* Expand collapsed work-experience summary rows that contain validation errors. */
+                $('#work-container .work-fields.work-row--compact').each(function () {
+                    if ($(this).find('.error-message').length) {
+                        $(this).addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                        $(this).find('.work-row-toggle-btn').attr('aria-expanded', 'true');
+                        if (typeof window.wxSyncWorkSummaryTable === 'function') {
+                            window.wxSyncWorkSummaryTable();
+                        }
+                    }
+                });
                 if (firstErrorField && firstErrorField.length) {
                     try {
                         const off = firstErrorField.offset();
@@ -2789,40 +3306,40 @@ $(document).ready(function() {
             $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
         });
 
+        function clearWorkUploadErrorMessages($scope) {
+            if (!$scope || !$scope.length) return;
+            $scope.find('.error-message').each(function () {
+                var txt = ($(this).text() || '').toLowerCase();
+                if (
+                    txt.indexOf('supporting document is required') !== -1 ||
+                    txt.indexOf('relieving letter is required') !== -1 ||
+                    txt.indexOf('highest transformer capacity') !== -1 ||
+                    txt.indexOf('education certificate upload is required') !== -1 ||
+                    txt.indexOf('experience document is required') !== -1 ||
+                    txt.indexOf('only pdf') !== -1 ||
+                    txt.indexOf('file size permitted') !== -1
+                ) {
+                    $(this).remove();
+                }
+            });
+        }
+
         // Clear row-level upload-required errors immediately on file change
         // (so user doesn't need to click submit again to clear old message)
-        $(document).on('change', 'input[type="file"][name="education_document[]"], input[type="file"][name^="education_document["], input[type="file"][name="work_document[]"], input[type="file"][name^="work_document["]', function () {
+        $(document).on('change', 'input[type="file"][name="education_document[]"], input[type="file"][name^="education_document["], input[type="file"][name="work_document[]"], input[type="file"][name^="work_document["], input[type="file"][name="work_relieving_letter[]"], input[type="file"][name^="work_relieving_letter["]', function () {
             var $input = $(this);
             var $wrap = $input.closest('.form-s-file-upload-wrap');
             var $target = $wrap.length ? $wrap : $input;
             var $row = $input.closest('tr, .education-fields, .work-fields');
 
-            // Remove direct error rendered under this upload control
-            $target.nextAll('.error-message').each(function () {
-                var txt = ($(this).text() || '').toLowerCase();
-                if (
-                    txt.indexOf('education certificate upload is required') !== -1 ||
-                    txt.indexOf('experience document is required') !== -1 ||
-                    txt.indexOf('only pdf files are allowed for education upload') !== -1 ||
-                    txt.indexOf('only pdf files are allowed for experience certificate') !== -1 ||
-                    txt.indexOf('file size permitted only 5 kb to 200 kb') !== -1
-                ) {
-                    $(this).remove();
-                }
-            });
+            clearWorkUploadErrorMessages($target);
+            clearWorkUploadErrorMessages($row);
+        });
 
-            // Safety: also clear same message anywhere else in this row
-            if ($row.length) {
-                $row.find('.error-message').each(function () {
-                    var txt = ($(this).text() || '').toLowerCase();
-                    if (
-                        txt.indexOf('education certificate upload is required') !== -1 ||
-                        txt.indexOf('experience document is required') !== -1
-                    ) {
-                        $(this).remove();
-                    }
-                });
-            }
+        $(document).on('change', '#work-container .work-voltage', function () {
+            var $row = $(this).closest('.work-fields');
+            $row.find('.work-transformer-kva').nextAll('.error-message').remove();
+            $row.find('.work-card-field[data-field="transformer-kva"] .error-message').remove();
         });
 
 
@@ -2867,6 +3384,28 @@ $(document).ready(function() {
             // PAN document removed
         });
 
+        $(document).on('input change blur', '#applicant_email', function () {
+            var ev = readApplicantEmailValue();
+            var formNameEmail = ($('#form_name').val() || '').toString().trim().toUpperCase();
+            var emailRequired = formNameEmail === 'S';
+            if (!emailRequired) {
+                clearCompetencyFieldError($(this));
+                return;
+            }
+            if (ev === '') {
+                return;
+            }
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)) {
+                clearCompetencyFieldError($(this));
+            }
+        });
+
+        $(document).on('input change blur', '#Applicant_Name, #Fathers_Name', function () {
+            if (($(this).val() || '').trim() !== '') {
+                clearCompetencyFieldError($(this));
+            }
+        });
+
         $(document).on('keyup change', '#education-container .education-fields input, #education-container .education-fields select',
         function() {
             const $field = $(this);
@@ -2894,29 +3433,12 @@ $(document).ready(function() {
 
         /** Form S only: From/To work dates — live check for date order and minimum 2 years (matches Pay validation). */
         function readWorkDateIsoFormS($input) {
-            if (!$input || !$input.length) {
-                return '';
-            }
-            var raw = String($input.attr('data-raw') || '').trim();
-            if (raw) {
-                return raw;
-            }
-            var v = String($input.val() || '').trim();
-            if (!v) {
-                return '';
-            }
-            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                return v;
-            }
-            var m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-            if (m) {
-                return m[3] + '-' + m[2] + '-' + m[1];
-            }
-            return '';
+            return readWorkDateIsoGeneric($input);
         }
 
-        /* Form S, WH — From/To only: date order + minimum 2 calendar years (matches Pay / server). WH: only when the row is partially filled. Form W: no client work-date rules. */
-        $(document).on('change blur input', '#work-container .work-fields .work-date-from, #work-container .work-fields .work-date-to', function () {
+        /* Form S, WH — From/To only: date order + minimum 2 calendar years (matches Pay / server). WH: only when the row is partially filled. Form W: no client work-date rules.
+           Form S supports a "Till date" checkbox on the To-date that suppresses the To-date input. */
+        $(document).on('change blur input', '#work-container .work-fields .work-date-from, #work-container .work-fields .work-date-to, #work-container .work-fields .work-date-till', function (e) {
             var formName = String($('#form_name').val() || '').trim().toUpperCase();
             if (formName !== 'S' && formName !== 'WH') {
                 return;
@@ -2924,6 +3446,21 @@ $(document).ready(function() {
             var $row = $(this).closest('.work-fields');
             var $fromDate = $row.find('.work-date-from');
             var $toDate = $row.find('.work-date-to');
+            var isTillDate = formName === 'S' && $row.find('.work-date-till').is(':checked');
+
+            /* Form S: work-exp partial owns date validation; avoid clearing the message on every keystroke. */
+            if (formName === 'S') {
+                if (typeof window.wxRecalcWorkDuration === 'function') {
+                    window.wxRecalcWorkDuration($row);
+                }
+                if (e.type !== 'input' && typeof window.wxValidateWorkRowDateRange === 'function') {
+                    window.wxValidateWorkRowDateRange($row);
+                }
+                if (typeof window.wxUpdateOverallWorkYears === 'function') {
+                    window.wxUpdateOverallWorkYears();
+                }
+                return;
+            }
 
             if (formName === 'WH') {
                 var wl0 = ($row.find('input[name="work_level[]"]').val() || '').trim();
@@ -2940,7 +3477,22 @@ $(document).ready(function() {
             clearWorkExpDateRangeError($row);
 
             var fromIso = readWorkDateIsoFormS($fromDate);
-            var toIso = readWorkDateIsoFormS($toDate);
+            var toIso;
+            if (isTillDate) {
+                var today = new Date();
+                toIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+            } else {
+                toIso = readWorkDateIsoFormS($toDate);
+            }
+            if (fromIso) {
+                clearWorkDateRequiredErrors($fromDate);
+            }
+            if (toIso || isTillDate) {
+                clearWorkDateRequiredErrors($toDate);
+            }
+            if (typeof window.wxRecalcWorkDuration === 'function') {
+                window.wxRecalcWorkDuration($row);
+            }
             if (!fromIso || !toIso) {
                 return;
             }
@@ -2955,8 +3507,6 @@ $(document).ready(function() {
                 showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
                 return;
             }
-            // Per-row 2-year check applies to WH only.
-            // Form S uses a combined-total check (across all rows) shown below the work table.
             if (formName === 'WH') {
                 var minTo = new Date(from.getTime());
                 minTo.setFullYear(minTo.getFullYear() + 2);
@@ -2969,8 +3519,12 @@ $(document).ready(function() {
         $(document).on('keyup change', '#work-container .work-fields input, #work-container .work-fields select',
             function () {
                 const $field = $(this);
-                /* Date fields: handled by From/To live validation; do not strip row errors here. */
                 if ($field.is('.work-date-from, .work-date-to')) {
+                    var iso = readWorkDateIsoFormS($field);
+                    if (iso) {
+                        $field.get(0).setAttribute('data-raw', iso);
+                        clearWorkDateRequiredErrors($field);
+                    }
                     return;
                 }
                 if ($field.val().trim() !== '') {

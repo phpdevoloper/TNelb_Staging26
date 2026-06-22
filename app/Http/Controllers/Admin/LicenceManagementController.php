@@ -285,6 +285,8 @@ class LicenceManagementController extends BaseController
     }
 
     public function getPaymentDetails(Request $request){
+
+    // dd($request->all()); exit;
         try {
 
             $licence_code = trim((string) ($request->licence_code ?? ''));
@@ -1432,6 +1434,8 @@ class LicenceManagementController extends BaseController
 
     public function getFormInstruction(Request $request)
     {
+
+    // dd($request->all()); exit;
         try {
 
             

@@ -1,5 +1,10 @@
 @include('include.header')
 
+@php
+    $editFormName = $application_details->form_name ?? '';
+    $editLicenseName = $application_details->license_name ?? '';
+@endphp
+
 <style>
     /* ── Reset helpers ────────────────────────────────── */
     .fs-form hr {
@@ -885,12 +890,20 @@
         font-family: 'FontAwesome';
         display: inline-block;
     }
+    .comp_certificate .work-exp-wrap button i.fa,
+    .comp_certificate .work-exp-wrap .work-exp-add-btn i.fa,
+    .comp_certificate .work-exp-wrap .work-row-remove i.fa,
+    .comp_certificate .work-exp-wrap .wx-order-edit-link i.fa {
+        font-family: 'FontAwesome';
+        display: inline-block;
+    }
+
+    @if ($editFormName === 'S')
+    @include('user_login.partials.form-s-work-exp-styles')
+    @endif
 </style>
 
-
 @php
-    $editFormName = $application_details->form_name ?? '';
-    $editLicenseName = $application_details->license_name ?? '';
     $editEnglishTitle = isset($licence_name->licence_name) ? $licence_name->licence_name : 'Competency Certificate';
     if ($editFormName === 'S') {
         $editTamilTitle = 'மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்';
@@ -1467,29 +1480,14 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
+                            @if ($editFormName === 'S')
+                            @include('user_login.partials.form-s-work-exp-edit-block')
+                            @else
                             <div class="fs-table-wrap">
-                                                    <table class="table table-bordered {{ (isset($application_details->form_name) && in_array($application_details->form_name, ['S','W'])) ? 'table-sm work-exp-table' : 'table-striped' }} {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'work-table-w' : '' }}" id="work-table">
+                                                    <table class="table table-bordered {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'table-sm work-exp-table work-table-w' : 'table-striped' }}" id="work-table">
                                                         <thead>
                                                             <tr>
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
-                                                                <th class="work-exp-col-sno text-center">S.No</th>
-                                                                <th class="work-exp-col-type">Employment type</th>
-                                                                <th class="work-exp-col-employer">Employer / organization</th>
-                                                                <th class="work-exp-col-years work-exp-years-head" scope="col">
-                                                                    <div class="work-exp-years-title">Year of Experience</div>
-                                                                    <div class="work-exp-inline work-exp-inline--head">
-                                                                        <div class="work-exp-date-group">
-                                                                            <span class="work-exp-label-fromto d-block">From (date)</span>
-                                                                        </div>
-                                                                        <div class="work-exp-date-group">
-                                                                            <span class="work-exp-label-fromto d-block">To (date)</span>
-                                                                        </div>
-                                                                        <div class="work-exp-total-inline">
-                                                                            <span class="work-exp-label-fromto d-block">Total yrs</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </th>
-                                                                @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
+                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'W')
                                                                 <th class="work-exp-col-sno text-center">S.No</th>
                                                                 <th class="work-exp-col-company">Company Name / Contractor</th>
                                                                 <th class="work-exp-col-years work-exp-years-head" scope="col">
@@ -1506,12 +1504,6 @@
                                                                 <th>Years of Experience (Years)</th>
                                                                 @endif
                                                                 <th class="work-exp-col-designation">Designation</th>
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
-                                                                    <th class="text-center work-exp-col-upload work-exp-upload-head">
-                                                                        Upload Document
-                                                                        <br><span class="file-limit">File type: PDF(Min 5 KB To Max 200 KB)</span>
-                                                                    </th>
-                                                                @endif
                                                                 <th class="work-exp-col-actions text-center p-1">
                                                                     <div class="form-s-actions-stack">
                                                                         <button type="button" class="btn-tbl-add add-more-work py-1 px-2" title="Add row">
@@ -1524,105 +1516,7 @@
                                                         <tbody id="work-container">
                                                             @if ($exp_details->isNotEmpty())
                                                             @foreach ($exp_details as $expRow)
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
-                                                                <tr class="work-fields">
-                                                                    @php
-                                                                        $workEmpType = $expRow->emp_type ?? 'company';
-                                                                        $workEmployerName = $expRow->emp_cate ?? $expRow->company_name ?? '';
-                                                                        $workTotalExp = $expRow->total_exp ?? $expRow->experience ?? '';
-                                                                        $workFromDate = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
-                                                                        $workToDate = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
-                                                                        $workIntimationDate = $expRow->intimation_date ? \Carbon\Carbon::parse($expRow->intimation_date)->format('Y-m-d') : '';
-                                                                    @endphp
-                                                                    <td class="work-serial text-center">{{ $loop->iteration }}</td>
-                                                                    <td class="work-exp-col-type">
-                                                                        <select class="form-control form-control-sm work-employment-type" name="work_employment_type[]" required>
-                                                                            <option value="" disabled>Select type</option>
-                                                                            <option value="company" {{ $workEmpType === 'company' ? 'selected' : '' }}>Company</option>
-                                                                            <option value="contractor" {{ $workEmpType === 'contractor' ? 'selected' : '' }}>Contractor</option>
-                                                                            <option value="apprentice" {{ $workEmpType === 'apprentice' ? 'selected' : '' }}>Apprentice</option>
-                                                                            <option value="electrical_inspector" {{ $workEmpType === 'electrical_inspector' ? 'selected' : '' }}>Government / Quasi Government / Board</option>
-                                                                            <option value="retired_employees" {{ $workEmpType === 'retired_employees' ? 'selected' : '' }}>Retired Employees</option>
-                                                                        </select>
-                                                                    </td>
-                                                                    <td class="work-employer-cell work-exp-col-employer">
-                                                                        <div class="work-employer-label-row">
-                                                                            <span class="work-employer-label">—</span><span class="text-danger work-employer-req" style="display:none;"> *</span>
-                                                                        </div>
-                                                                        <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" value="{{ $workEmployerName }}">
-                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;">
-                                                                            <label class="small mb-0" style="font-size:.7rem;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;"><span style="white-space:nowrap;">Intimation letter</span><span class="text-danger flex-shrink-0">*</span></label>
-                                                                            <input type="date" class="form-control form-control-sm work-intimation-date" name="work_intimation_date[]" value="{{ $workIntimationDate }}">
-                                                                        </div>
-                                                                    </td>
-                                                                    <td class="work-exp-col-years">
-                                                                        <div class="work-exp-inline">
-                                                                            <div class="work-exp-date-group">
-                                                                                <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" value="{{ $workFromDate }}" title="From date" aria-label="Year of experience from date">
-                                                                            </div>
-                                                                            <div class="work-exp-date-group">
-                                                                                <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" value="{{ $workToDate }}" title="To date" aria-label="Year of experience to date">
-                                                                            </div>
-                                                                            <div class="work-exp-total-inline">
-                                                                                <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
-                                                                                    <div class="work-duration-cell">
-                                                                                        <span class="work-duration-label">Yrs</span>
-                                                                                        <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
-                                                                                    </div>
-                                                                                    <div class="work-duration-cell">
-                                                                                        <span class="work-duration-label">Mo</span>
-                                                                                        <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
-                                                                                    </div>
-                                                                                    <div class="work-duration-cell">
-                                                                                        <span class="work-duration-label">Days</span>
-                                                                                        <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
-                                                                                    </div>
-                                                                                </div>
-                                                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $workTotalExp }}">
-                                                                            </div>
-                                                                        </div>
-                                                                        <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $workEmployerName }}" tabindex="-1" aria-hidden="true">
-                                                                        <input type="hidden" name="experience[]" class="experience-sync" value="{{ $workTotalExp }}" tabindex="-1" aria-hidden="true">
-                                                                    </td>
-                                                                    <td class="work-exp-col-designation">
-                                                                        <input autocomplete="off" class="form-control form-control-sm" name="designation[]" type="text" maxlength="80" value="{{ $expRow->designation ?? '' }}">
-                                                                    </td>
-                                                                    <td class="work-exp-col-upload">
-                                                                        <div class="file-section text-center">
-                                                                            @if (!empty($expRow->upload_document))
-                                                                                <div class="work-doc-container d-flex align-items-center justify-content-center">
-                                                                                    <a class="text-primary" href="{{ asset($expRow->upload_document) }}" target="_blank">
-                                                                                        <i class="fa fa-file-pdf-o" style="color: red"></i> View
-                                                                                    </a>
-                                                                                    <button type="button" class="btn btn-sm btn-danger ml-2 remove-work-doc-confirm">Remove</button>
-                                                                                </div>
-                                                                                <div class="work-doc-input d-none">
-                                                                                    <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined mt-1" data-upload-kind="work">
-                                                                                        <input class="form-control form-control-sm p-1" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
-                                                                                    </div>
-                                                                                </div>
-                                                                            @else
-                                                                                <div class="work-doc-container d-none"></div>
-                                                                                <div class="work-doc-input">
-                                                                                    <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
-                                                                                        <input class="form-control form-control-sm p-1" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
-                                                                                    </div>
-                                                                                </div>
-                                                                            @endif
-                                                                        </div>
-                                                                    </td>
-                                                                    <td class="work-exp-col-actions text-center p-1">
-                                                                        <div class="form-s-actions-stack">
-                                                                            <button type="button" class="btn btn-danger btn-sm remove-work remove_exp py-1 px-2" data-exp_id="{{ $expRow->id }}" data-url="{{ route('delete_experience') }}" title="Remove row">
-                                                                                <i class="fa fa-trash-o"></i>
-                                                                            </button>
-                                                                        </div>
-                                                                    </td>
-                                                                    <input type="hidden" name="work_id[]" value="{{ $expRow->id ?? '' }}">
-                                                                    <input type="hidden" name="existing_work_document[]" value="{{ $expRow->upload_document ?? '' }}">
-                                                                    <input type="hidden" name="removed_document_work[]" value="0">
-                                                                </tr>
-                                                                @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
+                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'W')
                                                                 @php
                                                                     $wFromDate = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
                                                                     $wToDate   = $expRow->to_date   ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d')   : '';
@@ -1679,83 +1573,7 @@
                                                                 @endif
                                                             @endforeach
                                                             @else
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
-                                                                <tr class="work-fields">
-                                                                    <td class="work-serial text-center">1</td>
-                                                                    <td class="work-exp-col-type">
-                                                                        <select class="form-control form-control-sm work-employment-type" name="work_employment_type[]" required>
-                                                                            <option value="" selected disabled>Select type</option>
-                                                                            <option value="company">Company</option>
-                                                                            <option value="contractor">Contractor</option>
-                                                                            <option value="apprentice">Apprentice</option>
-                                                                            <option value="electrical_inspector">Government / Quasi Government / Board</option>
-                                                                            <option value="retired_employees">Retired Employees</option>
-                                                                        </select>
-                                                                    </td>
-                                                                    <td class="work-employer-cell work-exp-col-employer">
-                                                                        <div class="work-employer-label-row">
-                                                                            <span class="work-employer-label">—</span><span class="text-danger work-employer-req" style="display:none;"> *</span>
-                                                                        </div>
-                                                                        <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled>
-                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;">
-                                                                            <label class="small mb-0" style="font-size:.7rem;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;"><span style="white-space:nowrap;">Intimation letter</span><span class="text-danger flex-shrink-0">*</span></label>
-                                                                            <input type="date" class="form-control form-control-sm work-intimation-date" name="work_intimation_date[]">
-                                                                        </div>
-                                                                    </td>
-                                                                    <td class="work-exp-col-years">
-                                                                        <div class="work-exp-inline">
-                                                                            <div class="work-exp-date-group">
-                                                                                <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" title="From date" aria-label="Year of experience from date">
-                                                                            </div>
-                                                                            <div class="work-exp-date-group">
-                                                                                <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" title="To date" aria-label="Year of experience to date">
-                                                                            </div>
-                                                                            <div class="work-exp-total-inline">
-                                                                                <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
-                                                                                    <div class="work-duration-cell">
-                                                                                        <span class="work-duration-label">Yrs</span>
-                                                                                        <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
-                                                                                    </div>
-                                                                                    <div class="work-duration-cell">
-                                                                                        <span class="work-duration-label">Mo</span>
-                                                                                        <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
-                                                                                    </div>
-                                                                                    <div class="work-duration-cell">
-                                                                                        <span class="work-duration-label">Days</span>
-                                                                                        <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
-                                                                                    </div>
-                                                                                </div>
-                                                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
-                                                                            </div>
-                                                                        </div>
-                                                                        <input type="hidden" name="work_level[]" class="work-level-sync" value="" tabindex="-1" aria-hidden="true">
-                                                                        <input type="hidden" name="experience[]" class="experience-sync" value="" tabindex="-1" aria-hidden="true">
-                                                                    </td>
-                                                                    <td class="work-exp-col-designation">
-                                                                        <input autocomplete="off" class="form-control form-control-sm" name="designation[]" type="text" maxlength="80">
-                                                                    </td>
-                                                                    <td class="work-exp-col-upload">
-                                                                        <div class="file-section text-center">
-                                                                            <div class="work-doc-container d-none"></div>
-                                                                            <div class="work-doc-input">
-                                                                                <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
-                                                                                    <input class="form-control form-control-sm p-1" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td class="work-exp-col-actions text-center p-1">
-                                                                        <div class="form-s-actions-stack">
-                                                                            <button type="button" class="btn btn-danger btn-sm remove-work py-1 px-2" title="Remove row">
-                                                                                <i class="fa fa-trash-o"></i>
-                                                                            </button>
-                                                                        </div>
-                                                                    </td>
-                                                                    <input type="hidden" name="work_id[]">
-                                                                    <input type="hidden" name="existing_work_document[]">
-                                                                    <input type="hidden" name="removed_document_work[]" value="0">
-                                                                </tr>
-                                                                @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
+                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'W')
                                                                 <tr class="work-fields">
                                                                     <td class="work-serial text-center">1</td>
                                                                     <td class="work-exp-col-company">
@@ -1808,9 +1626,7 @@
                                                         </tbody>
                                                     </table>
                                                 </div>
-                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
-                                                <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
-                                                @endif
+                            @endif
                         </div>
                     </div>
                     {{-- /SECTION 6 --}}
@@ -1855,7 +1671,7 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <div class="col-12 col-md-3">
+                                    <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
@@ -1864,13 +1680,22 @@
                                                value="{{ $application_details->previously_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
+                                               id="previously_valid_from" name="previously_valid_from" type="date"
+                                               data-error="#previouslyFromDateError"
+                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
+                                               value="{{ $application_details->previously_valid_from ?? '' }}">
+                                        <span id="previouslyFromDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
-                                               id="previously_date" name="previously_date" type="date"
+                                               id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
                                                {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_date }}">
+                                               value="{{ $application_details->previously_valid_to ?? $application_details->previously_date }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1922,7 +1747,7 @@
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_date) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_valid_to ?? $application_details->certificate_date) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
@@ -1955,7 +1780,7 @@
                                                             </span>
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
+                                                        <div class="col-12 col-md-2">
                                                             <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
@@ -1964,12 +1789,21 @@
                                                                    {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">From date <span class="req">*</span></div>
+                                                            <input class="form-control text-box single-line verify-valid-from"
+                                                                   id="certificate_valid_from" name="certificate_valid_from"
+                                                                   data-error="#certFromDateError" type="date"
+                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}"
+                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                            <span id="certFromDateError" class="text-danger"></span>
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">To date <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-date"
-                                                                   id="certificate_date" name="certificate_date"
+                                                                   id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->certificate_date }}"
+                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}"
                                                                    {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
@@ -2315,7 +2149,7 @@
         $fileInput.removeAttr('data-has-local-file');
     }
 
-    $(document).on('change', 'input[type="file"][name^="education_document"], input[type="file"][name^="work_document"]', function() {
+    $(document).on('change', 'input[type="file"][name^="education_document"], input[type="file"][name="work_document[]"], input[type="file"][name="work_relieving_letter[]"]', function() {
         var $input = $(this);
         clearLocalPreview($input);
 
@@ -2635,8 +2469,13 @@
     // });
 
     (function() {
-        var isSForm = "{{ $application_details->form_name ?? '' }}" === 'S';
-        var isWForm = "{{ $application_details->form_name ?? '' }}" === 'W';
+        var isSForm = "{{ $editFormName }}" === 'S';
+        var isWForm = "{{ $editFormName }}" === 'W';
+
+        if (isSForm) {
+            return;
+        }
+
         function refreshWorkSerials() {
             $('#work-container .work-fields .work-serial').each(function(index) {
                 $(this).text(index + 1);
@@ -3079,6 +2918,9 @@
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
 
 </script>
+@if ($editFormName === 'S')
+@include('user_login.partials.form-s-work-exp-scripts')
+@endif
 </body>
 
 </html>

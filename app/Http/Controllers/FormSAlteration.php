@@ -3,18 +3,67 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin\TnelbFee;
+use App\Models\Mst_Form_s_w;
 use App\Models\MstLicence;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class FormSAlteration extends BaseController
 {
-   public function index()
+
+    protected $today, $dbNow;
+    public function __construct()
     {
-            $appl_id = 'SC261111117';
+        parent::__construct();
+        $this->middleware('web');
+        $this->today = Carbon::today()->toDateString();
+        $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
+    }
+
+    private function getApplicableFee($certLicenceId)
+    {
+        return TnelbFee::where('cert_licence_id', $certLicenceId)
+            ->whereDate('start_date', '<=', $this->today)
+            ->select('fees', 'start_date')
+            ->orderBy('start_date', 'desc')
+            ->first();
+    }
+
+     private function enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details)
+    {
+        if (!$application_details) {
+            return $license_details;
+        }
+        $issued = $license_details ? trim((string) ($license_details->license_number ?? '')) : '';
+        if ($issued === '') {
+            $issued = trim((string) ($application_details->license_number ?? ''));
+        }
+        if ($issued === '') {
+            $compRow = Mst_Form_s_w::where('application_id', $appl_id)->first();
+            if ($compRow) {
+                $issued = trim((string) ($compRow->license_number ?? ''));
+            }
+        }
+        if ($issued === '') {
+            return $license_details;
+        }
+        if (!$license_details) {
+            return (object) ['license_number' => $issued];
+        }
+        if (trim((string) ($license_details->license_number ?? '')) === '') {
+            $license_details->license_number = $issued;
+        }
+
+        return $license_details;
+    }
+    public function index()
+    {
+        $appl_id = 'SC261111117';
         if (!Auth::check()) {
             return redirect()->route('logout');
         }
@@ -23,28 +72,28 @@ class FormSAlteration extends BaseController
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
 
-        
+
         $application_details = DB::table('tnelb_application_tbl')
-        ->where('application_id', $appl_id)
-        ->select('*')
-        ->first();
+            ->where('application_id', $appl_id)
+            ->select('*')
+            ->first();
 
         $this->decryptPanForDisplay($application_details);
 
-        
+
         $form_details = MstLicence::where('status', 1)
             ->select('*')
             ->get()
             ->toArray();
-        
+
         $current_form = collect($form_details)->firstWhere('form_code', $application_details->form_name);
 
-         $licence_name = DB::table('mst_licences')->where('form_code', $application_details->form_name)->first();
+        $licence_name = DB::table('mst_licences')->where('form_code', $application_details->form_name)->first();
 
         if (!$current_form) {
             abort(504, 'Form Not Found..');
         }
-        
+
         $fees_details = $this->getApplicableFee($current_form['id']);
 
         if (!$fees_details) {
@@ -100,6 +149,19 @@ class FormSAlteration extends BaseController
             'licence_name',
             'queries'
         ));
-       
+    }
+
+
+    private function decryptPanForDisplay($applicationDetails): void
+    {
+        if (!$applicationDetails || !isset($applicationDetails->pancard) || $applicationDetails->pancard === null || $applicationDetails->pancard === '') {
+            return;
+        }
+
+        try {
+            $applicationDetails->pancard = Crypt::decryptString((string) $applicationDetails->pancard);
+        } catch (\Throwable $e) {
+            // Keep legacy/plain values as-is when not encrypted.
+        }
     }
 }

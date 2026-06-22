@@ -39,6 +39,7 @@ use App\Http\Controllers\OldCertificateRenewalController;
 use App\Http\Controllers\OldContractorRenewalController;
 
 use App\Http\Controllers\DocumentUploadController;
+use App\Http\Controllers\FormADigitizationController;
 use App\Http\Controllers\FormpDigitizationController;
 use App\Http\Controllers\FormSAlteration;
 use App\Http\Controllers\FormSDigitizationController;
@@ -46,6 +47,9 @@ use App\Http\Controllers\FormWDigitizationController;
 use App\Http\Controllers\FormWHDigitizationController;
 use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
+
+
+use App\Http\Controllers\FormCLAlteration;
 
 // ------------------------ Public Pages ------------------------
 
@@ -123,9 +127,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/apply-form-wh_d', [FormWHDigitizationController::class, 'index'])->name('apply-form-wh_d');
     Route::get('/apply_form_p_d', [FormpDigitizationController::class, 'index'])->name('apply_form_p_d');
 
+    // CL digitization----------------
+     Route::get('/apply-form-a_d', [FormADigitizationController::class, 'index'])->name('apply-form-a_d');
 
     // CC Alteration-----------------------------
     Route::get('form_s_alt', [FormSAlteration::class, 'index'])->name('form_s_alt');
+
+    // CL Alteration-----------------------------
+    Route::get('alteration_cl', [FormCLAlteration::class, 'index'])->name('alteration_cl');
 
 
     // ---------------

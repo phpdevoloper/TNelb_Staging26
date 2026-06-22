@@ -1443,6 +1443,254 @@ use Illuminate\Support\Facades\Auth;
     </div>
 
 
+    <!-- ---------------------Digitization CL --------------------------------------------- -->
+     <div class="modal fade applicant-instr-modal" id="digitization_cl" tabindex="-1" aria-labelledby="competencyInstructionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="header-row">
+                        <span class="header-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 12h6" />
+                                <path d="M9 16h6" />
+                                <rect x="5" y="3" width="14" height="18" rx="2" />
+                                <path d="M9 7h6" />
+                            </svg>
+                        </span>
+                        <div>
+                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Digitization Contractor Licence</h5>
+                            <small class="modal-subtitle">Please Enroll the current Certificate Details.</small>
+                        </div>
+                    </div>
+                    {{-- <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button> --}}
+                </div>
+
+                <div class="modal-body">
+                    <div class="col-md-12">
+                        <form class="mt-0 digi_form" id="digitization_clForm">
+                            <div class="form-group">
+                                <div class="row mb-2">
+                                    <div class="col-lg-3">
+                                        <label>Licence Number</label>
+
+                                    </div>
+                                    <div class="col-lg-6">
+
+
+
+                                        <input type="number" class="form-control" name="clnumber" placeholder="Licence Number" maxlength="15">
+
+                                        @php
+
+                                        $licence_name = '';
+                                        $form_name = '';
+
+                                        if (Request::is('apply-form-a_d')) {
+                                        $licence_name = 'EA';
+                                        $form_name = 'A';
+                                        }
+                                        @endphp
+
+                                        <input type="hidden" name="form_name" value="{{ $form_name }}">
+                                        <input type="hidden" name="licence_name" value="{{ $licence_name }}">
+
+
+                                        <span class="error text-danger" id="clnumber_error"></span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-2">
+                                    <div class="col-lg-3">
+                                        <label>Date of First Issue</label>
+
+                                    </div>
+                                    <div class="col-lg-4">
+
+
+
+                                        <input type="date" class="form-control" name="fissue">
+                                        <span class="error text-danger" id="fissue_error"></span>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="row mb-2">
+                                    <div class="col-lg-3">
+                                        <label>Validity From</label>
+
+                                    </div>
+                                    <div class="col-lg-4">
+
+
+
+                                        <input type="date" class="form-control" name="from_date">
+                                        <span class="error text-danger" id="from_date_error"></span>
+
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+
+
+                                    <div class="col-lg-3">
+                                        <label>Validity To</label>
+
+                                    </div>
+                                    <div class="col-lg-4">
+
+
+
+                                        <input type="date" class="form-control" name="to_date">
+                                        <span class="error text-danger" id="to_date_error"></span>
+
+                                    </div>
+
+                                </div>
+
+
+
+
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-2">
+                                    <div class="col-lg-4 ">
+                                        <label>Upload Document</label><br>
+
+
+                                    </div>
+                                    <div class="col-lg-5">
+
+
+
+                                        <input type="file" class="form-control" name="cc_doc" accept="application/pdf">
+
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="error text-danger" id="cc_doc_error"></span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            @php
+                            $showQc = Request::is('apply-form-s_d');
+                            @endphp
+
+                            <div class="form-group" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }}>
+                                <div class="row mb-2">
+                                    <div class="col-lg-8">
+                                        <label>Is Supervisory Competency Certificate recognized as a Qualified Supervisor for an EA/ESA Contractor License</label>
+
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="qc_yes" name="qc_det" value="yes">
+                                            <label class="form-check-label" for="qc_yes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="qc_no" name="qc_det" value="no" checked="">
+                                            <label class="form-check-label" for="qc_no">No</label>
+                                        </div>
+                                        <span class="error text-danger" id="qc_error"></span>
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+
+                            <div class="form-group" id="qc_details" style="display:none;">
+                                <div class="row mb-2">
+                                    <div class="col-lg-5">
+                                        <label>Grade of Licence </label>
+
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <select class="form-control" id="cl_type" name="cl_type">
+                                            <option value="0">---Select Type---</option>
+                                            <option value="EA">EA </option>
+                                            <option value="ESA">ESA</option>
+
+                                        </select>
+                                        <span class="error text-danger" id="cl_type_error"></span>
+                                    </div>
+
+                                </div>
+
+                                <div class="row mb-2">
+                                    <div class="col-lg-5">
+                                        <label>Licence Number </label>
+
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <input type="number" max="20" class="form-control" name="licence_no">
+                                        <span class="error text-danger" id="licence_no_error"></span>
+                                    </div>
+
+                                </div>
+
+                                <div class="row mb-2">
+                                    <div class="col-lg-5">
+                                        <label>Name of Contractor </label>
+
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <input type="text" class="form-control" name="contractor_name">
+                                        <span class="error text-danger" id="contractor_error"></span>
+                                    </div>
+
+                                </div>
+
+                                <div class="row mb-2">
+                                    <div class="col-lg-5">
+                                        <label>Upload Supporting Document </label>
+
+
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <input type="file" class="form-control" name="qc_doc" accept="application/pdf">
+
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="error text-danger" id="qc_doc_error"></span>
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+
+
+
+                        </form>
+
+
+                    </div>
+
+
+                </div>
+
+                <div class="modal-footer justify-content-center">
+
+                    <button type="button" class="btn-proceed" id="digitization_clSubmit">
+                        Submit
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- ----------------Alteration------------------- -->
 
 
@@ -1535,7 +1783,9 @@ use Illuminate\Support\Facades\Auth;
                                         </div>
                                     </div>
 
+
                                 </div>
+                                <span class="error text-danger" id="alter_fields_error"></span>
 
                             </div>
 
@@ -1555,7 +1805,178 @@ use Illuminate\Support\Facades\Auth;
 
                 <div class="modal-footer justify-content-center">
 
-                    <button type="button" class="btn-proceed" id="alterationSubmit">
+                    <button type="button" class="btn-proceed" id="alteration_clSubmit">
+                        Submit
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ----------------------------------------aleration CL ----------------------------------- -->
+    <div class="modal fade applicant-instr-modal" id="alteration_cl" tabindex="-1" aria-labelledby="competencyInstructionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="header-row">
+                        <span class="header-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 12h6" />
+                                <path d="M9 16h6" />
+                                <rect x="5" y="3" width="14" height="18" rx="2" />
+                                <path d="M9 7h6" />
+                            </svg>
+                        </span>
+                        <div>
+                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Alteration For Contractor Licence</h5>
+                            <small class="modal-subtitle"> Alter the Current Certificate Details.</small>
+                        </div>
+                    </div>
+                    {{-- <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button> --}}
+                </div>
+
+                <div class="modal-body">
+                    <div class="col-md-12">
+                        <form class="mt-0 alter_form" id="alteration_clForm">
+                            <div class="form-group">
+                                <div class="row mb-2">
+                                    <div class="col-lg-4">
+                                        <label>Select the Licence <span class="fill">*</span></label>
+
+                                    </div>
+                                    <div class="col-lg-8">
+
+
+
+                                        <select class="form-control" id="cert_name" name="cert_name">
+                                            <option value="0">---Select Type---</option>
+                                            <option value="EA">Electrical Contractor's Licence-Grade 'A' [Form A]</option>
+                                            <option value="ESA">Electrical Contractors Licence Grade Super 'A' [Form SA]</option>
+                                            <option value="ESB">Electrical Contractor's Licence-Grade `SB' [Form SB]</option>
+                                            <option value="EB">Electrical Contractor License 'EB' [Form B]</option>
+
+                                        </select>
+
+
+                                        <span class="error text-danger" id="cert_name_error"></span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-2">
+                                    <div class="col-lg-12">
+                                        <label style="float: left;">Choose the Fields to Alter <span class="fill">*</span></label>
+
+                                    </div>
+                                    <div class="col-lg-6">
+
+
+                                        <div class="form-check ">
+                                            <input type="checkbox" id="basic_details" name="return_reasons[]" value="basic_details" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="basic_details"> 1 &amp; 2) Applicant Basic Detail (Name &amp; Address)</label>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-lg-6">
+
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="ownership_details" name="return_reasons[]" value="ownership_details" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="ownership_details">3) Applicant Ownership Details </label>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-lg-6">
+
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="authorized_sign" name="return_reasons[]" value="authorized_sign" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="authorized_sign">4) Name and details of authorised signatory </label>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-lg-6">
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="previous_licence" name="return_reasons[]" value="previous_licence" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="previous_licence">5) Previous Contractor's Licence Details </label>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-lg-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" id="staff_details" name="return_reasons[]" value="staff_details" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="staff_details">6) Staff Details</label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" id="bank_solvency" name="return_reasons[]" value="bank_solvency" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="bank_solvency">7) Bank Solvency </label>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-lg-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" id="atachment_points" name="return_reasons[]" value="atachment_points" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="bank_solvency">8 to 11) Attachments Points </label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" id="address_proof" name="return_reasons[]" value="address_proof" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="address_proof">12) Address Proof </label>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-lg-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" id="equipments_details" name="return_reasons[]" value="equipments_details" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="equipments_details">13) Equipments Details </label>
+                                        </div>
+
+                                    </div>
+
+
+
+                                </div>
+                                <span class="error text-danger" id="alter_fields_error"></span>
+
+                            </div>
+
+
+
+
+
+
+
+                        </form>
+
+
+                    </div>
+
+
+                </div>
+
+                <div class="modal-footer justify-content-center">
+
+                    <button type="button" class="btn-proceed" id="alteration_clSubmit">
                         Submit
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12" />

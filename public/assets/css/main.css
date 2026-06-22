@@ -2627,3 +2627,7 @@ button.btn.btn-sm.btn-return {
 .fill{
   color: red;
 }
+
+.alter_form{
+  font-weight: 600;
+}

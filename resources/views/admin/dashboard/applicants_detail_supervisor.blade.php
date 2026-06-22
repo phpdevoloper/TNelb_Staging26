@@ -182,6 +182,15 @@
     .applicant-supervisor-page .applicant-detail-compact-table.work-exp-table.work-exp-with-doc {
         min-width: 1080px;
     }
+    .applicant-supervisor-page .work-exp-admin-readonly {
+        margin-bottom: 0.75rem;
+    }
+    .applicant-supervisor-page .work-exp-admin-readonly .work-exp-view-wrap {
+        overflow-x: auto;
+    }
+    .applicant-supervisor-page .work-exp-admin-readonly .wx-summary-table-wrap {
+        overflow-x: auto;
+    }
     .applicant-supervisor-page .applicant-detail-compact-table thead th {
         padding: 0.55rem 0.6rem;
         vertical-align: middle;
@@ -468,6 +477,9 @@
         font-size: 0.88rem;
         color: var(--asp-ink);
     }
+
+    @php $editFormName = 'S'; @endphp
+    @include('user_login.partials.form-s-work-exp-styles')
 </style>
 <div id="content" class="main-content applicant-supervisor-page">
     <div class="layout-px-spacing">
@@ -704,146 +716,41 @@
                                             </div>
                                            
                                             @if (in_array(($applicant->form_name ?? ''), ['S', 'W'], true))
-                                                @php
-                                                    $isFormS = (($applicant->form_name ?? '') === 'S');
-                                                    $hasContractorRow = false;
-                                                    if ($isFormS && !empty($workExperience)) {
-                                                        foreach ($workExperience as $__exp) {
-                                                            if (strtolower(trim((string) ($__exp->emp_type ?? ''))) === 'contractor') {
-                                                                $hasContractorRow = true;
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                    $expColspan = $isFormS
-                                                        ? (9 + ($hasContractorRow ? 1 : 0))
-                                                        : 3;
-                                                @endphp
+                                                @php $isFormS = (($applicant->form_name ?? '') === 'S'); @endphp
                                                 <h6 class="asp-section-title">Work Experience</h6>
-                                                <div class="applicant-detail-table-wrap">
-                                                    <table class="table table-sm table-bordered applicant-detail-compact-table work-exp-table {{ $isFormS ? 'work-exp-with-doc' : '' }}">
+                                                @if ($isFormS)
+                                                    @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
+                                                @else
+                                                ```````<div class="applicant-detail-table-wrap">
+                                                    <table class="table table-sm table-bordered applicant-detail-compact-table work-exp-table">
                                                         <thead>
-                                                            @if ($isFormS)
-                                                                <tr>
-                                                                    <th rowspan="2">S.No</th>
-                                                                    <th rowspan="2">Employment Type</th>
-                                                                    <th rowspan="2">Employer / Organization</th>
-                                                                    @if ($hasContractorRow)
-                                                                        <th rowspan="2">Intimation Date</th>
-                                                                    @endif
-                                                                    <th colspan="5">Year of Experience</th>
-                                                                    <th rowspan="2">Designation</th>
-                                                                    <th rowspan="2">Document Upload</th>
-                                                                </tr>
-                                                                <tr>
-                                                                    <th>From (Date)</th>
-                                                                    <th>To (Date)</th>
-                                                                    <th>Yrs</th>
-                                                                    <th>Mo</th>
-                                                                    <th>Days</th>
-                                                                </tr>
-                                                            @else
-                                                                <tr>
-                                                                    <th>Company</th>
-                                                                    <th>Designation</th>
-                                                                    <th>Exp.</th>
-                                                                </tr>
-                                                            @endif
+                                                            <tr>
+                                                                <th>Company</th>
+                                                                <th>Designation</th>
+                                                                <th>Exp.</th>
+                                                            </tr>
                                                         </thead>
                                                         <tbody>
-                                                            @forelse ($workExperience as $index => $experience)
+                                                            @forelse ($workExperience as $experience)
                                                             <tr>
-                                                                @if ($isFormS)
-                                                                    @php
-                                                                        $empType = $experience->emp_type ?? '';
-                                                                        $empTypeLabel = $empType !== '' ? ucwords(str_replace('_', ' ', $empType)) : '-';
-                                                                        $isContractor = strtolower(trim((string) $empType)) === 'contractor';
-                                                                        $fromDate = !empty($experience->from_date) ? \Carbon\Carbon::parse($experience->from_date)->format('d-m-Y') : '-';
-                                                                        $toDate = !empty($experience->to_date) ? \Carbon\Carbon::parse($experience->to_date)->format('d-m-Y') : '-';
-                                                                        $intimationDate = !empty($experience->intimation_date) ? \Carbon\Carbon::parse($experience->intimation_date)->format('d-m-Y') : '-';
-                                                                        $expY = $experience->total_y;
-                                                                        $expM = $experience->total_m;
-                                                                        $expD = $experience->total_d;
-                                                                        if ($expY === null && $expM === null && $expD === null && !empty($experience->from_date) && !empty($experience->to_date)) {
-                                                                            $from = \Carbon\Carbon::parse($experience->from_date)->startOfDay();
-                                                                            $to = \Carbon\Carbon::parse($experience->to_date)->startOfDay();
-                                                                            if ($to->gte($from)) {
-                                                                                $expY = $to->year - $from->year;
-                                                                                $expM = $to->month - $from->month;
-                                                                                $expD = $to->day - $from->day;
-                                                                                if ($expD < 0) {
-                                                                                    $expM--;
-                                                                                    $expD += \Carbon\Carbon::create($to->year, $to->month, 1)->subDay()->day;
-                                                                                }
-                                                                                if ($expM < 0) {
-                                                                                    $expY--;
-                                                                                    $expM += 12;
-                                                                                }
-                                                                                if ($expD < 0) {
-                                                                                    $expM--;
-                                                                                    if ($expM < 0) {
-                                                                                        $expY--;
-                                                                                        $expM += 12;
-                                                                                    }
-                                                                                    $expD += \Carbon\Carbon::create($to->year, $to->month, 1)->subDay()->day;
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        $expY = $expY ?? 0;
-                                                                        $expM = $expM ?? 0;
-                                                                        $expD = $expD ?? 0;
-                                                                    @endphp
-                                                                    <td class="col-wrap">{{ $index + 1 }}</td>
-                                                                    <td class="col-wrap">{{ $empTypeLabel }}</td>
-                                                                    <td class="col-wrap">{{ $experience->emp_cate ?? $experience->company_name ?? '-' }}</td>
-                                                                    @if ($hasContractorRow)
-                                                                        <td class="col-wrap">{{ $isContractor ? $intimationDate : '-' }}</td>
-                                                                    @endif
-                                                                    <td class="col-wrap">{{ $fromDate }}</td>
-                                                                    <td class="col-wrap">{{ $toDate }}</td>
-                                                                    <td class="col-wrap">{{ $expY }}</td>
-                                                                    <td class="col-wrap">{{ $expM }}</td>
-                                                                    <td class="col-wrap">{{ $expD }}</td>
-                                                                    <td class="col-wrap">{{ $experience->designation ?? '-' }}</td>
-                                                                    <td class="col-doc">
-                                                                        @if (!empty($experience->upload_document))
-                                                                            @php
-                                                                                $fileExtension = strtolower(pathinfo($experience->upload_document ?? 'unknown.pdf', PATHINFO_EXTENSION));
-                                                                            @endphp
-                                                                            @if(\in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'], true))
-                                                                                <a href="{{ url($experience->upload_document) }}" target="_blank" rel="noopener noreferrer" title="View image">
-                                                                                    <img src="{{ url($experience->upload_document) }}" alt="" class="doc-thumb">
-                                                                                </a>
-                                                                            @elseif($fileExtension === 'pdf')
-                                                                                <a href="{{ url($experience->upload_document) }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary" title="View document">
-                                                                                    <i class="fa fa-file-pdf-o text-danger"></i>
-                                                                                    <span>View Document</span>
-                                                                                </a>
-                                                                            @else
-                                                                                <span class="text-muted small">—</span>
-                                                                            @endif
-                                                                        @else
-                                                                            <span class="text-muted small">—</span>
-                                                                        @endif
-                                                                    </td>
-                                                                @else
-                                                                    <td class="col-wrap">{{ $experience->emp_cate ?? $experience->company_name ?? '' }}</td>
-                                                                    <td class="col-wrap">{{ $experience->designation }}</td>
-                                                                    <td class="col-wrap">{{ $experience->total_exp ?? $experience->experience ?? 0 }} yrs</td>
-                                                                @endif
+                                                                <td class="col-wrap">{{ $experience->emp_cate ?? $experience->company_name ?? '' }}</td>
+                                                                <td class="col-wrap">{{ $experience->designation }}</td>
+                                                                <td class="col-wrap">{{ $experience->total_exp ?? $experience->experience ?? 0 }} yrs</td>
                                                             </tr>
                                                             @empty
                                                             <tr>
-                                                                <td colspan="{{ $expColspan }}" class="text-center">No work experience available.</td>
+                                                                <td colspan="3" class="text-center">No work experience available.</td>
                                                             </tr>
                                                             @endforelse
                                                         </tbody>
                                                     </table>
                                                 </div>
                                                 @endif
+                                            @endif
                                                 @if ($applicant->form_name == 'S')
                                                 @php
-                                                    $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($applicant->previously_date);
+                                                    $prevValidTo = $applicant->previously_valid_to ?? $applicant->previously_date ?? null;
+                                                    $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($prevValidTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -865,13 +772,17 @@
                                                                 <span class="asp-detail-value">{{ !empty($applicant->previously_issue_date) ? format_date($applicant->previously_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Expiry</span>
-                                                                <span class="asp-detail-value">{{ !empty($applicant->previously_date) ? format_date($applicant->previously_date) : '—' }}</span>
+                                                                <span class="asp-detail-label">From date</span>
+                                                                <span class="asp-detail-value">{{ !empty($applicant->previously_valid_from) ? format_date($applicant->previously_valid_from) : '—' }}</span>
+                                                            </div>
+                                                            <div class="asp-detail-cell">
+                                                                <span class="asp-detail-label">To date</span>
+                                                                <span class="asp-detail-value">{{ !empty($prevValidTo) ? format_date($prevValidTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->previously_number }}" data-license_date="{{ $applicant->previously_date }}" data-license_issue_date="{{ $applicant->previously_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->previously_number }}" data-license_from_date="{{ $applicant->previously_valid_from }}" data-license_date="{{ $prevValidTo }}" data-license_issue_date="{{ $applicant->previously_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid Certificate)</span>
                                                             @elseif($applicant->admincverify == 2)
@@ -882,7 +793,8 @@
                                                 </div>
 
                                                 @php
-                                                    $hasWiremanCompCert = !empty($applicant->certificate_no) || !empty($applicant->certificate_date);
+                                                    $certValidTo = $applicant->certificate_valid_to ?? $applicant->certificate_date ?? null;
+                                                    $hasWiremanCompCert = !empty($applicant->certificate_no) || !empty($certValidTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -904,13 +816,17 @@
                                                                 <span class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">Date of Expiry</span>
-                                                                <span class="asp-detail-value">{{ !empty($applicant->certificate_date) ? format_date($applicant->certificate_date) : '—' }}</span>
+                                                                <span class="asp-detail-label">From date</span>
+                                                                <span class="asp-detail-value">{{ !empty($applicant->certificate_valid_from) ? format_date($applicant->certificate_valid_from) : '—' }}</span>
+                                                            </div>
+                                                            <div class="asp-detail-cell">
+                                                                <span class="asp-detail-label">To date</span>
+                                                                <span class="asp-detail-value">{{ !empty($certValidTo) ? format_date($certValidTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_date="{{ $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid License)</span>
                                                             @elseif($applicant->admincverify == 2)
@@ -952,7 +868,7 @@
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_date="{{ $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid License)</span>
                                                             @elseif($applicant->admincverify == 2)
@@ -992,7 +908,7 @@
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_date="{{ $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
+                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                             @elseif($applicant->admincverify == 1)
                                                                 <span class="text-success small fw-semibold">(Valid License)</span>
                                                             @elseif($applicant->admincverify == 2)
