@@ -2670,7 +2670,20 @@
                 return ($preview.length && $preview.data('blobUrl')) ? $preview.data('blobUrl') : '';
             }
 
-            function summaryAttachmentBlock(label, $input, naText) {
+            function summaryExistingDocHref($row, kind) {
+                if (!$row || !$row.length) return '';
+                var sel = (kind === 'relieve')
+                    ? 'input[name="existing_work_relieving_document[]"]'
+                    : 'input[name="existing_work_document[]"]';
+                var path = ($row.find(sel).first().val() || '').trim();
+                if (!path) return '';
+                if (/^https?:\/\//i.test(path)) return path;
+                var base = (typeof BASE_URL !== 'undefined' ? BASE_URL : '').replace(/\/$/, '');
+                if (path.charAt(0) === '/') return base + path;
+                return base + '/' + path.replace(/^\/+/, '');
+            }
+
+            function summaryAttachmentBlock(label, $input, naText, $row) {
                 var $block = $('<div class="wx-sum-attach-block">');
                 $block.append($('<span class="wx-sum-attach-label">').text(label + ' :'));
                 if (naText) {
@@ -2680,6 +2693,7 @@
                 var blobUrl = summaryFilePreviewUrl($input);
                 var file = ($input[0] && $input[0].files && $input[0].files[0]) ? $input[0].files[0] : null;
                 var isImage = file && file.type && file.type.indexOf('image/') === 0;
+                var existingHref = summaryExistingDocHref($row, label === 'Relieving' ? 'relieve' : 'support');
                 if (blobUrl) {
                     var icon = isImage ? 'fa-image' : 'fa-file-pdf-o';
                     $block.append(
@@ -2894,7 +2908,9 @@
 
             /** Complete rows collapse to summary strip unless manually expanded for editing. */
             function applyRowLayout($tr) {
+                var complete = $tr.hasClass('is-complete');
                 var expanded = $tr.hasClass('work-row--expanded');
+                $tr.toggleClass('work-row--compact', complete && !expanded);
                 $tr.find('.work-row-toggle-btn')
                     .attr('aria-expanded', expanded ? 'true' : 'false')
                     .attr('title', expanded ? 'Submit and return to summary card' : 'Expand to edit')
@@ -2903,8 +2919,9 @@
 
             /** Refresh summary and collapse expanded complete row back to order-card view. */
             function collapseToSummary($tr) {
+                updateRowStatus($tr);
                 $tr.find('.work-row-done-hint').remove();
-                if (!isRowComplete($tr)) {
+                if (!$tr.hasClass('is-complete')) {
                     var $bar = $tr.find('.work-row-done-bar');
                     if ($bar.length && !$bar.find('.work-row-done-hint').length) {
                         $bar.append('<p class="work-row-done-hint" role="alert">Fill all required fields and upload documents before you can submit.</p>');
@@ -3002,8 +3019,8 @@
                 var nature = ($tr.find('.work-nature').val() || '').trim();
                 var voltage = ($tr.find('.work-voltage').val() || '').trim();
                 var kva = ($tr.find('.work-transformer-kva').val() || '').trim();
-                var fromIso = ($tr.find('.work-date-from').val() || '').trim();
-                var toIso = ($tr.find('.work-date-to').val() || '').trim();
+                var fromIso = readWorkDateFromInput($tr.find('.work-date-from'));
+                var toIso = readWorkDateFromInput($tr.find('.work-date-to'));
                 var isTill = $tr.find('.work-date-till').is(':checked');
                 var y = ($tr.find('.work-duration-y').val() || '').trim();
                 var m = ($tr.find('.work-duration-m').val() || '').trim();
@@ -3087,8 +3104,8 @@
                 var $attachCell = $str.find('.work-row-summary-attachments');
                 $attachCell.empty();
                 var $attachStack = $('<div class="wx-sum-attach-stack">');
-                $attachStack.append(summaryAttachmentBlock('Supporting', $docInput, null));
-                $attachStack.append(summaryAttachmentBlock('Relieving', $relInput, isTill ? 'Not required (Till date)' : null));
+                $attachStack.append(summaryAttachmentBlock('Supporting', $docInput, null, $tr));
+                $attachStack.append(summaryAttachmentBlock('Relieving', $relInput, isTill ? 'Not required (Till date)' : null, $tr));
                 $attachCell.append($attachStack);
             }
 

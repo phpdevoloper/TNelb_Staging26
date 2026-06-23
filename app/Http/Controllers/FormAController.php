@@ -2004,7 +2004,7 @@ class FormAController extends BaseController
 
 
 
-            $form = \DB::table('tnelb_forms')
+            $form = DB::table('tnelb_forms')
                 ->where('form_code', $request->form_name)
                 ->where('status', '1')
                 ->first();
@@ -2018,7 +2018,7 @@ class FormAController extends BaseController
 
             $appl_type = $request->appl_type;
 
-            $form = \DB::table('mst_licences')
+            $form = DB::table('mst_licences')
                 ->where('form_code', $request->form_name)
                 // ->where('status', '1')
                 ->first();
@@ -3240,7 +3240,7 @@ class FormAController extends BaseController
 
 
 
-            $form = \DB::table('tnelb_forms')
+            $form = DB::table('tnelb_forms')
                 ->where('form_code', $request->form_name)
                 ->where('status', '1')
                 ->first();
@@ -3254,7 +3254,7 @@ class FormAController extends BaseController
 
             $appl_type = $request->appl_type;
 
-            $form = \DB::table('mst_licences')
+            $form = DB::table('mst_licences')
                 ->where('form_code', $request->form_name)
                 // ->where('status', '1')
                 ->first();
@@ -4354,11 +4354,8 @@ class FormAController extends BaseController
             ->select('id', 'application_id', 'license_number', 'expires_at')
             ->unionAll(
                 DB::table('tnelb_renewal_license')
-<<<<<<< Updated upstream
                     ->select('ren_id', 'application_id', 'license_number', 'expires_at')
-=======
                     ->selectRaw('ren_id as id, application_id, license_number, expires_at')
->>>>>>> Stashed changes
             )
             ->orderBy('id', 'ASC')
             ->get();

@@ -509,7 +509,7 @@ class DocumentSampleController extends Controller
         ]);
     }
 
-    public function alterationForm(string $groupKey): View
+    public function alterationForm(string $groupKey): View|RedirectResponse
     {
         $summary = $this->versionService->getGroupSummary($groupKey);
 

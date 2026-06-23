@@ -1,3 +1,7 @@
+@php
+    $exp_details = $exp_details ?? collect();
+    $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
+@endphp
 <div class="work-exp-wrap">
     <div class="work-exp-section-bar" role="region" aria-label="Work experience actions">
         <button type="button" class="work-exp-add-btn add-more-work" id="work-exp-add-btn" title="Add a work experience entry">
@@ -19,7 +23,7 @@
                             <th>Designation</th>
                             <th>Nature of Work</th>
                             <th>Voltage Level</th>
-                            <th>Transformer kVA</th>
+                            <th>Transformer kVA(max 1000kVA)</th>
                             <th>Total Experience</th>
                             <th>Attachment</th>
                             <th class="wx-summary-th-actions">Actions</th>
@@ -34,10 +38,18 @@
     <div class="work-rows" id="work-container">
         @if ($exp_details->isNotEmpty())
             @foreach ($exp_details as $index => $expRow)
-                @include('user_login.partials.form-s-work-exp-row', ['expRow' => $expRow, 'rowIndex' => $index])
+                @include('user_login.partials.form-s-work-exp-row', [
+                    'expRow' => $expRow,
+                    'rowIndex' => $index,
+                    'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+                ])
             @endforeach
         @else
-            @include('user_login.partials.form-s-work-exp-row', ['expRow' => null, 'rowIndex' => 0])
+            @include('user_login.partials.form-s-work-exp-row', [
+                'expRow' => null,
+                'rowIndex' => 0,
+                'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+            ])
         @endif
     </div>
 
