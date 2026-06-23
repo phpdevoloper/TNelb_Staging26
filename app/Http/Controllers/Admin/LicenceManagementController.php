@@ -565,10 +565,10 @@ class LicenceManagementController extends BaseController
         $formType = $request->input('form_type');
         $recordId = $request->input('form_id');
 
-        
+        // dd($request->all()); exit;
         $rules = [
             'cert_id'     => 'required|integer',
-            'form_type'   => 'required|in:N,R,L,A',
+            'form_type'   => 'required|in:N,R,L,A,D',
             'form_status' => 'nullable|in:1,0,true,false,on',
         ];
 
@@ -657,6 +657,9 @@ class LicenceManagementController extends BaseController
             } elseif ($formType === 'A'){
                 $validity = $request->enableRenewal;
                 $validityStartDate = $request->enableRenewalStarts;
+            } elseif ($formType === 'D') {
+                $validity = $request->fresh_form_duration;
+                $validityStartDate = $request->fresh_form_duration_on;
             }
 
             // var_dump($validityStartDate);die;

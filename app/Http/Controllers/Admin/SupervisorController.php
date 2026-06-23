@@ -20,15 +20,13 @@ use function PHPUnit\Framework\isNull;
 
 class SupervisorController extends Controller
 {
-    protected $today,$dbNow;
+    protected $today, $dbNow;
     public function __construct()
     {
         $this->today = Carbon::today()->toDateString();
         $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
-
-
     }
-    
+
     public function index()
     {
         $userFormID = Auth::user()->form_id;
@@ -40,9 +38,9 @@ class SupervisorController extends Controller
         return view('admin.dashboards.supervisor', compact('applications'));
     }
 
-    public function view_applications(Request $request)
+     public function view_applications(Request $request)
     {
-        
+
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -63,7 +61,7 @@ class SupervisorController extends Controller
         if ($formPId > 0 && $selectedFormId === $formPId) {
             $roleLevel = (int) (optional($staff->role)->role_level ?? 0);
             $roleId = (int) ($staff->roles_id ?? 0);
-            $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R'], true) ? strtoupper((string) $request->input('form_type')) : null;
+            $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R', 'D'], true) ? strtoupper((string) $request->input('form_type')) : null;
             if ($roleLevel === 1) {
                 $query = DB::table('tnelb_form_p as ta')
                     ->whereIn('ta.payment_status', ['payment', 'paid'])
@@ -80,7 +78,7 @@ class SupervisorController extends Controller
                 if ($applTypeFilter) {
                     $query->where('ta.appl_type', $applTypeFilter);
                 }
-                 $workflows = $query
+                $workflows = $query
                     ->orderByDesc('ta.submitted_date')
                     ->orderByDesc('ta.id')
                     ->get();
@@ -149,7 +147,7 @@ class SupervisorController extends Controller
         }
 
         $requestedType = strtoupper((string) $request->input('form_type', ''));
-        $applTypeFilter = in_array($requestedType, ['N', 'R'], true) ? $requestedType : null;
+        $applTypeFilter = in_array($requestedType, ['N', 'R', 'D'], true) ? $requestedType : null;
 
         $roleLevel = (int) (optional($staff->role)->role_level ?? 0); // mst_roles.role_level
         $roleId = (int) ($staff->roles_id ?? 0);
@@ -158,7 +156,7 @@ class SupervisorController extends Controller
         // Supervisor: show (1) apps with no workflow, OR (2) latest workflow RE and forwarded_to Supervisor (resubmitted).
         // Other roles: show apps currently forwarded to them (latest workflow row).
         if ($isSupervisorRole) {
-           $supervisorRoleId = RoleHelper::supervisorWorkflowRoleId($staff);
+            $supervisorRoleId = RoleHelper::supervisorWorkflowRoleId($staff);
             $twLast = DB::table('tnelb_workflow')
                 ->select('application_id', DB::raw('MAX(id) as max_id'))
                 ->groupBy('application_id');
@@ -195,12 +193,12 @@ class SupervisorController extends Controller
             $workflows = $query
                 ->select(
                     'ta.*',
-                      DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'),
+                    DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'),
                     DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name'),
                     DB::raw("EXISTS (SELECT 1 FROM tnelb_workflow tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
                 )
                 ->distinct()
-                 ->orderByDesc('ta.submitted_date')
+                ->orderByDesc('ta.submitted_date')
                 ->orderByDesc('ta.id')
                 ->get();
 
@@ -231,7 +229,7 @@ class SupervisorController extends Controller
                     ->get();
             }
 
-             // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with return history)
+            // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with return history)
             $returned_applications = DB::table('tnelb_application_tbl as ta')
                 ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
                 ->where('ta.form_id', $selectedFormId)
@@ -251,8 +249,6 @@ class SupervisorController extends Controller
                 ->orderByDesc('ta.submitted_date')
                 ->orderByDesc('ta.id')
                 ->get();
-
-
         } else {
             $previousProcessedBy = match ($roleLevel) {
                 2 => ['S', 'S2'], // Accountant handles after Supervisor/Supervisor2
@@ -323,7 +319,7 @@ class SupervisorController extends Controller
                 ->select(
                     'ta.*',
                     DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'),
-                     DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name'),
+                    DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name'),
                     DB::raw("EXISTS (SELECT 1 FROM tnelb_workflow tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
                 )
                 ->distinct()
@@ -348,6 +344,7 @@ class SupervisorController extends Controller
 
         return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
     }
+
 
     /**
      * List completed (approved) applications for a given form_id and optional form_type (N/R).
@@ -534,35 +531,34 @@ class SupervisorController extends Controller
             ->where('ta.form_name', 'A')
             ->where('ta.payment_status', 'paid');
 
-           // Optional filter: appl_type = N (New) or R (Renewal), driven by ?form_type=
+        // Optional filter: appl_type = N (New) or R (Renewal), driven by ?form_type=
         $requestedType = strtoupper((string) request()->query('form_type', ''));
 
         if (in_array($requestedType, ['N', 'R'], true)) {
             $query->where('ta.appl_type', $requestedType);
         }
-  
+
         // Supervisor should see applications that are still with Supervisor
         // (i.e. processed_by = 'S' and not yet forwarded further, typically P / RE / F)
         if (in_array($roleName, ['Supervisor', 'Supervisor2'], true)) {
             $query->whereIn('ta.application_status', ['P', 'RE'])
-              ->where(function ($q) {
-                  $q->whereIn('ta.processed_by', ['A', 'SE', 'S'])
-                    ->orWhereNull('ta.processed_by');
-              });
-                  
+                ->where(function ($q) {
+                    $q->whereIn('ta.processed_by', ['A', 'SE', 'S'])
+                        ->orWhereNull('ta.processed_by');
+                });
         }
-      
+
         // Assistant Secretary should see only applications that have been forwarded
         // by Supervisor to Assistant Secretary (processed_by = 'A', usually status F/RF)
         elseif ($roleName === 'Assistant Secretary') {
             $query->whereIn('ta.application_status', ['F', 'RF'])
-                  ->where('ta.processed_by', 'S');
-        }elseif ($roleName === 'Secretary') {
+                ->where('ta.processed_by', 'S');
+        } elseif ($roleName === 'Secretary') {
             $query->whereIn('ta.application_status', ['F', 'RF', 'RE'])
-                  ->whereIn('ta.processed_by', ['A','PR']);
-        }elseif ($roleName === 'President') {
+                ->whereIn('ta.processed_by', ['A', 'PR']);
+        } elseif ($roleName === 'President') {
             $query->whereIn('ta.application_status', ['F', 'RF'])
-                  ->where('ta.processed_by', 'SE');
+                ->where('ta.processed_by', 'SE');
         }
 
         $workflows = $query
@@ -570,9 +566,9 @@ class SupervisorController extends Controller
             ->select('ta.*')
             ->get();
 
-        
 
-     
+
+
         return view('admin.supervisor.view_forma', compact('workflows', 'role_id'));
     }
 
@@ -597,27 +593,27 @@ class SupervisorController extends Controller
 
         $applicationIds = $workflows->pluck('application_id');
 
-    
-            $licenses = DB::table('tnelb_license')
-                ->whereIn('application_id', $applicationIds)
-                ->select('application_id', 'license_number')
-                ->get()
-                ->keyBy('application_id');
 
-            $renewalLicenses = DB::table('tnelb_renewal_license')
-                ->whereIn('application_id', $applicationIds)
-                ->select('application_id', 'license_number')
-                ->get()
-                ->keyBy('application_id');
+        $licenses = DB::table('tnelb_license')
+            ->whereIn('application_id', $applicationIds)
+            ->select('application_id', 'license_number')
+            ->get()
+            ->keyBy('application_id');
 
-            return view('admin.supervisor.completed_forma', compact(
-                'workflows',
-                'licenses',
-                'renewalLicenses'
-            ));
+        $renewalLicenses = DB::table('tnelb_renewal_license')
+            ->whereIn('application_id', $applicationIds)
+            ->select('application_id', 'license_number')
+            ->get()
+            ->keyBy('application_id');
+
+        return view('admin.supervisor.completed_forma', compact(
+            'workflows',
+            'licenses',
+            'renewalLicenses'
+        ));
     }
 
-public function forwardApplication(Request $request, $role)
+    public function forwardApplication(Request $request, $role)
     {
         // dd($request->all());exit;
 
@@ -735,7 +731,7 @@ public function forwardApplication(Request $request, $role)
         ], 201);
     }
 
-   public function forwardApplication_bk27042026(Request $request, $role)
+    public function forwardApplication_bk27042026(Request $request, $role)
     {
 
 
@@ -856,7 +852,7 @@ public function forwardApplication(Request $request, $role)
 
 
 
-    
+
     public function forwardApplicationforma(Request $request, $role)
     {
 
@@ -887,16 +883,16 @@ public function forwardApplication(Request $request, $role)
         $queryTypeJson = $request->queryType && is_array($request->queryType) && count($request->queryType) > 0
             ? json_encode($request->queryType) : null;
 
-      
-            $processed_by = match ($staff->name) {
-                'President'   => 'PR',
-                'Secretary'   => 'SE',
-                'Supervisor'  => 'S',
-                'Supervisor2' => 'S2',
-                'Assistant Secretary'     => 'A',
-                default       => abort(403, 'Unauthorized'),
-            };
-        
+
+        $processed_by = match ($staff->name) {
+            'President'   => 'PR',
+            'Secretary'   => 'SE',
+            'Supervisor'  => 'S',
+            'Supervisor2' => 'S2',
+            'Assistant Secretary'     => 'A',
+            default       => abort(403, 'Unauthorized'),
+        };
+
 
 
         $query_status = ($request->queryswitch === 'Yes') ? 'P' : null;
@@ -947,10 +943,10 @@ public function forwardApplication(Request $request, $role)
         // dd($request->queryswitch);
 
         // die;
-// dd($request->returnflag);exit;
-       
-            $forwarded = $request->forwarded_to;
-        
+        // dd($request->returnflag);exit;
+
+        $forwarded = $request->forwarded_to;
+
 
         // dd($forwarded);exit;
 
@@ -971,18 +967,18 @@ public function forwardApplication(Request $request, $role)
             'raised_by'      => $query_status == 'P' ? $raised_by : '',
         ]);
 
-         WorkflowA::where('application_id', $request->application_id)
-              ->where('processed_by', $request->processed_by)
-              ->where('role_id', $request->role_id)
-                ->orderByDesc('id')
-                ->limit(1)
-                ->update([
-                    'created_at' => DB::raw('NOW()'),
-                ]);
+        WorkflowA::where('application_id', $request->application_id)
+            ->where('processed_by', $request->processed_by)
+            ->where('role_id', $request->role_id)
+            ->orderByDesc('id')
+            ->limit(1)
+            ->update([
+                'created_at' => DB::raw('NOW()'),
+            ]);
 
 
 
-        
+
 
         EA_Application_model::where('application_id', $request->application_id)
             ->update([
@@ -991,11 +987,11 @@ public function forwardApplication(Request $request, $role)
                 'updated_at' => DB::raw('NOW()'),
             ]);
 
-        
 
-        
-            $message = "Application Forwarded to $role successfully!";
-        
+
+
+        $message = "Application Forwarded to $role successfully!";
+
 
         return response()->json([
             'status'  => 'success',
@@ -1004,7 +1000,7 @@ public function forwardApplication(Request $request, $role)
     }
 
 
-    
+
     public function approveApplicationForma(Request $request)
     {
         $request->validate([
@@ -1079,7 +1075,6 @@ public function forwardApplication(Request $request, $role)
                     : now();
 
                 $expiresAt = $baseExpiry->copy()->addMonths($monthsToAdd)->toDateString();
-
             } else {
 
                 // Fresh → today + months
@@ -1093,8 +1088,8 @@ public function forwardApplication(Request $request, $role)
 
             if ($request->validity_override === 'YES') {
 
-            // dd('111');
-            // exit;
+                // dd('111');
+                // exit;
 
                 $qcValidity   = $request->qc_validity_date
                     ? Carbon::parse($request->qc_validity_date)
@@ -1129,7 +1124,6 @@ public function forwardApplication(Request $request, $role)
                 ]);
 
                 $newSerial = $application->license_number;
-
             } else {
 
                 $prefix    = $application->license_name;
@@ -1154,24 +1148,24 @@ public function forwardApplication(Request $request, $role)
             }
 
 
-               $workflowId = DB::table('tnelb_workflow_a')->insertGetId([
-        'application_id' => $request->application_id,
-        'processed_by'   => $request->processed_by,
-        'role_id'        => Auth::user()->roles_id,
-        'appl_status'    => 'A',
-        'remarks'        => $request->remarks ?? 'No remarks provided',
-        'forwarded_to'   => $request->forwarded_to,
-        'created_at'     => now(),
-        'updated_at'     => now(),
-    ]);
+            $workflowId = DB::table('tnelb_workflow_a')->insertGetId([
+                'application_id' => $request->application_id,
+                'processed_by'   => $request->processed_by,
+                'role_id'        => Auth::user()->roles_id,
+                'appl_status'    => 'A',
+                'remarks'        => $request->remarks ?? 'No remarks provided',
+                'forwarded_to'   => $request->forwarded_to,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
 
-    // 2️⃣ UPDATE SAME RECORD (guaranteed)
-    DB::table('tnelb_workflow_a')
-        ->where('id', $workflowId)
-        ->update([
-          'created_at' => DB::raw('NOW()'),
-          'updated_at' => DB::raw('NOW()'),
-        ]);
+            // 2️⃣ UPDATE SAME RECORD (guaranteed)
+            DB::table('tnelb_workflow_a')
+                ->where('id', $workflowId)
+                ->update([
+                    'created_at' => DB::raw('NOW()'),
+                    'updated_at' => DB::raw('NOW()'),
+                ]);
 
 
             DB::commit();
@@ -1185,7 +1179,6 @@ public function forwardApplication(Request $request, $role)
                 'issued_at'      => $issuedAt,
                 'expires_at'     => $expiresAt,
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1199,38 +1192,38 @@ public function forwardApplication(Request $request, $role)
     {
 
         // DB::table('tnelb_application_tbl')
-//     ->where('application_id', 'WB251111111')
-//     ->update([
-//         'd_o_b' => '01-01-1945'
-//     ]);
+        //     ->where('application_id', 'WB251111111')
+        //     ->update([
+        //         'd_o_b' => '01-01-1945'
+        //     ]);
 
-//     DB::table('tnelb_ea_applications')
-//     ->where('application_id', 'AEA25000001')
-//     ->update([
-//         'payment_status' => 'paid',
-//         'application_status' => 'P',
+        //     DB::table('tnelb_ea_applications')
+        //     ->where('application_id', 'AEA25000001')
+        //     ->update([
+        //         'payment_status' => 'paid',
+        //         'application_status' => 'P',
 
-//     ]);
+        //     ]);
 
-// $show = DB::table('tnelb_ea_applications')
-//         ->where('application_id', 'AEA25000001')
-//         ->first();
+        // $show = DB::table('tnelb_ea_applications')
+        //         ->where('application_id', 'AEA25000001')
+        //         ->first();
 
-  // $show = DB::table('tnelb_license')->get()->toArray();
+        // $show = DB::table('tnelb_license')->get()->toArray();
 
-//         $show = DB::table('tnelb_license')
-//           ->where('application_id', 'AEA25000004')
-//           ->delete();
-// if ($show) {
-//     echo "Record deleted successfully";
-// } else {
-//     echo "No record found";
-// }
+        //         $show = DB::table('tnelb_license')
+        //           ->where('application_id', 'AEA25000004')
+        //           ->delete();
+        // if ($show) {
+        //     echo "Record deleted successfully";
+        // } else {
+        //     echo "No record found";
+        // }
 
- 
 
-//  dd($show);
-// exit;
+
+        //  dd($show);
+        // exit;
 
         // dd($request->all());
         // exit;
@@ -1245,7 +1238,7 @@ public function forwardApplication(Request $request, $role)
         // Fetch the application details
         $application = DB::table('tnelb_ea_applications')
             ->where('application_id', $request->application_id)
-            
+
             ->first();
 
         if (!$application) {
@@ -1261,7 +1254,7 @@ public function forwardApplication(Request $request, $role)
         // dd($licensename);
         // exit;
 
-        
+
 
         // Get form type
         // $formType = DB::table('tnelb_forms')->where('id', $application->form_id)->first();
@@ -1282,17 +1275,17 @@ public function forwardApplication(Request $request, $role)
                 $processed = 'SE';
             }
 
-       
-          
-                 DB::table('tnelb_ea_applications')
+
+
+            DB::table('tnelb_ea_applications')
                 ->where('application_id', $request->application_id)
                 ->update([
                     'application_status'     => 'A',
                     'processed_by' => isset($processed) ? $processed : 'PR',
                     'updated_at' => now(),
                 ]);
-            
-         
+
+
 
             $appl_type = preg_replace('/\s+/', '', $application->appl_type);
 
@@ -1325,16 +1318,16 @@ public function forwardApplication(Request $request, $role)
                     $today = Carbon::today()->toDateString();
 
                     $licenseperiod = DB::table('mst_fees_validity')
-                    ->where('licence_id', $formid->id)
-                    ->where('form_type', $appl_type)
-                    ->where('status', 1)
-                    ->whereDate('validity_start_date', '<=', $today)
-                    ->orderBy('validity_start_date', 'desc') 
-                    ->first();
+                        ->where('licence_id', $formid->id)
+                        ->where('form_type', $appl_type)
+                        ->where('status', 1)
+                        ->whereDate('validity_start_date', '<=', $today)
+                        ->orderBy('validity_start_date', 'desc')
+                        ->first();
 
                     $monthsToAdd = $licenseperiod->validity ?? 0;
-// dd($monthsToAdd);
-// exit;
+                    // dd($monthsToAdd);
+                    // exit;
                     // 🔥 Get original expiry date from tnelb_license table
                     $oldExpiry = DB::table('tnelb_license')
                         ->where('application_id', $request->oldapplicationId)
@@ -1343,13 +1336,13 @@ public function forwardApplication(Request $request, $role)
                     // If no expiry found, use NOW as fallback
                     $expirySourceDate = $oldExpiry ? Carbon::parse($oldExpiry) : now();
 
-                
+
 
                     // 🔥 Add the validity months to old expiry
                     $expiresAt = $expirySourceDate->copy()->addMonths($monthsToAdd)->format('Y-m-d');
 
-      // dd($expiresAt);
-      //           exit;
+                    // dd($expiresAt);
+                    //           exit;
 
                     $issuedAt = now()->format('Y-m-d H:i:s');
 
@@ -1364,8 +1357,6 @@ public function forwardApplication(Request $request, $role)
                     ]);
 
                     $newSerial = $application->license_number;
-
-                
                 } else {
                     // existing renewal record still valid -> reuse its values
                     $newSerial = $license_details->license_number;
@@ -1380,7 +1371,7 @@ public function forwardApplication(Request $request, $role)
                     ->where('application_id', $request->application_id)
                     ->first();
 
-                     
+
 
                 if ($license_details) {
 
@@ -1412,41 +1403,41 @@ public function forwardApplication(Request $request, $role)
                     $newSerial = "L{$prefix}{$yearMonth}{$newNumber}";
                     $issuedAt = now()->format('Y-m-d H:i:s');
 
-                //  dd($licensename);
-                //  exit;
-               $formid = DB::table('mst_licences')
+                    //  dd($licensename);
+                    //  exit;
+                    $formid = DB::table('mst_licences')
                         ->where('cert_licence_code', $licensename)
                         ->where('status', '1')
                         ->first();
 
-                 $today = Carbon::today()->toDateString();
+                    $today = Carbon::today()->toDateString();
 
-                // $today = '2025-12-31';
+                    // $today = '2025-12-31';
 
-                //  dd($today);
-                //  exit;
+                    //  dd($today);
+                    //  exit;
 
                     $licenseperiod = DB::table('mst_fees_validity')
-                    ->where('licence_id', $formid->id)
-                    ->where('form_type', $appl_type)
-                    ->where('status', 1)
-                    ->whereDate('validity_start_date', '<=', $today)
-                    ->orderBy('validity_start_date', 'desc') 
-                    ->first();
-                        
+                        ->where('licence_id', $formid->id)
+                        ->where('form_type', $appl_type)
+                        ->where('status', 1)
+                        ->whereDate('validity_start_date', '<=', $today)
+                        ->orderBy('validity_start_date', 'desc')
+                        ->first();
+
 
                     // dd($formid->id);
                     // exit;
 
-                        // dd($licenseperiod->validity);
-                        // exit;
-                   
+                    // dd($licenseperiod->validity);
+                    // exit;
+
                     $monthsToAdd = $licenseperiod->validity ?? 0;
 
                     // dd($monthsToAdd);
                     // exit;
 
-// H:i:s
+                    // H:i:s
                     $expiresAt = now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
 
                     // dd($licenseperiod->validity);
@@ -1504,9 +1495,9 @@ public function forwardApplication(Request $request, $role)
     }
 
 
-public function approveApplication(Request $request)
+    public function approveApplication(Request $request)
     {
-        
+
         $request->validate([
             'application_id' => 'required|string',
             'processed_by'   => 'required|string',
@@ -1551,8 +1542,8 @@ public function approveApplication(Request $request)
                     'processed_by' => $processed ?: 'PR',
                     'updated_at' => now(),
                 ]);
-                
 
+            // dd($appl_type); exit;
             // Issue or renew licence and get final number + dates
             [$licenseNumber, $issuedAt, $expiresAt] = $this->issueOrRenewLicense(
                 $application,
@@ -1572,7 +1563,7 @@ public function approveApplication(Request $request)
                     'error' => $e->getMessage(),
                 ]);
             }
-           
+            //    dd($this->dbNow); exit;
 
             DB::table('tnelb_workflow')->insert([
                 'application_id' => $request->application_id,
@@ -1580,7 +1571,7 @@ public function approveApplication(Request $request)
                 'role_id'        => Auth::user()->roles_id, // Current user role (Secretary)
                 'appl_status'    => 'A',
                 'remarks'        => $request->remarks ?? 'No remarks provided',
-                'forwarded_to'   => $request->forwarded_to ?? null, 
+                'forwarded_to'   => $request->forwarded_to ?? null,
                 'created_at'     => $this->dbNow,
             ]);
 
@@ -1607,6 +1598,11 @@ public function approveApplication(Request $request)
             }
         } catch (\Exception $e) {
             DB::rollBack();
+            dd([
+                'message' => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
+            ]);
             return response()->json(['error' => 'Something went wrong: ' . $e->getMessage()], 500);
         }
     }
@@ -1657,7 +1653,7 @@ public function approveApplication(Request $request)
                     'processed_by' => $processed ?: 'PR',
                     'updated_at' => now(),
                 ]);
-                
+
 
             // Issue or renew licence and get final number + dates
             [$licenseNumber, $issuedAt, $expiresAt] = $this->issueOrRenewLicense(
@@ -1678,7 +1674,7 @@ public function approveApplication(Request $request)
                     'error' => $e->getMessage(),
                 ]);
             }
-           
+
 
             DB::table('tnelb_workflow')->insert([
                 'application_id' => $request->application_id,
@@ -1723,14 +1719,14 @@ public function approveApplication(Request $request)
      */
     private function issueOrRenewLicense(object $application, int $licenceId, string $applType, string $processedBy, string $applicationId, string $loginId): array
     {
-        
+
         // Renewal flow
         if ($applType === 'R') {
             $licenseDetails = DB::table('tnelb_renewal_license')
                 ->where('application_id', $applicationId)
                 ->first();
 
-            
+
 
             $previousCertExpiry = DB::table('tnelb_license')
                 ->where('license_number', $application->license_number)
@@ -1738,32 +1734,36 @@ public function approveApplication(Request $request)
 
             $now = db_now();
 
-            // dd($previousCertExpiry, $now);exit;
+            // dd($previousCertExpiry, $now);
+            // exit;
 
-
+            // dd($applType); exit;
             if (!$licenseDetails || $now->greaterThan(Carbon::parse($licenseDetails->expires_at))) {
-                
+
 
                 $issuedAt = Carbon::parse($previousCertExpiry)
-                ->addDays(1)
-                ->format('Y-m-d');
+                    ->addDays(1)
+                    ->format('Y-m-d');
 
-                
-                if($now > $previousCertExpiry){
+
+                if ($now > $previousCertExpiry) {
                     $applType = 'N';
                 }
-                
+
 
                 $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
 
                 $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
-                
+
                 // $expiresAtone     = $now->copy()->addMonths($monthsToAdd)->format('Y-m-d');
 
                 $expiresAt = Carbon::parse($previousCertExpiry)->copy()
-                ->addMonths($monthsToAdd)
-                ->subDay()
-                ->format('Y-m-d');
+                    ->addMonths($monthsToAdd)
+                    ->subDay()
+                    ->format('Y-m-d');
+
+
+
 
                 DB::table('tnelb_renewal_license')->insert([
                     'login_id'       => $loginId,
@@ -1778,12 +1778,80 @@ public function approveApplication(Request $request)
 
                 $licenseNumber = $application->license_number;
             } else {
-                
+
                 // Existing renewal record still valid – reuse its values
+
+
                 $licenseNumber = $licenseDetails->license_number;
                 $issuedAt      = $licenseDetails->issued_at;
                 $expiresAt     = $licenseDetails->expires_at;
             }
+
+            // dd([
+            //     'licenseNumber' => $licenseNumber,
+            //     'issuedAt'      => $issuedAt,
+            //     'expiresAt'     => $expiresAt
+            // ]);
+
+            return [$licenseNumber, $issuedAt, $expiresAt];
+        }
+
+
+
+        if ($applType === 'D') {
+            $licenseDetails = DB::table('tnelb_license')
+                ->where('application_id', $applicationId)
+                ->first();
+
+            if ($licenseDetails) {
+                return [
+                    $licenseDetails->license_number,
+                    $licenseDetails->issued_at,
+                    $licenseDetails->issued_from,
+                    $licenseDetails->expires_at
+                ];
+            }
+
+            // Create a brand new licence entry
+            $prefix    = $application->license_name;
+            $yearMonth = date('Ym');
+
+            $lastSerial = DB::table('tnelb_license')
+                ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
+                ->orderBy('license_number', 'desc')
+                ->value('license_number');
+
+            if ($lastSerial) {
+                $lastNumber   = (int) substr($lastSerial, -5);
+                $newNumber    = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+            } else {
+                $newNumber = '00001';
+            }
+
+            $now = db_now();
+
+            $licenseNumber = "L{$prefix}{$yearMonth}{$newNumber}";
+            $issuedAt      = $now;
+
+            $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
+            $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
+
+
+            $expiresAt = Carbon::parse($now)->copy()->addMonths($monthsToAdd)
+                ->subDay()
+                ->toDateString();
+
+            // dd($licensePeriod->validity); exit;
+
+            $licence_insert = DB::table('tnelb_license')->insert([
+                'application_id' => $applicationId,
+                'license_number' => $licenseNumber,
+                'issued_by'      => $processedBy,
+                'issued_at'      => $issuedAt,
+                'issued_from'    => $now,
+                'expires_at'     => $expiresAt,
+                'created_at'     => $now,
+            ]);
 
             return [$licenseNumber, $issuedAt, $expiresAt];
         }
@@ -1794,12 +1862,12 @@ public function approveApplication(Request $request)
             ->first();
 
         if ($licenseDetails) {
-            $licenseNumber = $licenseDetails->license_number;
-            $issuedAt      = $licenseDetails->issued_at;
-            $issuedFrom    = $licenseDetails->issued_from;
-            $expiresAt     = $licenseDetails->expires_at;
-
-            return [$licenseNumber, $issuedAt, $issuedFrom, $expiresAt];
+            return [
+                $licenseDetails->license_number,
+                $licenseDetails->issued_at,
+                $licenseDetails->issued_from,
+                $licenseDetails->expires_at
+            ];
         }
 
         // Create a brand new licence entry
@@ -1825,13 +1893,15 @@ public function approveApplication(Request $request)
 
         $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
         $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
-        
+
 
         $expiresAt = Carbon::parse($now)->copy()->addMonths($monthsToAdd)
-                ->subDay()
-                ->toDateString();
+            ->subDay()
+            ->toDateString();
 
-        DB::table('tnelb_license')->insert([
+        // dd($licensePeriod->validity); exit;
+
+        $licence_insert = DB::table('tnelb_license')->insert([
             'application_id' => $applicationId,
             'license_number' => $licenseNumber,
             'issued_by'      => $processedBy,
@@ -1841,6 +1911,15 @@ public function approveApplication(Request $request)
             'created_at'     => $now,
         ]);
 
+
+
+        //         dd([
+        //     'licenseNumber' => $licenseNumber,
+        //     'issuedAt'      => $issuedAt,
+        //     'expiresAt'     => $expiresAt
+        // ]);exit;
+        // dd('111');
+        // exit;
         return [$licenseNumber, $issuedAt, $expiresAt];
     }
 

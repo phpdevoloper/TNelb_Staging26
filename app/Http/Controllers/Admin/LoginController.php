@@ -241,7 +241,7 @@ class LoginController extends Controller
 
         $assignedFormsQuery = \App\Models\Admin\StaffAssigned::where('user_id', $staff->id)
             ->where('is_active', 1)
-            ->whereIn('form_type', ['N', 'R']);
+            ->whereIn('form_type', ['N', 'R', 'D']);
 
         if (DB::getDriverName() === 'pgsql') {
             $assignedFormsQuery->whereRaw("jsonb_array_length(COALESCE(form_id, '[]'::jsonb)) > 0");
@@ -436,12 +436,24 @@ class LoginController extends Controller
             }
 
             foreach ($pendingCounts as $row) {
-                $fid = (int) $row->form_id;
-                $type = strtoupper((string) $row->appl_type) === 'R' ? 'R' : 'N';
+
+                $fid = (int)$row->form_id;
+
+                $applType = strtoupper((string)($row->appl_type ?? ''));
+
+                $type = in_array($applType, ['N', 'R', 'D'])
+                    ? $applType
+                    : 'N';
+
                 if (!isset($pendingCountsMap[$fid])) {
-                    $pendingCountsMap[$fid] = ['N' => 0, 'R' => 0];
+                    $pendingCountsMap[$fid] = [
+                        'N' => 0,
+                        'R' => 0,
+                        'D' => 0
+                    ];
                 }
-                $pendingCountsMap[$fid][$type] = (int) $row->cnt;
+
+                $pendingCountsMap[$fid][$type] = (int)$row->cnt;
             }
 
             // dd($pendingCountsMap);exit;
@@ -510,10 +522,14 @@ class LoginController extends Controller
                         ->get();
                 }
                 if (!isset($pendingCountsMap[$formPId])) {
-                    $pendingCountsMap[$formPId] = ['N' => 0, 'R' => 0];
+                    $pendingCountsMap[$formPId] = ['N' => 0, 'R' => 0, 'D' => 0];
                 }
                 foreach ($formPCounts as $row) {
-                    $type = strtoupper((string) ($row->appl_type ?? '')) === 'R' ? 'R' : 'N';
+                    $applType = strtoupper((string) ($row->appl_type ?? ''));
+
+                    $type = in_array($applType, ['N', 'R', 'D'])
+                        ? $applType
+                        : 'N';
                     $pendingCountsMap[$formPId][$type] = (int) ($row->cnt ?? 0);
                 }
             }
@@ -623,14 +639,18 @@ class LoginController extends Controller
                         continue;
                     }
 
-                    $type = strtoupper((string) ($row->appl_type ?? '')) === 'R' ? 'R' : 'N';
+                    $applType = strtoupper((string) ($row->appl_type ?? ''));
+
+                    $type = in_array($applType, ['N', 'R', 'D'])
+                        ? $applType
+                        : 'N';
                     $cnt  = (int) ($row->cnt ?? 0);
 
 
                     foreach ($contractorFormToIds[$formCode] as $licId) {
 
                         if (!isset($pendingCountsMap[$licId])) {
-                            $pendingCountsMap[$licId] = ['N' => 0, 'R' => 0];
+                            $pendingCountsMap[$licId] = ['N' => 0, 'R' => 0, 'D' => 0];
                         }
                         $pendingCountsMap[$licId][$type] += $cnt;
                     }
@@ -671,28 +691,7 @@ class LoginController extends Controller
 
 
 
-        // Digitization Counts
 
-        $digitizationCounts = DB::table('tnelb_application_tbl')
-            ->select('form_id', DB::raw('COUNT(*) as cnt'))
-            ->where('appl_type', 'D')
-            ->groupBy('form_id')
-            ->get();
-
-        foreach ($digitizationCounts as $row) {
-
-            $licId = (int) $row->form_id;
-
-            if (!isset($pendingCountsMap[$licId])) {
-                $pendingCountsMap[$licId] = [
-                    'N' => 0,
-                    'R' => 0,
-                    'D' => 0,
-                ];
-            }
-
-            $pendingCountsMap[$licId]['D'] = (int) $row->cnt;
-        }
 
         $assignedFormSummary = $assignedForms
             ->groupBy('id')

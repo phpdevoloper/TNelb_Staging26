@@ -103971,3 +103971,1102 @@ LINE 1: ...s\" as \"r\" on \"r\".\"r_id\" = \"u\".\"role_id\" left join \"mst_st
 #57 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('D:\\\\laravel_prog...')
 #58 {main}
 "} 
+[2026-06-22 10:47:38] production.ERROR: Undefined property: stdClass::$transformer_kva {"view":{"view":"D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\resources\\views\\user_login\\partials\\form-s-work-exp-view-row.blade.php","data":{"errors":"<pre class=sf-dump id=sf-dump-1535953547 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\ViewErrorBag</span> {<a class=sf-dump-ref>#810</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">bags</span>: []
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1535953547\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","applicant":"<pre class=sf-dump id=sf-dump-678465858 data-indent-pad=\"  \">{<a class=sf-dump-ref>#835</a><samp data-depth=1 class=sf-dump-expanded>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>57</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">applicant_name</span>\": \"<span class=sf-dump-str title=\"19 characters\">Mr Saravana Perumal</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">fathers_name</span>\": \"<span class=sf-dump-str title=\"7 characters\">perumal</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">applicants_address</span>\": \"<span class=sf-dump-str title=\"7 characters\">chennai</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">d_o_b</span>\": \"<span class=sf-dump-str title=\"10 characters\">07-05-1998</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">age</span>\": \"<span class=sf-dump-str title=\"2 characters\">27</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">previously_number</span>\": \"<span class=sf-dump-str>0</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">previously_date</span>\": \"<span class=sf-dump-str>0</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">wireman_details</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">status</span>\": \"<span class=sf-dump-str>P</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_id</span>\": <span class=sf-dump-num>1</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">payment_status</span>\": \"<span class=sf-dump-str title=\"7 characters\">success</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_type</span>\": \"<span class=sf-dump-str>D</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_number</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">old_application</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">aadhaar</span>\": \"<span class=sf-dump-str title=\"200 characters\">eyJpdiI6IkdBclpxbHdQSkxaMnA3WEJ0ZENqeWc9PSIsInZhbHVlIjoiRXNnWk9TaXR5R3VPc21KVGJYeUtmdz09IiwibWFjIjoiZDI1NzU0NDhhYjVlOGEyMGU2OGZhM2Q4NDY2Y2VjMTJjY2RmNmZmNWZmNTlkNGQ4MDY2OGRiOTc5NjgzYzZlNSIsInRhZyI6IiJ9</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">pancard</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">aadhaar_doc</span>\": \"<span class=sf-dump-str title=\"22 characters\">1777956330_2756451.bin</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">pan_doc</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">certificate_no</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">certificate_date</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">cert_verify</span>\": <span class=sf-dump-num>0</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_verify</span>\": <span class=sf-dump-num>0</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">adminlverify</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">admincverify</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">submitted_date</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:32</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:32</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">previously_issue_date </span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">transaction_id</span>\": \"<span class=sf-dump-str title=\"9 characters\">TRX941210</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">amount</span>\": <span class=sf-dump-num>2500</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">payment_mode</span>\": \"<span class=sf-dump-str title=\"3 characters\">UPI</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">late_fees</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">late_months</span>\": <span class=sf-dump-num>0</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">transaction_date</span>\": \"<span class=sf-dump-str title=\"10 characters\">2026-05-04</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">late_fee</span>\": \"<span class=sf-dump-str>0</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_fee</span>\": <span class=sf-dump-num>0</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-678465858\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","educationalQualifications":"<pre class=sf-dump id=sf-dump-1879290812 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\Collection</span> {<a class=sf-dump-ref>#814</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">items</span>: <span class=sf-dump-note>array:2</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => {<a class=sf-dump-ref>#834</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>15</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">edu_serial</span>\": \"<span class=sf-dump-str title=\"6 characters\">edu_12</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">educational_level</span>\": \"<span class=sf-dump-str title=\"2 characters\">UG</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">institute_name</span>\": \"<span class=sf-dump-str title=\"38 characters\">St Josephs College of Arts and Science</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">year_of_passing</span>\": <span class=sf-dump-num>2024</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">certificate_no</span>\": \"<span class=sf-dump-str title=\"5 characters\">WH222</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"47 characters\">education_document/1777956330_69f975eaab206.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+    </samp>}
+    <span class=sf-dump-index>1</span> => {<a class=sf-dump-ref>#833</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>14</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">edu_serial</span>\": \"<span class=sf-dump-str title=\"6 characters\">edu_11</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">educational_level</span>\": \"<span class=sf-dump-str title=\"2 characters\">PG</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">institute_name</span>\": \"<span class=sf-dump-str title=\"5 characters\">NIITM</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">year_of_passing</span>\": <span class=sf-dump-num>2018</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">certificate_no</span>\": \"<span class=sf-dump-str title=\"4 characters\">C222</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"47 characters\">education_document/1777956181_69f9755588f5b.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:43:01</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+    </samp>}
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1879290812\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","workExperience":"<pre class=sf-dump id=sf-dump-349932153 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\Collection</span> {<a class=sf-dump-ref>#831</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">items</span>: <span class=sf-dump-note>array:2</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => {<a class=sf-dump-ref>#843</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>10</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_8</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">NIC</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"9 characters\">Developer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab08bd.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>1</span> => {<a class=sf-dump-ref>#847</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>11</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_9</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">AGS</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>3</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"12 characters\">Web designer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab18e5.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-349932153\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","uploadedPhoto":"<pre class=sf-dump id=sf-dump-1067033987 data-indent-pad=\"  \"><span class=sf-dump-note>App\\Models\\TnelbApplicantPhoto</span> {<a class=sf-dump-ref>#850</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">connection</span>: \"<span class=sf-dump-str title=\"5 characters\">pgsql</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">table</span>: \"<span class=sf-dump-str title=\"22 characters\">tnelb_applicant_photos</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">primaryKey</span>: \"<span class=sf-dump-str title=\"2 characters\">id</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">keyType</span>: \"<span class=sf-dump-str title=\"3 characters\">int</span>\"
+  +<span class=sf-dump-public title=\"Public property\">incrementing</span>: <span class=sf-dump-const>true</span>
+  #<span class=sf-dump-protected title=\"Protected property\">with</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">withCount</span>: []
+  +<span class=sf-dump-public title=\"Public property\">preventsLazyLoading</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">perPage</span>: <span class=sf-dump-num>15</span>
+  +<span class=sf-dump-public title=\"Public property\">exists</span>: <span class=sf-dump-const>true</span>
+  +<span class=sf-dump-public title=\"Public property\">wasRecentlyCreated</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">attributes</span>: <span class=sf-dump-note>array:6</span> [<samp data-depth=2 class=sf-dump-compact>
+    \"<span class=sf-dump-key>id</span>\" => <span class=sf-dump-num>11</span>
+    \"<span class=sf-dump-key>application_id</span>\" => \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+    \"<span class=sf-dump-key>login_id</span>\" => \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+    \"<span class=sf-dump-key>upload_path</span>\" => \"<span class=sf-dump-str title=\"38 characters\">attached_documents/user_1777956330.png</span>\"
+    \"<span class=sf-dump-key>created_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+    \"<span class=sf-dump-key>updated_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">original</span>: <span class=sf-dump-note>array:6</span> [<samp data-depth=2 class=sf-dump-compact>
+    \"<span class=sf-dump-key>id</span>\" => <span class=sf-dump-num>11</span>
+    \"<span class=sf-dump-key>application_id</span>\" => \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+    \"<span class=sf-dump-key>login_id</span>\" => \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+    \"<span class=sf-dump-key>upload_path</span>\" => \"<span class=sf-dump-str title=\"38 characters\">attached_documents/user_1777956330.png</span>\"
+    \"<span class=sf-dump-key>created_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+    \"<span class=sf-dump-key>updated_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">changes</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">casts</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">classCastCache</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">attributeCastCache</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dates</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dateFormat</span>: <span class=sf-dump-const>null</span>
+  #<span class=sf-dump-protected title=\"Protected property\">appends</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dispatchesEvents</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">observables</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">relations</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">touches</span>: []
+  +<span class=sf-dump-public title=\"Public property\">timestamps</span>: <span class=sf-dump-const>true</span>
+  #<span class=sf-dump-protected title=\"Protected property\">hidden</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">visible</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">fillable</span>: <span class=sf-dump-note>array:5</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => \"<span class=sf-dump-str title=\"14 characters\">application_id</span>\"
+    <span class=sf-dump-index>1</span> => \"<span class=sf-dump-str title=\"8 characters\">login_id</span>\"
+    <span class=sf-dump-index>2</span> => \"<span class=sf-dump-str title=\"11 characters\">upload_path</span>\"
+    <span class=sf-dump-index>3</span> => \"<span class=sf-dump-str title=\"10 characters\">created_at</span>\"
+    <span class=sf-dump-index>4</span> => \"<span class=sf-dump-str title=\"10 characters\">updated_at</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">guarded</span>: <span class=sf-dump-note>array:1</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => \"<span class=sf-dump-str>*</span>\"
+  </samp>]
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1067033987\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","uploadedSign":"<pre class=sf-dump id=sf-dump-1214230906 data-indent-pad=\"  \"><span class=sf-dump-const>null</span>
+</pre><script>Sfdump(\"sf-dump-1214230906\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","nextForwardUser":"<pre class=sf-dump id=sf-dump-2135062342 data-indent-pad=\"  \">{<a class=sf-dump-ref>#840</a><samp data-depth=1 class=sf-dump-expanded>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">name</span>\": \"<span class=sf-dump-str title=\"18 characters\">assistantsecretary</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">roles_id</span>\": <span class=sf-dump-num>2</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-2135062342\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","returnForwardUser":"<pre class=sf-dump id=sf-dump-1050134705 data-indent-pad=\"  \"><span class=sf-dump-const>null</span>
+</pre><script>Sfdump(\"sf-dump-1050134705\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","workflows":"<pre class=sf-dump id=sf-dump-970973459 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\Collection</span> {<a class=sf-dump-ref>#858</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">items</span>: <span class=sf-dump-note>array:7</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => {<a class=sf-dump-ref>#857</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>40</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": \"<span class=sf-dump-str title=\"10 characters\">Supervisor</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">forwarded_to</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_id</span>\": <span class=sf-dump-num>1</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_status</span>\": \"<span class=sf-dump-str title=\"2 characters\">RF</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remarks</span>\": \"<span class=sf-dump-str title=\"19 characters\">No remarks provided</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">query_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">is_verified</span>\": \"<span class=sf-dump-str title=\"3 characters\">Yes</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-06 23:11:52</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-07 06:11:52</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str>1</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">queries</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">raised_by</span>\": \"\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">chklist_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">reject_reason</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_name</span>\": \"<span class=sf-dump-str title=\"19 characters\">Assistant Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_queries</span>\": []
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_remarks</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>1</span> => {<a class=sf-dump-ref>#860</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>37</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": \"<span class=sf-dump-str title=\"9 characters\">President</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">forwarded_to</span>\": <span class=sf-dump-num>3</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_id</span>\": <span class=sf-dump-num>4</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_status</span>\": \"<span class=sf-dump-str title=\"2 characters\">RE</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remarks</span>\": \"<span class=sf-dump-str title=\"19 characters\">return to secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">query_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">is_verified</span>\": \"<span class=sf-dump-str title=\"3 characters\">Yes</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 06:18:13</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 06:18:13</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"2 characters\">11</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">queries</span>\": \"<span class=sf-dump-str title=\"4 characters\">null</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">raised_by</span>\": \"\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">chklist_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">reject_reason</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_name</span>\": \"<span class=sf-dump-str title=\"9 characters\">Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_queries</span>\": []
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_remarks</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>2</span> => {<a class=sf-dump-ref>#867</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>36</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": \"<span class=sf-dump-str title=\"9 characters\">Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">forwarded_to</span>\": <span class=sf-dump-num>4</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_id</span>\": <span class=sf-dump-num>3</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_status</span>\": \"<span class=sf-dump-str>F</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remarks</span>\": \"<span class=sf-dump-str title=\"9 characters\">forwarded</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">query_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">is_verified</span>\": \"<span class=sf-dump-str title=\"3 characters\">Yes</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-04 22:21:39</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 05:21:39</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str>9</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">queries</span>\": \"<span class=sf-dump-str title=\"6 characters\">[null]</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">raised_by</span>\": \"\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">chklist_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">reject_reason</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_name</span>\": \"<span class=sf-dump-str title=\"9 characters\">President</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_queries</span>\": []
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_remarks</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>3</span> => {<a class=sf-dump-ref>#864</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>35</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": \"<span class=sf-dump-str title=\"19 characters\">Assistant Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">forwarded_to</span>\": <span class=sf-dump-num>3</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_id</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_status</span>\": \"<span class=sf-dump-str>F</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remarks</span>\": \"<span class=sf-dump-str title=\"17 characters\">secretary forward</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">query_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">is_verified</span>\": \"<span class=sf-dump-str title=\"3 characters\">Yes</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-04 21:58:55</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:58:55</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str>7</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">queries</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">raised_by</span>\": \"\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">chklist_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">reject_reason</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_name</span>\": \"<span class=sf-dump-str title=\"9 characters\">Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_queries</span>\": []
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_remarks</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>4</span> => {<a class=sf-dump-ref>#865</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>34</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": \"<span class=sf-dump-str title=\"10 characters\">Supervisor</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">forwarded_to</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_id</span>\": <span class=sf-dump-num>1</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_status</span>\": \"<span class=sf-dump-str title=\"2 characters\">RF</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remarks</span>\": \"<span class=sf-dump-str title=\"7 characters\">forward</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">query_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">is_verified</span>\": \"<span class=sf-dump-str title=\"3 characters\">Yes</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-04 21:58:17</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:58:17</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str>1</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">queries</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">raised_by</span>\": \"\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">chklist_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">reject_reason</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_name</span>\": \"<span class=sf-dump-str title=\"19 characters\">Assistant Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_queries</span>\": []
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_remarks</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>5</span> => {<a class=sf-dump-ref>#868</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>33</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": \"<span class=sf-dump-str title=\"19 characters\">Assistant Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">forwarded_to</span>\": <span class=sf-dump-num>1</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_id</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_status</span>\": \"<span class=sf-dump-str title=\"2 characters\">RE</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remarks</span>\": \"<span class=sf-dump-str title=\"20 characters\">return to supervisor</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">query_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">is_verified</span>\": \"<span class=sf-dump-str title=\"3 characters\">Yes</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:57:40</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:57:40</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str>7</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">queries</span>\": \"<span class=sf-dump-str title=\"4 characters\">null</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">raised_by</span>\": \"\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">chklist_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">reject_reason</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_name</span>\": \"<span class=sf-dump-str title=\"10 characters\">Supervisor</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_queries</span>\": []
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_remarks</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>6</span> => {<a class=sf-dump-ref>#866</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>32</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": \"<span class=sf-dump-str title=\"10 characters\">Supervisor</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">forwarded_to</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_id</span>\": <span class=sf-dump-num>1</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_status</span>\": \"<span class=sf-dump-str>F</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remarks</span>\": \"<span class=sf-dump-str title=\"19 characters\">No remarks provided</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">query_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">is_verified</span>\": \"<span class=sf-dump-str title=\"3 characters\">Yes</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-04 21:55:41</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:55:41</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str>1</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">queries</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">raised_by</span>\": \"\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">chklist_status</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">reject_reason</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">role_name</span>\": \"<span class=sf-dump-str title=\"19 characters\">Assistant Secretary</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_queries</span>\": []
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">return_log_internal_remarks</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-970973459\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","queries":"<pre class=sf-dump id=sf-dump-758644817 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\Collection</span> {<a class=sf-dump-ref>#856</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">items</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-758644817\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","user_entry":"<pre class=sf-dump id=sf-dump-1457862328 data-indent-pad=\"  \">{<a class=sf-dump-ref>#848</a><samp data-depth=1 class=sf-dump-expanded>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>9</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">applicant_name</span>\": \"<span class=sf-dump-str title=\"19 characters\">Mr Saravana Perumal</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">fathers_name</span>\": \"<span class=sf-dump-str title=\"7 characters\">perumal</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">applicants_address</span>\": \"<span class=sf-dump-str title=\"7 characters\">chennai</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">d_o_b</span>\": \"<span class=sf-dump-str title=\"10 characters\">07-05-1998</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">age</span>\": \"<span class=sf-dump-str title=\"2 characters\">27</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">previously_number</span>\": \"<span class=sf-dump-str>0</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">previously_date</span>\": \"<span class=sf-dump-str>0</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">wireman_details</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_name</span>\": \"<span class=sf-dump-str>S</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_name</span>\": \"<span class=sf-dump-str>C</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">status</span>\": \"<span class=sf-dump-str>P</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">form_id</span>\": <span class=sf-dump-num>1</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">processed_by</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">payment_status</span>\": \"<span class=sf-dump-str title=\"7 characters\">payment</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">appl_type</span>\": \"<span class=sf-dump-str>D</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_number</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">old_application</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">aadhaar</span>\": \"<span class=sf-dump-str title=\"200 characters\">eyJpdiI6IkdBclpxbHdQSkxaMnA3WEJ0ZENqeWc9PSIsInZhbHVlIjoiRXNnWk9TaXR5R3VPc21KVGJYeUtmdz09IiwibWFjIjoiZDI1NzU0NDhhYjVlOGEyMGU2OGZhM2Q4NDY2Y2VjMTJjY2RmNmZmNWZmNTlkNGQ4MDY2OGRiOTc5NjgzYzZlNSIsInRhZyI6IiJ9</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">pancard</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">aadhaar_doc</span>\": \"<span class=sf-dump-str title=\"22 characters\">1777956330_2756451.bin</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">pan_doc</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">certificate_no</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">certificate_date</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">cert_verify</span>\": <span class=sf-dump-num>0</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">license_verify</span>\": <span class=sf-dump-num>0</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">adminlverify</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">admincverify</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">submitted_date</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-04 21:43:00</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-06 23:11:52</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">previously_issue_date </span>\": <span class=sf-dump-const>null</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1457862328\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","staff":"<pre class=sf-dump id=sf-dump-1236975211 data-indent-pad=\"  \"><span class=sf-dump-note>App\\Models\\Admin\\Mst_Logins</span> {<a class=sf-dump-ref>#838</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">connection</span>: \"<span class=sf-dump-str title=\"5 characters\">pgsql</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">table</span>: \"<span class=sf-dump-str title=\"15 characters\">mst_login_users</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">primaryKey</span>: \"<span class=sf-dump-str title=\"4 characters\">s_id</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">keyType</span>: \"<span class=sf-dump-str title=\"3 characters\">int</span>\"
+  +<span class=sf-dump-public title=\"Public property\">incrementing</span>: <span class=sf-dump-const>true</span>
+  #<span class=sf-dump-protected title=\"Protected property\">with</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">withCount</span>: []
+  +<span class=sf-dump-public title=\"Public property\">preventsLazyLoading</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">perPage</span>: <span class=sf-dump-num>15</span>
+  +<span class=sf-dump-public title=\"Public property\">exists</span>: <span class=sf-dump-const>true</span>
+  +<span class=sf-dump-public title=\"Public property\">wasRecentlyCreated</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">attributes</span>: <span class=sf-dump-note>array:10</span> [<samp data-depth=2 class=sf-dump-compact>
+    \"<span class=sf-dump-key>s_id</span>\" => <span class=sf-dump-num>1</span>
+    \"<span class=sf-dump-key>role_id</span>\" => <span class=sf-dump-num>1</span>
+    \"<span class=sf-dump-key>user_name</span>\" => \"<span class=sf-dump-str title=\"11 characters\">supervisor1</span>\"
+    \"<span class=sf-dump-key>user_email</span>\" => \"<span class=sf-dump-str title=\"21 characters\">supervisor1@tnelb.com</span>\"
+    \"<span class=sf-dump-key>user_passwd</span>\" => \"<span class=sf-dump-str title=\"60 characters\">$2y$10$4LmgpOYhM4asFBQixjDEDeMdArwKTYsHMOFlXH0519J/zt63TE6j6</span>\"
+    \"<span class=sf-dump-key>user_status</span>\" => \"<span class=sf-dump-str>1</span>\"
+    \"<span class=sf-dump-key>updated_by</span>\" => <span class=sf-dump-num>12</span>
+    \"<span class=sf-dump-key>created_at</span>\" => \"<span class=sf-dump-str title=\"19 characters\">2026-02-05 19:17:40</span>\"
+    \"<span class=sf-dump-key>updated_at</span>\" => \"<span class=sf-dump-str title=\"19 characters\">2026-03-04 05:16:38</span>\"
+    \"<span class=sf-dump-key>created_by</span>\" => <span class=sf-dump-num>5</span>
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">original</span>: <span class=sf-dump-note>array:10</span> [<samp data-depth=2 class=sf-dump-compact>
+    \"<span class=sf-dump-key>s_id</span>\" => <span class=sf-dump-num>1</span>
+    \"<span class=sf-dump-key>role_id</span>\" => <span class=sf-dump-num>1</span>
+    \"<span class=sf-dump-key>user_name</span>\" => \"<span class=sf-dump-str title=\"11 characters\">supervisor1</span>\"
+    \"<span class=sf-dump-key>user_email</span>\" => \"<span class=sf-dump-str title=\"21 characters\">supervisor1@tnelb.com</span>\"
+    \"<span class=sf-dump-key>user_passwd</span>\" => \"<span class=sf-dump-str title=\"60 characters\">$2y$10$4LmgpOYhM4asFBQixjDEDeMdArwKTYsHMOFlXH0519J/zt63TE6j6</span>\"
+    \"<span class=sf-dump-key>user_status</span>\" => \"<span class=sf-dump-str>1</span>\"
+    \"<span class=sf-dump-key>updated_by</span>\" => <span class=sf-dump-num>12</span>
+    \"<span class=sf-dump-key>created_at</span>\" => \"<span class=sf-dump-str title=\"19 characters\">2026-02-05 19:17:40</span>\"
+    \"<span class=sf-dump-key>updated_at</span>\" => \"<span class=sf-dump-str title=\"19 characters\">2026-03-04 05:16:38</span>\"
+    \"<span class=sf-dump-key>created_by</span>\" => <span class=sf-dump-num>5</span>
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">changes</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">casts</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">classCastCache</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">attributeCastCache</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dates</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dateFormat</span>: <span class=sf-dump-const>null</span>
+  #<span class=sf-dump-protected title=\"Protected property\">appends</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dispatchesEvents</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">observables</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">relations</span>: <span class=sf-dump-note>array:1</span> [<samp data-depth=2 class=sf-dump-compact>
+    \"<span class=sf-dump-key>role</span>\" => <span class=\"sf-dump-note sf-dump-ellipsization\" title=\"App\\Models\\Admin\\Mst_Roles
+\"><span class=\"sf-dump-ellipsis sf-dump-ellipsis-note\">App\\Models\\Admin</span><span class=\"sf-dump-ellipsis sf-dump-ellipsis-note\">\\</span><span class=\"sf-dump-ellipsis-tail\">Mst_Roles</span></span> {<a class=sf-dump-ref>#855</a><samp data-depth=3 class=sf-dump-compact>
+      #<span class=sf-dump-protected title=\"Protected property\">connection</span>: \"<span class=sf-dump-str title=\"5 characters\">pgsql</span>\"
+      #<span class=sf-dump-protected title=\"Protected property\">table</span>: \"<span class=sf-dump-str title=\"9 characters\">mst_roles</span>\"
+      #<span class=sf-dump-protected title=\"Protected property\">primaryKey</span>: \"<span class=sf-dump-str title=\"4 characters\">r_id</span>\"
+      #<span class=sf-dump-protected title=\"Protected property\">keyType</span>: \"<span class=sf-dump-str title=\"3 characters\">int</span>\"
+      +<span class=sf-dump-public title=\"Public property\">incrementing</span>: <span class=sf-dump-const>true</span>
+      #<span class=sf-dump-protected title=\"Protected property\">with</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">withCount</span>: []
+      +<span class=sf-dump-public title=\"Public property\">preventsLazyLoading</span>: <span class=sf-dump-const>false</span>
+      #<span class=sf-dump-protected title=\"Protected property\">perPage</span>: <span class=sf-dump-num>15</span>
+      +<span class=sf-dump-public title=\"Public property\">exists</span>: <span class=sf-dump-const>true</span>
+      +<span class=sf-dump-public title=\"Public property\">wasRecentlyCreated</span>: <span class=sf-dump-const>false</span>
+      #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+      #<span class=sf-dump-protected title=\"Protected property\">attributes</span>: <span class=sf-dump-note>array:9</span> [ &#8230;9]
+      #<span class=sf-dump-protected title=\"Protected property\">original</span>: <span class=sf-dump-note>array:9</span> [ &#8230;9]
+      #<span class=sf-dump-protected title=\"Protected property\">changes</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">casts</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">classCastCache</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">attributeCastCache</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">dates</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">dateFormat</span>: <span class=sf-dump-const>null</span>
+      #<span class=sf-dump-protected title=\"Protected property\">appends</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">dispatchesEvents</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">observables</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">relations</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">touches</span>: []
+      +<span class=sf-dump-public title=\"Public property\">timestamps</span>: <span class=sf-dump-const>true</span>
+      #<span class=sf-dump-protected title=\"Protected property\">hidden</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">visible</span>: []
+      #<span class=sf-dump-protected title=\"Protected property\">fillable</span>: <span class=sf-dump-note>array:1</span> [ &#8230;1]
+      #<span class=sf-dump-protected title=\"Protected property\">guarded</span>: <span class=sf-dump-note>array:1</span> [ &#8230;1]
+    </samp>}
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">touches</span>: []
+  +<span class=sf-dump-public title=\"Public property\">timestamps</span>: <span class=sf-dump-const>true</span>
+  #<span class=sf-dump-protected title=\"Protected property\">hidden</span>: <span class=sf-dump-note>array:1</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => \"<span class=sf-dump-str title=\"11 characters\">user_passwd</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">visible</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">fillable</span>: <span class=sf-dump-note>array:6</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => \"<span class=sf-dump-str title=\"7 characters\">role_id</span>\"
+    <span class=sf-dump-index>1</span> => \"<span class=sf-dump-str title=\"9 characters\">user_name</span>\"
+    <span class=sf-dump-index>2</span> => \"<span class=sf-dump-str title=\"10 characters\">user_email</span>\"
+    <span class=sf-dump-index>3</span> => \"<span class=sf-dump-str title=\"11 characters\">user_passwd</span>\"
+    <span class=sf-dump-index>4</span> => \"<span class=sf-dump-str title=\"11 characters\">user_status</span>\"
+    <span class=sf-dump-index>5</span> => \"<span class=sf-dump-str title=\"10 characters\">updated_by</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">guarded</span>: <span class=sf-dump-note>array:1</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => \"<span class=sf-dump-str>*</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">rememberTokenName</span>: \"<span class=sf-dump-str title=\"14 characters\">remember_token</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">guard</span>: \"<span class=sf-dump-str title=\"5 characters\">admin</span>\"
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1236975211\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","editFormName":"<pre class=sf-dump id=sf-dump-190441501 data-indent-pad=\"  \">\"<span class=sf-dump-str>S</span>\"
+</pre><script>Sfdump(\"sf-dump-190441501\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","photo":"<pre class=sf-dump id=sf-dump-1716917982 data-indent-pad=\"  \"><span class=sf-dump-note>App\\Models\\TnelbApplicantPhoto</span> {<a class=sf-dump-ref>#850</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">connection</span>: \"<span class=sf-dump-str title=\"5 characters\">pgsql</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">table</span>: \"<span class=sf-dump-str title=\"22 characters\">tnelb_applicant_photos</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">primaryKey</span>: \"<span class=sf-dump-str title=\"2 characters\">id</span>\"
+  #<span class=sf-dump-protected title=\"Protected property\">keyType</span>: \"<span class=sf-dump-str title=\"3 characters\">int</span>\"
+  +<span class=sf-dump-public title=\"Public property\">incrementing</span>: <span class=sf-dump-const>true</span>
+  #<span class=sf-dump-protected title=\"Protected property\">with</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">withCount</span>: []
+  +<span class=sf-dump-public title=\"Public property\">preventsLazyLoading</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">perPage</span>: <span class=sf-dump-num>15</span>
+  +<span class=sf-dump-public title=\"Public property\">exists</span>: <span class=sf-dump-const>true</span>
+  +<span class=sf-dump-public title=\"Public property\">wasRecentlyCreated</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+  #<span class=sf-dump-protected title=\"Protected property\">attributes</span>: <span class=sf-dump-note>array:6</span> [<samp data-depth=2 class=sf-dump-compact>
+    \"<span class=sf-dump-key>id</span>\" => <span class=sf-dump-num>11</span>
+    \"<span class=sf-dump-key>application_id</span>\" => \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+    \"<span class=sf-dump-key>login_id</span>\" => \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+    \"<span class=sf-dump-key>upload_path</span>\" => \"<span class=sf-dump-str title=\"38 characters\">attached_documents/user_1777956330.png</span>\"
+    \"<span class=sf-dump-key>created_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+    \"<span class=sf-dump-key>updated_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">original</span>: <span class=sf-dump-note>array:6</span> [<samp data-depth=2 class=sf-dump-compact>
+    \"<span class=sf-dump-key>id</span>\" => <span class=sf-dump-num>11</span>
+    \"<span class=sf-dump-key>application_id</span>\" => \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+    \"<span class=sf-dump-key>login_id</span>\" => \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+    \"<span class=sf-dump-key>upload_path</span>\" => \"<span class=sf-dump-str title=\"38 characters\">attached_documents/user_1777956330.png</span>\"
+    \"<span class=sf-dump-key>created_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+    \"<span class=sf-dump-key>updated_at</span>\" => \"<span class=sf-dump-str title=\"10 characters\">2026-05-05</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">changes</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">casts</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">classCastCache</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">attributeCastCache</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dates</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dateFormat</span>: <span class=sf-dump-const>null</span>
+  #<span class=sf-dump-protected title=\"Protected property\">appends</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">dispatchesEvents</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">observables</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">relations</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">touches</span>: []
+  +<span class=sf-dump-public title=\"Public property\">timestamps</span>: <span class=sf-dump-const>true</span>
+  #<span class=sf-dump-protected title=\"Protected property\">hidden</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">visible</span>: []
+  #<span class=sf-dump-protected title=\"Protected property\">fillable</span>: <span class=sf-dump-note>array:5</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => \"<span class=sf-dump-str title=\"14 characters\">application_id</span>\"
+    <span class=sf-dump-index>1</span> => \"<span class=sf-dump-str title=\"8 characters\">login_id</span>\"
+    <span class=sf-dump-index>2</span> => \"<span class=sf-dump-str title=\"11 characters\">upload_path</span>\"
+    <span class=sf-dump-index>3</span> => \"<span class=sf-dump-str title=\"10 characters\">created_at</span>\"
+    <span class=sf-dump-index>4</span> => \"<span class=sf-dump-str title=\"10 characters\">updated_at</span>\"
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">guarded</span>: <span class=sf-dump-note>array:1</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => \"<span class=sf-dump-str>*</span>\"
+  </samp>]
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1716917982\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","photoPath":"<pre class=sf-dump id=sf-dump-1671780876 data-indent-pad=\"  \">\"<span class=sf-dump-str title=\"38 characters\">attached_documents/user_1777956330.png</span>\"
+</pre><script>Sfdump(\"sf-dump-1671780876\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","signPath":"<pre class=sf-dump id=sf-dump-1110757227 data-indent-pad=\"  \"><span class=sf-dump-const>null</span>
+</pre><script>Sfdump(\"sf-dump-1110757227\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","monthLabels":"<pre class=sf-dump id=sf-dump-1919330743 data-indent-pad=\"  \"><span class=sf-dump-note>array:12</span> [<samp data-depth=1 class=sf-dump-expanded>
+  \"<span class=sf-dump-key>01</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Jan</span>\"
+  \"<span class=sf-dump-key>02</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Feb</span>\"
+  \"<span class=sf-dump-key>03</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Mar</span>\"
+  \"<span class=sf-dump-key>04</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Apr</span>\"
+  \"<span class=sf-dump-key>05</span>\" => \"<span class=sf-dump-str title=\"3 characters\">May</span>\"
+  \"<span class=sf-dump-key>06</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Jun</span>\"
+  \"<span class=sf-dump-key>07</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Jul</span>\"
+  \"<span class=sf-dump-key>08</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Aug</span>\"
+  \"<span class=sf-dump-key>09</span>\" => \"<span class=sf-dump-str title=\"3 characters\">Sep</span>\"
+  <span class=sf-dump-key>10</span> => \"<span class=sf-dump-str title=\"3 characters\">Oct</span>\"
+  <span class=sf-dump-key>11</span> => \"<span class=sf-dump-str title=\"3 characters\">Nov</span>\"
+  <span class=sf-dump-key>12</span> => \"<span class=sf-dump-str title=\"3 characters\">Dec</span>\"
+</samp>]
+</pre><script>Sfdump(\"sf-dump-1919330743\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","__empty_1":"<pre class=sf-dump id=sf-dump-1087755215 data-indent-pad=\"  \"><span class=sf-dump-const>false</span>
+</pre><script>Sfdump(\"sf-dump-1087755215\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","__currentLoopData":"<pre class=sf-dump id=sf-dump-1930348435 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\Collection</span> {<a class=sf-dump-ref>#831</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">items</span>: <span class=sf-dump-note>array:2</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => {<a class=sf-dump-ref>#843</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>10</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_8</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">NIC</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"9 characters\">Developer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab08bd.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>1</span> => {<a class=sf-dump-ref>#847</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>11</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_9</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">AGS</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>3</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"12 characters\">Web designer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab18e5.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1930348435\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","education":"<pre class=sf-dump id=sf-dump-1127660624 data-indent-pad=\"  \">{<a class=sf-dump-ref>#833</a><samp data-depth=1 class=sf-dump-expanded>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>14</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">edu_serial</span>\": \"<span class=sf-dump-str title=\"6 characters\">edu_11</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">educational_level</span>\": \"<span class=sf-dump-str title=\"2 characters\">PG</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">institute_name</span>\": \"<span class=sf-dump-str title=\"5 characters\">NIITM</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">year_of_passing</span>\": <span class=sf-dump-num>2018</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">certificate_no</span>\": \"<span class=sf-dump-str title=\"4 characters\">C222</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"47 characters\">education_document/1777956181_69f9755588f5b.pdf</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:43:01</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1127660624\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","loop":"<pre class=sf-dump id=sf-dump-269647020 data-indent-pad=\"  \">{<a class=sf-dump-ref>#879</a><samp data-depth=1 class=sf-dump-expanded>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">iteration</span>\": <span class=sf-dump-num>1</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">index</span>\": <span class=sf-dump-num>0</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">remaining</span>\": <span class=sf-dump-num>1</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">count</span>\": <span class=sf-dump-num>2</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">first</span>\": <span class=sf-dump-const>true</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">last</span>\": <span class=sf-dump-const>false</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">odd</span>\": <span class=sf-dump-const>true</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">even</span>\": <span class=sf-dump-const>false</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">depth</span>\": <span class=sf-dump-num>1</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">parent</span>\": <span class=sf-dump-const>null</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-269647020\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","rawMonth":"<pre class=sf-dump id=sf-dump-1750794551 data-indent-pad=\"  \">\"\"
+</pre><script>Sfdump(\"sf-dump-1750794551\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","monthKey":"<pre class=sf-dump id=sf-dump-197170398 data-indent-pad=\"  \">\"\"
+</pre><script>Sfdump(\"sf-dump-197170398\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","monthDisplay":"<pre class=sf-dump id=sf-dump-16855502 data-indent-pad=\"  \">\"<span class=sf-dump-str>-</span>\"
+</pre><script>Sfdump(\"sf-dump-16855502\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","certificateNo":"<pre class=sf-dump id=sf-dump-399510974 data-indent-pad=\"  \">\"<span class=sf-dump-str title=\"4 characters\">C222</span>\"
+</pre><script>Sfdump(\"sf-dump-399510974\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","percentage":"<pre class=sf-dump id=sf-dump-1006485698 data-indent-pad=\"  \"><span class=sf-dump-const>null</span>
+</pre><script>Sfdump(\"sf-dump-1006485698\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","fileExtension":"<pre class=sf-dump id=sf-dump-1097160569 data-indent-pad=\"  \">\"<span class=sf-dump-str title=\"3 characters\">pdf</span>\"
+</pre><script>Sfdump(\"sf-dump-1097160569\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","isFormS":"<pre class=sf-dump id=sf-dump-1812251807 data-indent-pad=\"  \"><span class=sf-dump-const>true</span>
+</pre><script>Sfdump(\"sf-dump-1812251807\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","expList":"<pre class=sf-dump id=sf-dump-598978962 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\Collection</span> {<a class=sf-dump-ref>#831</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">items</span>: <span class=sf-dump-note>array:2</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => {<a class=sf-dump-ref>#843</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>10</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_8</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">NIC</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"9 characters\">Developer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab08bd.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>1</span> => {<a class=sf-dump-ref>#847</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>11</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_9</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">AGS</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>3</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"12 characters\">Web designer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab18e5.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-598978962\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","exp_details":"<pre class=sf-dump id=sf-dump-538995536 data-indent-pad=\"  \"><span class=sf-dump-note>Illuminate\\Support\\Collection</span> {<a class=sf-dump-ref>#831</a><samp data-depth=1 class=sf-dump-expanded>
+  #<span class=sf-dump-protected title=\"Protected property\">items</span>: <span class=sf-dump-note>array:2</span> [<samp data-depth=2 class=sf-dump-compact>
+    <span class=sf-dump-index>0</span> => {<a class=sf-dump-ref>#843</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>10</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_8</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">NIC</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>2</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"9 characters\">Developer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab08bd.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+    <span class=sf-dump-index>1</span> => {<a class=sf-dump-ref>#847</a><samp data-depth=3 class=sf-dump-compact>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>11</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_9</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">AGS</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>3</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"12 characters\">Web designer</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab18e5.pdf</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+      +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+    </samp>}
+  </samp>]
+  #<span class=sf-dump-protected title=\"Protected property\">escapeWhenCastingToString</span>: <span class=sf-dump-const>false</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-538995536\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","expRow":"<pre class=sf-dump id=sf-dump-1322814282 data-indent-pad=\"  \">{<a class=sf-dump-ref>#843</a><samp data-depth=1 class=sf-dump-expanded>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">id</span>\": <span class=sf-dump-num>10</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">login_id</span>\": \"<span class=sf-dump-str title=\"10 characters\">tnelb_1121</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">application_id</span>\": \"<span class=sf-dump-str title=\"11 characters\">SC261111117</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">exp_serial</span>\": \"<span class=sf-dump-str title=\"5 characters\">exp_8</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">company_name</span>\": \"<span class=sf-dump-str title=\"3 characters\">NIC</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">experience</span>\": <span class=sf-dump-num>2</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">designation</span>\": \"<span class=sf-dump-str title=\"9 characters\">Developer</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">upload_document</span>\": \"<span class=sf-dump-str title=\"44 characters\">work_experience/1777956330_69f975eab08bd.pdf</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">created_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">updated_at</span>\": \"<span class=sf-dump-str title=\"19 characters\">2026-05-05 04:45:30</span>\"
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">from_date</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">to_date</span>\": <span class=sf-dump-const>null</span>
+  +\"<span class=sf-dump-public title=\"Runtime added dynamic property\">intimation_date</span>\": <span class=sf-dump-const>null</span>
+</samp>}
+</pre><script>Sfdump(\"sf-dump-1322814282\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","index":"<pre class=sf-dump id=sf-dump-126644763 data-indent-pad=\"  \"><span class=sf-dump-num>0</span>
+</pre><script>Sfdump(\"sf-dump-126644763\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+","sno":"<pre class=sf-dump id=sf-dump-1646744772 data-indent-pad=\"  \"><span class=sf-dump-num>1</span>
+</pre><script>Sfdump(\"sf-dump-1646744772\", {\"maxDepth\":3,\"maxStringLength\":160})</script>
+"}},"userId":1,"exception":"[object] (Spatie\\LaravelIgnition\\Exceptions\\ViewException(code: 0): Undefined property: stdClass::$transformer_kva at D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\resources\\views\\user_login\\partials\\form-s-work-exp-view-row.blade.php:55)
+[stacktrace]
+#0 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\HandleExceptions.php(272): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'Undefined prope...', 'D:\\\\laravel_prog...', 55)
+#1 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\resources\\views\\user_login\\partials\\form-s-work-exp-view-row.blade.php(55): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->Illuminate\\Foundation\\Bootstrap\\{closure}(2, 'Undefined prope...', 'D:\\\\laravel_prog...', 55)
+#2 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#3 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#4 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#5 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#6 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#7 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#8 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#9 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\resources\\views\\user_login\\partials\\form-s-work-exp-view.blade.php(21): Illuminate\\View\\View->render()
+#10 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#11 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#12 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#13 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#14 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#15 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#16 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#17 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\resources\\views\\admin\\partials\\form-s-work-exp-readonly.blade.php(8): Illuminate\\View\\View->render()
+#18 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#19 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#20 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#21 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#22 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#23 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#24 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#25 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\resources\\views\\admin\\dashboard\\applicants_detail_supervisor.blade.php(722): Illuminate\\View\\View->render()
+#26 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#27 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#28 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#29 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#30 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#31 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#32 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#33 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Response.php(69): Illuminate\\View\\View->render()
+#34 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Response.php(35): Illuminate\\Http\\Response->setContent(Object(Illuminate\\View\\View))
+#35 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(906): Illuminate\\Http\\Response->__construct(Object(Illuminate\\View\\View), 200, Array)
+#36 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(875): Illuminate\\Routing\\Router::toResponse(Object(Illuminate\\Http\\Request), Object(Illuminate\\View\\View))
+#37 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(797): Illuminate\\Routing\\Router->prepareResponse(Object(Illuminate\\Http\\Request), Object(Illuminate\\View\\View))
+#38 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Routing\\Router->Illuminate\\Routing\\{closure}(Object(Illuminate\\Http\\Request))
+#39 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Middleware\\SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#40 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#41 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Auth\\Middleware\\Authenticate.php(44): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#42 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Auth\\Middleware\\Authenticate->handle(Object(Illuminate\\Http\\Request), Object(Closure), 'admin')
+#43 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken.php(78): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#44 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#45 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Middleware\\ShareErrorsFromSession.php(49): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#46 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\View\\Middleware\\ShareErrorsFromSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#47 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(121): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#48 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(64): Illuminate\\Session\\Middleware\\StartSession->handleStatefulRequest(Object(Illuminate\\Http\\Request), Object(Illuminate\\Session\\Store), Object(Closure))
+#49 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Session\\Middleware\\StartSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#50 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse.php(37): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#51 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#52 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\EncryptCookies.php(67): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#53 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\EncryptCookies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#54 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Middleware\\DynamicSessionCookie.php(19): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#55 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): App\\Http\\Middleware\\DynamicSessionCookie->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#56 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#57 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(797): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#58 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(776): Illuminate\\Routing\\Router->runRouteWithinStack(Object(Illuminate\\Routing\\Route), Object(Illuminate\\Http\\Request))
+#59 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(740): Illuminate\\Routing\\Router->runRoute(Object(Illuminate\\Http\\Request), Object(Illuminate\\Routing\\Route))
+#60 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(729): Illuminate\\Routing\\Router->dispatchToRoute(Object(Illuminate\\Http\\Request))
+#61 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(190): Illuminate\\Routing\\Router->dispatch(Object(Illuminate\\Http\\Request))
+#62 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}(Object(Illuminate\\Http\\Request))
+#63 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#64 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#65 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#66 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#67 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TrimStrings.php(40): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#68 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#69 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#70 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#71 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance.php(86): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#72 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#73 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Middleware\\TrustProxies.php(39): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#74 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Http\\Middleware\\TrustProxies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#75 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#76 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(165): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#77 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(134): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#78 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\public\\index.php(51): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#79 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('D:\\\\laravel_prog...')
+#80 {main}
+
+[previous exception] [object] (ErrorException(code: 0): Undefined property: stdClass::$transformer_kva at D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\storage\\framework\\views\\2a469a899f708c53e98671671fa6802e52f6c03b.php:55)
+[stacktrace]
+#0 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\HandleExceptions.php(272): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'Undefined prope...', 'D:\\\\laravel_prog...', 55)
+#1 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\storage\\framework\\views\\2a469a899f708c53e98671671fa6802e52f6c03b.php(55): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->Illuminate\\Foundation\\Bootstrap\\{closure}(2, 'Undefined prope...', 'D:\\\\laravel_prog...', 55)
+#2 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#3 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#4 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#5 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#6 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#7 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#8 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#9 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\storage\\framework\\views\\aa51a21b05f92d192ceafcc235ed2471972d9202.php(21): Illuminate\\View\\View->render()
+#10 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#11 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#12 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#13 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#14 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#15 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#16 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#17 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\storage\\framework\\views\\017a1e383997ef183a426b2be2fc34a70b9cc7d2.php(8): Illuminate\\View\\View->render()
+#18 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#19 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#20 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#21 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#22 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#23 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#24 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#25 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\storage\\framework\\views\\e1f1d79a5c255b4b9830b5d2eff05513257d8a06.php(724): Illuminate\\View\\View->render()
+#26 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(109): require('D:\\\\laravel_prog...')
+#27 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Filesystem\\Filesystem.php(110): Illuminate\\Filesystem\\Filesystem::Illuminate\\Filesystem\\{closure}()
+#28 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\PhpEngine.php(58): Illuminate\\Filesystem\\Filesystem->getRequire('D:\\\\laravel_prog...', Array)
+#29 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Engines\\CompilerEngine.php(70): Illuminate\\View\\Engines\\PhpEngine->evaluatePath('D:\\\\laravel_prog...', Array)
+#30 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(195): Illuminate\\View\\Engines\\CompilerEngine->get('D:\\\\laravel_prog...', Array)
+#31 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(178): Illuminate\\View\\View->getContents()
+#32 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\View.php(147): Illuminate\\View\\View->renderContents()
+#33 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Response.php(69): Illuminate\\View\\View->render()
+#34 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Response.php(35): Illuminate\\Http\\Response->setContent(Object(Illuminate\\View\\View))
+#35 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(906): Illuminate\\Http\\Response->__construct(Object(Illuminate\\View\\View), 200, Array)
+#36 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(875): Illuminate\\Routing\\Router::toResponse(Object(Illuminate\\Http\\Request), Object(Illuminate\\View\\View))
+#37 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(797): Illuminate\\Routing\\Router->prepareResponse(Object(Illuminate\\Http\\Request), Object(Illuminate\\View\\View))
+#38 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Routing\\Router->Illuminate\\Routing\\{closure}(Object(Illuminate\\Http\\Request))
+#39 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Middleware\\SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#40 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#41 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Auth\\Middleware\\Authenticate.php(44): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#42 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Auth\\Middleware\\Authenticate->handle(Object(Illuminate\\Http\\Request), Object(Closure), 'admin')
+#43 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken.php(78): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#44 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#45 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Middleware\\ShareErrorsFromSession.php(49): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#46 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\View\\Middleware\\ShareErrorsFromSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#47 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(121): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#48 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(64): Illuminate\\Session\\Middleware\\StartSession->handleStatefulRequest(Object(Illuminate\\Http\\Request), Object(Illuminate\\Session\\Store), Object(Closure))
+#49 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Session\\Middleware\\StartSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#50 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse.php(37): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#51 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#52 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\EncryptCookies.php(67): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#53 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\EncryptCookies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#54 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Middleware\\DynamicSessionCookie.php(19): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#55 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): App\\Http\\Middleware\\DynamicSessionCookie->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#56 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#57 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(797): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#58 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(776): Illuminate\\Routing\\Router->runRouteWithinStack(Object(Illuminate\\Routing\\Route), Object(Illuminate\\Http\\Request))
+#59 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(740): Illuminate\\Routing\\Router->runRoute(Object(Illuminate\\Http\\Request), Object(Illuminate\\Routing\\Route))
+#60 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(729): Illuminate\\Routing\\Router->dispatchToRoute(Object(Illuminate\\Http\\Request))
+#61 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(190): Illuminate\\Routing\\Router->dispatch(Object(Illuminate\\Http\\Request))
+#62 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}(Object(Illuminate\\Http\\Request))
+#63 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#64 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#65 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#66 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#67 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TrimStrings.php(40): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#68 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#69 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#70 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#71 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance.php(86): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#72 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#73 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Middleware\\TrustProxies.php(39): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#74 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Http\\Middleware\\TrustProxies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#75 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#76 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(165): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#77 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(134): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#78 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\public\\index.php(51): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#79 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('D:\\\\laravel_prog...')
+#80 {main}
+"} 
+[2026-06-23 05:56:23] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 05:57:35] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 05:58:20] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 06:00:21] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 06:07:23] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 06:46:34] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 06:50:16] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 07:18:23] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 07:19:32] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 07:19:56] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 07:19:56] production.ERROR: Approval Error {"message":"SQLSTATE[25P02]: In failed sql transaction: 7 ERROR:  current transaction is aborted, commands ignored until end of transaction block (SQL: insert into \"tnelb_workflow\" (\"application_id\", \"processed_by\", \"role_id\", \"appl_status\", \"remarks\", \"forwarded_to\", \"created_at\") values (SC261111117, President, 4, A, No remarks provided, ?, 2026-06-23 00:19:55))","line":760,"file":"D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php","trace":"#0 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(720): Illuminate\\Database\\Connection->runQueryCallback('insert into \"tn...', Array, Object(Closure))
+#1 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(534): Illuminate\\Database\\Connection->run('insert into \"tn...', Array, Object(Closure))
+#2 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(498): Illuminate\\Database\\Connection->statement('insert into \"tn...', Array)
+#3 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Query\\Builder.php(3272): Illuminate\\Database\\Connection->insert('insert into \"tn...', Array)
+#4 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Controllers\\Admin\\SupervisorController.php(1567): Illuminate\\Database\\Query\\Builder->insert(Array)
+#5 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Controller.php(54): App\\Http\\Controllers\\Admin\\SupervisorController->approveApplication(Object(Illuminate\\Http\\Request))
+#6 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\ControllerDispatcher.php(43): Illuminate\\Routing\\Controller->callAction('approveApplicat...', Array)
+#7 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Route.php(259): Illuminate\\Routing\\ControllerDispatcher->dispatch(Object(Illuminate\\Routing\\Route), Object(App\\Http\\Controllers\\Admin\\SupervisorController), 'approveApplicat...')
+#8 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Route.php(205): Illuminate\\Routing\\Route->runController()
+#9 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(798): Illuminate\\Routing\\Route->run()
+#10 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Routing\\Router->Illuminate\\Routing\\{closure}(Object(Illuminate\\Http\\Request))
+#11 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Middleware\\SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#12 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#13 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Auth\\Middleware\\Authenticate.php(44): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#14 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Auth\\Middleware\\Authenticate->handle(Object(Illuminate\\Http\\Request), Object(Closure), 'admin')
+#15 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken.php(78): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#16 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#17 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Middleware\\ShareErrorsFromSession.php(49): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#18 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\View\\Middleware\\ShareErrorsFromSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#19 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(121): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#20 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(64): Illuminate\\Session\\Middleware\\StartSession->handleStatefulRequest(Object(Illuminate\\Http\\Request), Object(Illuminate\\Session\\Store), Object(Closure))
+#21 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Session\\Middleware\\StartSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#22 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse.php(37): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#23 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#24 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\EncryptCookies.php(67): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#25 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\EncryptCookies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#26 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Middleware\\DynamicSessionCookie.php(19): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#27 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): App\\Http\\Middleware\\DynamicSessionCookie->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#28 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#29 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(797): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#30 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(776): Illuminate\\Routing\\Router->runRouteWithinStack(Object(Illuminate\\Routing\\Route), Object(Illuminate\\Http\\Request))
+#31 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(740): Illuminate\\Routing\\Router->runRoute(Object(Illuminate\\Http\\Request), Object(Illuminate\\Routing\\Route))
+#32 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(729): Illuminate\\Routing\\Router->dispatchToRoute(Object(Illuminate\\Http\\Request))
+#33 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(190): Illuminate\\Routing\\Router->dispatch(Object(Illuminate\\Http\\Request))
+#34 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}(Object(Illuminate\\Http\\Request))
+#35 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#36 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#37 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#38 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#39 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TrimStrings.php(40): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#40 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#41 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#42 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#43 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance.php(86): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#44 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#45 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Middleware\\TrustProxies.php(39): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#46 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Http\\Middleware\\TrustProxies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#47 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#48 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(165): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#49 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(134): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#50 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\public\\index.php(51): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#51 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('D:\\\\laravel_prog...')
+#52 {main}"} 
+[2026-06-23 07:25:11] production.WARNING: Failed to store encrypted license PDF path {"application_id":"SC261111117","encryptedPathEn":"private_documents/license_pdfs/SC261111117_en.pdf.enc","encryptedPathTa":"private_documents/license_pdfs/SC261111117_ta.pdf.enc","error":"SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"license_pdf_en\" of relation \"tnelb_license\" does not exist
+LINE 1: update \"tnelb_license\" set \"license_pdf_en\" = $1, \"license_p...
+                                   ^ (SQL: update \"tnelb_license\" set \"license_pdf_en\" = private_documents/license_pdfs/SC261111117_en.pdf.enc, \"license_pdf_ta\" = private_documents/license_pdfs/SC261111117_ta.pdf.enc where \"application_id\" = SC261111117)"} 
+[2026-06-23 12:28:43] production.ERROR: Attempt to read property "form_id" on int {"userId":1,"exception":"[object] (ErrorException(code: 0): Attempt to read property \"form_id\" on int at D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Controllers\\Admin\\LoginController.php:698)
+[stacktrace]
+#0 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\HandleExceptions.php(272): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'Attempt to read...', 'D:\\\\laravel_prog...', 698)
+#1 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Controllers\\Admin\\LoginController.php(698): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->Illuminate\\Foundation\\Bootstrap\\{closure}(2, 'Attempt to read...', 'D:\\\\laravel_prog...', 698)
+#2 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Controller.php(54): App\\Http\\Controllers\\Admin\\LoginController->dashboard()
+#3 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\ControllerDispatcher.php(43): Illuminate\\Routing\\Controller->callAction('dashboard', Array)
+#4 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Route.php(259): Illuminate\\Routing\\ControllerDispatcher->dispatch(Object(Illuminate\\Routing\\Route), Object(App\\Http\\Controllers\\Admin\\LoginController), 'dashboard')
+#5 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Route.php(205): Illuminate\\Routing\\Route->runController()
+#6 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(798): Illuminate\\Routing\\Route->run()
+#7 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Routing\\Router->Illuminate\\Routing\\{closure}(Object(Illuminate\\Http\\Request))
+#8 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Middleware\\SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#9 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#10 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Auth\\Middleware\\Authenticate.php(44): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#11 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Auth\\Middleware\\Authenticate->handle(Object(Illuminate\\Http\\Request), Object(Closure), 'admin')
+#12 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken.php(78): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#13 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#14 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Middleware\\ShareErrorsFromSession.php(49): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#15 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\View\\Middleware\\ShareErrorsFromSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#16 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(121): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#17 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(64): Illuminate\\Session\\Middleware\\StartSession->handleStatefulRequest(Object(Illuminate\\Http\\Request), Object(Illuminate\\Session\\Store), Object(Closure))
+#18 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Session\\Middleware\\StartSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#19 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse.php(37): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#20 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#21 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\EncryptCookies.php(67): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#22 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\EncryptCookies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#23 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Middleware\\DynamicSessionCookie.php(19): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#24 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): App\\Http\\Middleware\\DynamicSessionCookie->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#25 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#26 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(797): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#27 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(776): Illuminate\\Routing\\Router->runRouteWithinStack(Object(Illuminate\\Routing\\Route), Object(Illuminate\\Http\\Request))
+#28 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(740): Illuminate\\Routing\\Router->runRoute(Object(Illuminate\\Http\\Request), Object(Illuminate\\Routing\\Route))
+#29 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(729): Illuminate\\Routing\\Router->dispatchToRoute(Object(Illuminate\\Http\\Request))
+#30 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(190): Illuminate\\Routing\\Router->dispatch(Object(Illuminate\\Http\\Request))
+#31 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}(Object(Illuminate\\Http\\Request))
+#32 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#33 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#34 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#35 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#36 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TrimStrings.php(40): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#37 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#38 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#39 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#40 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance.php(86): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#41 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#42 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Middleware\\TrustProxies.php(39): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#43 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Http\\Middleware\\TrustProxies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#44 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#45 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(165): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#46 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(134): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#47 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\public\\index.php(51): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#48 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('D:\\\\laravel_prog...')
+#49 {main}
+"} 
+[2026-06-23 12:44:12] production.ERROR: Attempt to read property "form_id" on int {"userId":1,"exception":"[object] (ErrorException(code: 0): Attempt to read property \"form_id\" on int at D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Controllers\\Admin\\LoginController.php:686)
+[stacktrace]
+#0 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\HandleExceptions.php(272): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'Attempt to read...', 'D:\\\\laravel_prog...', 686)
+#1 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Controllers\\Admin\\LoginController.php(686): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->Illuminate\\Foundation\\Bootstrap\\{closure}(2, 'Attempt to read...', 'D:\\\\laravel_prog...', 686)
+#2 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Controller.php(54): App\\Http\\Controllers\\Admin\\LoginController->dashboard()
+#3 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\ControllerDispatcher.php(43): Illuminate\\Routing\\Controller->callAction('dashboard', Array)
+#4 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Route.php(259): Illuminate\\Routing\\ControllerDispatcher->dispatch(Object(Illuminate\\Routing\\Route), Object(App\\Http\\Controllers\\Admin\\LoginController), 'dashboard')
+#5 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Route.php(205): Illuminate\\Routing\\Route->runController()
+#6 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(798): Illuminate\\Routing\\Route->run()
+#7 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Routing\\Router->Illuminate\\Routing\\{closure}(Object(Illuminate\\Http\\Request))
+#8 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Middleware\\SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#9 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#10 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Auth\\Middleware\\Authenticate.php(44): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#11 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Auth\\Middleware\\Authenticate->handle(Object(Illuminate\\Http\\Request), Object(Closure), 'admin')
+#12 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken.php(78): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#13 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#14 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\View\\Middleware\\ShareErrorsFromSession.php(49): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#15 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\View\\Middleware\\ShareErrorsFromSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#16 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(121): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#17 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php(64): Illuminate\\Session\\Middleware\\StartSession->handleStatefulRequest(Object(Illuminate\\Http\\Request), Object(Illuminate\\Session\\Store), Object(Closure))
+#18 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Session\\Middleware\\StartSession->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#19 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse.php(37): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#20 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#21 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\EncryptCookies.php(67): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#22 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Cookie\\Middleware\\EncryptCookies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#23 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\app\\Http\\Middleware\\DynamicSessionCookie.php(19): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#24 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): App\\Http\\Middleware\\DynamicSessionCookie->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#25 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#26 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(797): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#27 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(776): Illuminate\\Routing\\Router->runRouteWithinStack(Object(Illuminate\\Routing\\Route), Object(Illuminate\\Http\\Request))
+#28 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(740): Illuminate\\Routing\\Router->runRoute(Object(Illuminate\\Http\\Request), Object(Illuminate\\Routing\\Route))
+#29 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Router.php(729): Illuminate\\Routing\\Router->dispatchToRoute(Object(Illuminate\\Http\\Request))
+#30 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(190): Illuminate\\Routing\\Router->dispatch(Object(Illuminate\\Http\\Request))
+#31 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(141): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}(Object(Illuminate\\Http\\Request))
+#32 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#33 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#34 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#35 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#36 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\TrimStrings.php(40): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#37 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#38 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#39 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#40 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance.php(86): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#41 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#42 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Http\\Middleware\\TrustProxies.php(39): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#43 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(180): Illuminate\\Http\\Middleware\\TrustProxies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#44 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php(116): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}(Object(Illuminate\\Http\\Request))
+#45 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(165): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#46 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(134): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#47 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\public\\index.php(51): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#48 D:\\laravel_program\\Tnelb_file_may13\\TNelb_Staging26\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('D:\\\\laravel_prog...')
+#49 {main}
+"} 

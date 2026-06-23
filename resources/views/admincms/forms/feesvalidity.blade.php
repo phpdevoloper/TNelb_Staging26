@@ -226,6 +226,8 @@
                                                      Late period
                                                     @elseif(trim($validity->form_type) == "A")
                                                      Enable Renewal - Validity Period
+                                                    @elseif(trim($validity->form_type) == "D")
+                                                     Digitization - Validity Period
                                                     @endif
                                                 </td>
                                                 <td>{{ $validity->validity }}</td>
@@ -297,6 +299,7 @@
                         <label for="inputPassword4" class="form-label">Validity Type <span class="text-danger">*</span></label>
                         <select class="form-select shadow-sm border-primary-subtle rounded-3" name="form_type" id="form_type">
                             <option value="" selected>-- Please select type of period --</option>
+                            <option value="D">Digitization - Validity Period</option>
                             <option value="N">Fresh - Validity Period</option>
                             <option value="R">Renewal - Validity Period</option>
                             <option value="L">Late - Validity Period</option>

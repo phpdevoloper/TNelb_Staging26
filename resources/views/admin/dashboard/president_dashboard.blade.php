@@ -153,18 +153,23 @@
                                                 if ($isFormAContractor && in_array($roleName, ['Supervisor', 'Supervisor2'], true)) {
                                                     $newHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'N']);
                                                     $renewHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'R']);
+                                                    $digiHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'D']);
                                                 } elseif ($isFormAContractor && $roleName === 'Accountant') {
                                                     $newHref = route('admin.view_forma_pending', ['type' => 'A', 'form_type' => 'N']);
                                                     $renewHref = route('admin.view_forma_pending', ['type' => 'A', 'form_type' => 'R']);
+                                                    $digiHref = route('admin.view_forma_pending', ['type' => 'A', 'form_type' => 'D']);
                                                 } elseif ($isFormAContractor && $roleName === 'Secretary') {
                                                     $newHref = route('admin.view_sec_forma_pending', ['type' => 'A', 'form_type' => 'N']);
                                                     $renewHref = route('admin.view_sec_forma_pending', ['type' => 'A', 'form_type' => 'R']);
+                                                    $digiHref = route('admin.view_sec_forma_pending', ['type' => 'A', 'form_type' => 'D']);
                                                 } elseif ($isFormAContractor && $roleName === 'President') {
                                                     $newHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'N']);
                                                     $renewHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'R']);
+                                                    $digiHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'D']);
                                                 } else {
                                                     $newHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'N']);
                                                     $renewHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'R']);
+                                                    $digiHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'D']);
                                                 }
                                                 $rawCode = strtoupper((string) ($summary['form_name'] ?? ''));
                                                 $compactCode = preg_replace('/[^A-Z0-9]/', '', $rawCode);
@@ -189,6 +194,13 @@
                                                                class="badge outline-badge-info fw-semibold text-decoration-none">
                                                                 RENEWAL <span class="ms-1 fw-bold text-danger">{{ $summary['renewal_count'] ?? 0 }}</span>
                                                             </a>
+
+                                                             <a href="{{ $digiHref }}"
+                                                               class="badge outline-badge-info fw-semibold text-decoration-none text-uppercase">
+                                                                Digitization <span class="ms-1 fw-bold text-danger">{{ $summary['digi_count'] ?? 0 }}</span>
+                                                            </a>
+
+                                                            
                                                         </div>
                                                     </div>
                                                 </div>
