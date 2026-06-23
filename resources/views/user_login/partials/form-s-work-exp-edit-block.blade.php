@@ -1,6 +1,7 @@
 @php
     $workExpWithActions = $workExpWithActions ?? true;
     $showAddRow = $showAddRow ?? true;
+    $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
 @endphp
 {{-- Form S work experience: summary table + editable row cards (apply-form-s parity) --}}
 <div class="work-exp-wrap" id="edit-form-s-work-exp">
@@ -16,7 +17,7 @@
                             <th>Designation</th>
                             <th>Nature of Work</th>
                             <th>Voltage Level</th>
-                            <th>Transformer kVA</th>
+                            <th>Transformer kVA(max 1000kVA)</th>
                             <th>Total Experience</th>
                             <th>Attachment</th>
                             @if ($workExpWithActions)
@@ -54,10 +55,18 @@
     <div class="work-rows" id="work-container">
         @if (isset($exp_details) && $exp_details->isNotEmpty())
             @foreach ($exp_details as $index => $expRow)
-                @include('user_login.partials.form-s-work-exp-row', ['expRow' => $expRow, 'rowIndex' => $index])
+                @include('user_login.partials.form-s-work-exp-row', [
+                    'expRow' => $expRow,
+                    'rowIndex' => $index,
+                    'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+                ])
             @endforeach
         @else
-            @include('user_login.partials.form-s-work-exp-row', ['expRow' => null, 'rowIndex' => 0])
+            @include('user_login.partials.form-s-work-exp-row', [
+                'expRow' => null,
+                'rowIndex' => 0,
+                'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+            ])
         @endif
     </div>
 

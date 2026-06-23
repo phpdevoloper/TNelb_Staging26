@@ -1,17 +1,22 @@
 @if (($editFormName ?? ($application_details->form_name ?? '')) === 'S')
+@php
+    $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
+@endphp
 <script>
         (function() {
             var CONTRACTOR_TYPE = 'electrical_contractor';
+            var BOARD_MEMBER_TYPE = 'board_member_tnelb';
             var VOLTAGE_DISABLES_KVA = 'up_to_650v';
             var MAX_WORK_ROWS = 3;
             var TWO_YEARS_MS = 730 * 86400000;
             var EMP_LABEL = {
                 '': 'Select employment type',
-                private_organisation: 'Private organisation',
-                electrical_contractor: 'Electrical contractor',
+                private_organisation: 'Private organization',
+                electrical_contractor: 'Electrical Contractor',
                 retired_employee: 'Retired Employee',
-                govt_organisation: 'Govt organisation',
-                apprenticeship: 'Apprenticeship'
+                govt_organisation: 'Government Organization',
+                apprenticeship: 'Apprenticeship',
+                board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
             };
             var NATURE_LABEL = {
                 erection: 'Erection',
@@ -365,6 +370,8 @@
                     case 'contractor-cat': return 'cat';
                     case 'licence-number': return 'licence';
                     case 'transformer-kva': return 'kva';
+                    case 'work-nature': return 'work-nature';
+                    case 'voltage-level': return 'voltage-level';
                     default: return fieldName;
                 }
             }
@@ -497,13 +504,14 @@
                 var nature = ($tr.find('.work-nature').val() || '').trim();
                 var voltage = ($tr.find('.work-voltage').val() || '').trim();
                 var kva = ($tr.find('.work-transformer-kva').val() || '').trim();
-                var fromIso = ($tr.find('.work-date-from').val() || '').trim();
-                var toIso = ($tr.find('.work-date-to').val() || '').trim();
+                var fromIso = readWorkDateFromInput($tr.find('.work-date-from'));
+                var toIso = readWorkDateFromInput($tr.find('.work-date-to'));
                 var isTill = $tr.find('.work-date-till').is(':checked');
                 var y = ($tr.find('.work-duration-y').val() || '').trim();
                 var m = ($tr.find('.work-duration-m').val() || '').trim();
                 var d = ($tr.find('.work-duration-d').val() || '').trim();
                 var isContractor = (type === CONTRACTOR_TYPE);
+                var isBoardMember = (type === BOARD_MEMBER_TYPE);
 
                 /* Col 1 — Employment Type (+ contractor cat / licence) */
                 var $empCell = $str.find('.work-row-summary-employment');
@@ -526,12 +534,18 @@
 
                 /* Col 3–6 */
                 $str.find('.work-row-summary-designation').text(designation || '—');
-                $str.find('.work-row-summary-nature').text(nature ? (NATURE_LABEL[nature] || nature) : '—');
-                $str.find('.work-row-summary-voltage').text(voltage ? (VOLTAGE_LABEL[voltage] || voltage) : '—');
-                if (voltage === VOLTAGE_DISABLES_KVA) {
+                if (isBoardMember) {
+                    $str.find('.work-row-summary-nature').text('Not applicable');
+                    $str.find('.work-row-summary-voltage').text('Not applicable');
                     $str.find('.work-row-summary-kva').text('Not applicable');
                 } else {
-                    $str.find('.work-row-summary-kva').text(kva ? (kva + ' kVA') : '—');
+                    $str.find('.work-row-summary-nature').text(nature ? (NATURE_LABEL[nature] || nature) : '—');
+                    $str.find('.work-row-summary-voltage').text(voltage ? (VOLTAGE_LABEL[voltage] || voltage) : '—');
+                    if (voltage === VOLTAGE_DISABLES_KVA) {
+                        $str.find('.work-row-summary-kva').text('Not applicable');
+                    } else {
+                        $str.find('.work-row-summary-kva').text(kva ? (kva + ' kVA') : '—');
+                    }
                 }
 
                 /* Col 7 — From / To / Duration (mini boxes) */
@@ -583,7 +597,8 @@
                 $attachCell.empty();
                 var $attachStack = $('<div class="wx-sum-attach-stack">');
                 $attachStack.append(summaryAttachmentBlock('Supporting', $docInput, null, $tr));
-                $attachStack.append(summaryAttachmentBlock('Relieving', $relInput, isTill ? 'Not required (Till date)' : null, $tr));
+                var relieveNa = isTill ? 'Not required (Till date)' : (isBoardMember ? 'Optional' : null);
+                $attachStack.append(summaryAttachmentBlock('Relieving', $relInput, relieveNa, $tr));
                 $attachCell.append($attachStack);
             }
 
@@ -652,6 +667,7 @@
             function isRowComplete($tr) {
                 var type = ($tr.find('.work-employment-type').val() || '').trim();
                 if (!type) return false;
+                var isBoardMember = (type === BOARD_MEMBER_TYPE);
                 /* Every enabled required text/select must be filled. */
                 var ok = true;
                 $tr.find('select[required], input[type="text"][required], input[type="number"][required]').each(function() {
@@ -662,13 +678,15 @@
                 if (!$tr.find('.work-date-till').is(':checked') && !$tr.find('.work-date-to').prop('disabled')
                     && !readWorkDateFromInput($tr.find('.work-date-to'))) ok = false;
                 if (!ok) return false;
-                var voltage = ($tr.find('.work-voltage').val() || '').trim();
-                var $kva = $tr.find('.work-transformer-kva');
-                if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                if (!isBoardMember) {
+                    var voltage = ($tr.find('.work-voltage').val() || '').trim();
+                    var $kva = $tr.find('.work-transformer-kva');
+                    if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                }
                 var $doc = $tr.find('.work-doc-input');
                 if (!$doc.prop('disabled') && !workInputHasFile($doc)) return false;
                 var till = $tr.find('.work-date-till').is(':checked');
-                if (!till) {
+                if (!till && !isBoardMember) {
                     var $rel = $tr.find('.work-relieve-input');
                     if (!$rel.prop('disabled') && !workInputHasFile($rel)) return false;
                 }
@@ -768,6 +786,7 @@
                 var t = ($tr.find('.work-employment-type').val() || '').trim();
                 var hasType = t !== '';
                 var isContractor = (t === CONTRACTOR_TYPE);
+                var isBoardMember = (t === BOARD_MEMBER_TYPE);
 
                 var $cat = $tr.find('.work-contractor-cat');
                 var $lic = $tr.find('.work-licence-number');
@@ -818,6 +837,39 @@
                     return;
                 }
 
+                if (isBoardMember) {
+                    $cat.val('').prop('disabled', true).prop('required', false);
+                    $lic.val('').prop('disabled', true).prop('required', false);
+                    setFieldLock($tr, 'contractor-cat', true);
+                    setFieldLock($tr, 'licence-number', true);
+
+                    $nat.val('').prop('disabled', true).prop('required', false);
+                    $volt.val('').prop('disabled', true).prop('required', false);
+                    $kva.val('').prop('disabled', true).prop('required', false);
+                    setFieldLock($tr, 'work-nature', true);
+                    setFieldLock($tr, 'voltage-level', true);
+                    setFieldLock($tr, 'transformer-kva', true);
+
+                    $emp.prop('disabled', false).prop('required', true);
+                    $addr.prop('disabled', false).prop('required', true);
+                    $des.prop('disabled', false).prop('required', true);
+                    $yFrom.prop('disabled', false).prop('required', true);
+                    $till.prop('disabled', false);
+                    $doc.prop('disabled', false).prop('required', true).removeClass('is-locked');
+
+                    applyTillDate($tr);
+                    if (!$yTo.prop('disabled')) $yTo.prop('required', true);
+                    $rel.prop('required', false);
+                    if (!$rel.prop('disabled')) {
+                        $rel.removeClass('is-locked');
+                    }
+
+                    updateTotalYears($tr);
+                    syncLegacyHidden($tr);
+                    updateRowHeader($tr);
+                    return;
+                }
+
                 /* Cols 3 & 4 — Contractor only. */
                 if (isContractor) {
                     $cat.prop('disabled', false).prop('required', true);
@@ -837,9 +889,11 @@
                 $des.prop('disabled', false).prop('required', true);
                 $nat.prop('disabled', false).prop('required', true);
                 $volt.prop('disabled', false).prop('required', true);
+                setFieldLock($tr, 'work-nature', false);
+                setFieldLock($tr, 'voltage-level', false);
                 $yFrom.prop('disabled', false).prop('required', true);
                 $till.prop('disabled', false);
-                $doc.prop('disabled', false).prop('required', false).removeClass('is-locked');
+                $doc.prop('disabled', false).prop('required', true).removeClass('is-locked');
 
                 /* Col 10 — kVA is conditional on voltage; let applyVoltage finalise it. */
                 $volt.prop('disabled', false);

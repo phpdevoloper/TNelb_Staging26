@@ -23,11 +23,8 @@ class LicenseController extends Controller
 
     public function verifylicense(Request $request)
     {
-<<<<<<< HEAD
 
 
-=======
->>>>>>> e24c0e767470b2900588f2dda40bf6abd4aedd5b
         $request->validate([
             'license_number' => 'required|string',
             'fromdate' => 'required|date',
@@ -62,11 +59,7 @@ class LicenseController extends Controller
         $table = $tableMap[$licensePrefix] ?? 'tnelb_license';
         $column_name = 'certno';
 
-<<<<<<< HEAD
-        if ($table == 'tnelb_license') {
-=======
         if ($table === 'tnelb_license') {
->>>>>>> e24c0e767470b2900588f2dda40bf6abd4aedd5b
             $licenseNum = $licenseNumber;
             $column_name = 'license_number';
         }
@@ -75,17 +68,14 @@ class LicenseController extends Controller
         $toDate = Carbon::parse($request->todate)->toDateString();
 
         $baseQuery = DB::table($table)
-<<<<<<< HEAD
             ->selectRaw(
                 $table === 'tnelb_license'
                     ? "CAST(license_number AS VARCHAR) AS license_number, expires_at"
                     : "CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at"
             )
             ->where($column_name ?? 'certno', $licenseNum) // or license_number for tnelb_license
-            ->whereDate($table === 'tnelb_license' ? 'expires_at' : 'vdate', $request->date);
-=======
+            ->whereDate($table === 'tnelb_license' ? 'expires_at' : 'vdate', $request->date)
             ->where($column_name, $licenseNum);
->>>>>>> e24c0e767470b2900588f2dda40bf6abd4aedd5b
 
         if ($table === 'tnelb_license') {
             // To date is stored as expires_at on issued licenses

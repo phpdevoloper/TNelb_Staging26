@@ -5,6 +5,7 @@
         'apprentice' => 'apprenticeship',
         'electrical_inspector' => 'govt_organisation',
         'retired_employees' => 'retired_employee',
+        'board_member_tnelb' => 'board_member_tnelb',
     ];
     $hasRow = isset($expRow) && $expRow;
     $empTypeRaw = $hasRow ? (string) ($expRow->emp_type ?? '') : '';
@@ -41,6 +42,7 @@
     $relieveDoc = $hasRow ? (string) ($expRow->releive_document ?? '') : '';
     $workId = $hasRow ? (string) ($expRow->id ?? '') : '';
     $rowIndex = $rowIndex ?? 0;
+    $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
     $removeClasses = 'work-row-remove remove-work' . ($workId !== '' ? ' remove_exp' : '');
     $storedRowClass = $workId !== '' ? ' is-complete work-row--compact work-row--in-summary' : '';
 @endphp
@@ -64,12 +66,10 @@
         <div class="work-card-field">
             <label class="work-card-field-label">Employment Type <span class="req">*</span></label>
             <select class="form-control work-employment-type" name="work_employment_type[]" required>
-                <option value="" disabled {{ $empType === '' ? 'selected' : '' }}>Select type</option>
-                <option value="private_organisation" {{ $empType === 'private_organisation' ? 'selected' : '' }}>Private organisation</option>
-                <option value="electrical_contractor" {{ $empType === 'electrical_contractor' ? 'selected' : '' }}>Electrical contractor</option>
-                <option value="retired_employee" {{ $empType === 'retired_employee' ? 'selected' : '' }}>Retired Employee</option>
-                <option value="govt_organisation" {{ $empType === 'govt_organisation' ? 'selected' : '' }}>Govt organisation</option>
-                <option value="apprenticeship" {{ $empType === 'apprenticeship' ? 'selected' : '' }}>Apprenticeship</option>
+                @include('user_login.partials.form-s-work-exp-employment-options', [
+                    'selectedEmpType' => $empType,
+                    'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+                ])
             </select>
         </div>
         <div class="work-card-field" data-field="contractor-cat">
@@ -99,7 +99,7 @@
             <label class="work-card-field-label">Designation <span class="req">*</span></label>
             <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" disabled placeholder="e.g. Site Engineer" value="{{ $designation }}">
         </div>
-        <div class="work-card-field">
+        <div class="work-card-field" data-field="work-nature">
             <label class="work-card-field-label">Work Nature <span class="req">*</span></label>
             <select class="form-control work-nature" name="work_nature_of_work[]" disabled>
                 <option value="">—</option>
@@ -108,7 +108,7 @@
                 <option value="erection_maintenance" {{ $nature === 'erection_maintenance' ? 'selected' : '' }}>Erection &amp; Maintenance</option>
             </select>
         </div>
-        <div class="work-card-field">
+        <div class="work-card-field" data-field="voltage-level">
             <label class="work-card-field-label">Voltage Level <span class="req">*</span></label>
             <select class="form-control work-voltage" name="work_voltage_level[]" disabled>
                 <option value="">—</option>
@@ -118,7 +118,7 @@
             </select>
         </div>
         <div class="work-card-field" data-field="transformer-kva">
-            <label class="work-card-field-label">Transformer kVA <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+            <label class="work-card-field-label">Transformer kVA(max 1000kVA) <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <input type="number" class="form-control work-transformer-kva" name="work_transformer_kva[]" min="0" max="9999999" step="any" inputmode="decimal" autocomplete="off" disabled placeholder="e.g. 250" value="{{ $kva }}">
             <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
         </div>

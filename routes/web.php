@@ -47,6 +47,8 @@ use App\Http\Controllers\FormWDigitizationController;
 use App\Http\Controllers\FormWHDigitizationController;
 use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
+use App\Http\Controllers\DocumentVersion\DocumentSampleController;
+use App\Http\Controllers\WithoutTmp\WithoutTmpController;
 
 
 use App\Http\Controllers\FormCLAlteration;
@@ -541,6 +543,50 @@ Route::post('/update-expiry', [CertificatedatechangeController::class, 'updateEx
     Route::get('/old_contractor_renewal', [OldContractorRenewalController::class, 'index'])->name('old_contractor_renewal');
     Route::post('/old_contractor_renewal/verify', [OldContractorRenewalController::class, 'verify'])->name('old_contractor_renewal.verify');
     Route::post('/old_contractor_renewal/submit', [OldContractorRenewalController::class, 'submit'])->name('old_contractor_renewal.submit');
+
+// ------------------------ Document Version Management (Sample / Test) ------------------------
+Route::prefix('document-version/sample')->name('document-version.sample.')->group(function () {
+    Route::get('/', [DocumentSampleController::class, 'index'])->name('index');
+    Route::post('/applications', [DocumentSampleController::class, 'createApplication'])->name('applications.store');
+    Route::post('/set-application', [DocumentSampleController::class, 'setApplication'])->name('set-application');
+    Route::post('/rows', [DocumentSampleController::class, 'storeApplicationRows'])->name('rows.store');
+    Route::delete('/educations/{id}', [DocumentSampleController::class, 'deleteEducation'])->name('educations.delete');
+    Route::delete('/experiences/{id}', [DocumentSampleController::class, 'deleteExperience'])->name('experiences.delete');
+    Route::get('/alteration', [DocumentSampleController::class, 'alteration'])->name('alteration');
+    Route::get('/alteration/{groupKey}', [DocumentSampleController::class, 'alterationForm'])->name('alteration.form');
+    Route::post('/alteration/{groupKey}', [DocumentSampleController::class, 'storeAlteration'])->name('alteration.store');
+    Route::post('/reset-module', [DocumentSampleController::class, 'resetModule'])->name('reset-module');
+    Route::get('/storage', [DocumentSampleController::class, 'storageExplorer'])->name('storage');
+    Route::get('/details/{application?}', [DocumentSampleController::class, 'applicationDetails'])->name('details');
+    Route::get('/table-data', [DocumentSampleController::class, 'tableData'])->name('table-data');
+    Route::get('/upload', [DocumentSampleController::class, 'upload'])->name('upload');
+    Route::post('/upload', [DocumentSampleController::class, 'storeUpload'])->name('upload.store');
+    Route::get('/review/{groupKey}', [DocumentSampleController::class, 'review'])->name('review');
+    Route::post('/review/{groupKey}/approve', [DocumentSampleController::class, 'approve'])->name('approve');
+    Route::post('/review/{groupKey}/reject', [DocumentSampleController::class, 'reject'])->name('reject');
+    Route::get('/history/{groupKey}', [DocumentSampleController::class, 'history'])->name('history');
+    Route::get('/download/{versionId}', [DocumentSampleController::class, 'download'])->name('download');
+});
+
+// ------------------------ Without Temp Module (Sample / Test) ------------------------
+Route::prefix('without-tmp')->name('without-tmp.')->group(function () {
+    Route::get('/', [WithoutTmpController::class, 'index'])->name('index');
+    Route::post('/applications', [WithoutTmpController::class, 'createApplication'])->name('applications.store');
+    Route::post('/set-application', [WithoutTmpController::class, 'setApplication'])->name('set-application');
+    Route::post('/store', [WithoutTmpController::class, 'storeApplication'])->name('store');
+    Route::delete('/education/{id}', [WithoutTmpController::class, 'deleteEducation'])->name('educations.delete');
+    Route::delete('/experience/{id}', [WithoutTmpController::class, 'deleteExperience'])->name('experiences.delete');
+    Route::get('/alteration', [WithoutTmpController::class, 'alteration'])->name('alteration');
+    Route::get('/alteration/{targetKey}', [WithoutTmpController::class, 'alterationForm'])->name('alteration.form');
+    Route::post('/alteration/{targetKey}', [WithoutTmpController::class, 'storeAlteration'])->name('alteration.store');
+    Route::get('/review', [WithoutTmpController::class, 'review'])->name('review');
+    Route::get('/review/{id}', [WithoutTmpController::class, 'reviewShow'])->name('review.show');
+    Route::post('/review/{id}/approve', [WithoutTmpController::class, 'approveAlteration'])->name('review.approve');
+    Route::post('/review/{id}/reject', [WithoutTmpController::class, 'rejectAlteration'])->name('review.reject');
+    Route::get('/download', [WithoutTmpController::class, 'downloadFile'])->name('download');
+    Route::get('/storage', [WithoutTmpController::class, 'storageExplorer'])->name('storage');
+    Route::get('/table-data', [WithoutTmpController::class, 'tableData'])->name('table-data');
+});
 
 
 
