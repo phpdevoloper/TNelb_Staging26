@@ -2,6 +2,27 @@
 @include('admin.include.header')
 @include('admin.include.navbar')
 <style>
+
+    .digi_title{
+        color: #199393;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+    
+    }
+
+   .digitization-header{
+    background: #fff !important;
+    }
+    .digi_data table th, td{
+        border: 1px solid #8692bd4f!important;
+        padding: 10px;
+        font-weight: 600;
+    }
+
+    .digi_data table {
+        padding: 10px;
+    }
     /* ================================================================
        Applicant Detail (Supervisor) — refreshed visual styling
        Scoped to .applicant-supervisor-page so it won't bleed elsewhere.
@@ -502,7 +523,7 @@
             <div class="row layout-top-spacing align-items-start">
                 <div class="col-lg-12 layout-spacing">
                     <div class="statbox widget ">
-                        <div class="widget-header applicant_details">
+                        <div class="widget-header applicant_details {{ $applicant->appl_type == 'D' ? 'digitization-header' : '' }}">
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
                                     <h4>
@@ -513,11 +534,87 @@
                                         <strong>Applied For:</strong> <span>FORM {{ $applicant->form_name }} &middot; License {{ $applicant->license_name }}</span>
                                     </h4>
                                 </div>
+                                 @if($applicant->appl_type =='D')
+                                 
+                                 <div class="col-xl-6 col-md-6 col-sm-12 col-12">
+                                 <h3 class="digi_title">Digitization Old Certificate Details </h3>
+                                            <div class="table-responsive digi_data">
+                                                <table class="table table-bordered table-sm">
+                                                    <tbody>
+                                                        <tr>
+                                                            <th width="30%">Certificate Number</th>
+                                                            <td>C1234</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Date of First Issue</th>
+                                                            <td>10-06-1999</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Validity From</th>
+                                                            <td>13-07-2020</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Validity To</th>
+                                                            <td>13-07-2022</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Certificate Document</th>
+                                                            <td>
+                                                                <a href="#" target="_blank">
+                                                                    <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                    View Document
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-xl-6 col-md-6 col-sm-12 col-12">
+                                        <h3 class="digi_title">Is Supervisory Competency Certificate recognized as a Qualified </h3>
+                                            <div class="table-responsive digi_data">
+                                                <table class="table table-bordered table-sm">
+                                                    <tbody>
+                                                        <tr>
+                                                            <th width="30%">Grade of Licence</th>
+                                                            <td>EA</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Licence Number</th>
+                                                            <td>EA00011</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Name of Contractor</th>
+                                                            <td>Kumaran</td>
+                                                        </tr>
+                                                      
+                                                        <tr>
+                                                            <th> Document</th>
+                                                            <td>
+                                                                <a href="#" target="_blank">
+                                                                    <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                    View Document
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                 
+                                @endif
                             </div>
                         </div>
 
+
+                               
+
                     </div>
                 </div>
+
+        
+
                 <div id="tabsSimple" class="col-xl-7 col-md-12 col-sm-12 col-12 layout-spacing">
                     <div class="statbox widget box box-shadow">
                         <div class="widget-header">
