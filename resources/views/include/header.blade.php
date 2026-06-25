@@ -1185,7 +1185,26 @@ use Illuminate\Support\Facades\Auth;
 
 
     <!-- -----------------------digitization---------------- -->
+                                    @php
 
+                                        $cert_name = '';
+                                        $form_name = '';
+
+                                        if (Request::is('apply-form-s_d')) {
+                                        $cert_name = 'C';
+                                        $form_name = 'S';
+                                        } elseif (Request::is('apply-form-w_d')) {
+                                        $cert_name = 'D';
+                                        $form_name = 'P';
+                                        } elseif (Request::is('apply-form-wh_d')) {
+                                        $cert_name = 'H';
+                                        $form_name = 'WH';
+                                        } elseif (Request::is('apply-form-p_d')) {
+                                        $cert_name = 'B';
+                                        $form_name = 'W';
+                                        }
+
+                                        @endphp
     <div class="modal fade applicant-instr-modal" id="digitization" tabindex="-1" aria-labelledby="competencyInstructionsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
@@ -1200,7 +1219,7 @@ use Illuminate\Support\Facades\Auth;
                             </svg>
                         </span>
                         <div>
-                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Digitization</h5>
+                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Form {{$form_name}} / Certificate {{$cert_name}} Digitization </h5>
                             <small class="modal-subtitle">Please Enroll the current Certificate Details.</small>
                         </div>
                     </div>
@@ -1222,26 +1241,7 @@ use Illuminate\Support\Facades\Auth;
 
                                         <input type="number" class="form-control" name="ccnumber" placeholder="Certificate Number" maxlength="15">
 
-                                        @php
-
-                                        $cert_name = '';
-                                        $form_name = '';
-
-                                        if (Request::is('apply-form-s_d')) {
-                                        $cert_name = 'C';
-                                        $form_name = 'S';
-                                        } elseif (Request::is('apply-form-w_d')) {
-                                        $cert_name = 'D';
-                                        $form_name = 'P';
-                                        } elseif (Request::is('apply-form-wh_d')) {
-                                        $cert_name = 'H';
-                                        $form_name = 'WH';
-                                        } elseif (Request::is('apply-form-p_d')) {
-                                        $cert_name = 'B';
-                                        $form_name = 'W';
-                                        }
-
-                                        @endphp
+                                        
 
                                         <input type="hidden" name="form_name" value="{{ $form_name }}">
                                         <input type="hidden" name="cert_name" value="{{ $cert_name }}">
@@ -1296,7 +1296,7 @@ use Illuminate\Support\Facades\Auth;
 
 
 
-                                        <input type="date" class="form-control" name="to_date">
+                                        <input type="date" class="form-control" name="to_date" id="to_date">
                                         <span class="error text-danger" id="to_date_error"></span>
 
                                     </div>
@@ -1377,15 +1377,18 @@ use Illuminate\Support\Facades\Auth;
 
                                 <div class="row mb-2">
                                     <div class="col-lg-5">
-                                        <label>Licence Number </label>
+                                        <label>Licence Number <span class="text-muted" style="font-size:.75rem;font-weight:600;">(eg. 12345)</span></label>
 
                                     </div>
                                     <div class="col-12 col-md-5">
-                                        <input type="number" max="20" class="form-control" name="licence_no">
+                                        <input type="number" class="form-control" name="licence_no"
+                                        oninput="if(this.value.length > 5) this.value = this.value.slice(0,5);">
+
                                         <span class="error text-danger" id="licence_no_error"></span>
                                     </div>
 
                                 </div>
+                                
 
                                 <div class="row mb-2">
                                     <div class="col-lg-5">
@@ -1401,7 +1404,7 @@ use Illuminate\Support\Facades\Auth;
 
                                 <div class="row mb-2">
                                     <div class="col-lg-5">
-                                        <label>Upload Supporting Document </label>
+                                        <label>Details of Employee From Contractor Licence <span style="font-size:.75rem;font-weight:600;">(Page No: 3 & 12)</span></label>
 
 
                                     </div>
@@ -1429,6 +1432,10 @@ use Illuminate\Support\Facades\Auth;
                 </div>
 
                 <div class="modal-footer justify-content-center">
+                     <a  href="{{ route('dashboard')}}" class=" btn btn-secondary">
+                        Back
+                       
+                    </a>
 
                     <button type="button" class="btn-proceed" id="digitizationSubmit">
                         Submit

@@ -54,6 +54,20 @@ class FormSDigitizationController extends BaseController
             'cc_doc'     => 'required|mimes:pdf|max:250'
         ]);
 
+        $toDate = Carbon::parse($request->to_date);
+        $allowedDate = $toDate->copy()->addYear();
+
+        if (Carbon::today()->gt($allowedDate)) {
+
+            return response()->json([
+                'errors' => [
+                    'to_date' => [
+                        'Certificate validity expired more than one year ago. Digitization is not allowed.'
+                    ]
+                ]
+            ], 422);
+        }
+
         if ($request->qc_det == 'yes') {
 
             $request->validate([

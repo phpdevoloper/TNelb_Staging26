@@ -304,27 +304,22 @@ $(document).on("click", "#digitizationSubmit", function () {
 
 $(document).on("keyup", 'input[name="ccnumber"]', function () {
     $("#ccnumber_error").html("");
-    
 });
 
 $(document).on("change", 'input[name="fissue"]', function () {
     $("#fissue_error").html("");
-    
 });
 
 $(document).on("change", 'input[name="from_date"]', function () {
     $("#from_date_error").html("");
-    
 });
 
 $(document).on("change", 'input[name="to_date"]', function () {
     $("#to_date_error").html("");
-    
 });
 
 $(document).on("change", 'input[name="cc_doc"]', function () {
     $("#cc_doc_error").html("");
-    
 });
 
 $(document).on("keyup", 'input[name="cl_type"]', function () {
@@ -341,7 +336,6 @@ $(document).on("keyup", 'input[name="contractor_name"]', function () {
 
 $(document).on("change", 'input[name="qc_doc"]', function () {
     $("#qc_doc_error").html("");
-    
 });
 
 $(document).on("change", 'input[name="qc"]', function () {
