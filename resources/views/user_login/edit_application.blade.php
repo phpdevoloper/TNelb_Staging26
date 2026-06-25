@@ -3,6 +3,7 @@
 @php
     $editFormName = $application_details->form_name ?? '';
     $editLicenseName = $application_details->license_name ?? '';
+    $editShowBoardMember = ($editFormName === 'S') && (($application_details->appl_type ?? '') === 'R');
 @endphp
 
 <style>
@@ -77,9 +78,13 @@
     .fs-card {
         background: #fff;
         border-radius: 12px;
-        box-shadow: 0 2px 16px rgba(3,90,179,.10);
-        overflow: hidden;
+        box-shadow: 0 2px 16px rgba(3, 90, 179, 0.12), 0 8px 24px rgba(3, 90, 179, 0.06);
+        overflow: visible;
         margin-top: 24px;
+    }
+    .fs-card > .fs-form-body {
+        border-radius: 0 0 12px 12px;
+        overflow: hidden;
     }
 
     /* ── Card header ──────────────────────────────────── */
@@ -899,9 +904,52 @@
     }
 
     @if ($editFormName === 'S')
-    @include('user_login.partials.form-s-work-exp-styles')
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'S'])
     @endif
 </style>
+
+@if ($editFormName === 'S')
+<style>
+    /* Edit Form S — Section 7 card chrome (parity with renew-form) */
+    .fs-section:has(.work-exp-wrap) {
+        overflow: visible;
+    }
+    .fs-section .work-exp-wrap .work-entry-block > .work-fields.work-row,
+    .fs-section .work-exp-wrap .work-row {
+        background: #ffffff !important;
+        border: 1px solid #c8d8f5 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+    }
+    .fs-section .work-exp-wrap .work-row:hover {
+        border-color: #b8cfe8 !important;
+        box-shadow: 0 4px 14px rgba(3, 90, 179, 0.18) !important;
+    }
+    .fs-section .work-exp-wrap .work-exp-summary-panel .wx-order-card {
+        background: #ffffff !important;
+        border: 1px solid #c8d8f5 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+        padding: 12px 14px !important;
+    }
+    .fs-section .work-exp-wrap .work-row-head {
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
+        border-bottom: 1px solid #dde5f3 !important;
+    }
+    .fs-section .work-exp-wrap .work-row:not(.is-complete) .work-row-head {
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
+        border-bottom: 1px solid #dde5f3 !important;
+    }
+    .fs-section .work-exp-wrap .work-row-head-actions .work-row-remove,
+    .fs-section .work-exp-wrap .work-row-remove.remove-work {
+        color: #c1272d !important;
+    }
+    .fs-section .work-exp-wrap .work-row-head-actions .work-row-remove .fa,
+    .fs-section .work-exp-wrap .work-row-remove.remove-work .fa {
+        color: #c1272d !important;
+    }
+</style>
+@endif
 
 @php
     $editEnglishTitle = isset($licence_name->licence_name) ? $licence_name->licence_name : 'Competency Certificate';
@@ -994,6 +1042,10 @@
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id"
                         value="{{ isset($application_details) ? $application_details->application_id : '' }}">
+                    @if(($application_details->appl_type ?? '') === 'D')
+                    <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id"
+                        value="{{ $cc_digitization_temp_id ?? '' }}">
+                    @endif
                     @php
                         $_issued_lic_renew = '';
                         if (!empty($license_details) && trim((string) ($license_details->license_number ?? '')) !== '') {
@@ -1243,6 +1295,7 @@
                                                                         <option value="DEE" {{ $edu_details->educational_level == 'DEE' ? 'selected' : '' }}>Diploma(Electrical Engineering)</option>
                                                                         <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
                                                                         <option value="MEE" {{ $edu_details->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
+                                                                        <option value="AMIE" {{ $edu_details->educational_level == 'AMIE' ? 'selected' : '' }}>A pass in AMIE</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC" {{ $edu_details->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
                                                                         <option value="Provisional" {{ $edu_details->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
@@ -1360,6 +1413,7 @@
                                                                         <option value="DEE">Diploma(Electrical Engineering)</option>
                                                                         <option value="BEE">B.E(Electrical Engineering)</option>
                                                                         <option value="MEE">M.E(Electrical Engineering)</option>
+                                                                        <option value="AMIE">A pass in AMIE</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC">NTC</option>
                                                                         <option value="Provisional">Provisional</option>
@@ -1481,7 +1535,9 @@
                         </div>
                         <div class="fs-section-body">
                             @if ($editFormName === 'S')
-                            @include('user_login.partials.form-s-work-exp-edit-block')
+                            @include('user_login.partials.form-s-work-exp-edit-block', [
+                                'showBoardMemberEmploymentType' => $editShowBoardMember,
+                            ])
                             @else
                             <div class="fs-table-wrap">
                                                     <table class="table table-bordered {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'table-sm work-exp-table work-table-w' : 'table-striped' }}" id="work-table">
@@ -2031,9 +2087,20 @@
                     <input type="hidden" id="form_id" name="form_id"
                         value="{{ isset($application_details) ? $application_details->form_id : '' }}">
                     <input type="hidden" id="amount" name="amount" value="">
+                    @if ($editShowBoardMember)
+                    <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
+                    @endif
                     <input type="hidden" id="appl_type" name="appl_type"
                         value="{{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }}">
                     @csrf
+
+                    @if ($editShowBoardMember)
+                    <div id="board-member-fee-notice" class="alert alert-info py-2 px-3 mb-3 d-none" role="status" style="font-size:.84rem;">
+                        <i class="fa fa-info-circle"></i>
+                        Renewal fee is exempted because <strong>Board Member / Ex. Board Member of TNELB</strong> is selected in Table 7.
+                        If you change the employment type, the standard renewal fee will apply.
+                    </div>
+                    @endif
 
                     {{-- ── Action buttons ── --}}
                     <div class="fs-action-bar">
@@ -2294,14 +2361,22 @@
     // Keep hidden #amount dynamic (no static fees in blade)
     // This uses the existing global `getPaymentsService` from the shared footer include.
     $(document).ready(async function () {
+        if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+            await window.wxSyncBoardMemberRenewalFee();
+            return;
+        }
         try {
             if (typeof getPaymentsService !== 'function') return;
 
             const licence_code = ($('#license_name').val() || '').trim();
+            console.log(licence_code);
             const appl_type = ($('#appl_type').val() || '').trim();
+            console.log(appl_type);
             const issued_licence = ($('#license_number').val() || '').trim();
+            console.log(issued_licence);
 
             if (!licence_code || !appl_type) return;
+            if (appl_type.toUpperCase() === 'D') return;
 
             const data = await getPaymentsService(licence_code, issued_licence, appl_type);
             if (data && data.basic_fees !== undefined && data.basic_fees !== null && data.basic_fees !== '') {
@@ -2359,7 +2434,7 @@
                     <select class="form-control" name="educational_level[]" required>
                         <option value="">Select Education</option>
                         ${isSForm
-                            ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option>'
+                            ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option><option value="AMIE">A pass in AMIE</option>'
                             : (isWOrWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper(H) Certificate">Wireman Helper(H) Certificate</option><option value="ITI Certificate">ITI Certificate</option>'
                                 : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>' + (isWHForm ? '<option value="8">8</option>' : ''))}
@@ -2919,7 +2994,11 @@
 
 </script>
 @if ($editFormName === 'S')
-@include('user_login.partials.form-s-work-exp-scripts')
+@include('user_login.partials.form-s-work-exp-scripts', [
+    'editFormName' => 'S',
+    'showBoardMemberEmploymentType' => $editShowBoardMember,
+    'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
+])
 @endif
 </body>
 

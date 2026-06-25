@@ -124,6 +124,30 @@
 {{-- <script src="{{ url('assets/admin/src/plugins/src/flatpickr/custom-flatpickr.js') }}"></script> --}}
 
 <script src="{{ url('assets/js/script.js') }}"></script>
+
+<script>
+    window.getAjaxErrorMessage = function (xhr, fallback) {
+        fallback = fallback || 'Something went wrong. Please try again!';
+        if (!xhr) return fallback;
+
+        var data = xhr.responseJSON;
+        if (!data && xhr.responseText) {
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch (e) { /* not JSON */ }
+        }
+
+        if (data) {
+            if (data.message) return data.message;
+            if (data.errors) {
+                return Object.values(data.errors).flat().join('\n');
+            }
+        }
+
+        return fallback;
+    };
+</script>
+
 <script src="{{ url('assets/js/custom.js') }}?v={{ filemtime(public_path('assets/js/custom.js')) }}"></script>
 <script src="{{ url('assets/js/form_p_script.js') }}"></script>
 
@@ -931,6 +955,11 @@ $(document).ready(function() {
             renderLocalFilePreviewForInput($(this));
         });
 
+        function isDigitizationApplType() {
+            return String($('#appl_type').val() || '').trim().toUpperCase() === 'D';
+        }
+        window.isDigitizationApplType = isDigitizationApplType;
+
         async function saveCompetencyDraftSilently() {
             const formWsEl = $('#competency_form_ws')[0];
             const formPEl = $('#competency_form_p')[0];
@@ -956,6 +985,7 @@ $(document).ready(function() {
                     if (applType === 'R') {
                         formUrl = "{{ route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}".replace('__APPL_ID__', applicationId);
                     } else {
+                        // New (N) and Digitization (D) — update existing draft
                         formUrl = "{{ route('form.update', ['appl_id' => '__APPL_ID__']) }}".replace('__APPL_ID__', applicationId);
                     }
                 } else {
@@ -1012,7 +1042,7 @@ $(document).ready(function() {
                     Swal.fire({
                         icon: "error",
                         title: "Error",
-                        text: "Unable to save form data before preview."
+                        text: window.getAjaxErrorMessage(xhr, "Unable to save form data before preview.")
                     });
                 }
                 return null;
@@ -1558,7 +1588,7 @@ $(document).ready(function() {
                                             <div class="prv-sw-detail-item">
                                                 <div class="prv-sw-field"><div class="prv-sw-label">Age</div><div class="prv-sw-value" id="prvSwAge">&mdash;</div></div>
                                             </div>
-                                            <div class="prv-sw-detail-item prv-sw-detail-item--full">
+                                            <div class="prv-sw-detail-item">
                                                 <div class="prv-sw-field"><div class="prv-sw-label">Address</div><div class="prv-sw-value" id="prvSwAddress" style="white-space:pre-line;">&mdash;</div></div>
                                             </div>
                                         </div>
@@ -1630,15 +1660,12 @@ $(document).ready(function() {
                                 <div class="prv-sw-section-hd">
                                     <span class="prv-sw-section-num" data-section-num="prev">8</span>
                                     <div>
-                                        <div class="prv-sw-section-title" id="prvSwSecPrevTitle">Previous Competency Certificate</div>
-                                        <div class="prv-sw-section-tamil" id="prvSwSecPrevTamil">முந்தைய தகுதி சான்றிதழ் விவரம்</div>
+                                        <div class="prv-sw-section-title" id="prvSwSecPrevTitle">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
+                                        <div class="prv-sw-section-tamil" id="prvSwSecPrevTamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
                                     </div>
                                 </div>
                                 <div class="prv-sw-section-body">
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <span style="font-size:.78rem;color:#5a7299;font-weight:600;">Has Previous Certificate:</span>
-                                        <span id="prvSwPrevYn">&mdash;</span>
-                                    </div>
+                                    <div class="mb-2" id="prvSwPrevYn">&mdash;</div>
                                     <div id="prvSwPrevBlock" style="display:none;">
                                         <div class="row g-2">
                                             <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwPrevNo">&mdash;</div></div></div>
@@ -1655,15 +1682,12 @@ $(document).ready(function() {
                                 <div class="prv-sw-section-hd">
                                     <span class="prv-sw-section-num" data-section-num="wireman">9</span>
                                     <div>
-                                        <div class="prv-sw-section-title">Wireman Competency Certificate</div>
-                                        <div class="prv-sw-section-tamil">கம்பி இணைப்பாளர் திறன் சான்றிதழ் விவரம்</div>
+                                        <div class="prv-sw-section-title" id="prvSwSecWcTitle">Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.</div>
+                                        <div class="prv-sw-section-tamil" id="prvSwSecWcTamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
                                     </div>
                                 </div>
                                 <div class="prv-sw-section-body">
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <span style="font-size:.78rem;color:#5a7299;font-weight:600;">Holds Wireman Certificate:</span>
-                                        <span id="prvSwWcYn">&mdash;</span>
-                                    </div>
+                                    <div class="mb-2" id="prvSwWcYn">&mdash;</div>
                                     <div id="prvSwWcBlock" style="display:none;">
                                         <div class="row g-2">
                                             <div class="col-12 col-sm-3"><div class="prv-sw-field mb-0"><div class="prv-sw-label">Certificate Number</div><div class="prv-sw-value" id="prvSwWcNo">&mdash;</div></div></div>
@@ -1992,7 +2016,8 @@ $(document).ready(function() {
                 electrical_contractor: 'Electrical contractor',
                 retired_employee: 'Retired Employee',
                 govt_organisation: 'Govt organisation',
-                apprenticeship: 'Apprenticeship'
+                apprenticeship: 'Apprenticeship',
+                board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
             };
             const WORK_NATURE_SW = {
                 erection: 'Erection',
@@ -2144,6 +2169,7 @@ $(document).ready(function() {
 
                 const empTypeVal = typeSel ? (typeSel.value || '').trim() : '';
                 const isContractor = (empTypeVal === CONTRACTOR_TYPE_SW);
+                const isBoardMember = (empTypeVal === 'board_member_tnelb');
                 const empTxt = EMP_LABEL_SW[empTypeVal] || selectedText(typeSel) || empTypeVal || '—';
                 const employer = emp ? (emp.value || '').trim() : '';
                 const addrTxt = address ? (address.value || '').trim() : '';
@@ -2166,15 +2192,18 @@ $(document).ready(function() {
                     orgCell += '<span class="wx-sum-sub">' + esc(addrTxt) + '</span>';
                 }
 
-                const kvaTxt = (voltVal === VOLTAGE_DISABLES_KVA_SW)
+                const kvaTxt = isBoardMember
                     ? 'Not applicable'
-                    : (kvaRaw ? esc(kvaRaw + ' kVA') : '—');
+                    : ((voltVal === VOLTAGE_DISABLES_KVA_SW)
+                        ? 'Not applicable'
+                        : (kvaRaw ? esc(kvaRaw + ' kVA') : '—'));
 
                 const periodHtml = buildSwWorkPeriodHtml(fr, to, tillChk, yPart, mPart, dPart);
                 const isTill = tillChk && tillChk.checked;
+                const relieveNote = isTill ? 'Not required (Till date)' : (isBoardMember ? 'Optional' : null);
                 const attachHtml = '<div class="wx-sum-attach-stack">'
                     + swAttachBlockHtml('Supporting', row, '[name="work_document[]"]', '[name="existing_work_document[]"]', null)
-                    + swAttachBlockHtml('Relieving', row, '[name="work_relieving_letter[]"]', '[name="existing_work_relieving_document[]"]', isTill ? 'Not required (Till date)' : null)
+                    + swAttachBlockHtml('Relieving', row, '[name="work_relieving_letter[]"]', '[name="existing_work_relieving_document[]"]', relieveNote)
                     + '</div>';
 
                 return '<tr>'
@@ -2182,8 +2211,8 @@ $(document).ready(function() {
                     + '<td class="work-row-summary-employment prv-sw-td-left">' + empCell + '</td>'
                     + '<td class="work-row-summary-org-address prv-sw-td-left">' + orgCell + '</td>'
                     + '<td class="work-row-summary-designation prv-sw-td-left">' + esc(rowVal(des)) + '</td>'
-                    + '<td class="work-row-summary-nature">' + esc(WORK_NATURE_SW[natureVal] || natureVal || '—') + '</td>'
-                    + '<td class="work-row-summary-voltage">' + esc(VOLTAGE_LEVEL_SW[voltVal] || voltVal || '—') + '</td>'
+                    + '<td class="work-row-summary-nature">' + esc(isBoardMember ? '—' : (WORK_NATURE_SW[natureVal] || natureVal || '—')) + '</td>'
+                    + '<td class="work-row-summary-voltage">' + esc(isBoardMember ? '—' : (VOLTAGE_LEVEL_SW[voltVal] || voltVal || '—')) + '</td>'
                     + '<td class="work-row-summary-kva">' + kvaTxt + '</td>'
                     + '<td class="work-row-summary-period">' + periodHtml + '</td>'
                     + '<td class="work-row-summary-attachments prv-sw-td-left">' + attachHtml + '</td>'
@@ -2282,8 +2311,8 @@ $(document).ready(function() {
             // Previous same-type certificate section
             let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevFromId, prevExpiryId;
             if (formCode === 'S') {
-                prevTitle = 'Previous Supervisor Competency Certificate';
-                prevTamil = 'மேற்பார்வையாளர் தகுதி சான்றிதழ் விவரம்';
+                prevTitle = 'Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.';
+                prevTamil = 'இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக';
                 prevYesValue = !!((document.getElementById('previous_license_yes') || {}).checked);
                 prevNumId = 'previously_number';
                 prevIssueId = 'previously_issue_date';
@@ -2332,6 +2361,14 @@ $(document).ready(function() {
 
             // Wireman certificate section (S only)
             if (showWiremanCert) {
+                const wcTitleEl = document.getElementById('prvSwSecWcTitle');
+                const wcTamilEl = document.getElementById('prvSwSecWcTamil');
+                if (wcTitleEl) {
+                    wcTitleEl.textContent = 'Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.';
+                }
+                if (wcTamilEl) {
+                    wcTamilEl.textContent = 'இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.';
+                }
                 const wcYesEl = document.getElementById('yesOption');
                 const wcYesValue = !!(wcYesEl && wcYesEl.checked);
                 const wcYnEl = document.getElementById('prvSwWcYn');
@@ -2762,6 +2799,7 @@ $(document).ready(function() {
                     }
                     const selectedEmploymentType = (employmentType.val() || '').trim().toLowerCase();
                     const isContractor = (selectedEmploymentType === 'electrical_contractor');
+                    const isBoardMember = (selectedEmploymentType === 'board_member_tnelb');
 
                     /* Columns 3 & 4 — Contractor only */
                     if (isContractor) {
@@ -2799,7 +2837,7 @@ $(document).ready(function() {
                     }
 
                     /* Column 8 — Nature of Work */
-                    if (natureOfWork.length && (natureOfWork.val() || '').trim() === '') {
+                    if (!isBoardMember && !natureOfWork.prop('disabled') && natureOfWork.length && (natureOfWork.val() || '').trim() === '') {
                         natureOfWork.after('<span class="error-message text-danger d-block mt-1">Nature of Work Experience is required.</span>');
                         if (!firstErrorField) firstErrorField = natureOfWork;
                         isValid = false;
@@ -2807,14 +2845,14 @@ $(document).ready(function() {
 
                     /* Column 9 — Voltage Level */
                     const voltageVal = (voltageLevel.val() || '').trim();
-                    if (voltageLevel.length && voltageVal === '') {
+                    if (!isBoardMember && !voltageLevel.prop('disabled') && voltageLevel.length && voltageVal === '') {
                         voltageLevel.after('<span class="error-message text-danger d-block mt-1">Voltage level is required.</span>');
                         if (!firstErrorField) firstErrorField = voltageLevel;
                         isValid = false;
                     }
 
                     /* Column 10 — Transformer kVA (required unless Voltage = Up to 650V) */
-                    const kvaIsLocked = (voltageVal === 'up_to_650v') || transformerKva.prop('disabled');
+                    const kvaIsLocked = isBoardMember || (voltageVal === 'up_to_650v') || transformerKva.prop('disabled');
                     if (!kvaIsLocked && transformerKva.length && (transformerKva.val() || '').trim() === '') {
                         transformerKva.after('<span class="error-message text-danger d-block mt-1">Highest Transformer capacity (kVA) is required.</span>');
                         if (!firstErrorField) firstErrorField = transformerKva;
@@ -2868,8 +2906,8 @@ $(document).ready(function() {
                         }
                     }
 
-                    /* Column 13 — Relieving Letter (required unless Till date is checked) */
-                    if (!isTillDate && relieveInput.length) {
+                    /* Column 13 — Relieving Letter (required unless Till date or Board Member) */
+                    if (!isTillDate && !isBoardMember && relieveInput.length) {
                         if (!hasRelieveFile) {
                             $relieveErrorTarget.after('<span class="error-message text-danger d-block mt-1">Relieving letter is required.</span>');
                             if (!firstErrorField) firstErrorField = relieveInput;
@@ -3289,6 +3327,9 @@ $(document).ready(function() {
             }
 
             // Persist to DB first, so preview document links are available consistently.
+            if (typeof window.wxSyncBoardMemberRenewalFee === 'function' && !isDigitizationApplType()) {
+                await window.wxSyncBoardMemberRenewalFee();
+            }
             const draftSaved = await saveCompetencyDraftSilently();
             if (!draftSaved || draftSaved.status !== "success") {
                 $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
@@ -3302,7 +3343,10 @@ $(document).ready(function() {
             }
 
             let license_name = $("#license_name").val();
-            showDeclarationPopup(license_name, true); // Direct payment flow from preview Pay Now
+            if (isDigitizationApplType()) {
+                $('#amount').val('0');
+            }
+            showDeclarationPopup(license_name, true);
             $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
         });
 
@@ -5212,8 +5256,7 @@ $(document).on("change", "#ownership_type_select", function () {
                                             // alert("Validation errors:\n" + messages);
                                             Swal.fire("Error", messages, "error");
                                         } else {
-                                            alert("An error occurred: " + xhr
-                                                .responseText);
+                                            alert(window.getAjaxErrorMessage(xhr));
                                         }
                                     }
                                 });
@@ -5228,7 +5271,7 @@ $(document).on("change", "#ownership_type_select", function () {
                     }
                 },
                 error: function(xhr) {
-                    alert("An error occurred: " + xhr.responseText);
+                    alert(window.getAjaxErrorMessage(xhr));
                 }
             });
         };
@@ -5270,7 +5313,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         }
                     } else {
                         if (!silent) {
-                            Swal.fire("An error occurred: " + xhr.responseText);
+                            Swal.fire("Error", window.getAjaxErrorMessage(xhr), "error");
                         }
                     }
                     reject(xhr);
@@ -5289,6 +5332,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             
             const appl_type = $('#appl_type').val();
             const issued_licence = $('#license_number').val();
+            const isDigitization = String(appl_type || '').trim().toUpperCase() === 'D';
 
             const formResponse = await $.ajax({
                 url: "{{ route('licences.getFormInstruction') }}",
@@ -5314,15 +5358,30 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 return;
             }
 
+            const formNamePay = ($('#form_name').val() || '').trim().toUpperCase();
+            const boardMemberFeeExempt = !isDigitization
+                && appl_type === 'R'
+                && formNamePay === 'S'
+                && typeof window.wxHasBoardMemberWorkRow === 'function'
+                && window.wxHasBoardMemberWorkRow();
+            const digitizationNoFee = isDigitization;
+
+            if (digitizationNoFee || boardMemberFeeExempt) {
+                $('#amount').val('0');
+            }
+            if (boardMemberFeeExempt) {
+                $('#board_member_fee_exempt').val('1');
+            }
+
             if (data.lateFees < 0) {
-                actual_fees = data.basic_fees;
-                total_fees = data.total_fees;
+                actual_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.basic_fees;
+                total_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.total_fees;
                 lateMonths = data.late_months;
             } else {
-                actual_fees = data.basic_fees;
+                actual_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.basic_fees;
                 lateMonths = data.late_months;
-                total_fees = data.total_fees;
-                lateFee = data.lateFees;
+                total_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.total_fees;
+                lateFee = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.lateFees;
             }
 
             fees_date = data.fees_start_date;
@@ -5353,7 +5412,11 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             }
             const formFeesEl = document.getElementById('form_fees');
             if (formFeesEl) {
-                formFeesEl.textContent = 'Rs.' + actual_fees + '/-';
+                formFeesEl.textContent = digitizationNoFee
+                    ? 'No fee (Digitization)'
+                    : (boardMemberFeeExempt
+                        ? 'Fee exempted (Board Member renewal)'
+                        : ('Rs.' + actual_fees + '/-'));
             }
             
             // Reset state
@@ -5396,8 +5459,10 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             
             // Re-assign click listener
             modalEl.querySelector('#proceedPayment').addEventListener('click', async function() {
+                window._competencyPaymentProceedActive = true;
                 if (!agreeCheckbox.checked) {
                     errorText.classList.remove('d-none');
+                    window._competencyPaymentProceedActive = false;
                     return;
                 }
                 
@@ -5471,7 +5536,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                     if (saveResponse.status === "success") {
 
                         
-                        let form_type = appl_type === 'R' ? 'Renewal Application' : 'New Application';
+                        let form_type = isDigitization
+                            ? 'Digitization Application'
+                            : (appl_type === 'R' ? 'Renewal Application' : 'New Application');
 
                         const login_id = window.login_id || "{{ auth()->user()->login_id ?? '' }}";
                         const application_id = saveResponse.application_id;
@@ -5485,6 +5552,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         const form_name = saveResponse.form_name || 'N/A';
                         const amount = total_fees;
                         const licence_name = saveResponse.licence_name || 'N/A';
+                        const feeExemptSubmit = digitizationNoFee || boardMemberFeeExempt || Number(amount) === 0;
 
                         //console.log(transactionDate);
                         
@@ -5504,8 +5572,50 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                        
                         const transactionId = "TRX" + Math.floor(100000 + Math.random() * 900000);
                         const payment_mode = 'UPI';
-                        
-                        // 🔹 Show payment popup
+
+                        const runCompetencyPayment = async function () {
+                            const paymentResponse = await $.ajax({
+                                url: "{{ route('payment.updatePayment') }}",
+                                type: "POST",
+                                dataType: "json",
+                                data: {
+                                    login_id,
+                                    application_id,
+                                    applicantName,
+                                    transaction_id: transactionId,
+                                    transactionDate: transactionDateIso || transactionDate,
+                                    amount,
+                                    payment_mode,
+                                    form_name,
+                                    form_type,
+                                    lateFee,
+                                    lateMonths
+                                },
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                }
+                            });
+
+                            if (paymentResponse.status === 200) {
+                                showPaymentSuccessPopup(application_id, transactionId, transactionDate, applicantName, amount, form_type, licence_name);
+                            } else {
+                                Swal.fire({
+                                    title: "Payment Failed",
+                                    text: paymentResponse.message || "Something went wrong!",
+                                    icon: "error",
+                                    timer: 3000,
+                                    showConfirmButton: false
+                                });
+                            }
+                        };
+
+                        // Zero-fee paths (digitization, board member exempt, etc.) — submit directly
+                        if (feeExemptSubmit) {
+                            await runCompetencyPayment();
+                            return;
+                        }
+
+                        // Paid applications — confirm fees before gateway
                         Swal.fire({
                             title: "<span style='color:#0d6efd;'>₹ Payment Details</span>",
                             html: `
@@ -5559,46 +5669,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                             buttonsStyling: false,
                             footer: '<div><span style="font-size: 13px;">Note: </span><span style="font-size: 13px;color: red;">The total amount is exclusive of payment gateway service charges.</span>',
                             preConfirm: async () => {
-                                const paymentResponse = await $.ajax({
-                                    url: "{{ route('payment.updatePayment') }}",
-                                    type: "POST",
-                                    dataType: "json",
-                                    data: {
-                                        login_id,
-                                        application_id,
-                                        applicantName,
-                                        transaction_id: transactionId,
-                                        transactionDate: transactionDateIso || transactionDate,
-                                        amount,
-                                        payment_mode,
-                                        form_name,
-                                        form_type,
-                                        lateFee,
-                                        lateMonths
-
-                                    },
-                                    headers: {
-                                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                    }
-                                });
-                                                            
-                                // ✅ Success condition
-                                if (paymentResponse.status === 200) {
-                                    // alert(paymentResponse.status);
-                                    showPaymentSuccessPopup(application_id,transactionId,transactionDate,applicantName,amount,form_type,licence_name);
-
-                                    
-                                } else {
-                                    Swal.fire({
-                                        title: "Payment Failed",
-                                        text: paymentResponse.message || "Something went wrong!",
-                                        icon: "error",
-                                        timer: 3000,
-                                        showConfirmButton: false
-                                    }).then(() => {
-                                        // window.location.href = BASE_URL + "/dashboard";
-                                    });
-                                }
+                                await runCompetencyPayment();
                             }
 
                         }).then((result) => {
@@ -5607,11 +5678,11 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                                     title: "Payment Failed!",
                                     text: "Application Saved as Draft",
                                     icon: "error",
-                                    timer: 3000, // Auto close in 3 seconds
+                                    timer: 3000,
                                     timerProgressBar: true
                                 }).then(() => {
                                     window.location.href = BASE_URL+"/dashboard";
-                                }); // your redirect URL
+                                });
                             }
                         });
                     } else {
@@ -5653,6 +5724,14 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         });
                         return;
                     }
+
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: window.getAjaxErrorMessage(xhr)
+                    });
+                } finally {
+                    window._competencyPaymentProceedActive = false;
                 }
                 
             });

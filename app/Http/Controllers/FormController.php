@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Log;
 use App\Helpers\RoleHelper;
 use App\Services\ReturnedApplicationEditScope;
 use App\Services\ReturnedApplicationPayloadMerge;
+use App\Services\CcDigitizationLinkService;
 
 class FormController extends BaseController
 {
@@ -55,6 +56,47 @@ class FormController extends BaseController
     private function isCompetencyForm(?string $formName): bool
     {
         return in_array($formName, ['S', 'W', 'WH', 'P'], true);
+    }
+
+    private function formErrorResponse(\Throwable $e, string $message = 'Something went wrong. Please try again!', int $status = 500)
+    {
+        Log::error($message, [
+            'exception' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'status' => 'error',
+            'message' => $message,
+        ], $status);
+    }
+
+    private const FORM_S_BOARD_MEMBER_EMP_TYPE = 'board_member_tnelb';
+
+    private function requestHasFormSBoardMemberWorkExperience(Request $request): bool
+    {
+        if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+            return false;
+        }
+
+        $types = $request->input('work_employment_type', []);
+        if (! is_array($types)) {
+            return false;
+        }
+
+        foreach ($types as $type) {
+            if (strtolower(trim((string) $type)) === self::FORM_S_BOARD_MEMBER_EMP_TYPE) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isFormSRenewalBoardMemberFeeExempt(Request $request): bool
+    {
+        return strtoupper((string) ($request->appl_type ?? '')) === 'R'
+            && $this->requestHasFormSBoardMemberWorkExperience($request);
     }
 
     private function hasWorkExperiencePayload(Request $request): bool
@@ -936,6 +978,16 @@ class FormController extends BaseController
             ->orderByDesc('id')
             ->get();
 
+        $cc_digitization_temp_id = null;
+        if (($application_details->appl_type ?? '') === 'D') {
+            $cc_digitization_temp_id = app(CcDigitizationLinkService::class)->resolveTempAppId(
+                null,
+                (string) $application_details->login_id,
+                $appl_id,
+                $application_details->form_name ?? null
+            );
+        }
+
         return view('user_login.edit_application', compact(
             'applicationid',
             'application_details',
@@ -947,7 +999,8 @@ class FormController extends BaseController
             'fees_details',
             'form_details',
             'licence_name',
-            'queries'
+            'queries',
+            'cc_digitization_temp_id'
         ));
 
     }
@@ -1312,6 +1365,10 @@ class FormController extends BaseController
         if ($existingApplicationId !== '' && Mst_Form_s_w::where('application_id', $existingApplicationId)->exists()) {
             return $this->draft_update($request, $existingApplicationId);
         }
+
+        if ($guard = $this->assertDigitizationCanSave($request)) {
+            return $guard;
+        }
         
         
         DB::beginTransaction();
@@ -1324,7 +1381,7 @@ class FormController extends BaseController
         try {
             // Generate New Application ID
             $appl_type = $request->appl_type ?? '';
-            if ($appl_type == 'R') {
+            if (in_array($appl_type, ['R', 'D'], true)) {
                 $lastApplication = Mst_Form_s_w::latest('id')->value('application_id');
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
@@ -1567,7 +1624,8 @@ class FormController extends BaseController
             }
             
             
-            
+            $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+
             DB::commit();
 
             return response()->json([
@@ -1585,10 +1643,7 @@ class FormController extends BaseController
         } catch (\Exception $e) {
             DB::rollBack();
             
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to save form: ' . $e->getMessage()
-            ], 500);
+            return $this->formErrorResponse($e, 'Failed to save form. Please try again!');
         }
     }
 
@@ -1611,6 +1666,10 @@ class FormController extends BaseController
 
         if (!$existingForm) {
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
+        }
+
+        if ($guard = $this->assertDigitizationCanSave($request, $applicationId)) {
+            return $guard;
         }
 
             $uploadPhotoRule = (!$existingPhoto || empty($existingPhoto->upload_path))
@@ -2033,6 +2092,8 @@ class FormController extends BaseController
                 );
             }
 
+            $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+
             DB::commit();
 
             return response()->json([
@@ -2043,10 +2104,7 @@ class FormController extends BaseController
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message'=> 'Update failed: ' . $e->getMessage()
-            ], 500);
+            return $this->formErrorResponse($e, 'Update failed. Please try again!');
         }
     }
 
@@ -2160,11 +2218,7 @@ class FormController extends BaseController
             ]);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to delete record!',
-                'error'   => $e->getMessage()
-            ], 500);
+            return $this->formErrorResponse($e, 'Failed to delete record!');
         }
     }
 
@@ -2200,11 +2254,7 @@ class FormController extends BaseController
             ]);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to delete record!',
-                'error'   => $e->getMessage()
-            ], 500);
+            return $this->formErrorResponse($e, 'Failed to delete record!');
         }
     }
 
@@ -2321,7 +2371,7 @@ class FormController extends BaseController
         ]);
 
         $action = $request->form_action; // "draft" or "submit"
-        $loginId = $request->login_id;
+        $loginId = $this->resolveDigitizationLoginId($request, $request->login_id);
         $appl_type = $request->appl_type ?? '';
 
         DB::beginTransaction();
@@ -2337,21 +2387,15 @@ class FormController extends BaseController
             } else {
 
                 // Create New Application ID
-                $appl_type = $request->appl_type ?? '';
-                
-                $lastApplication = Mst_Form_s_w::latest('id')->value('application_id');
-                if ($lastApplication) {
-                    $lastNumber = (int) substr($lastApplication, -7);
-                    $applicationId = $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
-                } else {
-                    $applicationId = $request->form_name . $request->license_name . date('y') . '1111111';
-                }
+                $applicationId = $this->generateCompetencyApplicationId($request);
 
             }
 
 
 
-            $encrypted_aadhaar = Crypt::encryptString($request->aadhaar);
+            $encrypted_aadhaar = $request->filled('aadhaar')
+                ? Crypt::encryptString($request->aadhaar)
+                : ($form?->aadhaar ?? null);
         
             
             if ($request->hasFile('aadhaar_doc')) {
@@ -2400,41 +2444,50 @@ class FormController extends BaseController
                 }
             }
            
-             
+  
             // 🔹 Prepare Data
-            $data = array_merge([
-                'login_id'          => $loginId,
-                'applicant_name'    => $request->applicant_name ?? $request->Applicant_Name,
-                'fathers_name'      => $request->fathers_name ?? $request->Fathers_Name,
-                'applicant_email'   => $request->input('applicant_email'),
-                'applicants_address'=> $request->applicants_address,
-                'd_o_b'             => $request->d_o_b ?? null,
-                'age'               => $request->age,
-                'status'            => 'P', // Pending (for both draft/submit)
-                'previously_number' => $request->previously_number ?? null,
-                'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
-                'previously_issue_date' => $request->previously_issue_date ?: null,
-                'previously_valid_from' => $request->previously_valid_from ?: null,
-                'wireman_details'   => $request->wireman_details,
-                'form_name'         => $request->form_name,
-                'form_id'           => $request->form_id,
-                'license_name'      => $request->license_name,
-                'aadhaar'           => $encrypted_aadhaar ?? null,
-                'pancard'           => $encrypted_pancard,
-                'appl_type'         => $request->appl_type,
-                'license_number'    => $request->license_number,
-                'payment_status'    => $action === 'draft' ? 'draft' : 'payment',
-                'aadhaar_doc'         => $aadhaarFilename,
-                'pan_doc'             => $panFilename,
-                'certificate_no'      => $request->competency_certificate_no ?? null,
-                'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
-                'certificate_issue_date' => $request->certificate_issue_date ?: null,
-                'certificate_valid_from' => $request->certificate_valid_from ?: null,
-                'application_id'    => $applicationId,
-                'cert_verify'    => $request->cert_verify ?? '0',
-                'license_verify'    => $request->l_verify ?? '0',
-                'old_application'=> $form->old_application ?? null
-            ]);
+            try {
+                $data = array_merge([
+                    'login_id'          => $loginId,
+                    'applicant_name'    => $this->resolveApplicantName($request, $form),
+                    'fathers_name'      => $request->fathers_name ?? $request->Fathers_Name,
+                    'applicant_email'   => $request->input('applicant_email'),
+                    'applicants_address'=> $request->applicants_address,
+                    'd_o_b'             => $request->d_o_b ?? null,
+                    'age'               => $request->age,
+                    'status'            => 'P', // Pending (for both draft/submit)
+                    'previously_number' => $request->previously_number ?? null,
+                    'previously_valid_to' => $request->previously_valid_to ?: ($request->previously_date ?: null),
+                    'previously_issue_date' => $request->previously_issue_date ?: null,
+                    'previously_valid_from' => $request->previously_valid_from,
+                    'wireman_details'   => $request->wireman_details,
+                    'form_name'         => $request->form_name,
+                    'form_id'           => $request->form_id,
+                    'license_name'      => $request->license_name,
+                    'aadhaar'           => $encrypted_aadhaar ?? null,
+                    'pancard'           => $encrypted_pancard,
+                    'appl_type'         => $request->appl_type,
+                    'license_number'    => $request->license_number,
+                    'payment_status'    => $action === 'draft' ? 'draft' : 'payment',
+                    'aadhaar_doc'         => $aadhaarFilename,
+                    'pan_doc'             => $panFilename,
+                    'certificate_no'      => $request->competency_certificate_no ?? null,
+                    'certificate_valid_to' => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
+                    'certificate_issue_date' => $request->certificate_issue_date ?: null,
+                    'certificate_valid_from' => $request->certificate_valid_from ?: null,
+                    'application_id'    => $applicationId,
+                    'cert_verify'    => $request->cert_verify ?? '0',
+                    'license_verify'    => $request->l_verify ?? '0',
+                    'old_application'=> $form->old_application ?? null
+                ]);
+            } catch (\Throwable $e) {
+                
+                DB::rollBack();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                ], 500);
+            }
 
 
 
@@ -2628,21 +2681,30 @@ class FormController extends BaseController
                 );
             }
 
+            $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+
             DB::commit();
+
+            $linkedTempId = null;
+            if (($request->appl_type ?? '') === 'D') {
+                $linkedTempId = app(CcDigitizationLinkService::class)->resolveTempAppId(
+                    $request->input('cc_digitization_temp_id'),
+                    $loginId,
+                    $applicationId,
+                    $request->input('form_name')
+                );
+            }
 
             return response()->json([
                 'status' => 'success',
                 'message' => $action === 'draft' ? 'Draft saved successfully!' : 'Form submitted successfully!',
                 'application_id' => $applicationId,
-                'applicantName' => $form->applicant_name
+                'applicantName' => $form->applicant_name,
+                'cc_digitization_temp_id' => $linkedTempId,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Something went wrong. Please try again!',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->formErrorResponse($e);
         }
     }
 
@@ -2993,6 +3055,8 @@ class FormController extends BaseController
 
             DB::commit();
 
+            $boardMemberFeeExempt = $this->isFormSRenewalBoardMemberFeeExempt($request);
+
             return response()->json([
                 'status'         => 'success',
                 'message'        => $action === 'draft' ? 'Draft saved successfully!' : 'Form submitted successfully!',
@@ -3000,16 +3064,14 @@ class FormController extends BaseController
                 'applicantName'  => $form->applicant_name,
                 'form_name'      => $form->form_name,
                 'licence_name'   => $type_of_apps->licence_name,
-                'date_apps'      => Carbon::parse($this->dbNow)->format('d-m-Y')
+                'date_apps'      => Carbon::parse($this->dbNow)->format('d-m-Y'),
+                'board_member_fee_exempt' => $boardMemberFeeExempt,
+                'amount'         => $boardMemberFeeExempt ? 0 : (float) ($request->amount ?? 0),
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Something went wrong. Please try again!',
-                'error'   => $e->getMessage()
-            ], 500);
+            return $this->formErrorResponse($e);
         }
     }
 
@@ -3017,7 +3079,7 @@ class FormController extends BaseController
 
 
 
-    public function update(Request $request, $id)
+public function update(Request $request, $id)
     {
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
@@ -3036,6 +3098,11 @@ class FormController extends BaseController
         if (!$existingForm && $applicationId) {
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
         }
+
+        if ($guard = $this->assertDigitizationCanSave($request, $applicationId)) {
+            return $guard;
+        }
+
         $uploadPhotoRule = (!$existingPhoto || empty($existingPhoto->upload_path))
             ? 'image|mimes:jpg,jpeg,png|max:50'
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
@@ -3347,6 +3414,8 @@ class FormController extends BaseController
 
             
 
+            $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+
             // Process Payment for update
             DB::commit();
 
@@ -3364,10 +3433,7 @@ class FormController extends BaseController
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return response()->json([
-                'message' => 'Something went wrong. Please try again!',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->formErrorResponse($e);
         }
     }
 
@@ -3570,6 +3636,113 @@ class FormController extends BaseController
         }
 
         return true;
+    }
+
+    private function generateCompetencyApplicationId(Request $request): string
+    {
+        $applType = $request->appl_type ?? '';
+        $lastApplication = Mst_Form_s_w::latest('id')->value('application_id');
+        if ($lastApplication) {
+            $lastNumber = (int) substr($lastApplication, -7);
+            $next = str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
+        } else {
+            $next = '1111111';
+        }
+
+        $prefix = in_array($applType, ['R', 'D'], true) ? $applType : '';
+
+        return $prefix . $request->form_name . $request->license_name . date('y') . $next;
+    }
+
+    private function resolveApplicantName(Request $request, ?Mst_Form_s_w $existingForm = null): string
+    {
+        $name = trim((string) ($request->input('applicant_name', $request->input('Applicant_Name', ''))));
+        if ($name !== '') {
+            return $name;
+        }
+
+        if ($existingForm) {
+            $existing = trim((string) ($existingForm->applicant_name ?? ''));
+            if ($existing !== '') {
+                return $existing;
+            }
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $fromUser = trim(implode(' ', array_filter([
+                $user->salutation ?? '',
+                $user->first_name ?? '',
+                $user->last_name ?? '',
+            ])));
+            if ($fromUser !== '') {
+                return $fromUser;
+            }
+        }
+
+        return 'Applicant';
+    }
+
+    private function linkCcDigitizationIfNeeded(Request $request, string $applicationId, string $loginId): void
+    {
+        if (($request->appl_type ?? '') !== 'D') {
+            return;
+        }
+
+        $loginId = $this->resolveDigitizationLoginId($request, $loginId);
+        if ($loginId === '') {
+            return;
+        }
+
+        $linker = app(CcDigitizationLinkService::class);
+        $tempAppId = $linker->resolveTempAppId(
+            $request->input('cc_digitization_temp_id'),
+            $loginId,
+            $applicationId,
+            $request->input('form_name')
+        );
+
+        $linker->linkToApplication($tempAppId, $applicationId, $loginId);
+    }
+
+    private function resolveDigitizationLoginId(Request $request, ?string $loginId = null): string
+    {
+        $id = trim((string) ($loginId ?? $request->input('login_id', '')));
+        if ($id !== '') {
+            return $id;
+        }
+
+        $user = Auth::user();
+
+        return $user ? (string) $user->login_id : '';
+    }
+
+    private function assertDigitizationCanSave(Request $request, ?string $applicationId = null): ?\Illuminate\Http\JsonResponse
+    {
+        if (($request->appl_type ?? '') !== 'D') {
+            return null;
+        }
+
+        $loginId = (string) $request->input('login_id', '');
+        $existingId = trim((string) ($applicationId ?? $request->input('application_id', '')));
+
+        // Draft resubmit / edit — application already exists; do not force the cert modal again.
+        if ($existingId !== '' && Mst_Form_s_w::where('application_id', $existingId)->exists()) {
+            return null;
+        }
+
+        $linker = app(CcDigitizationLinkService::class);
+
+        $ok = $linker->assertValidForNewSave($request->input('cc_digitization_temp_id'), $loginId);
+
+        if (!$ok) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Complete digitization certificate details first.',
+            ], 422);
+        }
+
+        return null;
     }
 
       public function getFormCost(Request $request)

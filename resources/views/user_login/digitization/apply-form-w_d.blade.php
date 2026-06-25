@@ -750,6 +750,7 @@
                     <input type="hidden" id="form_id" name="form_id" value="2">
                     <input type="hidden" id="appl_type" name="appl_type" value="N">
                     <input type="hidden" id="application_id" name="application_id" value="{{ $application_details->application_id ?? $application->application_id ?? '' }}">
+                    <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id" value="{{ $cc_digitization_temp_id ?? '' }}">
                     @csrf
                     <input type="hidden" id="form_action" name="form_action" value="draft">
 

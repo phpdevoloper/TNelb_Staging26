@@ -229,6 +229,10 @@
             </td>
 
             <!-- License Number -->
+            @php
+                // var_dump($workflow);
+                // exit;
+            @endphp
             <td>
                 @if (!empty($workflow->license_number) && $sts == 'A')
                     <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank" 

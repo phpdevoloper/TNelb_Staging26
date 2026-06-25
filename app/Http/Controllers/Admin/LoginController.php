@@ -1751,6 +1751,10 @@ class LoginController extends Controller
             ->orderByDesc('qa.id')
             ->get();
 
+            $cc_digitization = DB::table('tnelb_cc_digitization')
+                ->where('application_id', $applicant_id)
+                ->first();
+
         // Determine view based on user role
         $view = match ($staff->name) {
             'President'  => 'admin.dashboard.applicants_detail_supervisor',
@@ -1766,7 +1770,7 @@ class LoginController extends Controller
         };
 
         // var_dump($nextForwardUser);exit;
-        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff'));
+        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff', 'cc_digitization'));
     }
 
     public function presidentDashboard()

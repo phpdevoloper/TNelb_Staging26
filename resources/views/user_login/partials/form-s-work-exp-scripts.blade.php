@@ -292,7 +292,7 @@
                 return $tr.is(':visible');
             }
 
-            /** Per-row From/To: order + minimum 2 calendar years (730 days) for visible rows. */
+            /** Per-row From/To: date order only (2-year minimum is shown once below all rows). */
             function validateWorkRowDateRange($tr) {
                 if (!$tr || !$tr.length) return;
                 if (!isWorkRowActiveInForm($tr)) {
@@ -316,10 +316,6 @@
 
                 if (to < from) {
                     showWorkRowDateRangeError($tr, 'To date must be greater than or equal to From date.');
-                    return;
-                }
-                if ((to - from) < TWO_YEARS_MS) {
-                    showWorkRowDateRangeError($tr, 'Minimum 2 Years Experience needed.');
                 }
             }
 
@@ -363,6 +359,70 @@
                             '.work-card-field-hint[data-hint="' + mapHintName(fieldName) + '"]').hide();
                     if (fieldName === 'relieve') $f.find('.work-card-field-hint[data-hint="relieve-default"]').show();
                 }
+            }
+
+            /** Unlock a column input and clear any stale lock styling on its cell. */
+            function unlockWorkField($tr, $input, fieldName) {
+                if (!$input || !$input.length) return;
+                $input.prop('disabled', false).removeAttr('disabled').removeClass('is-locked');
+                if (fieldName) {
+                    setFieldLock($tr, fieldName, false);
+                }
+            }
+
+            /** Board Member: disable contractor / technical columns; enable org, dates, uploads. */
+            function applyBoardMemberEmployment($tr) {
+                var $cat = $tr.find('.work-contractor-cat');
+                var $lic = $tr.find('.work-licence-number');
+                var $emp = $tr.find('.work-employer-input');
+                var $addr = $tr.find('.work-org-address');
+                var $des = $tr.find('.work-designation');
+                var $nat = $tr.find('.work-nature');
+                var $volt = $tr.find('.work-voltage');
+                var $kva = $tr.find('.work-transformer-kva');
+                var $yFrom = $tr.find('.work-date-from');
+                var $yTo = $tr.find('.work-date-to');
+                var $till = $tr.find('.work-date-till');
+                var $doc = $tr.find('.work-doc-input');
+                var $rel = $tr.find('.work-relieve-input');
+
+                $cat.val('').prop('disabled', true).prop('required', false);
+                $lic.val('').prop('disabled', true).prop('required', false);
+                setFieldLock($tr, 'contractor-cat', true);
+                setFieldLock($tr, 'licence-number', true);
+
+                $nat.val('').prop('disabled', true).prop('required', false);
+                $volt.val('').prop('disabled', true).prop('required', false);
+                $kva.val('').prop('disabled', true).prop('required', false);
+                setFieldLock($tr, 'work-nature', true);
+                setFieldLock($tr, 'voltage-level', true);
+                setFieldLock($tr, 'transformer-kva', true);
+                $tr.find('[data-field="work-nature"] .req, [data-field="voltage-level"] .req, [data-field="transformer-kva"] .req').hide();
+
+                unlockWorkField($tr, $emp, 'organisation');
+                unlockWorkField($tr, $addr, 'organisation-address');
+                unlockWorkField($tr, $des, 'designation');
+                unlockWorkField($tr, $yFrom, 'from-date');
+                $emp.prop('required', true);
+                $addr.prop('required', true);
+                $des.prop('required', true);
+                $yFrom.prop('required', true);
+                $till.prop('disabled', false);
+
+                unlockWorkField($tr, $doc, 'support-doc');
+                $doc.prop('required', true);
+
+                applyTillDate($tr);
+                if (!$yTo.prop('disabled')) {
+                    $yTo.prop('required', true);
+                }
+
+                $rel.prop('required', false);
+                if (!$till.is(':checked')) {
+                    unlockWorkField($tr, $rel, 'relieve');
+                }
+                $tr.find('[data-field="relieve"] .work-card-field-label .req').hide();
+                $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').show();
             }
             /* data-field uses kebab; some hints use shorter names. */
             function mapHintName(fieldName) {
@@ -615,6 +675,7 @@
                 syncSummaryTable();
                 $tr.find('.work-row-done-hint').remove();
                 if (shouldExpand) {
+                    applyEmploymentType($tr);
                     updateTotalYears($tr);
                     var $focus = $tr.find('.work-row-grid :input:not([type="hidden"]):not([readonly]):enabled').first();
                     if ($focus.length) $focus.trigger('focus');
@@ -818,6 +879,7 @@
                     $tr.find('.work-date-till-hidden').val('0');
                     $doc.val('').prop('disabled', true).prop('required', false).removeAttr('data-has-local-file').addClass('is-locked');
                     $rel.val('').prop('disabled', true).prop('required', false).removeAttr('data-has-local-file').addClass('is-locked');
+                    $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').hide();
                     setFieldLock($tr, 'contractor-cat', false);
                     setFieldLock($tr, 'licence-number', false);
                     setFieldLock($tr, 'transformer-kva', false);
@@ -838,38 +900,19 @@
                 }
 
                 if (isBoardMember) {
-                    $cat.val('').prop('disabled', true).prop('required', false);
-                    $lic.val('').prop('disabled', true).prop('required', false);
-                    setFieldLock($tr, 'contractor-cat', true);
-                    setFieldLock($tr, 'licence-number', true);
-
-                    $nat.val('').prop('disabled', true).prop('required', false);
-                    $volt.val('').prop('disabled', true).prop('required', false);
-                    $kva.val('').prop('disabled', true).prop('required', false);
-                    setFieldLock($tr, 'work-nature', true);
-                    setFieldLock($tr, 'voltage-level', true);
-                    setFieldLock($tr, 'transformer-kva', true);
-
-                    $emp.prop('disabled', false).prop('required', true);
-                    $addr.prop('disabled', false).prop('required', true);
-                    $des.prop('disabled', false).prop('required', true);
-                    $yFrom.prop('disabled', false).prop('required', true);
-                    $till.prop('disabled', false);
-                    $doc.prop('disabled', false).prop('required', true).removeClass('is-locked');
-
-                    applyTillDate($tr);
-                    if (!$yTo.prop('disabled')) $yTo.prop('required', true);
-                    $rel.prop('required', false);
-                    if (!$rel.prop('disabled')) {
-                        $rel.removeClass('is-locked');
-                    }
-
+                    applyBoardMemberEmployment($tr);
                     updateTotalYears($tr);
                     syncLegacyHidden($tr);
                     updateRowHeader($tr);
+                    if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                        window.wxSyncBoardMemberRenewalFee();
+                    }
                     return;
                 }
 
+                $tr.find('[data-field="work-nature"] .req, [data-field="voltage-level"] .req, [data-field="transformer-kva"] .req').show();
+                $tr.find('[data-field="relieve"] .work-card-field-label .req').show();
+                $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').hide();
                 /* Cols 3 & 4 — Contractor only. */
                 if (isContractor) {
                     $cat.prop('disabled', false).prop('required', true);
@@ -988,6 +1031,9 @@
                 refreshWorkSerials();
                 syncSummaryTable();
                 updateOverallTotalYears();
+                if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                    window.wxSyncBoardMemberRenewalFee();
+                }
             });
 
             $(document).on('click', '.remove-work-doc-confirm', function(e) {
@@ -1043,7 +1089,21 @@
             });
 
             /* Type / voltage / till-date drive all the conditional locks. */
-            $(document).on('change', '#work-container .work-employment-type', function() { applyEmploymentType($workRow(this)); });
+            $(document).on('change', '#work-container .work-employment-type', function() {
+                applyEmploymentType($workRow(this));
+                if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                    window.wxSyncBoardMemberRenewalFee();
+                }
+            });
+            $(document).on('change', '#work-container .work-date-till', function() {
+                var $tr = $workRow(this);
+                applyTillDate($tr);
+                if (($tr.find('.work-employment-type').val() || '').trim() === BOARD_MEMBER_TYPE && !$tr.find('.work-date-till').is(':checked')) {
+                    unlockWorkField($tr, $tr.find('.work-relieve-input'), 'relieve');
+                    $tr.find('.work-relieve-input').prop('required', false);
+                    $tr.find('[data-field="relieve"] .work-card-field-label .req').hide();
+                }
+            });
             $(document).on('change', '#work-container .work-voltage', function() {
                 var $tr = $workRow(this);
                 applyVoltage($tr);
@@ -1055,10 +1115,6 @@
                 $tr.find('.work-transformer-kva').nextAll('.error-message').remove();
                 $tr.find('.work-card-field[data-field="transformer-kva"] .error-message').remove();
                 updateRowHeader($tr);
-            });
-            $(document).on('change', '#work-container .work-date-till', function() {
-                var $tr = $workRow(this);
-                applyTillDate($tr);
             });
             $(document).on('input', '#work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
@@ -1226,10 +1282,105 @@
                         refreshWorkSerials();
                         syncSummaryTable();
                         updateOverallTotalYears();
+                        if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                            window.wxSyncBoardMemberRenewalFee();
+                        }
                     }, 180);
                 }
             });
         })();
+
+@if (!empty($enableBoardMemberRenewalFeeExempt))
+        (function() {
+            var BOARD_MEMBER_TYPE = 'board_member_tnelb';
+            var cachedRenewalFee = null;
+
+            function isRenewFormS() {
+                return ($('#appl_type').val() || '').trim() === 'R'
+                    && ($('#form_name').val() || '').trim().toUpperCase() === 'S';
+            }
+
+            window.wxHasBoardMemberWorkRow = function() {
+                var found = false;
+                $('#work-container .work-fields').each(function() {
+                    var type = ($(this).find('.work-employment-type').val() || '').trim();
+                    if (type === BOARD_MEMBER_TYPE) {
+                        found = true;
+                        return false;
+                    }
+                });
+                return found;
+            };
+
+            function setFeeNotice(exempt) {
+                var $notice = $('#board-member-fee-notice');
+                if (!$notice.length) return;
+                $notice.toggleClass('d-none', !exempt);
+            }
+
+            window.wxSyncBoardMemberRenewalFee = async function() {
+                if (!isRenewFormS()) return;
+
+                var $amount = $('#amount');
+                var $flag = $('#board_member_fee_exempt');
+                var exempt = window.wxHasBoardMemberWorkRow();
+
+                if ($flag.length) {
+                    $flag.val(exempt ? '1' : '0');
+                }
+
+                if (exempt) {
+                    if (cachedRenewalFee === null && $amount.length) {
+                        var stored = parseFloat($amount.data('standardRenewalFee'));
+                        if (!isNaN(stored)) {
+                            cachedRenewalFee = stored;
+                        }
+                    }
+                    if ($amount.length) $amount.val('0');
+                    setFeeNotice(true);
+                    return;
+                }
+
+                setFeeNotice(false);
+                if (!$amount.length) return;
+
+                if (cachedRenewalFee !== null) {
+                    $amount.val(String(cachedRenewalFee));
+                    return;
+                }
+
+                try {
+                    if (typeof getPaymentsService !== 'function') return;
+                    var licence_code = ($('#license_name').val() || '').trim();
+                    var appl_type = ($('#appl_type').val() || '').trim();
+                    var issued_licence = ($('#license_number').val() || '').trim();
+                    if (!licence_code || !appl_type) return;
+                    var data = await getPaymentsService(licence_code, issued_licence, appl_type, { silent: true });
+                    if (data && data.total_fees !== undefined && data.total_fees !== null && data.total_fees !== '') {
+                        cachedRenewalFee = parseFloat(data.total_fees);
+                        if (!isNaN(cachedRenewalFee)) {
+                            $amount.data('standardRenewalFee', cachedRenewalFee);
+                            $amount.val(String(cachedRenewalFee));
+                        }
+                    }
+                } catch (e) {
+                    /* keep existing fallback amount */
+                }
+            };
+
+            $(document).ready(function() {
+                var $amount = $('#amount');
+                if ($amount.length) {
+                    var initial = parseFloat($amount.val());
+                    if (!isNaN(initial) && initial > 0) {
+                        $amount.data('standardRenewalFee', initial);
+                        cachedRenewalFee = initial;
+                    }
+                }
+                window.wxSyncBoardMemberRenewalFee();
+            });
+        })();
+@endif
 
 </script>
 @endif

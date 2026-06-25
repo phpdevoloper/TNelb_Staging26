@@ -774,7 +774,7 @@
                 },
                 error: function(xhr) {
                     $('#saveDraftBtn, #submitPaymentBtn').prop('disabled', false);
-                    alert("An error occurred: " + xhr.responseText);
+                    alert(window.getAjaxErrorMessage(xhr));
                 }
             });
         });

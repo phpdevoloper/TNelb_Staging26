@@ -1759,6 +1759,7 @@
                                                     <option value="retired_employee">Retired Employee</option>
                                                     <option value="govt_organisation">Govt organisation</option>
                                                     <option value="apprenticeship">Apprenticeship</option>
+                                                    <option value="board_member_tnelb">Board Member / Ex. Board Member of TNELB</option>
                                                 </select>
                                             </div>
                                             <div class="work-card-field" data-field="contractor-cat">
@@ -1855,6 +1856,7 @@
                                                     <input class="form-control work-relieve-input" name="work_relieving_letter[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" disabled>
                                                 </div>
                                                 <span class="work-card-field-hint" data-hint="relieve" style="display:none;"><i class="fa fa-info-circle"></i> Not required when "Till date" is selected</span>
+                                                <span class="work-card-field-hint" data-hint="relieve-board" style="display:none;"><i class="fa fa-info-circle"></i> Optional for Board Member / Ex. Board Member of TNELB</span>
                                                 <span class="work-card-field-hint" data-hint="relieve-default"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
                                             </div>
 
@@ -2129,11 +2131,13 @@
 
                     {{-- Hidden fields --}}
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ $user['user_id'] }}">
-                    <input type="hidden" id="application_id" name="application_id" value="{{ $application->id ?? '' }}">
+                    <input type="hidden" id="application_id" name="application_id" value="{{ $application_details->application_id ?? '' }}">
+                    <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id" value="{{ $cc_digitization_temp_id ?? '' }}">
                     <input type="hidden" id="form_name" name="form_name" value="S">
                     <input type="hidden" id="license_name" name="license_name" value="C">
                     <input type="hidden" id="form_id" name="form_id" value="1">
                     <input type="hidden" id="appl_type" name="appl_type" value="D">
+                    <input type="hidden" id="amount" name="amount" value="0">
                     <input type="hidden" id="form_action" name="form_action" value="draft">
                     @csrf
 
@@ -2641,6 +2645,7 @@
          */
         (function() {
             var CONTRACTOR_TYPE = 'electrical_contractor';
+            var BOARD_MEMBER_TYPE = 'board_member_tnelb';
             var VOLTAGE_DISABLES_KVA = 'up_to_650v';
             var MAX_WORK_ROWS = 3;
             var TWO_YEARS_MS = 730 * 86400000;
@@ -2650,7 +2655,8 @@
                 electrical_contractor: 'Electrical contractor',
                 retired_employee: 'Retired Employee',
                 govt_organisation: 'Govt organisation',
-                apprenticeship: 'Apprenticeship'
+                apprenticeship: 'Apprenticeship',
+                board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
             };
             var NATURE_LABEL = {
                 erection: 'Erection',
@@ -3048,12 +3054,18 @@
 
                 /* Col 3–6 */
                 $str.find('.work-row-summary-designation').text(designation || '—');
-                $str.find('.work-row-summary-nature').text(nature ? (NATURE_LABEL[nature] || nature) : '—');
-                $str.find('.work-row-summary-voltage').text(voltage ? (VOLTAGE_LABEL[voltage] || voltage) : '—');
-                if (voltage === VOLTAGE_DISABLES_KVA) {
+                if (type === BOARD_MEMBER_TYPE) {
+                    $str.find('.work-row-summary-nature').text('—');
+                    $str.find('.work-row-summary-voltage').text('—');
                     $str.find('.work-row-summary-kva').text('Not applicable');
                 } else {
-                    $str.find('.work-row-summary-kva').text(kva ? (kva + ' kVA') : '—');
+                    $str.find('.work-row-summary-nature').text(nature ? (NATURE_LABEL[nature] || nature) : '—');
+                    $str.find('.work-row-summary-voltage').text(voltage ? (VOLTAGE_LABEL[voltage] || voltage) : '—');
+                    if (voltage === VOLTAGE_DISABLES_KVA) {
+                        $str.find('.work-row-summary-kva').text('Not applicable');
+                    } else {
+                        $str.find('.work-row-summary-kva').text(kva ? (kva + ' kVA') : '—');
+                    }
                 }
 
                 /* Col 7 — From / To / Duration (mini boxes) */
@@ -3159,6 +3171,7 @@
             function isRowComplete($tr) {
                 var type = ($tr.find('.work-employment-type').val() || '').trim();
                 if (!type) return false;
+                var isBoardMember = (type === BOARD_MEMBER_TYPE);
                 /* Every enabled required text/select must be filled. */
                 var ok = true;
                 $tr.find('select[required], input[type="text"][required], input[type="number"][required]').each(function() {
@@ -3169,13 +3182,15 @@
                 if (!$tr.find('.work-date-till').is(':checked') && !$tr.find('.work-date-to').prop('disabled')
                     && !readWorkDateFromInput($tr.find('.work-date-to'))) ok = false;
                 if (!ok) return false;
-                var voltage = ($tr.find('.work-voltage').val() || '').trim();
-                var $kva = $tr.find('.work-transformer-kva');
-                if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                if (!isBoardMember) {
+                    var voltage = ($tr.find('.work-voltage').val() || '').trim();
+                    var $kva = $tr.find('.work-transformer-kva');
+                    if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                }
                 var $doc = $tr.find('.work-doc-input');
                 if (!$doc.prop('disabled') && !workInputHasFile($doc)) return false;
                 var till = $tr.find('.work-date-till').is(':checked');
-                if (!till) {
+                if (!till && !isBoardMember) {
                     var $rel = $tr.find('.work-relieve-input');
                     if (!$rel.prop('disabled') && !workInputHasFile($rel)) return false;
                 }
@@ -3252,6 +3267,59 @@
                 setFieldLock($tr, 'transformer-kva', locked);
             }
 
+            /** Board Member: disable contractor / technical columns; enable org, dates, uploads. */
+            function applyBoardMemberEmployment($tr) {
+                var $cat = $tr.find('.work-contractor-cat');
+                var $lic = $tr.find('.work-licence-number');
+                var $emp = $tr.find('.work-employer-input');
+                var $addr = $tr.find('.work-org-address');
+                var $des = $tr.find('.work-designation');
+                var $nat = $tr.find('.work-nature');
+                var $volt = $tr.find('.work-voltage');
+                var $kva = $tr.find('.work-transformer-kva');
+                var $yFrom = $tr.find('.work-date-from');
+                var $yTo = $tr.find('.work-date-to');
+                var $till = $tr.find('.work-date-till');
+                var $doc = $tr.find('.work-doc-input');
+                var $rel = $tr.find('.work-relieve-input');
+
+                $cat.val('').prop('disabled', true).prop('required', false);
+                $lic.val('').prop('disabled', true).prop('required', false);
+                setFieldLock($tr, 'contractor-cat', true);
+                setFieldLock($tr, 'licence-number', true);
+
+                $nat.val('').prop('disabled', true).prop('required', false);
+                $volt.val('').prop('disabled', true).prop('required', false);
+                $kva.val('').prop('disabled', true).prop('required', false);
+                setFieldLock($tr, 'transformer-kva', true);
+                $tr.find('.work-nature, .work-voltage').closest('.work-card-field').find('.req').hide();
+                $tr.find('[data-field="transformer-kva"] .req').hide();
+
+                $emp.prop('disabled', false).prop('required', true);
+                $addr.prop('disabled', false).prop('required', true);
+                $des.prop('disabled', false).prop('required', true);
+                $yFrom.prop('disabled', false).prop('required', true);
+                $till.prop('disabled', false);
+                $doc.prop('disabled', false).removeClass('is-locked');
+
+                applyTillDate($tr);
+                if (!$yTo.prop('disabled')) {
+                    $yTo.prop('required', true);
+                }
+
+                $rel.prop('required', false);
+                if (!$till.is(':checked')) {
+                    $rel.prop('disabled', false).removeClass('is-locked');
+                }
+                $tr.find('[data-field="relieve"] .work-card-field-label .req').hide();
+                $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').show();
+                $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-default"]').hide();
+
+                updateTotalYears($tr);
+                syncLegacyHidden($tr);
+                updateRowHeader($tr);
+            }
+
             /** Drive every column's enable / required state from the Employment Type. */
             function applyEmploymentType($tr) {
                 var t = ($tr.find('.work-employment-type').val() || '').trim();
@@ -3294,6 +3362,8 @@
                     setFieldLock($tr, 'transformer-kva', false);
                     setFieldLock($tr, 'to-date', false);
                     setFieldLock($tr, 'relieve', false);
+                    $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').hide();
+                    $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-default"]').show();
                     /* Clear any blob previews left over from a previous selection. */
                     $tr.find('.local-file-preview').each(function() {
                         var $p = $(this);
@@ -3307,6 +3377,17 @@
                     updateRowHeader($tr);
                     return;
                 }
+
+                if (t === BOARD_MEMBER_TYPE) {
+                    applyBoardMemberEmployment($tr);
+                    return;
+                }
+
+                $tr.find('.work-nature, .work-voltage').closest('.work-card-field').find('.req').show();
+                $tr.find('[data-field="transformer-kva"] .req').show();
+                $tr.find('[data-field="relieve"] .work-card-field-label .req').show();
+                $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').hide();
+                $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-default"]').show();
 
                 /* Cols 3 & 4 — Contractor only. */
                 if (isContractor) {
@@ -3583,7 +3664,8 @@
         electrical_contractor: 'Electrical contractor',
         retired_employee: 'Retired Employee',
         govt_organisation: 'Govt organisation',
-        apprenticeship: 'Apprenticeship'
+        apprenticeship: 'Apprenticeship',
+        board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
     };
     var WORK_NATURE_MAP = {
         erection: 'Erection',

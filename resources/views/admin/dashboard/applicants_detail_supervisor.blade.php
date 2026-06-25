@@ -212,6 +212,32 @@
     .applicant-supervisor-page .work-exp-admin-readonly .wx-summary-table-wrap {
         overflow-x: auto;
     }
+    .applicant-supervisor-page .wx-overall-exp-row td {
+        background: #f8fafc;
+        border-top: 2px solid var(--asp-border);
+        vertical-align: middle;
+    }
+    .applicant-supervisor-page .wx-overall-exp-label-cell {
+        padding-right: 0.75rem;
+    }
+    .applicant-supervisor-page .wx-overall-exp-label {
+        font-weight: 600;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--asp-ink);
+    }
+    .applicant-supervisor-page .wx-period-box--overall {
+        justify-content: flex-start;
+    }
+    .applicant-supervisor-page .wx-period-box--overall .wx-period-duration {
+        border-color: #b29ae9;
+        background: linear-gradient(135deg, #cdbbff 0%, #b197fc 100%);
+    }
+    .applicant-supervisor-page .wx-period-box--overall .wx-period-dur-cell .wx-period-dur-num,
+    .applicant-supervisor-page .wx-period-box--overall .wx-period-dur-cell .wx-period-dur-lbl {
+        color: #ffffff;
+    }
     .applicant-supervisor-page .applicant-detail-compact-table thead th {
         padding: 0.55rem 0.6rem;
         vertical-align: middle;
@@ -543,24 +569,24 @@
                                                     <tbody>
                                                         <tr>
                                                             <th width="30%">Certificate Number</th>
-                                                            <td>C1234</td>
+                                                            <td>{{ $cc_digitization->ccnumber }}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Date of First Issue</th>
-                                                            <td>10-06-1999</td>
+                                                            <td>{{ $cc_digitization->fissue }}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Validity From</th>
-                                                            <td>13-07-2020</td>
+                                                            <td>{{ $cc_digitization->from_date }}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Validity To</th>
-                                                            <td>13-07-2022</td>
+                                                            <td>{{ $cc_digitization->to_date}}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Certificate Document</th>
                                                             <td>
-                                                                <a href="#" target="_blank">
+                                                                <a href="{{ asset('uploads/digitization/scc/'.$cc_digitization->cc_doc) }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                                                     View Document
                                                                 </a>
@@ -571,6 +597,9 @@
                                             </div>
                                         </div>
 
+
+                                        @if($cc_digitization->qc_det == '1')
+                                     
                                         <div class="col-xl-6 col-md-6 col-sm-12 col-12">
                                         <h3 class="digi_title">Is Supervisory Competency Certificate recognized as a Qualified </h3>
                                             <div class="table-responsive digi_data">
@@ -578,21 +607,21 @@
                                                     <tbody>
                                                         <tr>
                                                             <th width="30%">Grade of Licence</th>
-                                                            <td>EA</td>
+                                                            <td>{{ $cc_digitization->cl_type}}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Licence Number</th>
-                                                            <td>EA00011</td>
+                                                            <td>{{ $cc_digitization->licence_no}}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Name of Contractor</th>
-                                                            <td>Kumaran</td>
+                                                            <td>{{ $cc_digitization->contractor_name}}</td>
                                                         </tr>
                                                       
                                                         <tr>
                                                             <th> Document</th>
                                                             <td>
-                                                                <a href="#" target="_blank">
+                                                                <a href="{{ asset('uploads/digitization/qc/'.$cc_digitization->qc_doc) }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                                                     View Document
                                                                 </a>
@@ -602,6 +631,7 @@
                                                 </table>
                                             </div>
                                         </div>
+                                        @endif
                  
                                 @endif
                             </div>
@@ -818,7 +848,7 @@
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
                                                 @else
-                                                ```````<div class="applicant-detail-table-wrap">
+                                                <div class="applicant-detail-table-wrap">
                                                     <table class="table table-sm table-bordered applicant-detail-compact-table work-exp-table">
                                                         <thead>
                                                             <tr>

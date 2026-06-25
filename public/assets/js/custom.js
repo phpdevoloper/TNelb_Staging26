@@ -164,18 +164,24 @@ $(document).ready(function () {
 
         let fromDateVal = (fromDateForApi.val() || "").trim();
         let toDateVal = (toDate.val() || "").trim();
+        let issueDateVal = issueDate.length ? (issueDate.val() || "").trim() : "";
 
         let url = $(this).data("url");
+
+        let verifyPayload = {
+            license_number: value,
+            fromdate: fromDateVal,
+            todate: toDateVal,
+            _token: $('meta[name="csrf-token"]').attr("content"),
+        };
+        if (issueDateVal) {
+            verifyPayload.issuedt = issueDateVal;
+        }
 
         $.ajax({
             url: url,
             method: "POST",
-            data: {
-                license_number: value,
-                fromdate: fromDateVal,
-                todate: toDateVal,
-                _token: $('meta[name="csrf-token"]').attr("content"),
-            },
+            data: verifyPayload,
             success: function (response) {
                 let $licenseNumber = type === 'license' ? $('#l_verify') : $('#cert_verify');
 
@@ -495,6 +501,12 @@ $(document).ready(function () {
                 },
                 success: function(response) {
                     if (response.status == 'success') {
+                        if (response.cc_digitization_temp_id) {
+                            sessionStorage.setItem(
+                                'cc_digitization_temp_id',
+                                response.cc_digitization_temp_id
+                            );
+                        }
 
                         Swal.fire({
                             title: 'Application Saved As Draft!',
@@ -551,7 +563,7 @@ $(document).ready(function () {
                     
 
                     } else {
-                        Swal.fire("Error", xhr.responseText || "An unexpected error occurred.", "error");
+                        Swal.fire("Error", window.getAjaxErrorMessage(xhr), "error");
                     }
                 }
             });

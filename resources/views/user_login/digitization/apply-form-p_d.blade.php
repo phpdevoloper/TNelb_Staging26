@@ -660,7 +660,8 @@
                     </div>
 
                     {{-- Hidden fields --}}
-                    <input type="hidden" id="application_id" name="application_id" value="{{ $application->id ?? '' }}">
+                    <input type="hidden" id="application_id" name="application_id" value="{{ $application_details->application_id ?? '' }}">
+                    <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id" value="{{ $cc_digitization_temp_id ?? '' }}">
                     <input type="hidden" id="form_name" name="form_name" value="P">
                     <input type="hidden" id="license_name" name="license_name" value="P">
                     <input type="hidden" id="appl_type" name="appl_type" value="N">

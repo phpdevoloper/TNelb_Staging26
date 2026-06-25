@@ -54,7 +54,7 @@
             <button type="button" class="work-row-toggle-btn" aria-expanded="false" title="Expand to edit" aria-label="Expand entry to edit">
                 <i class="fa fa-chevron-down" aria-hidden="true"></i>
             </button>
-            <button type="button" class="{{ $removeClasses }} py-1 px-2"
+            <button type="button" class="{{ $removeClasses }}"
                 @if($workId !== '') data-exp_id="{{ $workId }}" data-url="{{ route('delete_experience') }}" @endif
                 title="Remove this entry" aria-label="Remove this work experience entry">
                 <i class="fa fa-trash-o" aria-hidden="true"></i>
@@ -87,20 +87,20 @@
             <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="40" autocomplete="off" disabled placeholder="e.g. ESA/12345" value="{{ $licenceNo }}">
             <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
-        <div class="work-card-field">
+        <div class="work-card-field" data-field="organisation">
             <label class="work-card-field-label">Organisation <span class="req">*</span></label>
             <input type="text" class="form-control work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled placeholder="Organisation name" value="{{ $orgName }}">
         </div>
-        <div class="work-card-field">
+        <div class="work-card-field" data-field="organisation-address">
             <label class="work-card-field-label">Address <span class="req">*</span></label>
             <input type="text" class="form-control work-org-address" name="work_organisation_address[]" maxlength="255" autocomplete="off" disabled placeholder="Street, City, State, PIN" value="{{ $orgAddress }}">
         </div>
-        <div class="work-card-field">
+        <div class="work-card-field" data-field="designation">
             <label class="work-card-field-label">Designation <span class="req">*</span></label>
             <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" disabled placeholder="e.g. Site Engineer" value="{{ $designation }}">
         </div>
         <div class="work-card-field" data-field="work-nature">
-            <label class="work-card-field-label">Work Nature <span class="req">*</span></label>
+            <label class="work-card-field-label">Work Nature <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <select class="form-control work-nature" name="work_nature_of_work[]" disabled>
                 <option value="">—</option>
                 <option value="erection" {{ $nature === 'erection' ? 'selected' : '' }}>Erection</option>
@@ -109,7 +109,7 @@
             </select>
         </div>
         <div class="work-card-field" data-field="voltage-level">
-            <label class="work-card-field-label">Voltage Level <span class="req">*</span></label>
+            <label class="work-card-field-label">Voltage Level <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <select class="form-control work-voltage" name="work_voltage_level[]" disabled>
                 <option value="">—</option>
                 <option value="up_to_650v" {{ $voltage === 'up_to_650v' ? 'selected' : '' }}>Up to 650V</option>
@@ -122,7 +122,7 @@
             <input type="number" class="form-control work-transformer-kva" name="work_transformer_kva[]" min="0" max="9999999" step="any" inputmode="decimal" autocomplete="off" disabled placeholder="e.g. 250" value="{{ $kva }}">
             <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
         </div>
-        <div class="work-card-field">
+        <div class="work-card-field" data-field="from-date">
             <label class="work-card-field-label">From date <span class="req">*</span></label>
             <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $workFromDate }}" title="From date" aria-label="Period of experience: from date" disabled>
         </div>
@@ -152,7 +152,7 @@
                 </div>
             </div>
         </div>
-        <div class="work-card-field">
+        <div class="work-card-field" data-field="support-doc">
             <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>
             @if ($supportDoc !== '')
                 <div class="work-doc-existing mb-1 text-center">
@@ -181,6 +181,7 @@
                 <input class="form-control work-relieve-input" name="work_relieving_letter[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" disabled>
             </div>
             <span class="work-card-field-hint" data-hint="relieve" style="display:none;"><i class="fa fa-info-circle"></i> Not required when "Till date" is selected</span>
+            <span class="work-card-field-hint" data-hint="relieve-board" style="display:none;"><i class="fa fa-info-circle"></i> Optional for Board Member / Ex. Board Member of TNELB</span>
             <span class="work-card-field-hint" data-hint="relieve-default"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
         </div>
 

@@ -39,7 +39,8 @@ class SupervisorController extends Controller
     }
 
      public function view_applications(Request $request)
-    {
+    {   
+        
 
         $staff = Auth::user();
         if (!$staff) {

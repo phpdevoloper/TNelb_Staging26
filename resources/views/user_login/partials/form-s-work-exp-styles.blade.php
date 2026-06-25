@@ -54,12 +54,12 @@
         background: var(--wx-bg);
         border: 1px solid var(--wx-border);
         border-radius: var(--wx-radius);
-        box-shadow: 0 1px 3px rgba(3,90,179,.05);
+        box-shadow: 0 2px 8px rgba(3, 90, 179, 0.12);
         transition: box-shadow .2s, border-color .2s, opacity .18s, transform .18s;
         overflow: hidden;
         animation: wxRowIn .22s ease;
     }
-    .work-row:hover { box-shadow: 0 3px 10px rgba(3,90,179,.08); border-color: var(--wx-border-strong); }
+    .work-row:hover { box-shadow: 0 4px 14px rgba(3, 90, 179, 0.16); border-color: var(--wx-border-strong); }
     .work-row.is-removing { opacity: 0; transform: translateY(-6px) scale(.98); }
     @keyframes wxRowIn {
         from { opacity: 0; transform: translateY(-6px); }
@@ -311,7 +311,14 @@
         margin-bottom: 12px;
     }
     .work-exp-summary-panel.is-visible { display: block; }
-    .work-exp-summary-panel .wx-order-card { padding-right: 0; }
+    .work-exp-summary-panel .wx-order-card {
+        padding-right: 0;
+        background: #fff;
+        border: 1px solid var(--wx-border);
+        border-radius: var(--wx-radius);
+        box-shadow: 0 2px 8px rgba(3, 90, 179, 0.12);
+        padding: 12px 14px;
+    }
     .wx-summary-table .wx-summary-th-actions,
     .wx-summary-table .work-row-summary-actions {
         width: 100px;
@@ -405,6 +412,30 @@
     }
     .work-card-remove:hover,
     .work-row-remove:hover { background: rgba(193,39,45,.08); }
+    .work-exp-wrap .work-row-head-actions .work-row-remove,
+    .work-exp-wrap .work-row-remove.remove-work {
+        color: #c1272d !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+    }
+    .work-exp-wrap .work-row-head-actions .work-row-remove .fa,
+    .work-exp-wrap .work-row-remove.remove-work .fa,
+    .work-exp-wrap .work-row-remove.remove-work i.fa-trash-o {
+        color: #c1272d !important;
+    }
+    .work-exp-wrap .work-row-head-actions .work-row-remove:hover,
+    .work-exp-wrap .work-row-remove.remove-work:hover {
+        background: rgba(193, 39, 45, 0.1) !important;
+        color: #9e1f24 !important;
+    }
+    .work-exp-wrap .work-row-head-actions .work-row-remove:hover .fa,
+    .work-exp-wrap .work-row-remove.remove-work:hover .fa {
+        color: #9e1f24 !important;
+    }
 
     /* Row grid — uniform compact field sizing */
     .work-row-grid {
@@ -423,7 +454,7 @@
         min-width: 0;
     }
     .work-card-field-label {
-        font-size: 11px; font-weight: 600; color: var(--wx-text);
+        font-size: 12px; font-weight: 600; color: var(--wx-text);
         line-height: 1.2;
         display: inline-flex; align-items: center; gap: 4px;
     }
@@ -453,7 +484,17 @@
     .work-card-field-hint i { font-size: .64rem; }
     .work-card-field.is-locked .work-card-field-label { color: var(--wx-muted); }
     .work-card-field.is-locked .work-card-field-label .lock-icon {
-        font-size: .6rem; opacity: .65;
+        font-size: .68rem;
+        opacity: .65;
+        display: inline !important;
+    }
+    .work-card-field.is-locked .form-control:disabled,
+    .work-card-field.is-locked select.form-control:disabled {
+        background: #eef1f6 !important;
+        color: #9aa5b8 !important;
+        border-color: #dce3ef !important;
+        cursor: not-allowed;
+        opacity: 1;
     }
 
     /* Till-date toggle sits just below the To-date input inside its field cell */
@@ -610,25 +651,28 @@
         color: var(--wx-red);
     }
 
-    /* Active (incomplete) row — no blue header strip; remove floats top-right */
+    /* Active (incomplete) row — remove stays inside the card */
     .work-row:not(.is-complete) {
         position: relative;
+        overflow: hidden;
     }
     .work-row:not(.is-complete) .work-row-head {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 5;
-        padding: 0;
+        position: relative;
+        top: auto;
+        right: auto;
+        z-index: 1;
+        padding: 8px 14px 0;
         background: transparent;
         border: none;
         width: auto;
         min-height: 0;
+        display: flex;
+        justify-content: flex-end;
     }
     .work-row:not(.is-complete) .work-row-spacer,
     .work-row:not(.is-complete) .work-row-summary { display: none !important; }
     .work-row:not(.is-complete) .work-row-grid {
-        padding-top: 36px;
+        padding-top: 14px;
     }
 
     /* Collapsed complete row: hide the field grid */
@@ -638,7 +682,7 @@
     .work-row.is-complete.work-row--expanded {
         border: 1px solid var(--wx-border);
         background: var(--wx-bg);
-        box-shadow: 0 1px 3px rgba(3,90,179,.05);
+        box-shadow: 0 2px 8px rgba(3, 90, 179, 0.12);
     }
     .work-row.is-complete.work-row--expanded .work-row-head {
         display: flex;
@@ -745,27 +789,6 @@
     .work-row.is-complete:not(.work-row--expanded) .work-row-head .work-row-remove,
     .work-row.work-row--in-summary .work-row-remove {
         display: none !important;
-    }
-
-    /* Active (incomplete) entry: keep remove inside the card; allow validation text to show */
-    .work-row:not(.is-complete) {
-        overflow: visible;
-    }
-    .work-row:not(.is-complete) .work-row-head {
-        position: relative;
-        top: auto;
-        right: auto;
-        z-index: 1;
-        width: auto;
-        min-height: 0;
-        display: flex;
-        justify-content: flex-end;
-        padding: 8px 14px 0;
-        border: none;
-        background: transparent;
-    }
-    .work-row:not(.is-complete) .work-row-grid {
-        padding-top: 14px;
     }
 
     /* ── High-contrast controls (edit page theme overrides) ───────────── */
@@ -905,5 +928,77 @@
     }
     .work-exp-wrap .work-row.is-complete.work-row--expanded {
         overflow: visible;
+    }
+
+    /* ── Typography isolation (renew / edit / alteration parent .fs-form themes) ── */
+    .work-exp-wrap .work-card-field-label {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: var(--wx-text) !important;
+        font-family: inherit;
+    }
+    .work-exp-wrap .work-card-field .form-control,
+    .work-exp-wrap .work-card-field select.form-control,
+    .work-exp-wrap .work-card-field textarea.form-control {
+        font-size: .78rem !important;
+        padding: 5px 9px !important;
+        line-height: 1.28 !important;
+        border-radius: 5px !important;
+        height: auto !important;
+    }
+    .work-exp-wrap .work-card-field:not(.is-locked) .form-control:not(:disabled),
+    .work-exp-wrap .work-card-field:not(.is-locked) select.form-control:not(:disabled) {
+        background: #fff !important;
+        color: #1a2a4a !important;
+    }
+    .work-exp-wrap .work-card-field .form-control:disabled,
+    .work-exp-wrap .work-card-field select.form-control:disabled {
+        background: #f1f3f5 !important;
+        color: #6b7a99 !important;
+        border-color: #ccd5e3 !important;
+    }
+    .work-exp-wrap .work-card-field-hint {
+        font-size: .62rem !important;
+        color: var(--wx-muted) !important;
+    }
+    .work-exp-wrap .work-card-till-toggle {
+        font-size: .66rem !important;
+        font-weight: 400 !important;
+        color: var(--wx-text) !important;
+    }
+    .work-exp-wrap .work-card-till-toggle input:checked + span {
+        font-weight: 600 !important;
+    }
+    .work-exp-wrap .work-row .form-s-file-upload-wrap--combined .form-control,
+    .work-exp-wrap .work-row .form-s-file-upload-wrap--combined input[type="file"] {
+        font-size: .78rem !important;
+        padding: 5px 9px !important;
+    }
+    .work-exp-wrap .work-card-duration-cell .work-duration-label {
+        font-size: .48rem !important;
+        font-weight: 600 !important;
+        color: var(--wx-muted) !important;
+    }
+    .work-exp-wrap .work-card-duration-cell .form-control {
+        font-size: .72rem !important;
+        font-weight: 700 !important;
+    }
+    .work-exp-wrap .fa,
+    .work-exp-wrap i.fa,
+    .work-exp-wrap button .fa,
+    .work-exp-wrap button i.fa {
+        font: normal normal normal 14px/1 FontAwesome;
+        display: inline-block;
+        text-rendering: auto;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    .work-exp-wrap .work-row-remove .fa,
+    .work-exp-wrap .work-row-toggle-btn .fa {
+        font-size: .85rem;
+    }
+    .work-exp-wrap .work-card-field-hint .fa,
+    .work-exp-wrap .wx-order-edit-link .fa {
+        font-size: .7rem;
     }
 @endif

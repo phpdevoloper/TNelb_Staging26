@@ -96,7 +96,6 @@ class FormSDigitizationController extends BaseController
         // Existing Save Logic
         // -----------------------------------
 
-        $fileName = null;
         $qc_det = $request->qc_det === 'yes' ? 1 : 0;
 
         $qc = 0;
@@ -111,84 +110,86 @@ class FormSDigitizationController extends BaseController
             }
         }
 
-        $lastId = (Tnelb_CC_Digitization::max('id') ?? 0) + 1;
-
-        $temp_app_id = 'TEMP' . date('Ymd') . str_pad($lastId, 4, '0', STR_PAD_LEFT);
-
-        if ($request->hasFile('cc_doc')) {
-
-            $file = $request->file('cc_doc');
-
-            $original_name = $file->getClientOriginalName();
-
-            $extension = $file->getClientOriginalExtension();
-
-            $fileName = $temp_app_id . '_' . time() . '_' . $request->cert_name . '.' . $extension;
-
-            $file->move(public_path('uploads/digitization/scc/'), $fileName);
-        }
-
-
+        $now = db_now();
+        $original_name = null;
+        $fileName = 'pending';
         $qcFileName = null;
         $qcOriginalName = null;
 
-        if ($request->hasFile('qc_doc')) {
+        $record = DB::transaction(function () use (
+            $request,
+            $now,
+            $qc_det,
+            $qc,
+            &$original_name,
+            &$fileName,
+            &$qcFileName,
+            &$qcOriginalName
+        ) {
+            $row = Tnelb_CC_Digitization::create([
+                'login_id'         => Auth::user()->login_id,
+                'temp_app_id'      => 'TEMP' . date('Ymd') . '0000',
+                'form_name'        => $request->form_name,
+                'cert_name'        => $request->cert_name,
+                'ccnumber'         => $request->ccnumber,
+                'fissue'           => $request->fissue,
+                'from_date'        => $request->from_date,
+                'to_date'          => $request->to_date,
+                'qc_det'           => $qc_det,
+                'qc'               => $qc,
+                'cl_type'          => $request->cl_type ?? null,
+                'licence_no'       => $request->licence_no ?? null,
+                'contractor_name'  => $request->contractor_name ?? null,
+                'cc_doc'           => 'pending',
+                'created_at'       => $now,
+                'updated_at'       => $now,
+            ]);
 
-            $qcFile = $request->file('qc_doc');
+            $temp_app_id = 'TEMP' . date('Ymd') . str_pad($row->id, 4, '0', STR_PAD_LEFT);
 
-            $qcOriginalName = $qcFile->getClientOriginalName();
+            if ($request->hasFile('cc_doc')) {
+                $file = $request->file('cc_doc');
+                $original_name = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $fileName = $temp_app_id . '_' . time() . '_' . $request->cert_name . '.' . $extension;
+                $file->move(public_path('uploads/digitization/scc/'), $fileName);
+            }
 
-            $extension = $qcFile->getClientOriginalExtension();
+            if ($request->hasFile('qc_doc')) {
+                $qcFile = $request->file('qc_doc');
+                $qcOriginalName = $qcFile->getClientOriginalName();
+                $extension = $qcFile->getClientOriginalExtension();
+                $qcFileName = $temp_app_id . '_QC_' . time() . '.' . $extension;
+                $qcFile->move(public_path('uploads/digitization/qc/'), $qcFileName);
+            }
 
-            $qcFileName = $temp_app_id . '_QC_' . time() . '.' . $extension;
+            $row->update([
+                'temp_app_id'      => $temp_app_id,
+                'cc_doc'           => $fileName,
+                'original_name'    => $original_name,
+                'qc_doc'           => $qcFileName,
+                'qc_original_name' => $qcOriginalName,
+                'updated_at'       => $now,
+            ]);
 
-            $qcFile->move(
-                public_path('uploads/digitization/qc/'),
-                $qcFileName
-            );
-        }
-
-        $now = db_now();
-
-        Tnelb_CC_Digitization::create([
-            'login_id'         => Auth::user()->login_id,
-            'temp_app_id'      => $temp_app_id,
-            'form_name'        => $request->form_name,
-            'cert_name'        => $request->cert_name,
-            'ccnumber'         => $request->ccnumber,
-            'fissue'           => $request->fissue,
-            'from_date'        => $request->from_date,
-            'to_date'          => $request->to_date,
-            'qc_det'            => $qc_det,
-            'qc'               => $qc,
-
-            'cl_type'          => $request->cl_type ?? null,
-            'licence_no'       => $request->licence_no ?? null,
-            'contractor_name'  => $request->contractor_name ?? null,
-
-            'cc_doc'           => $fileName,
-            'original_name'    => $original_name,
-
-            'qc_doc'           => $qcFileName ?? null,
-            'qc_original_name' => $qcOriginalName ?? null,
-
-            'created_at'       => $now,
-            'updated_at'       => $now
-        ]);
+            return $row->fresh();
+        });
 
         return response()->json([
-            'status'      => 200,
-            'message'     => 'Digitization details saved successfully.',
-            'appname'     => $certificate->appname ?? '',
-            'address' => $certificate
+            'status'          => 200,
+            'message'         => 'Digitization details saved successfully.',
+            'temp_app_id'     => $record->temp_app_id,
+            'digitization_id' => $record->id,
+            'appname'         => $certificate->appname ?? '',
+            'address'         => $certificate
                 ? implode(' ', array_filter([
                     $certificate->add1 ?? '',
                     $certificate->add2 ?? '',
-                    $certificate->add3 ?? ''
+                    $certificate->add3 ?? '',
                 ]))
                 : '',
-            'certcode'    => $certificate->certcode ?? '',
-            'is_matched'  => $certificate ? 1 : 0
+            'certcode'        => $certificate->certcode ?? '',
+            'is_matched'      => $certificate ? 1 : 0,
         ]);
     }
 }

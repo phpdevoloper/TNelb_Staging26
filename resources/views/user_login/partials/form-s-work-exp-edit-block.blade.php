@@ -5,6 +5,16 @@
 @endphp
 {{-- Form S work experience: summary table + editable row cards (apply-form-s parity) --}}
 <div class="work-exp-wrap" id="edit-form-s-work-exp">
+    @if ($showAddRow)
+    <div class="work-exp-section-bar" id="work-exp-section-bar" role="region" aria-label="Work experience actions">
+        <button type="button" class="work-exp-add-btn add-more-work" id="work-exp-add-btn" title="Add a work experience entry">
+            <i class="fa fa-plus"></i>
+            <span>Add row</span>
+            <span class="text-muted" style="font-weight:500;font-size:.7rem;opacity:.85;" id="work-exp-row-count">(1/3)</span>
+        </button>
+    </div>
+    @endif
+
     <div class="work-exp-summary-panel{{ (isset($exp_details) && $exp_details->isNotEmpty()) ? ' is-visible' : '' }}" id="work-exp-summary-panel" aria-live="polite">
         <div class="wx-order-card">
             <div class="wx-summary-table-wrap">
@@ -41,16 +51,6 @@
             </div>
         </div>
     </div>
-
-    @if ($showAddRow)
-    <div class="work-exp-section-bar wx-summary-footer" id="work-exp-section-bar" role="region" aria-label="Work experience actions">
-        <button type="button" class="work-exp-add-btn add-more-work" id="work-exp-add-btn" title="Add a work experience entry">
-            <i class="fa fa-plus"></i>
-            <span>Add row</span>
-            <span class="text-muted" style="font-weight:500;font-size:.7rem;opacity:.85;" id="work-exp-row-count">(1/3)</span>
-        </button>
-    </div>
-    @endif
 
     <div class="work-rows" id="work-container">
         @if (isset($exp_details) && $exp_details->isNotEmpty())

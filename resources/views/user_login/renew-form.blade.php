@@ -72,9 +72,13 @@
     .fs-card {
         background: #fff;
         border-radius: 12px;
-        box-shadow: 0 2px 16px rgba(3,90,179,.10);
-        overflow: hidden;
+        box-shadow: 0 2px 16px rgba(3, 90, 179, 0.12), 0 8px 24px rgba(3, 90, 179, 0.06);
+        overflow: visible;
         margin-top: 24px;
+    }
+    .fs-card > .fs-form-body {
+        border-radius: 0 0 12px 12px;
+        overflow: hidden;
     }
 
     /* ── Card header ──────────────────────────────────── */
@@ -749,6 +753,51 @@
     $renewNotesSize = '8 KB';
 @endphp
 
+@if ($renewFormName === 'S')
+<style>
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'S'])
+
+    /* Renew Form S — Section 7 card chrome (beats .fs-form / .apply-card overrides) */
+    .fs-section:has(.work-exp-wrap) {
+        overflow: visible;
+    }
+    .fs-section .work-exp-wrap .work-entry-block > .work-fields.work-row,
+    .fs-section .work-exp-wrap .work-row {
+        background: #ffffff !important;
+        border: 1px solid #c8d8f5 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+    }
+    .fs-section .work-exp-wrap .work-row:hover {
+        border-color: #b8cfe8 !important;
+        box-shadow: 0 4px 14px rgba(3, 90, 179, 0.18) !important;
+    }
+    .fs-section .work-exp-wrap .work-exp-summary-panel .wx-order-card {
+        background: #ffffff !important;
+        border: 1px solid #c8d8f5 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+        padding: 12px 14px !important;
+    }
+    .fs-section .work-exp-wrap .work-row-head {
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
+        border-bottom: 1px solid #dde5f3 !important;
+    }
+    .fs-section .work-exp-wrap .work-row:not(.is-complete) .work-row-head {
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
+        border-bottom: 1px solid #dde5f3 !important;
+    }
+    .fs-section .work-exp-wrap .work-row-head-actions .work-row-remove,
+    .fs-section .work-exp-wrap .work-row-remove.remove-work {
+        color: #c1272d !important;
+    }
+    .fs-section .work-exp-wrap .work-row-head-actions .work-row-remove .fa,
+    .fs-section .work-exp-wrap .work-row-remove.remove-work .fa {
+        color: #c1272d !important;
+    }
+</style>
+@endif
+
 {{-- ░░ BREADCRUMB ░░ --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
@@ -1209,33 +1258,21 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
+                            @if($isRenewS)
+                            @php
+                                $renewWorkExpList = isset($exp_details) ? $exp_details : collect();
+                                $showBoardMemberEmploymentType = true;
+                            @endphp
+                            @include('user_login.partials.form-s-work-exp-edit-block', [
+                                'exp_details' => $renewWorkExpList,
+                                'workExpWithActions' => true,
+                                'showAddRow' => true,
+                                'showBoardMemberEmploymentType' => true,
+                            ])
+                            @else
                             <div class="table-responsive">
                                 <table class="table table-bordered table-striped" id="work-table">
                                     <thead>
-                                        @if($isRenewS)
-                                        <tr>
-                                            <th class="text-center">S.No</th>
-                                            <th>Employment type</th>
-                                            <th>Employer / organization</th>
-                                            <th>
-                                                <div>Year of Experience</div>
-                                                <div class="d-flex justify-content-between" style="gap:6px;font-size:.72rem;">
-                                                    <span>From (date)</span><span>To (date)</span><span>Total yrs</span>
-                                                </div>
-                                            </th>
-                                            <th>Designation</th>
-                                            <th class="text-center">Upload Document
-                                                <br><span class="file-limit text-success small">File type: PDF (Max 200 KB)</span>
-                                            </th>
-                                            <th class="text-center p-1">
-                                                <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn-tbl-add add-more-work py-1 px-2" title="Add row">
-                                                        <i class="fa fa-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </th>
-                                        </tr>
-                                        @else
                                         <tr>
                                             <th>S.No</th>
                                             <th>Company Name / Contractor</th>
@@ -1254,107 +1291,35 @@
                                                 </div>
                                             </th>
                                         </tr>
-                                        @endif
                                     </thead>
                                     <tbody id="work-container">
-                                        
                                         @if ($exp_details->isNotEmpty())
-                                        @foreach ($exp_details as $exp_details)
+                                        @foreach ($exp_details as $expRow)
                                         <tr class="work-fields text-center">
                                             <td class="work-serial">{{ $loop->iteration }}</td>
-                                            @if($isRenewS)
                                             <td>
-                                                @php
-                                                    $rawEmpType = strtolower((string) ($exp_details->work_employment_type ?? $exp_details->emp_type ?? ''));
-                                                    $mappedEmpType = '';
-                                                    if (in_array($rawEmpType, ['company', 'contractor', 'apprentice', 'electrical_inspector', 'retired_employees'], true)) {
-                                                        $mappedEmpType = $rawEmpType;
-                                                    } elseif (str_contains($rawEmpType, 'inspector')) {
-                                                        $mappedEmpType = 'electrical_inspector';
-                                                    } elseif (str_contains($rawEmpType, 'retired')) {
-                                                        $mappedEmpType = 'retired_employees';
-                                                    } elseif (str_contains($rawEmpType, 'contractor')) {
-                                                        $mappedEmpType = 'contractor';
-                                                    } elseif (str_contains($rawEmpType, 'apprentice')) {
-                                                        $mappedEmpType = 'apprentice';
-                                                    } elseif (!empty($exp_details->work_employer_name) || !empty($exp_details->company_name) || !empty($exp_details->emp_cate)) {
-                                                        $mappedEmpType = 'company';
-                                                    }
-                                                @endphp
-                                                <select class="form-control work-employment-type" name="work_employment_type[]">
-                                                    <option value="" disabled {{ $mappedEmpType === '' ? 'selected' : '' }}>Select type</option>
-                                                    <option value="company" {{ $mappedEmpType === 'company' ? 'selected' : '' }}>Company</option>
-                                                    <option value="contractor" {{ $mappedEmpType === 'contractor' ? 'selected' : '' }}>Contractor</option>
-                                                    <option value="apprentice" {{ $mappedEmpType === 'apprentice' ? 'selected' : '' }}>Apprentice</option>
-                                                    <option value="electrical_inspector" {{ $mappedEmpType === 'electrical_inspector' ? 'selected' : '' }}>Electrical Inspector / Assistant Electrical Inspector</option>
-                                                    <option value="retired_employees" {{ $mappedEmpType === 'retired_employees' ? 'selected' : '' }}>Retired Employees</option>
-                                                </select>
-                                            </td>
-                                            <td class="work-employer-cell">
-                                                <input autocomplete="off" class="form-control work-employer-input" name="work_employer_name[]" type="text" value="{{ $exp_details->work_employer_name ?? $exp_details->company_name ?? $exp_details->emp_cate ?? '' }}">
-                                                <div class="work-block work-block--intimation mt-1" style="display:none;text-align:left;">
-                                                    <div style="font-size:.7rem;line-height:1.1;margin-bottom:2px;color:#6c757d;white-space:nowrap;display:inline-block;">Intimation&nbsp;letter&nbsp;<span style="color:#d9363e;">*</span></div>
-                                                    <input type="date" class="form-control work-intimation-date" name="work_intimation_date[]" value="{{ $exp_details->work_intimation_date ?? $exp_details->intimation_date ?? '' }}">
-                                                </div>
+                                                <input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $expRow->company_name ?? $expRow->emp_cate ?? '' }}">
                                             </td>
                                             <td>
                                                 <div class="d-flex" style="gap:6px;">
-                                                    <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $exp_details->work_date_from ?? $exp_details->from_date ?? '' }}">
-                                                    <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $exp_details->work_date_to ?? $exp_details->to_date ?? '' }}">
-                                                    <input type="text" class="form-control work-year-total-display" value="{{ $exp_details->work_experience_total ?? $exp_details->total_exp ?? $exp_details->experience ?? '' }}" readonly>
+                                                    <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $expRow->work_date_from ?? $expRow->from_date ?? '' }}">
+                                                    <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $expRow->work_date_to ?? $expRow->to_date ?? '' }}">
+                                                    <input type="text" class="form-control work-year-total-display" value="{{ $expRow->work_experience_total ?? $expRow->total_exp ?? $expRow->experience ?? '' }}" readonly>
                                                 </div>
-                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $exp_details->work_experience_total ?? $exp_details->total_exp ?? $exp_details->experience ?? '' }}">
-                                                <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $exp_details->company_name ?? $exp_details->emp_cate ?? $exp_details->work_level ?? '' }}">
-                                                <input type="hidden" name="experience[]" class="experience-sync" value="{{ $exp_details->experience ?? $exp_details->total_exp ?? '' }}">
-                                            </td>
-                                            @else
-                                            <td>
-                                                <input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $exp_details->company_name ?? $exp_details->emp_cate ?? '' }}">
+                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $expRow->work_experience_total ?? $expRow->total_exp ?? $expRow->experience ?? '' }}">
+                                                <input type="hidden" name="experience[]" class="experience-sync" value="{{ $expRow->experience ?? $expRow->total_exp ?? '' }}">
                                             </td>
                                             <td>
-                                                <div class="d-flex" style="gap:6px;">
-                                                    <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $exp_details->work_date_from ?? $exp_details->from_date ?? '' }}">
-                                                    <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $exp_details->work_date_to ?? $exp_details->to_date ?? '' }}">
-                                                    <input type="text" class="form-control work-year-total-display" value="{{ $exp_details->work_experience_total ?? $exp_details->total_exp ?? $exp_details->experience ?? '' }}" readonly>
-                                                </div>
-                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $exp_details->work_experience_total ?? $exp_details->total_exp ?? $exp_details->experience ?? '' }}">
-                                                <input type="hidden" name="experience[]" class="experience-sync" value="{{ $exp_details->experience ?? $exp_details->total_exp ?? '' }}">
+                                                <input autocomplete="off" class="form-control" name="designation[]" type="text" value="{{ $expRow->designation ?? '' }}">
                                             </td>
-                                            @endif
-                                            <td>
-                                                <input autocomplete="off" class="form-control" name="designation[]" type="text" value="{{ $exp_details->designation ?? '' }}">
-                                            </td>
-                                            @if($isRenewS)
-                                            <td>
-                                                <div class="file-section text-center">
-                                                    @if (!empty($exp_details->upload_document))
-                                                        <div class="work-doc-container d-flex align-items-center justify-content-center">
-                                                            <a class="text-primary" href="{{ url($exp_details->upload_document) }}" target="_blank">
-                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View
-                                                            </a>
-                                                            <button type="button" class="btn btn-sm btn-danger ml-2 remove-work-doc-confirm">Remove</button>
-                                                        </div>
-                                                        <div class="work-doc-input d-none">
-                                                            <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
-                                                                <input class="form-control" name="work_document[]" type="file" accept=".pdf,application/pdf">
-                                                            </div>
-                                                        </div>
-                                                    @else
-                                                        <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
-                                                            <input class="form-control" name="work_document[]" type="file" accept=".pdf,application/pdf">
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                            @endif
                                             <td class="work-exp-col-actions text-center p-1">
                                                 <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn btn-danger btn-sm remove-work remove_exp py-1 px-2" data-exp_id="{{ $exp_details->id }}" data-url="{{ route('delete_experience') }}" title="Remove row">
+                                                    <button type="button" class="btn btn-danger btn-sm remove-work remove_exp py-1 px-2" data-exp_id="{{ $expRow->id }}" data-url="{{ route('delete_experience') }}" title="Remove row">
                                                         <i class="fa fa-trash-o"></i>
                                                     </button>
                                                 </div>
-                                                <input type="hidden" name="work_id[]" value="{{ $exp_details->id ?? '' }}">
-                                                <input type="hidden" name="existing_work_document[]" value="{{ $exp_details->upload_document ?? '' }}">
+                                                <input type="hidden" name="work_id[]" value="{{ $expRow->id ?? '' }}">
+                                                <input type="hidden" name="existing_work_document[]" value="{{ $expRow->upload_document ?? '' }}">
                                                 <input type="hidden" name="removed_document_work[]" value="0">
                                             </td>
                                         </tr>
@@ -1362,35 +1327,6 @@
                                         @else
                                         <tr class="work-fields text-center">
                                             <td class="work-serial">1</td>
-                                            @if($isRenewS)
-                                            <td>
-                                                <select class="form-control work-employment-type" name="work_employment_type[]">
-                                                    <option value="" selected disabled>Select type</option>
-                                                    <option value="company">Company</option>
-                                                    <option value="contractor">Contractor</option>
-                                                    <option value="apprentice">Apprentice</option>
-                                                    <option value="electrical_inspector">Electrical Inspector / Assistant Electrical Inspector</option>
-                                                    <option value="retired_employees">Retired Employees</option>
-                                                </select>
-                                            </td>
-                                            <td class="work-employer-cell">
-                                                <input autocomplete="off" class="form-control work-employer-input" name="work_employer_name[]" type="text" disabled>
-                                                <div class="work-block work-block--intimation mt-1" style="display:none;text-align:left;">
-                                                    <div style="font-size:.7rem;line-height:1.1;margin-bottom:2px;color:#6c757d;white-space:nowrap;display:inline-block;">Intimation&nbsp;letter&nbsp;<span style="color:#d9363e;">*</span></div>
-                                                    <input type="date" class="form-control work-intimation-date" name="work_intimation_date[]">
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex" style="gap:6px;">
-                                                    <input type="date" class="form-control work-date-from" name="work_date_from[]">
-                                                    <input type="date" class="form-control work-date-to" name="work_date_to[]">
-                                                    <input type="text" class="form-control work-year-total-display" readonly>
-                                                </div>
-                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
-                                                <input type="hidden" name="work_level[]" class="work-level-sync">
-                                                <input type="hidden" name="experience[]" class="experience-sync">
-                                            </td>
-                                            @else
                                             <td><input autocomplete="off" class="form-control" name="work_level[]" type="text"></td>
                                             <td>
                                                 <div class="d-flex" style="gap:6px;">
@@ -1401,15 +1337,7 @@
                                                 <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
                                                 <input type="hidden" name="experience[]" class="experience-sync">
                                             </td>
-                                            @endif
                                             <td><input autocomplete="off" class="form-control" name="designation[]" type="text"></td>
-                                            @if($isRenewS)
-                                            <td>
-                                                <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
-                                                    <input class="form-control" name="work_document[]" type="file" accept=".pdf,application/pdf">
-                                                </div>
-                                            </td>
-                                            @endif
                                             <td class="work-exp-col-actions text-center p-1">
                                                 <div class="form-s-actions-stack">
                                                     <button type="button" class="btn btn-danger btn-sm remove-work py-1 px-2" title="Remove row">
@@ -1426,8 +1354,6 @@
                                 </table>
                             </div>
                             <div id="work-exp-validation-msg" class="work-exp-validation-msg-wrap mt-2" aria-live="polite"></div>
-                            @if($isRenewS)
-                            <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
                             @endif
                         </div>
                     </div>
@@ -1801,10 +1727,16 @@
                     <input type="hidden" id="form_id" name="form_id"
                         value="{{ isset($application_details) ? $application_details->form_id : '' }}">
                     <input type="hidden" id="amount" name="amount" value="750">
+                    <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
                     <input type="hidden" id="appl_type" name="appl_type" value="R">
                     @csrf
 
                     {{-- ── Action buttons ── --}}
+                    <div id="board-member-fee-notice" class="alert alert-info py-2 px-3 mb-3 d-none" role="status" style="font-size:.84rem;">
+                        <i class="fa fa-info-circle"></i>
+                        Renewal fee is exempted because <strong>Board Member / Ex. Board Member of TNELB</strong> is selected in Table 7.
+                        If you change the employment type, the standard renewal fee will apply.
+                    </div>
                     <div class="fs-action-bar">
                         <button type="button" class="btn-fs-draft" id="saveDraftBtn"
                             data-url="{{ route('form.draft_submit') }}"
@@ -2232,9 +2164,10 @@
         });
     });
 
-    // Add/Remove work row
+    // Add/Remove work row (Form W renewal — Form S uses form-s-work-exp-scripts partial)
     (function() {
         var isRenewS = @json($isRenewS);
+        if (isRenewS) return;
 
         function refreshWorkSerials() {
             $('#work-container .work-fields .work-serial').each(function(index) {
@@ -2505,9 +2438,22 @@
             updateOverallTotalYears();
         });
     })();
+</script>
 
-    // Keep hidden #amount dynamic — falls back to 750 when service not available
+@if ($renewFormName === 'S')
+@include('user_login.partials.form-s-work-exp-scripts', [
+    'editFormName' => 'S',
+    'showBoardMemberEmploymentType' => true,
+    'enableBoardMemberRenewalFeeExempt' => true,
+])
+@endif
+
+<script>
     $(document).ready(async function () {
+        if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+            await window.wxSyncBoardMemberRenewalFee();
+            return;
+        }
         try {
             if (typeof getPaymentsService !== 'function') return;
             const licence_code = ($('#license_name').val() || '').trim();
@@ -2515,7 +2461,9 @@
             const issued_licence = ($('#license_number').val() || '').trim();
             if (!licence_code || !appl_type) return;
             const data = await getPaymentsService(licence_code, issued_licence, appl_type);
-            if (data && data.basic_fees !== undefined && data.basic_fees !== null && data.basic_fees !== '') {
+            if (data && data.total_fees !== undefined && data.total_fees !== null && data.total_fees !== '') {
+                $('#amount').val(data.total_fees);
+            } else if (data && data.basic_fees !== undefined && data.basic_fees !== null && data.basic_fees !== '') {
                 $('#amount').val(data.basic_fees);
             }
         } catch (e) {

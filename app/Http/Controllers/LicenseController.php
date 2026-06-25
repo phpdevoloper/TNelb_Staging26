@@ -23,15 +23,16 @@ class LicenseController extends Controller
 
     public function verifylicense(Request $request)
     {
-
-
+       
         $request->validate([
             'license_number' => 'required|string',
             'fromdate' => 'required|date',
             'todate' => 'required|date',
+            'issuedt' => 'required|date',
         ], [
             'fromdate' => 'Enter a valid from date',
             'todate' => 'Enter a valid to date',
+            'issuedt' => 'Enter a valid date of first issue',
         ]);
 
         $licenseNumber = $request->license_number;
@@ -57,6 +58,7 @@ class LicenseController extends Controller
             'LC' => 'scert',
         ];
         $table = $tableMap[$licensePrefix] ?? 'tnelb_license';
+        
         $column_name = 'certno';
 
         if ($table === 'tnelb_license') {
@@ -66,23 +68,17 @@ class LicenseController extends Controller
 
         $fromDate = Carbon::parse($request->fromdate)->toDateString();
         $toDate = Carbon::parse($request->todate)->toDateString();
+        $issueDate = Carbon::parse($request->issuedt)->toDateString();
 
         $baseQuery = DB::table($table)
-            ->selectRaw(
-                $table === 'tnelb_license'
-                    ? "CAST(license_number AS VARCHAR) AS license_number, expires_at"
-                    : "CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at"
-            )
-            ->where($column_name ?? 'certno', $licenseNum) // or license_number for tnelb_license
-            ->whereDate($table === 'tnelb_license' ? 'expires_at' : 'vdate', $request->date)
             ->where($column_name, $licenseNum);
 
         if ($table === 'tnelb_license') {
-            // To date is stored as expires_at on issued licenses
-            $baseQuery->whereDate('expires_at', $toDate);
+            $baseQuery->whereDate('issued_at', $issueDate)
+                ->whereDate('expires_at', $toDate);
         } else {
-            // Legacy cert tables: fromdate + expiry (vdate), not the todate column
-            $baseQuery->whereDate('fromdate', $fromDate)
+            $baseQuery->whereDate('issuedt', $issueDate)
+                ->whereDate('fromdate', $fromDate)
                 ->whereDate('vdate', $toDate);
         }
 

@@ -1,4 +1,6 @@
 $(document).ready(function () {
+    restoreCcDigitizationTempId();
+
     digitizationModal = new bootstrap.Modal(
         document.getElementById("digitization"),
         {
@@ -38,6 +40,20 @@ $(document).ready(function () {
         }
     });
 });
+
+function restoreCcDigitizationTempId() {
+    var $field = $("#cc_digitization_temp_id");
+    if (!$field.length) {
+        return;
+    }
+    if (($field.val() || "").trim() !== "") {
+        return;
+    }
+    var stored = sessionStorage.getItem("cc_digitization_temp_id");
+    if (stored) {
+        $field.val(stored);
+    }
+}
 
 async function loadInstructions() {
     let modalBody = document.getElementById("instructionContent");
@@ -242,13 +258,20 @@ $(document).on("click", "#digitizationSubmit", function () {
             $("#digitizationSubmit").prop("disabled", false).text("Submit");
 
             if (response.status == 200) {
+                if (response.temp_app_id) {
+                    $("#cc_digitization_temp_id").val(response.temp_app_id);
+                    sessionStorage.setItem(
+                        "cc_digitization_temp_id",
+                        response.temp_app_id,
+                    );
+                }
+
                 // If certificate found, fill applicant name
                 if (response.is_matched == 1) {
                     // $("#Applicant_Name").val(response.appname);
                     $("#certcode").val(response.certcode);
                     // $("#applicants_address").val(response.address);
                 } else {
-                    $("#Applicant_Name").val("");
                     $("#certcode").val("");
                     $("#applicants_address").val("");
                 }
@@ -336,6 +359,10 @@ $(document).on("change", "#declaration-agree-renew", function () {
 });
 
 $(document).on("click", "#proceedPayment", function () {
+    if (window._competencyPaymentProceedActive) {
+        return;
+    }
+
     let agreeCheckbox = document.getElementById("declaration-agree-renew");
 
     let errorText = document.getElementById("declaration-error-renew");

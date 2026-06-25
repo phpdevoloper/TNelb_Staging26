@@ -347,7 +347,7 @@ async function showInstructPopup(licence_code,login_id) {
             Swal.fire({
                 icon: "error",
                 title: "Request Failed",
-                text: xhr.responseText || "Something went wrong. Please try again."
+                text: window.getAjaxErrorMessage(xhr)
             });
         }
     }
@@ -1240,7 +1240,7 @@ $(document).ready(function () {
                     
 
                     } else {
-                        Swal.fire("Error", xhr.responseText || "An unexpected error occurred.", "error");
+                        Swal.fire("Error", window.getAjaxErrorMessage(xhr), "error");
                     }
                 }
             });
