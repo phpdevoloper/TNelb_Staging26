@@ -1734,7 +1734,7 @@
                     {{-- ── Action buttons ── --}}
                     <div id="board-member-fee-notice" class="alert alert-info py-2 px-3 mb-3 d-none" role="status" style="font-size:.84rem;">
                         <i class="fa fa-info-circle"></i>
-                        Renewal fee is exempted because <strong>Board Member / Ex. Board Member of TNELB</strong> is selected in Table 7.
+                        Renewal fee is exempted because <strong>Board member of TNELB or Ex board member of TNELB</strong> is selected in Table 7.
                         If you change the employment type, the standard renewal fee will apply.
                     </div>
                     <div class="fs-action-bar">
@@ -2444,6 +2444,7 @@
 @include('user_login.partials.form-s-work-exp-scripts', [
     'editFormName' => 'S',
     'showBoardMemberEmploymentType' => true,
+    'enableBoardMemberFeeExempt' => true,
     'enableBoardMemberRenewalFeeExempt' => true,
 ])
 @endif

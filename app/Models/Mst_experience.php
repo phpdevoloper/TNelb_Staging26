@@ -47,6 +47,8 @@ class Mst_experience extends Model
         'total_m',
         'total_d',
         'designation',
+        'board_meeting_details',
+        'board_meeting_date',
         'nature_work',
         'voltage_level',
         'transformer_kva',
@@ -63,6 +65,7 @@ class Mst_experience extends Model
     protected $casts = [
         'from_date' => 'date',
         'to_date' => 'date',
+        'board_meeting_date' => 'date',
         'total_y' => 'integer',
         'total_m' => 'integer',
         'total_d' => 'integer',

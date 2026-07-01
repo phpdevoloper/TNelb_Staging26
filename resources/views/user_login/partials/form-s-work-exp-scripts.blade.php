@@ -9,6 +9,36 @@
             var VOLTAGE_DISABLES_KVA = 'up_to_650v';
             var MAX_WORK_ROWS = 3;
             var TWO_YEARS_MS = 730 * 86400000;
+
+            function workContainers() {
+                var $multi = $('.js-work-container');
+                if ($multi.length) return $multi;
+                return $('#work-container');
+            }
+
+            function allWorkFields() {
+                return workContainers().find('.work-fields');
+            }
+
+            function workContainerFor(el) {
+                var $c = $(el).closest('.js-work-container');
+                if ($c.length) return $c;
+                return $('#work-container');
+            }
+
+            function summaryTbodyFor($container) {
+                var part = ($container.data('work-part') || 'all').toString();
+                if (part === 'previous') return $('#work-exp-summary-tbody-previous');
+                if (part === 'current') return $('#work-exp-summary-tbody-current');
+                return $('#work-exp-summary-tbody');
+            }
+
+            function summaryPanelFor($container) {
+                var part = ($container.data('work-part') || 'all').toString();
+                var $panel = $('#work-exp-summary-panel-' + part);
+                if ($panel.length) return $panel;
+                return $('#work-exp-summary-panel');
+            }
             var EMP_LABEL = {
                 '': 'Select employment type',
                 private_organisation: 'Private organization',
@@ -16,7 +46,7 @@
                 retired_employee: 'Retired Employee',
                 govt_organisation: 'Government Organization',
                 apprenticeship: 'Apprenticeship',
-                board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
+                board_member_tnelb: 'Board member of TNELB or Ex board member of TNELB'
             };
             var NATURE_LABEL = {
                 erection: 'Erection',
@@ -217,7 +247,7 @@
             function totalDurationAcrossRows() {
                 var totalMs = 0;
                 var anyFilled = false;
-                $('#work-container .work-fields').each(function() {
+                allWorkFields().each(function() {
                     var $tr = $(this);
                     var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
                     var toStr = effectiveToStr($tr);
@@ -339,9 +369,24 @@
 
             /** Row-count badge + disable state on the Add button. */
             function updateWorkAddBtn() {
-                var rows = $('#work-container .work-fields').length;
-                $('#work-exp-row-count').text('(' + rows + '/' + MAX_WORK_ROWS + ')');
-                $('#work-exp-add-btn').prop('disabled', rows >= MAX_WORK_ROWS);
+                $('.add-more-work').each(function() {
+                    var $btn = $(this);
+                    var containerId = $btn.data('work-container');
+                    var maxRows = parseInt($btn.data('max-rows'), 10) || MAX_WORK_ROWS;
+                    var $container = containerId ? $('#' + containerId) : $('#work-container');
+                    if (!$container.length) return;
+                    var rows = $container.find('.work-fields').length;
+                    var $count = $btn.find('[id^="work-exp-row-count"]');
+                    if ($count.length) {
+                        $count.text('(' + rows + '/' + maxRows + ')');
+                    }
+                    $btn.prop('disabled', rows >= maxRows);
+                });
+                if (!$('.add-more-work').length) {
+                    var rows = allWorkFields().length;
+                    $('#work-exp-row-count').text('(' + rows + '/' + MAX_WORK_ROWS + ')');
+                    $('#work-exp-add-btn').prop('disabled', rows >= MAX_WORK_ROWS);
+                }
             }
 
             /** Toggle the .is-locked class + lock-icon visibility + conditional hint on a field wrapper. */
@@ -367,6 +412,22 @@
                 $input.prop('disabled', false).removeAttr('disabled').removeClass('is-locked');
                 if (fieldName) {
                     setFieldLock($tr, fieldName, false);
+                }
+            }
+
+            /** Show or hide board-meeting sub-question panel for Board Member employment type. */
+            function toggleBoardMeetingFields($tr, show) {
+                var $panel = $tr.find('.work-board-member-panel');
+                $panel.toggle(!!show);
+                $tr.toggleClass('work-row--board-member', !!show);
+                var $details = $tr.find('.work-board-meeting-details');
+                var $date = $tr.find('.work-board-meeting-date');
+                if (show) {
+                    $details.prop('disabled', false).prop('required', true);
+                    $date.prop('disabled', false).prop('required', true);
+                } else {
+                    $details.val('').prop('disabled', true).prop('required', false);
+                    $date.val('').prop('disabled', true).prop('required', false);
                 }
             }
 
@@ -423,6 +484,7 @@
                 }
                 $tr.find('[data-field="relieve"] .work-card-field-label .req').hide();
                 $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').show();
+                toggleBoardMeetingFields($tr, true);
             }
             /* data-field uses kebab; some hints use shorter names. */
             function mapHintName(fieldName) {
@@ -473,7 +535,7 @@
             /** Resolve the form row linked to a shared summary table row. */
             function workRowFromSummaryTr($summaryTr) {
                 var linked = null;
-                $('#work-container .work-fields').each(function() {
+                allWorkFields().each(function() {
                     var $str = $(this).data('wxSummaryTr');
                     if ($str && $str.length && $str[0] === $summaryTr[0]) {
                         linked = $(this);
@@ -485,11 +547,13 @@
 
             /** Create (once) the shared-table row for a work-fields block. */
             function getSummaryTr($tr) {
+                var $container = workContainerFor($tr);
+                var $tbody = summaryTbodyFor($container);
                 var $str = $tr.data('wxSummaryTr');
                 if ($str && $str.length) return $str;
                 var rowIdx = $tr.attr('data-row-index');
                 if (rowIdx !== undefined && rowIdx !== '') {
-                    var $existing = $('#work-exp-summary-tbody .work-exp-summary-tr[data-work-row-index="' + rowIdx + '"]');
+                    var $existing = $tbody.find('.work-exp-summary-tr[data-work-row-index="' + rowIdx + '"]');
                     if ($existing.length) {
                         $tr.data('wxSummaryTr', $existing);
                         return $existing;
@@ -515,38 +579,44 @@
                     )
                 );
                 $tr.data('wxSummaryTr', $str);
-                $('#work-exp-summary-tbody').append($str);
+                $tbody.append($str);
                 return $str;
             }
 
             /** Show complete collapsed rows in the shared table; hide their form cards. */
             function syncSummaryTable() {
-                var $panel = $('#work-exp-summary-panel');
-                var $tbody = $('#work-exp-summary-tbody');
-                var hasVisible = false;
-                var linkedRows = [];
-                $('#work-container .work-fields').each(function() {
-                    var $wf = $(this);
-                    var inTable = $wf.hasClass('is-complete') && $wf.hasClass('work-row--compact');
-                    if ($wf.hasClass('is-complete')) getSummaryTr($wf);
-                    var $str = $wf.data('wxSummaryTr');
-                    if (inTable && $str && $str.length) {
-                        $tbody.append($str);
-                        $str.show();
-                        $wf.addClass('work-row--in-summary');
-                        linkedRows.push($str[0]);
-                        hasVisible = true;
-                    } else {
-                        if ($str && $str.length) $str.hide();
-                        $wf.removeClass('work-row--in-summary');
+                workContainers().each(function() {
+                    var $container = $(this);
+                    var $panel = summaryPanelFor($container);
+                    var $tbody = summaryTbodyFor($container);
+                    if (!$tbody.length) return;
+                    var hasVisible = false;
+                    var linkedRows = [];
+                    $container.find('.work-fields').each(function() {
+                        var $wf = $(this);
+                        var inTable = $wf.hasClass('is-complete') && $wf.hasClass('work-row--compact');
+                        if ($wf.hasClass('is-complete')) getSummaryTr($wf);
+                        var $str = $wf.data('wxSummaryTr');
+                        if (inTable && $str && $str.length) {
+                            $tbody.append($str);
+                            $str.show();
+                            $wf.addClass('work-row--in-summary');
+                            linkedRows.push($str[0]);
+                            hasVisible = true;
+                        } else {
+                            if ($str && $str.length) $str.hide();
+                            $wf.removeClass('work-row--in-summary');
+                        }
+                    });
+                    $tbody.find('.work-exp-summary-tr').each(function() {
+                        if (linkedRows.indexOf(this) === -1) {
+                            $(this).hide();
+                        }
+                    });
+                    if ($panel.length) {
+                        $panel.toggleClass('is-visible', hasVisible);
                     }
                 });
-                $tbody.find('.work-exp-summary-tr').each(function() {
-                    if (linkedRows.indexOf(this) === -1) {
-                        $(this).hide();
-                    }
-                });
-                $panel.toggleClass('is-visible', hasVisible);
                 refreshWorkSerials();
             }
             window.wxSyncWorkSummaryTable = syncSummaryTable;
@@ -743,6 +813,9 @@
                     var voltage = ($tr.find('.work-voltage').val() || '').trim();
                     var $kva = $tr.find('.work-transformer-kva');
                     if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                } else {
+                    if (!($tr.find('.work-board-meeting-details').val() || '').trim()) return false;
+                    if (!readWorkDateFromInput($tr.find('.work-board-meeting-date'))) return false;
                 }
                 var $doc = $tr.find('.work-doc-input');
                 if (!$doc.prop('disabled') && !workInputHasFile($doc)) return false;
@@ -885,6 +958,7 @@
                     setFieldLock($tr, 'transformer-kva', false);
                     setFieldLock($tr, 'to-date', false);
                     setFieldLock($tr, 'relieve', false);
+                    toggleBoardMeetingFields($tr, false);
                     /* Clear any blob previews left over from a previous selection. */
                     $tr.find('.local-file-preview').each(function() {
                         var $p = $(this);
@@ -913,6 +987,7 @@
                 $tr.find('[data-field="work-nature"] .req, [data-field="voltage-level"] .req, [data-field="transformer-kva"] .req').show();
                 $tr.find('[data-field="relieve"] .work-card-field-label .req').show();
                 $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').hide();
+                toggleBoardMeetingFields($tr, false);
                 /* Cols 3 & 4 — Contractor only. */
                 if (isContractor) {
                     $cat.prop('disabled', false).prop('required', true);
@@ -960,12 +1035,14 @@
             function initWorkRow($tr) { applyEmploymentType($tr); }
 
             function refreshWorkSerials() {
-                $('#work-container .work-fields').each(function(idx) {
-                    var n = idx + 1;
-                    var $row = $(this);
-                    $row.attr('data-row-index', idx);
-                    var $str = $row.data('wxSummaryTr');
-                    if ($str && $str.length) $str.find('.work-row-summary-sno').text(n);
+                workContainers().each(function() {
+                    $(this).find('.work-fields').each(function(idx) {
+                        var n = idx + 1;
+                        var $row = $(this);
+                        $row.attr('data-row-index', idx);
+                        var $str = $row.data('wxSummaryTr');
+                        if ($str && $str.length) $str.find('.work-row-summary-sno').text(n);
+                    });
                 });
                 updateWorkAddBtn();
             }
@@ -1014,10 +1091,13 @@
             };
 
             $(document).ready(function() {
-                $('#work-container > .work-fields').each(function() {
-                    ensureWorkEntryBlock($(this));
+                workContainers().each(function() {
+                    $(this).children('.work-fields, .work-entry-block').each(function() {
+                        var $row = $(this).hasClass('work-fields') ? $(this) : $(this).find('.work-fields').first();
+                        if ($row.length) ensureWorkEntryBlock($row);
+                    });
                 });
-                $('#work-container .work-fields').each(function() {
+                allWorkFields().each(function() {
                     var $row = $(this);
                     initWorkRow($row);
                     updateTotalYears($row);
@@ -1089,13 +1169,13 @@
             });
 
             /* Type / voltage / till-date drive all the conditional locks. */
-            $(document).on('change', '#work-container .work-employment-type', function() {
+            $(document).on('change', '.js-work-container .work-employment-type, #work-container .work-employment-type', function() {
                 applyEmploymentType($workRow(this));
                 if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                     window.wxSyncBoardMemberRenewalFee();
                 }
             });
-            $(document).on('change', '#work-container .work-date-till', function() {
+            $(document).on('change', '.js-work-container .work-date-till, #work-container .work-date-till', function() {
                 var $tr = $workRow(this);
                 applyTillDate($tr);
                 if (($tr.find('.work-employment-type').val() || '').trim() === BOARD_MEMBER_TYPE && !$tr.find('.work-date-till').is(':checked')) {
@@ -1104,7 +1184,7 @@
                     $tr.find('[data-field="relieve"] .work-card-field-label .req').hide();
                 }
             });
-            $(document).on('change', '#work-container .work-voltage', function() {
+            $(document).on('change', '.js-work-container .work-voltage, #work-container .work-voltage', function() {
                 var $tr = $workRow(this);
                 applyVoltage($tr);
                 if (!$tr.find('.work-transformer-kva').prop('disabled')) {
@@ -1116,13 +1196,13 @@
                 $tr.find('.work-card-field[data-field="transformer-kva"] .error-message').remove();
                 updateRowHeader($tr);
             });
-            $(document).on('input', '#work-container .work-date-from, #work-container .work-date-to', function() {
+            $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
                 syncWorkDateRaw($field);
                 clearWorkDateFieldErrors($field);
                 updateTotalYears($workRow(this));
             });
-            $(document).on('change blur', '#work-container .work-date-from, #work-container .work-date-to', function() {
+            $(document).on('change blur', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
                 syncWorkDateRaw($field);
                 clearWorkDateFieldErrors($field);
@@ -1131,16 +1211,16 @@
                 validateWorkRowDateRange($tr);
             });
             /* Any field change refreshes the live row header + status pill. */
-            $(document).on('input change', '#work-container .work-employer-input', function() {
+            $(document).on('input change', '.js-work-container .work-employer-input, #work-container .work-employer-input', function() {
                 var $tr = $workRow(this);
                 syncLegacyHidden($tr); updateRowHeader($tr);
             });
-            $(document).on('input change', '#work-container .work-fields :input', function() {
+            $(document).on('input change', '.js-work-container .work-fields :input, #work-container .work-fields :input', function() {
                 var $tr = $workRow(this);
                 updateRowStatus($tr);
             });
             /* File-input change also affects "Complete" pill. */
-            $(document).on('change', '#work-container .work-doc-input, #work-container .work-relieve-input', function() {
+            $(document).on('change', '.js-work-container .work-doc-input, .js-work-container .work-relieve-input, #work-container .work-doc-input, #work-container .work-relieve-input', function() {
                 var $tr = $workRow(this);
                 clearWorkRowUploadErrors($tr);
                 updateRowStatus($tr);
@@ -1154,23 +1234,23 @@
             });
 
             /* Click compact summary header (or chevron) to expand/collapse for editing. */
-            $(document).on('click', '#work-container .work-row-head', function(e) {
+            $(document).on('click', '.js-work-container .work-row-head, #work-container .work-row-head', function(e) {
                 if ($(e.target).closest('.work-row-remove, .remove-work').length) return;
                 var $tr = $workRow(this);
                 if (!$tr.hasClass('is-complete')) return;
                 toggleRowExpanded($tr);
             });
-            $(document).on('click', '#work-container .work-row-edit-trigger', function(e) {
+            $(document).on('click', '.js-work-container .work-row-edit-trigger, #work-container .work-row-edit-trigger', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleRowExpanded($workRow(this), true);
             });
-            $(document).on('click', '#work-container .work-row-toggle-btn', function(e) {
+            $(document).on('click', '.js-work-container .work-row-toggle-btn, #work-container .work-row-toggle-btn', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleRowExpanded($workRow(this));
             });
-            $(document).on('click', '#work-container .work-row-done-btn', function(e) {
+            $(document).on('click', '.js-work-container .work-row-done-btn, #work-container .work-row-done-btn', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 collapseToSummary($workRow(this));
@@ -1178,24 +1258,33 @@
 
             /* Add / remove handlers — bound via delegation so cloned rows keep working. */
             document.addEventListener('click', function(e) {
-                var container = document.getElementById('work-container');
-                if (!container) return;
-
-                if (e.target.closest('.add-more-work')) {
+                var addBtn = e.target.closest('.add-more-work');
+                if (addBtn) {
                     e.preventDefault();
+                    var containerId = addBtn.getAttribute('data-work-container');
+                    var container = containerId ? document.getElementById(containerId) : document.getElementById('work-container');
+                    if (!container) return;
+                    var maxRows = parseInt(addBtn.getAttribute('data-max-rows'), 10) || MAX_WORK_ROWS;
                     var workRows = container.querySelectorAll('.work-fields');
-                    if (workRows.length >= MAX_WORK_ROWS) {
-                        showSectionError('You can add a maximum of ' + MAX_WORK_ROWS + ' work experience entries.');
+                    if (workRows.length >= maxRows) {
+                        showSectionError('You can add a maximum of ' + maxRows + ' work experience entries.');
                         return;
                     }
                     var firstBlock = container.querySelector('.work-entry-block');
                     var first = container.querySelector('.work-fields');
+                    if (!first) {
+                        var $fallback = workContainers().not(container).find('.work-fields').first();
+                        if (!$fallback.length) return;
+                        first = $fallback[0];
+                        firstBlock = first.closest('.work-entry-block');
+                    }
                     var newRoot = firstBlock ? firstBlock.cloneNode(true) : first.cloneNode(true);
                     var newRow = newRoot.querySelector ? newRoot.querySelector('.work-fields') : newRoot;
                     if (!newRow && newRoot.classList && newRoot.classList.contains('work-fields')) {
                         newRow = newRoot;
                     }
                     if (!newRow) return;
+                    var isCurrent = (container.getAttribute('data-work-part') || '') === 'current';
                     /* Blank the clone before appending. */
                     newRow.classList.remove('is-collapsed', 'is-complete', 'work-row--compact', 'work-row--expanded', 'work-row--in-summary');
                     $(newRow).removeData('wxSummaryTr');
@@ -1211,8 +1300,14 @@
                         inp.value = '';
                     });
                     newRow.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
-                    var till = newRow.querySelector('.work-date-till'); if (till) till.checked = false;
-                    var tillH = newRow.querySelector('.work-date-till-hidden'); if (tillH) tillH.value = '0';
+                    newRow.querySelectorAll('textarea').forEach(function(el) { el.value = ''; });
+                    var boardPanel = newRow.querySelector('.work-board-member-panel');
+                    if (boardPanel) boardPanel.style.display = 'none';
+                    newRow.classList.remove('work-row--board-member');
+                    var till = newRow.querySelector('.work-date-till');
+                    if (till) till.checked = isCurrent;
+                    var tillH = newRow.querySelector('.work-date-till-hidden');
+                    if (tillH) tillH.value = isCurrent ? '1' : '0';
                     newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(inp) { inp.value = ''; });
                     var hTot = newRow.querySelector('.work-experience-total-hidden'); if (hTot) hTot.value = '';
                     var hLevel = newRow.querySelector('.work-level-sync'); if (hLevel) hLevel.value = '';
@@ -1229,7 +1324,6 @@
                         removeBtn.removeAttribute('data-exp_id');
                         removeBtn.removeAttribute('data-url');
                     }
-                    /* Clear inline error messages copied over from the template. */
                     newRow.querySelectorAll('.error-message').forEach(function(el) { el.remove(); });
                     var dateValSlot = (newRoot.querySelector && newRoot.querySelector('.work-row-date-validation'))
                         || newRow.querySelector('.work-row-date-validation');
@@ -1240,6 +1334,9 @@
                     }
                     bindWorkRowDateDisplay(newRow);
                     initWorkRow($(newRow));
+                    if (isCurrent && till && till.checked) {
+                        applyTillDate($(newRow));
+                    }
                     refreshWorkSerials();
                     syncSummaryTable();
                     updateOverallTotalYears();
@@ -1250,27 +1347,34 @@
 
                 if (e.target.closest('.remove-work')) {
                     e.preventDefault();
-                    var workRows = container.querySelectorAll('.work-fields');
-                    if (workRows.length <= 1) {
-                        showSectionError('You must have at least one work experience entry.');
-                        return;
-                    }
                     var card = e.target.closest('.work-fields');
-                    if (!card) {
+                    var container = card ? card.closest('.js-work-container, #work-container') : null;
+                    if (!container) {
                         var $summaryTr = $(e.target).closest('.work-exp-summary-tr');
                         if ($summaryTr.length) {
                             var $linked = workRowFromSummaryTr($summaryTr);
-                            if ($linked && $linked.length) card = $linked[0];
+                            if ($linked && $linked.length) {
+                                card = $linked[0];
+                                container = card.closest('.js-work-container, #work-container');
+                            }
                         }
                     }
-                    if (!card) return;
+                    if (!container || !card) return;
+                    var minRows = parseInt(container.getAttribute('data-min-rows'), 10);
+                    if (isNaN(minRows)) minRows = 1;
+                    var workRows = container.querySelectorAll('.work-fields');
+                    if (workRows.length <= minRows) {
+                        showSectionError(minRows === 0
+                            ? 'This section cannot be empty while the row is present.'
+                            : 'You must have at least ' + minRows + ' work experience entr' + (minRows === 1 ? 'y' : 'ies') + ' in this section.');
+                        return;
+                    }
                     var $card = $(card);
                     var $summaryTr = $card.data('wxSummaryTr');
                     if ($summaryTr && $summaryTr.length) {
                         $summaryTr.remove();
                         $card.removeData('wxSummaryTr');
                     }
-                    /* Animate-out, then remove entry block (card + external validation slot). */
                     var removeTarget = workEntryRemoveTarget(card);
                     if (removeTarget) removeTarget.classList.add('is-removing');
                     setTimeout(function() {
@@ -1290,19 +1394,24 @@
             });
         })();
 
-@if (!empty($enableBoardMemberRenewalFeeExempt))
+@if (!empty($enableBoardMemberRenewalFeeExempt) || !empty($enableBoardMemberFeeExempt))
         (function() {
             var BOARD_MEMBER_TYPE = 'board_member_tnelb';
-            var cachedRenewalFee = null;
+            var cachedStandardFee = null;
 
-            function isRenewFormS() {
-                return ($('#appl_type').val() || '').trim() === 'R'
-                    && ($('#form_name').val() || '').trim().toUpperCase() === 'S';
+            function isFormSBoardMemberFeeForm() {
+                var form = ($('#form_name').val() || '').trim().toUpperCase();
+                var appl = ($('#appl_type').val() || '').trim().toUpperCase();
+                return form === 'S' && (appl === 'N' || appl === 'R');
             }
 
             window.wxHasBoardMemberWorkRow = function() {
+                var $rows = $('.js-work-container[data-work-part="current"] .work-fields');
+                if (!$rows.length) {
+                    $rows = allWorkFields();
+                }
                 var found = false;
-                $('#work-container .work-fields').each(function() {
+                $rows.each(function() {
                     var type = ($(this).find('.work-employment-type').val() || '').trim();
                     if (type === BOARD_MEMBER_TYPE) {
                         found = true;
@@ -1319,7 +1428,7 @@
             }
 
             window.wxSyncBoardMemberRenewalFee = async function() {
-                if (!isRenewFormS()) return;
+                if (!isFormSBoardMemberFeeForm()) return;
 
                 var $amount = $('#amount');
                 var $flag = $('#board_member_fee_exempt');
@@ -1330,10 +1439,10 @@
                 }
 
                 if (exempt) {
-                    if (cachedRenewalFee === null && $amount.length) {
-                        var stored = parseFloat($amount.data('standardRenewalFee'));
+                    if (cachedStandardFee === null && $amount.length) {
+                        var stored = parseFloat($amount.data('standardFee'));
                         if (!isNaN(stored)) {
-                            cachedRenewalFee = stored;
+                            cachedStandardFee = stored;
                         }
                     }
                     if ($amount.length) $amount.val('0');
@@ -1344,8 +1453,8 @@
                 setFeeNotice(false);
                 if (!$amount.length) return;
 
-                if (cachedRenewalFee !== null) {
-                    $amount.val(String(cachedRenewalFee));
+                if (cachedStandardFee !== null) {
+                    $amount.val(String(cachedStandardFee));
                     return;
                 }
 
@@ -1357,10 +1466,10 @@
                     if (!licence_code || !appl_type) return;
                     var data = await getPaymentsService(licence_code, issued_licence, appl_type, { silent: true });
                     if (data && data.total_fees !== undefined && data.total_fees !== null && data.total_fees !== '') {
-                        cachedRenewalFee = parseFloat(data.total_fees);
-                        if (!isNaN(cachedRenewalFee)) {
-                            $amount.data('standardRenewalFee', cachedRenewalFee);
-                            $amount.val(String(cachedRenewalFee));
+                        cachedStandardFee = parseFloat(data.total_fees);
+                        if (!isNaN(cachedStandardFee)) {
+                            $amount.data('standardFee', cachedStandardFee);
+                            $amount.val(String(cachedStandardFee));
                         }
                     }
                 } catch (e) {
@@ -1373,11 +1482,13 @@
                 if ($amount.length) {
                     var initial = parseFloat($amount.val());
                     if (!isNaN(initial) && initial > 0) {
-                        $amount.data('standardRenewalFee', initial);
-                        cachedRenewalFee = initial;
+                        $amount.data('standardFee', initial);
+                        cachedStandardFee = initial;
                     }
                 }
-                window.wxSyncBoardMemberRenewalFee();
+                if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                    window.wxSyncBoardMemberRenewalFee();
+                }
             });
         })();
 @endif

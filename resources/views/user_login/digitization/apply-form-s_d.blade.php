@@ -858,6 +858,45 @@
         padding: 14px 16px;
         transition: opacity .22s ease, padding .22s ease;
     }
+    .work-row-grid-span { grid-column: 1 / -1; }
+    .work-board-member-panel {
+        margin-top: 4px;
+        padding: 12px 14px;
+        background: #f4f8fd;
+        border: 1px solid #c5d5eb;
+        border-radius: 8px;
+    }
+    .work-board-member-panel-hd {
+        margin-bottom: 10px;
+        font-size: .82rem;
+        font-weight: 600;
+        color: #1a2a4a;
+        line-height: 1.35;
+    }
+    .work-board-member-panel-hint {
+        display: block;
+        font-size: .72rem;
+        font-weight: 500;
+        color: #5a7299;
+        margin-top: 2px;
+    }
+    .work-board-member-panel-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px 14px;
+    }
+    .work-board-member-panel-note {
+        margin: 10px 0 0;
+        font-size: .72rem;
+        color: #5a7299;
+    }
+    .work-row.work-row--board-member [data-field="contractor-cat"],
+    .work-row.work-row--board-member [data-field="licence-number"],
+    .work-row.work-row--board-member [data-field="work-nature"],
+    .work-row.work-row--board-member [data-field="voltage-level"],
+    .work-row.work-row--board-member [data-field="transformer-kva"] {
+        display: none !important;
+    }
 
     /* Field cell: label on top, input below */
     .work-card-field {
@@ -1759,7 +1798,7 @@
                                                     <option value="retired_employee">Retired Employee</option>
                                                     <option value="govt_organisation">Govt organisation</option>
                                                     <option value="apprenticeship">Apprenticeship</option>
-                                                    <option value="board_member_tnelb">Board Member / Ex. Board Member of TNELB</option>
+                                                    <option value="board_member_tnelb">Board member of TNELB or Ex board member of TNELB</option>
                                                 </select>
                                             </div>
                                             <div class="work-card-field" data-field="contractor-cat">
@@ -1790,7 +1829,7 @@
                                                 <label class="work-card-field-label">Designation <span class="req">*</span></label>
                                                 <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" disabled placeholder="e.g. Site Engineer">
                                             </div>
-                                            <div class="work-card-field">
+                                            <div class="work-card-field" data-field="work-nature">
                                                 <label class="work-card-field-label">Work Nature <span class="req">*</span></label>
                                                 <select class="form-control work-nature" name="work_nature_of_work[]" disabled>
                                                     <option value="">—</option>
@@ -1799,7 +1838,7 @@
                                                     <option value="erection_maintenance">Erection &amp; Maintenance</option>
                                                 </select>
                                             </div>
-                                            <div class="work-card-field">
+                                            <div class="work-card-field" data-field="voltage-level">
                                                 <label class="work-card-field-label">Voltage Level <span class="req">*</span></label>
                                                 <select class="form-control work-voltage" name="work_voltage_level[]" disabled>
                                                     <option value="">—</option>
@@ -1842,6 +1881,24 @@
                                                         <input type="text" class="form-control work-duration-d" readonly inputmode="none" tabindex="-1" placeholder="0" aria-label="Days in this period">
                                                     </div>
                                                 </div>
+                                            </div>
+                                            <div class="work-board-member-panel work-row-grid-span" style="display:none;">
+                                                <div class="work-board-member-panel-hd">
+                                                    <span class="work-board-member-panel-title">Details of board meeting attended</span>
+                                                    <span class="section-req">*</span>
+                                                    <span class="work-board-member-panel-hint">(Mandatory for Board member of TNELB or Ex board member of TNELB)</span>
+                                                </div>
+                                                <div class="work-board-member-panel-body">
+                                                    <div class="work-card-field work-board-meeting-field" data-field="board-meeting-details">
+                                                        <label class="work-card-field-label">Details of the meeting <span class="req">*</span></label>
+                                                        <textarea class="form-control work-board-meeting-details" name="work_board_meeting_details[]" rows="2" maxlength="500" autocomplete="off" placeholder="Enter details of the board meeting attended" disabled></textarea>
+                                                    </div>
+                                                    <div class="work-card-field work-board-meeting-field" data-field="board-meeting-date">
+                                                        <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
+                                                        <input type="date" class="form-control work-board-meeting-date" name="work_board_meeting_date[]" title="Date of Meeting" aria-label="Date of board meeting attended" disabled>
+                                                    </div>
+                                                </div>
+                                                <p class="work-board-member-panel-note"><i class="fa fa-info-circle"></i> Supporting documents must be attached in the field below.</p>
                                             </div>
                                             <div class="work-card-field">
                                                 <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>
@@ -2656,7 +2713,7 @@
                 retired_employee: 'Retired Employee',
                 govt_organisation: 'Govt organisation',
                 apprenticeship: 'Apprenticeship',
-                board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
+                board_member_tnelb: 'Board member of TNELB or Ex board member of TNELB'
             };
             var NATURE_LABEL = {
                 erection: 'Erection',
@@ -3186,6 +3243,9 @@
                     var voltage = ($tr.find('.work-voltage').val() || '').trim();
                     var $kva = $tr.find('.work-transformer-kva');
                     if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                } else {
+                    if (!($tr.find('.work-board-meeting-details').val() || '').trim()) return false;
+                    if (!readWorkDateFromInput($tr.find('.work-board-meeting-date'))) return false;
                 }
                 var $doc = $tr.find('.work-doc-input');
                 if (!$doc.prop('disabled') && !workInputHasFile($doc)) return false;
@@ -3267,6 +3327,22 @@
                 setFieldLock($tr, 'transformer-kva', locked);
             }
 
+            /** Show or hide board-meeting sub-question panel for Board Member employment type. */
+            function toggleBoardMeetingFields($tr, show) {
+                var $panel = $tr.find('.work-board-member-panel');
+                $panel.toggle(!!show);
+                $tr.toggleClass('work-row--board-member', !!show);
+                var $details = $tr.find('.work-board-meeting-details');
+                var $date = $tr.find('.work-board-meeting-date');
+                if (show) {
+                    $details.prop('disabled', false).prop('required', true);
+                    $date.prop('disabled', false).prop('required', true);
+                } else {
+                    $details.val('').prop('disabled', true).prop('required', false);
+                    $date.val('').prop('disabled', true).prop('required', false);
+                }
+            }
+
             /** Board Member: disable contractor / technical columns; enable org, dates, uploads. */
             function applyBoardMemberEmployment($tr) {
                 var $cat = $tr.find('.work-contractor-cat');
@@ -3291,9 +3367,10 @@
                 $nat.val('').prop('disabled', true).prop('required', false);
                 $volt.val('').prop('disabled', true).prop('required', false);
                 $kva.val('').prop('disabled', true).prop('required', false);
+                setFieldLock($tr, 'work-nature', true);
+                setFieldLock($tr, 'voltage-level', true);
                 setFieldLock($tr, 'transformer-kva', true);
-                $tr.find('.work-nature, .work-voltage').closest('.work-card-field').find('.req').hide();
-                $tr.find('[data-field="transformer-kva"] .req').hide();
+                $tr.find('[data-field="work-nature"] .req, [data-field="voltage-level"] .req, [data-field="transformer-kva"] .req').hide();
 
                 $emp.prop('disabled', false).prop('required', true);
                 $addr.prop('disabled', false).prop('required', true);
@@ -3315,6 +3392,7 @@
                 $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').show();
                 $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-default"]').hide();
 
+                toggleBoardMeetingFields($tr, true);
                 updateTotalYears($tr);
                 syncLegacyHidden($tr);
                 updateRowHeader($tr);
@@ -3362,6 +3440,7 @@
                     setFieldLock($tr, 'transformer-kva', false);
                     setFieldLock($tr, 'to-date', false);
                     setFieldLock($tr, 'relieve', false);
+                    toggleBoardMeetingFields($tr, false);
                     $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').hide();
                     $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-default"]').show();
                     /* Clear any blob previews left over from a previous selection. */
@@ -3387,7 +3466,7 @@
                 $tr.find('[data-field="transformer-kva"] .req').show();
                 $tr.find('[data-field="relieve"] .work-card-field-label .req').show();
                 $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-board"]').hide();
-                $tr.find('[data-field="relieve"] .work-card-field-hint[data-hint="relieve-default"]').show();
+                toggleBoardMeetingFields($tr, false);
 
                 /* Cols 3 & 4 — Contractor only. */
                 if (isContractor) {
@@ -3564,6 +3643,10 @@
                         preview.remove();
                     });
                     newRow.querySelectorAll('input[type="text"], input[type="date"], input[type="number"]').forEach(function(inp) { inp.value = ''; });
+                    newRow.querySelectorAll('textarea').forEach(function(el) { el.value = ''; });
+                    var boardPanel = newRow.querySelector('.work-board-member-panel');
+                    if (boardPanel) boardPanel.style.display = 'none';
+                    newRow.classList.remove('work-row--board-member');
                     newRow.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
                     var till = newRow.querySelector('.work-date-till'); if (till) till.checked = false;
                     var tillH = newRow.querySelector('.work-date-till-hidden'); if (tillH) tillH.value = '0';

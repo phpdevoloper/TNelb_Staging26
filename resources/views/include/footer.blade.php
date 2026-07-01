@@ -507,7 +507,7 @@ $(document).ready(function() {
             var formName = String($('#form_name').val() || '').trim().toUpperCase();
             var messages = [];
 
-            $('#work-container .work-fields').each(function () {
+            $('.js-work-container .work-fields, #work-container .work-fields').each(function () {
                 var $row = $(this);
                 var $fromDate = $row.find('.work-date-from').first();
                 var $toDate = $row.find('.work-date-to').first();
@@ -1298,6 +1298,10 @@ $(document).ready(function() {
                     font-size: .72rem; font-weight: 700; display: inline-flex; align-items: center;
                     justify-content: center; flex-shrink: 0; margin-top: 1px;
                 }
+                .prv-sw-modal-root .prv-sw-section-num.prv-sw-section-num--sub {
+                    width: auto; min-width: 28px; height: 24px; padding: 0 7px; border-radius: 8px;
+                    font-size: .66rem; letter-spacing: .02em;
+                }
                 .prv-sw-modal-root .prv-sw-section-title { font-size: .84rem; font-weight: 600; color: #1a2a4a; line-height: 1.35; }
                 .prv-sw-modal-root .prv-sw-section-tamil { font-size: .74rem; color: #5a7299; margin-top: 2px; line-height: 1.35; }
                 .prv-sw-modal-root .prv-sw-section-body { padding: 14px; }
@@ -1658,7 +1662,7 @@ $(document).ready(function() {
                             <!-- Section: Previous Same-Type Certificate -->
                             <div class="prv-sw-section" id="prvSwSecPrev">
                                 <div class="prv-sw-section-hd">
-                                    <span class="prv-sw-section-num" data-section-num="prev">8</span>
+                                    <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="prev">8</span>
                                     <div>
                                         <div class="prv-sw-section-title" id="prvSwSecPrevTitle">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
                                         <div class="prv-sw-section-tamil" id="prvSwSecPrevTamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
@@ -1680,7 +1684,7 @@ $(document).ready(function() {
                             <!-- Section: Wireman Competency Certificate (Form S only) -->
                             <div class="prv-sw-section" id="prvSwSecWiremanCert">
                                 <div class="prv-sw-section-hd">
-                                    <span class="prv-sw-section-num" data-section-num="wireman">9</span>
+                                    <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="wireman">9</span>
                                     <div>
                                         <div class="prv-sw-section-title" id="prvSwSecWcTitle">Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.</div>
                                         <div class="prv-sw-section-tamil" id="prvSwSecWcTamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
@@ -1702,7 +1706,7 @@ $(document).ready(function() {
                             <!-- Section: Identity Documents (Aadhaar + PAN) -->
                             <div class="prv-sw-section prv-sw-section--identity" id="prvSwSecDocs" data-section="identity">
                                 <div class="prv-sw-section-hd">
-                                    <span class="prv-sw-section-num" data-section-num="docs">10</span>
+                                    <span class="prv-sw-section-num" data-section-num="docs">8</span>
                                     <div>
                                         <div class="prv-sw-section-title">Identity Documents</div>
                                         <div class="prv-sw-section-tamil">அடையாள ஆவண விவரங்கள்</div>
@@ -1817,7 +1821,9 @@ $(document).ready(function() {
             };
             const setNum = function (key, num) {
                 const el = document.querySelector('#appPreviewModalSw [data-section-num="' + key + '"]');
-                if (el) el.textContent = num;
+                if (!el) return;
+                el.textContent = num;
+                el.classList.toggle('prv-sw-section-num--sub', /[a-z]$/i.test(String(num)));
             };
             const setSecVisible = function (id, visible) {
                 const el = document.getElementById(id);
@@ -1912,7 +1918,7 @@ $(document).ready(function() {
             const showWiremanCert = (formCode === 'S');
 
             // Section visibility + numbering — matches each form's native section numbers.
-            // S:  1 (1-5) · 6 Edu · 7 Work · 8 Prev S · 9 Wireman · 10 Docs
+            // S:  1 (1-5) · 6 Edu · 7 Work (7a/7b) · 8 Prev S · 9 Wireman · 10 Docs
             // W:  1 (1-5) · 6 Edu · 7 Work · 8 Prev W · ──        · 9  Docs
             // WH: 1 (1-5) · 6 Edu · ──     · 7 Prev H · ──        · 8  Docs
             setSecVisible('prvSwSecWork', showWork);
@@ -1920,14 +1926,16 @@ $(document).ready(function() {
             setNum('personal', '1');
             setNum('edu', '6');
             setNum('work', '7');
-            setNum('wireman', '9');
             if (formCode === 'S') {
                 setNum('prev', '8');
+                setNum('wireman', '9');
                 setNum('docs', '10');
             } else if (formCode === 'W') {
+                setNum('wireman', '9');
                 setNum('prev', '8');
                 setNum('docs', '9');
             } else {
+                setNum('wireman', '8');
                 setNum('prev', '7');
                 setNum('docs', '8');
             }
@@ -2240,7 +2248,7 @@ $(document).ready(function() {
                 }
                 buildSwWorkThead(formCode);
                 if (workBody) {
-                    const workRows = document.querySelectorAll('#work-container .work-fields');
+                    const workRows = document.querySelectorAll('#work-container-previous .work-fields, #work-container-current .work-fields, #work-container .work-fields');
                     workBody.innerHTML = '';
                     let printed = 0;
                     const colSpan = (formCode === 'S') ? 9 : 8;
@@ -2752,7 +2760,7 @@ $(document).ready(function() {
                 });
             }
 
-            $('#work-container .work-fields').each(function () {
+            $('.js-work-container .work-fields, #work-container .work-fields').each(function () {
                 if (isSWorkForm) {
                     /* Form S (13-column SCC layout):
                        Required per row:
@@ -2834,6 +2842,22 @@ $(document).ready(function() {
                         designation.after('<span class="error-message text-danger d-block mt-1">Designation is required.</span>');
                         if (!firstErrorField) firstErrorField = designation;
                         isValid = false;
+                    }
+
+                    /* Board Member — meeting details */
+                    if (isBoardMember) {
+                        const meetingDetails = $row.find('.work-board-meeting-details').first();
+                        const meetingDate = $row.find('.work-board-meeting-date').first();
+                        if (meetingDetails.length && (meetingDetails.val() || '').trim() === '') {
+                            meetingDetails.after('<span class="error-message text-danger d-block mt-1">Details of the meeting is required.</span>');
+                            if (!firstErrorField) firstErrorField = meetingDetails;
+                            isValid = false;
+                        }
+                        if (meetingDate.length && !readWorkDateIsoGeneric(meetingDate)) {
+                            meetingDate.after('<span class="error-message text-danger d-block mt-1">Date of Meeting is required.</span>');
+                            if (!firstErrorField) firstErrorField = meetingDate;
+                            isValid = false;
+                        }
                     }
 
                     /* Column 8 — Nature of Work */
@@ -3062,7 +3086,7 @@ $(document).ready(function() {
                     var d = new Date();
                     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                 })();
-                $('#work-container .work-fields').each(function () {
+                $('.js-work-container .work-fields, #work-container .work-fields').each(function () {
                     var $tr = $(this);
                     var $fr = $tr.find('.work-date-from');
                     var $to = $tr.find('.work-date-to');
@@ -5360,8 +5384,8 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
 
             const formNamePay = ($('#form_name').val() || '').trim().toUpperCase();
             const boardMemberFeeExempt = !isDigitization
-                && appl_type === 'R'
                 && formNamePay === 'S'
+                && (appl_type === 'N' || appl_type === 'R')
                 && typeof window.wxHasBoardMemberWorkRow === 'function'
                 && window.wxHasBoardMemberWorkRow();
             const digitizationNoFee = isDigitization;
@@ -5415,7 +5439,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 formFeesEl.textContent = digitizationNoFee
                     ? 'No fee (Digitization)'
                     : (boardMemberFeeExempt
-                        ? 'Fee exempted (Board Member renewal)'
+                        ? 'Fee exempted (Board Member)'
                         : ('Rs.' + actual_fees + '/-'));
             }
             

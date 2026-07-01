@@ -3,7 +3,7 @@
 @php
     $editFormName = $application_details->form_name ?? '';
     $editLicenseName = $application_details->license_name ?? '';
-    $editShowBoardMember = ($editFormName === 'S') && (($application_details->appl_type ?? '') === 'R');
+    $editShowBoardMember = ($editFormName === 'S');
 @endphp
 
 <style>
@@ -2097,7 +2097,7 @@
                     @if ($editShowBoardMember)
                     <div id="board-member-fee-notice" class="alert alert-info py-2 px-3 mb-3 d-none" role="status" style="font-size:.84rem;">
                         <i class="fa fa-info-circle"></i>
-                        Renewal fee is exempted because <strong>Board Member / Ex. Board Member of TNELB</strong> is selected in Table 7.
+                        Application fee is exempted because <strong>Board member of TNELB or Ex board member of TNELB</strong> is selected in Table 7.
                         If you change the employment type, the standard renewal fee will apply.
                     </div>
                     @endif
@@ -2997,6 +2997,7 @@
 @include('user_login.partials.form-s-work-exp-scripts', [
     'editFormName' => 'S',
     'showBoardMemberEmploymentType' => $editShowBoardMember,
+    'enableBoardMemberFeeExempt' => $editShowBoardMember,
     'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
 ])
 @endif

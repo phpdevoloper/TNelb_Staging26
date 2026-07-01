@@ -41,8 +41,16 @@
     $supportDoc = $hasRow ? (string) ($expRow->support_document ?? $expRow->upload_document ?? '') : '';
     $relieveDoc = $hasRow ? (string) ($expRow->releive_document ?? '') : '';
     $workId = $hasRow ? (string) ($expRow->id ?? '') : '';
+    $meetingDetails = $hasRow ? (string) ($expRow->board_meeting_details ?? '') : '';
+    $meetingDate = ($hasRow && !empty($expRow->board_meeting_date))
+        ? \Carbon\Carbon::parse($expRow->board_meeting_date)->format('Y-m-d')
+        : '';
     $rowIndex = $rowIndex ?? 0;
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
+    $defaultTillDate = !empty($defaultTillDate);
+    if (!$hasRow && $defaultTillDate) {
+        $isTill = true;
+    }
     $removeClasses = 'work-row-remove remove-work' . ($workId !== '' ? ' remove_exp' : '');
     $storedRowClass = $workId !== '' ? ' is-complete work-row--compact work-row--in-summary' : '';
 @endphp
@@ -151,6 +159,26 @@
                     <input type="text" class="form-control work-duration-d" readonly inputmode="none" tabindex="-1" placeholder="0" value="{{ $durD }}" aria-label="Days in this period">
                 </div>
             </div>
+        </div>
+        <div class="work-board-member-panel work-row-grid-span" style="{{ ($empType === 'board_member_tnelb') ? '' : 'display:none;' }}">
+            <div class="work-board-member-panel-hd">
+                <span class="work-board-member-panel-badge">Board Member</span>
+                <span class="work-board-member-panel-title">Details of board meeting attended</span>
+                <span class="section-req">*</span>
+                <span class="work-board-member-panel-hint">Mandatory when employment type is Board member of TNELB or Ex board member of TNELB</span>
+                <span class="work-board-member-panel-tamil">தமிழ்நாடு மின்சார வாரிய கூட்டத்தில் கலந்துகொண்ட விவரங்கள்</span>
+            </div>
+            <div class="work-board-member-panel-body">
+                <div class="work-card-field work-board-meeting-field" data-field="board-meeting-details">
+                    <label class="work-card-field-label">Details of the meeting <span class="req">*</span></label>
+                    <textarea class="form-control work-board-meeting-details" name="work_board_meeting_details[]" rows="3" maxlength="500" autocomplete="off" placeholder="Enter details of the board meeting attended" {{ ($empType === 'board_member_tnelb') ? '' : 'disabled' }}>{{ $meetingDetails }}</textarea>
+                </div>
+                <div class="work-card-field work-board-meeting-field" data-field="board-meeting-date">
+                    <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
+                    <input type="date" class="form-control work-board-meeting-date" name="work_board_meeting_date[]" value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" {{ ($empType === 'board_member_tnelb') ? '' : 'disabled' }}>
+                </div>
+            </div>
+            <p class="work-board-member-panel-note"><i class="fa fa-paperclip"></i> Attach supporting documents for the meeting in the <strong>Supporting docs</strong> field below.</p>
         </div>
         <div class="work-card-field" data-field="support-doc">
             <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>

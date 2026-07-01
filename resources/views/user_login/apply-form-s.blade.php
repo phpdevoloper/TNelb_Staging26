@@ -165,6 +165,224 @@
         font-weight: 700;
         flex-shrink: 0;
     }
+    .fs-section-num--sub {
+        width: auto;
+        min-width: 34px;
+        height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: .7rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 1;
+    }
+    .fs-question-part + .fs-question-part {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px dashed #d5deed;
+    }
+    .fs-question-part-hd {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .fs-question-part-hd .fs-section-title {
+        font-size: .84rem;
+    }
+    .fs-question-part-hd .fs-section-tamil {
+        font-size: .76rem;
+    }
+    /* Board member sub-question panel inside 7b work row */
+    .work-row-grid-span { grid-column: 1 / -1; }
+    .fs-question-part--7b { position: relative; }
+    .fs-7b-board-gate {
+        margin: 0 0 14px;
+        padding: 14px 16px;
+        background: linear-gradient(135deg, #f4f8ff 0%, #fafcff 100%);
+        border: 1px solid #d0dff2;
+        border-radius: 10px;
+    }
+    .fs-7b-board-gate-label { margin-bottom: 12px; }
+    .fs-7b-board-gate-label .fs-section-title { font-size: .86rem; margin-bottom: 2px; }
+    .fs-7b-board-gate-label .fs-section-tamil { font-size: .76rem; }
+    .fs-segmented-toggle {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid #b8cfe8;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(3, 90, 179, 0.06);
+    }
+    .fs-segmented-opt {
+        position: relative;
+        margin: 0;
+        cursor: pointer;
+        user-select: none;
+    }
+    .fs-segmented-opt input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+    }
+    .fs-segmented-opt span {
+        display: block;
+        min-width: 72px;
+        padding: 8px 22px;
+        font-size: .84rem;
+        font-weight: 600;
+        text-align: center;
+        color: #5a7299;
+        background: #fff;
+        border-right: 1px solid #e3eaf5;
+        transition: background .15s, color .15s;
+    }
+    .fs-segmented-opt:last-child span { border-right: 0; }
+    .fs-segmented-opt.is-active span,
+    .fs-segmented-opt input:checked + span {
+        background: #035ab3;
+        color: #fff;
+    }
+    .fs-segmented-opt input:focus-visible + span {
+        outline: 2px solid #035ab3;
+        outline-offset: 2px;
+    }
+    .fs-7b-board-fields-intro {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0 0 12px;
+        padding: 10px 12px;
+        font-size: .78rem;
+        line-height: 1.45;
+        color: #3d5278;
+        background: #f0f6ff;
+        border: 1px solid #d0dff2;
+        border-radius: 8px;
+    }
+    .fs-7b-board-fields-intro .fa {
+        color: #035ab3;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+    .fs-7b-work-wrap { margin-top: 4px; }
+    .fs-7b-mode-board .fs-7b-work-wrap {
+        padding: 12px 12px 4px;
+        background: linear-gradient(180deg, #f7faff 0%, #fff 100%);
+        border: 1px solid #c5d8f0;
+        border-radius: 10px;
+    }
+    .fs-7b-mode-board #work-container-current .work-card-field:has(.work-employment-type) {
+        display: none !important;
+    }
+    .fs-7b-mode-standard #work-container-current option[value="board_member_tnelb"] {
+        display: none;
+    }
+    .fs-board-member-fee-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin: 0 0 12px;
+        padding: 10px 14px;
+        font-size: .8rem;
+        line-height: 1.45;
+        color: #1f5c35;
+        background: #e8f7ee;
+        border: 1px solid #b8dfc8;
+        border-left: 4px solid #2e9b52;
+        border-radius: 8px;
+    }
+    .fs-board-member-fee-banner .fa {
+        color: #2e9b52;
+        font-size: 1rem;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+    .work-board-member-panel {
+        margin-top: 6px;
+        padding: 14px 16px 12px;
+        background: linear-gradient(180deg, #f7faff 0%, #f2f7fd 100%);
+        border: 1px solid #b8cfe8;
+        border-left: 4px solid #035ab3;
+        border-radius: 0 10px 10px 0;
+        box-shadow: 0 2px 8px rgba(3, 90, 179, 0.07);
+    }
+    .work-board-member-panel-hd {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 8px;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed #c5d5eb;
+    }
+    .work-board-member-panel-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #035ab3;
+        color: #fff;
+        font-size: .62rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .work-board-member-panel-title {
+        font-size: .86rem;
+        font-weight: 700;
+        color: #1a2a4a;
+    }
+    .work-board-member-panel-hint {
+        flex: 1 1 100%;
+        font-size: .72rem;
+        font-weight: 500;
+        color: #5a7299;
+        line-height: 1.35;
+    }
+    .work-board-member-panel-tamil {
+        flex: 1 1 100%;
+        font-size: .74rem;
+        color: #5a7299;
+        line-height: 1.35;
+    }
+    .work-board-member-panel-body {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 12px 16px;
+    }
+    @media (max-width: 768px) {
+        .work-board-member-panel-body { grid-template-columns: 1fr; }
+    }
+    .work-board-member-panel-body .work-card-field textarea.form-control {
+        min-height: 72px;
+        resize: vertical;
+    }
+    .work-board-member-panel-note {
+        margin: 12px 0 0;
+        padding-top: 10px;
+        border-top: 1px dashed #d5deed;
+        font-size: .72rem;
+        color: #5a7299;
+    }
+    .work-board-member-panel-note .fa { color: #035ab3; margin-right: 4px; }
+    .work-row.work-row--board-member [data-field="contractor-cat"],
+    .work-row.work-row--board-member [data-field="licence-number"],
+    .work-row.work-row--board-member [data-field="work-nature"],
+    .work-row.work-row--board-member [data-field="voltage-level"],
+    .work-row.work-row--board-member [data-field="transformer-kva"],
+    .work-row.work-row--board-member [data-field="relieve"] {
+        display: none !important;
+    }
+    .work-row.work-row--board-member [data-field="support-doc"] {
+        grid-column: 1 / -1;
+        padding-top: 4px;
+        border-top: 1px dashed #e3eaf5;
+        margin-top: 4px;
+    }
     .fs-section-title {
         font-size: .9rem;
         font-weight: 600;
@@ -1362,6 +1580,7 @@
     .prv-section { background:#fff; border:1px solid #e3e8f0; border-radius:10px; margin-bottom:10px; overflow:hidden; }
     .prv-section-hd { background:#f2f7ff; border-bottom:1px solid #dce6f3; padding:7px 12px; display:flex; align-items:center; gap:8px; }
     .prv-section-num { width:20px; height:20px; border-radius:50%; background:#035ab3; color:#fff; font-size:.68rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .prv-section-num--sub { width:auto; min-width:28px; height:20px; padding:0 8px; border-radius:999px; font-size:.64rem; font-weight:700; letter-spacing:.02em; line-height:1; }
     .prv-section-title { font-size:.78rem; font-weight:600; color:#1a2a4a; }
     .prv-section-body { padding:10px 12px; }
 
@@ -1685,7 +1904,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Work Experience ═══ --}}
+                    {{-- ═══ SECTION 7 — Work Experience (7a Previous / 7b Current) ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">7</span>
@@ -1699,8 +1918,119 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
-                            @php $showBoardMemberEmploymentType = false; @endphp
-                            @include('user_login.partials.form-s-work-exp-section')
+                            @php
+                                $showBoardMemberEmploymentType = false;
+                                $previousExpDetails = collect();
+                                $currentExpDetails = collect();
+                                if (!empty($exp_details) && $exp_details->isNotEmpty()) {
+                                    foreach ($exp_details as $expRow) {
+                                        $fromDate = $expRow->from_date ?? null;
+                                        $toDate = $expRow->to_date ?? null;
+                                        $isCurrent = $fromDate && ($toDate === null || $toDate === '');
+                                        if ($isCurrent) {
+                                            $currentExpDetails->push($expRow);
+                                        } else {
+                                            $previousExpDetails->push($expRow);
+                                        }
+                                    }
+                                }
+                            @endphp
+
+                            <div class="fs-question-part">
+                                <div class="fs-question-part-hd">
+                                    <span class="fs-section-num fs-section-num--sub">7a</span>
+                                    <div>
+                                        <div class="fs-section-title">Previous Work Experience</div>
+                                        <div class="fs-section-tamil">முந்தைய பணி அனுபவ விவரங்கள்</div>
+                                    </div>
+                                </div>
+                                @include('user_login.partials.form-s-work-exp-section', [
+                                    'exp_details' => $previousExpDetails,
+                                    'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+                                    'workContainerId' => 'work-container-previous',
+                                    'workAddBtnId' => 'work-exp-add-btn-previous',
+                                    'workRowCountId' => 'work-exp-row-count-previous',
+                                    'workSummaryTbodyId' => 'work-exp-summary-tbody-previous',
+                                    'workMaxRows' => 2,
+                                    'workMinRows' => 1,
+                                    'workPart' => 'previous',
+                                ])
+                            </div>
+
+                            @php
+                                $is7bBoardMemberPrefill = false;
+                                if ($currentExpDetails->isNotEmpty()) {
+                                    $firstCurrentExp = $currentExpDetails->first();
+                                    $empType7bRaw = (string) ($firstCurrentExp->emp_type ?? '');
+                                    $empType7bMapped = match ($empType7bRaw) {
+                                        'board_member' => 'board_member_tnelb',
+                                        default => $empType7bRaw,
+                                    };
+                                    $is7bBoardMemberPrefill = ($empType7bMapped === 'board_member_tnelb');
+                                }
+                            @endphp
+                            <div class="fs-question-part fs-question-part--7b {{ $is7bBoardMemberPrefill ? 'fs-7b-mode-board' : 'fs-7b-mode-standard' }}" id="fs-7b-root">
+                                <div class="fs-question-part-hd">
+                                    <span class="fs-section-num fs-section-num--sub">7b</span>
+                                    <div>
+                                        <div class="fs-section-title">Current Work Experience</div>
+                                        <div class="fs-section-tamil">தற்போதைய பணி அனுபவ விவரங்கள்</div>
+                                    </div>
+                                </div>
+
+                                <div class="fs-7b-board-gate" role="group" aria-labelledby="fs-7b-board-gate-label">
+                                    <div class="fs-7b-board-gate-label" id="fs-7b-board-gate-label">
+                                        <div class="fs-section-title">
+                                            Are you a Board member of TNELB or Ex board member of TNELB?
+                                            <span class="section-req">*</span>
+                                        </div>
+                                        <div class="fs-section-tamil">தமிழ்நாடு மின்சார வாரிய கோப்புறை / முன்னாள் கோப்புறை உறுப்பினரா?</div>
+                                    </div>
+                                    <div class="fs-segmented-toggle fs-7b-board-toggle" role="radiogroup" aria-label="Board member of TNELB or Ex board member">
+                                        <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? '' : ' is-active' }}">
+                                            <input type="radio" name="current_work_board_member" id="current_work_board_member_no" value="no"{{ $is7bBoardMemberPrefill ? '' : ' checked' }}>
+                                            <span>No</span>
+                                        </label>
+                                        <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? ' is-active' : '' }}">
+                                            <input type="radio" name="current_work_board_member" id="current_work_board_member_yes" value="yes"{{ $is7bBoardMemberPrefill ? ' checked' : '' }}>
+                                            <span>Yes</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div id="fs-7b-board-fields-intro" class="fs-7b-board-fields-intro{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}" role="note">
+                                    <i class="fa fa-info-circle" aria-hidden="true"></i>
+                                    <span>
+                                        Enter <strong>board meeting details</strong>, period of service, organisation, and upload supporting documents below.
+                                        Application fee is exempted for Board member / Ex. Board member of TNELB.
+                                    </span>
+                                </div>
+
+                                <div id="board-member-fee-notice" class="fs-board-member-fee-banner{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}" role="status">
+                                    <i class="fa fa-check-circle" aria-hidden="true"></i>
+                                    <span>
+                                        <strong>Fee exempted.</strong> No payment is required because you selected Board member / Ex. Board member of TNELB in section 7b.
+                                        If you change to <strong>No</strong>, the standard application fee will apply.
+                                    </span>
+                                </div>
+
+                                <div id="fs-7b-work-wrap" class="fs-7b-work-wrap">
+                                @include('user_login.partials.form-s-work-exp-section', [
+                                    'exp_details' => $currentExpDetails,
+                                    'workContainerId' => 'work-container-current',
+                                    'workAddBtnId' => 'work-exp-add-btn-current',
+                                    'workRowCountId' => 'work-exp-row-count-current',
+                                    'workSummaryTbodyId' => 'work-exp-summary-tbody-current',
+                                    'workMaxRows' => 1,
+                                    'workMinRows' => 1,
+                                    'workPart' => 'current',
+                                    'showAddRow' => false,
+                                    'showBoardMemberEmploymentType' => true,
+                                    'defaultTillDate' => true,
+                                ])
+                                </div>
+                            </div>
+                            <div id="work-exp-total-msg" class="work-exp-total-msg-wrap" aria-live="polite"></div>
                         </div>
                     </div>
 
@@ -1961,6 +2291,8 @@
                     <input type="hidden" id="license_name" name="license_name" value="C">
                     <input type="hidden" id="form_id" name="form_id" value="1">
                     <input type="hidden" id="appl_type" name="appl_type" value="N">
+                    <input type="hidden" id="amount" name="amount" value="">
+                    <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
                     <input type="hidden" id="form_action" name="form_action" value="draft">
                     @csrf
 
@@ -2099,15 +2431,15 @@
                 </div>
             </div>
 
-            {{-- Section 7: Work Experience --}}
+            {{-- Section 7a: Previous Work Experience --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
-                    <span class="prv-section-num">7</span>
-                    <span class="prv-section-title">Work Experience Details</span>
+                    <span class="prv-section-num prv-section-num--sub">7a</span>
+                    <span class="prv-section-title">Previous Work Experience</span>
                 </div>
                 <div class="prv-section-body p-0">
                     <div style="overflow-x:auto;">
-                        <table class="prv-table" id="prv_work_table">
+                        <table class="prv-table" id="prv_work_table_previous">
                             <thead>
                                 <tr>
                                     <th>S.No</th>
@@ -2127,7 +2459,7 @@
                                     <th>Relieving Letter</th>
                                 </tr>
                             </thead>
-                            <tbody id="prv_work_body">
+                            <tbody id="prv_work_body_previous">
                                 <tr><td colspan="15" class="text-center text-muted py-3">—</td></tr>
                             </tbody>
                         </table>
@@ -2135,87 +2467,119 @@
                 </div>
             </div>
 
-            {{-- Sections 8 & 9 side by side --}}
-            <div class="row" style="gap:0;">
-                <div class="col-12 col-md-6 pr-md-1">
-                    <div class="prv-section h-100">
-                        <div class="prv-section-hd">
-                            <span class="prv-section-num">8</span>
-                            <span class="prv-section-title">Previously Applied for Electrical Assistant Qualification Certificate</span>
-                        </div>
-                        <div class="prv-section-body">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Applied Previously:</span>
-                                <span id="prv_prev_license_yn">—</span>
+            {{-- Section 7b: Current Work Experience --}}
+            <div class="prv-section">
+                <div class="prv-section-hd">
+                    <span class="prv-section-num prv-section-num--sub">7b</span>
+                    <span class="prv-section-title">Current Work Experience</span>
+                </div>
+                <div class="prv-section-body p-0">
+                    <div style="overflow-x:auto;">
+                        <table class="prv-table" id="prv_work_table_current">
+                            <thead>
+                                <tr>
+                                    <th>S.No</th>
+                                    <th>Employment Type</th>
+                                    <th>Contractor Cat.</th>
+                                    <th>Licence No.</th>
+                                    <th>Name of Contractor / Organisation / Board</th>
+                                    <th>Organisation Address</th>
+                                    <th>Designation</th>
+                                    <th>Nature of Work</th>
+                                    <th>Voltage Level</th>
+                                    <th>Transformer kVA(max 1000kVA)</th>
+                                    <th>From Date</th>
+                                    <th>To Date</th>
+                                    <th>Period (Y/M/D)</th>
+                                    <th>Supporting Doc.</th>
+                                    <th>Relieving Letter</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prv_work_body_current">
+                                <tr><td colspan="15" class="text-center text-muted py-3">—</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Section 8: Supervisor Certificate --}}
+            <div class="prv-section">
+                <div class="prv-section-hd">
+                    <span class="prv-section-num">8</span>
+                    <span class="prv-section-title">Supervisor Competency Certificate issued by this Board</span>
+                </div>
+                <div class="prv-section-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Possess Certificate:</span>
+                        <span id="prv_prev_license_yn">—</span>
+                    </div>
+                    <div id="prv_prev_details_block" style="display:none;">
+                        <div class="row">
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">Certificate No</div>
+                                    <div class="prv-value" id="prv_prev_cert_no">—</div>
+                                </div>
                             </div>
-                            <div id="prv_prev_details_block" style="display:none;">
-                                <div class="row">
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Certificate No</div>
-                                            <div class="prv-value" id="prv_prev_cert_no">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of First Issue</div>
-                                            <div class="prv-value" id="prv_prev_issue_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">From date</div>
-                                            <div class="prv-value" id="prv_prev_from_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">To date</div>
-                                            <div class="prv-value" id="prv_prev_to_date">—</div>
-                                        </div>
-                                    </div>
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">Date of First Issue</div>
+                                    <div class="prv-value" id="prv_prev_issue_date">—</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">From date</div>
+                                    <div class="prv-value" id="prv_prev_from_date">—</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">To date</div>
+                                    <div class="prv-value" id="prv_prev_to_date">—</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6 pl-md-1 mt-3 mt-md-0">
-                    <div class="prv-section h-100">
-                        <div class="prv-section-hd">
-                            <span class="prv-section-num">9</span>
-                            <span class="prv-section-title">Wireman Competency Certificate issued by this Board</span>
-                        </div>
-                        <div class="prv-section-body">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Possess Certificate:</span>
-                                <span id="prv_wireman_yn">—</span>
+            </div>
+
+            {{-- Section 9: Wireman Certificate --}}
+            <div class="prv-section">
+                <div class="prv-section-hd">
+                    <span class="prv-section-num">9</span>
+                    <span class="prv-section-title">Wireman Competency Certificate issued by this Board</span>
+                </div>
+                <div class="prv-section-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Possess Certificate:</span>
+                        <span id="prv_wireman_yn">—</span>
+                    </div>
+                    <div id="prv_wireman_details_block" style="display:none;">
+                        <div class="row">
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">Certificate No</div>
+                                    <div class="prv-value" id="prv_wireman_cert_no">—</div>
+                                </div>
                             </div>
-                            <div id="prv_wireman_details_block" style="display:none;">
-                                <div class="row">
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Certificate No</div>
-                                            <div class="prv-value" id="prv_wireman_cert_no">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of First Issue</div>
-                                            <div class="prv-value" id="prv_wireman_issue_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">From date</div>
-                                            <div class="prv-value" id="prv_wireman_from_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">To date</div>
-                                            <div class="prv-value" id="prv_wireman_to_date">—</div>
-                                        </div>
-                                    </div>
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">Date of First Issue</div>
+                                    <div class="prv-value" id="prv_wireman_issue_date">—</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">From date</div>
+                                    <div class="prv-value" id="prv_wireman_from_date">—</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-3">
+                                <div class="prv-field mb-1">
+                                    <div class="prv-label">To date</div>
+                                    <div class="prv-value" id="prv_wireman_to_date">—</div>
                                 </div>
                             </div>
                         </div>
@@ -2288,500 +2652,88 @@
 <footer class="main-footer">
     @include('include.footer')
 
-    <script>
-        $(document).on('click', '.form-s-file-upload-btn:not(.form-s-file-upload-btn--table)', function(e) {
-            e.preventDefault();
-            var $file = $(this).closest('.form-s-file-upload-wrap').find('input[type="file"]').first();
-            if ($file.length) $file.trigger('click');
-        });
-
-        function clearLocalPreview($fileInput) {
-            var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-            var $preview = $wrap.next('.local-file-preview');
-            var oldUrl = $preview.data('blobUrl');
-            if (oldUrl) URL.revokeObjectURL(oldUrl);
-            $preview.remove();
-            $fileInput.removeAttr('data-has-local-file');
-        }
-
-        function clearWorkRowUploadErrors($scope) {
-            if (!$scope || !$scope.length) return;
-            $scope.find('.error-message').each(function() {
-                var txt = ($(this).text() || '').toLowerCase();
-                if (
-                    txt.indexOf('supporting document is required') !== -1 ||
-                    txt.indexOf('relieving letter is required') !== -1 ||
-                    txt.indexOf('highest transformer capacity') !== -1 ||
-                    txt.indexOf('only pdf') !== -1 ||
-                    txt.indexOf('file size permitted') !== -1
-                ) {
-                    $(this).remove();
-                }
-            });
-        }
-
-        $(document).on('change', 'input[type="file"][name="education_document[]"], input[type="file"][name="work_document[]"], input[type="file"][name="work_relieving_letter[]"]', function() {
-            var $input = $(this);
-            clearLocalPreview($input);
-            var file = this.files && this.files[0] ? this.files[0] : null;
-            if (!file) return;
-            var allowed = ['application/pdf', 'image/jpeg', 'image/png'];
-            var maxSize = 200 * 1024;
-            if (allowed.indexOf(file.type) === -1) { window.alert('Only PDF, JPG, PNG files are allowed.'); this.value = ''; $input.removeAttr('data-has-local-file'); return; }
-            if (file.size > maxSize) { window.alert('File size should not exceed 200 KB.'); this.value = ''; $input.removeAttr('data-has-local-file'); return; }
-            $input.attr('data-has-local-file', '1');
-            var blobUrl = URL.createObjectURL(file);
-            var isImage = file.type.indexOf('image/') === 0;
-            var $preview = $('<div class="local-file-preview"></div>').data('blobUrl', blobUrl);
-            if (isImage) $preview.append($('<img>', { src: blobUrl, class: 'img-preview', alt: 'Selected image preview' }));
-            $preview.append($('<a>', { href: blobUrl, target: '_blank', rel: 'noopener noreferrer', class: 'preview-link' })
-                .html(isImage ? '<i class="fa fa-image"></i> Preview image' : '<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
-            $input.closest('.form-s-file-upload-wrap').after($preview);
-            clearWorkRowUploadErrors($input.closest('.work-fields'));
-        });
-
-        $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
-            var $input = $(this);
-            clearLocalPreview($input);
-            var file = this.files && this.files[0] ? this.files[0] : null;
-            if (!file) return;
-            var minSize = 10 * 1024, maxSize = 250 * 1024;
-            if (file.type !== 'application/pdf') { window.alert('Only PDF files are allowed.'); this.value = ''; return; }
-            if (file.size < minSize) { window.alert('File size must be at least 10 KB.'); this.value = ''; return; }
-            if (file.size > maxSize) { window.alert('File size should not exceed 250 KB.'); this.value = ''; return; }
-            var blobUrl = URL.createObjectURL(file);
-            var $preview = $('<div class="local-file-preview"></div>').data('blobUrl', blobUrl);
-            $preview.append($('<a>', { href: blobUrl, target: '_blank', rel: 'noopener noreferrer', class: 'preview-link' })
-                .html('<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
-            $input.closest('.form-s-file-upload-wrap').after($preview);
-        });
-
-        function bindImageUploadPreview(inputId, previewId, nameId, placeholderId) {
-            var inputEl = document.getElementById(inputId);
-            var previewEl = document.getElementById(previewId);
-            var nameEl = document.getElementById(nameId);
-            var placeholderEl = document.getElementById(placeholderId);
-            if (!inputEl || !previewEl || !nameEl || !placeholderEl) return;
-
-            inputEl.addEventListener('change', function() {
-                var file = this.files && this.files[0] ? this.files[0] : null;
-                if (!file) {
-                    previewEl.removeAttribute('src');
-                    previewEl.style.display = 'none';
-                    placeholderEl.style.display = 'block';
-                    nameEl.textContent = 'No file selected';
-                    return;
-                }
-                nameEl.textContent = file.name;
-                var blobUrl = URL.createObjectURL(file);
-                previewEl.onload = function() {
-                    URL.revokeObjectURL(blobUrl);
-                };
-                previewEl.src = blobUrl;
-                previewEl.style.display = 'block';
-                placeholderEl.style.display = 'none';
-            });
-        }
-
-        bindImageUploadPreview('upload_photo', 'photo_preview', 'upload_photo_name', 'photo_placeholder');
-        bindImageUploadPreview('upload_sign', 'sign_preview', 'upload_sign_name', 'sign_placeholder');
-
-        document.addEventListener("click", function(e) {
-            let container = document.getElementById("education-container");
-            let educationRows = container.querySelectorAll(".education-fields");
-            const refreshEducationSerials = () => {
-                container.querySelectorAll('.education-fields .edu-serial').forEach((cell, idx) => { cell.textContent = String(idx + 1); });
-            };
-
-            if (e.target.closest(".add-more")) {
-                if (educationRows.length >= 5) {
-                    $('#education-table').next('.education-error').remove();
-                    $('<div class="text-danger mt-2 education-error">You can add a maximum of 5 education entries.</div>').insertAfter('#education-table');
-                    setTimeout(() => { $('.education-error').fadeOut(); }, 7000);
-                    return;
-                }
-                let newRow = document.createElement("tr");
-                newRow.classList.add("education-fields");
-                newRow.innerHTML = `
-<td class="edu-serial text-center">${educationRows.length + 1}</td>
-<td><select class="form-control" name="educational_level[]" required>
-    <option selected disabled>Select Education</option>
-    <option value="DEE">Diploma(Electrical Engineering)</option>
-    <option value="BEE">B.E(Electrical Engineering)</option>
-    <option value="MEE">M.E(Electrical Engineering)</option>
-    <option value="AMIE">A pass in AMIE</option>
-</select></td>
-<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" required></td>
-<td><select name="month_of_passing[]" class="form-control" required>
-    <option value="">Select Month</option>
-    <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
-    <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
-    <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
-    <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
-</select></td>
-<td><select name="year_of_passing[]" class="form-control" required>
-    <option value="0">Select Year</option>
-    ${[...Array(new Date().getFullYear() - 1979).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
-</select></td>
-<td><input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" required>
-<span class="error text-danger certificate-error" style="font-size:.75rem;"></span></td>
-<td><div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education"><input type="file" class="form-control" name="education_document[]" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"></div></td>
-<td class="form-s-actions-cell text-center p-1"><div class="form-s-actions-stack"><button type="button" class="btn-tbl-remove remove-education py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button></div></td>`;
-                container.appendChild(newRow);
-                refreshEducationSerials();
-            }
-
-            if (e.target.closest(".remove-education")) {
-                if (educationRows.length <= 1) {
-                    $('#education-table').next('.education-error').remove();
-                    $('<div class="text-danger mt-2 education-error">You must have at least one education entry.</div>').insertAfter('#education-table');
-                    setTimeout(() => { $('.education-error').fadeOut(); }, 7000);
-                    return;
-                }
-                e.target.closest("tr").remove();
-                refreshEducationSerials();
-            }
-        });
-    </script>
-
     @include('user_login.partials.form-s-work-exp-scripts', [
         'editFormName' => 'S',
         'showBoardMemberEmploymentType' => false,
+        'enableBoardMemberFeeExempt' => true,
     ])
 
     <script>
-        $('#verify_form_s').on('click', function() {
-            const licenseNumber = $('#certificate_no').val().trim().toUpperCase();
-            const date = $('#certificate_valid_to').val().trim();
-            const regex = /^(B|C|LC|LB)\d+$/;
-            licenseError.textContent = '';
-            $('#dateError').text('');
-            let isValid = true;
-            if (licenseNumber === '' || !regex.test(licenseNumber)) { licenseError.textContent = 'Enter a valid Certificate Number'; isValid = false; }
-            if (date === '') { $('#dateError').text('Date is required'); isValid = false; }
-            else {
-                const regexDate = /^(\d{4})-(\d{2})-(\d{2})$/;
-                const parts = date.match(regexDate);
-                if (!parts) { $('#dateError').text('Enter a valid date'); isValid = false; }
-                else {
-                    const year = parseInt(parts[1],10), month = parseInt(parts[2],10)-1, day = parseInt(parts[3],10);
-                    const checkDate = new Date(year, month, day);
-                    if (checkDate.getFullYear() !== year || checkDate.getMonth() !== month || checkDate.getDate() !== day || year < 1800) { $('#dateError').text('Enter a valid date'); isValid = false; }
-                }
-            }
-            if (!isValid) return;
-            $.ajax({
-                url: "{{ route('verifylicense') }}", method: "POST",
-                data: { license_number: licenseNumber, date: date, _token: $('meta[name="csrf-token"]').attr("content") },
-                success: function(response) {
-                    let $msgBox = $("#license_message");
-                    if (response.exists) $msgBox.removeClass("text-danger").addClass("text-success").html("&#10004; License verified.");
-                    else $msgBox.removeClass("text-success").addClass("text-danger").html("&#10060; License not found.");
-                },
-                error: function() { $("#license_message").removeClass("text-success").addClass("text-danger").html("🚫 Error verifying license. Try again."); }
-            });
-        });
-
-        $(document).ready(async function() {
-            var modalEl = document.getElementById('competencyInstructionsModal');
-            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
-            var agreeCheckbox = modalEl.querySelector('#declaration-agree-renew');
-            var errorText = modalEl.querySelector('#declaration-error-renew');
-            var proceedBtn = modalEl.querySelector('#proceedPayment');
-            if (!agreeCheckbox || !errorText || !proceedBtn) return;
-            var acceptModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
-            var modalBody = modalEl.querySelector('#instructionContent');
-            if (modalBody) modalBody.innerHTML = '<p class="mb-0 text-muted">Loading instructions...</p>';
-            try {
-                var instructionResponse = await $.ajax({
-                    url: "{{ route('licences.getFormInstruction') }}", type: "POST",
-                    data: { appl_type: ($('#appl_type').val() || 'N'), licence_code: ($('#license_name').val() || 'C'), _token: $('meta[name="csrf-token"]').attr('content') }
-                });
-                if (modalBody) {
-                    if (instructionResponse && Number(instructionResponse.status) === 200 && instructionResponse.data) {
-                        try {
-                            var delta = JSON.parse(instructionResponse.data);
-                            if (typeof QuillDeltaToHtmlConverter !== 'undefined' && delta && delta.ops) {
-                                var converter = new QuillDeltaToHtmlConverter(delta.ops, { inlineStyles: true, multiLineParagraph: false, listItemTag: "li", paragraphTag: "p" });
-                                var html = converter.convert();
-                                html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
-                                html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
-                                modalBody.innerHTML = html;
-                            } else { modalBody.textContent = instructionResponse.data; }
-                        } catch(parseErr) { modalBody.textContent = instructionResponse.data; }
-                    } else { modalBody.innerHTML = '<p class="mb-0 text-danger">Instruction not available.</p>'; }
-                }
-            } catch(err) { if (modalBody) modalBody.innerHTML = '<p class="mb-0 text-danger">Unable to load instructions right now.</p>'; }
-            agreeCheckbox.checked = false;
-            errorText.classList.add('d-none');
-            acceptModal.show();
-            if (!modalEl.dataset.acceptGateBound) {
-                modalEl.dataset.acceptGateBound = '1';
-                modalEl.addEventListener('hide.bs.modal', function(e) { if (!agreeCheckbox.checked) { e.preventDefault(); errorText.classList.remove('d-none'); } });
-                proceedBtn.addEventListener('click', function(e) {
-                    if (!agreeCheckbox.checked) { e.preventDefault(); errorText.classList.remove('d-none'); return; }
-                    errorText.classList.add('d-none'); acceptModal.hide();
-                });
-                agreeCheckbox.addEventListener('change', function() { if (agreeCheckbox.checked) errorText.classList.add('d-none'); });
-            }
-        });
+        window.FORM_S_CONFIG = {
+            verifyLicenseUrl: @json(route('verifylicense')),
+            formInstructionUrl: @json(route('licences.getFormInstruction')),
+        };
     </script>
+    <script src="{{ url('assets/js/form_s.js') }}"></script>
     <script>
-    // ── Preview Modal ────────────────────────────────────────────────────────
-    var EDU_LEVEL_MAP = {
-        DEE:'Diploma(Electrical Engineering)', BEE:'B.E(Electrical Engineering)',
-        MEE:'M.E(Electrical Engineering)', AMIE:'A pass in AMIE'
-    };
-    var MONTH_MAP = { '01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
-                      '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec' };
-    var EMP_LABEL_MAP = {
-        private_organisation: 'Private organization',
-        electrical_contractor: 'Electrical Contractor',
-        retired_employee: 'Retired Employee',
-        govt_organisation: 'Government Organization',
-        apprenticeship: 'Apprenticeship'
-    };
-    var WORK_NATURE_MAP = {
-        erection: 'Erection',
-        maintenance: 'Maintenance',
-        erection_maintenance: 'Erection & Maintenance'
-    };
-    var VOLTAGE_LEVEL_MAP = {
-        up_to_650v: 'Up to 650V',
-        '650v_to_33kv': 'Above 650V to 33KV',
-        above_33kv: 'Above 33KV'
-    };
+        (function () {
+            var BOARD_MEMBER_TYPE = 'board_member_tnelb';
 
-    function fmtDate(val) {
-        if (!val) return '—';
-        var p = val.split('-');
-        return p.length === 3 ? p[2]+'-'+p[1]+'-'+p[0] : val;
-    }
-    function setVal(id, v) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        var txt = (v || '').toString().trim();
-        el.textContent = txt || '—';
-        el.classList.toggle('prv-empty', !txt);
-    }
-    function fileLabel(input) {
-        return input && input.files && input.files[0] ? input.files[0].name : '—';
-    }
-
-    function populatePreview() {
-        // Personal
-        setVal('prv_name', document.getElementById('Applicant_Name').value);
-        setVal('prv_fathers_name', document.getElementById('Fathers_Name').value);
-        var emailEl = document.getElementById('applicant_email');
-        setVal('prv_email', emailEl ? emailEl.value : '');
-        setVal('prv_address', document.getElementById('applicants_address').value);
-        setVal('prv_dob', document.getElementById('d_o_b').value);
-        setVal('prv_age', document.getElementById('age').value);
-
-        // Education
-        var eduBody = document.getElementById('prv_edu_body');
-        eduBody.innerHTML = '';
-        var eduRows = document.querySelectorAll('#education-container .education-fields');
-        if (!eduRows.length) {
-            eduBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No education entries</td></tr>';
-        } else {
-            eduRows.forEach(function(row, i) {
-                var level = row.querySelector('[name="educational_level[]"]');
-                var inst  = row.querySelector('[name="institute_name[]"]');
-                var mon   = row.querySelector('[name="month_of_passing[]"]');
-                var yr    = row.querySelector('[name="year_of_passing[]"]');
-                var cert  = row.querySelector('[name="certificate_no[]"]');
-                var doc   = row.querySelector('[name="education_document[]"]');
-                var lvlTxt = level ? (EDU_LEVEL_MAP[level.value] || level.value || '—') : '—';
-                var monTxt = mon ? (MONTH_MAP[mon.value] || mon.value || '—') : '—';
-                var yrTxt  = yr ? (yr.value === '0' || !yr.value ? '—' : yr.value) : '—';
-                var docLink = (doc && doc.files && doc.files[0])
-                    ? '<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>'
-                    : '<span class="text-muted">—</span>';
-                var tr = '<tr><td class="text-center">'+(i+1)+'</td><td>'+lvlTxt+'</td>'
-                    +'<td>'+(inst ? inst.value || '—' : '—')+'</td>'
-                    +'<td class="text-center">'+monTxt+'</td><td class="text-center">'+yrTxt+'</td>'
-                    +'<td>'+(cert ? cert.value || '—' : '—')+'</td>'
-                    +'<td class="text-center">'+docLink+'</td></tr>';
-                eduBody.innerHTML += tr;
-            });
-        }
-
-        // Work Experience
-        var workBody = document.getElementById('prv_work_body');
-        workBody.innerHTML = '';
-        var workRows = document.querySelectorAll('#work-container .work-fields');
-        if (!workRows.length) {
-            workBody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">No work entries</td></tr>';
-        } else {
-            var fileLink = function(doc) {
-                return (doc && doc.files && doc.files[0])
-                    ? '<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>'
-                    : '<span class="text-muted">—</span>';
-            };
-            var val = function(el) { return el ? ((el.value || '').trim() || '—') : '—'; };
-            workRows.forEach(function(row, i) {
-                var empType  = row.querySelector('.work-employment-type');
-                var cat      = row.querySelector('.work-contractor-cat');
-                var lic      = row.querySelector('.work-licence-number');
-                var employer = row.querySelector('.work-employer-input');
-                var address  = row.querySelector('.work-org-address');
-                var desig    = row.querySelector('[name="designation[]"]');
-                var nature   = row.querySelector('.work-nature');
-                var voltage  = row.querySelector('.work-voltage');
-                var kva      = row.querySelector('.work-transformer-kva');
-                var fromInp  = row.querySelector('.work-date-from');
-                var toInp    = row.querySelector('.work-date-to');
-                var tillChk  = row.querySelector('.work-date-till');
-                var yPart    = row.querySelector('.work-duration-y');
-                var mPart    = row.querySelector('.work-duration-m');
-                var dPart    = row.querySelector('.work-duration-d');
-                var doc      = row.querySelector('[name="work_document[]"]');
-                var rel      = row.querySelector('[name="work_relieving_letter[]"]');
-
-                var yv = yPart ? (yPart.value || '').trim() : '';
-                var mv = mPart ? (mPart.value || '').trim() : '';
-                var dv = dPart ? (dPart.value || '').trim() : '';
-                var totalTxt = (yv === '' && mv === '' && dv === '') ? '—' : (yv + 'y ' + mv + 'm ' + dv + 'd');
-
-                var empTxt    = empType ? (EMP_LABEL_MAP[empType.value] || empType.value || '—') : '—';
-                var natureTxt = nature ? (WORK_NATURE_MAP[nature.value] || nature.value || '—') : '—';
-                var voltTxt   = voltage ? (VOLTAGE_LEVEL_MAP[voltage.value] || voltage.value || '—') : '—';
-                var fromDate  = fromInp ? fmtDate(fromInp.getAttribute('data-raw') || fromInp.value) : '—';
-                var toDate    = (tillChk && tillChk.checked)
-                    ? '<span class="prv-badge-yes">Till date</span>'
-                    : (toInp ? fmtDate(toInp.getAttribute('data-raw') || toInp.value) : '—');
-
-                workBody.innerHTML +=
-                    '<tr><td class="text-center">'+(i+1)+'</td>'
-                    +'<td>'+empTxt+'</td>'
-                    +'<td class="text-center">'+val(cat)+'</td>'
-                    +'<td>'+val(lic)+'</td>'
-                    +'<td>'+val(employer)+'</td>'
-                    +'<td>'+val(address)+'</td>'
-                    +'<td>'+val(desig)+'</td>'
-                    +'<td>'+natureTxt+'</td>'
-                    +'<td>'+voltTxt+'</td>'
-                    +'<td class="text-center">'+val(kva)+'</td>'
-                    +'<td class="text-center">'+fromDate+'</td>'
-                    +'<td class="text-center">'+toDate+'</td>'
-                    +'<td class="text-center">'+totalTxt+'</td>'
-                    +'<td class="text-center">'+fileLink(doc)+'</td>'
-                    +'<td class="text-center">'+(tillChk && tillChk.checked ? '<span class="text-muted">N/A</span>' : fileLink(rel))+'</td>'
-                    +'</tr>';
-            });
-        }
-
-        // Section 7 — Previous License
-        var prevLicYes = document.getElementById('previous_license_yes');
-        var isYes7 = prevLicYes && prevLicYes.checked;
-        var yn7 = document.getElementById('prv_prev_license_yn');
-        if (yn7) yn7.innerHTML = isYes7 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
-        var pb = document.getElementById('prv_prev_details_block'); if (pb) pb.style.display = isYes7 ? '' : 'none';
-        if (isYes7) {
-            setVal('prv_prev_cert_no', document.getElementById('previously_number') ? document.getElementById('previously_number').value : '');
-            var issEl = document.getElementById('previously_issue_date');
-            setVal('prv_prev_issue_date', issEl ? fmtDate(issEl.value) : '');
-            var fromEl = document.getElementById('previously_valid_from');
-            setVal('prv_prev_from_date', fromEl ? fmtDate(fromEl.value) : '');
-            var toEl = document.getElementById('previously_valid_to');
-            setVal('prv_prev_to_date', toEl ? fmtDate(toEl.value) : '');
-        }
-
-        // Section 9 — Wireman
-        var wireYes = document.getElementById('yesOption');
-        var isYes8 = wireYes && wireYes.checked;
-        var yn8 = document.getElementById('prv_wireman_yn');
-        if (yn8) yn8.innerHTML = isYes8 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
-        var wb = document.getElementById('prv_wireman_details_block'); if (wb) wb.style.display = isYes8 ? '' : 'none';
-        if (isYes8) {
-            setVal('prv_wireman_cert_no', document.getElementById('certificate_no') ? document.getElementById('certificate_no').value : '');
-            var wIssEl = document.getElementById('certificate_issue_date');
-            setVal('prv_wireman_issue_date', wIssEl ? fmtDate(wIssEl.value) : '');
-            var wFromEl = document.getElementById('certificate_valid_from');
-            setVal('prv_wireman_from_date', wFromEl ? fmtDate(wFromEl.value) : '');
-            var wToEl = document.getElementById('certificate_valid_to');
-            setVal('prv_wireman_to_date', wToEl ? fmtDate(wToEl.value) : '');
-        }
-
-        // Documents — Photo
-        var photoWrap = document.getElementById('prv_photo_wrap');
-        var photoSrc  = document.getElementById('photo_preview');
-        if (photoWrap) {
-            var src = photoSrc && photoSrc.style.display !== 'none' ? photoSrc.src : '';
-            photoWrap.innerHTML = src
-                ? '<img src="'+src+'" alt="Photo" style="width:80px;height:96px;object-fit:cover;border:2px solid #dde5f3;border-radius:6px;">'
-                : '<div class="prv-no-img">No Photo</div>';
-        }
-
-        // Documents — Signature
-        var signWrap = document.getElementById('prv_sign_wrap');
-        var signSrc  = document.getElementById('sign_preview');
-        if (signWrap) {
-            var ssrc = signSrc && signSrc.style.display !== 'none' ? signSrc.src : '';
-            signWrap.innerHTML = ssrc
-                ? '<img src="'+ssrc+'" alt="Signature" style="width:140px;height:50px;object-fit:contain;border:2px solid #dde5f3;border-radius:6px;">'
-                : '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
-        }
-
-        // Aadhaar & PAN
-        setVal('prv_aadhaar', document.getElementById('aadhaar') ? document.getElementById('aadhaar').value : '');
-        setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
-        var aDoc = document.getElementById('aadhaar_doc');
-        setVal('prv_aadhaar_doc', fileLabel(aDoc));
-        var pDoc = document.getElementById('pancard_doc');
-        setVal('prv_pan_doc', fileLabel(pDoc));
-    }
-
-    function openPreviewModal() {
-        populatePreview();
-        var modal = document.getElementById('appPreviewModal');
-        modal.style.display = 'flex';
-        modal.classList.add('prv-open');
-        document.body.style.overflow = 'hidden';
-        document.getElementById('prvConfirmCheck').checked = false;
-        document.getElementById('prvConfirmBtn').disabled = true;
-        document.getElementById('prvBody').scrollTop = 0;
-    }
-
-    function closePreviewModal() {
-        var modal = document.getElementById('appPreviewModal');
-        modal.style.display = 'none';
-        modal.classList.remove('prv-open');
-        document.body.style.overflow = '';
-        if (typeof window.normalizeCompetencyDynamicSections === 'function') {
-            window.normalizeCompetencyDynamicSections();
-        }
-    }
-
-    document.getElementById('prvConfirmCheck').addEventListener('change', function() {
-        document.getElementById('prvConfirmBtn').disabled = !this.checked;
-    });
-
-    // Confirm button — resolve the promise so footer's flow continues
-    document.getElementById('prvConfirmBtn').addEventListener('click', function() {
-        closePreviewModal();
-        if (typeof window._prvResolve === 'function') {
-            window._prvResolve(true);
-            window._prvResolve = null;
-        }
-    });
-
-    document.getElementById('prvPrintBtn').addEventListener('click', function() {
-        window.print();
-    });
-
-    // Close / back button — cancel the flow
-    document.getElementById('appPreviewModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closePreviewModal();
-            if (typeof window._prvResolve === 'function') {
-                window._prvResolve(false);
-                window._prvResolve = null;
+            function get7bWorkRow() {
+                return $('#work-container-current .work-fields').first();
             }
-        }
-    });
 
-    // Use shared footer preview (#appPreviewModalSw) — populated in footer.blade.php populateSwPreview()
+            function sync7bSegmentedActive($input) {
+                var $toggle = $('.fs-7b-board-toggle');
+                $toggle.find('.fs-segmented-opt').removeClass('is-active');
+                $input.closest('.fs-segmented-opt').addClass('is-active');
+            }
+
+            function apply7bBoardToggle(mode, isInit) {
+                var $root = $('#fs-7b-root');
+                var $row = get7bWorkRow();
+                if (!$root.length || !$row.length) return;
+
+                var isYes = mode === 'yes';
+                $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
+                $('#fs-7b-board-fields-intro').toggleClass('d-none', !isYes);
+
+                var $emp = $row.find('.work-employment-type');
+                if (isYes) {
+                    if ($emp.val() !== BOARD_MEMBER_TYPE) {
+                        $emp.val(BOARD_MEMBER_TYPE).trigger('change');
+                    }
+                    if (!isInit || !$row.hasClass('is-complete')) {
+                        $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                    }
+                } else if ($emp.val() === BOARD_MEMBER_TYPE) {
+                    $emp.val('').trigger('change');
+                }
+
+                if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                    window.wxSyncBoardMemberRenewalFee();
+                }
+            }
+
+            $(document).ready(function () {
+                $('input[name="current_work_board_member"]').on('change', function () {
+                    sync7bSegmentedActive($(this));
+                    apply7bBoardToggle($(this).val(), false);
+                });
+
+                var $checked = $('input[name="current_work_board_member"]:checked');
+                if ($checked.length) {
+                    sync7bSegmentedActive($checked);
+                    apply7bBoardToggle($checked.val(), true);
+                }
+            });
+        })();
+
+        $(document).ready(async function () {
+            if (typeof window.wxSyncBoardMemberRenewalFee !== 'function') return;
+            try {
+                if (typeof getPaymentsService === 'function') {
+                    const licence_code = ($('#license_name').val() || '').trim();
+                    const appl_type = ($('#appl_type').val() || '').trim();
+                    if (licence_code && appl_type) {
+                        const data = await getPaymentsService(licence_code, '', appl_type, { silent: true });
+                        if (data && data.total_fees !== undefined && data.total_fees !== null && data.total_fees !== '') {
+                            $('#amount').val(data.total_fees);
+                        }
+                    }
+                }
+            } catch (e) { /* keep empty fallback */ }
+            await window.wxSyncBoardMemberRenewalFee();
+        });
     </script>
 </footer>

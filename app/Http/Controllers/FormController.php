@@ -93,10 +93,52 @@ class FormController extends BaseController
         return false;
     }
 
+    private function isFormSBoardMemberFeeExempt(Request $request): bool
+    {
+        return $this->requestHasFormSBoardMemberWorkExperience($request);
+    }
+
+    /** @deprecated Use isFormSBoardMemberFeeExempt */
     private function isFormSRenewalBoardMemberFeeExempt(Request $request): bool
     {
-        return strtoupper((string) ($request->appl_type ?? '')) === 'R'
-            && $this->requestHasFormSBoardMemberWorkExperience($request);
+        return $this->isFormSBoardMemberFeeExempt($request);
+    }
+
+    /**
+     * Server-side validation for board member work rows (Form S).
+     */
+    private function validateFormSBoardMemberWorkRows(Request $request): ?string
+    {
+        if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+            return null;
+        }
+
+        foreach ($this->getWorkRowIndexes($request) as $key) {
+            $empType = strtolower(trim((string) ($request->work_employment_type[$key] ?? '')));
+            if ($empType !== self::FORM_S_BOARD_MEMBER_EMP_TYPE) {
+                continue;
+            }
+
+            if (trim((string) ($request->work_board_meeting_details[$key] ?? '')) === '') {
+                return 'Details of the meeting is required when Board member employment type is selected.';
+            }
+
+            if (trim((string) ($request->work_board_meeting_date[$key] ?? '')) === '') {
+                return 'Date of Meeting is required when Board member employment type is selected.';
+            }
+
+            $supportRemoved = isset($request->removed_document_work[$key])
+                && (string) $request->removed_document_work[$key] === '1';
+            $existingDoc = trim((string) ($request->existing_work_document[$key] ?? ''));
+            $hasNewDoc = isset($request->file('work_document')[$key])
+                && $request->file('work_document')[$key]->isValid();
+
+            if ($supportRemoved || ($existingDoc === '' && ! $hasNewDoc)) {
+                return 'Supporting document is required when Board member employment type is selected.';
+            }
+        }
+
+        return null;
     }
 
     private function hasWorkExperiencePayload(Request $request): bool
@@ -117,6 +159,8 @@ class FormController extends BaseController
             'work_organisation_address',
             'work_contractor_category',
             'work_nature_of_work',
+            'work_board_meeting_details',
+            'work_board_meeting_date',
             'work_date_from',
             'designation',
             'experience',
@@ -278,6 +322,15 @@ class FormController extends BaseController
             $payload['intimation_date'] = $workRow['intimation_date'];
         }
 
+        if (Schema::hasColumn('tnelb_applicants_exp', 'board_meeting_details')
+            && array_key_exists('board_meeting_details', $workRow)) {
+            $payload['board_meeting_details'] = $workRow['board_meeting_details'];
+        }
+        if (Schema::hasColumn('tnelb_applicants_exp', 'board_meeting_date')
+            && array_key_exists('board_meeting_date', $workRow)) {
+            $payload['board_meeting_date'] = $workRow['board_meeting_date'];
+        }
+
         if (array_key_exists('support_document', $documents)) {
             $payload['support_document'] = $documents['support_document'];
         }
@@ -377,6 +430,8 @@ class FormController extends BaseController
         $fromDate = trim((string) ($request->work_date_from[$key] ?? ''));
         $toDate = trim((string) ($request->work_date_to[$key] ?? ''));
         $intimationDate = trim((string) ($request->work_intimation_date[$key] ?? ''));
+        $boardMeetingDetails = $isFormS ? trim((string) ($request->work_board_meeting_details[$key] ?? '')) : '';
+        $boardMeetingDate = $isFormS ? trim((string) ($request->work_board_meeting_date[$key] ?? '')) : '';
 
         $natureWork = $isFormS ? trim((string) ($request->work_nature_of_work[$key] ?? '')) : '';
         $voltageLevel = $isFormS ? trim((string) ($request->work_voltage_level[$key] ?? '')) : '';
@@ -424,6 +479,8 @@ class FormController extends BaseController
             'from_date' => ($fromDate !== '' ? $fromDate : null),
             'to_date' => ($toDate !== '' ? $toDate : null),
             'intimation_date' => ($intimationDate !== '' ? $intimationDate : null),
+            'board_meeting_details' => ($boardMeetingDetails !== '' ? $boardMeetingDetails : null),
+            'board_meeting_date' => ($boardMeetingDate !== '' ? $boardMeetingDate : null),
             'total_exp' => ($experience !== '' ? $experience : null),
             'total_y' => $isFormS ? ($ymd['y'] ?? null) : null,
             'total_m' => $isFormS ? ($ymd['m'] ?? null) : null,
@@ -1353,10 +1410,16 @@ class FormController extends BaseController
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
         });
         $validator->validate();
-        
+
+        $action = $request->input('form_action', 'draft');
+        if ($action !== 'draft') {
+            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
+            if ($boardMemberErr !== null) {
+                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
+            }
+        }
         
         // Safety fallback: if client doesn't send form_action, keep first save as draft.
-        $action = $request->input('form_action', 'draft');
         $loginId = $request->login_id;
 
         // Idempotency guard: if the client already has an application_id, do not insert
@@ -2371,6 +2434,12 @@ class FormController extends BaseController
         ]);
 
         $action = $request->form_action; // "draft" or "submit"
+        if ($action !== 'draft') {
+            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
+            if ($boardMemberErr !== null) {
+                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
+            }
+        }
         $loginId = $this->resolveDigitizationLoginId($request, $request->login_id);
         $appl_type = $request->appl_type ?? '';
 
@@ -2811,6 +2880,12 @@ class FormController extends BaseController
         ]);
 
         $action    = $request->form_action; // "draft" or "submit"
+        if ($action !== 'draft') {
+            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
+            if ($boardMemberErr !== null) {
+                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
+            }
+        }
         $loginId   = $request->login_id;
         $appl_type = $request->appl_type ?? 'R'; // ensure renewal
         $nowTs     = $this->dbNow;
@@ -3055,7 +3130,7 @@ class FormController extends BaseController
 
             DB::commit();
 
-            $boardMemberFeeExempt = $this->isFormSRenewalBoardMemberFeeExempt($request);
+            $boardMemberFeeExempt = $this->isFormSBoardMemberFeeExempt($request);
 
             return response()->json([
                 'status'         => 'success',
@@ -3178,6 +3253,12 @@ public function update(Request $request, $id)
         ]);
 
         $action = $request->form_action;
+        if ($action !== 'draft') {
+            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
+            if ($boardMemberErr !== null) {
+                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
+            }
+        }
         $loginId = $request->login_id;
 
         DB::beginTransaction();

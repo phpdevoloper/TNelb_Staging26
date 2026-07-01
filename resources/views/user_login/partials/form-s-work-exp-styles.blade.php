@@ -1001,4 +1001,46 @@
     .work-exp-wrap .wx-order-edit-link .fa {
         font-size: .7rem;
     }
+
+    /* Board member sub-question panel inside work row (7b) */
+    .work-row-grid-span { grid-column: 1 / -1; }
+    .work-board-member-panel {
+        margin-top: 4px;
+        padding: 12px 14px;
+        background: #f4f8fd;
+        border: 1px solid #c5d5eb;
+        border-radius: 8px;
+    }
+    .work-board-member-panel-hd {
+        margin-bottom: 10px;
+        font-size: .82rem;
+        font-weight: 600;
+        color: #1a2a4a;
+        line-height: 1.35;
+    }
+    .work-board-member-panel-title { margin-right: 2px; }
+    .work-board-member-panel-hint {
+        display: block;
+        font-size: .72rem;
+        font-weight: 500;
+        color: #5a7299;
+        margin-top: 2px;
+    }
+    .work-board-member-panel-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px 14px;
+    }
+    .work-board-member-panel-note {
+        margin: 10px 0 0;
+        font-size: .72rem;
+        color: #5a7299;
+    }
+    .work-row.work-row--board-member [data-field="contractor-cat"],
+    .work-row.work-row--board-member [data-field="licence-number"],
+    .work-row.work-row--board-member [data-field="work-nature"],
+    .work-row.work-row--board-member [data-field="voltage-level"],
+    .work-row.work-row--board-member [data-field="transformer-kva"] {
+        display: none !important;
+    }
 @endif

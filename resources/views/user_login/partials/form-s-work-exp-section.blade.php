@@ -1,57 +1,84 @@
 @php
     $exp_details = $exp_details ?? collect();
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
+    $workContainerId = $workContainerId ?? 'work-container';
+    $workAddBtnId = $workAddBtnId ?? 'work-exp-add-btn';
+    $workRowCountId = $workRowCountId ?? 'work-exp-row-count';
+    $workSummaryTbodyId = $workSummaryTbodyId ?? 'work-exp-summary-tbody';
+    $workMaxRows = (int) ($workMaxRows ?? 3);
+    $workMinRows = (int) ($workMinRows ?? 1);
+    $workPart = $workPart ?? 'all';
+    $defaultTillDate = !empty($defaultTillDate);
+    $showSummaryPanel = $showSummaryPanel ?? true;
+    $showAddRow = $showAddRow ?? true;
 @endphp
-<div class="work-exp-wrap">
+<div class="work-exp-wrap" data-work-part="{{ $workPart }}">
+    @if ($showAddRow)
     <div class="work-exp-section-bar" role="region" aria-label="Work experience actions">
-        <button type="button" class="work-exp-add-btn add-more-work" id="work-exp-add-btn" title="Add a work experience entry">
+        <button type="button"
+            class="work-exp-add-btn add-more-work"
+            id="{{ $workAddBtnId }}"
+            data-work-container="{{ $workContainerId }}"
+            data-max-rows="{{ $workMaxRows }}"
+            title="Add a work experience entry">
             <i class="fa fa-plus"></i>
             <span>Add row</span>
-            <span class="text-muted" style="font-weight:500;font-size:.7rem;opacity:.85;" id="work-exp-row-count">(1/3)</span>
+            <span class="text-muted" style="font-weight:500;font-size:.7rem;opacity:.85;" id="{{ $workRowCountId }}">(0/{{ $workMaxRows }})</span>
         </button>
     </div>
+    @endif
 
-    <div class="work-exp-summary-panel" id="work-exp-summary-panel" aria-live="polite">
-        <div class="wx-order-card">
-            <div class="wx-summary-table-wrap">
-                <table class="wx-summary-table">
-                    <thead>
-                        <tr>
-                            <th class="wx-summary-th-sno">S.No</th>
-                            <th>Employment Type</th>
-                            <th class="wx-summary-th-org"><span class="wx-th-org-line">Organisation &amp;</span><span class="wx-th-org-line">Address</span></th>
-                            <th>Designation</th>
-                            <th>Nature of Work</th>
-                            <th>Voltage Level</th>
-                            <th>Transformer kVA(max 1000kVA)</th>
-                            <th>Total Experience</th>
-                            <th>Attachment</th>
-                            <th class="wx-summary-th-actions">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="work-exp-summary-tbody"></tbody>
-                </table>
+    @if ($showSummaryPanel)
+        <div class="work-exp-summary-panel" id="work-exp-summary-panel-{{ $workPart }}" aria-live="polite">
+            <div class="wx-order-card">
+                <div class="wx-summary-table-wrap">
+                    <table class="wx-summary-table">
+                        <thead>
+                            <tr>
+                                <th class="wx-summary-th-sno">S.No</th>
+                                <th>Employment Type</th>
+                                <th class="wx-summary-th-org"><span class="wx-th-org-line">Organisation &amp;</span><span class="wx-th-org-line">Address</span></th>
+                                <th>Designation</th>
+                                <th>Nature of Work</th>
+                                <th>Voltage Level</th>
+                                <th>Transformer kVA(max 1000kVA)</th>
+                                <th>Total Experience</th>
+                                <th>Attachment</th>
+                                <th class="wx-summary-th-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="{{ $workSummaryTbodyId }}"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 
-    <div class="work-rows" id="work-container">
+    <div class="work-rows js-work-container"
+        id="{{ $workContainerId }}"
+        data-work-part="{{ $workPart }}"
+        data-min-rows="{{ $workMinRows }}"
+        data-max-rows="{{ $workMaxRows }}">
         @if ($exp_details->isNotEmpty())
             @foreach ($exp_details as $index => $expRow)
                 @include('user_login.partials.form-s-work-exp-row', [
                     'expRow' => $expRow,
                     'rowIndex' => $index,
                     'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+                    'defaultTillDate' => $defaultTillDate,
                 ])
             @endforeach
-        @else
-            @include('user_login.partials.form-s-work-exp-row', [
-                'expRow' => null,
-                'rowIndex' => 0,
-                'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
-            ])
+        @elseif ($workMinRows > 0)
+            @for ($index = 0; $index < $workMinRows; $index++)
+                @include('user_login.partials.form-s-work-exp-row', [
+                    'expRow' => null,
+                    'rowIndex' => $index,
+                    'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
+                    'defaultTillDate' => $defaultTillDate,
+                ])
+            @endfor
         @endif
     </div>
 
-    <div id="work-exp-total-msg" class="work-exp-total-msg-wrap" aria-live="polite"></div>
+    <div id="work-exp-total-msg-{{ $workPart }}" class="work-exp-total-msg-wrap" aria-live="polite"></div>
 </div>
