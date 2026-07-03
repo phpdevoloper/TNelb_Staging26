@@ -112,8 +112,9 @@
                                                         @php
                                                             $completedNew = (int) ($summary['completed_new_count'] ?? 0);
                                                             $completedRenewal = (int) ($summary['completed_renewal_count'] ?? 0);
+                                                            $completedDigize = (int) ($summary['completed_digi_count'] ?? 0);
                                                         @endphp
-                                                        <span class="fw-semibold text-muted me-1">Completed :</span>
+                                                        
                                                         <a href="#"
                                                             class="badge outline-badge-info fw-semibold text-decoration-none js-completed-badge @if ($loop->first) js-completed-badge-default @endif"
                                                             data-form-id="{{ $summary['id'] ?? '' }}"
@@ -129,6 +130,15 @@
                                                             data-licence-name="{{ $summary['licence_name'] ?? '' }}">
                                                             Renewal
                                                             <span class="ms-1 fw-bold text-danger">{{ $completedRenewal }}</span>
+                                                        </a>
+
+                                                        <a href="#"
+                                                            class="badge outline-badge-info fw-semibold text-decoration-none js-completed-badge"
+                                                            data-form-id="{{ $summary['id'] ?? '' }}"
+                                                            data-form-type="D"
+                                                            data-licence-name="{{ $summary['licence_name'] ?? '' }}">
+                                                            Digitization
+                                                            <span class="ms-1 fw-bold text-danger">{{ $completedDigize }}</span>
                                                         </a>
                                                     </div>
                                                 </div>
@@ -290,6 +300,7 @@
                                             <th>S.No</th>
                                             <th>Application Id</th>
                                             <th>Applicant's Name</th>
+                                            <th>Application Type</th>
                                             <th>Applied On</th>
                                             <th>Licence No</th>
                                             <th>Issued At</th>
@@ -383,6 +394,7 @@
                 const htmlRows = (rows || []).map(function(r) {
                     const appId = escapeHtml(r.application_id);
                     const appName = escapeHtml(r.applicant_name);
+                    // const appltype = escapeHtml(r.appl_type);
                     const appliedOn = escapeHtml(formatDateDDMMYYYY(r.applied_on));
                     const licNo = escapeHtml(r.license_number);
                     const issuedAt = escapeHtml(formatDateDDMMYYYY(r.issued_at));
@@ -413,12 +425,7 @@
                                 <i class="fa fa-file-pdf-o text-danger"></i> ENG
                             </a>
 
-                              <a href="${formalicenceTmUrl.replace('__APP__', applicationIdRaw)}"
-                            class="text-decoration-none me-2"
-                            target="_blank"
-                            title="Tamil PDF">
-                                <i class="fa fa-file-pdf-o text-danger"></i>  தமிழ்
-                            </a>
+                             
                         `
                         : effectiveCode === 'P'
                         ? `
@@ -431,20 +438,30 @@
                         `
                         : `
                             <a href="${enUrl}" class="text-decoration-none me-2" target="_blank" title="English PDF">
-                                <i class="fa fa-file-pdf-o text-danger"></i> ENG
+                                <i class="fa fa-file-pdf-o text-danger"></i> Download
                             </a>
-                            <a href="${taUrl}" class="text-decoration-none" target="_blank" title="Tamil PDF">
-                                <i class="fa fa-file-pdf-o text-danger"></i> TAM
-                            </a>
+                           
                         `
                 )
                 : '';
+
+              
+
+             const appltypeMap = {
+                    N: 'New',
+                    R: 'Renewal',
+                    D: 'Digitization',
+                    A: 'Alteration'
+                };
+
+                const appltype = appltypeMap[escapeHtml(r.appl_type)] || 'Alteration';
 
                     return `
                         <tr>
                             <td>${escapeHtml(r.sno)}</td>
                             <td>${appId ? (viewUrl !== '#' ? `<a href="${viewUrl}" class="fw-semibold text-primary" target="_blank">${appId}</a>` : `<span class="fw-semibold">${appId}</span>`) : ''}</td>
                             <td>${appName}</td>
+                            <td>${appltype}</td>
                             <td>${appliedOn}</td>
                             <td>${licNo}</td>
                             <td>${issuedAt}</td>

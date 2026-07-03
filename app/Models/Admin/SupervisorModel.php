@@ -17,6 +17,7 @@ class SupervisorModel extends Model
         'processed_by',
         'forwarded_to',
         'role_id',
+        'chklist_status',
         'is_verified',
         'query_status',
         'remarks',

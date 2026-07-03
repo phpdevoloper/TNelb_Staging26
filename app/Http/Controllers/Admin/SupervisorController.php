@@ -14,6 +14,7 @@ use App\Models\EA_Application_model;
 
 use App\Models\Admin\WorkflowA;
 use App\Models\ESA_Application_model;
+use App\Models\Tnelb_CC_Digitization;
 use Carbon\Carbon;
 
 use function PHPUnit\Framework\isNull;
@@ -37,6 +38,22 @@ class SupervisorController extends Controller
 
         return view('admin.dashboards.supervisor', compact('applications'));
     }
+        // QSC/QC updation--------------
+            public function updateQcQsc(Request $request)
+        {
+            DB::table('tnelb_application_tbl')
+                ->where('application_id', $request->application_id)
+                ->update([
+                    'qc' => $request->qc,
+                    'qsc' => $request->qsc,
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Updated successfully'
+            ]);
+        }
 
      public function view_applications(Request $request)
     {   
@@ -658,6 +675,8 @@ class SupervisorController extends Controller
         $raised_by    = ($request->queryswitch === 'Yes') ? $processed_by : $staffID;
 
 
+
+
         // if ($processed_by == 'A') {
         //     $last_workflow = SupervisorModel::where('application_id', $request->application_id)
         //         ->orderBy('id', 'desc')   // latest entry first
@@ -698,7 +717,9 @@ class SupervisorController extends Controller
             default       => abort(403, 'Unauthorized'),
         };
 
+        $chklistStatus = $request->input('chklist_status', []);
 
+        // dd(json_encode($chklistStatus)); exit;
         // Insert data into tnelb_workflow table
         $workflow = SupervisorModel::create([ // Ensure this is the correct model
             'application_id' => $request->application_id,
@@ -708,7 +729,9 @@ class SupervisorController extends Controller
             'role_id'        => $request->role_id,
             'is_verified'    => $request->checkboxes ?? 'Yes',
             'query_status'   => $query_status,
-            // "Yes" or "No"
+
+            'chklist_status' => json_encode($chklistStatus),
+
             'remarks'        => $request->remarks,
             'created_at'     => $this->dbNow,
             'login_id'       => $staffID,
@@ -725,6 +748,22 @@ class SupervisorController extends Controller
                 'processed_by'  => $processed_by, // Role-based forwarding
                 'updated_at' => $this->dbNow,
             ]);
+
+            // qc/qsc approval-----------
+           $qsc = DB::table('tnelb_application_tbl')
+            ->where('application_id', $request->application_id)
+            ->update([
+                'qc' => $request->qc,
+                'qsc' => $request->qsc,
+            ]);
+
+            // dd($role); exit;
+
+            if($request->forwarded_to =='assistantsecretary '){
+
+                dd('111'); exit;
+                $role= 'Assistant Secretary';
+            }
 
         return response()->json([
             'status' => "success",
@@ -1565,15 +1604,24 @@ class SupervisorController extends Controller
                 ]);
             }
             //    dd($this->dbNow); exit;
-
+            $chklistStatus = $request->input('chklist_status', []);
             DB::table('tnelb_workflow')->insert([
                 'application_id' => $request->application_id,
                 'processed_by'   => $request->processed_by,
                 'role_id'        => Auth::user()->roles_id, // Current user role (Secretary)
                 'appl_status'    => 'A',
+                'chklist_status' => json_encode($chklistStatus),
                 'remarks'        => $request->remarks ?? 'No remarks provided',
                 'forwarded_to'   => $request->forwarded_to ?? null,
                 'created_at'     => $this->dbNow,
+            ]);
+
+                // qc/qsc approval-----------
+           $qsc = DB::table('tnelb_application_tbl')
+            ->where('application_id', $request->application_id)
+            ->update([
+                'qc' => $request->qc,
+                'qsc' => $request->qsc,
             ]);
 
 
@@ -1818,7 +1866,7 @@ class SupervisorController extends Controller
             $yearMonth = date('Ym');
 
             $lastSerial = DB::table('tnelb_license')
-                ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
+                ->where('license_number', 'LIKE', "C{$prefix}{$yearMonth}%")
                 ->orderBy('license_number', 'desc')
                 ->value('license_number');
 
@@ -1831,16 +1879,17 @@ class SupervisorController extends Controller
 
             $now = db_now();
 
-            $licenseNumber = "L{$prefix}{$yearMonth}{$newNumber}";
+            $licenseNumber = "C{$prefix}{$yearMonth}{$newNumber}";
             $issuedAt      = $now;
 
             $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
             $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
 
 
-            $expiresAt = Carbon::parse($now)->copy()->addMonths($monthsToAdd)
-                ->subDay()
-                ->toDateString();
+            $expiresAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->pluck('to_date'); //first issue
+            $from_date = Tnelb_CC_Digitization::where('application_id', $applicationId )->pluck('from_date'); //latest from_date
+            $issuedAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->pluck('fissue'); //latest to date
+            // dd($expiresAt); exit;
 
             // dd($licensePeriod->validity); exit;
 
@@ -1848,9 +1897,9 @@ class SupervisorController extends Controller
                 'application_id' => $applicationId,
                 'license_number' => $licenseNumber,
                 'issued_by'      => $processedBy,
-                'issued_at'      => $issuedAt,
-                'issued_from'    => $now,
-                'expires_at'     => $expiresAt,
+                'issued_at'      => $issuedAt, //first issue
+                'issued_from'    => $from_date, //latest from_date
+                'expires_at'     => $expiresAt, //latest to date
                 'created_at'     => $now,
             ]);
 
@@ -1876,7 +1925,7 @@ class SupervisorController extends Controller
         $yearMonth = date('Ym');
 
         $lastSerial = DB::table('tnelb_license')
-            ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
+            ->where('license_number', 'LIKE', "C{$prefix}{$yearMonth}%")
             ->orderBy('license_number', 'desc')
             ->value('license_number');
 
@@ -1889,7 +1938,7 @@ class SupervisorController extends Controller
 
         $now = db_now();
 
-        $licenseNumber = "L{$prefix}{$yearMonth}{$newNumber}";
+        $licenseNumber = "C{$prefix}{$yearMonth}{$newNumber}";
         $issuedAt      = $now;
 
         $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);

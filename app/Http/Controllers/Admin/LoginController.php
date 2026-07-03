@@ -31,6 +31,7 @@ use App\Models\MstLicence;
 use App\Models\Tnelb_banksolvency_a;
 use Carbon\Carbon;
 use App\Models\Admin\FeesValidity;
+use App\Models\Admin\Mst_checklist;
 use App\Models\Admin\Mst_Logins;
 use Illuminate\Support\Facades\Storage;
 
@@ -914,7 +915,7 @@ class LoginController extends Controller
 
         $assignedFormsQuery = \App\Models\Admin\StaffAssigned::where('user_id', $staff->id)
             ->where('is_active', 1)
-            ->whereIn('form_type', ['N', 'R']);
+            ->whereIn('form_type', ['N', 'R', 'D']);
 
         if (DB::getDriverName() === 'pgsql') {
             $assignedFormsQuery->whereRaw("jsonb_array_length(COALESCE(form_id, '[]'::jsonb)) > 0");
@@ -976,9 +977,11 @@ class LoginController extends Controller
 
         foreach ($tblCounts as $row) {
             $fid = (int) $row->form_id;
-            $type = strtoupper((string) $row->appl_type) === 'R' ? 'R' : 'N';
+            $type = in_array(strtoupper((string) $row->appl_type), ['R', 'D'])
+            ? strtoupper((string) $row->appl_type)
+            : 'N';
             if (!isset($completedCountsMap[$fid])) {
-                $completedCountsMap[$fid] = ['N' => 0, 'R' => 0];
+                $completedCountsMap[$fid] = ['N' => 0, 'R' => 0, 'D' => 0];
             }
             $completedCountsMap[$fid][$type] = (int) $row->cnt;
         }
@@ -992,10 +995,12 @@ class LoginController extends Controller
                 ->groupBy('ta.appl_type')
                 ->get();
             if (!isset($completedCountsMap[$formPId])) {
-                $completedCountsMap[$formPId] = ['N' => 0, 'R' => 0];
+                $completedCountsMap[$formPId] = ['N' => 0, 'R' => 0 , 'D' => 0];
             }
             foreach ($formPCounts as $row) {
-                $type = strtoupper((string) ($row->appl_type ?? '')) === 'R' ? 'R' : 'N';
+                $type = in_array(strtoupper((string) $row->appl_type), ['R', 'D'])
+                ? strtoupper((string) $row->appl_type)
+                : 'N';
                 $completedCountsMap[$formPId][$type] = (int) ($row->cnt ?? 0);
             }
         }
@@ -1062,13 +1067,15 @@ class LoginController extends Controller
                         continue;
                     }
 
-                    $type = strtoupper((string) ($row->appl_type ?? '')) === 'R' ? 'R' : 'N';
+                    $type = in_array(strtoupper((string) $row->appl_type), ['R', 'D'])
+                    ? strtoupper((string) $row->appl_type)
+                    : 'N';
                     $cnt  = (int) ($row->cnt ?? 0);
 
                     foreach ($contractorFormToIds[$formCode] as $licId) {
 
                         if (!isset($completedCountsMap[$licId])) {
-                            $completedCountsMap[$licId] = ['N' => 0, 'R' => 0];
+                            $completedCountsMap[$licId] = ['N' => 0, 'R' => 0, 'D' => 0];
                         }
 
                         $completedCountsMap[$licId][$type] += $cnt;
@@ -1096,7 +1103,7 @@ class LoginController extends Controller
         $assignedFormSummary = $assignedForms->groupBy('id')->map(function ($items) use ($completedCountsMap) {
             $first = $items->first();
             $fid = $first['id'];
-            $counts = $completedCountsMap[$fid] ?? ['N' => 0, 'R' => 0];
+            $counts = $completedCountsMap[$fid] ?? ['N' => 0, 'R' => 0, 'D' => 0];
             return [
                 'id' => $fid,
                 'form_name' => $first['form_name'],
@@ -1106,6 +1113,7 @@ class LoginController extends Controller
                 'category_id' => $first['category_id'],
                 'completed_new_count' => $counts['N'],
                 'completed_renewal_count' => $counts['R'],
+                'completed_digi_count' => $counts['D'],
             ];
         })->values()->all();
 
@@ -1228,6 +1236,7 @@ class LoginController extends Controller
             $rows = $rows->select(
                 'ta.application_id',
                 'ta.applicant_name',
+                'ta.appl_type',
                 'ta.created_at',
                 DB::raw("'A' as status"),
                 DB::raw('COALESCE(ta.license_number, tl.license_number, tr.license_number) as license_number'),
@@ -1277,6 +1286,7 @@ class LoginController extends Controller
                 $rows = $rows->select(
                     'ta.application_id',
                     'ta.applicant_name',
+                    'ta.appl_type',
                     'ta.created_at',
                     'ta.status',
                     DB::raw('COALESCE(tl.license_number, tr.license_number) as license_number'),
@@ -1303,6 +1313,7 @@ class LoginController extends Controller
                 'sno' => $idx + 1,
                 'application_id' => (string) $applicationId,
                 'applicant_name' => (string) ($r->applicant_name ?? ''),
+                'appl_type' => (string) ($r->appl_type ?? ''),
                 'applied_on' => (string) ($r->created_at ?? ''),
                 'status' => $statusText,
                 'license_number' => (string) ($r->license_number ?? ''),
@@ -1754,6 +1765,19 @@ class LoginController extends Controller
             $cc_digitization = DB::table('tnelb_cc_digitization')
                 ->where('application_id', $applicant_id)
                 ->first();
+            $checklist = DB::table('mst_checklists as mc')
+                ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
+                ->where('ml.cert_licence_code', $applicant->license_name)
+                ->where('mc.appl_type', $applicant->appl_type)
+                ->where('mc.status', 1)
+                ->select(
+                    'mc.*',
+                    'ml.licence_name',
+                    'ml.cert_licence_code'
+                )
+                ->get();
+
+        // dd($applicant->license_name); exit;
 
         // Determine view based on user role
         $view = match ($staff->name) {
@@ -1770,7 +1794,7 @@ class LoginController extends Controller
         };
 
         // var_dump($nextForwardUser);exit;
-        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff', 'cc_digitization'));
+        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff', 'cc_digitization', 'checklist'));
     }
 
     public function presidentDashboard()

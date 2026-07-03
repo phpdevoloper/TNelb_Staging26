@@ -923,7 +923,35 @@ use Illuminate\Support\Facades\Auth;
             }
         }
     </style>
+<!-- ------img view-------------------- -->
+ <style>
+.image-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
 
+.image-tooltip img {
+    display: none;
+    position: absolute;
+    bottom: 37px;
+    
+    min-width: 426px;
+
+    border: 1px solid #ccc;
+    background: #fff;
+    padding: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,.2);
+    z-index: 9999;
+}
+
+.image-tooltip:hover img {
+    display: block;
+}
+</style>
+
+
+ <!-- ------------------- -->
     <style>
         .popup-overlay_pdf {
             display: none;
@@ -1232,14 +1260,14 @@ use Illuminate\Support\Facades\Auth;
                             <div class="form-group">
                                 <div class="row mb-2">
                                     <div class="col-lg-3">
-                                        <label>Certificate Number</label>
+                                        <label>Certificate Number <span class="fill">*</span></label>
 
                                     </div>
                                     <div class="col-lg-6">
 
 
 
-                                        <input type="number" class="form-control" name="ccnumber" placeholder="Certificate Number" maxlength="15">
+                                        <input type="number" class="form-control" name="ccnumber" placeholder="Certificate Number" maxlength="8">
 
                                         
 
@@ -1257,7 +1285,7 @@ use Illuminate\Support\Facades\Auth;
                             <div class="form-group">
                                 <div class="row mb-2">
                                     <div class="col-lg-3">
-                                        <label>Date of First Issue</label>
+                                        <label>Date of First Issue <span class="fill">*</span></label>
 
                                     </div>
                                     <div class="col-lg-4">
@@ -1273,7 +1301,7 @@ use Illuminate\Support\Facades\Auth;
 
                                 <div class="row mb-2">
                                     <div class="col-lg-3">
-                                        <label>Validity From</label>
+                                        <label>Validity From <span class="fill">*</span></label>
 
                                     </div>
                                     <div class="col-lg-4">
@@ -1289,7 +1317,7 @@ use Illuminate\Support\Facades\Auth;
 
 
                                     <div class="col-lg-3">
-                                        <label>Validity To</label>
+                                        <label>Validity To <span class="fill">*</span></label>
 
                                     </div>
                                     <div class="col-lg-4">
@@ -1310,7 +1338,9 @@ use Illuminate\Support\Facades\Auth;
                             <div class="form-group">
                                 <div class="row mb-2">
                                     <div class="col-lg-4 ">
-                                        <label>Upload Document</label><br>
+                                        <label>Upload Existing Certificate  <span class="fill">*</span> 
+                                    <br><span style="font-size:.75rem;font-weight:600;">
+                                            (Note : Page No: 3 of CC Book)</label><br>
 
 
                                     </div>
@@ -1337,7 +1367,7 @@ use Illuminate\Support\Facades\Auth;
                             <div class="form-group" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }}>
                                 <div class="row mb-2">
                                     <div class="col-lg-8">
-                                        <label>Is Supervisory Competency Certificate recognized as a Qualified Supervisor for an EA/ESA Contractor License</label>
+                                        <label>Is Supervisory Competency Certificate recognized as a Qualified Supervisor for an EA/ESA Contractor License </label>
 
                                     </div>
                                     <div class="col-12 col-md-3">
@@ -1360,7 +1390,7 @@ use Illuminate\Support\Facades\Auth;
                             <div class="form-group" id="qc_details" style="display:none;">
                                 <div class="row mb-2">
                                     <div class="col-lg-5">
-                                        <label>Grade of Licence </label>
+                                        <label>Grade of Licence <span class="fill">*</span></label>
 
                                     </div>
                                     <div class="col-12 col-md-5">
@@ -1377,7 +1407,7 @@ use Illuminate\Support\Facades\Auth;
 
                                 <div class="row mb-2">
                                     <div class="col-lg-5">
-                                        <label>Licence Number <span class="text-muted" style="font-size:.75rem;font-weight:600;">(eg. 12345)</span></label>
+                                        <label>Licence Number <span class="fill">*</span><span class="text-muted" style="font-size:.75rem;font-weight:600;">(eg. 12345)</span></label>
 
                                     </div>
                                     <div class="col-12 col-md-5">
@@ -1392,7 +1422,7 @@ use Illuminate\Support\Facades\Auth;
 
                                 <div class="row mb-2">
                                     <div class="col-lg-5">
-                                        <label>Name of Contractor </label>
+                                        <label>Name of Contractor <span class="fill">*</span></label>
 
                                     </div>
                                     <div class="col-12 col-md-5">
@@ -1404,7 +1434,13 @@ use Illuminate\Support\Facades\Auth;
 
                                 <div class="row mb-2">
                                     <div class="col-lg-5">
-                                        <label>Details of Employee From Contractor Licence <span style="font-size:.75rem;font-weight:600;">(Page No: 3 & 12)</span></label>
+                                        <label>Details of Employee <span class="fill">*</span><br><span style="font-size:.75rem;font-weight:600;">
+                                            (Note : Page No: 3 & 12 of Contractor Licence)
+                                            <span class="image-tooltip" style="color:red;">
+                                                Sample
+                                                <img src="{{ asset('assets/images/1.webp') }}" alt="Sample Image">
+                                            </span>
+                                        </span></label>
 
 
                                     </div>

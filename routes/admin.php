@@ -25,7 +25,8 @@
 
 // CMS
     use App\Http\Controllers\Admin\AddFormController;
-    use App\Http\Controllers\Admin\EquipmentController;
+use App\Http\Controllers\Admin\ChecklistController;
+use App\Http\Controllers\Admin\EquipmentController;
     use App\Http\Controllers\Admin\FormBprocessController;
     use App\Http\Controllers\Admin\FormPController;
     use App\Http\Controllers\Admin\FormSBprocessController;
@@ -519,6 +520,14 @@
             Route::post('/verifylicense', [LicenseController::class, 'verifylicense'])->name('verifylicense');
 
 
+    //  ----------------------------checklist---------------------------  
+        Route::get('/checklist', [ChecklistController::class, 'index'])->name('checklist');  
+        
+        Route::post('/checkliststore', [ChecklistController::class, 'store'])->name('checkliststore');  
+        Route::post('/update-checklist-status', [ChecklistController::class, 'updateStatus'])
+         ->name('updateChecklistStatus');
+
+
          //  ---------------------------------------Form A admin Dashboard----------------------
 
             Route::post('/verify-license', [adminlicensecontroller::class, 'verifyLicenseFormAccc_admin'])->name('verify.license.formAccc_admin');
@@ -602,6 +611,10 @@
         //    -------returntoapplicant (Form A contractor)-------------
        Route::post('/returntoapplicantforma', [ApplicationController::class, 'returntoapplicantForma'])->name('returntoapplicantforma');
 
+
+       
+        
+        
 
         });
 

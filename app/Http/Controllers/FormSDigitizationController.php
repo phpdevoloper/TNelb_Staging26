@@ -62,7 +62,7 @@ class FormSDigitizationController extends BaseController
             return response()->json([
                 'errors' => [
                     'to_date' => [
-                        'Certificate validity expired more than one year ago. Digitization is not allowed.'
+                        'Apply New Application Validity Period including Renewal exceeds limits'
                     ]
                 ]
             ], 422);

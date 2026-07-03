@@ -23,6 +23,9 @@
     .digi_data table {
         padding: 10px;
     }
+    /* .tab-table tr, td{
+        border: none!important;
+    } */
     /* ================================================================
        Applicant Detail (Supervisor) — refreshed visual styling
        Scoped to .applicant-supervisor-page so it won't bleed elsewhere.
@@ -524,6 +527,30 @@
         font-size: 0.88rem;
         color: var(--asp-ink);
     }
+    .eligibile_criteria{
+        padding: 10px;
+    }
+
+    .eligibile_criteria h4{
+        color: green;
+        font-size: 20px;
+        font-weight: 600;
+
+    }
+
+      .eligibile_criteria h6{
+        padding: 15px;
+        color: #2131a7;
+        font-size: 18px;
+        font-weight: 600;
+
+    }
+
+
+    .border_right{
+        border-right: 1px solid gray;
+        }
+   
 
     @php $editFormName = 'S'; @endphp
     @include('user_login.partials.form-s-work-exp-styles')
@@ -577,11 +604,11 @@
                                                         </tr>
                                                         <tr>
                                                             <th>Validity From</th>
-                                                            <td>{{ $cc_digitization->from_date }}</td>
+                                                            <td>{{ \Carbon\Carbon::parse($cc_digitization->from_date)->format('d-m-Y') }}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Validity To</th>
-                                                            <td>{{ $cc_digitization->to_date}}</td>
+                                                            <td>{{ \Carbon\Carbon::parse($cc_digitization->to_date)->format('d-m-Y') }}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Certificate Document</th>
@@ -662,23 +689,26 @@
                                         <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Personal Details</button>
                                     </li>
 
+                                    @if($applicant->appl_type != 'D')
+
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link " id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Payment Status</button>
                                     </li>
+                                    @endif
 
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Check List</button>
                                     </li>
                                 </ul>
 
-                                <div class="tab-content" id="myTabContent">
+                                <div class="tab-content tab-table" id="myTabContent">
                                     <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
                                         <div class="row mt-3 ">
                                             <div class="row">
                                                 <!-- Left Side: Applicant Details -->
                                                 <div class="col-md-8">
                                                     <div class="table-responsive">
-                                                        <table class="table table-sm">
+                                                        <table class="table  no-border-table table-sm">
                                                             <tbody>
                                                                 <tr>
                                                                     <td class="fw-bold " style="width: 30%;">Applicant Id :</td>
@@ -1121,9 +1151,16 @@
                                     </div>
                                     <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
                                         <?php //var_dump($workflows->first()->is_verified);die; ?>
-                                        @php
+                                       @php
                                             $workflow = $workflows?->first();
-                                            $isVerified = $workflow?->is_verified == 'Yes';
+
+                                            $checkedList = [];
+
+                                            if (!empty($workflow?->chklist_status)) {
+                                                $checkedList = is_array($workflow->chklist_status)
+                                                    ? $workflow->chklist_status
+                                                    : json_decode($workflow->chklist_status, true);
+                                            }
                                         @endphp
 
 
@@ -1138,39 +1175,27 @@
                                                     <label class="form-check-label" for="reset_all">Reset All</label>
                                                 </div>
                                             </div> --}}
-                                            <div id="specific-class" class="col-lg-12">
-                                                @php
-                                                    $checkboxes = [
-                                                        'signature_form' => 'Applicant Signature in Application Form',
-                                                        'sign_attached' => 'Applicant Sign attached by Officer',
-                                                        'edu_certificate' => 'Educational Qualification Certificate',
-                                                        'dob_proof' => 'Proof of D.O.B',
-                                                        'photograph' => 'Photograph',
-                                                        'specimen_signature' => 'Specimen Signature',
-                                                        'fees_details' => 'Fees Details',
-                                                        'age_details' => 'Age 18',
-                                                        'experience_details' => 'Two Years Experience after Degree/Diploma',
-                                                        'all_doc_verification' => 'All Documents Filled by Applicant',
-                                                        'safety_certificate' => 'Safety Certificate/ List of Equipment',
-                                                        'contract_copy' => 'Contract Copy of HT Works',
-                                                        'ht_experience_cert' => 'HT Experience Certificate in Specimen Format/ Transformer Details',
-                                                        'experience_in_tamilnadu' => 'Experience in TamilNadu',
-                                                        'intimation_letter' => 'Intimation Letter',
-                                                        'complete_experience_details' => 'Complete Experience Details',
-                                                        'required_qualification_certificate' => 'Required Qualification Certificate',
-                                                    ];
-                                                @endphp
+                                           <div id="specific-class" class="col-lg-12">
 
-                                                @foreach($checkboxes as $id => $label)
-                                                    <div class="form-check">
-                                                        <input type="checkbox" 
-                                                            id="{{ $id }}" 
-                                                            name="{{ $id }}" 
+                                                @forelse($checklist as $item)
+                                                    <div class="form-check mb-2">
+                                                        <input
+                                                            type="checkbox"
                                                             class="form-check-input"
-                                                            @if($isVerified) checked disabled @endif>
-                                                        <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                                                            id="checklist_{{ $item->id }}"
+                                                            name="checklists[]"
+                                                            value="{{ $item->id }}"
+                                                            {{ in_array($item->id, $checkedList ?? []) ? 'checked' : '' }}>
+
+                                                        <label class="form-check-label" for="checklist_{{ $item->id }}">
+                                                            {{ $item->checklist_name }}
+                                                        </label>
                                                     </div>
-                                                @endforeach
+                                                @empty
+                                                    <div class="text-muted">
+                                                        No checklist available.
+                                                    </div>
+                                                @endforelse
 
                                             </div>
                                         </div>
@@ -1259,6 +1284,79 @@
                     </div>
                 </div>
                 <div class="col-xl-5 col-md-12 col-sm-12 col-12 layout-spacing">
+                 @php
+                            $role = Auth::user()->name; // Current role name
+                            $workflow = [
+                                'Supervisor'          => $applicant->status == 'RE'? 'Secretary' : 'Assistant Secretary',
+                                'Assistant Secretary' => 'Secretary',
+                                'Secretary'           => 'President',
+                                'President'           => null, // last step
+                            ];
+
+                            @endphp
+                @if ($role == 'Secretary' || $role == 'President' )
+
+                    <div class="statbox widget box eligibile_criteria">
+                        <div class="row">
+                            <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                <div class="text-center">
+                                <h4>QC/QSC Eligiblity</h4>
+                                <div class="row align-items-center">
+                                    <div class="col-md-2">
+                                        <h6>QC</h6>
+                                        
+                                    </div>
+                                    <div class="col-md-3 border_right">
+                                        <div class="switch form-switch-custom switch-inline form-switch-primary form-switch-custom inner-text-toggle">
+                                            <div class="input-checkbox">
+                                                <span class="switch-chk-label label-left">Yes</span>
+                                                <input class="switch-input"
+                                                    type="checkbox"
+                                                    id="qc_switch"
+                                                    data-application-id="{{ $applicant->application_id }}"
+                                                    role="switch"
+                                                    {{ $applicant->qc == 1 ? 'checked' : '' }}>
+                                                <span class="switch-chk-label label-right">No</span>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="col-md-3">
+                                        <h6>QSC</h6>
+                                        
+                                    </div>
+                                    <div class="col-md-3 ">
+                                        <div class="switch form-switch-custom switch-inline form-switch-primary form-switch-custom inner-text-toggle">
+                                            <div class="input-checkbox">
+                                                <span class="switch-chk-label label-left">Yes</span>
+                                               <input class="switch-input"
+                                                    type="checkbox"
+                                                    id="qsc_switch"
+                                                    data-application-id="{{ $applicant->application_id }}"
+                                                    role="switch" {{ $applicant->qsc == 1 ? 'checked' : '' }}>
+                                                <span class="switch-chk-label label-right">No</span>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                    
+
+                                </div>
+                                
+                                
+                                </div>
+                            </div>
+                        </div>
+                       
+                        
+                    </div>
+
+                    @endif
+
+
                     @if(($applicant->status ?? '') != 'A')
                     <div class="statbox widget box box-shadow mb-2">
                         <div class="row align-items-center">
@@ -1286,6 +1384,7 @@
                                             <option value="general">General Query</option>
                                             <option value="technical">Technical Query</option>
                                             <option value="other">Other</option>
+                                            <option value="checklist">Checklist Details Missing</option>
                                         </select>
 
                                         <span id="query_error" class="text-danger"></span>
@@ -1294,6 +1393,8 @@
                             </div>
                         </div>
                     </div>
+
+                    
                     <div class="statbox widget box box-shadow">
                         <div class="row">
                             <div class="col-xl-12 col-md-12 col-sm-12 col-12">
@@ -1325,7 +1426,8 @@
                                     <div class="col-12">
                                         <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
                                             {{-- Forward to Assistant Secretary --}}
-                                            <button class="btn btn-success" id="forwardbtn" {{ $isVerified == 'Yes'? '' : 'disabled' }} >
+                                            {{-- $isVerified == 'Yes'? '' : 'disabled' --}}
+                                            <button class="btn btn-success" id="forwardbtn"  >
                                                 Forward to {{ $workflow[$role] }}
                                             </button>
                                             <button class="btn btn-warning">On Hold</button>
@@ -1364,9 +1466,7 @@
                                         </div>
                                         {{-- Row 2: Return actions (single line) --}}
                                         <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                                            <button id="confirmReturnBtn" class="btn btn-warning">
-                                                Return to Supervisor
-                                            </button>
+                                            
                                             <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
                                                 Return to Applicant
                                             </button>
@@ -1699,7 +1799,14 @@
         var confirmForward = $("#confirmForward");
         var confirmVerification = $('#confirmVerification');
         // var individualCheckboxes = $('.form-check-input:not(#check_all):not(#reset_all)');
-        var individualCheckboxes = $('#specific-class .form-check-input:not(#check_all, #reset_all)');
+        var checklistStatus = [];
+
+            $("#specific-class input[name='checklists[]']:checked").each(function () {
+                checklistStatus.push($(this).val());
+            });
+
+
+            
 
         //forwardbtn
         var approveButton = $('#confirmApprovalBtn');
@@ -1719,20 +1826,20 @@
 
 
         // If any individual checkbox is manually unchecked, uncheck "Check All"
-        individualCheckboxes.change(function() {
-            if ($('#specific-class input[type="checkbox"].form-check-input:checked').length === individualCheckboxes.length) {
-                forwardbtn.prop('disabled', false);
-            } else {
-                forwardbtn.prop('disabled', true);
-            }
-        });
+      
         
 
         approveButton.click(function () {
+             var checklistStatus = [];
+
+                $("#specific-class input[name='checklists[]']:checked").each(function () {
+                    checklistStatus.push($(this).val());
+                });
             var applicationId = @json($applicant->application_id);
             var processedBy = @json(Auth::user()->name);
             var remarks = $("#remarks").val().trim();
-
+            var qc = $("#qc_switch").is(":checked") ? 1 : 0;
+            var qsc = $("#qsc_switch").is(":checked") ? 1 : 0;
 
             Swal.fire({
                 title: "Declaration",
@@ -1760,6 +1867,10 @@
                             application_id: applicationId,
                             processed_by: processedBy,
                             remarks: remarks || "No remarks provided",
+                            qc: qc,
+                            qsc: qsc,
+                            "chklist_status[]": checklistStatus
+                          
                         },
                         success: function (response) {
 
@@ -1801,6 +1912,9 @@
             var queryswitch     = $("#Queryswitch").prop("checked");
             var checkboxStatus  = "Yes";
 
+             var qc = $("#qc_switch").is(":checked") ? 1 : 0;
+            var qsc = $("#qsc_switch").is(":checked") ? 1 : 0;
+
             var queryType = null;
             var query_status = "No";
 
@@ -1841,7 +1955,10 @@
                             remarks: remarks || "No remarks provided",
                             checkboxes: checkboxStatus, // Only "Yes" or "No"
                             queryswitch: query_status, // Only "Yes" or "No"
-                            "queryType[]": queryType 
+                            "queryType[]": queryType,
+                            qc: qc,
+                            qsc: qsc,
+                            "chklist_status[]": checklistStatus
                         },
                         success: function (response) {
 
@@ -1878,6 +1995,12 @@
 
 
         forwardbtn.click(function() {
+                  var checklistStatus = [];
+
+                    $("#specific-class input[name='checklists[]']:checked").each(function () {
+                        checklistStatus.push($(this).val());
+                    });                                                   
+                
             Swal.fire({
                 title: "Declaration",
                 text: 'I confirm that all documents have been verified by me as a supervisor.',
@@ -1901,6 +2024,9 @@
 
                     var role = @json($nextForwardUser->name);
                     var remarks = $("#remarks").val().trim();
+
+                    var qc = $("#qc_switch").is(":checked") ? 1 : 0;
+                    var qsc = $("#qsc_switch").is(":checked") ? 1 : 0;
 
                     var checkboxStatus = "Yes";
                     let queryswitch = $("#Queryswitch").prop("checked");
@@ -1932,7 +2058,11 @@
                             remarks: remarks || "No remarks provided",
                             checkboxes: checkboxStatus,
                             queryswitch: queryswitch ? "Yes" : "No",
-                            "queryType[]": queryType
+                            "queryType[]": queryType,
+                            qc: qc,
+                            qsc: qsc,
+
+                            "chklist_status[]": checklistStatus
                         },
                         success: function (response) {
                             if (response.status == "success") {
@@ -2334,4 +2464,10 @@
             }
           });
       });
+
+
+      
+
+      
+      
 </script>
