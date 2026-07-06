@@ -257,6 +257,7 @@
                                         <th>S.No</th>
                                         <th>Application Id</th>
                                         <th>Applicant's Name</th>
+                                        <th>Application Type</th>
                                         @if($isCompletedList)
                                         <th>Applied On</th>
                                         <th>Status</th>
@@ -298,6 +299,17 @@
                                             $showResubmitted = ! $isCompleted && ! $isReturnedToApplicant
                                                 && ($wasReturned || $inResubmittedReturnedList);
                                             $appliedOnRaw = $application->submitted_date ?? $application->created_at ?? $application->dt_submit;
+
+
+                                            if($application->appl_type == 'N')
+                                                $appltype= 'New';
+                                            elseif($application->appl_type == 'R')
+                                                $appltype= 'Renewal ';
+                                            elseif($application->appl_type == 'D')
+                                                 $appltype= 'Digitization';
+                                            else
+                                                $appltype= 'Alteration';
+                                            
                                         @endphp
                                         <tr>
                                             <td class="@if($isReturnedToApplicant || $showResubmitted) corner-ribbon-cell @endif">
@@ -314,6 +326,7 @@
                                                 </a>
                                             </td>
                                             <td>{{ $application->applicant_name ?? 'N/A' }}</td>
+                                            <td>{{ $appltype?? 'N/A' }}</td>
                                             @if($isCompletedList)
                                             <td>{{ format_date_other($appliedOnRaw) }}</td>
                                             <td class="text-center">

@@ -134,12 +134,12 @@
     <div class="otp-modal">
         <h6>Please enter the one-time password to verify your account</h6>
         <div class="otp-inputs d-flex justify-content-center">
-            <input class="m-2 text-center form-control" type="text" maxlength="1" />
-            <input class="m-2 text-center form-control" type="text" maxlength="1" />
-            <input class="m-2 text-center form-control" type="text" maxlength="1" />
-            <input class="m-2 text-center form-control" type="text" maxlength="1" />
-            <input class="m-2 text-center form-control" type="text" maxlength="1" />
-            <input class="m-2 text-center form-control" type="text" maxlength="1" />
+            <input class="m-2 text-center form-control" type="text" maxlength="1" value="1" />
+            <input class="m-2 text-center form-control" type="text" maxlength="1" value="2" />
+            <input class="m-2 text-center form-control" type="text" maxlength="1" value="3" />
+            <input class="m-2 text-center form-control" type="text" maxlength="1" value="4" />
+            <input class="m-2 text-center form-control" type="text" maxlength="1" value="5" />
+            <input class="m-2 text-center form-control" type="text" maxlength="1" value="6" />
         </div>
         <h5>OTP: 123456</h5>
         <div class="mt-4">

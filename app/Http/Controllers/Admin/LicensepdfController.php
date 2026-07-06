@@ -2412,8 +2412,8 @@ class LicensepdfController extends Controller
         $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
 
         $licence_name = DB::table('mst_licences')->where('cert_licence_code', $application->license_name)
-        ->where('status', 1)
-        ->first();
+            ->where('status', 1)
+            ->first();
         if ($application && $application->appl_type === 'D') {
 
             $digi_details  = Tnelb_CC_Digitization::where('application_id', $application_id)->first();
@@ -2423,14 +2423,14 @@ class LicensepdfController extends Controller
         }
 
 
-        if($application && $application->appl_type === 'R'){
-            $appltye ='Renewal Application';
-        }else if($application && $application->appl_type === 'N'){
-            $appltye ='New Application';
-        }else if($application && $application->appl_type === 'D'){
-            $appltye ='Digitization Application';
-        }else{
-            $appltye ='Alteration Application';
+        if ($application && $application->appl_type === 'R') {
+            $appltye = 'Renewal Application';
+        } else if ($application && $application->appl_type === 'N') {
+            $appltye = 'New Application';
+        } else if ($application && $application->appl_type === 'D') {
+            $appltye = 'Digitization Application';
+        } else {
+            $appltye = 'Alteration Application';
         }
 
 
@@ -2482,27 +2482,42 @@ class LicensepdfController extends Controller
         $issuedFromFresh = DB::table('tnelb_license as l')
             ->join('tnelb_application_tbl as ta', 'ta.application_id', '=', 'l.application_id')
             ->where('ta.login_id', $application->login_id)
-            ->whereDate('l.expires_at', '>=', Carbon::now()) // valid (not expired)
-            ->select('l.license_number', 'l.issued_at', 'l.expires_at');
+            // ->where('l.license_number', '!=', $applicant->license_number) 
+            ->whereDate('l.expires_at', '>=', Carbon::now())
+            ->select('l.license_number', 'l.issued_at', 'l.expires_at', 'ta.appl_type');
 
         $issuedFromRenewal = DB::table('tnelb_renewal_license as rl')
             ->join('tnelb_application_tbl as ta', 'ta.application_id', '=', 'rl.application_id')
             ->where('ta.login_id', $application->login_id)
-            ->whereDate('rl.expires_at', '>=', Carbon::now()) // valid (not expired)
-            ->select('rl.license_number', 'rl.issued_at', 'rl.expires_at');
+            ->where('rl.license_number', '!=', $applicant->license_number) 
+            ->whereDate('rl.expires_at', '>=', Carbon::now())
+            ->select('rl.license_number', 'rl.issued_at', 'rl.expires_at', 'ta.appl_type');
 
         $certificateList = $issuedFromFresh->union($issuedFromRenewal)->get()->sortByDesc('issued_at')->values();
         $certificateRowsHtml = '';
         foreach ($certificateList as $index => $certificate) {
+
+        if($certificate->appl_type == 'N'){
+            $appltye = 'New';
+
+        }elseif($certificate->appl_type == 'R'){
+             $appltye = 'Renewal';
+        }elseif($certificate->appl_type == 'D'){
+            $appltye = 'Digitization';
+        }else{
+            $appltye = 'Alteration';
+        }
             $isExpired = !empty($certificate->expires_at) && strtotime((string) $certificate->expires_at) < strtotime(date('Y-m-d'));
             $statusInner = $isExpired
                 ? '<div class="st-en">Expired</div><div class="st-ta" lang="ta">காலாவதியானது</div>'
                 : '<div class="st-en">Active</div><div class="st-ta" lang="ta">செயலில்</div>';
             $statusClass = $isExpired ? 'status-expired' : 'status-active';
+            
             $certificateRowsHtml .= '
                         <tr>
                             <td width="6%" align="center">' . ($index + 1) . '</td>
                             <td width="28%">' . $certificate->license_number . '</td>
+                            <td width="28%">' . $appltye . '</td>
                             <td width="20%">' . date('d M Y', strtotime($certificate->issued_at)) . '</td>
                             <td width="20%">' . format_date($certificate->expires_at) . '</td>
                         </tr>';
@@ -2575,7 +2590,7 @@ class LicensepdfController extends Controller
                 line-height: 1.2;
                 margin: 0.12em 0 0 0;
                 padding: 0;
-                font-size: 88%;
+                font-size: 100%;
             }
             .card {
                 border: 1px solid #000; padding: 18px; box-sizing: border-box; width: 100%;
@@ -2586,11 +2601,11 @@ class LicensepdfController extends Controller
             .hdr-stack { margin-bottom: 2mm; }
             .hdr-stack:last-child { margin-bottom: 0; }
             .header-main .bi-en { font-size: 16pt; }
-            .header-main .bi-ta { font-size: 12.5pt; margin-top: 0.12em; font-weight: normal !important; }
+            .header-main .bi-ta { font-size: 16.5pt; margin-top: 0.12em; font-weight: 800 !important; }
             .header-title .bi-en { font-size: 14pt; }
-            .header-title .bi-ta { font-size: 11pt; margin-top: 0.12em; font-weight: normal !important; }
+            .header-title .bi-ta { font-size: 16pt; margin-top: 0.12em; font-weight: 800 !important; }
             .header-sub .bi-en { font-size: 10.5pt; }
-            .header-sub .bi-ta { font-size: 10pt; margin-top: 0.12em; font-weight: normal !important; }
+            .header-sub .bi-ta { font-size: 13pt; margin-top: 0.12em; font-weight: normal !important; }
             .content { font-size: 14pt; }
             .lbl-bi { padding: 0; margin: 0; line-height: 1.2; }
             .lbl-bi .lbl-en {
@@ -2776,22 +2791,39 @@ class LicensepdfController extends Controller
         // var_dump($photoPath);exit;
         $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
 
-         $qc = [];
+        $qc = [];
 
-            if ($application->qc == 1) {
-                $qc[] = 'QC';
-            }
+        if ($application->qc == 1) {
+            $qc[] = 'QC';
+        }
 
-            if ($application->qsc == 1) {
-                $qc[] = 'QSC';
-            }
+        if ($application->qsc == 1) {
+            $qc[] = 'QSC';
+        }
 
-            $qc = !empty($qc) ? implode(' and ', $qc) : '-';
+        $qc = !empty($qc) ? implode(' and ', $qc) : '-';
         // var_dump($photoPath);
         // var_dump($signPath);
         // exit;
 
         $qrValue = 'Tnelb QR Testing';
+
+
+        $oldCertificateRow = '';
+
+        if ($application && $application->appl_type === 'D') {
+            $oldCertificateRow = '
+                    <tr>
+                        <td class="lbl">
+                            <div class="lbl-bi">
+                                <div class="lbl-en">Old Certificate Number</div>
+                                <div class="lbl-ta" lang="ta">பழைய சான்றிதழ் எண்</div>
+                            </div>
+                        </td>
+                        <td class="colon">:</td>
+                        <td class="val">' . $digi_details->ccnumber . '</td>
+                    </tr>';
+        }
 
         $html = '
         <div class="card">
@@ -2810,7 +2842,7 @@ class LicensepdfController extends Controller
                     <div class="bi-en">Thiru Vi. Ka. Industrial Estate, Guindy, Chennai - 600 032.</div>
                     <div class="bi-ta" lang="ta">திரு.வி.கா. தொழிற்சாலை, கிண்டி, சென்னை – 600032.</div>
 
-                    <div class="bi-en"> '. $licence_name->licence_name .'- <span class="bi-ta" style="color:green;">'. $appltye .' </span></div>
+                    <div class="bi-en"> ' . $licence_name->licence_name . '- <span class="bi-ta" style="color:green;">' . $appltye . ' </span></div>
                    
                     
                 </div>
@@ -2832,7 +2864,7 @@ class LicensepdfController extends Controller
                                 </tr>
                                
                                 <tr>
-                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of Issue</div><div class="lbl-ta" lang="ta">வழங்கப்பட்ட தேதி</div></div></td>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of First Issue</div><div class="lbl-ta" lang="ta">வழங்கப்பட்ட தேதி</div></div></td>
                                     <td class="colon">:</td>
                                     <td class="val">' . date('d M Y', strtotime($applicant->issued_at)) . '</td>
                                 </tr>
@@ -2842,15 +2874,11 @@ class LicensepdfController extends Controller
                                     <td class="val">' . format_date($applicant->issued_from) . ' <span class="range-sep-inline"><span class="rs-en">To</span> <span class="rs-ta" lang="ta">வரை</span></span> ' . format_date($applicant->expires_at) . '</td>
                                 </tr>
 
-                                 <tr>
-                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Old Certificate Number</div><div class="lbl-ta" lang="ta">பழைய சான்றிதழ் எண்</div></div></td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . $digi_details->ccnumber . '</td>
-                                </tr>
+                             ' . $oldCertificateRow . '
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en"> QC/QSC Eligiblity </div><div class="lbl-ta" lang="ta">இவரிடம்  QC/QSC உள்ளதா?</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' .$qc . '</td>
+                                    <td class="val">' . $qc . '</td>
                                 </tr>
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
@@ -2885,8 +2913,8 @@ class LicensepdfController extends Controller
                                         <div class="photo-frame">
                                             <div class="photo-inner">
                                             ' . ($photoPath
-                ? '<img src="' . $photoPath . '" style="width:38mm; height:38mm; object-fit:cover; display:block; margin:0 auto;">'
-                : '') . '
+            ? '<img src="' . $photoPath . '" style="width:38mm; height:38mm; object-fit:cover; display:block; margin:0 auto;">'
+            : '') . '
                                             </div>
                                         </div>
                                     </td>
@@ -2903,8 +2931,8 @@ class LicensepdfController extends Controller
                                         <div class="sign-frame">
                                             <div class="sign-inner">
                                             ' . ($signPath
-                ? '<img src="' . $signPath . '" style="width:34mm; height:10mm; object-fit:contain; vertical-align:middle;">'
-                : '<div class="sign-missing"><div class="bi-en">Signature not available</div><div class="bi-ta" lang="ta">கையெழுத்து இல்லை</div></div>') . '
+            ? '<img src="' . $signPath . '" style="width:34mm; height:10mm; object-fit:contain; vertical-align:middle;">'
+            : '<div class="sign-missing"><div class="bi-en">Signature not available</div><div class="bi-ta" lang="ta">கையெழுத்து இல்லை</div></div>') . '
                                             </div>
                                         </div>
                                     </td>
@@ -2941,6 +2969,8 @@ class LicensepdfController extends Controller
                         <tr>
                             <th width="6%"><div class="th-bi"><div class="th-en">#</div><div class="th-ta" lang="ta">எண்</div></div></th>
                             <th width="28%"><div class="th-bi"><div class="th-en">Cert. No.</div><div class="th-ta" lang="ta">சான்றிதழ் எண்</div></div></th>
+                             <th width="28%"><div class="th-bi"><div class="th-en">Type of Application</div><div class="th-ta" lang="ta">விண்ணப்ப வகை</div></div></th>
+
                             <th width="20%"><div class="th-bi"><div class="th-en">Date Of Issue</div><div class="th-ta" lang="ta">வழங்கிய தேதி</div></div></th>
                             <th width="20%"><div class="th-bi"><div class="th-en">Expires On</div><div class="th-ta" lang="ta">காலாவதி தேதி</div></div></th>
                         </tr>
