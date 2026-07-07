@@ -1,6 +1,8 @@
 @if (($editFormName ?? ($application_details->form_name ?? '')) === 'S')
 @php
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
+    $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
+    $isAlterationMode = !empty($isAlterationMode);
 @endphp
 <script>
         (function() {
@@ -9,6 +11,22 @@
             var VOLTAGE_DISABLES_KVA = 'up_to_650v';
             var MAX_WORK_ROWS = 3;
             var TWO_YEARS_MS = 730 * 86400000;
+            var hideUploadWhenDocExists = @json($hideUploadWhenDocExists);
+            var isAlterationMode = @json($isAlterationMode);
+
+            function isAlterationFrozenRow($tr) {
+                return isAlterationMode && $tr.hasClass('fs-alt-existing-work');
+            }
+
+            function applyFrozenSummaryActions($tr, $str) {
+                if (!$str || !$str.length || !isAlterationFrozenRow($tr)) return;
+                $str.addClass('work-exp-summary-tr--frozen');
+                $str.find('.work-row-edit-trigger, .work-row-remove').remove();
+                var $inner = $str.find('.wx-summary-actions-inner');
+                if ($inner.length && !$inner.find('.wx-sum-frozen-label').length) {
+                    $inner.html('<span class="wx-sum-frozen-label">—</span>');
+                }
+            }
 
             function workContainers() {
                 var $multi = $('.js-work-container');
@@ -18,6 +36,19 @@
 
             function allWorkFields() {
                 return workContainers().find('.work-fields');
+            }
+
+            /** §7a previous work only — §7b current work is excluded from the 2-year minimum total. */
+            function workFieldsForTwoYearTotal() {
+                var $prev = $('#work-container-previous .work-fields');
+                if ($prev.length) return $prev;
+                return $('#work-container .work-fields');
+            }
+
+            function workExpTotalMsgEl() {
+                var $prev = $('#work-exp-total-msg-previous');
+                if ($prev.length) return $prev;
+                return $('#work-exp-total-msg');
             }
 
             function workContainerFor(el) {
@@ -38,6 +69,11 @@
                 var $panel = $('#work-exp-summary-panel-' + part);
                 if ($panel.length) return $panel;
                 return $('#work-exp-summary-panel');
+            }
+
+            /** §7b (and similar) keeps the inline form visible — no summary table to collapse into. */
+            function workContainerUsesSummaryPanel($container) {
+                return summaryPanelFor($container).length > 0;
             }
             var EMP_LABEL = {
                 '': 'Select employment type',
@@ -86,9 +122,12 @@
                     $block.append($('<span class="wx-sum-attach-value">').text(naText));
                     return $block;
                 }
-                var blobUrl = summaryFilePreviewUrl($input);
                 var file = ($input[0] && $input[0].files && $input[0].files[0]) ? $input[0].files[0] : null;
                 var isImage = file && file.type && file.type.indexOf('image/') === 0;
+                var blobUrl = summaryFilePreviewUrl($input);
+                if (!blobUrl && file) {
+                    blobUrl = URL.createObjectURL(file);
+                }
                 var existingHref = summaryExistingDocHref($row, label === 'Relieving' ? 'relieve' : 'support');
                 if (blobUrl) {
                     var icon = isImage ? 'fa-image' : 'fa-file-pdf-o';
@@ -247,7 +286,7 @@
             function totalDurationAcrossRows() {
                 var totalMs = 0;
                 var anyFilled = false;
-                allWorkFields().each(function() {
+                workFieldsForTwoYearTotal().each(function() {
                     var $tr = $(this);
                     var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
                     var toStr = effectiveToStr($tr);
@@ -353,7 +392,7 @@
             function updateOverallTotalYears() {
                 var t = totalDurationAcrossRows();
                 /* Legacy banner under the cards (kept for backward compatibility with footer.blade.php). */
-                var $msg = $('#work-exp-total-msg');
+                var $msg = workExpTotalMsgEl();
                 if ($msg.length) {
                     if (!t.hasAny || t.ms >= TWO_YEARS_MS) { $msg.empty(); }
                     else {
@@ -380,7 +419,11 @@
                     if ($count.length) {
                         $count.text('(' + rows + '/' + maxRows + ')');
                     }
-                    $btn.prop('disabled', rows >= maxRows);
+                    var atMax = rows >= maxRows;
+                    var rowsReady = typeof workContainerCanAddRow === 'function'
+                        ? workContainerCanAddRow($container)
+                        : true;
+                    $btn.prop('disabled', atMax || !rowsReady);
                 });
                 if (!$('.add-more-work').length) {
                     var rows = allWorkFields().length;
@@ -423,11 +466,16 @@
                 var $details = $tr.find('.work-board-meeting-details');
                 var $date = $tr.find('.work-board-meeting-date');
                 if (show) {
-                    $details.prop('disabled', false).prop('required', true);
-                    $date.prop('disabled', false).prop('required', true);
+                    $tr.find('.work-board-meeting-placeholder').remove();
+                    $details.attr('name', 'work_board_meeting_details[]').prop('disabled', false).prop('required', true);
+                    $date.attr('name', 'work_board_meeting_date[]').prop('disabled', false).prop('required', true);
                 } else {
-                    $details.val('').prop('disabled', true).prop('required', false);
-                    $date.val('').prop('disabled', true).prop('required', false);
+                    $details.removeAttr('name').val('').prop('disabled', true).prop('required', false);
+                    $date.removeAttr('name').val('').prop('disabled', true).prop('required', false);
+                    if (!$tr.find('.work-board-meeting-placeholder').length) {
+                        $('<input type="hidden" class="work-board-meeting-placeholder" name="work_board_meeting_details[]" value="">').prependTo($tr);
+                        $('<input type="hidden" class="work-board-meeting-placeholder" name="work_board_meeting_date[]" value="">').prependTo($tr);
+                    }
                 }
             }
 
@@ -525,10 +573,16 @@
                     }
                     return false;
                 }
+                if (!workContainerUsesSummaryPanel(workContainerFor($tr))) {
+                    $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                    applyRowLayout($tr);
+                    return true;
+                }
                 $tr.removeClass('work-row--expanded');
                 applyRowLayout($tr);
                 updateRowSummary($tr);
                 syncSummaryTable();
+                updateWorkAddBtn();
                 return true;
             }
 
@@ -549,13 +603,17 @@
             function getSummaryTr($tr) {
                 var $container = workContainerFor($tr);
                 var $tbody = summaryTbodyFor($container);
-                var $str = $tr.data('wxSummaryTr');
-                if ($str && $str.length) return $str;
+                var                 $str = $tr.data('wxSummaryTr');
+                if ($str && $str.length) {
+                    applyFrozenSummaryActions($tr, $str);
+                    return $str;
+                }
                 var rowIdx = $tr.attr('data-row-index');
                 if (rowIdx !== undefined && rowIdx !== '') {
                     var $existing = $tbody.find('.work-exp-summary-tr[data-work-row-index="' + rowIdx + '"]');
                     if ($existing.length) {
                         $tr.data('wxSummaryTr', $existing);
+                        applyFrozenSummaryActions($tr, $existing);
                         return $existing;
                     }
                 }
@@ -580,6 +638,7 @@
                 );
                 $tr.data('wxSummaryTr', $str);
                 $tbody.append($str);
+                applyFrozenSummaryActions($tr, $str);
                 return $str;
             }
 
@@ -730,9 +789,11 @@
                 var relieveNa = isTill ? 'Not required (Till date)' : (isBoardMember ? 'Optional' : null);
                 $attachStack.append(summaryAttachmentBlock('Relieving', $relInput, relieveNa, $tr));
                 $attachCell.append($attachStack);
+                applyFrozenSummaryActions($tr, $str);
             }
 
             function toggleRowExpanded($tr, expand) {
+                if (isAlterationFrozenRow($tr)) return;
                 if (!$tr.hasClass('is-complete')) return;
                 var wasExpanded = $tr.hasClass('work-row--expanded');
                 var shouldExpand = (typeof expand === 'boolean') ? expand : !wasExpanded;
@@ -756,11 +817,28 @@
 
             /** Complete rows switch to compact order-card layout (no status badge in UI). */
             function updateRowStatus($tr) {
+                if (isAlterationFrozenRow($tr)) {
+                    $tr.addClass('is-complete work-row--compact').removeClass('work-row--expanded');
+                    $tr.data('wxWasComplete', true);
+                    applyRowLayout($tr);
+                    updateRowSummary($tr);
+                    syncSummaryTable();
+                    return;
+                }
                 var wasComplete = !!$tr.data('wxWasComplete');
                 var complete = isRowComplete($tr);
+                var useSummary = workContainerUsesSummaryPanel(workContainerFor($tr));
                 $tr.toggleClass('is-complete', complete);
                 if (complete) {
-                    if (!wasComplete) $tr.removeClass('work-row--expanded');
+                    if (!wasComplete) {
+                        if (useSummary) {
+                            $tr.removeClass('work-row--expanded');
+                        } else {
+                            $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                        }
+                    } else if (!useSummary) {
+                        $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                    }
                 } else {
                     $tr.removeClass('work-row--expanded');
                 }
@@ -768,6 +846,7 @@
                 applyRowLayout($tr);
                 updateRowSummary($tr);
                 syncSummaryTable();
+                updateWorkAddBtn();
             }
 
             function hasExistingWorkDoc($row, kind) {
@@ -825,6 +904,19 @@
                     if (!$rel.prop('disabled') && !workInputHasFile($rel)) return false;
                 }
                 return true;
+            }
+
+            /** True when every row in the container is filled — required before adding another. */
+            function workContainerCanAddRow($container) {
+                if (!$container || !$container.length) return false;
+                var canAdd = true;
+                $container.find('.work-fields').each(function() {
+                    if (!isRowComplete($(this))) {
+                        canAdd = false;
+                        return false;
+                    }
+                });
+                return canAdd;
             }
 
             function updateTotalYears($tr) {
@@ -1073,7 +1165,13 @@
                 if (!$row.hasClass('is-complete')) {
                     $row.addClass('is-complete');
                 }
-                $row.removeClass('work-row--expanded');
+                var $container = workContainerFor($row);
+                var hasSummaryTable = summaryTbodyFor($container).length > 0;
+                if (hasSummaryTable) {
+                    $row.removeClass('work-row--expanded');
+                } else {
+                    $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                }
                 applyRowLayout($row);
                 updateRowSummary($row);
                 syncSummaryTable();
@@ -1101,6 +1199,12 @@
                     var $row = $(this);
                     initWorkRow($row);
                     updateTotalYears($row);
+                    if (isAlterationFrozenRow($row)) {
+                        $row.addClass('is-complete work-row--compact').removeClass('work-row--expanded');
+                        updateRowSummary($row);
+                        applyFrozenSummaryActions($row, getSummaryTr($row));
+                        return;
+                    }
                     if (hydrateStoredWorkRow($row)) {
                         return;
                     }
@@ -1116,9 +1220,21 @@
                 }
             });
 
+            function revealWorkUploadAfterRemove($row, kind) {
+                if (!hideUploadWhenDocExists) return;
+                var selector = kind === 'relieve' ? '.work-relieve-input' : '.work-doc-input';
+                var $file = $row.find(selector);
+                $file.closest('.form-s-file-upload-wrap').removeClass('d-none work-upload-hidden-until-remove');
+                $file.prop('disabled', false);
+                var $field = $file.closest('.work-card-field');
+                $field.find('.work-upload-hint-hidden-until-remove').removeClass('d-none');
+            }
+
             $(document).on('click', '.remove-work-doc-confirm', function(e) {
                 e.preventDefault();
                 var $btn = $(this);
+                var $row = $workRow($btn);
+                if (isAlterationFrozenRow($row)) return;
                 Swal.fire({
                     title: 'Do you want to remove the document?',
                     icon: 'warning',
@@ -1138,6 +1254,7 @@
                     if (typeof clearLocalPreview === 'function') {
                         clearLocalPreview($file);
                     }
+                    revealWorkUploadAfterRemove($row, 'support');
                     updateRowSummary($row);
                 });
             });
@@ -1145,6 +1262,8 @@
             $(document).on('click', '.remove-work-relieve-confirm', function(e) {
                 e.preventDefault();
                 var $btn = $(this);
+                var $row = $workRow($btn);
+                if (isAlterationFrozenRow($row)) return;
                 Swal.fire({
                     title: 'Do you want to remove the document?',
                     icon: 'warning',
@@ -1164,6 +1283,7 @@
                     if (typeof clearLocalPreview === 'function') {
                         clearLocalPreview($file);
                     }
+                    revealWorkUploadAfterRemove($row, 'relieve');
                     updateRowSummary($row);
                 });
             });
@@ -1219,17 +1339,25 @@
                 var $tr = $workRow(this);
                 updateRowStatus($tr);
             });
-            /* File-input change also affects "Complete" pill. */
+            /* File-input change also affects "Complete" pill and summary attachments. */
             $(document).on('change', '.js-work-container .work-doc-input, .js-work-container .work-relieve-input, #work-container .work-doc-input, #work-container .work-relieve-input', function() {
                 var $tr = $workRow(this);
                 clearWorkRowUploadErrors($tr);
                 updateRowStatus($tr);
+                /* Preview handlers (page-level) run after this; refresh summary once they finish. */
+                setTimeout(function() {
+                    if ($tr.hasClass('is-complete')) {
+                        updateRowSummary($tr);
+                        syncSummaryTable();
+                    }
+                }, 0);
             });
 
-            $(document).on('click', '#work-exp-summary-tbody .work-row-edit-trigger', function(e) {
+            $(document).on('click', '.work-exp-summary-panel .work-row-edit-trigger', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 var $wf = workRowFromSummaryTr($(this).closest('.work-exp-summary-tr'));
+                if ($wf && $wf.length && isAlterationFrozenRow($wf)) return;
                 if ($wf && $wf.length) toggleRowExpanded($wf, true);
             });
 
@@ -1237,18 +1365,23 @@
             $(document).on('click', '.js-work-container .work-row-head, #work-container .work-row-head', function(e) {
                 if ($(e.target).closest('.work-row-remove, .remove-work').length) return;
                 var $tr = $workRow(this);
+                if (isAlterationFrozenRow($tr)) return;
                 if (!$tr.hasClass('is-complete')) return;
                 toggleRowExpanded($tr);
             });
             $(document).on('click', '.js-work-container .work-row-edit-trigger, #work-container .work-row-edit-trigger', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleRowExpanded($workRow(this), true);
+                var $tr = $workRow(this);
+                if (isAlterationFrozenRow($tr)) return;
+                toggleRowExpanded($tr, true);
             });
             $(document).on('click', '.js-work-container .work-row-toggle-btn, #work-container .work-row-toggle-btn', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleRowExpanded($workRow(this));
+                var $tr = $workRow(this);
+                if (isAlterationFrozenRow($tr)) return;
+                toggleRowExpanded($tr);
             });
             $(document).on('click', '.js-work-container .work-row-done-btn, #work-container .work-row-done-btn', function(e) {
                 e.preventDefault();
@@ -1270,6 +1403,10 @@
                         showSectionError('You can add a maximum of ' + maxRows + ' work experience entries.');
                         return;
                     }
+                    if (!workContainerCanAddRow($(container))) {
+                        showSectionError('Complete the current work experience entry before adding another row.');
+                        return;
+                    }
                     var firstBlock = container.querySelector('.work-entry-block');
                     var first = container.querySelector('.work-fields');
                     if (!first) {
@@ -1285,6 +1422,12 @@
                     }
                     if (!newRow) return;
                     var isCurrent = (container.getAttribute('data-work-part') || '') === 'current';
+                    /* Alteration: cloned rows must not inherit parent frozen/read-only state. */
+                    if (isAlterationMode) {
+                        newRow.classList.remove('fs-alt-existing-work');
+                        var altExistingFlag = newRow.querySelector('input[name="fs_alt_existing_work[]"]');
+                        if (altExistingFlag) altExistingFlag.remove();
+                    }
                     /* Blank the clone before appending. */
                     newRow.classList.remove('is-collapsed', 'is-complete', 'work-row--compact', 'work-row--expanded', 'work-row--in-summary');
                     $(newRow).removeData('wxSummaryTr');
@@ -1318,6 +1461,14 @@
                     var removedDoc = newRow.querySelector('input[name="removed_document_work[]"]'); if (removedDoc) removedDoc.value = '0';
                     var removedRel = newRow.querySelector('input[name="removed_document_work_relieving[]"]'); if (removedRel) removedRel.value = '0';
                     newRow.querySelectorAll('.work-doc-existing, .work-relieve-existing').forEach(function(el) { el.remove(); });
+                    if (hideUploadWhenDocExists) {
+                        newRow.querySelectorAll('.work-upload-hidden-until-remove').forEach(function(el) {
+                            el.classList.remove('d-none', 'work-upload-hidden-until-remove');
+                        });
+                        newRow.querySelectorAll('.work-upload-hint-hidden-until-remove').forEach(function(el) {
+                            el.classList.remove('d-none', 'work-upload-hint-hidden-until-remove');
+                        });
+                    }
                     var removeBtn = newRow.querySelector('.remove_exp');
                     if (removeBtn) {
                         removeBtn.classList.remove('remove_exp');
@@ -1332,14 +1483,28 @@
                     if (!newRoot.classList.contains('work-entry-block')) {
                         ensureWorkEntryBlock($(newRow));
                     }
+                    refreshWorkSerials();
                     bindWorkRowDateDisplay(newRow);
                     initWorkRow($(newRow));
+                    if (isAlterationMode) {
+                        var $newRow = $(newRow);
+                        $newRow.removeClass('is-complete work-row--compact work-row--in-summary fs-alt-existing-work')
+                            .addClass('work-row--expanded')
+                            .removeData('wxWasComplete wxSummaryTr');
+                        $newRow.find('input[name="fs_alt_existing_work[]"]').remove();
+                        $newRow.find('input, textarea, select, button')
+                            .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
+                            .prop('disabled', false)
+                            .prop('readonly', false);
+                        applyRowLayout($newRow);
+                    }
                     if (isCurrent && till && till.checked) {
                         applyTillDate($(newRow));
                     }
                     refreshWorkSerials();
                     syncSummaryTable();
                     updateOverallTotalYears();
+                    updateWorkAddBtn();
                     var scrollEl = newRoot.classList.contains('work-entry-block') ? newRoot : newRow;
                     scrollEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     return;
@@ -1348,6 +1513,7 @@
                 if (e.target.closest('.remove-work')) {
                     e.preventDefault();
                     var card = e.target.closest('.work-fields');
+                    if (card && isAlterationFrozenRow($(card))) return;
                     var container = card ? card.closest('.js-work-container, #work-container') : null;
                     if (!container) {
                         var $summaryTr = $(e.target).closest('.work-exp-summary-tr');
@@ -1405,7 +1571,17 @@
                 return form === 'S' && (appl === 'N' || appl === 'R');
             }
 
+            window.isFormS7bBoardGateYes = function() {
+                if (!$('#fs-7b-root').length) {
+                    return false;
+                }
+                return ($('input[name="current_work_board_member"]:checked').val() || 'no').toLowerCase() === 'yes';
+            };
+
             window.wxHasBoardMemberWorkRow = function() {
+                if (!window.isFormS7bBoardGateYes()) {
+                    return false;
+                }
                 var $rows = $('.js-work-container[data-work-part="current"] .work-fields');
                 if (!$rows.length) {
                     $rows = allWorkFields();
@@ -1420,6 +1596,12 @@
                 });
                 return found;
             };
+
+            $(document).on('change', 'input[name="current_work_board_member"]', function () {
+                if (($(this).val() || '').toLowerCase() === 'no') {
+                    $('#work-container-current .error-message.d-block.mt-1').remove();
+                }
+            });
 
             function setFeeNotice(exempt) {
                 var $notice = $('#board-member-fee-notice');

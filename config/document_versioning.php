@@ -1,6 +1,15 @@
 <?php
 
 return [
+    /**
+     * When true, competency form uploads use documents_log + private FORM_* storage
+     * instead of public education_document / work_experience / attached_documents paths.
+     */
+    'production_enabled' => env('DOCUMENT_VERSIONING_PRODUCTION', true),
+
+    /** Competency form codes (tnelb_application_tbl.form_name) using versioned storage. */
+    'versioned_form_codes' => ['S', 'W', 'WH'],
+
     'approval_levels' => [
         1 => ['label' => 'Supervisor', 'role' => 'supervisor'],
     ],
@@ -10,12 +19,16 @@ return [
         'experience_doc' => 'Experience Certificate',
         'identity' => 'Identity Document',
         'supporting' => 'Supporting Document',
+        'photo' => 'Applicant Photo',
+        'signature' => 'Applicant Signature',
     ],
 
     'module_types' => [
         'application' => 'Application Level',
         'education' => 'Education Record',
         'experience' => 'Experience Record',
+        'photo' => 'Applicant Photo',
+        'signature' => 'Applicant Signature',
     ],
 
     'disk' => 'private_documents',
@@ -47,6 +60,8 @@ return [
         'experience_doc' => 'EXPERIENCE',
         'identity' => 'META',
         'supporting' => 'QC_QSC',
+        'photo' => 'PHOTO',
+        'signature' => 'SIGNATURE',
     ],
 
     'file_type_codes' => [
@@ -54,6 +69,8 @@ return [
         'experience_doc' => 'EXP',
         'identity' => 'META',
         'supporting' => 'QSC',
+        'photo' => 'PHOTO',
+        'signature' => 'SIGN',
     ],
 
     'max_file_size_kb' => 5120,

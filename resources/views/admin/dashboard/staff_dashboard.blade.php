@@ -190,6 +190,7 @@
                                             $newHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'N']);
                                             $renewHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'R']);
                                             $digiHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'D']);
+                                            $altHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'A']);
                                             }
                                             @endphp
                                             <a href="{{ $newHref }}" class="badge rounded-pill bg-white text-dark px-2 px-sm-3 py-1 py-sm-2 d-inline-flex align-items-center gap-1 shadow-sm text-decoration-none">
@@ -205,6 +206,13 @@
                                                 <span class="small fw-semibold text-uppercase">Digitization</span>
                                                 <span class="badge rounded-pill {{ ($summary['digi_count'] ?? 0) > 0 ? 'bg-success text-white' : 'bg-secondary text-white' }}">
                                                     {{ $summary['digi_count'] ?? 0 }}
+                                                </span>
+                                            </a>
+
+                                            <a href="{{ $altHref ?? route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'A']) }}" class="badge rounded-pill bg-white text-dark px-2 px-sm-3 py-1 py-sm-2 d-inline-flex align-items-center gap-1 shadow-sm text-decoration-none">
+                                                <span class="small fw-semibold text-uppercase">Alteration</span>
+                                                <span class="badge rounded-pill {{ ($summary['alteration_count'] ?? 0) > 0 ? 'bg-success text-white' : 'bg-secondary text-white' }}">
+                                                    {{ $summary['alteration_count'] ?? 0 }}
                                                 </span>
                                             </a>
 

@@ -139,6 +139,45 @@
         background: var(--asp-primary);
     }
 
+    /* ---------- Alteration highlights (Form S / W alteration requests) ---------- */
+    .applicant-supervisor-page .asp-alteration-summary {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        color: var(--asp-ink);
+    }
+    .applicant-supervisor-page .asp-alteration-summary strong {
+        color: #b45309;
+    }
+    .applicant-supervisor-page .asp-alteration-summary ul {
+        margin: 0.35rem 0 0;
+        padding-left: 1.15rem;
+    }
+    .applicant-supervisor-page td.asp-alteration-highlight {
+        background: #fffbeb;
+        box-shadow: inset 3px 0 0 #f59e0b;
+    }
+    .applicant-supervisor-page .wx-alter-badge,
+    .applicant-supervisor-page .asp-alter-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.1rem 0.45rem;
+        border-radius: 4px;
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #f59e0b;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        vertical-align: middle;
+    }
+    .applicant-supervisor-page .wx-alteration-alter-row > td {
+        background: #fffbeb !important;
+        box-shadow: inset 3px 0 0 #f59e0b;
+    }
+
     /* ---------- Personal details mini-table ---------- */
     .applicant-supervisor-page .home-tab-pane .table-sm tbody td {
         padding: 0.45rem 0.5rem;
@@ -214,6 +253,64 @@
     }
     .applicant-supervisor-page .work-exp-admin-readonly .wx-summary-table-wrap {
         overflow-x: auto;
+    }
+    .applicant-supervisor-page .board-member-qa-block {
+        margin-top: 1.1rem;
+    }
+    .applicant-supervisor-page .board-member-qa-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.35rem;
+    }
+    .applicant-supervisor-page .board-member-qa-head .asp-section-title {
+        margin: 0;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .applicant-supervisor-page .board-member-detail-wrap {
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .applicant-supervisor-page .board-member-detail-alter-flag {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.35rem;
+    }
+    .applicant-supervisor-page .board-member-detail-table {
+        margin-bottom: 0;
+        border: none;
+    }
+    .applicant-supervisor-page .board-member-detail-table tbody th,
+    .applicant-supervisor-page .board-member-detail-table tbody td {
+        border: none !important;
+    }
+    .applicant-supervisor-page .board-member-detail-table tbody th {
+        width: 34%;
+        min-width: 180px;
+        padding: 0.45rem 0.5rem 0.45rem 0;
+        vertical-align: top;
+        line-height: 1.35;
+        background: transparent;
+        border: none;
+        color: var(--asp-ink-soft);
+        font-weight: 600;
+        font-size: 0.86rem;
+        white-space: normal;
+        word-break: normal;
+    }
+    .applicant-supervisor-page .board-member-detail-table tbody td {
+        padding: 0.45rem 0.5rem;
+        vertical-align: top;
+        line-height: 1.45;
+        background: transparent;
+        border: none;
+        color: var(--asp-ink);
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
     .applicant-supervisor-page .wx-overall-exp-row td {
         background: #f8fafc;
@@ -585,6 +682,9 @@
                                         <strong>D.O.B:</strong> <span>{{ format_date($applicant->d_o_b) }} &middot; {{ $applicant->age }} yrs</span>
                                         <strong>Email:</strong> <span>{{ !empty($applicant->applicant_email) ? e($applicant->applicant_email) : '—' }}</span>
                                         <strong>Applied For:</strong> <span>FORM {{ $applicant->form_name }} &middot; License {{ $applicant->license_name }}</span>
+                                        @if($applicant->appl_type == 'A' && !empty($applicant->old_application))
+                                        <strong>Parent Application:</strong> <span>{{ $applicant->old_application }}</span>
+                                        @endif
                                     </h4>
                                 </div>
                                  @if($applicant->appl_type =='D')
@@ -703,6 +803,37 @@
 
                                 <div class="tab-content tab-table" id="myTabContent">
                                     <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+                                        @php
+                                            $isAlterationApp = ($applicant->appl_type ?? '') === 'A';
+                                            $parentForAlter = $parentApplicantForAlter ?? null;
+                                            $nameAltered = $isAlterationApp && $parentForAlter
+                                                && trim((string) ($applicant->applicant_name ?? '')) !== trim((string) ($parentForAlter->applicant_name ?? ''));
+                                            $addressAltered = $isAlterationApp && $parentForAlter
+                                                && trim((string) ($applicant->applicants_address ?? '')) !== trim((string) ($parentForAlter->applicants_address ?? ''));
+                                            $hasAlteredWork = $isAlterationApp && ($workExperience ?? collect())->contains(function ($row) {
+                                                return !empty($row->is_alteration_new);
+                                            });
+                                            $hasAlterationProofs = $isAlterationApp && ($alterationProofs ?? collect())->isNotEmpty();
+                                        @endphp
+                                        @if($isAlterationApp && ($nameAltered || $addressAltered || $hasAlteredWork || $hasAlterationProofs))
+                                        <div class="asp-alteration-summary mt-3 mb-2">
+                                            <strong>Altered in this request</strong>
+                                            <ul class="mb-0">
+                                                @if($nameAltered)
+                                                    <li>Applicant name <span class="asp-alter-badge">ALTER</span></li>
+                                                @endif
+                                                @if($addressAltered)
+                                                    <li>Address <span class="asp-alter-badge">ALTER</span></li>
+                                                @endif
+                                                @if($hasAlteredWork)
+                                                    <li>Work experience or board member details — see sections marked <span class="asp-alter-badge">ALTER</span> below</li>
+                                                @endif
+                                                @if($hasAlterationProofs)
+                                                    <li>Supporting documents uploaded for name/address change</li>
+                                                @endif
+                                            </ul>
+                                        </div>
+                                        @endif
                                         <div class="row mt-3 ">
                                             <div class="row">
                                                 <!-- Left Side: Applicant Details -->
@@ -716,7 +847,15 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">Applicant Name :</td>
-                                                                    <td>{{ $applicant->applicant_name }}</td>
+                                                                    <td class="{{ $nameAltered ? 'asp-alteration-highlight' : '' }}">
+                                                                        {{ $applicant->applicant_name }}
+                                                                        @if($nameAltered)
+                                                                            <span class="asp-alter-badge ms-1">ALTER</span>
+                                                                            @if($parentForAlter && trim((string) ($parentForAlter->applicant_name ?? '')) !== '')
+                                                                                <div class="text-muted small mt-1">Previously: {{ $parentForAlter->applicant_name }}</div>
+                                                                            @endif
+                                                                        @endif
+                                                                    </td>
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">Father's Name :</td>
@@ -724,8 +863,14 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold align-top">Address :</td>
-                                                                    <td style="white-space: normal; word-break: break-word;">
+                                                                    <td class="{{ $addressAltered ? 'asp-alteration-highlight' : '' }}" style="white-space: normal; word-break: break-word;">
                                                                         {{ $applicant->applicants_address }}
+                                                                        @if($addressAltered)
+                                                                            <span class="asp-alter-badge ms-1">ALTER</span>
+                                                                            @if($parentForAlter && trim((string) ($parentForAlter->applicants_address ?? '')) !== '')
+                                                                                <div class="text-muted small mt-1">Previously: {{ $parentForAlter->applicants_address }}</div>
+                                                                            @endif
+                                                                        @endif
                                                                     </td>
                                                                 </tr>
                                                                 <tr>
@@ -753,13 +898,16 @@
                                                         $photo = $uploadedPhoto ?? $applicant_photo ?? null;
                                                         $photoPath = $photo && !empty($photo->upload_path) ? $photo->upload_path : null;
                                                         $signPath = !empty($uploadedSign?->uploaded_doc) ? $uploadedSign->uploaded_doc : null;
+                                                        $photoUrl = !empty($photo?->media_url)
+                                                            ? $photo->media_url
+                                                            : ($photoPath ? competency_media_url($photoPath) : null);
+                                                        $signUrl = !empty($uploadedSign?->media_url)
+                                                            ? $uploadedSign->media_url
+                                                            : ($signPath ? competency_media_url($signPath) : null);
                                                     @endphp
-                                                    @php
-                                                        //var_dump($photo->upload_path);die;
-                                                    @endphp
-                                                    @if($photoPath)
+                                                    @if($photoUrl)
                                                         <div class="asp-photo-frame">
-                                                            <img src="{{ asset($photoPath) }}"
+                                                            <img src="{{ $photoUrl }}"
                                                                  alt="Applicant Photo"
                                                                  class="img-fluid"
                                                                  style="width: 140px; height: 180px; object-fit: cover;"
@@ -771,9 +919,9 @@
                                                     @endif
 
                                                     <div class="mt-3">
-                                                        @if($signPath)
+                                                        @if($signUrl)
                                                             <div class="asp-signature-frame">
-                                                                <img src="{{ asset($signPath) }}"
+                                                                <img src="{{ $signUrl }}"
                                                                      alt="Applicant Signature"
                                                                      class="img-fluid"
                                                                      style="width: 110px; height: 50px; object-fit: contain; background: #fff;"
@@ -786,6 +934,37 @@
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            @if($applicant->appl_type == 'A' && ($alterationProofs ?? collect())->isNotEmpty())
+                                            <h6 class="asp-section-title mt-3">Alteration Supporting Documents</h6>
+                                            <div class="applicant-detail-table-wrap mb-3">
+                                                <table class="table table-sm table-bordered applicant-detail-compact-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Document</th>
+                                                            <th>View</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($alterationProofs as $proof)
+                                                        <tr>
+                                                            <td>{{ $proof->label ?? 'Supporting proof' }}</td>
+                                                            <td>
+                                                                @if(!empty($proof->url))
+                                                                    <a href="{{ $proof->url }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary">
+                                                                        <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                        <span>View Document</span>
+                                                                    </a>
+                                                                @else
+                                                                    <span class="text-muted small">—</span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            @endif
 
                                             <h6 class="asp-section-title">Educational Qualifications</h6>
                                             <div class="applicant-detail-table-wrap">
@@ -842,16 +1021,27 @@
                                                                 @endif
                                                             </td>
                                                             <td class="col-doc">
-                                                                @if(!empty($education->upload_document))
+                                                                @if(!empty($education->upload_document) || !empty($education->document_url))
                                                                     @php
-                                                                        $fileExtension = strtolower(pathinfo($education->upload_document ?? 'unknown.pdf', PATHINFO_EXTENSION));
+                                                                        $eduDocUrl = $education->document_url
+                                                                            ?? competency_document_url(
+                                                                                $education->upload_document ?? null,
+                                                                                'education',
+                                                                                (int) ($education->id ?? 0),
+                                                                                'certificate',
+                                                                                array_filter([
+                                                                                    (int) ($formSWorkflowAppPk ?? 0),
+                                                                                    (int) ($formSMasterWorkflowAppPk ?? 0),
+                                                                                ])
+                                                                            );
+                                                                        $fileExtension = strtolower(pathinfo($education->upload_document ?? 'document.pdf', PATHINFO_EXTENSION));
                                                                     @endphp
-                                                                    @if(\in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'], true))
-                                                                        <a href="{{ url($education->upload_document) }}" target="_blank" rel="noopener noreferrer" title="View image">
-                                                                            <img src="{{ url($education->upload_document) }}" alt="" class="doc-thumb">
+                                                                    @if($eduDocUrl && \in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'], true))
+                                                                        <a href="{{ $eduDocUrl }}" target="_blank" rel="noopener noreferrer" title="View image">
+                                                                            <img src="{{ $eduDocUrl }}" alt="" class="doc-thumb">
                                                                         </a>
-                                                                    @elseif($fileExtension === 'pdf')
-                                                                        <a href="{{ url($education->upload_document) }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary" title="View document">
+                                                                    @elseif($eduDocUrl)
+                                                                        <a href="{{ $eduDocUrl }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary" title="View document">
                                                                             <i class="fa fa-file-pdf-o text-danger"></i>
                                                                             <span>View Document</span>
                                                                         </a>
@@ -875,6 +1065,9 @@
                                             @if (in_array(($applicant->form_name ?? ''), ['S', 'W'], true))
                                                 @php $isFormS = (($applicant->form_name ?? '') === 'S'); @endphp
                                                 <h6 class="asp-section-title">Work Experience</h6>
+                                                @if($applicant->appl_type == 'A')
+                                                    <p class="text-muted small mb-2">Existing experience from the parent certificate is shown below. Rows marked <span class="asp-alter-badge">ALTER</span> were added or changed in this alteration request.</p>
+                                                @endif
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
                                                 @else
@@ -1217,7 +1410,7 @@
                                                         <p><strong>Application Type</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->appl_type == 'R'?'Renewal Application':'New Application' }}</p>
+                                                        <p>{{ $applicant->appl_type == 'R' ? 'Renewal Application' : ($applicant->appl_type == 'D' ? 'Digitization Application' : ($applicant->appl_type == 'A' ? 'Alteration Application' : 'New Application')) }}</p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong>Application Fees</strong></p>

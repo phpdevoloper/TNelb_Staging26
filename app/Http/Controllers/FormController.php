@@ -28,6 +28,9 @@ use App\Helpers\RoleHelper;
 use App\Services\ReturnedApplicationEditScope;
 use App\Services\ReturnedApplicationPayloadMerge;
 use App\Services\CcDigitizationLinkService;
+use App\Services\FormS\FormSDocumentUploadHandler;
+use App\Services\FormS\FormSApplicationWorkflowService;
+use Illuminate\Http\UploadedFile;
 
 class FormController extends BaseController
 {
@@ -58,6 +61,204 @@ class FormController extends BaseController
         return in_array($formName, ['S', 'W', 'WH', 'P'], true);
     }
 
+    private function formSDocumentHandler(): FormSDocumentUploadHandler
+    {
+        return app(FormSDocumentUploadHandler::class);
+    }
+
+    private function formSMasterApplicationId(Mst_Form_s_w $workflowForm): string
+    {
+        return app(FormSApplicationWorkflowService::class)
+            ->masterApplication($workflowForm)
+            ->application_id;
+    }
+
+    private function resolveFormSMasterApplicationId(Mst_Form_s_w $workflowForm, ?string $formName): string
+    {
+        if ($this->formSDocumentHandler()->usesVersionedStorage($formName)) {
+            return $this->formSMasterApplicationId($workflowForm);
+        }
+
+        return $workflowForm->application_id;
+    }
+
+    /**
+     * @return array{path: ?string, pending_file: ?UploadedFile}
+     */
+    private function resolveEducationDocumentForSave(
+        Request $request,
+        $key,
+        ?Mst_Form_s_w $workflowForm,
+        ?string $formName,
+        ?Mst_education $existingEducation,
+        bool $isFileRemoved
+    ): array {
+        $directFile = $request->file("education_document.$key");
+        $file = ($directFile && $directFile->isValid()) ? $directFile : null;
+        if (!$file && isset($request->file('education_document')[$key])) {
+            $candidate = $request->file('education_document')[$key];
+            if ($candidate && $candidate->isValid()) {
+                $file = $candidate;
+            }
+        }
+
+        if ($isFileRemoved && !$file) {
+            return ['path' => null, 'pending_file' => null];
+        }
+
+        if ($file && $workflowForm && $this->formSDocumentHandler()->usesVersionedStorage($formName)) {
+            return ['path' => $existingEducation?->upload_document, 'pending_file' => $file];
+        }
+
+        if ($file) {
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('education_document'), $filename);
+
+            return ['path' => 'education_document/' . $filename, 'pending_file' => null];
+        }
+
+        if (!empty($request->existing_document[$key] ?? null)
+            && $this->isValidCompetencyAjaxDocPath($request->existing_document[$key], 'education')) {
+            return ['path' => $request->existing_document[$key], 'pending_file' => null];
+        }
+
+        return ['path' => $existingEducation?->upload_document, 'pending_file' => null];
+    }
+
+    private function applyPendingFormSEducationUpload(
+        Request $request,
+        $key,
+        Mst_Form_s_w $workflowForm,
+        Mst_education $education,
+        UploadedFile $file
+    ): ?string {
+        $reasons = $request->input('education_replacement_reason');
+        $reason = is_array($reasons)
+            ? ($reasons[$key] ?? null)
+            : $request->input('education_replacement_reason.' . $key);
+
+        return $this->formSDocumentHandler()->handleEducationUpload(
+            $workflowForm,
+            $education,
+            $file,
+            $reason
+        );
+    }
+
+    private function seedFormSDocumentsIfRenewal(Mst_Form_s_w $workflowForm, ?string $formName): void
+    {
+        if (!$this->formSDocumentHandler()->usesVersionedStorage($formName)) {
+            return;
+        }
+
+        $this->formSDocumentHandler()->seedCarriedForwardIfRenewal($workflowForm);
+    }
+
+    private function saveApplicantPhotoUpload(
+        Request $request,
+        Mst_Form_s_w $workflowForm,
+        string $loginId,
+        string $applicationId,
+        ?string $formName
+    ): void {
+        if (!$request->hasFile('upload_photo')) {
+            return;
+        }
+
+        $photoFile = $request->file('upload_photo');
+        if (!$photoFile->isValid()) {
+            throw new \RuntimeException('Photo upload failed: ' . $photoFile->getErrorMessage());
+        }
+
+        $sizeKb = $photoFile->getSize() / 1024;
+        if ($sizeKb > 50) {
+            throw new \RuntimeException('Photo size permitted up to 50 KB.');
+        }
+
+        TnelbApplicantPhoto::updateOrCreate(
+            ['application_id' => $applicationId],
+            [
+                'login_id' => $loginId,
+                'upload_path' => $this->storeApplicantPhotoFile($workflowForm, $photoFile, $formName),
+            ]
+        );
+    }
+
+    private function saveApplicantSignatureUpload(
+        Request $request,
+        Mst_Form_s_w $workflowForm,
+        string $loginId,
+        string $applicationId,
+        ?string $formName
+    ): void {
+        if (!$request->hasFile('upload_sign')) {
+            return;
+        }
+
+        $signFile = $request->file('upload_sign');
+        if (!$signFile->isValid()) {
+            throw new \RuntimeException('Signature upload failed: ' . $signFile->getErrorMessage());
+        }
+
+        $sizeKb = $signFile->getSize() / 1024;
+        if ($sizeKb > 50) {
+            throw new \RuntimeException('Signature size permitted up to 50 KB.');
+        }
+
+        TnelbApplicantsSign::updateOrCreate(
+            ['application_id' => $applicationId],
+            [
+                'login_id' => $loginId,
+                'uploaded_doc' => $this->storeApplicantSignatureFile($workflowForm, $signFile, $formName),
+            ]
+        );
+    }
+
+    private function storeApplicantPhotoFile(
+        Mst_Form_s_w $workflowForm,
+        UploadedFile $photoFile,
+        ?string $formName
+    ): string {
+        if ($this->formSDocumentHandler()->usesVersionedStorage($formName)) {
+            $path = $this->formSDocumentHandler()->handlePhotoUpload($workflowForm, $photoFile);
+            if ($path) {
+                return $path;
+            }
+
+            throw new \RuntimeException('Failed to store applicant photo.');
+        }
+
+        $photoName = 'user_' . time() . '.' . $photoFile->getClientOriginalExtension();
+        $photoFile->move(public_path('attached_documents'), $photoName);
+
+        return 'attached_documents/' . $photoName;
+    }
+
+    private function storeApplicantSignatureFile(
+        Mst_Form_s_w $workflowForm,
+        UploadedFile $signFile,
+        ?string $formName
+    ): string {
+        if ($this->formSDocumentHandler()->usesVersionedStorage($formName)) {
+            $path = $this->formSDocumentHandler()->handleSignatureUpload($workflowForm, $signFile);
+            if ($path) {
+                return $path;
+            }
+
+            throw new \RuntimeException('Failed to store applicant signature.');
+        }
+
+        $signDestination = public_path('attached_documents');
+        if (!is_dir($signDestination)) {
+            throw new \RuntimeException('Signature upload folder "public/attached_documents" does not exist. Please contact the administrator.');
+        }
+
+        $signName = 'sign_' . time() . '.' . $signFile->getClientOriginalExtension();
+        $signFile->move($signDestination, $signName);
+
+        return 'attached_documents/' . $signName;
+    }
+
     private function formErrorResponse(\Throwable $e, string $message = 'Something went wrong. Please try again!', int $status = 500)
     {
         Log::error($message, [
@@ -73,9 +274,18 @@ class FormController extends BaseController
 
     private const FORM_S_BOARD_MEMBER_EMP_TYPE = 'board_member_tnelb';
 
-    private function requestHasFormSBoardMemberWorkExperience(Request $request): bool
+    private function isFormSBoardMemberSwitchYes(Request $request): bool
     {
         if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+            return false;
+        }
+
+        return strtolower(trim((string) $request->input('current_work_board_member', 'no'))) === 'yes';
+    }
+
+    private function requestHasFormSBoardMemberWorkExperience(Request $request): bool
+    {
+        if (! $this->isFormSBoardMemberSwitchYes($request)) {
             return false;
         }
 
@@ -109,7 +319,7 @@ class FormController extends BaseController
      */
     private function validateFormSBoardMemberWorkRows(Request $request): ?string
     {
-        if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+        if (! $this->isFormSBoardMemberSwitchYes($request)) {
             return null;
         }
 
@@ -349,8 +559,14 @@ class FormController extends BaseController
         $key,
         ?Mst_experience $existing,
         bool $supportRemoved,
-        bool $relieveRemoved
+        bool $relieveRemoved,
+        ?Mst_Form_s_w $workflowForm = null,
+        ?string $formName = null
     ): array {
+        $useVersioned = $workflowForm
+            && $this->formSDocumentHandler()->usesVersionedStorage($formName);
+        $pendingSupportUpload = null;
+
         $support = null;
         $existingSupport = $request->existing_work_document[$key] ?? null;
         if (! $supportRemoved && $existingSupport !== null && $existingSupport !== ''
@@ -360,9 +576,16 @@ class FormController extends BaseController
         if (isset($request->file('work_document')[$key])) {
             $file = $request->file('work_document')[$key];
             if ($file && $file->isValid()) {
-                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
-                $file->move(public_path('work_experience'), $filename);
-                $support = 'work_experience/'.$filename;
+                if ($useVersioned) {
+                    $pendingSupportUpload = $file;
+                    if ($support === null && $existing !== null && ! $supportRemoved) {
+                        $support = $existing->support_document ?? $existing->upload_document;
+                    }
+                } else {
+                    $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+                    $file->move(public_path('work_experience'), $filename);
+                    $support = 'work_experience/'.$filename;
+                }
             }
         }
         if ($support === null && $existing !== null && ! $supportRemoved) {
@@ -390,20 +613,28 @@ class FormController extends BaseController
         return [
             'support_document' => $supportRemoved ? null : $support,
             'releive_document' => $relieveRemoved ? null : $relieve,
+            'pending_support_upload' => $pendingSupportUpload,
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
-    private function optionalExpSerialPayload(int &$lastExpSerialNum): array
-    {
-        if (! Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
-            return [];
-        }
-        $lastExpSerialNum++;
+    private function applyPendingFormSExperienceSupportUpload(
+        Request $request,
+        $key,
+        Mst_Form_s_w $workflowForm,
+        Mst_experience $experience,
+        UploadedFile $file
+    ): ?string {
+        $reasons = $request->input('experience_replacement_reason');
+        $reason = is_array($reasons)
+            ? ($reasons[$key] ?? null)
+            : $request->input('experience_replacement_reason.' . $key);
 
-        return ['exp_serial' => 'exp_'.$lastExpSerialNum];
+        return $this->formSDocumentHandler()->handleExperienceSupportUpload(
+            $workflowForm,
+            $experience,
+            $file,
+            $reason
+        );
     }
 
     private function mapWorkExperienceRow(Request $request, $key, ?string $formName): array
@@ -430,8 +661,12 @@ class FormController extends BaseController
         $fromDate = trim((string) ($request->work_date_from[$key] ?? ''));
         $toDate = trim((string) ($request->work_date_to[$key] ?? ''));
         $intimationDate = trim((string) ($request->work_intimation_date[$key] ?? ''));
-        $boardMeetingDetails = $isFormS ? trim((string) ($request->work_board_meeting_details[$key] ?? '')) : '';
-        $boardMeetingDate = $isFormS ? trim((string) ($request->work_board_meeting_date[$key] ?? '')) : '';
+        $boardMeetingDetails = '';
+        $boardMeetingDate = '';
+        if ($isFormS && strtolower($empType) === self::FORM_S_BOARD_MEMBER_EMP_TYPE) {
+            $boardMeetingDetails = trim((string) ($request->work_board_meeting_details[$key] ?? ''));
+            $boardMeetingDate = trim((string) ($request->work_board_meeting_date[$key] ?? ''));
+        }
 
         $natureWork = $isFormS ? trim((string) ($request->work_nature_of_work[$key] ?? '')) : '';
         $voltageLevel = $isFormS ? trim((string) ($request->work_voltage_level[$key] ?? '')) : '';
@@ -501,10 +736,15 @@ class FormController extends BaseController
         string $loginId,
         string $applicationId,
         array $workRow,
-        int &$lastExpSerialNum,
         array &$claimedWorkIds,
-        bool $requireAllFields = true
+        bool $requireAllFields = true,
+        ?Mst_Form_s_w $workflowForm = null,
+        ?string $formName = null
     ): void {
+        $masterApplicationId = $workflowForm
+            ? $this->resolveFormSMasterApplicationId($workflowForm, $formName)
+            : $applicationId;
+
         $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? '';
         $expYears = $workRow['experience'];
         $designation = $workRow['designation'];
@@ -519,7 +759,7 @@ class FormController extends BaseController
 
         $workId = trim((string) ($request->work_id[$key] ?? ''));
         $work = ($workId !== '') ? Mst_experience::find($workId) : null;
-        if ($work && (string) $work->application_id !== (string) $applicationId) {
+        if ($work && (string) $work->application_id !== (string) $masterApplicationId) {
             $work = null;
         }
 
@@ -527,7 +767,15 @@ class FormController extends BaseController
         $relieveRemoved = isset($request->removed_document_work_relieving[$key])
             && $request->removed_document_work_relieving[$key] == '1';
 
-        $documents = $this->resolveWorkRowDocuments($request, $key, $work, $supportRemoved, $relieveRemoved);
+        $documents = $this->resolveWorkRowDocuments(
+            $request,
+            $key,
+            $work,
+            $supportRemoved,
+            $relieveRemoved,
+            $workflowForm,
+            $formName
+        );
         $rowPayload = $this->mstExperienceRowToDbPayload($workRow);
 
         if ($work) {
@@ -541,6 +789,19 @@ class FormController extends BaseController
             }
             $work->update(array_merge($rowPayload, $updateDocs));
 
+            if (!empty($documents['pending_support_upload']) && $workflowForm) {
+                $path = $this->applyPendingFormSExperienceSupportUpload(
+                    $request,
+                    $key,
+                    $workflowForm,
+                    $work->fresh(),
+                    $documents['pending_support_upload']
+                );
+                if ($path !== null) {
+                    $work->update(['support_document' => $path]);
+                }
+            }
+
             return;
         }
 
@@ -548,7 +809,7 @@ class FormController extends BaseController
         $matchOrg = $workRow['org_name'] ?? $workRow['company_name'] ?? null;
         if ($matchOrg !== null && $matchOrg !== '') {
             $matchQuery = Mst_experience::where('login_id', $loginId)
-                ->where('application_id', $applicationId)
+                ->where('application_id', $masterApplicationId)
                 ->where('org_name', $matchOrg);
 
             if ($workRow['emp_type'] !== null) {
@@ -561,7 +822,7 @@ class FormController extends BaseController
                 $matchQuery->whereDate('to_date', $workRow['to_date']);
             }
             if (! empty($claimedWorkIds)) {
-                $matchQuery->whereNotIn('id', $claimedWorkIds);
+                $matchQuery->whereNotIn('exp_id', $claimedWorkIds);
             }
 
             $existing = $matchQuery->first();
@@ -589,21 +850,46 @@ class FormController extends BaseController
 
             $existing->update(array_merge($rowPayload, $updateDocs));
 
+            if (!empty($documents['pending_support_upload']) && $workflowForm) {
+                $path = $this->applyPendingFormSExperienceSupportUpload(
+                    $request,
+                    $key,
+                    $workflowForm,
+                    $existing->fresh(),
+                    $documents['pending_support_upload']
+                );
+                if ($path !== null) {
+                    $existing->update(['support_document' => $path]);
+                }
+            }
+
             return;
         }
 
         $created = Mst_experience::create(array_merge(
             $rowPayload,
-            $this->optionalExpSerialPayload($lastExpSerialNum),
             [
                 'login_id' => $loginId,
-                'application_id' => $applicationId,
+                'application_id' => $masterApplicationId,
                 'support_document' => $documents['support_document'],
                 'releive_document' => $documents['releive_document'],
             ]
         ));
 
         $claimedWorkIds[] = (int) $created->id;
+
+        if (!empty($documents['pending_support_upload']) && $workflowForm) {
+            $path = $this->applyPendingFormSExperienceSupportUpload(
+                $request,
+                $key,
+                $workflowForm,
+                $created->fresh(),
+                $documents['pending_support_upload']
+            );
+            if ($path !== null) {
+                $created->update(['support_document' => $path]);
+            }
+        }
     }
 
     /**
@@ -613,19 +899,17 @@ class FormController extends BaseController
         Request $request,
         string $loginId,
         string $applicationId,
-        ?string $formName
+        ?string $formName,
+        ?Mst_Form_s_w $workflowForm = null
     ): void {
         if (! $this->hasWorkExperiencePayload($request)) {
             return;
         }
 
-        $lastNum = 0;
-        if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
-            $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-            $lastNum = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
-        }
-
         $isFormS = strtoupper((string) $formName) === 'S';
+        $masterApplicationId = $workflowForm
+            ? $this->resolveFormSMasterApplicationId($workflowForm, $formName)
+            : $applicationId;
 
         foreach ($this->getWorkRowIndexes($request) as $key) {
             $workRow = $this->mapWorkExperienceRow($request, $key, $formName);
@@ -641,7 +925,7 @@ class FormController extends BaseController
             $workId = trim((string) ($request->work_id[$key] ?? ''));
             if ($workId !== '') {
                 $existingRow = Mst_experience::find($workId);
-                if ($existingRow && (string) $existingRow->application_id !== (string) $applicationId) {
+                if ($existingRow && (string) $existingRow->application_id !== (string) $masterApplicationId) {
                     $existingRow = null;
                 }
             }
@@ -651,7 +935,9 @@ class FormController extends BaseController
                 $key,
                 $existingRow,
                 $supportRemoved,
-                $relieveRemoved
+                $relieveRemoved,
+                $workflowForm,
+                $formName
             );
 
             $hasAnyData = $orgName !== '' || $expYears !== '' || $designation !== ''
@@ -662,11 +948,11 @@ class FormController extends BaseController
 
             $identity = [
                 'login_id' => $loginId,
-                'application_id' => $applicationId,
+                'application_id' => $masterApplicationId,
             ];
 
             if ($workId !== '' && $existingRow) {
-                $identity = ['id' => $existingRow->id];
+                $identity = ['exp_id' => $existingRow->getKey()];
             } elseif ($isFormS && $orgName !== '') {
                 $identity['org_name'] = $orgName;
                 if (! empty($workRow['from_date'])) {
@@ -678,13 +964,23 @@ class FormController extends BaseController
                 $identity['emp_cate'] = $workRow['emp_cate'];
             }
 
-            Mst_experience::updateOrCreate(
+            $experience = Mst_experience::updateOrCreate(
                 $identity,
-                array_merge(
-                    $this->mstExperienceRowToDbPayload($workRow, $documents),
-                    $this->optionalExpSerialPayload($lastNum)
-                )
+                $this->mstExperienceRowToDbPayload($workRow, $documents)
             );
+
+            if (!empty($documents['pending_support_upload']) && $workflowForm) {
+                $path = $this->applyPendingFormSExperienceSupportUpload(
+                    $request,
+                    $key,
+                    $workflowForm,
+                    $experience->fresh(),
+                    $documents['pending_support_upload']
+                );
+                if ($path !== null) {
+                    $experience->update(['support_document' => $path]);
+                }
+            }
         }
     }
 
@@ -774,11 +1070,15 @@ class FormController extends BaseController
         $fromDates = $request->input('work_date_from', []);
         $toDates = $request->input('work_date_to', []);
         $tillFlags = $request->input('work_to_till_date', []);
+        $sections = $request->input('work_exp_section', []);
         if (! is_array($fromDates)) {
             return;
         }
         if (! is_array($tillFlags)) {
             $tillFlags = [];
+        }
+        if (! is_array($sections)) {
+            $sections = [];
         }
 
         $totalDays = 0;
@@ -787,6 +1087,10 @@ class FormController extends BaseController
         $today = Carbon::now()->startOfDay();
 
         foreach (array_keys($fromDates) as $key) {
+            if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
+                continue;
+            }
+
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
             $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
@@ -1013,7 +1317,7 @@ class FormController extends BaseController
         $exp_details = DB::table('tnelb_applicants_exp')
             ->where('application_id', $appl_id)
             ->select('*')
-            ->orderBy('id', 'asc')
+            ->orderBy('exp_id', 'asc')
             ->get();
 
 
@@ -1120,7 +1424,7 @@ class FormController extends BaseController
 
         $exp_details = DB::table('tnelb_applicants_exp')
             ->where('application_id', $appl_id)
-            ->orderBy('id', 'asc')
+            ->orderBy('exp_id', 'asc')
             ->get();
 
         $license_details = DB::table('tnelb_license')
@@ -1578,20 +1882,27 @@ class FormController extends BaseController
                     }
 
                     $filePath = null;
-                    if ($request->hasFile('education_document') && isset($request->file('education_document')[$key])) {
-                        $file = $request->file('education_document')[$key];
-                        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                        $destinationPath = public_path('education_document');
-                        $file->move($destinationPath, $filename);
-                        $filePath = 'education_document/' . $filename;
-                    } elseif (! empty($request->existing_document[$key] ?? null)
-                        && $this->isValidCompetencyAjaxDocPath($request->existing_document[$key], 'education')) {
-                        $filePath = $request->existing_document[$key];
-                    }
+                    $pendingEduFile = null;
+                    $existingByKey = Mst_education::where([
+                        'login_id' => $loginId,
+                        'application_id' => $newApplicationId,
+                        'educational_level' => $level,
+                    ])->first();
+
+                    $docResolution = $this->resolveEducationDocumentForSave(
+                        $request,
+                        $key,
+                        $form,
+                        $request->form_name,
+                        $existingByKey,
+                        false
+                    );
+                    $filePath = $docResolution['path'];
+                    $pendingEduFile = $docResolution['pending_file'];
 
                     $upsertAttrs = [
                         'login_id'           => $loginId,
-                        'application_id'     => $newApplicationId,
+                        'application_id'     => $this->resolveFormSMasterApplicationId($form, $request->form_name),
                         'educational_level'  => $level,
                     ];
 
@@ -1606,7 +1917,7 @@ class FormController extends BaseController
                         $uploadToStore = $existingByKey->upload_document;
                     }
 
-                    Mst_education::updateOrCreate(
+                    $education = Mst_education::updateOrCreate(
                         $upsertAttrs,
                         [
                             'institute_name'    => $request->institute_name[$key],
@@ -1617,17 +1928,25 @@ class FormController extends BaseController
                             'upload_document'   => $uploadToStore,
                         ]
                     );
+
+                    if ($pendingEduFile) {
+                        $approvedPath = $this->applyPendingFormSEducationUpload(
+                            $request,
+                            $key,
+                            $form,
+                            $education,
+                            $pendingEduFile
+                        );
+                        if ($approvedPath !== null) {
+                            $education->update(['upload_document' => $approvedPath]);
+                        }
+                    }
                 }
             }
+
             
             // process experience
             if ($this->hasWorkExperiencePayload($request)) {
-                $expSerialSeq = 0;
-                if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
-                    $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                    $expSerialSeq = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
-                }
-
                 foreach ($this->getWorkRowIndexes($request) as $key) {
                     $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
                     $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? '';
@@ -1638,54 +1957,41 @@ class FormController extends BaseController
                         continue;
                     }
 
-                    $documents = $this->resolveWorkRowDocuments($request, $key, null, false, false);
+                    $documents = $this->resolveWorkRowDocuments(
+                        $request,
+                        $key,
+                        null,
+                        false,
+                        false,
+                        $form,
+                        $request->form_name ?? null
+                    );
 
-                    Mst_experience::create(array_merge(
+                    $experience = Mst_experience::create(array_merge(
                         $this->mstExperienceRowToDbPayload($workRow, $documents),
-                        $this->optionalExpSerialPayload($expSerialSeq),
                         [
                             'login_id' => $loginId,
-                            'application_id' => $newApplicationId,
+                            'application_id' => $this->resolveFormSMasterApplicationId($form, $request->form_name),
                         ]
                     ));
+
+                    if (!empty($documents['pending_support_upload'])) {
+                        $path = $this->applyPendingFormSExperienceSupportUpload(
+                            $request,
+                            $key,
+                            $form,
+                            $experience,
+                            $documents['pending_support_upload']
+                        );
+                        if ($path !== null) {
+                            $experience->update(['support_document' => $path]);
+                        }
+                    }
                 }
             }
             
-            // process photo
-            if ($request->hasFile('upload_photo')) {
-                $photoPath = 'user_' . time() . '.' . $request->file('upload_photo')->getClientOriginalExtension();
-                $destinationPath = public_path('attached_documents');
-                $request->file('upload_photo')->move($destinationPath, $photoPath);
-                
-                TnelbApplicantPhoto::create([
-                    'login_id'       => $loginId,
-                    'application_id' => $applicationId,
-                    'upload_path'    => 'attached_documents/' . $photoPath,
-                ]);
-            }
-
-            // process signature
-            if ($request->hasFile('upload_sign')) {
-                $signFile = $request->file('upload_sign');
-                $signName = 'sign_' . time() . '.' . $signFile->getClientOriginalExtension();
-                $signDestination = public_path('attached_documents');
-
-                // Do NOT auto-create folder; fail with a clear message instead
-                if (!is_dir($signDestination)) {
-                    throw new \Exception('Signature upload folder "public/attached_documents" does not exist. Please contact the administrator.');
-                }
-
-                $signFile->move($signDestination, $signName);
-
-                TnelbApplicantsSign::updateOrCreate(
-                    ['application_id' => $applicationId],
-                    [
-                        'login_id'      => $loginId,
-                        'uploaded_doc'  => 'attached_documents/' . $signName,
-                    ]
-                );
-            }
-            
+            $this->saveApplicantPhotoUpload($request, $form, $loginId, $applicationId, $request->form_name ?? null);
+            $this->saveApplicantSignatureUpload($request, $form, $loginId, $applicationId, $request->form_name ?? null);
             
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
 
@@ -2017,33 +2323,33 @@ class FormController extends BaseController
                     }
             
                     // ✅ File Handling
-                    $existingEdu = $request->existing_document[$key] ?? null;
-                    $filePath = ($existingEdu !== null && $existingEdu !== ''
-                        && $this->isValidCompetencyAjaxDocPath($existingEdu, 'education'))
-                        ? $existingEdu
-                        : null;
+                    $existingByKey = Mst_education::where([
+                        'login_id' => $loginId,
+                        'application_id' => $this->resolveFormSMasterApplicationId($existingForm, $request->form_name),
+                        'educational_level' => $level,
+                    ])->first();
 
-                    if (isset($request->file("education_document")[$key])) {
-                        $file = $request->file("education_document")[$key];
-
-                        if ($file && $file->isValid()) {
-                            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                            $destinationPath = public_path('education_document');
-                            $file->move($destinationPath, $filename);
-                            $filePath = 'education_document/' . $filename;
-                        }
-                    }
+                    $docResolution = $this->resolveEducationDocumentForSave(
+                        $request,
+                        $key,
+                        $existingForm,
+                        $request->form_name,
+                        $existingByKey,
+                        false
+                    );
+                    $filePath = $docResolution['path'];
+                    $pendingEduFile = $docResolution['pending_file'];
 
                     // Match by (login_id, application_id, educational_level) so a row added in the
                     // UI with an empty edu_id[] but the same level as an existing row updates that
                     // row instead of inserting a duplicate. This mirrors what update() already does.
                     $lastNum++;
-                    $newEduSerial = 'edu_' . $lastNum;
+                    $newEduSerial = $existingByKey?->edu_serial ?? ('edu_' . $lastNum);
 
-                    Mst_education::updateOrCreate(
+                    $education = Mst_education::updateOrCreate(
                         [
                             'login_id'          => $loginId,
-                            'application_id'    => $applicationId,
+                            'application_id'    => $this->resolveFormSMasterApplicationId($existingForm, $request->form_name),
                             'educational_level' => $level,
                         ],
                         [
@@ -2055,18 +2361,29 @@ class FormController extends BaseController
                             'upload_document'   => $filePath,
                         ]
                     );
+
+                    if ($pendingEduFile) {
+                        $approvedPath = $this->applyPendingFormSEducationUpload(
+                            $request,
+                            $key,
+                            $existingForm,
+                            $education,
+                            $pendingEduFile
+                        );
+                        if ($approvedPath !== null) {
+                            $education->update(['upload_document' => $approvedPath]);
+                        }
+                    }
                 }
             }
+
+            $this->seedFormSDocumentsIfRenewal($existingForm->fresh(), $request->form_name);
             
             
 
             if ($this->hasWorkExperiencePayload($request)) {
-                $lastNum = 0;
-                if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
-                    $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                    $lastNum = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
-                }
                 $claimedWorkIds = [];
+                $masterApplicationId = $this->resolveFormSMasterApplicationId($existingForm, $request->form_name);
 
                 foreach ($this->getWorkRowIndexes($request) as $key) {
                     $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
@@ -2076,84 +2393,22 @@ class FormController extends BaseController
                         $loginId,
                         $applicationId,
                         $workRow,
-                        $lastNum,
                         $claimedWorkIds,
-                        true
+                        true,
+                        $existingForm,
+                        $request->form_name ?? null
                     );
                 }
 
                 if (! empty($claimedWorkIds)) {
-                    Mst_experience::where('application_id', $applicationId)
-                        ->whereNotIn('id', $claimedWorkIds)
+                    Mst_experience::where('application_id', $masterApplicationId)
+                        ->whereNotIn('exp_id', $claimedWorkIds)
                         ->delete();
                 }
             }
 
-            // 🔹 Save Photo if New Upload (with robust upload checks)
-            if ($request->hasFile('upload_photo')) {
-                $photoFile = $request->file('upload_photo');
-
-                if (!$photoFile->isValid()) {
-                    Log::warning('Photo upload failed in draft_update', [
-                        'application_id' => $applicationId,
-                        'login_id'       => $loginId,
-                        'client_name'    => $photoFile->getClientOriginalName(),
-                        'error_code'     => $photoFile->getError(),
-                        'error_message'  => $photoFile->getErrorMessage(),
-                    ]);
-                    throw new \RuntimeException('Photo upload failed: ' . $photoFile->getErrorMessage());
-                }
-
-                // Enforce maximum 50 KB (sizes are in bytes)
-                $sizeKb = $photoFile->getSize() / 1024;
-                if ($sizeKb > 50) {
-                    throw new \RuntimeException('Photo size permitted up to 50 KB.');
-                }
-
-                $photoName = 'user_' . time() . '.' . $photoFile->getClientOriginalExtension();
-                $photoFile->move(public_path('attached_documents'), $photoName);
-
-                TnelbApplicantPhoto::updateOrCreate(
-                    ['application_id' => $applicationId],
-                    [
-                        'login_id'   => $loginId,
-                        'upload_path'=> 'attached_documents/' . $photoName,
-                    ]
-                );
-            }
-
-            // 🔹 Save Signature if New Upload (with robust upload checks)
-            if ($request->hasFile('upload_sign')) {
-                $signFile = $request->file('upload_sign');
-
-                if (!$signFile->isValid()) {
-                    Log::warning('Signature upload failed in draft_update', [
-                        'application_id' => $applicationId,
-                        'login_id'       => $loginId,
-                        'client_name'    => $signFile->getClientOriginalName(),
-                        'error_code'     => $signFile->getError(),
-                        'error_message'  => $signFile->getErrorMessage(),
-                    ]);
-                    throw new \RuntimeException('Signature upload failed: ' . $signFile->getErrorMessage());
-                }
-
-                // Enforce maximum 50 KB (sizes are in bytes)
-                $signSizeKb = $signFile->getSize() / 1024;
-                if ($signSizeKb > 50) {
-                    throw new \RuntimeException('Signature size permitted up to 50 KB.');
-                }
-
-                $signName = 'sign_' . time() . '.' . $signFile->getClientOriginalExtension();
-                $signFile->move(public_path('attached_documents'), $signName);
-
-                TnelbApplicantsSign::updateOrCreate(
-                    ['application_id' => $applicationId],
-                    [
-                        'login_id'     => $loginId,
-                        'uploaded_doc' => 'attached_documents/' . $signName,
-                    ]
-                );
-            }
+            $this->saveApplicantPhotoUpload($request, $existingForm, $loginId, $applicationId, $request->form_name ?? null);
+            $this->saveApplicantSignatureUpload($request, $existingForm, $loginId, $applicationId, $request->form_name ?? null);
 
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
 
@@ -2588,39 +2843,23 @@ class FormController extends BaseController
                     }
             
                     $eduId = $request->edu_id[$key] ?? null;
-                    $education = $eduId ? Mst_education::find($eduId) : null;
+                    $education = $eduId
+                        ? $this->formSDocumentHandler()->resolveMasterEducation($form, (int) $eduId, $level)
+                        : null;
             
                     // ✅ Check if file is removed via JS (row-aligned flag)
                     $isFileRemoved = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
 
-                    // ✅ File Handling
-                    // Priority order:
-                    // 1) If a new file is uploaded -> replace (even if user clicked "Remove" first)
-                    // 2) Else if removed -> null
-                    // 3) Else keep existing_document
-                    $filePath = null;
-
-                    // Case 1: New file uploaded (highest priority)
-                    // Try keyed access first; if missing due to re-indexing, fall back to next queued upload.
-                    $directFile = $request->file("education_document.$key");
-                    $file = ($directFile && $directFile->isValid()) ? $directFile : null;
-
-                    if ($file) {
-                        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                        $destinationPath = public_path('education_document');
-                        $file->move($destinationPath, $filename);
-                        $filePath = 'education_document/' . $filename;
-                    }
-
-                    // Case 2: File removed explicitly by user (only if no replacement uploaded)
-                    elseif ($isFileRemoved) {
-                        $filePath = null;
-                    }
-
-                    // Case 3: No new file, not removed, keep existing
-                    elseif (!empty($request->existing_document[$key] ?? null)) {
-                        $filePath = $request->existing_document[$key];
-                    }
+                    $docResolution = $this->resolveEducationDocumentForSave(
+                        $request,
+                        $key,
+                        $form,
+                        $request->form_name,
+                        $education,
+                        $isFileRemoved
+                    );
+                    $filePath = $docResolution['path'];
+                    $pendingEduFile = $docResolution['pending_file'];
             
                     // Normalize month_of_passing: trim, accept "01"-"12" or "1"-"12",
                     // map to int 1-12, otherwise treat as missing.
@@ -2653,12 +2892,25 @@ class FormController extends BaseController
                             'certificate_no'    => ($request->certificate_no[$key] ?? null) !== null && $request->certificate_no[$key] !== ''
                                 ? $request->certificate_no[$key]
                                 : $education->certificate_no,
-                            'upload_document'   => $filePath,
+                            'upload_document'   => $filePath ?? $education->upload_document,
                         ]);
+
+                        if ($pendingEduFile) {
+                            $approvedPath = $this->applyPendingFormSEducationUpload(
+                                $request,
+                                $key,
+                                $form,
+                                $education->fresh(),
+                                $pendingEduFile
+                            );
+                            if ($approvedPath !== null) {
+                                $education->update(['upload_document' => $approvedPath]);
+                            }
+                        }
                     } else {
                         $upsertAttrs = [
                             'login_id'          => $loginId,
-                            'application_id'    => $applicationId,
+                            'application_id'    => $this->resolveFormSMasterApplicationId($form, $request->form_name),
                             'educational_level' => $level,
                         ];
 
@@ -2676,7 +2928,7 @@ class FormController extends BaseController
                             $uploadToStore = $existingByKey->upload_document;
                         }
 
-                        Mst_education::updateOrCreate(
+                        $education = Mst_education::updateOrCreate(
                             $upsertAttrs,
                             [
                                 'institute_name'    => $request->institute_name[$key],
@@ -2687,18 +2939,29 @@ class FormController extends BaseController
                                 'upload_document'   => $uploadToStore,
                             ]
                         );
+
+                        if ($pendingEduFile) {
+                            $approvedPath = $this->applyPendingFormSEducationUpload(
+                                $request,
+                                $key,
+                                $form,
+                                $education,
+                                $pendingEduFile
+                            );
+                            if ($approvedPath !== null) {
+                                $education->update(['upload_document' => $approvedPath]);
+                            }
+                        }
                     }
                 }
             }
+
+            $this->seedFormSDocumentsIfRenewal($form->fresh(), $request->form_name);
             
 
             if ($this->hasWorkExperiencePayload($request)) {
-                $lastNum = 0;
-                if (Schema::hasColumn('tnelb_applicants_exp', 'exp_serial')) {
-                    $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
-                    $lastNum = $lastExp ? (int) str_replace('exp_', '', (string) $lastExp) : 0;
-                }
                 $claimedWorkIds = [];
+                $masterApplicationId = $this->resolveFormSMasterApplicationId($form, $request->form_name);
 
                 foreach ($this->getWorkRowIndexes($request) as $key) {
                     $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
@@ -2708,47 +2971,22 @@ class FormController extends BaseController
                         $loginId,
                         $applicationId,
                         $workRow,
-                        $lastNum,
                         $claimedWorkIds,
-                        false
+                        false,
+                        $form,
+                        $request->form_name ?? null
                     );
                 }
 
                 if (! empty($claimedWorkIds)) {
-                    Mst_experience::where('application_id', $applicationId)
-                        ->whereNotIn('id', $claimedWorkIds)
+                    Mst_experience::where('application_id', $masterApplicationId)
+                        ->whereNotIn('exp_id', $claimedWorkIds)
                         ->delete();
                 }
             }
 
-            // 🔹 Save Photo if New Upload
-            if ($request->hasFile('upload_photo')) {
-                $photoName = 'user_' . time() . '.' . $request->file('upload_photo')->getClientOriginalExtension();
-                $request->file('upload_photo')->move(public_path('attached_documents'), $photoName);
-
-                TnelbApplicantPhoto::updateOrCreate(
-                    ['application_id' => $applicationId],
-                    [
-                        'login_id'    => $loginId,
-                        'upload_path' => 'attached_documents/' . $photoName,
-                    ]
-                );
-            }
-
-            // 🔹 Save Signature if New Upload (for all forms, including Form W)
-            if ($request->hasFile('upload_sign')) {
-                $signFile = $request->file('upload_sign');
-                $signName = 'sign_' . time() . '.' . $signFile->getClientOriginalExtension();
-                $signFile->move(public_path('attached_documents'), $signName);
-
-                TnelbApplicantsSign::updateOrCreate(
-                    ['application_id' => $applicationId],
-                    [
-                        'login_id'     => $loginId,
-                        'uploaded_doc' => 'attached_documents/' . $signName,
-                    ]
-                );
-            }
+            $this->saveApplicantPhotoUpload($request, $form, $loginId, $applicationId, $request->form_name ?? null);
+            $this->saveApplicantSignatureUpload($request, $form, $loginId, $applicationId, $request->form_name ?? null);
 
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
 
@@ -3009,6 +3247,10 @@ class FormController extends BaseController
 
             // var_dump($type_of_apps->licence_name);die;
 
+            $this->seedFormSDocumentsIfRenewal($form->fresh(), $request->form_name);
+
+            $masterApplicationId = $this->resolveFormSMasterApplicationId($form, $request->form_name);
+
             // -------------------------
             // ALWAYS-INSERT Education  ✅
             // -------------------------
@@ -3028,35 +3270,37 @@ class FormController extends BaseController
                     $year       = $request->year_of_passing[$key] ?? null;
                     $certificateNo = $request->certificate_no[$key] ?? null;
 
-                    $removed    = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
-                    $newDoc     = (isset($request->file('education_document')[$key]) && $request->file('education_document')[$key]->isValid())
-                                    ? $request->file('education_document')[$key]
-                                    : null;
-                    $oldDoc     = $request->existing_document[$key] ?? null;
+                    $removed = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
+                    $eduId = $request->edu_id[$key] ?? null;
+                    $existingEducation = $eduId
+                        ? $this->formSDocumentHandler()->resolveMasterEducation($form, (int) $eduId, $levelName)
+                        : Mst_education::where([
+                            'login_id' => $loginId,
+                            'application_id' => $masterApplicationId,
+                            'educational_level' => $levelName,
+                        ])->first();
 
-                    // final doc path: removed => null, new => stored, else keep old path (view mode)
-                    if ($removed) {
-                        $finalDoc = null;
-                    } elseif ($newDoc) {
-                        $filename = time() . '_' . uniqid() . '.' . $newDoc->getClientOriginalExtension();
-                        $newDoc->move(public_path('education_document'), $filename);
-                        $finalDoc = 'education_document/' . $filename;
-                    } else {
-                        $finalDoc = $oldDoc ?: null;
-                    }
+                    $docResolution = $this->resolveEducationDocumentForSave(
+                        $request,
+                        $key,
+                        $form,
+                        $request->form_name,
+                        $existingEducation,
+                        $removed
+                    );
+                    $finalDoc = $docResolution['path'];
+                    $pendingEduFile = $docResolution['pending_file'];
 
                     // skip only if EVERYTHING is empty (avoid junk rows)
-                    $hasAnyData = !empty($levelName) || !empty($institute) || !empty($month) || !empty($year) || !empty($certificateNo) || !empty($finalDoc);
+                    $hasAnyData = !empty($levelName) || !empty($institute) || !empty($month) || !empty($year) || !empty($certificateNo) || !empty($finalDoc) || $pendingEduFile;
                     if (!$hasAnyData) continue;
 
-                    $lastNum++;
-                    $newSerial = 'edu_' . $lastNum;
+                    $newSerial = $existingEducation?->edu_serial ?? ('edu_' . (++$lastNum));
 
-         
-                    Mst_education::updateOrCreate(
+                    $education = Mst_education::updateOrCreate(
                         [
                             'login_id'          => $loginId,
-                            'application_id'    => $applicationId,
+                            'application_id'    => $masterApplicationId,
                             'educational_level' => $levelName,
                         ],
                         [
@@ -3064,10 +3308,23 @@ class FormController extends BaseController
                             'month_passing'     => $month,
                             'year_of_passing'   => $year,
                             'certificate_no'    => $certificateNo,
-                            'upload_document'   => $finalDoc,
+                            'upload_document'   => $finalDoc ?? $existingEducation?->upload_document,
                             'edu_serial'        => $newSerial,
                         ]
                     );
+
+                    if ($pendingEduFile) {
+                        $approvedPath = $this->applyPendingFormSEducationUpload(
+                            $request,
+                            $key,
+                            $form,
+                            $education,
+                            $pendingEduFile
+                        );
+                        if ($approvedPath !== null) {
+                            $education->update(['upload_document' => $approvedPath]);
+                        }
+                    }
                 }
             }
 
@@ -3078,23 +3335,13 @@ class FormController extends BaseController
                 $request,
                 $loginId,
                 $applicationId,
-                $request->form_name ?? null
+                $request->form_name ?? null,
+                $form
             );
 
 
-            // Photo (insert/update for this renewal app_id)
             if ($request->hasFile('upload_photo') && $request->file('upload_photo')->isValid()) {
-                // ✅ New photo uploaded
-                $photoName = 'user_' . time() . '.' . $request->file('upload_photo')->getClientOriginalExtension();
-                $request->file('upload_photo')->move(public_path('attached_documents'), $photoName);
-
-                TnelbApplicantPhoto::updateOrCreate(
-                    ['application_id' => $applicationId], // New application ID
-                    [
-                        'login_id' => $loginId,
-                        'upload_path' => 'attached_documents/' . $photoName,
-                    ]
-                );
+                $this->saveApplicantPhotoUpload($request, $form, $loginId, $applicationId, $request->form_name ?? null);
             } else {
                 // ✅ No new photo, try to fetch from old application
                 $oldPhoto = TnelbApplicantPhoto::where('application_id', $id)->first();
@@ -3111,26 +3358,13 @@ class FormController extends BaseController
                 }
             }
 
-            // Signature (insert/update for this renewal app_id)
             if ($request->hasFile('upload_sign') && $request->file('upload_sign')->isValid()) {
-                $signFile = $request->file('upload_sign');
-                $signName = 'sign_' . time() . '.' . $signFile->getClientOriginalExtension();
-                $signFile->move(public_path('attached_documents'), $signName);
-
-                TnelbApplicantsSign::updateOrCreate(
-                    ['application_id' => $applicationId],
-                    [
-                        'login_id'     => $loginId,
-                        'uploaded_doc' => 'attached_documents/' . $signName,
-                    ]
-                );
+                $this->saveApplicantSignatureUpload($request, $form, $loginId, $applicationId, $request->form_name ?? null);
             }
 
             
 
             DB::commit();
-
-            $boardMemberFeeExempt = $this->isFormSBoardMemberFeeExempt($request);
 
             return response()->json([
                 'status'         => 'success',
@@ -3140,8 +3374,7 @@ class FormController extends BaseController
                 'form_name'      => $form->form_name,
                 'licence_name'   => $type_of_apps->licence_name,
                 'date_apps'      => Carbon::parse($this->dbNow)->format('d-m-Y'),
-                'board_member_fee_exempt' => $boardMemberFeeExempt,
-                'amount'         => $boardMemberFeeExempt ? 0 : (float) ($request->amount ?? 0),
+                'amount'         => (float) ($request->amount ?? 0),
             ]);
 
         } catch (\Exception $e) {
@@ -3395,6 +3628,10 @@ public function update(Request $request, $id)
             $licence_details['category_name'] = $category_type['category_name'];
             $licence_details['form_type'] = $renewal_form->appl_type;
 
+            $this->seedFormSDocumentsIfRenewal($renewal_form->fresh(), $request->form_name);
+
+            $masterApplicationId = $this->resolveFormSMasterApplicationId($renewal_form, $request->form_name);
+
             // Update Education Records
             if ($request->has('educational_level')) {
                 $lastEdu = Mst_education::whereNotNull('edu_serial')->latest('id')->value('edu_serial');
@@ -3417,47 +3654,39 @@ public function update(Request $request, $id)
                         }
                     }
 
-                    $removed    = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
-                    $newDoc     = (isset($request->file('education_document')[$key]) && $request->file('education_document')[$key]->isValid())
-                                    ? $request->file('education_document')[$key]
-                                    : null;
-                    $oldDoc     = $request->existing_document[$key] ?? null;
+                    $removed = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
+                    $existingEdu = Mst_education::where([
+                        'login_id'          => $loginId,
+                        'application_id'    => $masterApplicationId,
+                        'educational_level' => $levelName,
+                    ])->first();
 
-                    // final doc path: removed => null, new => stored, else keep old path (view mode)
-                    if ($removed) {
-                        $finalDoc = null;
-                    } elseif ($newDoc) {
-                        $filename = time() . '_' . uniqid() . '.' . $newDoc->getClientOriginalExtension();
-                        $newDoc->move(public_path('education_document'), $filename);
-                        $finalDoc = 'education_document/' . $filename;
-                    } else {
-                        $finalDoc = $oldDoc ?: null;
-                    }
+                    $docResolution = $this->resolveEducationDocumentForSave(
+                        $request,
+                        $key,
+                        $renewal_form,
+                        $request->form_name,
+                        $existingEdu,
+                        $removed
+                    );
+                    $finalDoc = $docResolution['path'];
+                    $pendingEduFile = $docResolution['pending_file'];
 
                     // skip only if EVERYTHING is empty (avoid junk rows)
                     $hasAnyData = !empty($levelName) || !empty($institute) || !empty($year)
-                        || !empty($certificateNo) || !empty($finalDoc) || $monthVal !== null;
+                        || !empty($certificateNo) || !empty($finalDoc) || $monthVal !== null || $pendingEduFile;
                     if (!$hasAnyData) continue;
 
-                    $lastNum++;
-                    $newSerial = 'edu_' . $lastNum;
-
-                    // Look up the existing row so we can preserve its month_passing
-                    // when the request does not supply a (valid) value.
-                    $existingEdu = Mst_education::where([
-                        'login_id'          => $loginId,
-                        'application_id'    => $applicationId,
-                        'educational_level' => $levelName,
-                    ])->first();
+                    $newSerial = $existingEdu?->edu_serial ?? ('edu_' . (++$lastNum));
 
                     $monthToSave = $monthVal !== null
                         ? $monthVal
                         : ($existingEdu ? $existingEdu->month_passing : null);
 
-                    Mst_education::updateOrCreate(
+                    $education = Mst_education::updateOrCreate(
                         [
                             'login_id'          => $loginId,
-                            'application_id'    => $applicationId,
+                            'application_id'    => $masterApplicationId,
                             'educational_level' => $levelName,
                         ],
                         [
@@ -3465,10 +3694,23 @@ public function update(Request $request, $id)
                             'month_passing'     => $monthToSave,
                             'year_of_passing'   => $year,
                             'certificate_no'    => $certificateNo,
-                            'upload_document'   => $finalDoc,
+                            'upload_document'   => $finalDoc ?? $existingEdu?->upload_document,
                             'edu_serial'        => $newSerial,
                         ]
                     );
+
+                    if ($pendingEduFile) {
+                        $approvedPath = $this->applyPendingFormSEducationUpload(
+                            $request,
+                            $key,
+                            $renewal_form,
+                            $education,
+                            $pendingEduFile
+                        );
+                        if ($approvedPath !== null) {
+                            $education->update(['upload_document' => $approvedPath]);
+                        }
+                    }
                 }
             }
             
@@ -3476,24 +3718,11 @@ public function update(Request $request, $id)
                 $request,
                 $loginId,
                 $applicationId,
-                $request->form_name ?? null
+                $request->form_name ?? null,
+                $renewal_form
             );
 
-            // process photo
-             if ($request->hasFile('upload_photo')) {
-                $photoName = 'user_' . time() . '.' . $request->file('upload_photo')->getClientOriginalExtension();
-                $request->file('upload_photo')->move(public_path('attached_documents'), $photoName);
-
-                TnelbApplicantPhoto::updateOrCreate(
-                    ['application_id' => $applicationId],
-                    [
-                        'login_id' => $loginId,
-                        'upload_path' => 'attached_documents/' . $photoName,
-                    ]
-                );
-            }
-
-            
+            $this->saveApplicantPhotoUpload($request, $renewal_form, $loginId, $applicationId, $request->form_name ?? null);
 
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
 
@@ -3687,6 +3916,15 @@ public function update(Request $request, $id)
      */
     private function isValidCompetencyAjaxDocPath(?string $path, string $kind): bool
     {
+        if ($path === null || $path === '') {
+            return false;
+        }
+
+        if (str_starts_with($path, 'FORM_S/')) {
+            return \Illuminate\Support\Facades\Storage::disk(config('document_versioning.disk', 'private_documents'))
+                ->exists($path);
+        }
+
         if (! $this->hasValidCompetencyAjaxDocFormat($path, $kind)) {
             return false;
         }
@@ -3704,6 +3942,11 @@ public function update(Request $request, $id)
         if ($path === null || $path === '') {
             return false;
         }
+
+        if (str_starts_with($path, 'FORM_S/')) {
+            return (bool) preg_match('/^[a-zA-Z0-9_\/.\-]+$/', $path);
+        }
+
         $prefix = $kind === 'education' ? 'education_document/' : 'work_experience/';
         if (! str_starts_with($path, $prefix)) {
             return false;

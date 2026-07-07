@@ -52,7 +52,7 @@ final class ReturnedApplicationPayloadMerge
 
     public static function mergeExperienceArraysIntoRequest(Request $request, string $applicationId, string $formName): void
     {
-        $rows = Mst_experience::where('application_id', $applicationId)->orderBy('id')->get();
+        $rows = Mst_experience::where('application_id', $applicationId)->orderBy('exp_id')->get();
 
         if ($formName === 'S') {
             $empType = [];

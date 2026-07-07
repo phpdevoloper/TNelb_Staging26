@@ -40,38 +40,65 @@
     $durD = $hasRow && $expRow->total_d !== null ? (string) $expRow->total_d : '';
     $supportDoc = $hasRow ? (string) ($expRow->support_document ?? $expRow->upload_document ?? '') : '';
     $relieveDoc = $hasRow ? (string) ($expRow->releive_document ?? '') : '';
-    $workId = $hasRow ? (string) ($expRow->id ?? '') : '';
+    $workId = $hasRow ? (string) ($expRow->exp_id ?? $expRow->id ?? '') : '';
     $meetingDetails = $hasRow ? (string) ($expRow->board_meeting_details ?? '') : '';
     $meetingDate = ($hasRow && !empty($expRow->board_meeting_date))
         ? \Carbon\Carbon::parse($expRow->board_meeting_date)->format('Y-m-d')
         : '';
     $rowIndex = $rowIndex ?? 0;
+    $workPart = $workPart ?? 'all';
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
     $defaultTillDate = !empty($defaultTillDate);
+    $hideDuration = !empty($hideDuration);
+    $hideRemoveButton = !empty($hideRemoveButton);
+    $hideBoardPanelNote = !empty($hideBoardPanelNote);
+    $useBootstrapGrid = !empty($useBootstrapGrid);
+    $showSummaryPanel = !isset($showSummaryPanel) || (bool) $showSummaryPanel;
+    $bxCol = static function (string $classes = '') use ($useBootstrapGrid): string {
+        return $useBootstrapGrid ? trim($classes) : '';
+    };
     if (!$hasRow && $defaultTillDate) {
         $isTill = true;
     }
     $removeClasses = 'work-row-remove remove-work' . ($workId !== '' ? ' remove_exp' : '');
-    $storedRowClass = $workId !== '' ? ' is-complete work-row--compact work-row--in-summary' : '';
+    $storedRowClass = $workId !== ''
+        ? ($showSummaryPanel ? ' is-complete work-row--compact work-row--in-summary' : ' is-complete work-row--expanded')
+        : '';
+    if ($alterationExistingRow) {
+        $storedRowClass .= ' fs-alt-existing-work';
+    }
+    $isBoardMemberRow = ($empType === 'board_member_tnelb');
+    $meetingDetailsName = $isBoardMemberRow ? 'work_board_meeting_details[]' : '';
+    $meetingDateName = $isBoardMemberRow ? 'work_board_meeting_date[]' : '';
+    $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
+    $alterationExistingRow = !empty($alterationExistingRow);
+    $hideSupportUpload = $hideUploadWhenDocExists && $supportDoc !== '';
+    $hideRelieveUpload = $hideUploadWhenDocExists && $relieveDoc !== '';
 @endphp
 <div class="work-entry-block">
 <div class="work-fields work-row{{ $storedRowClass }}" data-row-index="{{ $rowIndex }}">
+    @unless ($isBoardMemberRow)
+        <input type="hidden" class="work-board-meeting-placeholder" name="work_board_meeting_details[]" value="">
+        <input type="hidden" class="work-board-meeting-placeholder" name="work_board_meeting_date[]" value="">
+    @endunless
     <div class="work-row-head" role="group">
         <span class="work-row-spacer"></span>
         <div class="work-row-head-actions">
             <button type="button" class="work-row-toggle-btn" aria-expanded="false" title="Expand to edit" aria-label="Expand entry to edit">
                 <i class="fa fa-chevron-down" aria-hidden="true"></i>
             </button>
+            @unless ($hideRemoveButton)
             <button type="button" class="{{ $removeClasses }}"
                 @if($workId !== '') data-exp_id="{{ $workId }}" data-url="{{ route('delete_experience') }}" @endif
                 title="Remove this entry" aria-label="Remove this work experience entry">
                 <i class="fa fa-trash-o" aria-hidden="true"></i>
             </button>
+            @endunless
         </div>
     </div>
 
-    <div class="work-row-grid">
-        <div class="work-card-field">
+    <div class="work-row-grid{{ $useBootstrapGrid ? ' row g-2' : '' }}">
+        <div class="{{ $bxCol('col-12 d-none') }} work-card-field">
             <label class="work-card-field-label">Employment Type <span class="req">*</span></label>
             <select class="form-control work-employment-type" name="work_employment_type[]" required>
                 @include('user_login.partials.form-s-work-exp-employment-options', [
@@ -80,7 +107,7 @@
                 ])
             </select>
         </div>
-        <div class="work-card-field" data-field="contractor-cat">
+        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="contractor-cat">
             <label class="work-card-field-label">Grade of Licence<span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <select class="form-control work-contractor-cat" name="work_contractor_category[]" disabled>
                 <option value="">—</option>
@@ -90,24 +117,38 @@
             </select>
             <span class="work-card-field-hint" data-hint="cat" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
-        <div class="work-card-field" data-field="licence-number">
+        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="licence-number">
             <label class="work-card-field-label">Licence <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="40" autocomplete="off" disabled placeholder="e.g. ESA/12345" value="{{ $licenceNo }}">
             <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
-        <div class="work-card-field" data-field="organisation">
+        @if ($useBootstrapGrid)
+        <div class="work-board-member-panel col-12" style="{{ $isBoardMemberRow ? '' : 'display:none;' }}">
+            <div class="row g-2">
+                <div class="col-12 col-md-8 work-card-field work-board-meeting-field" data-field="board-meeting-details">
+                    <label class="work-card-field-label">Details of the meeting <span class="req">*</span></label>
+                    <textarea class="form-control work-board-meeting-details" @if ($meetingDetailsName) name="{{ $meetingDetailsName }}" @endif rows="2" maxlength="500" autocomplete="off" placeholder="Enter details of the board meeting attended" {{ $isBoardMemberRow ? '' : 'disabled' }}>{{ $meetingDetails }}</textarea>
+                </div>
+                <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-date">
+                    <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
+                    <input type="date" class="form-control work-board-meeting-date" @if ($meetingDateName) name="{{ $meetingDateName }}" @endif value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" {{ $isBoardMemberRow ? '' : 'disabled' }}>
+                </div>
+            </div>
+        </div>
+        @endif
+        <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="organisation">
             <label class="work-card-field-label">Organisation <span class="req">*</span></label>
             <input type="text" class="form-control work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled placeholder="Organisation name" value="{{ $orgName }}">
         </div>
-        <div class="work-card-field" data-field="organisation-address">
+        <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="organisation-address">
             <label class="work-card-field-label">Address <span class="req">*</span></label>
             <input type="text" class="form-control work-org-address" name="work_organisation_address[]" maxlength="255" autocomplete="off" disabled placeholder="Street, City, State, PIN" value="{{ $orgAddress }}">
         </div>
-        <div class="work-card-field" data-field="designation">
+        <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="designation">
             <label class="work-card-field-label">Designation <span class="req">*</span></label>
             <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" disabled placeholder="e.g. Site Engineer" value="{{ $designation }}">
         </div>
-        <div class="work-card-field" data-field="work-nature">
+        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="work-nature">
             <label class="work-card-field-label">Work Nature <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <select class="form-control work-nature" name="work_nature_of_work[]" disabled>
                 <option value="">—</option>
@@ -116,7 +157,7 @@
                 <option value="erection_maintenance" {{ $nature === 'erection_maintenance' ? 'selected' : '' }}>Erection &amp; Maintenance</option>
             </select>
         </div>
-        <div class="work-card-field" data-field="voltage-level">
+        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="voltage-level">
             <label class="work-card-field-label">Voltage Level <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <select class="form-control work-voltage" name="work_voltage_level[]" disabled>
                 <option value="">—</option>
@@ -125,16 +166,16 @@
                 <option value="above_33kv" {{ $voltage === 'above_33kv' ? 'selected' : '' }}>Above 33KV</option>
             </select>
         </div>
-        <div class="work-card-field" data-field="transformer-kva">
+        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="transformer-kva">
             <label class="work-card-field-label">Transformer kVA(max 1000kVA) <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <input type="number" class="form-control work-transformer-kva" name="work_transformer_kva[]" min="0" max="9999999" step="any" inputmode="decimal" autocomplete="off" disabled placeholder="e.g. 250" value="{{ $kva }}">
             <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
         </div>
-        <div class="work-card-field" data-field="from-date">
+        <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="from-date">
             <label class="work-card-field-label">From date <span class="req">*</span></label>
             <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $workFromDate }}" title="From date" aria-label="Period of experience: from date" disabled>
         </div>
-        <div class="work-card-field" data-field="to-date">
+        <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="to-date">
             <label class="work-card-field-label">To date <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" title="To date" aria-label="Period of experience: to date" disabled>
             <label class="work-card-till-toggle">
@@ -143,6 +184,7 @@
             </label>
             <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="{{ $isTill ? '1' : '0' }}">
         </div>
+        @unless ($hideDuration)
         <div class="work-card-field work-card-field--duration">
             <label class="work-card-field-label">Duration</label>
             <div class="work-card-duration-readout" role="group" aria-label="Auto-calculated duration">
@@ -160,7 +202,13 @@
                 </div>
             </div>
         </div>
-        <div class="work-board-member-panel work-row-grid-span" style="{{ ($empType === 'board_member_tnelb') ? '' : 'display:none;' }}">
+        @else
+        <input type="hidden" class="work-duration-y" value="{{ $durY }}">
+        <input type="hidden" class="work-duration-m" value="{{ $durM }}">
+        <input type="hidden" class="work-duration-d" value="{{ $durD }}">
+        @endunless
+        @unless ($useBootstrapGrid)
+        <div class="work-board-member-panel work-row-grid-span" style="{{ $isBoardMemberRow ? '' : 'display:none;' }}">
             <div class="work-board-member-panel-hd">
                 <span class="work-board-member-panel-badge">Board Member</span>
                 <span class="work-board-member-panel-title">Details of board meeting attended</span>
@@ -171,16 +219,19 @@
             <div class="work-board-member-panel-body">
                 <div class="work-card-field work-board-meeting-field" data-field="board-meeting-details">
                     <label class="work-card-field-label">Details of the meeting <span class="req">*</span></label>
-                    <textarea class="form-control work-board-meeting-details" name="work_board_meeting_details[]" rows="3" maxlength="500" autocomplete="off" placeholder="Enter details of the board meeting attended" {{ ($empType === 'board_member_tnelb') ? '' : 'disabled' }}>{{ $meetingDetails }}</textarea>
+                    <textarea class="form-control work-board-meeting-details" @if ($meetingDetailsName) name="{{ $meetingDetailsName }}" @endif rows="2" maxlength="500" autocomplete="off" placeholder="Enter details of the board meeting attended" {{ $isBoardMemberRow ? '' : 'disabled' }}>{{ $meetingDetails }}</textarea>
                 </div>
                 <div class="work-card-field work-board-meeting-field" data-field="board-meeting-date">
                     <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
-                    <input type="date" class="form-control work-board-meeting-date" name="work_board_meeting_date[]" value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" {{ ($empType === 'board_member_tnelb') ? '' : 'disabled' }}>
+                    <input type="date" class="form-control work-board-meeting-date" @if ($meetingDateName) name="{{ $meetingDateName }}" @endif value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" {{ $isBoardMemberRow ? '' : 'disabled' }}>
                 </div>
             </div>
+            @unless ($hideBoardPanelNote)
             <p class="work-board-member-panel-note"><i class="fa fa-paperclip"></i> Attach supporting documents for the meeting in the <strong>Supporting docs</strong> field below.</p>
+            @endunless
         </div>
-        <div class="work-card-field" data-field="support-doc">
+        @endunless
+        <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="support-doc">
             <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>
             @if ($supportDoc !== '')
                 <div class="work-doc-existing mb-1 text-center">
@@ -190,12 +241,13 @@
                     <button type="button" class="btn btn-sm btn-danger ml-1 remove-work-doc-confirm" data-doc-kind="support">Remove</button>
                 </div>
             @endif
-            <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
+            <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined{{ $hideSupportUpload ? ' d-none work-upload-hidden-until-remove' : '' }}" data-upload-kind="work" data-doc-field="support">
                 <input class="form-control work-doc-input" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" disabled>
             </div>
-            <span class="work-card-field-hint"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
+            <span class="work-card-field-hint{{ $hideSupportUpload ? ' d-none work-upload-hint-hidden-until-remove' : '' }}"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
         </div>
-        <div class="work-card-field" data-field="relieve">
+        @if (($workPart ?? 'all') !== 'current')
+        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="relieve">
             <label class="work-card-field-label">Relieving Letter <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             @if ($relieveDoc !== '')
                 <div class="work-relieve-existing mb-1 text-center">
@@ -205,29 +257,36 @@
                     <button type="button" class="btn btn-sm btn-danger ml-1 remove-work-relieve-confirm" data-doc-kind="relieve">Remove</button>
                 </div>
             @endif
-            <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
+            <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined{{ $hideRelieveUpload ? ' d-none work-upload-hidden-until-remove' : '' }}" data-upload-kind="work" data-doc-field="relieve">
                 <input class="form-control work-relieve-input" name="work_relieving_letter[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" disabled>
             </div>
             <span class="work-card-field-hint" data-hint="relieve" style="display:none;"><i class="fa fa-info-circle"></i> Not required when "Till date" is selected</span>
             <span class="work-card-field-hint" data-hint="relieve-board" style="display:none;"><i class="fa fa-info-circle"></i> Optional for Board Member / Ex. Board Member of TNELB</span>
             <span class="work-card-field-hint" data-hint="relieve-default"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
         </div>
+        @endif
 
-        <div class="work-row-done-bar">
+        @if ($showSummaryPanel)
+        <div class="work-row-done-bar{{ $useBootstrapGrid ? ' col-12' : '' }}">
             <button type="button" class="work-row-done-btn" aria-label="Submit this entry and return to summary card">
                 <i class="fa fa-check" aria-hidden="true"></i> Submit
             </button>
         </div>
-
-        <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $totalExp }}">
-        <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $orgName }}" tabindex="-1" aria-hidden="true">
-        <input type="hidden" name="experience[]" class="experience-sync" value="{{ $totalExp }}" tabindex="-1" aria-hidden="true">
-        <input type="hidden" name="work_id[]" value="{{ $workId }}">
-        <input type="hidden" name="existing_work_document[]" value="{{ $supportDoc }}">
-        <input type="hidden" name="existing_work_relieving_document[]" value="{{ $relieveDoc }}">
-        <input type="hidden" name="removed_document_work[]" value="0">
-        <input type="hidden" name="removed_document_work_relieving[]" value="0">
+        @endif
     </div>
-</div>
-<div class="work-row-date-validation" aria-live="polite"></div>
+
+        <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $totalExp }}" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $orgName }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="experience[]" class="experience-sync" value="{{ $totalExp }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="work_exp_section[]" value="{{ $workPart }}" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="work_id[]" value="{{ $workId }}" @if($alterationExistingRow) disabled @endif>
+        @if ($alterationExistingRow)
+        <input type="hidden" name="fs_alt_existing_work[]" value="1" disabled>
+        @endif
+        <input type="hidden" name="existing_work_document[]" value="{{ $supportDoc }}" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="existing_work_relieving_document[]" value="{{ $relieveDoc }}" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="removed_document_work[]" value="0" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="removed_document_work_relieving[]" value="0" @if($alterationExistingRow) disabled @endif>
+    </div>
+    <div class="work-row-date-validation" aria-live="polite"></div>
 </div>

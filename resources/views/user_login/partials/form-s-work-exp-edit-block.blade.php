@@ -10,7 +10,7 @@
         <button type="button" class="work-exp-add-btn add-more-work" id="work-exp-add-btn" title="Add a work experience entry">
             <i class="fa fa-plus"></i>
             <span>Add row</span>
-            <span class="text-muted" style="font-weight:500;font-size:.7rem;opacity:.85;" id="work-exp-row-count">(1/3)</span>
+            <span class="work-exp-row-count" id="work-exp-row-count">(1/3)</span>
         </button>
     </div>
     @endif
@@ -23,12 +23,12 @@
                         <tr>
                             <th class="wx-summary-th-sno">S.No</th>
                             <th>Employment Type</th>
-                            <th class="wx-summary-th-org"><span class="wx-th-org-line">Organisation &amp;</span><span class="wx-th-org-line">Address</span></th>
+                            <th class="wx-summary-th-org"><span class="wx-th-stack-line">Organisation &amp;</span><span class="wx-th-stack-line">Address</span></th>
                             <th>Designation</th>
                             <th>Nature of Work</th>
                             <th>Voltage Level</th>
-                            <th>Transformer kVA(max 1000kVA)</th>
-                            <th>Total Experience</th>
+                            <th class="wx-summary-th-kva">Transformer kVA<br>(max 1000kVA)</th>
+                            <th class="wx-summary-th-total-exp">Total<br>Experience</th>
                             <th>Attachment</th>
                             @if ($workExpWithActions)
                             <th class="wx-summary-th-actions">Actions</th>

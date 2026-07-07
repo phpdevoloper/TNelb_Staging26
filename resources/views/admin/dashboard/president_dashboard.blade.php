@@ -170,6 +170,7 @@
                                                     $newHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'N']);
                                                     $renewHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'R']);
                                                     $digiHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'D']);
+                                                    $altHref = route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'A']);
                                                 }
                                                 $rawCode = strtoupper((string) ($summary['form_name'] ?? ''));
                                                 $compactCode = preg_replace('/[^A-Z0-9]/', '', $rawCode);
@@ -200,7 +201,11 @@
                                                                 Digitization <span class="ms-1 fw-bold text-danger">{{ $summary['digi_count'] ?? 0 }}</span>
                                                             </a>
 
-                                                            
+                                                            <a href="{{ $altHref ?? route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'A']) }}"
+                                                               class="badge outline-badge-info fw-semibold text-decoration-none text-uppercase">
+                                                                Alteration <span class="ms-1 fw-bold text-danger">{{ $summary['alteration_count'] ?? 0 }}</span>
+                                                            </a>
+
                                                         </div>
                                                     </div>
                                                 </div>

@@ -31,6 +31,7 @@ class PaymentController extends Controller
             'lateFee'         => 'nullable|int',
             'lateMonths'      => 'nullable|int',
             'transactionDate'  => 'required|date',
+            'board_member_fee_exempt' => 'nullable|in:0,1',
         ]);
 
         //      dd($request->all());
@@ -51,6 +52,22 @@ class PaymentController extends Controller
             ]);
         }
 
+        $applType = strtoupper(trim((string) ($form->appl_type ?? '')));
+        $noPaymentType = in_array($applType, ['D', 'A'], true);
+        $boardMemberExempt = $request->boolean('board_member_fee_exempt')
+            && strtoupper((string) $form->form_name) === 'S'
+            && in_array($applType, ['N', 'R'], true);
+
+        if (in_array($applType, ['N', 'R'], true)
+            && (float) $validated['amount'] <= 0
+            && ! $noPaymentType
+            && ! $boardMemberExempt) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'Payment is required for new and renewal applications.',
+            ], 422);
+        }
+
         $payment = Payment::updateOrCreate(
             [
                 'login_id'        => $validated['login_id'],
@@ -63,8 +80,8 @@ class PaymentController extends Controller
                 'form_name'         => $form->form_name,
                 'license_name'      => $form->license_name,
                 'payment_mode'      => $validated['payment_mode'],
-                'late_fees'         => $validated['lateFee'],
-                'late_months'       => $validated['lateMonths'],
+                'late_fees'         => $validated['lateFee'] ?? 0,
+                'late_months'       => $validated['lateMonths'] ?? 0,
                 'transaction_date'  => $validated['transactionDate']
             ]
         );
@@ -138,8 +155,8 @@ class PaymentController extends Controller
                 'form_name'         => $form->form_name,
                 'license_name'      => $form->license_name,
                 'payment_mode'      => $validated['payment_mode'],
-                'late_fees'         => $validated['lateFee'],
-                'late_months'       => $validated['lateMonths'],
+                'late_fees'         => $validated['lateFee'] ?? 0,
+                'late_months'       => $validated['lateMonths'] ?? 0,
                 'transaction_date'  => $validated['transactionDate'] 
             ]
         );

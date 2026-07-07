@@ -115,7 +115,8 @@
     <thead>
         <tr>
             <th>S.No</th>
-            <th>Form Type</th>
+            <th>Form / Certificate Name</th>
+            <th>Application Type</th>
             <th>Application ID</th>
             <th>Applied On</th>
             <th>Application Status</th>
@@ -150,7 +151,34 @@
                 {{ $licence_name_present->licence_name }} <br>
             [Form {{ strtoupper($workflow->form_name ?? 'NA') }}]
             </td>
-            <td>{{ $workflow->application_id ?? 'NA' }}</td>
+            <td>
+                @php
+                    $applTypeLabel = match (strtoupper((string) ($workflow->appl_type ?? ''))) {
+                        'N' => '<span class="text-primary">New</span>',
+                        'R' => '<span class="text-success">Renewal</span>',
+                        'D' => '<span class="text-info">Digitisation</span>',
+                        'A' => '<span class="text-warning">Alteration</span>',
+                        default => $workflow->appl_type ?? 'NA',
+                    };
+                @endphp
+                {!! $applTypeLabel !!}
+            </td>
+            <td>
+                {{ $workflow->application_id ?? 'NA' }}
+                @if (strtoupper((string) ($workflow->appl_type ?? '')) === 'A' && !empty($workflow->old_application))
+                    @php
+                        $parentTypeLabel = match (strtoupper((string) ($workflow->parent_appl_type ?? ''))) {
+                            'N' => 'New',
+                            'R' => 'Renewal',
+                            'D' => 'Digitisation',
+                            default => 'Certificate',
+                        };
+                    @endphp
+                    <br>
+                    <span class="text-muted" style="font-size:12px;">Parent ({{ $parentTypeLabel }}):</span>
+                    <span style="font-size:12px;">{{ $workflow->old_application }}</span>
+                @endif
+            </td>
             <td>{{ isset($workflow->created_at) ? \Carbon\Carbon::parse($workflow->created_at)->format('d/m/Y') : 'NA' }}</td>
 
             <!-- Application Status -->
@@ -229,10 +257,6 @@
             </td>
 
             <!-- License Number -->
-            @php
-                // var_dump($workflow);
-                // exit;
-            @endphp
             <td>
                 @if (!empty($workflow->license_number) && $sts == 'A')
                     <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank" 

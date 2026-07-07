@@ -46,7 +46,7 @@ class FormSDigitizationController extends BaseController
     public function storeDigitization(Request $request)
     {
         $request->validate([
-            'ccnumber'   => 'required|max:15',
+            'ccnumber'   => 'required|digits_between:1,5',
             'fissue'     => 'required|date',
             'from_date'  => 'required|date',
             'to_date'    => 'required|date|after_or_equal:from_date',

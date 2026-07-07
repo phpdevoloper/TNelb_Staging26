@@ -1,6 +1,328 @@
 @include('include.header')
 
+@php
+    $isAlterationMode = !empty($is_alteration_mode);
+    $parentApplicationId = $parent_application_id ?? ($application_details->application_id ?? '');
+@endphp
+
 <style>
+    .fs-alt-existing-work input,
+    .fs-alt-existing-work select,
+    .fs-alt-existing-work textarea,
+    .fs-alt-existing-work button { pointer-events: none !important; }
+    .fs-alt-existing-work { background: #f8fafc; }
+    .fs-alt-existing-work .remove-work { display: none !important; }
+    .fs-alt-form .work-fields.fs-alt-existing-work.work-row--in-summary {
+        display: none !important;
+    }
+    .work-exp-summary-tr--frozen .work-row-edit-trigger,
+    .work-exp-summary-tr--frozen .work-row-remove { display: none !important; }
+    .work-exp-summary-tr--frozen .wx-sum-frozen-label {
+        font-size: .78rem;
+        color: #9aa8b8;
+    }
+    .fs-alt-proof-panel { display: none; margin-top: 6px; }
+    .fs-alt-proof-panel.is-visible { display: block; }
+    .fs-alt-proof-compact { max-width: 100%; }
+    .fs-alt-proof-compact__label {
+        font-size: .72rem;
+        font-weight: 600;
+        color: #4a6288;
+        margin-bottom: 4px;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .fs-alt-proof-req {
+        display: inline;
+        margin-left: 2px;
+        color: #dc3545;
+        font-weight: 700;
+        line-height: inherit;
+        vertical-align: baseline;
+    }
+    .fs-alt-proof-compact__bar {
+        display: flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 5px 8px;
+        border: 1px solid #ccd5e3;
+        border-radius: 7px;
+        background: #f8fafc;
+        transition: border-color .15s, background .15s;
+    }
+    .fs-alt-proof-compact.is-filled .fs-alt-proof-compact__bar {
+        border-color: #9ec5f0;
+        background: #fff;
+    }
+    .fs-alt-proof-input {
+        position: absolute;
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        z-index: -1;
+    }
+    .fs-alt-proof-compact__idle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .fs-alt-proof-compact.is-filled .fs-alt-proof-compact__idle { display: none; }
+    .fs-alt-proof-browse {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        padding: 2px 9px;
+        font-size: .71rem;
+        font-weight: 600;
+        line-height: 1.4;
+        color: #035ab3;
+        background: #fff;
+        border: 1px solid #035ab3;
+        border-radius: 5px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .fs-alt-proof-browse:hover { background: #eef4fc; }
+    .fs-alt-proof-compact__hint {
+        font-size: .66rem;
+        color: #878787;
+        line-height: 1.2;
+    }
+    .fs-alt-proof-compact__status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        min-width: 0;
+    }
+    .fs-alt-proof-file-icon {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        font-size: .9rem;
+        color: #c0392b;
+        line-height: 1;
+    }
+    .fs-alt-proof-file-icon .fa { line-height: 1; vertical-align: middle; }
+    .fs-alt-proof-file-icon.is-image { color: #1e7e34; }
+    .fs-alt-proof-fname {
+        flex: 1;
+        min-width: 0;
+        font-size: .71rem;
+        font-weight: 600;
+        color: #1a3a6b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+    }
+    .fs-alt-proof-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+    .fs-alt-proof-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+        font-size: .71rem;
+        font-weight: 600;
+        color: #0056b3 !important;
+        text-decoration: none;
+        white-space: nowrap;
+        line-height: 1;
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+    .fs-alt-proof-view span { line-height: 1; }
+    .fs-alt-proof-view:hover { text-decoration: none; background: #eef4fc; }
+    .fs-alt-proof-view .fa {
+        color: #d9534f;
+        font-size: .85rem;
+        line-height: 1;
+        vertical-align: middle;
+    }
+    .fs-alt-proof-view.is-image .fa { color: #1e7e34; }
+    .fs-alt-proof-change,
+    .fs-alt-proof-clear {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: #6c7a89;
+        font-size: .82rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .fs-alt-proof-change .fa,
+    .fs-alt-proof-clear .fa {
+        line-height: 1;
+        vertical-align: middle;
+    }
+    .fs-alt-proof-change { margin: 0; }
+    .fs-alt-proof-change:hover,
+    .fs-alt-proof-clear:hover {
+        background: #eef4fc;
+        color: #035ab3;
+    }
+    .fs-alt-form .fs-edit-block { display: none !important; }
+    .fs-alt-frozen-section .add-more-education,
+    .fs-alt-frozen-section .remove-education,
+    .fs-alt-frozen-section .btn-tbl-add:not(.add-more-work),
+    .fs-alt-frozen-section .remove-work { display: none !important; }
+    .fs-alt-frozen-section input:not([type="hidden"]),
+    .fs-alt-frozen-section select,
+    .fs-alt-frozen-section textarea,
+    .fs-alt-frozen-section button:not(.add-more-work):not(.btn-danger) {
+        pointer-events: none !important;
+        background-color: #f8fafc !important;
+        border-color: #e3e8f0 !important;
+        color: #495057 !important;
+        box-shadow: none !important;
+    }
+    .fs-alt-frozen-section button.btn-danger {
+        pointer-events: none !important;
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: #fff !important;
+        opacity: .92;
+    }
+    .fs-alt-frozen-section select {
+        appearance: none;
+        -webkit-appearance: none;
+    }
+    .fs-alt-form .fs-mandatory-bar { display: none; }
+    .fs-alt-options-bar {
+        margin: 0;
+        padding: 16px 18px 14px;
+        background: linear-gradient(180deg, #f7faff 0%, #fff 100%);
+        /* border-bottom: 1px solid #e3e8f0; */
+    }
+    .fs-alt-options-head {
+        margin-bottom: 12px;
+    }
+    .fs-alt-options-bar__title {
+        font-size: .8rem;
+        font-weight: 700;
+        color: #1a3a6b;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 4px;
+    }
+    .fs-alt-options-bar__hint {
+        font-size: .78rem;
+        color: #6c7a89;
+        margin: 0;
+        max-width: 36rem;
+    }
+    .fs-alt-option-cards {
+        margin-left: -6px;
+        margin-right: -6px;
+    }
+    .fs-alt-option-cards > [class*="col-"] {
+        padding-left: 6px;
+        padding-right: 6px;
+        margin-bottom: 10px;
+    }
+    .fs-alt-option-card {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 10px 10px 10px 12px;
+        border: 1px solid #d4e0f0;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        user-select: none;
+        transition: border-color .15s, box-shadow .15s, background .15s;
+        box-shadow: 0 1px 3px rgba(3, 90, 179, .06);
+    }
+    .fs-alt-option-card:hover {
+        border-color: #035ab3;
+        box-shadow: 0 2px 8px rgba(3, 90, 179, .12);
+    }
+    .fs-alt-option-card input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+    }
+    .fs-alt-option-card__icon {
+        flex-shrink: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: #eef4fc;
+        color: #035ab3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .88rem;
+    }
+    .fs-alt-option-card__body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .fs-alt-option-card__title {
+        font-size: .8rem;
+        font-weight: 700;
+        color: #1a3a6b;
+        line-height: 1.25;
+    }
+    .fs-alt-option-card__desc {
+        font-size: .7rem;
+        color: #6c7a89;
+        line-height: 1.3;
+    }
+    .fs-alt-option-card__check {
+        flex-shrink: 0;
+        font-size: 1rem;
+        color: #c5d5ea;
+        line-height: 1;
+        transition: color .15s;
+    }
+    .fs-alt-option-card.is-active {
+        border-color: #035ab3;
+        background: #f0f6ff;
+        box-shadow: 0 0 0 1px rgba(3, 90, 179, .15);
+    }
+    .fs-alt-option-card.is-active .fs-alt-option-card__icon {
+        background: #035ab3;
+        color: #fff;
+    }
+    .fs-alt-option-card.is-active .fs-alt-option-card__check {
+        color: #035ab3;
+    }
+    .fs-alt-options-error {
+        display: block;
+        margin-top: 10px;
+        font-size: .78rem;
+        color: #d9363e;
+    }
     /* ── Reset helpers ────────────────────────────────── */
     .fs-form hr {
         margin: 0;
@@ -856,6 +1178,22 @@
         transition: all .2s;
     }
     .btn-fs-submit:hover { background: linear-gradient(135deg, #15883f, #116e32); box-shadow: 0 4px 14px rgba(26,158,79,.35); }
+    .btn-fs-cancel {
+        background: #fff;
+        color: #dc3545;
+        border: 2px solid #dc3545;
+        border-radius: 8px;
+        padding: 10px 28px;
+        font-size: .9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .2s;
+    }
+    .btn-fs-cancel:hover {
+        background: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+    }
 
     /* ── Validation messages — uniform size ─────────── */
     .fs-form .text-danger,
@@ -886,6 +1224,34 @@
         display: inline-block;
     }
 </style>
+
+@if (($application_details->form_name ?? '') === 'S')
+<style>
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'S'])
+</style>
+<style>
+    @include('user_login.partials.form-s-work-exp-7ab-styles')
+    .fs-section:has(.work-exp-wrap) {
+        overflow: visible;
+    }
+    #work-container-previous .work-entry-block > .work-fields.work-row,
+    #work-container-previous .work-fields.work-row {
+        background: #ffffff !important;
+        border: 1px solid #c8d8f5 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+    }
+    #work-container-previous .work-fields.work-row.fs-alt-existing-work {
+        background: #f8fafc !important;
+        border-color: #d4e0f0 !important;
+        box-shadow: none !important;
+    }
+    #work-container-current .work-fields.work-row.fs-alt-existing-work {
+        background: #f8fafc !important;
+        border-color: #d4e0f0 !important;
+    }
+</style>
+@endif
 
 
 @php
@@ -920,7 +1286,7 @@
     <div class="container">
         <ul id="breadcrumb">
             <li><a href="{{ route('dashboard') }}"><span class="fa fa-home"></span> Dashboard</a></li>
-            <li><a href="#"><span class="fa fa-info-circle"></span> Form {{ $editFormName }}</a></li>
+            <li><a href="#"><span class="fa fa-info-circle"></span> Form {{ $editFormName }}@if($isAlterationMode) — Alteration @endif</a></li>
         </ul>
     </div>
 </div>
@@ -938,7 +1304,12 @@
                         <h5 class="tamil-title">{{ $editTamilTitle }}</h5>
                     @endif
                     <span class="form-badge">FORM - {{ $editFormName }} / Certificate {{ $editLicenseName }}</span>
-                    <h5 class="draft-title">Draft Application</h5>
+                    @if($isAlterationMode)
+                        <h5 class="draft-title">Alteration Application</h5>
+                        <span class="form-badge" style="margin-top:4px;background:rgba(255,255,255,.18);">Ref: {{ $parentApplicationId }}</span>
+                    @else
+                        <h5 class="draft-title">Draft Application</h5>
+                    @endif
                 </div>
                 <div class="instructions-link">
                     <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
@@ -947,9 +1318,11 @@
             </div>
 
             {{-- ── Mandatory notice ── --}}
+            @unless($isAlterationMode)
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
+            @endunless
 
             @if(isset($queries) && $queries->isNotEmpty())
             <div class="fs-query-alert-wrap">
@@ -974,13 +1347,67 @@
             @endif
 
             {{-- ── Form body ── --}}
-            <div class="fs-form-body fs-form apply-card">
+            <div class="fs-form-body fs-form apply-card" id="fsAltFormRoot">
 
-                <form id="competency_form_ws" enctype="multipart/form-data">
+                @if($isAlterationMode)
+                <div class="fs-alt-options-bar" id="fsAltOptionsBar">
+                    <div class="fs-alt-options-head">
+                        <div class="fs-alt-options-bar__title">Alteration options</div>
+                        <p class="fs-alt-options-bar__hint">Select what you want to change — the matching section below will unlock for editing.</p>
+                    </div>
+                    <fieldset class="fs-alt-option-cards-fieldset border-0 p-0 m-0">
+                        <legend class="sr-only">Select alteration options</legend>
+                    <div class="row fs-alt-option-cards">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <label class="fs-alt-option-card" for="fsAltOptName">
+                            <input type="checkbox" id="fsAltOptName" value="1" autocomplete="off">
+                            <span class="fs-alt-option-card__icon"><i class="fa fa-user" aria-hidden="true"></i></span>
+                            <span class="fs-alt-option-card__body">
+                                <span class="fs-alt-option-card__title">Applicant Name</span>
+                                <span class="fs-alt-option-card__desc">Change name with supporting proof</span>
+                            </span>
+                            <span class="fs-alt-option-card__check" aria-hidden="true"><i class="fa fa-check-circle"></i></span>
+                        </label>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <label class="fs-alt-option-card" for="fsAltOptAddress">
+                            <input type="checkbox" id="fsAltOptAddress" value="1" autocomplete="off">
+                            <span class="fs-alt-option-card__icon"><i class="fa fa-map-marker" aria-hidden="true"></i></span>
+                            <span class="fs-alt-option-card__body">
+                                <span class="fs-alt-option-card__title">Applicant Address</span>
+                                <span class="fs-alt-option-card__desc">Change address with supporting proof</span>
+                            </span>
+                            <span class="fs-alt-option-card__check" aria-hidden="true"><i class="fa fa-check-circle"></i></span>
+                        </label>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <label class="fs-alt-option-card" for="fsAltOptWork">
+                            <input type="checkbox" id="fsAltOptWork" value="1" autocomplete="off">
+                            <span class="fs-alt-option-card__icon"><i class="fa fa-briefcase" aria-hidden="true"></i></span>
+                            <span class="fs-alt-option-card__body">
+                                <span class="fs-alt-option-card__title">Work Experience</span>
+                                <span class="fs-alt-option-card__desc">Add new experience entries only</span>
+                            </span>
+                            <span class="fs-alt-option-card__check" aria-hidden="true"><i class="fa fa-check-circle"></i></span>
+                        </label>
+                        </div>
+                    </div>
+                    </fieldset>
+                    <span class="fs-alt-options-error" id="fsAltOptionsError" role="alert" aria-live="polite"></span>
+                </div>
+                @endif
+
+                <form id="competency_form_ws" enctype="multipart/form-data" class="{{ $isAlterationMode ? 'fs-alt-form' : '' }}">
 
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id"
-                        value="{{ isset($application_details) ? $application_details->application_id : '' }}">
+                        value="{{ $alteration_draft->application_id ?? '' }}">
+                    <input type="hidden" id="parent_application_id" name="parent_application_id" value="{{ $parentApplicationId }}">
+                    <input type="hidden" id="fs_alt_parent_name" value="{{ $parent_application_details->applicant_name ?? '' }}">
+                    <input type="hidden" id="fs_alt_parent_address" value="{{ $parent_application_details->applicants_address ?? '' }}">
+                    <input type="hidden" id="alter_name" name="alter_name" value="0">
+                    <input type="hidden" id="alter_address" name="alter_address" value="0">
+                    <input type="hidden" id="alter_workexp" name="alter_workexp" value="0">
                     @php
                         $_issued_lic_renew = '';
                         if (!empty($license_details) && trim((string) ($license_details->license_number ?? '')) !== '') {
@@ -1006,10 +1433,12 @@
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
                     @endphp
-                    <div class="fs-section" data-mode="view">
+                    <div class="fs-section" id="fsAltSectionApplicant" data-mode="view">
+                        @unless($isAlterationMode)
                         <button type="button" class="fs-section-edit-toggle" onclick="toggleSectionEdit(this)" title="Edit" style="position:absolute;top:10px;right:10px;">
                             <i class="fa fa-pencil"></i>
                         </button>
+                        @endunless
                         <div class="fs-section-body">
                             <div class="fs-view-block">
                                 <div class="row">
@@ -1022,8 +1451,16 @@
                                             </div>
                                         </div>
                                         <div class="">
-                                            <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text" value="Mr Saravana Perumal" readonly="">
+                                            <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text" value="{{ $applicantNameVal }}" @unless($isAlterationMode) readonly @endunless>
                                         </div>
+                                        @if($isAlterationMode)
+                                        @include('user_login.alteration.partials.alt-proof-upload', [
+                                            'panelId' => 'fsAltNameProofPanel',
+                                            'inputId' => 'name_alteration_proof',
+                                            'inputName' => 'name_alteration_proof',
+                                            'label' => 'Name proof',
+                                        ])
+                                        @endif
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="fs-field-head">
@@ -1043,12 +1480,12 @@
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Email ID</div>
                                                 <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
-                                                <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
-                                            maxlength="191" value="{{ $emailVal }}">
                                             </div>
-                  
-                                        
                                         </div>
+                                        <div class="fs-view-grid-value-box">
+                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}">{{ $emailVal ?: 'Not provided' }}</div>
+                                        </div>
+                                        <input type="hidden" id="applicant_email" name="applicant_email" value="{{ $emailVal }}">
                                     </div>
                                 </div>
                                 <div class="row mt-3">
@@ -1060,14 +1497,22 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
                                             </div>
                                         </div>
-                                        <div class="fs-view-grid-value-box">
+                                        <div @unless($isAlterationMode) class="fs-view-grid-value-box" @endunless>
                                             <textarea rows="3"
                                                 class="form-control"
                                                 id="applicants_address"
                                                 name="applicants_address"
                                                 maxlength="255"
-                                                readonly>{{ $addressVal ?: 'Not provided' }}</textarea>
+                                                @unless($isAlterationMode) readonly @endunless>{{ $isAlterationMode ? $addressVal : ($addressVal ?: 'Not provided') }}</textarea>
                                         </div>
+                                        @if($isAlterationMode)
+                                        @include('user_login.alteration.partials.alt-proof-upload', [
+                                            'panelId' => 'fsAltAddressProofPanel',
+                                            'inputId' => 'address_alteration_proof',
+                                            'inputName' => 'address_alteration_proof',
+                                            'label' => 'Address proof',
+                                        ])
+                                        @endif
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="row">
@@ -1179,7 +1624,7 @@
                     </div>
 
                     {{-- ═══ SECTION 5 — Education ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $formName === 'S' ? 6 : 5 }}</span>
                             <div>
@@ -1310,7 +1755,7 @@
                                                                 <div class="file-section text-center">
                                                                     @if (!empty($edu_details->upload_document))
                                                                         <div class="edu-doc-container d-flex align-items-center justify-content-center">
-                                                                            <a class="text-primary" href="{{ asset($edu_details->upload_document) }}" target="_blank">
+                                                                            <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document ?? null, 'education', (int) ($edu_details->id ?? 0), 'certificate') ?? '#' }}" target="_blank">
                                                                                 <i class="fa fa-file-pdf-o" style="color: red"></i> View
                                                                             </a>
                                                                             <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
@@ -1450,7 +1895,7 @@
                                                 @endphp
 
                     {{-- ═══ SECTION 6 — Work Experience ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section" @if($isAlterationMode) id="fsAltSectionWork" @endif>
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $workQuestionNo }}</span>
                             <div>
@@ -1472,6 +1917,13 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
+                            @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                @include('user_login.partials.form-s-work-exp-7ab-body', [
+                                    'exp_details' => $exp_details ?? collect(),
+                                    'hideUploadWhenDocExists' => true,
+                                    'isAlterationMode' => $isAlterationMode,
+                                ])
+                            @else
                             <div class="fs-table-wrap">
                                                     <table class="table table-bordered {{ (isset($application_details->form_name) && in_array($application_details->form_name, ['S','W'])) ? 'table-sm work-exp-table' : 'table-striped' }} {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'work-table-w' : '' }}" id="work-table">
                                                         <thead>
@@ -1515,7 +1967,7 @@
                                                             @if ($exp_details->isNotEmpty())
                                                             @foreach ($exp_details as $expRow)
                                                                 @if(isset($application_details->form_name) && $application_details->form_name == 'S')
-                                                                <tr class="work-fields">
+                                                                <tr class="work-fields fs-alt-existing-work">
                                                                     @php
                                                                         $workEmpType = $expRow->emp_type ?? 'company';
                                                                         $workEmployerName = $expRow->emp_cate ?? $expRow->company_name ?? '';
@@ -1581,7 +2033,7 @@
                                                                         <div class="file-section text-center">
                                                                             @if (!empty($expRow->upload_document))
                                                                                 <div class="work-doc-container d-flex align-items-center justify-content-center">
-                                                                                    <a class="text-primary" href="{{ asset($expRow->upload_document) }}" target="_blank">
+                                                                                    <a class="text-primary" href="{{ competency_document_url($expRow->support_document ?? $expRow->upload_document ?? null, 'experience', (int) ($expRow->exp_id ?? 0), 'experience_doc') ?? '#' }}" target="_blank">
                                                                                         <i class="fa fa-file-pdf-o" style="color: red"></i> View
                                                                                     </a>
                                                                                     <button type="button" class="btn btn-sm btn-danger ml-2 remove-work-doc-confirm">Remove</button>
@@ -1609,6 +2061,7 @@
                                                                         </div>
                                                                     </td>
                                                                     <input type="hidden" name="work_id[]" value="{{ $expRow->id ?? '' }}">
+                                                                    <input type="hidden" name="fs_alt_existing_work[]" value="1">
                                                                     <input type="hidden" name="existing_work_document[]" value="{{ $expRow->upload_document ?? '' }}">
                                                                     <input type="hidden" name="removed_document_work[]" value="0">
                                                                 </tr>
@@ -1619,7 +2072,7 @@
                                                                     $wTotalExp = $expRow->total_exp ?? $expRow->experience ?? '';
                                                                     $wCompany  = $expRow->emp_cate ?? $expRow->company_name ?? '';
                                                                 @endphp
-                                                                <tr class="work-fields">
+                                                                <tr class="work-fields fs-alt-existing-work">
                                                                     <td class="work-serial text-center">{{ $loop->iteration }}</td>
                                                                     <td class="work-exp-col-company">
                                                                         <input autocomplete="off" class="form-control form-control-sm" name="work_level[]" type="text" maxlength="80" value="{{ $wCompany }}">
@@ -1670,7 +2123,7 @@
                                                             @endforeach
                                                             @else
                                                                 @if(isset($application_details->form_name) && $application_details->form_name == 'S')
-                                                                <tr class="work-fields">
+                                                                <tr class="work-fields" id="fsAltWorkTemplateRow">
                                                                     <td class="work-serial text-center">1</td>
                                                                     <td class="work-exp-col-type">
                                                                         <select class="form-control form-control-sm work-employment-type" name="work_employment_type[]" required>
@@ -1801,6 +2254,7 @@
                                                 @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                                                 <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
                                                 @endif
+                            @endif
                         </div>
                     </div>
                     
@@ -1808,7 +2262,7 @@
 
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
                             <div>
@@ -1897,7 +2351,7 @@
                     @endphp
 
                     {{-- ═══ SECTION 8 — Wireman/Helper Competency ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $questionNumber }}</span>
                             <div>
@@ -1993,7 +2447,7 @@
                     @endphp
 
                     {{-- ═══ SECTION 9 — Upload Documents ═══ --}}
-                    <div class="fs-section">
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $uploadQuestionNo }}</span>
                             <div>
@@ -2005,8 +2459,11 @@
                             @php
                                 $decryptedaadhar = !empty($application_details->aadhaar) ? safeDecrypt($application_details->aadhaar) : '';
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
-                                $hasPhoto = !empty($applicant_photo->upload_path);
-                                $hasSign  = !empty($proof_doc?->uploaded_doc);
+                                $hasPhoto = !empty($applicant_photo?->upload_path);
+                                $signPathRaw = $proof_doc->uploaded_doc ?? $application_details->upload_sign ?? $application_details->signature ?? '';
+                                $hasSign = !empty($signPathRaw);
+                                $photoPreviewSrc = $hasPhoto ? competency_media_url($applicant_photo->upload_path) : '';
+                                $signPreviewSrc = $hasSign ? competency_media_url($signPathRaw) : '';
                             @endphp
                             <table class="table fs-docs-table mb-0">
                                 <tbody>
@@ -2037,7 +2494,7 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--photo">
                                                     <span id="photo_placeholder" class="fs-upload-placeholder" style="{{ $hasPhoto ? 'display:none;' : '' }}">Photo preview</span>
-                                                    <img id="preview_applicant" src="{{ $hasPhoto ? url($applicant_photo->upload_path) : '' }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_applicant" src="{{ $photoPreviewSrc }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                         </td>
@@ -2136,7 +2593,7 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--sign">
                                                     <span id="sign_placeholder" class="fs-upload-placeholder" style="{{ $hasSign ? 'display:none;' : '' }}">Signature preview</span>
-                                                    <img id="preview_signature" src="{{ $hasSign ? asset($proof_doc->uploaded_doc) : '' }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_signature" src="{{ $signPreviewSrc }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                         </td>
@@ -2153,7 +2610,11 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                @if ($formName === 'S')
+                                @if ($isAlterationMode)
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<br>
+                                    I request that the selected alteration(s) to my Supervisor Competency Certificate may be processed.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.<br>எனது மேற்பார்வையாளர் திறன் சான்றிதழில் தேர்ந்தெடுத்த மாற்றம்(கள்) செயல்படுத்தப்பட வேண்டும் என்று கேட்டுக்கொள்கிறேன்.</span>
+                                @elseif ($formName === 'S')
                                     I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
                                     I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
                                     <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
@@ -2187,18 +2648,31 @@
                         value="{{ isset($application_details) ? $application_details->form_id : '' }}">
                     <input type="hidden" id="amount" name="amount" value="">
                     <!-- {{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }} -->
-                    <input type="hidden" id="appl_type" name="appl_type" value="N">
+                    <input type="hidden" id="appl_type" name="appl_type" value="{{ $isAlterationMode ? 'A' : (isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N') }}">
+                    <input type="hidden" id="board_member_fee_exempt" value="0">
                     @csrf
 
                     {{-- ── Action buttons ── --}}
                     <div class="fs-action-bar">
+                        @if($isAlterationMode)
+                        <button type="button" class="btn-fs-cancel" id="fsAltCancelBtn">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                        @endif
                         <button type="button" class="btn-fs-draft" id="saveDraftBtn"
+                            @unless($isAlterationMode)
                             data-url="{{ route('form.draft_submit') }}"
-                            data-id="{{ $application_details->application_id ?? '' }}">
+                            data-id="{{ $application_details->application_id ?? '' }}"
+                            @endunless>
                             <i class="fa fa-floppy-o"></i> Save As Draft
                         </button>
                         <button type="button" class="btn-fs-submit" id="submitPaymentBtn">
-                            <i class="fa fa-eye"></i> Preview &amp; Proceed
+                            <i class="fa fa-eye"></i>
+                            @if($isAlterationMode)
+                                Preview & Submit Alteration
+                            @else
+                                Preview & Proceed
+                            @endif
                         </button>
                     </div>
 
@@ -2211,7 +2685,90 @@
 <footer class="main-footer">
     @include('include.footer')
     
+    <script>
+        window.formSAltStoreUrl = "{{ route('form_s_alt.store') }}";
+        window.formSAltDraftUrl = "{{ route('form_s_alt.draft') }}";
+        window.dashboardUrl = "{{ route('dashboard') }}";
+    </script>
     <script src="{{ url('assets/js/alteration.js') }}"></script>
+
+@if (($application_details->form_name ?? '') === 'S')
+@include('user_login.partials.form-s-work-exp-scripts', [
+    'editFormName' => 'S',
+    'showBoardMemberEmploymentType' => false,
+    'hideUploadWhenDocExists' => true,
+    'isAlterationMode' => $isAlterationMode,
+])
+<script>
+    (function () {
+        if (typeof window.clearWorkRowUploadErrors !== 'function') {
+            window.clearWorkRowUploadErrors = function ($scope) {
+                if (!$scope || !$scope.length) return;
+                $scope.find('.error-message').each(function () {
+                    var txt = ($(this).text() || '').toLowerCase();
+                    if (
+                        txt.indexOf('supporting document is required') !== -1 ||
+                        txt.indexOf('relieving letter is required') !== -1 ||
+                        txt.indexOf('highest transformer capacity') !== -1 ||
+                        txt.indexOf('only pdf') !== -1 ||
+                        txt.indexOf('file size permitted') !== -1
+                    ) {
+                        $(this).remove();
+                    }
+                });
+            };
+        }
+    })();
+</script>
+<script>
+    (function () {
+        var BOARD_MEMBER_TYPE = 'board_member_tnelb';
+
+        function get7bWorkRow() {
+            return $('#work-container-current .work-fields').first();
+        }
+
+        function sync7bSegmentedActive($input) {
+            var $toggle = $('.fs-7b-board-toggle');
+            $toggle.find('.fs-segmented-opt').removeClass('is-active');
+            $input.closest('.fs-segmented-opt').addClass('is-active');
+        }
+
+        function apply7bBoardToggle(mode, isInit) {
+            var $root = $('#fs-7b-root');
+            var $row = get7bWorkRow();
+            if (!$root.length) return;
+
+            var isYes = mode === 'yes';
+            $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
+            $('#fs-7b-board-details').toggleClass('d-none', !isYes);
+
+            if (!$row.length) return;
+
+            var $emp = $row.find('.work-employment-type');
+            if (isYes) {
+                if ($emp.val() !== BOARD_MEMBER_TYPE) {
+                    $emp.val(BOARD_MEMBER_TYPE).trigger('change');
+                }
+            } else if (!isInit && $emp.val() === BOARD_MEMBER_TYPE) {
+                $emp.val('').trigger('change');
+            }
+        }
+
+        $(document).on('change', 'input[name="current_work_board_member"]', function () {
+            sync7bSegmentedActive($(this));
+            apply7bBoardToggle($(this).val(), false);
+        });
+
+        $(function () {
+            var $checked = $('input[name="current_work_board_member"]:checked');
+            if ($checked.length) {
+                apply7bBoardToggle($checked.val(), true);
+            }
+        });
+    })();
+</script>
+@endif
 
 <script>
     window.toggleSectionEdit = function(btn) {
@@ -2458,6 +3015,10 @@
             const issued_licence = ($('#license_number').val() || '').trim();
 
             if (!licence_code || !appl_type) return;
+            if (typeof isNoPaymentApplType === 'function' && isNoPaymentApplType()) {
+                $('#amount').val('0');
+                return;
+            }
 
             const data = await getPaymentsService(licence_code, issued_licence, appl_type);
             if (data && data.basic_fees !== undefined && data.basic_fees !== null && data.basic_fees !== '') {
@@ -2723,6 +3284,10 @@
                     updateTotalYearsW($(this));
                 });
             });
+            return;
+        }
+
+        if (isSForm) {
             return;
         }
 

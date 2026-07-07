@@ -46,6 +46,7 @@ use App\Http\Controllers\FormWHDigitizationController;
 use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
 use App\Http\Controllers\DocumentVersion\DocumentSampleController;
+use App\Http\Controllers\FormS\FormSDocumentController;
 use App\Http\Controllers\WithoutTmp\WithoutTmpController;
 
 
@@ -132,6 +133,9 @@ Route::middleware(['auth'])->group(function () {
 
     // CC Alteration-----------------------------
     Route::get('form_s_alt', [FormSAlteration::class, 'index'])->name('form_s_alt');
+    Route::post('form_s_alt/verify', [FormSAlteration::class, 'verifyParent'])->name('form_s_alt.verify');
+    Route::post('form_s_alt/store', [FormSAlteration::class, 'store'])->name('form_s_alt.store');
+    Route::post('form_s_alt/draft', [FormSAlteration::class, 'saveDraft'])->name('form_s_alt.draft');
 
     // CL Alteration-----------------------------
     Route::get('alteration_cl', [FormCLAlteration::class, 'index'])->name('alteration_cl');
@@ -548,6 +552,16 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
     Route::post('/review/{groupKey}/reject', [DocumentSampleController::class, 'reject'])->name('reject');
     Route::get('/history/{groupKey}', [DocumentSampleController::class, 'history'])->name('history');
     Route::get('/download/{versionId}', [DocumentSampleController::class, 'download'])->name('download');
+});
+
+// ------------------------ Competency document log (FORM_S / FORM_W / FORM_WH / …) ------------------------
+Route::prefix('competency/documents')->name('competency.documents.')->group(function () {
+    Route::get('/download/{logId}', [FormSDocumentController::class, 'download'])->name('download');
+});
+
+// Backward-compatible alias (Form S)
+Route::prefix('form-s/documents')->name('form-s.documents.')->group(function () {
+    Route::get('/download/{logId}', [FormSDocumentController::class, 'download'])->name('download');
 });
 
 // ------------------------ Without Temp Module (Sample / Test) ------------------------

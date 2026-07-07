@@ -9,16 +9,22 @@
     $requestedType = strtoupper((string) request()->query('form_type', ''));
     $isRenewalOnly = $requestedType === 'R';
     $isNewOnly = $requestedType === 'N';
+    $isDigitizationOnly = $requestedType === 'D';
+    $isAlterationOnly = $requestedType === 'A';
     $isCompletedList = $is_completed_list ?? false;
 
-    $showRenewalBlock = (!$isNewOnly) && ($isRenewalOnly || $renewalApplications->isNotEmpty());
+    $showRenewalBlock = (!$isNewOnly && !$isDigitizationOnly && !$isAlterationOnly) && ($isRenewalOnly || $renewalApplications->isNotEmpty());
 
     $allApplications = collect();
-    if (!$isRenewalOnly) {
-        $allApplications = $allApplications->merge($newApplications);
-    }
-    if ($showRenewalBlock) {
-        $allApplications = $allApplications->merge($renewalApplications);
+    if ($isAlterationOnly || $isDigitizationOnly) {
+        $allApplications = collect($workflows ?? []);
+    } else {
+        if (!$isRenewalOnly) {
+            $allApplications = $allApplications->merge($newApplications);
+        }
+        if ($showRenewalBlock) {
+            $allApplications = $allApplications->merge($renewalApplications);
+        }
     }
     if (!$isCompletedList) {
         $allApplications = $allApplications->merge($returnedApplications);
@@ -235,6 +241,10 @@
                                 Completed Renewal Applications For {{ $firstApp->form_name ?? 'N/A' }}
                             @elseif($isNewOnly)
                                 Completed New Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                            @elseif($isDigitizationOnly)
+                                Completed Digitization Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                            @elseif($isAlterationOnly)
+                                Completed Alteration Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
                             @else
                                 Completed Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
                             @endif
@@ -243,6 +253,10 @@
                                 Pending Renewal Applications For {{ $firstApp->form_name ?? 'N/A' }}
                             @elseif($isNewOnly)
                                 Pending New Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                            @elseif($isDigitizationOnly)
+                                Pending Digitization Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                            @elseif($isAlterationOnly)
+                                Pending Alteration Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
                             @else
                                 Pending Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
                             @endif
@@ -307,8 +321,10 @@
                                                 $appltype= 'Renewal ';
                                             elseif($application->appl_type == 'D')
                                                  $appltype= 'Digitization';
+                                            elseif($application->appl_type == 'A')
+                                                 $appltype= 'Alteration';
                                             else
-                                                $appltype= 'Alteration';
+                                                $appltype= 'N/A';
                                             
                                         @endphp
                                         <tr>

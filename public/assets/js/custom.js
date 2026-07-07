@@ -275,6 +275,9 @@ $(document).ready(function () {
     window.normalizeIsoDateInputs = normalizeIsoDateInputs;
 
     $('#saveDraftBtn').on('click', async function(e) {
+        if ($('#competency_form_ws.fs-alt-form').length) {
+            return;
+        }
         if ($('#competency_form_p').length && !$('#competency_form_ws').length) {
             return;
         }

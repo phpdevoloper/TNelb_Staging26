@@ -1,5 +1,6 @@
 $(document).ready(function () {
     restoreCcDigitizationTempId();
+    initDigitizationDateFields();
 
     digitizationModal = new bootstrap.Modal(
         document.getElementById("digitization"),
@@ -40,6 +41,87 @@ $(document).ready(function () {
         }
     });
 });
+
+function initDigitizationDateFields() {
+    $("#digitizationForm .digi-date-input").each(function () {
+        const $input = $(this);
+        const name = $input.attr("name") || "";
+        const $error = $("#" + name + "_error");
+
+        // Let users type segment-by-segment without blur wiping the field.
+        $input.on("input", function () {
+            $error.html("");
+        });
+
+        $input.on("change", function () {
+            validateDigitizationDateField($input);
+        });
+    });
+}
+
+function validateDigitizationDateField($input) {
+    const val = ($input.val() || "").trim();
+    const name = $input.attr("name") || "";
+    const $error = $("#" + name + "_error");
+
+    if (!val) {
+        $error.html("");
+        return "";
+    }
+
+    const match = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+        const msg = "Enter a valid date (4-digit year only)";
+        $error.html(msg);
+        return msg;
+    }
+
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    if (year < 1900 || year > 2099) {
+        const msg = "Year must be between 1900 and 2099";
+        $error.html(msg);
+        return msg;
+    }
+
+    const dateObj = new Date(year, month - 1, day);
+    if (
+        isNaN(dateObj.getTime()) ||
+        dateObj.getFullYear() !== year ||
+        dateObj.getMonth() !== month - 1 ||
+        dateObj.getDate() !== day
+    ) {
+        const msg = "Enter a valid date (4-digit year only)";
+        $error.html(msg);
+        return msg;
+    }
+
+    const iso = val;
+    const min = $input.attr("min");
+    const max = $input.attr("max");
+    if (min && iso < min) {
+        const msg = "Date cannot be before " + formatIsoDateForDisplay(min);
+        $error.html(msg);
+        return msg;
+    }
+    if (max && iso > max) {
+        const msg = "Date cannot be after " + formatIsoDateForDisplay(max);
+        $error.html(msg);
+        return msg;
+    }
+
+    $error.html("");
+    return "";
+}
+
+function formatIsoDateForDisplay(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        return iso;
+    }
+    const parts = iso.split("-");
+    return parts[2] + "-" + parts[1] + "-" + parts[0];
+}
 
 function restoreCcDigitizationTempId() {
     var $field = $("#cc_digitization_temp_id");
@@ -141,20 +223,29 @@ $(document).on("click", "#digitizationSubmit", function () {
     if (ccnumber === "") {
         $("#ccnumber_error").html("Certificate Number is required");
         isValid = false;
+    } else if (!/^\d{1,5}$/.test(ccnumber)) {
+        $("#ccnumber_error").html("Certificate Number must be 1 to 5 digits only");
+        isValid = false;
     }
 
     if (fissue === "") {
         $("#fissue_error").html("Date of First Issue is required");
+        isValid = false;
+    } else if (validateDigitizationDateField($('input[name="fissue"]'))) {
         isValid = false;
     }
 
     if (from_date === "") {
         $("#from_date_error").html("From Date is required");
         isValid = false;
+    } else if (validateDigitizationDateField($('input[name="from_date"]'))) {
+        isValid = false;
     }
 
     if (to_date === "") {
         $("#to_date_error").html("To Date is required");
+        isValid = false;
+    } else if (validateDigitizationDateField($('input[name="to_date"]'))) {
         isValid = false;
     }
 
@@ -302,20 +393,12 @@ $(document).on("click", "#digitizationSubmit", function () {
     });
 });
 
-$(document).on("keyup", 'input[name="ccnumber"]', function () {
+$(document).on("input", 'input[name="ccnumber"]', function () {
+    const cleaned = ($(this).val() || "").replace(/\D/g, "").slice(0, 5);
+    if ($(this).val() !== cleaned) {
+        $(this).val(cleaned);
+    }
     $("#ccnumber_error").html("");
-});
-
-$(document).on("change", 'input[name="fissue"]', function () {
-    $("#fissue_error").html("");
-});
-
-$(document).on("change", 'input[name="from_date"]', function () {
-    $("#from_date_error").html("");
-});
-
-$(document).on("change", 'input[name="to_date"]', function () {
-    $("#to_date_error").html("");
 });
 
 $(document).on("change", 'input[name="cc_doc"]', function () {

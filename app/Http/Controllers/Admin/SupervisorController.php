@@ -79,7 +79,7 @@ class SupervisorController extends Controller
         if ($formPId > 0 && $selectedFormId === $formPId) {
             $roleLevel = (int) (optional($staff->role)->role_level ?? 0);
             $roleId = (int) ($staff->roles_id ?? 0);
-            $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R', 'D'], true) ? strtoupper((string) $request->input('form_type')) : null;
+            $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R', 'D', 'A'], true) ? strtoupper((string) $request->input('form_type')) : null;
             if ($roleLevel === 1) {
                 $query = DB::table('tnelb_form_p as ta')
                     ->whereIn('ta.payment_status', ['payment', 'paid'])
@@ -165,7 +165,7 @@ class SupervisorController extends Controller
         }
 
         $requestedType = strtoupper((string) $request->input('form_type', ''));
-        $applTypeFilter = in_array($requestedType, ['N', 'R', 'D'], true) ? $requestedType : null;
+        $applTypeFilter = in_array($requestedType, ['N', 'R', 'D', 'A'], true) ? $requestedType : null;
 
         $roleLevel = (int) (optional($staff->role)->role_level ?? 0); // mst_roles.role_level
         $roleId = (int) ($staff->roles_id ?? 0);
@@ -376,7 +376,7 @@ class SupervisorController extends Controller
         }
 
         $selectedFormId = (int) $request->input('form_id');
-        $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R'], true) ? strtoupper((string) $request->input('form_type')) : null;
+        $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R', 'D', 'A'], true) ? strtoupper((string) $request->input('form_type')) : null;
 
         if ($selectedFormId <= 0) {
             return view('admin.supervisor.view', [

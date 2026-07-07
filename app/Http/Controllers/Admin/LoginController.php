@@ -15,8 +15,11 @@ use App\Models\Admin\FormbModel;
 use App\Models\Admin\FormsaModel;
 use App\Models\Admin\FormsbModel;
 use App\Models\Admin\UserModel;
+use App\Models\Mst_Form_s_w;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
+use App\Services\Competency\CompetencyDocumentReviewService;
+use App\Services\Competency\CompetencyDocumentSupport;
 
 use App\Models\Admin\Mst_equipment_tbl;
 
@@ -442,7 +445,7 @@ class LoginController extends Controller
 
                 $applType = strtoupper((string)($row->appl_type ?? ''));
 
-                $type = in_array($applType, ['N', 'R', 'D'])
+                $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
                     ? $applType
                     : 'N';
 
@@ -450,7 +453,8 @@ class LoginController extends Controller
                     $pendingCountsMap[$fid] = [
                         'N' => 0,
                         'R' => 0,
-                        'D' => 0
+                        'D' => 0,
+                        'A' => 0,
                     ];
                 }
 
@@ -523,12 +527,12 @@ class LoginController extends Controller
                         ->get();
                 }
                 if (!isset($pendingCountsMap[$formPId])) {
-                    $pendingCountsMap[$formPId] = ['N' => 0, 'R' => 0, 'D' => 0];
+                    $pendingCountsMap[$formPId] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
                 }
                 foreach ($formPCounts as $row) {
                     $applType = strtoupper((string) ($row->appl_type ?? ''));
 
-                    $type = in_array($applType, ['N', 'R', 'D'])
+                    $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
                         ? $applType
                         : 'N';
                     $pendingCountsMap[$formPId][$type] = (int) ($row->cnt ?? 0);
@@ -642,7 +646,7 @@ class LoginController extends Controller
 
                     $applType = strtoupper((string) ($row->appl_type ?? ''));
 
-                    $type = in_array($applType, ['N', 'R', 'D'])
+                    $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
                         ? $applType
                         : 'N';
                     $cnt  = (int) ($row->cnt ?? 0);
@@ -651,7 +655,7 @@ class LoginController extends Controller
                     foreach ($contractorFormToIds[$formCode] as $licId) {
 
                         if (!isset($pendingCountsMap[$licId])) {
-                            $pendingCountsMap[$licId] = ['N' => 0, 'R' => 0, 'D' => 0];
+                            $pendingCountsMap[$licId] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
                         }
                         $pendingCountsMap[$licId][$type] += $cnt;
                     }
@@ -702,7 +706,7 @@ class LoginController extends Controller
                 $fid = $first['id'];
 
                 $counts = array_merge(
-                    ['N' => 0, 'R' => 0, 'D' => 0],
+                    ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0],
                     $pendingCountsMap[$fid] ?? []
                 );
 
@@ -716,6 +720,7 @@ class LoginController extends Controller
                     'new_count'     => $counts['N'],
                     'renewal_count' => $counts['R'],
                     'digi_count'    => $counts['D'],
+                    'alteration_count' => $counts['A'],
                 ];
             })
             ->values()
@@ -977,11 +982,12 @@ class LoginController extends Controller
 
         foreach ($tblCounts as $row) {
             $fid = (int) $row->form_id;
-            $type = in_array(strtoupper((string) $row->appl_type), ['R', 'D'])
-            ? strtoupper((string) $row->appl_type)
-            : 'N';
+            $applType = strtoupper((string) ($row->appl_type ?? ''));
+            $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
+                ? $applType
+                : 'N';
             if (!isset($completedCountsMap[$fid])) {
-                $completedCountsMap[$fid] = ['N' => 0, 'R' => 0, 'D' => 0];
+                $completedCountsMap[$fid] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
             }
             $completedCountsMap[$fid][$type] = (int) $row->cnt;
         }
@@ -995,12 +1001,13 @@ class LoginController extends Controller
                 ->groupBy('ta.appl_type')
                 ->get();
             if (!isset($completedCountsMap[$formPId])) {
-                $completedCountsMap[$formPId] = ['N' => 0, 'R' => 0 , 'D' => 0];
+                $completedCountsMap[$formPId] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
             }
             foreach ($formPCounts as $row) {
-                $type = in_array(strtoupper((string) $row->appl_type), ['R', 'D'])
-                ? strtoupper((string) $row->appl_type)
-                : 'N';
+                $applType = strtoupper((string) ($row->appl_type ?? ''));
+                $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
+                    ? $applType
+                    : 'N';
                 $completedCountsMap[$formPId][$type] = (int) ($row->cnt ?? 0);
             }
         }
@@ -1067,15 +1074,16 @@ class LoginController extends Controller
                         continue;
                     }
 
-                    $type = in_array(strtoupper((string) $row->appl_type), ['R', 'D'])
-                    ? strtoupper((string) $row->appl_type)
-                    : 'N';
+                    $applType = strtoupper((string) ($row->appl_type ?? ''));
+                    $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
+                        ? $applType
+                        : 'N';
                     $cnt  = (int) ($row->cnt ?? 0);
 
                     foreach ($contractorFormToIds[$formCode] as $licId) {
 
                         if (!isset($completedCountsMap[$licId])) {
-                            $completedCountsMap[$licId] = ['N' => 0, 'R' => 0, 'D' => 0];
+                            $completedCountsMap[$licId] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
                         }
 
                         $completedCountsMap[$licId][$type] += $cnt;
@@ -1103,7 +1111,7 @@ class LoginController extends Controller
         $assignedFormSummary = $assignedForms->groupBy('id')->map(function ($items) use ($completedCountsMap) {
             $first = $items->first();
             $fid = $first['id'];
-            $counts = $completedCountsMap[$fid] ?? ['N' => 0, 'R' => 0, 'D' => 0];
+            $counts = $completedCountsMap[$fid] ?? ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
             return [
                 'id' => $fid,
                 'form_name' => $first['form_name'],
@@ -1114,6 +1122,7 @@ class LoginController extends Controller
                 'completed_new_count' => $counts['N'],
                 'completed_renewal_count' => $counts['R'],
                 'completed_digi_count' => $counts['D'],
+                'completed_alteration_count' => $counts['A'],
             ];
         })->values()->all();
 
@@ -1181,19 +1190,14 @@ class LoginController extends Controller
         }
 
         $formTypeFilter = strtoupper(trim((string) $request->query('form_type', '')));
-        $applyApplTypeFilter = in_array($formTypeFilter, ['N', 'R'], true);
+        $applyApplTypeFilter = in_array($formTypeFilter, ['N', 'R', 'D', 'A'], true);
 
-        // Match dashboard counts: explicit R = renewal; anything else counts as new
         $applyApplTypeScope = function ($query, string $tableAlias) use ($applyApplTypeFilter, $formTypeFilter) {
             if (!$applyApplTypeFilter) {
                 return;
             }
             $col = $tableAlias . '.appl_type';
-            if ($formTypeFilter === 'R') {
-                $query->whereRaw('UPPER(TRIM(COALESCE(' . $col . ", ''))) = 'R'");
-            } else {
-                $query->whereRaw('UPPER(TRIM(COALESCE(' . $col . ", ''))) <> 'R'");
-            }
+            $query->whereRaw('UPPER(TRIM(COALESCE(' . $col . ", ''))) = ?", [$formTypeFilter]);
         };
 
         // Security: only allow forms assigned to this staff
@@ -1590,65 +1594,76 @@ class LoginController extends Controller
         }
 
 
-        // var_dump($applicant->form_id);die;
+        $alterationProofs = collect();
+        $formSWorkflowAppPk = null;
+        $formSMasterWorkflowAppPk = null;
+        $parentApplicantForAlter = null;
+        $formName = strtoupper((string) ($applicant->form_name ?? ''));
 
-        if ($applicant->appl_type == "R") {
-
-            // $ids = [$applicant->old_application, $applicant_id];
-
-            // Fetch educational qualifications
+        if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
+            $workflowApp = Mst_Form_s_w::where('application_id', $applicant_id)->first();
+            if ($workflowApp) {
+                $reviewContext = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($workflowApp);
+                $educationalQualifications = $reviewContext['educationalQualifications'];
+                $workExperience = $reviewContext['workExperience'];
+                $uploadedPhoto = $reviewContext['uploadedPhoto'];
+                $uploadedSign = $reviewContext['uploadedSign'];
+                $alterationProofs = $reviewContext['alterationProofs'];
+                $formSWorkflowAppPk = (int) $workflowApp->id;
+                $parentApp = $reviewContext['parentApplication'] ?? null;
+                $formSMasterWorkflowAppPk = $parentApp ? (int) $parentApp->id : null;
+                if ($applicant->appl_type == 'A') {
+                    $parentApplicantForAlter = $parentApp;
+                    if (!$parentApplicantForAlter && !empty($applicant->old_application)) {
+                        $parentApplicantForAlter = DB::table('tnelb_application_tbl')
+                            ->where('application_id', $applicant->old_application)
+                            ->first();
+                    }
+                }
+            } else {
+                $educationalQualifications = collect();
+                $workExperience = collect();
+                $uploadedPhoto = null;
+                $uploadedSign = null;
+            }
+        } elseif ($applicant->appl_type == "R") {
             $educationalQualifications = DB::table('tnelb_applicants_edu')
                 ->where('application_id', $applicant_id)
                 ->get();
 
-            // Fetch work experience
             $workExperience = DB::table('tnelb_applicants_exp')
                 ->where('application_id', $applicant_id)
                 ->get();
 
-            // Fetch documents
-            // $documents = Schema::hasTable('mst_documents')
-            //     ? DB::table('mst_documents')->where('application_id', $applicant_id)->get()
-            //     : collect([]);
-
-            // Get the last uploaded photo (if available)
             $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
                 ->whereNotNull('upload_path')
                 ->orderByDesc('id')
                 ->first();
 
-            // var_dump($workExperience);die;
-
+            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
+                ->whereNotNull('uploaded_doc')
+                ->orderByDesc('id')
+                ->first();
         } else {
-
-            // Fetch educational qualifications
             $educationalQualifications = DB::table('tnelb_applicants_edu')
                 ->where('application_id', $applicant_id)
                 ->orderBy('year_of_passing', 'desc')
                 ->get();
 
-            // Fetch work experience
             $workExperience = DB::table('tnelb_applicants_exp')
                 ->where('application_id', $applicant_id)
                 ->get();
 
-            // Fetch documents
-            // $documents = Schema::hasTable('mst_documents')
-            //     ? DB::table('mst_documents')->where('application_id', $applicant_id)->get()
-            //     : collect([]);
-
-            // Get the last uploaded photo (if available)
             $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
                 ->whereNotNull('upload_path')
                 ->orderByDesc('id')
                 ->first();
-        }
 
-        // Get the last uploaded signature (common for all forms)
-        $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
-            ->whereNotNull('uploaded_doc')
-            ->orderByDesc('id')
-            ->first();
+            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
+                ->whereNotNull('uploaded_doc')
+                ->orderByDesc('id')
+                ->first();
+        }
 
         // Get the current user's role ID
         $staff = Auth::user();
@@ -1777,6 +1792,12 @@ class LoginController extends Controller
                 )
                 ->get();
 
+        if (($applicant->appl_type ?? '') === 'A' && empty($parentApplicantForAlter) && !empty($applicant->old_application)) {
+            $parentApplicantForAlter = DB::table('tnelb_application_tbl')
+                ->where('application_id', $applicant->old_application)
+                ->first();
+        }
+
         // dd($applicant->license_name); exit;
 
         // Determine view based on user role
@@ -1794,7 +1815,7 @@ class LoginController extends Controller
         };
 
         // var_dump($nextForwardUser);exit;
-        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff', 'cc_digitization', 'checklist'));
+        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff', 'cc_digitization', 'checklist', 'alterationProofs', 'formSWorkflowAppPk', 'formSMasterWorkflowAppPk', 'parentApplicantForAlter'));
     }
 
     public function presidentDashboard()

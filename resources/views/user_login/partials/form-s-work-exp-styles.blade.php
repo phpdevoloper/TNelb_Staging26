@@ -34,6 +34,17 @@
         cursor: pointer; transition: background .2s, transform .15s, box-shadow .2s;
         box-shadow: 0 2px 5px rgba(3,90,179,.16);
     }
+    .work-exp-section-bar .work-exp-add-btn,
+    .work-exp-section-bar .work-exp-add-btn i,
+    .work-exp-section-bar .work-exp-add-btn span,
+    .work-exp-section-bar .work-exp-add-btn .work-exp-row-count {
+        color: #fff;
+    }
+    .work-exp-section-bar .work-exp-add-btn .work-exp-row-count {
+        font-weight: 500;
+        font-size: .7rem;
+        opacity: .92;
+    }
     .work-exp-section-bar .work-exp-add-btn:hover:not(:disabled) {
         background: #024a98; transform: translateY(-1px); box-shadow: 0 4px 9px rgba(3,90,179,.22);
     }
@@ -134,6 +145,20 @@
         min-width: 108px;
         max-width: 124px;
     }
+    .wx-summary-table .wx-summary-th-kva,
+    .wx-summary-table .work-row-summary-kva {
+        min-width: 76px;
+        max-width: 92px;
+        text-align: center;
+        line-height: 1.15;
+    }
+    .wx-summary-table .wx-summary-th-total-exp,
+    .wx-summary-table .work-row-summary-period {
+        min-width: 168px;
+        text-align: center;
+        line-height: 1.15;
+    }
+    .wx-summary-table .wx-th-stack-line,
     .wx-summary-table .wx-summary-th-org .wx-th-org-line {
         display: block;
         white-space: nowrap;
@@ -179,7 +204,7 @@
     }
     .wx-summary-table .wx-sum-dur { color: var(--wx-green); font-weight: 600; }
     /* Period column — date + duration mini boxes */
-    .wx-summary-table .work-row-summary-period { min-width: 168px; padding: 8px; }
+    .wx-summary-table .work-row-summary-period { padding: 8px; }
     .wx-period-box {
         display: flex;
         flex-direction: column;
@@ -830,9 +855,11 @@
         color: #ffffff !important;
     }
     .work-exp-wrap .work-exp-section-bar .work-exp-add-btn #work-exp-row-count,
-    .work-exp-wrap #work-exp-add-btn #work-exp-row-count {
-        color: rgba(255, 255, 255, 0.92) !important;
-        opacity: 1 !important;
+    .work-exp-wrap #work-exp-add-btn #work-exp-row-count,
+    .work-exp-wrap .work-exp-section-bar .work-exp-add-btn .work-exp-row-count,
+    .work-exp-wrap .work-exp-section-bar .work-exp-add-btn [id^="work-exp-row-count"] {
+        color: #ffffff !important;
+        opacity: 0.92 !important;
         font-weight: 500 !important;
     }
 

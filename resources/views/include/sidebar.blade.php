@@ -21,6 +21,10 @@
     $activeFormSDigitization = request()->routeIs('apply-form-s_d');
     $activeContractorDigitization = request()->routeIs('apply-form-a_d');
     $activeCompetencyAlteration = request()->routeIs('form_s_alt');
+    $activeFormSAlteration = request()->routeIs('form_s_alt') && strtoupper((string) request('form', 'S')) === 'S';
+    $activeFormWhAlteration = request()->routeIs('form_s_alt') && strtoupper((string) request('form')) === 'H';
+    $activeFormWAlteration = request()->routeIs('form_s_alt') && strtoupper((string) request('form')) === 'W';
+    $activeFormPAlteration = request()->routeIs('form_s_alt') && strtoupper((string) request('form')) === 'P';
     $activeContractorAlteration = request()->routeIs('alteration_cl');
 @endphp
 @once
@@ -414,9 +418,9 @@
                 <div class="collapse show sb-nav__card-body" id="competencyMenu">
                     <ul class="sb-nav__sublist" id="competencyMenuItems">
                         <li>
-                            <button class="sb-nav__item-toggle {{ ($activeFormWh || $activeFormWhDigitization || $activeCompetencyAlteration) ? 'is-active' : '' }}"
+                            <button class="sb-nav__item-toggle {{ ($activeFormWh || $activeFormWhDigitization || $activeFormWhAlteration) ? 'is-active' : '' }}"
                                 type="button" data-toggle="collapse" data-target="#competencyWhMenu"
-                                aria-expanded="{{ ($activeFormWh || $activeFormWhDigitization || $activeCompetencyAlteration) ? 'true' : 'false' }}"
+                                aria-expanded="{{ ($activeFormWh || $activeFormWhDigitization || $activeFormWhAlteration) ? 'true' : 'false' }}"
                                 aria-controls="competencyWhMenu">
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
@@ -425,7 +429,7 @@
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
-                            <div class="collapse {{ ($activeFormWh || $activeFormWhDigitization || $activeCompetencyAlteration) ? 'show' : '' }}"
+                            <div class="collapse {{ ($activeFormWh || $activeFormWhDigitization || $activeFormWhAlteration) ? 'show' : '' }}"
                                 data-parent="#competencyMenuItems"
                                 id="competencyWhMenu">
                                 <ul class="sb-nav__child-list">
@@ -444,8 +448,8 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="sb-nav__child-link {{ $activeCompetencyAlteration ? 'is-active' : '' }}"
-                                            href="{{ route('form_s_alt') }}">
+                                        <a class="sb-nav__child-link {{ $activeFormWhAlteration ? 'is-active' : '' }}"
+                                            href="{{ route('form_s_alt', ['form' => 'H']) }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Alteration</span>
                                         </a>
@@ -454,9 +458,9 @@
                             </div>
                         </li>
                         <li>
-                            <button class="sb-nav__item-toggle {{ ($activeFormW || $activeFormWDigitization || $activeCompetencyAlteration) ? 'is-active' : '' }}"
+                            <button class="sb-nav__item-toggle {{ ($activeFormW || $activeFormWDigitization || $activeFormWAlteration) ? 'is-active' : '' }}"
                                 type="button" data-toggle="collapse" data-target="#competencyWMenu"
-                                aria-expanded="{{ ($activeFormW || $activeFormWDigitization || $activeCompetencyAlteration) ? 'true' : 'false' }}"
+                                aria-expanded="{{ ($activeFormW || $activeFormWDigitization || $activeFormWAlteration) ? 'true' : 'false' }}"
                                 aria-controls="competencyWMenu">
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
@@ -465,7 +469,7 @@
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
-                            <div class="collapse {{ ($activeFormW || $activeFormWDigitization || $activeCompetencyAlteration) ? 'show' : '' }}"
+                            <div class="collapse {{ ($activeFormW || $activeFormWDigitization || $activeFormWAlteration) ? 'show' : '' }}"
                                 data-parent="#competencyMenuItems"
                                 id="competencyWMenu">
                                 <ul class="sb-nav__child-list">
@@ -484,8 +488,8 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="sb-nav__child-link {{ $activeCompetencyAlteration ? 'is-active' : '' }}"
-                                            href="{{ route('form_s_alt') }}">
+                                        <a class="sb-nav__child-link {{ $activeFormWAlteration ? 'is-active' : '' }}"
+                                            href="{{ route('form_s_alt', ['form' => 'W']) }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Alteration</span>
                                         </a>
@@ -494,9 +498,9 @@
                             </div>
                         </li>
                         <li>
-                            <button class="sb-nav__item-toggle {{ ($activeFormP || $activeFormPDigitization || $activeCompetencyAlteration) ? 'is-active' : '' }}"
+                            <button class="sb-nav__item-toggle {{ ($activeFormP || $activeFormPDigitization || $activeFormPAlteration) ? 'is-active' : '' }}"
                                 type="button" data-toggle="collapse" data-target="#competencyPMenu"
-                                aria-expanded="{{ ($activeFormP || $activeFormPDigitization || $activeCompetencyAlteration) ? 'true' : 'false' }}"
+                                aria-expanded="{{ ($activeFormP || $activeFormPDigitization || $activeFormPAlteration) ? 'true' : 'false' }}"
                                 aria-controls="competencyPMenu">
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
@@ -506,7 +510,7 @@
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
-                            <div class="collapse {{ ($activeFormP || $activeFormPDigitization || $activeCompetencyAlteration) ? 'show' : '' }}"
+                            <div class="collapse {{ ($activeFormP || $activeFormPDigitization || $activeFormPAlteration) ? 'show' : '' }}"
                                 data-parent="#competencyMenuItems"
                                 id="competencyPMenu">
                                 <ul class="sb-nav__child-list">
@@ -525,8 +529,8 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="sb-nav__child-link {{ $activeCompetencyAlteration ? 'is-active' : '' }}"
-                                            href="{{ route('form_s_alt') }}">
+                                        <a class="sb-nav__child-link {{ $activeFormPAlteration ? 'is-active' : '' }}"
+                                            href="{{ route('form_s_alt', ['form' => 'P']) }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Alteration</span>
                                         </a>
@@ -535,9 +539,9 @@
                             </div>
                         </li>
                         <li>
-                            <button class="sb-nav__item-toggle {{ ($activeFormS || $activeFormSDigitization || $activeCompetencyAlteration) ? 'is-active' : '' }}"
+                            <button class="sb-nav__item-toggle {{ ($activeFormS || $activeFormSDigitization || $activeFormSAlteration) ? 'is-active' : '' }}"
                                 type="button" data-toggle="collapse" data-target="#competencySMenu"
-                                aria-expanded="{{ ($activeFormS || $activeFormSDigitization || $activeCompetencyAlteration) ? 'true' : 'false' }}"
+                                aria-expanded="{{ ($activeFormS || $activeFormSDigitization || $activeFormSAlteration) ? 'true' : 'false' }}"
                                 aria-controls="competencySMenu">
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
@@ -546,7 +550,7 @@
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
-                            <div class="collapse {{ ($activeFormS || $activeFormSDigitization || $activeCompetencyAlteration) ? 'show' : '' }}"
+                            <div class="collapse {{ ($activeFormS || $activeFormSDigitization || $activeFormSAlteration) ? 'show' : '' }}"
                                 data-parent="#competencyMenuItems"
                                 id="competencySMenu">
                                 <ul class="sb-nav__child-list">
@@ -565,8 +569,8 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="sb-nav__child-link {{ $activeCompetencyAlteration ? 'is-active' : '' }}"
-                                            href="{{ route('form_s_alt') }}">
+                                        <a class="sb-nav__child-link {{ $activeFormSAlteration ? 'is-active' : '' }}"
+                                            href="{{ route('form_s_alt', ['form' => 'S']) }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Alteration</span>
                                         </a>

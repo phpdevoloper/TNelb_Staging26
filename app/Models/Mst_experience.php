@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Work experience rows (`tnelb_applicants_exp`).
  *
- * @property int|null $id
+ * @property int|null $exp_id
+ * @property int|null $id  Alias of exp_id for legacy views/controllers
  * @property string $login_id
  * @property string $application_id
  * @property string|null $emp_type
@@ -33,6 +34,8 @@ class Mst_experience extends Model
     use HasFactory;
 
     protected $table = 'tnelb_applicants_exp';
+
+    protected $primaryKey = 'exp_id';
 
     protected $fillable = [
         'login_id',
@@ -74,6 +77,13 @@ class Mst_experience extends Model
     ];
 
     /* ── Legacy attribute aliases (older controllers / views) ── */
+
+    public function getIdAttribute(): ?int
+    {
+        $key = $this->attributes[$this->primaryKey] ?? null;
+
+        return $key !== null && $key !== '' ? (int) $key : null;
+    }
 
     public function getUploadDocumentAttribute(): ?string
     {

@@ -4,6 +4,7 @@ namespace App\Services\DocumentVersion;
 
 use App\Enums\DocumentRequestType;
 use App\Models\DDocument;
+use App\Models\DocumentsLog;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -48,23 +49,29 @@ class DocumentStorageService
         return sprintf('%s_%s_%s_%s.%s', $datePrefix, $safeAppNo, $typeCode, $sequence, $ext);
     }
 
-    public function nextSequenceNo(int $applicationId, string $documentType): int
+    public function nextSequenceNo(int $applicationId, string $documentType, bool $useProductionDocumentLog = false): int
     {
         $typeCode = $this->documentTypeCode($documentType);
         $pattern = '/_' . preg_quote($typeCode, '/') . '_(\d{3})\./';
         $max = 0;
 
-        foreach (
-            DDocument::forApplication($applicationId)
-                ->where('document_type', $documentType)
-                ->pluck('file_name') as $fileName
-        ) {
+        $useProduction = $useProductionDocumentLog || $this->usesProductionDocumentLog();
+        $query = $useProduction
+            ? DocumentsLog::forApplication($applicationId)
+            : DDocument::forApplication($applicationId);
+
+        foreach ($query->where('document_type', $documentType)->pluck('file_name') as $fileName) {
             if (preg_match($pattern, $fileName, $matches)) {
                 $max = max($max, (int) $matches[1]);
             }
         }
 
         return $max + 1;
+    }
+
+    protected function usesProductionDocumentLog(): bool
+    {
+        return (bool) config('document_versioning.production_enabled', false);
     }
 
     public function store(
@@ -74,10 +81,11 @@ class DocumentStorageService
         string $moduleType,
         string $documentType,
         DocumentRequestType $requestType,
-        ?string $workflowStage = null
+        ?string $workflowStage = null,
+        bool $useProductionDocumentLog = false
     ): array {
         $extension = $file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin';
-        $sequenceNo = $this->nextSequenceNo($applicationId, $documentType);
+        $sequenceNo = $this->nextSequenceNo($applicationId, $documentType, $useProductionDocumentLog);
         $relativePath = $this->buildRelativePath(
             $requestType,
             $applicationNo,

@@ -910,42 +910,43 @@
 
 @if ($editFormName === 'S')
 <style>
-    /* Edit Form S — Section 7 card chrome (parity with renew-form) */
+    @include('user_login.partials.form-s-work-exp-7ab-styles')
+    /* Edit Form S — Section 7a card chrome (7b stays flat) */
     .fs-section:has(.work-exp-wrap) {
         overflow: visible;
     }
-    .fs-section .work-exp-wrap .work-entry-block > .work-fields.work-row,
-    .fs-section .work-exp-wrap .work-row {
+    #work-container-previous .work-entry-block > .work-fields.work-row,
+    #work-container-previous .work-fields.work-row {
         background: #ffffff !important;
         border: 1px solid #c8d8f5 !important;
         border-radius: 10px !important;
         box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
     }
-    .fs-section .work-exp-wrap .work-row:hover {
+    #work-container-previous .work-fields.work-row:hover {
         border-color: #b8cfe8 !important;
         box-shadow: 0 4px 14px rgba(3, 90, 179, 0.18) !important;
     }
-    .fs-section .work-exp-wrap .work-exp-summary-panel .wx-order-card {
+    #work-exp-summary-panel-previous .wx-order-card {
         background: #ffffff !important;
         border: 1px solid #c8d8f5 !important;
         border-radius: 10px !important;
         box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
         padding: 12px 14px !important;
     }
-    .fs-section .work-exp-wrap .work-row-head {
+    #work-container-previous .work-row-head {
         background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
         border-bottom: 1px solid #dde5f3 !important;
     }
-    .fs-section .work-exp-wrap .work-row:not(.is-complete) .work-row-head {
+    #work-container-previous .work-row:not(.is-complete) .work-row-head {
         background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
         border-bottom: 1px solid #dde5f3 !important;
     }
-    .fs-section .work-exp-wrap .work-row-head-actions .work-row-remove,
-    .fs-section .work-exp-wrap .work-row-remove.remove-work {
+    #work-container-previous .work-row-head-actions .work-row-remove,
+    #work-container-previous .work-row-remove.remove-work {
         color: #c1272d !important;
     }
-    .fs-section .work-exp-wrap .work-row-head-actions .work-row-remove .fa,
-    .fs-section .work-exp-wrap .work-row-remove.remove-work .fa {
+    #work-container-previous .work-row-head-actions .work-row-remove .fa,
+    #work-container-previous .work-row-remove.remove-work .fa {
         color: #c1272d !important;
     }
 </style>
@@ -1535,8 +1536,9 @@
                         </div>
                         <div class="fs-section-body">
                             @if ($editFormName === 'S')
-                            @include('user_login.partials.form-s-work-exp-edit-block', [
-                                'showBoardMemberEmploymentType' => $editShowBoardMember,
+                            @include('user_login.partials.form-s-work-exp-7ab-body', [
+                                'exp_details' => $exp_details,
+                                'hideUploadWhenDocExists' => true,
                             ])
                             @else
                             <div class="fs-table-wrap">
@@ -1938,7 +1940,7 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--photo">
                                                     <span id="photo_placeholder" class="fs-upload-placeholder" style="{{ $hasPhoto ? 'display:none;' : '' }}">Photo preview</span>
-                                                    <img id="preview_applicant" src="{{ $hasPhoto ? url($applicant_photo->upload_path) : '' }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_applicant" src="{{ $hasPhoto ? competency_media_url($applicant_photo->upload_path) : '' }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                         </td>
@@ -2037,7 +2039,7 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--sign">
                                                     <span id="sign_placeholder" class="fs-upload-placeholder" style="{{ $hasSign ? 'display:none;' : '' }}">Signature preview</span>
-                                                    <img id="preview_signature" src="{{ $hasSign ? asset($proof_doc->uploaded_doc) : '' }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_signature" src="{{ $hasSign ? competency_media_url($proof_doc->uploaded_doc) : '' }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                         </td>
@@ -2089,18 +2091,14 @@
                     <input type="hidden" id="amount" name="amount" value="">
                     @if ($editShowBoardMember)
                     <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
+                    <div id="board-member-fee-notice" class="alert alert-info d-none mb-3 py-2 px-3" role="status" style="font-size:.9rem;">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <strong>Fee not applicable:</strong> Applicants with TNEB/TANGEDCO Board Member work experience are exempt from application fees. You may proceed without payment.
+                    </div>
                     @endif
                     <input type="hidden" id="appl_type" name="appl_type"
                         value="{{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }}">
                     @csrf
-
-                    @if ($editShowBoardMember)
-                    <div id="board-member-fee-notice" class="alert alert-info py-2 px-3 mb-3 d-none" role="status" style="font-size:.84rem;">
-                        <i class="fa fa-info-circle"></i>
-                        Application fee is exempted because <strong>Board member of TNELB or Ex board member of TNELB</strong> is selected in Table 7.
-                        If you change the employment type, the standard renewal fee will apply.
-                    </div>
-                    @endif
 
                     {{-- ── Action buttons ── --}}
                     <div class="fs-action-bar">
@@ -2996,10 +2994,70 @@
 @if ($editFormName === 'S')
 @include('user_login.partials.form-s-work-exp-scripts', [
     'editFormName' => 'S',
-    'showBoardMemberEmploymentType' => $editShowBoardMember,
+    'showBoardMemberEmploymentType' => false,
     'enableBoardMemberFeeExempt' => $editShowBoardMember,
     'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
+    'hideUploadWhenDocExists' => true,
 ])
+<script>
+    (function () {
+        var BOARD_MEMBER_TYPE = 'board_member_tnelb';
+
+        function get7bWorkRow() {
+            return $('#work-container-current .work-fields').first();
+        }
+
+        function sync7bSegmentedActive($input) {
+            var $toggle = $('.fs-7b-board-toggle');
+            $toggle.find('.fs-segmented-opt').removeClass('is-active');
+            $input.closest('.fs-segmented-opt').addClass('is-active');
+        }
+
+        function apply7bBoardToggle(mode, isInit) {
+            var $root = $('#fs-7b-root');
+            var $row = get7bWorkRow();
+            if (!$root.length) return;
+
+            var isYes = mode === 'yes';
+            $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
+            $('#fs-7b-board-details').toggleClass('d-none', !isYes);
+
+            if (!$row.length) {
+                if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                    window.wxSyncBoardMemberRenewalFee();
+                }
+                return;
+            }
+
+            var $emp = $row.find('.work-employment-type');
+                if (isYes) {
+                    if ($emp.val() !== BOARD_MEMBER_TYPE) {
+                        $emp.val(BOARD_MEMBER_TYPE).trigger('change');
+                    }
+                    $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                } else if ($emp.val() === BOARD_MEMBER_TYPE) {
+                $emp.val('').trigger('change');
+            }
+
+            if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                window.wxSyncBoardMemberRenewalFee();
+            }
+        }
+
+        $(document).ready(function () {
+            $('input[name="current_work_board_member"]').on('change', function () {
+                sync7bSegmentedActive($(this));
+                apply7bBoardToggle($(this).val(), false);
+            });
+
+            var $checked = $('input[name="current_work_board_member"]:checked');
+            if ($checked.length) {
+                sync7bSegmentedActive($checked);
+                apply7bBoardToggle($checked.val(), true);
+            }
+        });
+    })();
+</script>
 @endif
 </body>
 

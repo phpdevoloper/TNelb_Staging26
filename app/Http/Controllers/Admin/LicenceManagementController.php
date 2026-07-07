@@ -331,6 +331,21 @@ class LicenceManagementController extends BaseController
                 ], 200);
             }
 
+            // Alteration — no application fee
+            if ($appl_type === 'A') {
+                return response()->json([
+                    'status' => 'success',
+                    'fees_details' => [
+                        'total_fees'       => 0,
+                        'basic_fees'       => 0,
+                        'lateFees'         => 0,
+                        'late_months'      => 0,
+                        'certificate_name' => $licence->licence_name ?? '',
+                        'fees_start_date'  => date('d-m-Y'),
+                    ],
+                ], 200);
+            }
+
             $fees_details = [];
 
             $bindIssued = ($appl_type === 'R') ? $issued_licence : null;

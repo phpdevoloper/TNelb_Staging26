@@ -11,6 +11,12 @@
     $defaultTillDate = !empty($defaultTillDate);
     $showSummaryPanel = $showSummaryPanel ?? true;
     $showAddRow = $showAddRow ?? true;
+    $hideDuration = !empty($hideDuration);
+    $hideRemoveButton = !empty($hideRemoveButton);
+    $hideBoardPanelNote = !empty($hideBoardPanelNote);
+    $useBootstrapGrid = !empty($useBootstrapGrid);
+    $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
+    $isAlterationMode = !empty($isAlterationMode);
 @endphp
 <div class="work-exp-wrap" data-work-part="{{ $workPart }}">
     @if ($showAddRow)
@@ -23,7 +29,7 @@
             title="Add a work experience entry">
             <i class="fa fa-plus"></i>
             <span>Add row</span>
-            <span class="text-muted" style="font-weight:500;font-size:.7rem;opacity:.85;" id="{{ $workRowCountId }}">(0/{{ $workMaxRows }})</span>
+            <span class="work-exp-row-count" id="{{ $workRowCountId }}">(0/{{ $workMaxRows }})</span>
         </button>
     </div>
     @endif
@@ -37,12 +43,12 @@
                             <tr>
                                 <th class="wx-summary-th-sno">S.No</th>
                                 <th>Employment Type</th>
-                                <th class="wx-summary-th-org"><span class="wx-th-org-line">Organisation &amp;</span><span class="wx-th-org-line">Address</span></th>
+                                <th class="wx-summary-th-org"><span class="wx-th-stack-line">Organisation &amp;</span><span class="wx-th-stack-line">Address</span></th>
                                 <th>Designation</th>
                                 <th>Nature of Work</th>
                                 <th>Voltage Level</th>
-                                <th>Transformer kVA(max 1000kVA)</th>
-                                <th>Total Experience</th>
+                                <th class="wx-summary-th-kva">Transformer kVA<br>(max 1000kVA)</th>
+                                <th class="wx-summary-th-total-exp">Total<br>Experience</th>
                                 <th>Attachment</th>
                                 <th class="wx-summary-th-actions">Actions</th>
                             </tr>
@@ -64,8 +70,16 @@
                 @include('user_login.partials.form-s-work-exp-row', [
                     'expRow' => $expRow,
                     'rowIndex' => $index,
+                    'workPart' => $workPart,
+                    'showSummaryPanel' => $showSummaryPanel,
                     'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
                     'defaultTillDate' => $defaultTillDate,
+                    'hideDuration' => $hideDuration,
+                    'hideRemoveButton' => $hideRemoveButton,
+                    'hideBoardPanelNote' => $hideBoardPanelNote,
+                    'useBootstrapGrid' => $useBootstrapGrid,
+                    'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
+                    'alterationExistingRow' => $isAlterationMode && $expRow,
                 ])
             @endforeach
         @elseif ($workMinRows > 0)
@@ -73,8 +87,16 @@
                 @include('user_login.partials.form-s-work-exp-row', [
                     'expRow' => null,
                     'rowIndex' => $index,
+                    'workPart' => $workPart,
+                    'showSummaryPanel' => $showSummaryPanel,
                     'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
                     'defaultTillDate' => $defaultTillDate,
+                    'hideDuration' => $hideDuration,
+                    'hideRemoveButton' => $hideRemoveButton,
+                    'hideBoardPanelNote' => $hideBoardPanelNote,
+                    'useBootstrapGrid' => $useBootstrapGrid,
+                    'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
+                    'alterationExistingRow' => false,
                 ])
             @endfor
         @endif

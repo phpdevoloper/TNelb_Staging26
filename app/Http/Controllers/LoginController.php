@@ -517,6 +517,38 @@ $workflows_cl = $workflows_cl
 
         });
 
+        $alterationParentIds = $workflows_present
+            ->filter(function ($workflow) {
+                return strtoupper((string) ($workflow->appl_type ?? '')) === 'A'
+                    && trim((string) ($workflow->old_application ?? '')) !== '';
+            })
+            ->pluck('old_application')
+            ->unique()
+            ->values();
+
+        if ($alterationParentIds->isNotEmpty()) {
+            $parentsByApplicationId = DB::table('tnelb_application_tbl')
+                ->whereIn('application_id', $alterationParentIds)
+                ->get(['application_id', 'appl_type'])
+                ->keyBy('application_id');
+
+            $workflows_present = $workflows_present->map(function ($workflow) use ($parentsByApplicationId) {
+                if (strtoupper((string) ($workflow->appl_type ?? '')) !== 'A') {
+                    return $workflow;
+                }
+
+                $parentId = trim((string) ($workflow->old_application ?? ''));
+                if ($parentId === '') {
+                    return $workflow;
+                }
+
+                $parent = $parentsByApplicationId->get($parentId);
+                $workflow->parent_application_id = $parentId;
+                $workflow->parent_appl_type = $parent->appl_type ?? null;
+
+                return $workflow;
+            });
+        }
 
 
 

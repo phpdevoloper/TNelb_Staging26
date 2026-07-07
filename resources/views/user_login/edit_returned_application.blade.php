@@ -1919,7 +1919,7 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--photo">
                                                     <span id="photo_placeholder" class="fs-upload-placeholder" style="{{ $hasPhoto ? 'display:none;' : '' }}">Photo preview</span>
-                                                    <img id="preview_applicant" src="{{ $hasPhoto ? url($applicant_photo->upload_path) : '' }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_applicant" src="{{ $hasPhoto ? competency_media_url($applicant_photo->upload_path) : '' }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                             </div>
@@ -2028,7 +2028,7 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--sign">
                                                     <span id="sign_placeholder" class="fs-upload-placeholder" style="{{ $hasSign ? 'display:none;' : '' }}">Signature preview</span>
-                                                    <img id="preview_signature" src="{{ $hasSign ? asset($proof_doc->uploaded_doc) : '' }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_signature" src="{{ $hasSign ? competency_media_url($proof_doc->uploaded_doc) : '' }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                             </div>

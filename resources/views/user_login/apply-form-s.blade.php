@@ -196,16 +196,162 @@
     /* Board member sub-question panel inside 7b work row */
     .work-row-grid-span { grid-column: 1 / -1; }
     .fs-question-part--7b { position: relative; }
-    .fs-7b-board-gate {
-        margin: 0 0 14px;
-        padding: 14px 16px;
-        background: linear-gradient(135deg, #f4f8ff 0%, #fafcff 100%);
-        border: 1px solid #d0dff2;
-        border-radius: 10px;
+    .fs-7b-hd.fs-question-part-hd {
+        align-items: center;
+        margin-bottom: 8px;
     }
-    .fs-7b-board-gate-label { margin-bottom: 12px; }
-    .fs-7b-board-gate-label .fs-section-title { font-size: .86rem; margin-bottom: 2px; }
-    .fs-7b-board-gate-label .fs-section-tamil { font-size: .76rem; }
+    .fs-7b-hd .fs-section-num--sub {
+        align-self: center;
+    }
+    .fs-7b-hd-content { flex: 1; min-width: 0; }
+    .fs-7b-board-gate-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .fs-7b-board-gate-label { flex: 1; min-width: 0; }
+    .fs-7b-board-gate-label .fs-section-title {
+        margin-bottom: 1px;
+        line-height: 1.35;
+    }
+    .fs-7b-board-gate-label .fs-section-tamil {
+        font-size: .74rem;
+        margin-top: 0;
+        line-height: 1.35;
+    }
+    .fs-7b-board-gate-row .fs-segmented-toggle {
+        flex-shrink: 0;
+        align-self: center;
+    }
+    .fs-7b-board-toggle.fs-segmented-toggle {
+        border-radius: 6px;
+        box-shadow: none;
+        align-items: center;
+        line-height: 1;
+        vertical-align: middle;
+    }
+    .fs-7b-board-toggle .fs-segmented-opt {
+        display: flex;
+        margin: 0;
+        padding: 0;
+        line-height: 1;
+        cursor: pointer;
+        user-select: none;
+    }
+    .fs-7b-board-toggle .fs-segmented-opt span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        padding: 3px 12px;
+        font-size: .72rem;
+        font-weight: 600;
+        line-height: 1;
+    }
+    @media (max-width: 768px) {
+        .fs-7b-hd.fs-question-part-hd {
+            align-items: flex-start;
+        }
+        .fs-7b-board-gate-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .fs-7b-board-gate-row .fs-segmented-toggle {
+            align-self: flex-end;
+        }
+    }
+    .fs-7b-board-details { margin-top: 6px; }
+    .fs-7b-work-wrap { margin-top: 4px; }
+    .fs-7b-mode-board .fs-7b-work-wrap {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+    }
+    #work-container-current .work-row-grid.row {
+        display: flex;
+        flex-wrap: wrap;
+        grid-template-columns: none;
+        --bs-gutter-x: 14px;
+        --bs-gutter-y: 10px;
+        gap: 0;
+        padding: 10px 4px 6px;
+        margin-right: 0;
+        margin-left: 0;
+    }
+    #work-container-current .work-row-grid.row > .work-card-field,
+    #work-container-current .work-row-grid.row > .work-board-member-panel {
+        margin-bottom: 6px;
+    }
+    #work-container-current .work-board-member-panel.col-12 {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    #work-container-current .work-board-member-panel .row {
+        margin-left: calc(var(--bs-gutter-x, 0.5rem) * -0.5);
+        margin-right: calc(var(--bs-gutter-x, 0.5rem) * -0.5);
+        --bs-gutter-x: 14px;
+        --bs-gutter-y: 10px;
+    }
+    #work-container-current [data-field="board-meeting-details"] textarea.form-control {
+        min-height: 52px;
+        resize: vertical;
+    }
+    #work-container-current .work-row-done-bar.col-12 {
+        padding-left: 0;
+        padding-right: 0;
+        margin-top: 0;
+        padding-bottom: 4px;
+    }
+    #work-container-current .work-card-field { gap: 5px; }
+    #work-container-current .work-card-field .form-control {
+        min-height: 36px;
+    }
+    #work-container-current .work-card-till-toggle {
+        font-size: .66rem;
+        padding: 4px 8px;
+        margin-top: 5px;
+    }
+    #work-container-current .work-row.work-row--board-member [data-field="support-doc"] {
+        grid-column: unset;
+        padding-top: 0;
+        border-top: 0;
+        margin-top: 0;
+        max-width: none;
+    }
+    /* 7b — flat layout: no nested card/panel chrome */
+    #work-container-current .work-entry-block,
+    #work-container-current .work-fields.work-row {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    #work-container-current .work-fields.work-row:hover {
+        border-color: transparent;
+        box-shadow: none;
+    }
+    #work-container-current .work-row-head {
+        display: none !important;
+    }
+    #work-container-current .work-board-member-panel,
+    #work-container-current .work-board-member-panel.col-12 {
+        margin: 0;
+        padding: 8px 0 4px;
+        background: transparent;
+        border: 0;
+        border-left: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    #work-container-current .work-board-member-panel .row {
+        row-gap: 10px;
+    }
+    #work-container-current .work-rows {
+        padding: 0;
+        gap: 0;
+    }
     .fs-segmented-toggle {
         display: inline-flex;
         align-items: stretch;
@@ -250,36 +396,42 @@
         outline: 2px solid #035ab3;
         outline-offset: 2px;
     }
-    .fs-7b-board-fields-intro {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        margin: 0 0 12px;
-        padding: 10px 12px;
-        font-size: .78rem;
-        line-height: 1.45;
-        color: #3d5278;
-        background: #f0f6ff;
-        border: 1px solid #d0dff2;
-        border-radius: 8px;
+    .fs-7b-board-toggle .fs-segmented-opt input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+        margin: 0;
+        padding: 0;
+        border: 0;
     }
-    .fs-7b-board-fields-intro .fa {
-        color: #035ab3;
-        margin-top: 2px;
-        flex-shrink: 0;
+    .fs-7b-board-toggle .fs-segmented-opt span {
+        color: #5a7299;
+        background: #fff;
+        border-right: 1px solid #e3eaf5;
     }
-    .fs-7b-work-wrap { margin-top: 4px; }
-    .fs-7b-mode-board .fs-7b-work-wrap {
-        padding: 12px 12px 4px;
-        background: linear-gradient(180deg, #f7faff 0%, #fff 100%);
-        border: 1px solid #c5d8f0;
-        border-radius: 10px;
+    .fs-7b-board-toggle .fs-segmented-opt:last-child span { border-right: 0; }
+    .fs-7b-board-toggle .fs-segmented-opt.is-active span,
+    .fs-7b-board-toggle .fs-segmented-opt input:checked + span {
+        background: #035ab3;
+        color: #fff;
     }
-    .fs-7b-mode-board #work-container-current .work-card-field:has(.work-employment-type) {
+    .fs-7b-mode-board #work-container-current .work-card-field:has(.work-employment-type),
+    #work-container-current [data-field="contractor-cat"],
+    #work-container-current [data-field="licence-number"],
+    #work-container-current [data-field="work-nature"],
+    #work-container-current [data-field="voltage-level"],
+    #work-container-current [data-field="transformer-kva"],
+    #work-container-current [data-field="relieve"] {
         display: none !important;
     }
     .fs-7b-mode-standard #work-container-current option[value="board_member_tnelb"] {
         display: none;
+    }
+    #work-container-current .work-row-remove,
+    #work-exp-summary-panel-current .work-row-remove {
+        display: none !important;
     }
     .fs-board-member-fee-banner {
         display: flex;
@@ -700,6 +852,17 @@
         border-radius: 7px; padding: 6px 12px; font-size: .8rem; font-weight: 600;
         cursor: pointer; transition: background .2s, transform .15s, box-shadow .2s;
         box-shadow: 0 2px 5px rgba(3,90,179,.16);
+    }
+    .work-exp-section-bar .work-exp-add-btn,
+    .work-exp-section-bar .work-exp-add-btn i,
+    .work-exp-section-bar .work-exp-add-btn span,
+    .work-exp-section-bar .work-exp-add-btn .work-exp-row-count {
+        color: #fff;
+    }
+    .work-exp-section-bar .work-exp-add-btn .work-exp-row-count {
+        font-weight: 500;
+        font-size: .7rem;
+        opacity: .92;
     }
     .work-exp-section-bar .work-exp-add-btn:hover:not(:disabled) {
         background: #024a98; transform: translateY(-1px); box-shadow: 0 4px 9px rgba(3,90,179,.22);
@@ -1919,30 +2082,18 @@
                         </div>
                         <div class="fs-section-body">
                             @php
+                                use App\Support\FormSExperiencePartition;
+
                                 $showBoardMemberEmploymentType = false;
-                                $previousExpDetails = collect();
-                                $currentExpDetails = collect();
-                                if (!empty($exp_details) && $exp_details->isNotEmpty()) {
-                                    foreach ($exp_details as $expRow) {
-                                        $fromDate = $expRow->from_date ?? null;
-                                        $toDate = $expRow->to_date ?? null;
-                                        $isCurrent = $fromDate && ($toDate === null || $toDate === '');
-                                        if ($isCurrent) {
-                                            $currentExpDetails->push($expRow);
-                                        } else {
-                                            $previousExpDetails->push($expRow);
-                                        }
-                                    }
-                                }
+                                $partition = FormSExperiencePartition::partition($exp_details ?? collect());
+                                $previousExpDetails = $partition['previous'];
+                                $currentExpDetails = $partition['current'];
+                                $is7bBoardMemberPrefill = $partition['is7bBoardMemberPrefill'];
                             @endphp
 
                             <div class="fs-question-part">
                                 <div class="fs-question-part-hd">
                                     <span class="fs-section-num fs-section-num--sub">7a</span>
-                                    <div>
-                                        <div class="fs-section-title">Previous Work Experience</div>
-                                        <div class="fs-section-tamil">முந்தைய பணி அனுபவ விவரங்கள்</div>
-                                    </div>
                                 </div>
                                 @include('user_login.partials.form-s-work-exp-section', [
                                     'exp_details' => $previousExpDetails,
@@ -1951,69 +2102,42 @@
                                     'workAddBtnId' => 'work-exp-add-btn-previous',
                                     'workRowCountId' => 'work-exp-row-count-previous',
                                     'workSummaryTbodyId' => 'work-exp-summary-tbody-previous',
-                                    'workMaxRows' => 2,
+                                    'workMaxRows' => 7,
                                     'workMinRows' => 1,
                                     'workPart' => 'previous',
                                 ])
                             </div>
 
                             @php
-                                $is7bBoardMemberPrefill = false;
-                                if ($currentExpDetails->isNotEmpty()) {
-                                    $firstCurrentExp = $currentExpDetails->first();
-                                    $empType7bRaw = (string) ($firstCurrentExp->emp_type ?? '');
-                                    $empType7bMapped = match ($empType7bRaw) {
-                                        'board_member' => 'board_member_tnelb',
-                                        default => $empType7bRaw,
-                                    };
-                                    $is7bBoardMemberPrefill = ($empType7bMapped === 'board_member_tnelb');
-                                }
+                                $is7bBoardMemberPrefill = $partition['is7bBoardMemberPrefill'];
                             @endphp
                             <div class="fs-question-part fs-question-part--7b {{ $is7bBoardMemberPrefill ? 'fs-7b-mode-board' : 'fs-7b-mode-standard' }}" id="fs-7b-root">
-                                <div class="fs-question-part-hd">
+                                <div class="fs-question-part-hd fs-7b-hd">
                                     <span class="fs-section-num fs-section-num--sub">7b</span>
-                                    <div>
-                                        <div class="fs-section-title">Current Work Experience</div>
-                                        <div class="fs-section-tamil">தற்போதைய பணி அனுபவ விவரங்கள்</div>
-                                    </div>
-                                </div>
-
-                                <div class="fs-7b-board-gate" role="group" aria-labelledby="fs-7b-board-gate-label">
-                                    <div class="fs-7b-board-gate-label" id="fs-7b-board-gate-label">
-                                        <div class="fs-section-title">
-                                            Are you a Board member of TNELB or Ex board member of TNELB?
-                                            <span class="section-req">*</span>
+                                    <div class="fs-7b-hd-content">
+                                        <div class="fs-7b-board-gate-row" role="group" aria-labelledby="fs-7b-board-gate-label">
+                                            <div class="fs-7b-board-gate-label" id="fs-7b-board-gate-label">
+                                                <div class="fs-section-title">
+                                                    Are you a Board member of TNELB or Ex board member of TNELB?
+                                                    <span class="section-req">*</span>
+                                                </div>
+                                                <div class="fs-section-tamil">தமிழ்நாடு மின்சார வாரிய கோப்புறை / முன்னாள் கோப்புறை உறுப்பினரா?</div>
+                                            </div>
+                                            <div class="fs-segmented-toggle fs-7b-board-toggle" role="radiogroup" aria-label="Board member of TNELB or Ex board member">
+                                                <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? '' : ' is-active' }}">
+                                                    <input type="radio" name="current_work_board_member" id="current_work_board_member_no" value="no"{{ $is7bBoardMemberPrefill ? '' : ' checked' }}>
+                                                    <span>No</span>
+                                                </label>
+                                                <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? ' is-active' : '' }}">
+                                                    <input type="radio" name="current_work_board_member" id="current_work_board_member_yes" value="yes"{{ $is7bBoardMemberPrefill ? ' checked' : '' }}>
+                                                    <span>Yes</span>
+                                                </label>
+                                            </div>
                                         </div>
-                                        <div class="fs-section-tamil">தமிழ்நாடு மின்சார வாரிய கோப்புறை / முன்னாள் கோப்புறை உறுப்பினரா?</div>
-                                    </div>
-                                    <div class="fs-segmented-toggle fs-7b-board-toggle" role="radiogroup" aria-label="Board member of TNELB or Ex board member">
-                                        <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? '' : ' is-active' }}">
-                                            <input type="radio" name="current_work_board_member" id="current_work_board_member_no" value="no"{{ $is7bBoardMemberPrefill ? '' : ' checked' }}>
-                                            <span>No</span>
-                                        </label>
-                                        <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? ' is-active' : '' }}">
-                                            <input type="radio" name="current_work_board_member" id="current_work_board_member_yes" value="yes"{{ $is7bBoardMemberPrefill ? ' checked' : '' }}>
-                                            <span>Yes</span>
-                                        </label>
                                     </div>
                                 </div>
 
-                                <div id="fs-7b-board-fields-intro" class="fs-7b-board-fields-intro{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}" role="note">
-                                    <i class="fa fa-info-circle" aria-hidden="true"></i>
-                                    <span>
-                                        Enter <strong>board meeting details</strong>, period of service, organisation, and upload supporting documents below.
-                                        Application fee is exempted for Board member / Ex. Board member of TNELB.
-                                    </span>
-                                </div>
-
-                                <div id="board-member-fee-notice" class="fs-board-member-fee-banner{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}" role="status">
-                                    <i class="fa fa-check-circle" aria-hidden="true"></i>
-                                    <span>
-                                        <strong>Fee exempted.</strong> No payment is required because you selected Board member / Ex. Board member of TNELB in section 7b.
-                                        If you change to <strong>No</strong>, the standard application fee will apply.
-                                    </span>
-                                </div>
-
+                                <div id="fs-7b-board-details" class="fs-7b-board-details{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}">
                                 <div id="fs-7b-work-wrap" class="fs-7b-work-wrap">
                                 @include('user_login.partials.form-s-work-exp-section', [
                                     'exp_details' => $currentExpDetails,
@@ -2024,13 +2148,18 @@
                                     'workMaxRows' => 1,
                                     'workMinRows' => 1,
                                     'workPart' => 'current',
+                                    'showSummaryPanel' => false,
                                     'showAddRow' => false,
                                     'showBoardMemberEmploymentType' => true,
                                     'defaultTillDate' => true,
+                                    'hideDuration' => true,
+                                    'hideRemoveButton' => true,
+                                    'hideBoardPanelNote' => true,
+                                    'useBootstrapGrid' => true,
                                 ])
                                 </div>
+                                </div>
                             </div>
-                            <div id="work-exp-total-msg" class="work-exp-total-msg-wrap" aria-live="polite"></div>
                         </div>
                     </div>
 
@@ -2039,7 +2168,7 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
                             <div>
-                                <div class="fs-section-title">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
+                                <div class="fs-section-title">Do you already possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
                                 <div class="fs-section-tamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
                             </div>
                         </div>
@@ -2082,11 +2211,6 @@
                                             data-error="#dateError" value="">
                                         <span id="dateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
-                                        <button type="button" class="btn-verify verify-btn" data-type="license" data-url="{{ route('verifylicense') }}">
-                                            <i class="fa fa-check-circle"></i> Verify
-                                        </button>
-                                    </div>
                                 </div>
                                 <div class="mt-1">
                                     <span id="verify_result"></span>
@@ -2101,8 +2225,8 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">9</span>
                             <div>
-                                <div class="fs-section-title">Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.</div>
-                                <div class="fs-section-tamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
+                                <div class="fs-section-title">Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.</div>
+                                <div class="fs-section-tamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.</div>
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -2150,11 +2274,6 @@
                                         <input class="form-control verify-date" id="certificate_valid_to" name="certificate_valid_to"
                                             data-error="#certDateError" type="date" value="{{ $oldExpiry }}">
                                         <span id="certDateError" class="text-danger" style="font-size:.78rem;"></span>
-                                    </div>
-                                    <div class="col-12 col-md-2">
-                                        <button type="button" class="btn-verify verify-btn" data-type="certificate" data-url="{{ route('verifylicense') }}">
-                                            <i class="fa fa-check-circle"></i> Verify
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -2295,6 +2414,11 @@
                     <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
                     <input type="hidden" id="form_action" name="form_action" value="draft">
                     @csrf
+
+                    <div id="board-member-fee-notice" class="alert alert-info d-none mb-3 py-2 px-3" role="status" style="font-size:.9rem;">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <strong>Fee not applicable:</strong> Applicants with TNEB/TANGEDCO Board Member work experience are exempt from application fees. You may proceed without payment.
+                    </div>
 
                     {{-- ── Action buttons ── --}}
                     <div class="fs-action-bar">
@@ -2682,20 +2806,25 @@
             function apply7bBoardToggle(mode, isInit) {
                 var $root = $('#fs-7b-root');
                 var $row = get7bWorkRow();
-                if (!$root.length || !$row.length) return;
+                if (!$root.length) return;
 
                 var isYes = mode === 'yes';
                 $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
-                $('#fs-7b-board-fields-intro').toggleClass('d-none', !isYes);
+                $('#fs-7b-board-details').toggleClass('d-none', !isYes);
+
+                if (!$row.length) {
+                    if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                        window.wxSyncBoardMemberRenewalFee();
+                    }
+                    return;
+                }
 
                 var $emp = $row.find('.work-employment-type');
                 if (isYes) {
                     if ($emp.val() !== BOARD_MEMBER_TYPE) {
                         $emp.val(BOARD_MEMBER_TYPE).trigger('change');
                     }
-                    if (!isInit || !$row.hasClass('is-complete')) {
-                        $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-                    }
+                    $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
                 } else if ($emp.val() === BOARD_MEMBER_TYPE) {
                     $emp.val('').trigger('change');
                 }

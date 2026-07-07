@@ -113,6 +113,7 @@
                                                             $completedNew = (int) ($summary['completed_new_count'] ?? 0);
                                                             $completedRenewal = (int) ($summary['completed_renewal_count'] ?? 0);
                                                             $completedDigize = (int) ($summary['completed_digi_count'] ?? 0);
+                                                            $completedAlteration = (int) ($summary['completed_alteration_count'] ?? 0);
                                                         @endphp
                                                         
                                                         <a href="#"
@@ -139,6 +140,14 @@
                                                             data-licence-name="{{ $summary['licence_name'] ?? '' }}">
                                                             Digitization
                                                             <span class="ms-1 fw-bold text-danger">{{ $completedDigize }}</span>
+                                                        </a>
+                                                        <a href="#"
+                                                            class="badge outline-badge-info fw-semibold text-decoration-none js-completed-badge"
+                                                            data-form-id="{{ $summary['id'] ?? '' }}"
+                                                            data-form-type="A"
+                                                            data-licence-name="{{ $summary['licence_name'] ?? '' }}">
+                                                            Alteration
+                                                            <span class="ms-1 fw-bold text-danger">{{ $completedAlteration }}</span>
                                                         </a>
                                                     </div>
                                                 </div>
@@ -361,7 +370,13 @@
                     }).first().text().trim();
                 }
                 const formType = ($btn.attr('data-form-type') || '').trim();
-                const typeLabel = formType === 'R' ? 'Renewal' : 'New Application';
+                const typeLabelMap = {
+                    N: 'New Application',
+                    R: 'Renewal Application',
+                    D: 'Digitization Application',
+                    A: 'Alteration Application',
+                };
+                const typeLabel = typeLabelMap[formType] || 'Application';
 
                 if (rawName) {
                     $title.text(completedTableTitlePrefix + rawName + ' - ' + typeLabel);

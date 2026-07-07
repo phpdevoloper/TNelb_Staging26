@@ -960,6 +960,13 @@ $(document).ready(function() {
         }
         window.isDigitizationApplType = isDigitizationApplType;
 
+        /** Digitisation and Alteration submit without payment; New/Renewal require payment. */
+        function isNoPaymentApplType() {
+            const appl = String($('#appl_type').val() || '').trim().toUpperCase();
+            return appl === 'D' || appl === 'A';
+        }
+        window.isNoPaymentApplType = isNoPaymentApplType;
+
         async function saveCompetencyDraftSilently() {
             const formWsEl = $('#competency_form_ws')[0];
             const formPEl = $('#competency_form_p')[0];
@@ -1305,6 +1312,13 @@ $(document).ready(function() {
                 .prv-sw-modal-root .prv-sw-section-title { font-size: .84rem; font-weight: 600; color: #1a2a4a; line-height: 1.35; }
                 .prv-sw-modal-root .prv-sw-section-tamil { font-size: .74rem; color: #5a7299; margin-top: 2px; line-height: 1.35; }
                 .prv-sw-modal-root .prv-sw-section-body { padding: 14px; }
+                .prv-sw-modal-root .prv-sw-question-part + .prv-sw-question-part {
+                    margin-top: 14px;
+                    padding-top: 14px;
+                    border-top: 1px dashed #d5deed;
+                }
+                .prv-sw-modal-root .prv-sw-question-part .prv-sw-section-hd { margin-bottom: 8px; }
+                .prv-sw-modal-root .prv-sw-question-part .prv-sw-section-body { padding-top: 0; }
 
                 .prv-sw-modal-root .prv-sw-field { margin-bottom: 10px; }
                 .prv-sw-modal-root .prv-sw-field:last-child { margin-bottom: 0; }
@@ -1631,30 +1645,127 @@ $(document).ready(function() {
 
                             <!-- Section: Work Experience (S/W only) -->
                             <div class="prv-sw-section" id="prvSwSecWork">
-                                <div class="prv-sw-section-hd">
-                                    <span class="prv-sw-section-num" data-section-num="work">7</span>
-                                    <div>
-                                        <div class="prv-sw-section-title" id="prvSwWorkTitle">Details of Previous and Current Work experiences <span class="prv-sw-section-hint">(Upload the documents)</span></div>
-                                        <div class="prv-sw-section-tamil" id="prvSwWorkTamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள் (ஆவணங்களை பதிவேற்ற வேண்டும்)</div>
+                                <div id="prvSwWorkFormS">
+                                    <div class="prv-sw-question-part" id="prvSwSecWork7a">
+                                        <div class="prv-sw-section-hd">
+                                            <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="7a">7a</span>
+                                            <div>
+                                                <div class="prv-sw-section-title">Previous Work Experience</div>
+                                                <div class="prv-sw-section-tamil">முந்தைய பணி அனுபவ விவரங்கள்</div>
+                                            </div>
+                                        </div>
+                                        <div class="prv-sw-section-body">
+                                            <div class="prv-sw-table-wrap">
+                                                <table class="prv-sw-table prv-sw-work-table wx-summary-table" id="prvSwWorkTable7a">
+                                                    <thead id="prvSwWorkThead7a"></thead>
+                                                    <tbody id="prvSwWorkBody7a"><tr><td colspan="9" class="text-muted py-3">&mdash;</td></tr></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="prv-sw-question-part" id="prvSwSecWork7b">
+                                        <div class="prv-sw-section-hd">
+                                            <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="7b">7b</span>
+                                            <div>
+                                                <div class="prv-sw-section-title">Are you a Board member of TNELB or Ex board member of TNELB?</div>
+                                                <div class="prv-sw-section-tamil">தமிழ்நாடு மின்சார வாரிய கோப்புறை / முன்னாள் கோப்புறை உறுப்பினரா?</div>
+                                            </div>
+                                        </div>
+                                        <div class="prv-sw-section-body">
+                                            <div class="mb-2" id="prvSwWork7bYn">&mdash;</div>
+                                            <div id="prvSwWork7bBlock" style="display:none;">
+                                                <div class="row g-2">
+                                                    <div class="col-12 col-sm-6">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Organisation</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bOrg">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-6">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Designation</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bDesig">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Address</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bAddr" style="white-space:pre-line;">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-4">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Date of Meeting</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bMeetingDate">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-8">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Details of the meeting</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bMeetingDetails" style="white-space:pre-line;">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-4">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">From date</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bFrom">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-4">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">To date</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bTo">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-4">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Duration</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bDuration">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-6">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Supporting docs</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bSupportDoc">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-sm-6">
+                                                        <div class="prv-sw-field mb-0">
+                                                            <div class="prv-sw-label">Relieving Letter</div>
+                                                            <div class="prv-sw-value" id="prvSwWork7bRelieveDoc">&mdash;</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="prv-sw-section-body">
-                                    <div class="prv-sw-table-wrap">
-                                        <table class="prv-sw-table prv-sw-work-table" id="prvSwWorkTable">
-                                            <thead id="prvSwWorkThead">
-                                                <tr>
-                                                    <th>#</th>
-                                                    <th>Employment Type</th>
-                                                    <th>Employer / Organisation</th>
-                                                    <th>From</th>
-                                                    <th>To</th>
-                                                    <th>Duration</th>
-                                                    <th>Designation</th>
-                                                    <th>Document</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="prvSwWorkBody"><tr><td colspan="8" class="text-muted py-3">&mdash;</td></tr></tbody>
-                                        </table>
+                                <div id="prvSwWorkFormOther" style="display:none;">
+                                    <div class="prv-sw-section-hd">
+                                        <span class="prv-sw-section-num" data-section-num="work">7</span>
+                                        <div>
+                                            <div class="prv-sw-section-title" id="prvSwWorkTitle">Details of Previous and Current Work experiences <span class="prv-sw-section-hint">(Upload the documents)</span></div>
+                                            <div class="prv-sw-section-tamil" id="prvSwWorkTamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள் (ஆவணங்களை பதிவேற்ற வேண்டும்)</div>
+                                        </div>
+                                    </div>
+                                    <div class="prv-sw-section-body">
+                                        <div class="prv-sw-table-wrap">
+                                            <table class="prv-sw-table prv-sw-work-table" id="prvSwWorkTable">
+                                                <thead id="prvSwWorkThead">
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Employment Type</th>
+                                                        <th>Employer / Organisation</th>
+                                                        <th>From</th>
+                                                        <th>To</th>
+                                                        <th>Duration</th>
+                                                        <th>Designation</th>
+                                                        <th>Document</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="prvSwWorkBody"><tr><td colspan="8" class="text-muted py-3">&mdash;</td></tr></tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1819,6 +1930,18 @@ $(document).ready(function() {
                 el.textContent = t || '—';
                 el.classList.toggle('prv-sw-empty', !t);
             };
+            const setFieldHtml = function (id, html) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const h = (html || '').toString().trim();
+                if (!h || h === '—') {
+                    el.textContent = '—';
+                    el.classList.add('prv-sw-empty');
+                    return;
+                }
+                el.innerHTML = h;
+                el.classList.remove('prv-sw-empty');
+            };
             const setNum = function (key, num) {
                 const el = document.querySelector('#appPreviewModalSw [data-section-num="' + key + '"]');
                 if (!el) return;
@@ -1925,7 +2048,12 @@ $(document).ready(function() {
             setSecVisible('prvSwSecWiremanCert', showWiremanCert);
             setNum('personal', '1');
             setNum('edu', '6');
-            setNum('work', '7');
+            if (formCode === 'S') {
+                setNum('7a', '7a');
+                setNum('7b', '7b');
+            } else {
+                setNum('work', '7');
+            }
             if (formCode === 'S') {
                 setNum('prev', '8');
                 setNum('wireman', '9');
@@ -2134,9 +2262,11 @@ $(document).ready(function() {
                 html += '</div>';
                 return html;
             };
-            const buildSwWorkThead = function (code) {
-                const thead = document.getElementById('prvSwWorkThead');
-                const workTable = document.getElementById('prvSwWorkTable');
+            const buildSwWorkThead = function (code, theadId) {
+                const thead = document.getElementById(theadId || 'prvSwWorkThead');
+                const tableId = (theadId === 'prvSwWorkThead7a') ? 'prvSwWorkTable7a'
+                    : ((theadId === 'prvSwWorkThead7b') ? 'prvSwWorkTable7b' : 'prvSwWorkTable');
+                const workTable = document.getElementById(tableId);
                 if (!thead) return;
                 if (workTable) {
                     workTable.classList.toggle('wx-summary-table', code === 'S');
@@ -2226,9 +2356,128 @@ $(document).ready(function() {
                     + '<td class="work-row-summary-attachments prv-sw-td-left">' + attachHtml + '</td>'
                     + '</tr>';
             };
+            const buildFormSWorkMeetingRow = function (row) {
+                const meetingDetails = row.querySelector('.work-board-meeting-details');
+                const meetingDateInp = row.querySelector('.work-board-meeting-date');
+                const detailsTxt = meetingDetails ? (meetingDetails.value || '').trim() : '';
+                const meetingIso = meetingDateInp ? readRowDateIso(meetingDateInp) : '';
+                const meetingDateTxt = meetingIso ? fmtPrettySw(meetingIso) : '—';
+                return '<tr class="prv-sw-board-meeting-row"><td></td>'
+                    + '<td colspan="8" style="font-size:.78rem;background:#f8fafd;">'
+                    + '<strong>Date of Meeting:</strong> ' + esc(meetingDateTxt)
+                    + ' &nbsp;|&nbsp; <strong>Details of the meeting:</strong> ' + esc(detailsTxt || '—')
+                    + '</td></tr>';
+            };
+            const rowHasFormSWorkData = function (row) {
+                const typeSel = row.querySelector('.work-employment-type');
+                const emp = row.querySelector('.work-employer-input') || row.querySelector('[name="work_employer_name[]"]');
+                const fr = row.querySelector('.work-date-from');
+                const to = row.querySelector('.work-date-to');
+                const des = row.querySelector('.work-designation') || row.querySelector('[name="designation[]"]');
+                return !!(typeSel || emp || fr || to || des
+                    || row.querySelector('.work-contractor-cat')
+                    || row.querySelector('.work-org-address'));
+            };
+            const fillFormSWorkPreviewBody = function (workBody, rowSelector, startSno) {
+                if (!workBody) return 0;
+                workBody.innerHTML = '';
+                let printed = 0;
+                document.querySelectorAll(rowSelector).forEach(function (row) {
+                    if (!row.classList.contains('work-fields') || !rowHasFormSWorkData(row)) return;
+                    printed++;
+                    workBody.innerHTML += buildFormSWorkSummaryRow(row, startSno + printed - 1);
+                    const typeSel = row.querySelector('.work-employment-type');
+                    const empTypeVal = typeSel ? (typeSel.value || '').trim() : '';
+                    if (empTypeVal === 'board_member_tnelb') {
+                        workBody.innerHTML += buildFormSWorkMeetingRow(row);
+                    }
+                });
+                if (!printed) {
+                    workBody.innerHTML = '<tr><td colspan="9" class="text-muted py-3" style="text-align:center;">No work experience entries</td></tr>';
+                }
+                return printed;
+            };
+
+            const fillFormSWork7bPreview = function () {
+                const clearIds = [
+                    'prvSwWork7bOrg', 'prvSwWork7bDesig', 'prvSwWork7bAddr',
+                    'prvSwWork7bMeetingDate', 'prvSwWork7bMeetingDetails',
+                    'prvSwWork7bFrom', 'prvSwWork7bTo', 'prvSwWork7bDuration'
+                ];
+                const clearHtmlIds = ['prvSwWork7bSupportDoc', 'prvSwWork7bRelieveDoc'];
+                let row = null;
+                document.querySelectorAll('#work-container-current .work-fields').forEach(function (r) {
+                    if (r.classList.contains('work-fields') && rowHasFormSWorkData(r)) {
+                        row = r;
+                    }
+                });
+                if (!row) {
+                    clearIds.forEach(function (id) { setField(id, ''); });
+                    clearHtmlIds.forEach(function (id) { setFieldHtml(id, ''); });
+                    return;
+                }
+
+                const emp = row.querySelector('.work-employer-input') || row.querySelector('[name="work_employer_name[]"]');
+                const address = row.querySelector('.work-org-address');
+                const des = row.querySelector('.work-designation') || row.querySelector('[name="designation[]"]');
+                const meetingDetails = row.querySelector('.work-board-meeting-details');
+                const meetingDateInp = row.querySelector('.work-board-meeting-date');
+                const fr = row.querySelector('.work-date-from');
+                const to = row.querySelector('.work-date-to');
+                const tillChk = row.querySelector('.work-date-till');
+                const yPart = row.querySelector('.work-duration-y');
+                const mPart = row.querySelector('.work-duration-m');
+                const dPart = row.querySelector('.work-duration-d');
+
+                setField('prvSwWork7bOrg', emp ? emp.value : '');
+                setField('prvSwWork7bAddr', address ? address.value : '');
+                setField('prvSwWork7bDesig', des ? des.value : '');
+
+                const meetingIso = meetingDateInp ? readRowDateIso(meetingDateInp) : '';
+                setField('prvSwWork7bMeetingDate', meetingIso ? fmtPrettySw(meetingIso) : '');
+                setField('prvSwWork7bMeetingDetails', meetingDetails ? meetingDetails.value : '');
+
+                const fromIso = readRowDateIso(fr);
+                const toIso = readRowDateIso(to);
+                const isTill = tillChk && tillChk.checked;
+                setField('prvSwWork7bFrom', fromIso ? fmtPrettySw(fromIso) : '');
+                if (isTill) {
+                    setFieldHtml('prvSwWork7bTo', '<span class="prv-sw-badge-till">Till date</span>');
+                } else {
+                    setField('prvSwWork7bTo', toIso ? fmtPrettySw(toIso) : '');
+                }
+
+                let yN = yPart ? (parseInt(yPart.value, 10) || 0) : 0;
+                let mN = mPart ? (parseInt(mPart.value, 10) || 0) : 0;
+                let dN = dPart ? (parseInt(dPart.value, 10) || 0) : 0;
+                const toEffIso = isTill ? todayIsoSw() : toIso;
+                if (!yN && !mN && !dN && fromIso && toEffIso) {
+                    const diff = calendarDiffYMDSw(fromIso, toEffIso);
+                    if (diff) {
+                        yN = diff.y;
+                        mN = diff.m;
+                        dN = diff.d;
+                    }
+                }
+                const durParts = [];
+                if (yN || mN || dN) {
+                    durParts.push(yN + ' Year' + (yN === 1 ? '' : 's'));
+                    durParts.push(mN + ' Month' + (mN === 1 ? '' : 's'));
+                    durParts.push(dN + ' Day' + (dN === 1 ? '' : 's'));
+                }
+                setField('prvSwWork7bDuration', durParts.join(', '));
+
+                setFieldHtml('prvSwWork7bSupportDoc', docCellFromRow(row, '[name="work_document[]"]', '[name="existing_work_document[]"]'));
+                const relieveHtml = isTill
+                    ? '<span class="text-muted" style="font-size:.82rem;">Not required (Till date)</span>'
+                    : docCellFromRow(row, '[name="work_relieving_letter[]"]', '[name="existing_work_relieving_document[]"]');
+                setFieldHtml('prvSwWork7bRelieveDoc', relieveHtml);
+            };
 
             const workTitleEl = document.getElementById('prvSwWorkTitle');
             const workTamilEl = document.getElementById('prvSwWorkTamil');
+            const workFormS = document.getElementById('prvSwWorkFormS');
+            const workFormOther = document.getElementById('prvSwWorkFormOther');
             if (workTitleEl && workTamilEl) {
                 if (formCode === 'S') {
                     workTitleEl.innerHTML = 'Details of Previous and Current Work experiences <span class="prv-sw-section-hint">(Upload the documents)</span>';
@@ -2241,77 +2490,91 @@ $(document).ready(function() {
 
             // Work experience table (S/W only)
             if (showWork) {
-                const workBody = document.getElementById('prvSwWorkBody');
                 const swPanel = document.querySelector('#appPreviewModalSw .prv-sw-panel');
                 if (swPanel) {
                     swPanel.style.maxWidth = (formCode === 'S') ? 'min(96vw, 1100px)' : '940px';
                 }
-                buildSwWorkThead(formCode);
-                if (workBody) {
-                    const workRows = document.querySelectorAll('#work-container-previous .work-fields, #work-container-current .work-fields, #work-container .work-fields');
-                    workBody.innerHTML = '';
-                    let printed = 0;
-                    const colSpan = (formCode === 'S') ? 9 : 8;
 
-                    workRows.forEach(function (row) {
-                        if (!row.classList.contains('work-fields')) return;
+                if (formCode === 'S') {
+                    if (workFormS) workFormS.style.display = '';
+                    if (workFormOther) workFormOther.style.display = 'none';
 
-                        if (formCode === 'S') {
-                            const typeSel = row.querySelector('.work-employment-type');
-                            const emp = row.querySelector('.work-employer-input') || row.querySelector('[name="work_employer_name[]"]');
-                            const fr = row.querySelector('.work-date-from');
-                            const to = row.querySelector('.work-date-to');
-                            const des = row.querySelector('.work-designation') || row.querySelector('[name="designation[]"]');
-                            const hasRow = typeSel || emp || fr || to || des
-                                || row.querySelector('.work-contractor-cat')
-                                || row.querySelector('.work-org-address');
-                            if (!hasRow) return;
+                    buildSwWorkThead('S', 'prvSwWorkThead7a');
+                    fillFormSWorkPreviewBody(
+                        document.getElementById('prvSwWorkBody7a'),
+                        '#work-container-previous .work-fields',
+                        1
+                    );
+
+                    const boardYesEl = document.getElementById('current_work_board_member_yes');
+                    const is7bYes = !!(boardYesEl && boardYesEl.checked);
+                    const yn7bEl = document.getElementById('prvSwWork7bYn');
+                    if (yn7bEl) {
+                        yn7bEl.innerHTML = is7bYes
+                            ? '<span class="prv-sw-yesno-yes">Yes</span>'
+                            : '<span class="prv-sw-yesno-no">No</span>';
+                    }
+                    const block7bEl = document.getElementById('prvSwWork7bBlock');
+                    if (block7bEl) block7bEl.style.display = is7bYes ? '' : 'none';
+                    if (is7bYes) {
+                        fillFormSWork7bPreview();
+                    }
+                } else {
+                    if (workFormS) workFormS.style.display = 'none';
+                    if (workFormOther) workFormOther.style.display = '';
+
+                    const workBody = document.getElementById('prvSwWorkBody');
+                    buildSwWorkThead(formCode, 'prvSwWorkThead');
+                    if (workBody) {
+                        const workRows = document.querySelectorAll('#work-container .work-fields');
+                        workBody.innerHTML = '';
+                        let printed = 0;
+                        const colSpan = 8;
+
+                        workRows.forEach(function (row) {
+                            if (!row.classList.contains('work-fields')) return;
+
+                            const typeSel = row.querySelector('[name="work_employment_type[]"]') || row.querySelector('.work-employment-type');
+                            const emp = row.querySelector('[name="work_employer_name[]"]') || row.querySelector('input[name="work_level[]"]');
+                            const fr = row.querySelector('[name="work_date_from[]"]') || row.querySelector('.work-date-from');
+                            const to = row.querySelector('[name="work_date_to[]"]') || row.querySelector('.work-date-to');
+                            const yrs = row.querySelector('.work-duration-y');
+                            const mos = row.querySelector('.work-duration-m');
+                            const days = row.querySelector('.work-duration-d');
+                            const totHidden = row.querySelector('[name="work_experience_total[]"]');
+                            const des = row.querySelector('[name="designation[]"]');
+                            if (!typeSel && !emp && !fr && !to && !des) return;
 
                             printed++;
-                            workBody.innerHTML += buildFormSWorkSummaryRow(row, printed);
-                            return;
+                            const typeText = typeSel ? (selectedText(typeSel) || typeSel.value || '—') : '—';
+                            let durText = '';
+                            if (yrs && mos && days) {
+                                const y = (yrs.value || '').trim();
+                                const m = (mos.value || '').trim();
+                                const d = (days.value || '').trim();
+                                const parts = [];
+                                if (y) parts.push(y + 'y');
+                                if (m) parts.push(m + 'm');
+                                if (d) parts.push(d + 'd');
+                                durText = parts.join(' ');
+                            }
+                            if (!durText && totHidden) durText = totHidden.value || '';
+
+                            workBody.innerHTML += '<tr>'
+                                + '<td>' + printed + '</td>'
+                                + '<td class="prv-sw-td-left">' + esc(typeText) + '</td>'
+                                + '<td class="prv-sw-td-left">' + esc(emp ? emp.value || '—' : '—') + '</td>'
+                                + '<td>' + esc(fmtRowDate(fr)) + '</td>'
+                                + '<td>' + esc(fmtRowDate(to)) + '</td>'
+                                + '<td>' + esc(durText || '—') + '</td>'
+                                + '<td class="prv-sw-td-left">' + esc(des ? des.value || '—' : '—') + '</td>'
+                                + '<td>' + docCellFromRow(row, '[name="work_document[]"]', '[name="existing_work_document[]"]') + '</td>'
+                                + '</tr>';
+                        });
+
+                        if (!printed) {
+                            workBody.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted py-3" style="text-align:center;">No work experience entries</td></tr>';
                         }
-
-                        const typeSel = row.querySelector('[name="work_employment_type[]"]') || row.querySelector('.work-employment-type');
-                        const emp = row.querySelector('[name="work_employer_name[]"]') || row.querySelector('input[name="work_level[]"]');
-                        const fr = row.querySelector('[name="work_date_from[]"]') || row.querySelector('.work-date-from');
-                        const to = row.querySelector('[name="work_date_to[]"]') || row.querySelector('.work-date-to');
-                        const yrs = row.querySelector('.work-duration-y');
-                        const mos = row.querySelector('.work-duration-m');
-                        const days = row.querySelector('.work-duration-d');
-                        const totHidden = row.querySelector('[name="work_experience_total[]"]');
-                        const des = row.querySelector('[name="designation[]"]');
-                        if (!typeSel && !emp && !fr && !to && !des) return;
-
-                        printed++;
-                        const typeText = typeSel ? (selectedText(typeSel) || typeSel.value || '—') : '—';
-                        let durText = '';
-                        if (yrs && mos && days) {
-                            const y = (yrs.value || '').trim();
-                            const m = (mos.value || '').trim();
-                            const d = (days.value || '').trim();
-                            const parts = [];
-                            if (y) parts.push(y + 'y');
-                            if (m) parts.push(m + 'm');
-                            if (d) parts.push(d + 'd');
-                            durText = parts.join(' ');
-                        }
-                        if (!durText && totHidden) durText = totHidden.value || '';
-
-                        workBody.innerHTML += '<tr>'
-                            + '<td>' + printed + '</td>'
-                            + '<td class="prv-sw-td-left">' + esc(typeText) + '</td>'
-                            + '<td class="prv-sw-td-left">' + esc(emp ? emp.value || '—' : '—') + '</td>'
-                            + '<td>' + esc(fmtRowDate(fr)) + '</td>'
-                            + '<td>' + esc(fmtRowDate(to)) + '</td>'
-                            + '<td>' + esc(durText || '—') + '</td>'
-                            + '<td class="prv-sw-td-left">' + esc(des ? des.value || '—' : '—') + '</td>'
-                            + '<td>' + docCellFromRow(row, '[name="work_document[]"]', '[name="existing_work_document[]"]') + '</td>'
-                            + '</tr>';
-                    });
-
-                    if (!printed) {
-                        workBody.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-muted py-3" style="text-align:center;">No work experience entries</td></tr>';
                     }
                 }
             }
@@ -2473,11 +2736,99 @@ $(document).ready(function() {
             window.showCompetencyPreviewModal = showCompetencyPreviewModal;
         }
 
+        function revealCompetencySectionForField($field) {
+            if (!$field || !$field.length) {
+                return;
+            }
+            const $section = $field.closest('.fs-section[data-mode="view"]');
+            if (!$section.length) {
+                return;
+            }
+            $section.attr('data-mode', 'edit');
+            const toggleBtn = $section.find('.fs-section-edit-toggle').get(0);
+            if (toggleBtn) {
+                const icon = toggleBtn.querySelector('i');
+                if (icon) {
+                    icon.className = 'fa fa-check';
+                }
+                toggleBtn.setAttribute('title', 'Done');
+            }
+        }
+
+        function scrollCompetencyToValidationError(firstErrorField) {
+            $('#work-container .work-fields.work-row--compact').each(function () {
+                if ($(this).find('.error-message').length) {
+                    $(this).addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                    $(this).find('.work-row-toggle-btn').attr('aria-expanded', 'true');
+                    if (typeof window.wxSyncWorkSummaryTable === 'function') {
+                        window.wxSyncWorkSummaryTable();
+                    }
+                }
+            });
+
+            const $visibleMsg = $('#competency_form_ws .error-message:visible').first();
+            if ($visibleMsg.length) {
+                const msgEl = $visibleMsg.get(0);
+                if (msgEl && typeof msgEl.scrollIntoView === 'function') {
+                    msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+            }
+
+            if (!firstErrorField || !firstErrorField.length) {
+                return;
+            }
+
+            revealCompetencySectionForField(firstErrorField);
+
+            let $scrollTarget = firstErrorField.filter(':visible');
+            if (!$scrollTarget.length && firstErrorField.is('.error-message')) {
+                $scrollTarget = firstErrorField;
+            }
+            if (!$scrollTarget.length) {
+                $scrollTarget = firstErrorField.nextAll('.error-message').filter(':visible').first();
+            }
+            if (!$scrollTarget.length) {
+                $scrollTarget = firstErrorField.siblings('.error-message').filter(':visible').first();
+            }
+            if (!$scrollTarget.length) {
+                const $section = firstErrorField.closest('.fs-section');
+                if ($section.length) {
+                    $scrollTarget = $section.find('.error-message:visible').first();
+                }
+            }
+            if (!$scrollTarget.length) {
+                $scrollTarget = firstErrorField.closest('tr, .form-group, .fs-field-head, td').filter(':visible').first();
+            }
+            if (!$scrollTarget.length) {
+                $scrollTarget = firstErrorField;
+            }
+
+            const el = $scrollTarget.get(0);
+            if (!el) {
+                return;
+            }
+
+            if (typeof el.scrollIntoView === 'function') {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            const off = $scrollTarget.offset();
+            if (off && typeof off.top === 'number' && off.top > 50) {
+                $('html, body').animate({ scrollTop: off.top - 100 }, 500);
+            }
+        }
+
         $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if ($('#competency_form_ws.fs-alt-form').length) {
+                return;
+            }
             if ($('#competency_form_p').length && !$('#competency_form_ws').length) {
                 return;
             }
-            e.preventDefault();
             const $submitBtn = $(this);
             if ($submitBtn.data('isProcessing') === true) {
                 return;
@@ -2748,6 +3099,17 @@ $(document).ready(function() {
                 return $existing.length && String($existing.val() || '').trim() !== '';
             }
 
+            function isFormS7bCurrentWorkRow($row) {
+                return $row.closest('#work-container-current, .js-work-container[data-work-part="current"]').length > 0;
+            }
+
+            function isFormS7bBoardGateYes() {
+                if (!$('#fs-7b-root').length) {
+                    return false;
+                }
+                return ($('input[name="current_work_board_member"]:checked').val() || 'no').toLowerCase() === 'yes';
+            }
+
             /* Recompute work duration hidden fields before validating (native change + blur for jQuery handlers). */
             if ($('#work-container').length) {
                 $('#work-container .work-fields').find('.work-date-from, .work-date-to').each(function () {
@@ -2773,6 +3135,9 @@ $(document).ready(function() {
                          • Supporting documents (col 12)
                          • Relieving Letter (col 13) — UNLESS "Till date" is checked */
                     const $row = $(this);
+                    if (isFormS7bCurrentWorkRow($row) && !isFormS7bBoardGateYes()) {
+                        return;
+                    }
                     const employmentType  = $row.find('.work-employment-type');
                     const contractorCat   = $row.find('.work-contractor-cat');
                     const licenceNumber   = $row.find('.work-licence-number');
@@ -3086,7 +3451,7 @@ $(document).ready(function() {
                     var d = new Date();
                     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                 })();
-                $('.js-work-container .work-fields, #work-container .work-fields').each(function () {
+                $('#work-container-previous .work-fields, #work-container .work-fields').each(function () {
                     var $tr = $(this);
                     var $fr = $tr.find('.work-date-from');
                     var $to = $tr.find('.work-date-to');
@@ -3103,7 +3468,9 @@ $(document).ready(function() {
                     if (!$firstFilledToDate) $firstFilledToDate = $to;
                 });
                 if (anyFilled && totalMs < twoYearsMs) {
-                    var $combinedMsg = $('#work-exp-total-msg');
+                    var $combinedMsg = $('#work-exp-total-msg-previous').length
+                        ? $('#work-exp-total-msg-previous')
+                        : $('#work-exp-total-msg');
                     if ($combinedMsg.length) {
                         $combinedMsg.html('<div class="work-exp-total-error text-danger small" role="alert">Minimum 2 Years Experience needed across all entries.</div>');
                     }
@@ -3328,24 +3695,7 @@ $(document).ready(function() {
             }
 
             if (!isValid) {
-                /* Expand collapsed work-experience summary rows that contain validation errors. */
-                $('#work-container .work-fields.work-row--compact').each(function () {
-                    if ($(this).find('.error-message').length) {
-                        $(this).addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-                        $(this).find('.work-row-toggle-btn').attr('aria-expanded', 'true');
-                        if (typeof window.wxSyncWorkSummaryTable === 'function') {
-                            window.wxSyncWorkSummaryTable();
-                        }
-                    }
-                });
-                if (firstErrorField && firstErrorField.length) {
-                    try {
-                        const off = firstErrorField.offset();
-                        if (off && typeof off.top === 'number') {
-                            $('html, body').animate({ scrollTop: off.top - 100 }, 500);
-                        }
-                    } catch (err) { /* hidden/disconnected nodes */ }
-                }
+                scrollCompetencyToValidationError(firstErrorField);
                 $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
                 return;
             }
@@ -3367,7 +3717,7 @@ $(document).ready(function() {
             }
 
             let license_name = $("#license_name").val();
-            if (isDigitizationApplType()) {
+            if (isNoPaymentApplType()) {
                 $('#amount').val('0');
             }
             showDeclarationPopup(license_name, true);
@@ -5357,6 +5707,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             const appl_type = $('#appl_type').val();
             const issued_licence = $('#license_number').val();
             const isDigitization = String(appl_type || '').trim().toUpperCase() === 'D';
+            const noPaymentApplType = isNoPaymentApplType();
 
             const formResponse = await $.ajax({
                 url: "{{ route('licences.getFormInstruction') }}",
@@ -5374,38 +5725,50 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 Swal.fire("Error", "Instruction not available", "error");
                 return;
             }
-            
-            const data = await getPaymentsService(licence_code, issued_licence, appl_type);
 
-            if (!data) {
+            let data = null;
+            if (!noPaymentApplType) {
+                data = await getPaymentsService(licence_code, issued_licence, appl_type);
+            }
+
+            if (!noPaymentApplType && !data) {
                 Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
                 return;
             }
 
-            const formNamePay = ($('#form_name').val() || '').trim().toUpperCase();
-            const boardMemberFeeExempt = !isDigitization
-                && formNamePay === 'S'
-                && (appl_type === 'N' || appl_type === 'R')
-                && typeof window.wxHasBoardMemberWorkRow === 'function'
-                && window.wxHasBoardMemberWorkRow();
-            const digitizationNoFee = isDigitization;
-
-            if (digitizationNoFee || boardMemberFeeExempt) {
+            if (noPaymentApplType) {
                 $('#amount').val('0');
             }
+
+            const boardMemberFeeExempt = !noPaymentApplType
+                && ($('#form_name').val() || '').trim().toUpperCase() === 'S'
+                && ['N', 'R'].includes(String(appl_type || '').trim().toUpperCase())
+                && typeof window.wxHasBoardMemberWorkRow === 'function'
+                && window.wxHasBoardMemberWorkRow();
+
             if (boardMemberFeeExempt) {
+                $('#amount').val('0');
                 $('#board_member_fee_exempt').val('1');
+            } else if ($('#board_member_fee_exempt').length) {
+                $('#board_member_fee_exempt').val('0');
             }
 
-            if (data.lateFees < 0) {
-                actual_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.basic_fees;
-                total_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.total_fees;
+            const feeWaived = noPaymentApplType || boardMemberFeeExempt;
+
+            if (feeWaived) {
+                actual_fees = 0;
+                total_fees = 0;
+                lateFee = 0;
+                lateMonths = 0;
+            } else if (data.lateFees < 0) {
+                actual_fees = data.basic_fees;
+                total_fees = data.total_fees;
                 lateMonths = data.late_months;
             } else {
-                actual_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.basic_fees;
+                actual_fees = data.basic_fees;
                 lateMonths = data.late_months;
-                total_fees = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.total_fees;
-                lateFee = (digitizationNoFee || boardMemberFeeExempt) ? 0 : data.lateFees;
+                total_fees = data.total_fees;
+                lateFee = data.lateFees;
             }
 
             fees_date = data.fees_start_date;
@@ -5436,10 +5799,11 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             }
             const formFeesEl = document.getElementById('form_fees');
             if (formFeesEl) {
-                formFeesEl.textContent = digitizationNoFee
-                    ? 'No fee (Digitization)'
+                const applUpper = String(appl_type || '').trim().toUpperCase();
+                formFeesEl.textContent = noPaymentApplType
+                    ? (applUpper === 'A' ? 'No fee (Alteration)' : 'No fee (Digitization)')
                     : (boardMemberFeeExempt
-                        ? 'Fee exempted (Board Member)'
+                        ? 'No fee (Board Member — fee not applicable)'
                         : ('Rs.' + actual_fees + '/-'));
             }
             
@@ -5562,7 +5926,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         
                         let form_type = isDigitization
                             ? 'Digitization Application'
-                            : (appl_type === 'R' ? 'Renewal Application' : 'New Application');
+                            : (String(appl_type || '').trim().toUpperCase() === 'A'
+                                ? 'Alteration Application'
+                                : (appl_type === 'R' ? 'Renewal Application' : 'New Application'));
 
                         const login_id = window.login_id || "{{ auth()->user()->login_id ?? '' }}";
                         const application_id = saveResponse.application_id;
@@ -5576,7 +5942,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         const form_name = saveResponse.form_name || 'N/A';
                         const amount = total_fees;
                         const licence_name = saveResponse.licence_name || 'N/A';
-                        const feeExemptSubmit = digitizationNoFee || boardMemberFeeExempt || Number(amount) === 0;
+                        const feeExemptSubmit = noPaymentApplType || boardMemberFeeExempt;
 
                         //console.log(transactionDate);
                         
@@ -5612,8 +5978,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                                     payment_mode,
                                     form_name,
                                     form_type,
-                                    lateFee,
-                                    lateMonths
+                                    lateFee: lateFee ?? 0,
+                                    lateMonths: lateMonths ?? 0,
+                                    board_member_fee_exempt: $('#board_member_fee_exempt').val() || '0'
                                 },
                                 headers: {
                                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -5633,7 +6000,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                             }
                         };
 
-                        // Zero-fee paths (digitization, board member exempt, etc.) — submit directly
+                        // Zero-fee paths (digitization / alteration / board member) — submit directly
                         if (feeExemptSubmit) {
                             await runCompetencyPayment();
                             return;

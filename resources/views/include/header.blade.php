@@ -901,6 +901,198 @@ use Illuminate\Support\Facades\Auth;
             height: 14px;
         }
 
+        /* Digitization enrollment form */
+        .applicant-instr-modal .digi-form-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .applicant-instr-modal .digi-section {
+            background: #f8fafc;
+            border: 1px solid #e8edf4;
+            border-radius: 12px;
+            padding: 16px 18px;
+        }
+
+        .applicant-instr-modal .digi-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e3a5f;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            margin: 0 0 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .applicant-instr-modal .digi-section-title .fill {
+            color: #dc2626;
+            text-transform: none;
+        }
+
+        .applicant-instr-modal .digi-field {
+            display: grid;
+            grid-template-columns: minmax(140px, 34%) 1fr;
+            gap: 10px 16px;
+            align-items: start;
+            margin-bottom: 14px;
+        }
+
+        .applicant-instr-modal .digi-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .applicant-instr-modal .digi-field-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            line-height: 1.45;
+            padding-top: 8px;
+        }
+
+        .applicant-instr-modal .digi-field-label .fill {
+            color: #dc2626;
+        }
+
+        .applicant-instr-modal .digi-field-hint {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .applicant-instr-modal .digi-field-control .form-control {
+            border-radius: 8px;
+            border-color: #cbd5e1;
+            min-height: 40px;
+        }
+
+        .applicant-instr-modal .digi-field-control .form-control:focus {
+            border-color: #4361ee;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
+        }
+
+        .applicant-instr-modal .digi-field-control .file-limit {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .applicant-instr-modal .digi-field-control .error {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        .applicant-instr-modal .digi-dates-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .applicant-instr-modal .digi-date-item label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            line-height: 1.45;
+            margin-bottom: 6px;
+        }
+
+        .applicant-instr-modal .digi-date-item label .fill {
+            color: #dc2626;
+        }
+
+        .applicant-instr-modal .digi-qc-gate {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px 16px;
+        }
+
+        .applicant-instr-modal .digi-qc-question {
+            flex: 1 1 260px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .applicant-instr-modal .digi-qc-toggle {
+            display: inline-flex;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            flex-shrink: 0;
+        }
+
+        .applicant-instr-modal .digi-qc-toggle label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .applicant-instr-modal .digi-qc-toggle input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .applicant-instr-modal .digi-qc-toggle span {
+            display: block;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            border-right: 1px solid #e2e8f0;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .applicant-instr-modal .digi-qc-toggle label:last-child span {
+            border-right: 0;
+        }
+
+        .applicant-instr-modal .digi-qc-toggle input:checked + span {
+            background: #4361ee;
+            color: #fff;
+        }
+
+        .applicant-instr-modal .digi-qc-panel {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed #dbe3ee;
+        }
+
+        .applicant-instr-modal .digi-qc-panel .digi-field {
+            grid-template-columns: minmax(160px, 38%) 1fr;
+        }
+
+        @media (max-width: 767.98px) {
+            .applicant-instr-modal .digi-field,
+            .applicant-instr-modal .digi-qc-panel .digi-field {
+                grid-template-columns: 1fr;
+            }
+
+            .applicant-instr-modal .digi-field-label {
+                padding-top: 0;
+            }
+
+            .applicant-instr-modal .digi-dates-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .applicant-instr-modal .digi-qc-gate {
+                flex-direction: column;
+            }
+        }
+
         @media (max-width: 575.98px) {
             .applicant-instr-modal .modal-header {
                 padding: 16px 18px;
@@ -1256,215 +1448,133 @@ use Illuminate\Support\Facades\Auth;
 
                 <div class="modal-body">
                     <div class="col-md-12">
-                        <form class="mt-0 digi_form" id="digitizationForm">
-                            <div class="form-group">
-                                <div class="row mb-2">
-                                    <div class="col-lg-3">
-                                        <label>Certificate Number <span class="fill">*</span></label>
+                        <form class="mt-0 digi_form digi-form-layout" id="digitizationForm">
+                            <input type="hidden" name="form_name" value="{{ $form_name }}">
+                            <input type="hidden" name="cert_name" value="{{ $cert_name }}">
 
-                                    </div>
-                                    <div class="col-lg-6">
+                            <section class="digi-section" aria-labelledby="digi-cert-section-title">
+                                <h6 class="digi-section-title" id="digi-cert-section-title">Certificate Details <span class="fill">*</span></h6>
 
-
-
-                                        <input type="number" class="form-control" name="ccnumber" placeholder="Certificate Number" maxlength="8">
-
-                                        
-
-                                        <input type="hidden" name="form_name" value="{{ $form_name }}">
-                                        <input type="hidden" name="cert_name" value="{{ $cert_name }}">
-
-
+                                <div class="digi-field">
+                                    <label class="digi-field-label" for="digi_ccnumber">Certificate Number <span class="fill">*</span></label>
+                                    <div class="digi-field-control">
+                                        <input type="text" class="form-control" id="digi_ccnumber" name="ccnumber"
+                                            placeholder="Enter certificate number (1–5 digits)"
+                                            inputmode="numeric" maxlength="5" pattern="[0-9]{1,5}" autocomplete="off">
                                         <span class="error text-danger" id="ccnumber_error"></span>
-
                                     </div>
-
                                 </div>
 
-                            </div>
-                            <div class="form-group">
-                                <div class="row mb-2">
-                                    <div class="col-lg-3">
-                                        <label>Date of First Issue <span class="fill">*</span></label>
-
-                                    </div>
-                                    <div class="col-lg-4">
-
-
-
-                                        <input type="date" class="form-control" name="fissue">
+                                <div class="digi-dates-grid">
+                                    <div class="digi-date-item">
+                                        <label for="digi_fissue">Date of First Issue <span class="fill">*</span></label>
+                                        <input type="date" class="form-control digi-date-input" id="digi_fissue" name="fissue"
+                                            min="1900-01-01" max="{{ date('Y-m-d') }}">
                                         <span class="error text-danger" id="fissue_error"></span>
-
                                     </div>
-
-                                </div>
-
-                                <div class="row mb-2">
-                                    <div class="col-lg-3">
-                                        <label>Validity From <span class="fill">*</span></label>
-
-                                    </div>
-                                    <div class="col-lg-4">
-
-
-
-                                        <input type="date" class="form-control" name="from_date">
+                                    <div class="digi-date-item">
+                                        <label for="digi_from_date">Validity From <span class="fill">*</span></label>
+                                        <input type="date" class="form-control digi-date-input" id="digi_from_date" name="from_date"
+                                            min="1900-01-01" max="{{ date('Y-m-d') }}">
                                         <span class="error text-danger" id="from_date_error"></span>
-
                                     </div>
-                                </div>
-                                <div class="row mb-2">
-
-
-                                    <div class="col-lg-3">
-                                        <label>Validity To <span class="fill">*</span></label>
-
-                                    </div>
-                                    <div class="col-lg-4">
-
-
-
-                                        <input type="date" class="form-control" name="to_date" id="to_date">
+                                    <div class="digi-date-item">
+                                        <label for="to_date">Validity To <span class="fill">*</span></label>
+                                        <input type="date" class="form-control digi-date-input" name="to_date" id="to_date"
+                                            min="1900-01-01" max="2099-12-31">
                                         <span class="error text-danger" id="to_date_error"></span>
-
                                     </div>
-
                                 </div>
 
-
-
-
-                            </div>
-                            <div class="form-group">
-                                <div class="row mb-2">
-                                    <div class="col-lg-4 ">
-                                        <label>Upload Existing Certificate  <span class="fill">*</span> 
-                                    <br><span style="font-size:.75rem;font-weight:600;">
-                                            (Note : Page No: 3 of CC Book)</label><br>
-
-
-                                    </div>
-                                    <div class="col-lg-5">
-
-
-
-                                        <input type="file" class="form-control" name="cc_doc" accept="application/pdf">
-
+                                <div class="digi-field" style="margin-top:14px;">
+                                    <label class="digi-field-label" for="digi_cc_doc">
+                                        Upload Existing Certificate <span class="fill">*</span>
+                                        <span class="digi-field-hint">Note: Page No. 3 of CC Book</span>
+                                    </label>
+                                    <div class="digi-field-control">
+                                        <input type="file" class="form-control" id="digi_cc_doc" name="cc_doc" accept="application/pdf">
                                         <span class="file-limit">PDF only (Max 250 KB)</span>
-                                        <br>
                                         <span class="error text-danger" id="cc_doc_error"></span>
-
                                     </div>
-
                                 </div>
-
-                            </div>
+                            </section>
 
                             @php
                             $showQc = Request::is('apply-form-s_d');
                             @endphp
 
-                            <div class="form-group" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }}>
-                                <div class="row mb-2">
-                                    <div class="col-lg-8">
-                                        <label>Is Supervisory Competency Certificate recognized as a Qualified Supervisor for an EA/ESA Contractor License </label>
-
+                            <section class="digi-section" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }} aria-label="Qualified Supervisor for EA/ESA Contractor License">
+                                <div class="digi-qc-gate">
+                                    <p class="digi-qc-question">
+                                        Is Supervisory Competency Certificate recognized as a Qualified Supervisor for an EA/ESA Contractor License?
+                                    </p>
+                                    <div class="digi-qc-toggle" role="radiogroup" aria-label="Qualified Supervisor recognition">
+                                        <label>
+                                            <input type="radio" id="qc_yes" name="qc_det" value="yes">
+                                            <span>Yes</span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" id="qc_no" name="qc_det" value="no" checked>
+                                            <span>No</span>
+                                        </label>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="qc_yes" name="qc_det" value="yes">
-                                            <label class="form-check-label" for="qc_yes">Yes</label>
+                                </div>
+                                <span class="error text-danger" id="qc_error"></span>
+
+                                <div id="qc_details" class="digi-qc-panel" style="display:none;">
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="cl_type">Grade of Licence <span class="fill">*</span></label>
+                                        <div class="digi-field-control">
+                                            <select class="form-control" id="cl_type" name="cl_type">
+                                                <option value="0">---Select Type---</option>
+                                                <option value="EA">EA</option>
+                                                <option value="ESA">ESA</option>
+                                            </select>
+                                            <span class="error text-danger" id="cl_type_error"></span>
                                         </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="qc_no" name="qc_det" value="no" checked="">
-                                            <label class="form-check-label" for="qc_no">No</label>
+                                    </div>
+
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="digi_licence_no">
+                                            Licence Number <span class="fill">*</span>
+                                            <span class="digi-field-hint">e.g. 12345</span>
+                                        </label>
+                                        <div class="digi-field-control">
+                                            <input type="number" class="form-control" id="digi_licence_no" name="licence_no"
+                                                oninput="if(this.value.length > 5) this.value = this.value.slice(0,5);">
+                                            <span class="error text-danger" id="licence_no_error"></span>
                                         </div>
-                                        <span class="error text-danger" id="qc_error"></span>
                                     </div>
 
-                                </div>
-
-
-                            </div>
-
-                            <div class="form-group" id="qc_details" style="display:none;">
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Grade of Licence <span class="fill">*</span></label>
-
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                        <select class="form-control" id="cl_type" name="cl_type">
-                                            <option value="0">---Select Type---</option>
-                                            <option value="EA">EA </option>
-                                            <option value="ESA">ESA</option>
-
-                                        </select>
-                                        <span class="error text-danger" id="cl_type_error"></span>
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="digi_contractor_name">Name of Contractor <span class="fill">*</span></label>
+                                        <div class="digi-field-control">
+                                            <input type="text" class="form-control" id="digi_contractor_name" name="contractor_name">
+                                            <span class="error text-danger" id="contractor_error"></span>
+                                        </div>
                                     </div>
 
-                                </div>
-
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Licence Number <span class="fill">*</span><span class="text-muted" style="font-size:.75rem;font-weight:600;">(eg. 12345)</span></label>
-
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                        <input type="number" class="form-control" name="licence_no"
-                                        oninput="if(this.value.length > 5) this.value = this.value.slice(0,5);">
-
-                                        <span class="error text-danger" id="licence_no_error"></span>
-                                    </div>
-
-                                </div>
-                                
-
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Name of Contractor <span class="fill">*</span></label>
-
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                        <input type="text" class="form-control" name="contractor_name">
-                                        <span class="error text-danger" id="contractor_error"></span>
-                                    </div>
-
-                                </div>
-
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Details of Employee <span class="fill">*</span><br><span style="font-size:.75rem;font-weight:600;">
-                                            (Note : Page No: 3 & 12 of Contractor Licence)
-                                            <span class="image-tooltip" style="color:red;">
-                                                Sample
-                                                <img src="{{ asset('assets/images/1.webp') }}" alt="Sample Image">
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="digi_qc_doc">
+                                            Details of the employee in Contractor Licence <span class="fill">*</span>
+                                            <span class="digi-field-hint">
+                                                Note: Page No. 3 &amp; 12 of Contractor Licence
+                                                <span class="image-tooltip" style="color:#dc2626;">
+                                                    Sample
+                                                    <img src="{{ asset('assets/images/1.webp') }}" alt="Sample Image">
+                                                </span>
                                             </span>
-                                        </span></label>
-
-
+                                        </label>
+                                        <div class="digi-field-control">
+                                            <input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf">
+                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                            <span class="error text-danger" id="qc_doc_error"></span>
+                                        </div>
                                     </div>
-                                    <div class="col-12 col-md-5">
-                                        <input type="file" class="form-control" name="qc_doc" accept="application/pdf">
-
-                                        <span class="file-limit">PDF only (Max 250 KB)</span>
-                                        <br>
-                                        <span class="error text-danger" id="qc_doc_error"></span>
-                                    </div>
-
                                 </div>
-
-
-                            </div>
-
-
-
+                            </section>
                         </form>
-
-
                     </div>
-
-
                 </div>
 
                 <div class="modal-footer justify-content-center">
@@ -1755,13 +1865,25 @@ use Illuminate\Support\Facades\Auth;
                             <small class="modal-subtitle"> Alter the Current Certificate Details.</small>
                         </div>
                     </div>
-                    {{-- <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button> --}}
+                    <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button>
                 </div>
 
                 <div class="modal-body">
                     <div class="col-md-12">
                         <form class="mt-0 digi_form" id="alterationForm">
-                            <div class="form-group">
+                            <div class="form-group" id="alteration_parent_app_row">
+                                <div class="row mb-2">
+                                    <div class="col-lg-4">
+                                        <label for="alter_parent_application_id">Application ID / Certificate Number <span class="fill">*</span></label>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <input type="text" class="form-control" id="alter_parent_application_id" name="alter_parent_application_id"
+                                               placeholder="e.g. DSC261111218 or certificate number" maxlength="80" autocomplete="off">
+                                        <span class="error text-danger" id="alter_parent_app_error"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group d-none" id="alteration_cert_row">
                                 <div class="row mb-2">
                                     <div class="col-lg-4">
                                         <label>Select the Certificate <span class="fill">*</span></label>
@@ -1771,7 +1893,7 @@ use Illuminate\Support\Facades\Auth;
 
 
 
-                                        <select class="form-control" id="cert_name" name="cert_name">
+                                        <select class="form-control" id="alter_cert_name" name="cert_name">
                                             <option value="0">---Select Type---</option>
                                             <option value="S">Supervisor Competency Certificate [Form S]</option>
                                             <option value="W">Wireman Competency Certificate [Form W]</option>
@@ -1786,49 +1908,6 @@ use Illuminate\Support\Facades\Auth;
                                     </div>
 
                                 </div>
-
-                            </div>
-                            <div class="form-group">
-                                <div class="row mb-2">
-                                    <div class="col-lg-12">
-                                        <label style="float: left;">Choose the Fields to Alter <span class="fill">*</span></label>
-
-                                    </div>
-                                    <div class="col-lg-2">
-
-
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="name" name="name" value="Name">
-                                            <label class="form-check-label" style="float: left;" for="name"> Name</label>
-                                        </div>
-
-                                    </div>
-                                    <div class="col-lg-2">
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="address" name="address" value="address">
-                                            <label class="form-check-label" style="float: left;" for="address"> Address</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3">
-
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="workexp" name="workexp" value="workexp">
-                                            <label class="form-check-label" style="float: left;" for="workexp"> Work Experience</label>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-lg-3" id="qc_upgrade_section" style="display:none;">
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="qc" name="qc" value="qc">
-                                            <label class="form-check-label" style="float: left;" for="qc">
-                                                QC Upgrade
-                                            </label>
-                                        </div>
-                                    </div>
-
-
-                                </div>
-                                <span class="error text-danger" id="alter_fields_error"></span>
 
                             </div>
 
@@ -1848,7 +1927,7 @@ use Illuminate\Support\Facades\Auth;
 
                 <div class="modal-footer justify-content-center">
 
-                    <button type="button" class="btn-proceed" id="alteration_clSubmit">
+                    <button type="button" class="btn-proceed" id="alterationSubmit">
                         Submit
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12" />

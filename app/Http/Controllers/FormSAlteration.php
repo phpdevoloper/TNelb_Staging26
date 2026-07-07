@@ -2,155 +2,176 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Admin\TnelbFee;
-use App\Models\Mst_Form_s_w;
-use App\Models\MstLicence;
-use App\Models\TnelbApplicantPhoto;
-use App\Models\TnelbApplicantsSign;
-use Carbon\Carbon;
+use App\Services\FormS\FormSAlterationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
 
 class FormSAlteration extends BaseController
 {
+    private const FORM_LABELS = [
+        'S' => 'Supervisor Competency Certificate [Form S]',
+        'W' => 'Wireman Competency Certificate [Form W]',
+        'H' => 'Wireman Helper Competency Certificate [Form H]',
+        'P' => 'Power Generating Station Operation & Maintenance Competency Certificate [Form P]',
+    ];
 
-    protected $today, $dbNow;
-    public function __construct()
-    {
+    public function __construct(
+        protected FormSAlterationService $alterationService
+    ) {
         parent::__construct();
         $this->middleware('web');
-        $this->today = Carbon::today()->toDateString();
-        $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
     }
 
-    private function getApplicableFee($certLicenceId)
+    public function index(Request $request)
     {
-        return TnelbFee::where('cert_licence_id', $certLicenceId)
-            ->whereDate('start_date', '<=', $this->today)
-            ->select('fees', 'start_date')
-            ->orderBy('start_date', 'desc')
-            ->first();
-    }
-
-     private function enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details)
-    {
-        if (!$application_details) {
-            return $license_details;
-        }
-        $issued = $license_details ? trim((string) ($license_details->license_number ?? '')) : '';
-        if ($issued === '') {
-            $issued = trim((string) ($application_details->license_number ?? ''));
-        }
-        if ($issued === '') {
-            $compRow = Mst_Form_s_w::where('application_id', $appl_id)->first();
-            if ($compRow) {
-                $issued = trim((string) ($compRow->license_number ?? ''));
-            }
-        }
-        if ($issued === '') {
-            return $license_details;
-        }
-        if (!$license_details) {
-            return (object) ['license_number' => $issued];
-        }
-        if (trim((string) ($license_details->license_number ?? '')) === '') {
-            $license_details->license_number = $issued;
-        }
-
-        return $license_details;
-    }
-    public function index()
-    {
-        $appl_id = 'SC261111117';
         if (!Auth::check()) {
             return redirect()->route('logout');
         }
 
-        if (!$appl_id) {
-            return redirect()->route('dashboard')->with('error', 'Application ID is required.');
+        $parentId = trim((string) $request->query('parent', ''));
+        $formCode = $this->resolveFormCode($request);
+
+        if ($parentId === '') {
+            return view('user_login.alteration.form_s_launcher', [
+                'form_code' => $formCode,
+                'form_label' => self::FORM_LABELS[$formCode] ?? self::FORM_LABELS['S'],
+            ]);
         }
 
+        $verify = $this->alterationService->verifyParentApplication(
+            $parentId,
+            (string) Auth::user()->login_id
+        );
 
-        $application_details = DB::table('tnelb_application_tbl')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->first();
-
-        $this->decryptPanForDisplay($application_details);
-
-
-        $form_details = MstLicence::where('status', 1)
-            ->select('*')
-            ->get()
-            ->toArray();
-
-        $current_form = collect($form_details)->firstWhere('form_code', $application_details->form_name);
-
-        $licence_name = DB::table('mst_licences')->where('form_code', $application_details->form_name)->first();
-
-        if (!$current_form) {
-            abort(504, 'Form Not Found..');
+        if (!$verify['ok']) {
+            return redirect()
+                ->route('form_s_alt', ['form' => $formCode])
+                ->with('alteration_error', $verify['message'] ?? 'Invalid application.');
         }
 
-        $fees_details = $this->getApplicableFee($current_form['id']);
+        $parent = $verify['application'];
+        $context = $this->alterationService->loadParentContext($parent);
 
-        if (!$fees_details) {
-            abort(505, 'The requested form details could not be found.');
-        }
+        $applicationDetails = $context['alterationDraft'] ?? $parent;
+        $applicationDetails = clone $applicationDetails;
+        $this->decryptPanForDisplay($applicationDetails);
 
-
-        if (!$application_details) {
-            return redirect()->route('dashboard')->with('error', 'Application not found.');
-        }
-
-        $edu_details = DB::table('tnelb_applicants_edu')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->orderBy('year_of_passing', 'desc')
-            ->get();
-
-        $exp_details = DB::table('tnelb_applicants_exp')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->orderBy('id', 'asc')
-            ->get();
-
-
-        $license_details = DB::table('tnelb_license')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->first();
-        $license_details = $this->enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details);
-
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $appl_id)->first();
-
-        $proof_doc = TnelbApplicantsSign::where('application_id', $appl_id)->first();
-
-        $applicationid = $appl_id;
-
-        $queries = DB::table('tnelb_query_applicable')
-            ->where('application_id', $appl_id)
-            ->where('query_status', 'P')
-            ->orderByDesc('id')
-            ->get();
-
-        return view('user_login.alteration.form_s', compact(
-            'applicationid',
-            'application_details',
-            'edu_details',
-            'exp_details',
-            'license_details',
-            'applicant_photo',
-            'proof_doc',
-            'fees_details',
-            'form_details',
-            'licence_name',
-            'queries'
-        ));
+        return view('user_login.alteration.form_s', [
+            'applicationid' => $parent->application_id,
+            'parent_application_id' => $parent->application_id,
+            'application_details' => $applicationDetails,
+            'parent_application_details' => $parent,
+            'edu_details' => $context['eduDetails'],
+            'exp_details' => $context['expDetails'],
+            'license_details' => $context['licenseDetails'],
+            'applicant_photo' => $context['applicantPhoto'] ?? null,
+            'proof_doc' => $context['proofDoc'] ?? null,
+            'is_alteration_mode' => true,
+            'alteration_draft' => $context['alterationDraft'],
+            'fees_details' => null,
+            'form_details' => [],
+            'licence_name' => null,
+            'queries' => collect(),
+        ]);
     }
 
+    public function verifyParent(Request $request)
+    {
+        $formCode = $this->resolveFormCode($request);
+
+        if ($formCode !== 'S') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Alteration for this certificate type is not available yet.',
+            ], 422);
+        }
+
+        $request->validate([
+            'parent_application_id' => 'required|string|max:80',
+        ]);
+
+        $verify = $this->alterationService->verifyParentApplication(
+            (string) $request->input('parent_application_id'),
+            (string) Auth::user()->login_id
+        );
+
+        if (!$verify['ok']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $verify['message'] ?? 'Verification failed.',
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Application verified successfully.',
+            'application_id' => $verify['application']->application_id,
+            'redirect_url' => route('form_s_alt', [
+                'parent' => $verify['application']->application_id,
+                'form' => $formCode,
+            ]),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'parent_application_id' => 'required|string|max:80',
+            'login_id' => 'required|string',
+            'alter_name' => 'nullable|in:0,1',
+            'alter_address' => 'nullable|in:0,1',
+            'alter_workexp' => 'nullable|in:0,1',
+            'name_alteration_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+            'address_alteration_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+        ]);
+
+        try {
+            $child = $this->alterationService->storeAlterationRequest($request);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Alteration request submitted successfully.',
+                'application_id' => $child->application_id,
+                'applicantName' => $child->applicant_name,
+                'form_name' => $child->form_name,
+                'licence_name' => $child->license_name,
+                'type_of_apps' => 'Alteration',
+                'form_type' => 'ALTERATION',
+                'date_apps' => now()->format('d-m-Y'),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage() ?: 'Unable to submit alteration request.',
+            ], 422);
+        }
+    }
+
+    public function saveDraft(Request $request)
+    {
+        $request->validate([
+            'parent_application_id' => 'required|string|max:80',
+            'login_id' => 'required|string',
+            'name_alteration_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+            'address_alteration_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+        ]);
+
+        try {
+            $child = $this->alterationService->saveAlterationDraft($request);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Alteration draft saved successfully.',
+                'application_id' => $child->application_id,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage() ?: 'Unable to save alteration draft.',
+            ], 422);
+        }
+    }
 
     private function decryptPanForDisplay($applicationDetails): void
     {
@@ -163,5 +184,12 @@ class FormSAlteration extends BaseController
         } catch (\Throwable $e) {
             // Keep legacy/plain values as-is when not encrypted.
         }
+    }
+
+    private function resolveFormCode(Request $request): string
+    {
+        $formCode = strtoupper(trim((string) $request->query('form', $request->input('form', 'S'))));
+
+        return array_key_exists($formCode, self::FORM_LABELS) ? $formCode : 'S';
     }
 }

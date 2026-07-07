@@ -81,14 +81,24 @@
 
     $supportDoc = (string) ($expRow->support_document ?? $expRow->upload_document ?? '');
     $relieveDoc = (string) ($expRow->releive_document ?? '');
+    $supportDocUrl = !empty($expRow->support_document_url)
+        ? $expRow->support_document_url
+        : ($supportDoc !== '' ? competency_document_url($supportDoc, 'experience', (int) ($expRow->exp_id ?? 0), 'experience_doc') : null);
+    $relieveDocUrl = !empty($expRow->releive_document_url)
+        ? $expRow->releive_document_url
+        : ($relieveDoc !== '' ? competency_document_url($relieveDoc, 'experience', (int) ($expRow->exp_id ?? 0), 'relieving_doc') : null);
+    $isAlterationNew = !empty($expRow->is_alteration_new);
     $sno = isset($sno) ? $sno : 1;
     $rowIndex = $rowIndex ?? ($sno - 1);
     $withActions = !empty($withActions);
 @endphp
-<tr class="work-exp-summary-tr" data-work-row-index="{{ $rowIndex }}">
+<tr class="work-exp-summary-tr{{ $isAlterationNew ? ' wx-alteration-alter-row' : '' }}" data-work-row-index="{{ $rowIndex }}">
     <td class="work-row-summary-sno text-center">{{ $sno }}</td>
     <td class="work-row-summary-employment">
         <span class="wx-sum-main">{{ $empTxt }}</span>
+        @if($isAlterationNew)
+            <span class="wx-alter-badge ms-1">ALTER</span>
+        @endif
         @if($empType === 'electrical_contractor' && $contractorCat !== '')
             <span class="wx-sum-sub">Cat: {{ $contractorCat }}</span>
         @endif
@@ -137,8 +147,8 @@
         <div class="wx-sum-attach-stack">
             <div class="wx-sum-attach-block">
                 <span class="wx-sum-attach-label">Supporting :</span>
-                @if($supportDoc !== '')
-                    <a class="wx-sum-doc-link" href="{{ asset($supportDoc) }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
+                @if($supportDocUrl)
+                    <a class="wx-sum-doc-link" href="{{ $supportDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
                 @else
                     <span class="wx-sum-attach-value">—</span>
                 @endif
@@ -147,8 +157,8 @@
                 <span class="wx-sum-attach-label">Relieving :</span>
                 @if($isTill)
                     <span class="wx-sum-attach-value">Not required (Till date)</span>
-                @elseif($relieveDoc !== '')
-                    <a class="wx-sum-doc-link" href="{{ asset($relieveDoc) }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
+                @elseif($relieveDocUrl)
+                    <a class="wx-sum-doc-link" href="{{ $relieveDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
                 @else
                     <span class="wx-sum-attach-value">—</span>
                 @endif
