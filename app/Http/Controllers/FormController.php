@@ -359,6 +359,47 @@ class FormController extends BaseController
             || $request->has('designation');
     }
 
+    /**
+     * When Form S 7b switch is "No", hidden 7b/current row inputs may still post empty
+     * legacy fields (work_level/experience/designation). Prune those indexes before
+     * validator "required.*" rules run.
+     */
+    private function pruneHiddenFormSCurrentSectionLegacyRows(Request $request): void
+    {
+        if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+            return;
+        }
+        if ($this->isFormSBoardMemberSwitchYes($request)) {
+            return;
+        }
+
+        $sections = $request->input('work_exp_section', []);
+        if (!is_array($sections) || empty($sections)) {
+            return;
+        }
+
+        $skipIndexes = [];
+        foreach ($sections as $idx => $section) {
+            if (strtolower(trim((string) $section)) === 'current') {
+                $skipIndexes[] = $idx;
+            }
+        }
+        if (empty($skipIndexes)) {
+            return;
+        }
+
+        foreach (['work_level', 'experience', 'designation'] as $field) {
+            $values = $request->input($field, null);
+            if (!is_array($values)) {
+                continue;
+            }
+            foreach ($skipIndexes as $idx) {
+                unset($values[$idx]);
+            }
+            $request->merge([$field => array_values($values)]);
+        }
+    }
+
     private function getWorkRowIndexes(Request $request): array
     {
         $indexes = [];
@@ -999,15 +1040,26 @@ class FormController extends BaseController
         $fromDates = is_array($request->work_date_from ?? null) ? $request->work_date_from : [];
         $toDates = is_array($request->work_date_to ?? null) ? $request->work_date_to : [];
 
+        $sections = is_array($request->work_exp_section ?? null) ? $request->work_exp_section : [];
+        $boardMemberGate = strtolower((string) ($request->input('current_work_board_member') ?? 'no'));
+
         $max = max(
             count($levels),
             count($exps),
             count($designations),
             count($fromDates),
-            count($toDates)
+            count($toDates),
+            count($sections)
         );
 
         for ($i = 0; $i < $max; $i++) {
+            $section = strtolower(trim((string) ($sections[$i] ?? '')));
+            // 7b row exists in DOM even when board-member gate is "No".
+            // Ignore that hidden "current" row entirely in this mode.
+            if (($request->form_name ?? '') === 'S' && $boardMemberGate !== 'yes' && $section === 'current') {
+                continue;
+            }
+
             $wl = trim((string) ($levels[$i] ?? ''));
             $ex = trim((string) ($exps[$i] ?? ''));
             $des = trim((string) ($designations[$i] ?? ''));
@@ -1489,6 +1541,8 @@ class FormController extends BaseController
             $pc = is_string($raw) ? strtoupper(preg_replace('/\s+/', '', $raw)) : '';
             $request->merge(['pancard' => $pc === '' ? null : $pc]);
         }
+
+        $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
 
         
         $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
@@ -2029,6 +2083,8 @@ class FormController extends BaseController
             $pc = is_string($raw) ? strtoupper(preg_replace('/\s+/', '', $raw)) : '';
             $request->merge(['pancard' => $pc === '' ? null : $pc]);
         }
+
+        $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
 
         $existingForm = Mst_Form_s_w::where('application_id', $applicationId)->first();
         $existingPhoto = TnelbApplicantPhoto::where('application_id', $applicationId)->first();

@@ -138,7 +138,7 @@
                                                 <!-- Right Side: Applicant Photo -->
                                                 <div class="col-md-4 text-center">
                                                     @if(isset($uploadedPhoto) && !empty($uploadedPhoto->upload_path))
-                                                        <img src="{{ url($uploadedPhoto->upload_path) }}"
+                                                        <img src="{{ competency_media_url($uploadedPhoto->upload_path) }}"
                                                              alt="Applicant Photo"
                                                              class="img-fluid rounded border"
                                                              style="width: 150px; height: 200px; object-fit: cover;">
@@ -147,7 +147,7 @@
                                                     @endif
                                                     <div class="mt-2">
                                                         @if(isset($uploadedSign) && !empty($uploadedSign->uploaded_doc))
-                                                            <img src="{{ url($uploadedSign->uploaded_doc) }}"
+                                                            <img src="{{ competency_media_url($uploadedSign->uploaded_doc) }}"
                                                                  alt="Applicant Signature"
                                                                  class="img-fluid rounded border"
                                                                  style="width: 150px; height: 70px; object-fit: contain; background: #fff;">
@@ -186,7 +186,7 @@
                                                 </div>
                                                 <div class="col-lg-3">
                                                     @if(isset($uploadedPhoto) && !empty($uploadedPhoto->upload_path))
-                                                    <img src="{{ url($uploadedPhoto->upload_path) }}"
+                                                    <img src="{{ competency_media_url($uploadedPhoto->upload_path) }}"
                                                         alt="Applicant Photo"
                                                         class="img-fluid rounded" width="150" style="border:1px solid;">
                                                     @else
@@ -243,13 +243,13 @@
                                                                     $fileExtension = pathinfo($education->upload_document ?? 'unknown.pdf', PATHINFO_EXTENSION);
                                                                 @endphp
                                                                 @if(in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif']))
-                                                                <img src="{{ url($education->upload_document) }}" alt="Education Document" width="100">
+                                                                <img src="{{ competency_document_url($education->upload_document, 'education', (int) ($education->id ?? 0), 'certificate') }}" alt="Education Document" width="100">
                                                                 @elseif(strtolower($fileExtension) === 'pdf')
-                                                                    <a href="{{ url($education->upload_document) }}" target="_blank" style="font-size: small;">
+                                                                    <a href="{{ competency_document_url($education->upload_document, 'education', (int) ($education->id ?? 0), 'certificate') }}" target="_blank" style="font-size: small;">
                                                                         <i class="fa fa-file-pdf-o" style="color:red"></i> View Document
                                                                     </a>
                                                                 @else
-                                                                <a href="{{ url($education->upload_document) }}" target="_blank" style="font-size: small;"><i class="fa fa-file-o"></i>View Document</a>
+                                                                <a href="{{ competency_document_url($education->upload_document, 'education', (int) ($education->id ?? 0), 'certificate') }}" target="_blank" style="font-size: small;"><i class="fa fa-file-o"></i>View Document</a>
                                                                 @endif
                                                                 @else
                                                                 No Documents Uploaded

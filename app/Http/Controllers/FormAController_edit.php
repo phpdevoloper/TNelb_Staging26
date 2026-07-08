@@ -3246,7 +3246,7 @@ class FormAController extends BaseController
             ->select('id', 'application_id', 'license_number', 'expires_at')
             ->unionAll(
                 DB::table('tnelb_renewal_license')
-                    ->select('id', 'application_id', 'license_number', 'expires_at')
+                    ->selectRaw('ren_id as id, application_id, license_number, expires_at')
             )
             ->orderBy('id', 'ASC')
             ->get();

@@ -1,32 +1,66 @@
+function hasCcDigitizationTempId() {
+    var $field = $("#cc_digitization_temp_id");
+    if ($field.length && String($field.val() || "").trim() !== "") {
+        return true;
+    }
+    try {
+        var stored = sessionStorage.getItem("cc_digitization_temp_id");
+        return !!(stored && String(stored).trim() !== "");
+    } catch (e) {
+        return false;
+    }
+}
+
+function hideDigitizationModalIfPresent() {
+    var digitizationEl = document.getElementById("digitization");
+    if (!digitizationEl) {
+        return;
+    }
+    $(digitizationEl).removeClass("show").attr("aria-hidden", "true").css("display", "none");
+    $("body").removeClass("modal-open");
+    $(".modal-backdrop").remove();
+}
+
 $(document).ready(function () {
     restoreCcDigitizationTempId();
     initDigitizationDateFields();
 
-    digitizationModal = new bootstrap.Modal(
-        document.getElementById("digitization"),
-        {
+    var digitizationEl = document.getElementById("digitization");
+    if (digitizationEl) {
+        digitizationModal = new bootstrap.Modal(digitizationEl, {
             backdrop: "static",
             keyboard: false,
-        },
-    );
+        });
+    }
 
-    competencyModal = new bootstrap.Modal(
-        document.getElementById("competencyInstructionsModal"),
-        {
+    var competencyEl = document.getElementById("competencyInstructionsModal");
+    if (competencyEl) {
+        competencyModal = new bootstrap.Modal(competencyEl, {
             backdrop: "static",
             keyboard: false,
-        },
-    );
+        });
+    }
 
     let path = window.location.pathname;
 
-    if (path === "/apply-form-s_d") {
+    if (path === "/apply-form-s_d" || path.endsWith("/apply-form-s_d")) {
         $("#qc_section").show();
     } else {
         $("#qc_section").hide();
     }
 
-    digitizationModal.show();
+
+    var isFormSDigitizationPage = (path === "/apply-form-s_d" || path.endsWith("/apply-form-s_d"));
+
+    if (digitizationModal) {
+        // For Form S digitization, always show on page load (even after refresh)
+        // so users who refreshed accidentally can continue with explicit confirmation.
+        if (isFormSDigitizationPage || !hasCcDigitizationTempId()) {
+            digitizationModal.show();
+        } else {
+            hideDigitizationModalIfPresent();
+        }
+    }
 
     $('input[name="qc_det"]').on("change", function () {
         if ($(this).val() === "yes") {
@@ -147,7 +181,7 @@ async function loadInstructions() {
 
     try {
         let instructionResponse = await $.ajax({
-            url: "/licences/getFormInstruction",
+            url: BASE_URL + "/licences/getFormInstruction",
             type: "POST",
 
             data: {
@@ -325,7 +359,7 @@ $(document).on("click", "#digitizationSubmit", function () {
     let formData = new FormData(document.getElementById("digitizationForm"));
 
     $.ajax({
-        url: "/digitization/storeDigitization",
+        url: BASE_URL + "/digitization/storeDigitization",
 
         type: "POST",
 

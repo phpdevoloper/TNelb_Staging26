@@ -20,6 +20,11 @@
         padding-bottom: 48px;
     }
 
+    /* Digitization enrollment modal: stay hidden unless JS opens it (first visit) */
+    #digitization.modal:not(.show) {
+        display: none !important;
+    }
+
     /* ── Breadcrumb ───────────────────────────────────── */
     .fs-breadcrumb-bar {
         background: #fff;
@@ -1044,8 +1049,7 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
                             <div>
-                                <div class="fs-section-title">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
-                                <div class="fs-section-tamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
+                                @include('user_login.partials.form-s-question-8-head')
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -1106,8 +1110,7 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">9</span>
                             <div>
-                                <div class="fs-section-title">Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.</div>
-                                <div class="fs-section-tamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
+                                @include('user_login.partials.form-s-question-9-head')
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -1514,7 +1517,7 @@
                     <div class="prv-section h-100">
                         <div class="prv-section-hd">
                             <span class="prv-section-num">8</span>
-                            <span class="prv-section-title">Previously Applied for Electrical Assistant Qualification Certificate</span>
+                            <span class="prv-section-title">@include('user_login.partials.form-s-question-8-preview-title')</span>
                         </div>
                         <div class="prv-section-body">
                             <div class="d-flex align-items-center gap-2 mb-2">
@@ -1556,7 +1559,7 @@
                     <div class="prv-section h-100">
                         <div class="prv-section-hd">
                             <span class="prv-section-num">9</span>
-                            <span class="prv-section-title">Wireman Competency Certificate issued by this Board</span>
+                            <span class="prv-section-title">@include('user_login.partials.form-s-question-9-preview-title')</span>
                         </div>
                         <div class="prv-section-body">
                             <div class="d-flex align-items-center gap-2 mb-2">

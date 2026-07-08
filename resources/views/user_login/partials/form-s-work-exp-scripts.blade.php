@@ -14,6 +14,25 @@
             var hideUploadWhenDocExists = @json($hideUploadWhenDocExists);
             var isAlterationMode = @json($isAlterationMode);
 
+            // Keep local in this partial so pages that don't load form_s.js
+            // still have the same upload-error cleanup behavior.
+            function clearWorkRowUploadErrors($scope) {
+                if (!$scope || !$scope.length) return;
+                $scope.find('.error-message').each(function () {
+                    var txt = ($(this).text() || '').toLowerCase();
+                    if (
+                        txt.indexOf('supporting document is required') !== -1 ||
+                        txt.indexOf('relieving letter is required') !== -1 ||
+                        txt.indexOf('highest transformer capacity') !== -1 ||
+                        txt.indexOf('only pdf') !== -1 ||
+                        txt.indexOf('only pdf, jpg or png') !== -1 ||
+                        txt.indexOf('file size permitted') !== -1
+                    ) {
+                        $(this).remove();
+                    }
+                });
+            }
+
             function isAlterationFrozenRow($tr) {
                 return isAlterationMode && $tr.hasClass('fs-alt-existing-work');
             }

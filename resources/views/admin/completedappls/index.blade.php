@@ -96,7 +96,7 @@
                                                 </div>
                                                 <div class="col-lg-3">
                                                     @if(isset($uploadedPhoto) && !empty($uploadedPhoto->upload_path))
-                                                    <img src="{{ url($uploadedPhoto->upload_path) }}"
+                                                    <img src="{{ competency_media_url($uploadedPhoto->upload_path) }}"
                                                         alt="Applicant Photo"
                                                         class="img-fluid rounded" width="150" style="border:1px solid;">
                                                     @else
@@ -145,7 +145,7 @@
                                                                     alt="Education Document" width="100">
                                                                 @elseif($fileExtension === 'pdf')
                                                                 <!-- Provide a PDF Download Link -->
-                                                                <a href="{{ url($document->upload_document) }}" target="_blank">
+                                                                <a href="{{ competency_document_url($document->upload_document, 'education', (int) ($document->id ?? 0), 'certificate') }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o" style="font-size:28px;color:red"></i>
 
                                                                 </a>
@@ -187,7 +187,7 @@
 
                                                                 @if($experience->upload_document)
                                                                 <!-- Show Image -->
-                                                                <a href="{{ url($experience->upload_document) }}" target="_blank">
+                                                                <a href="{{ competency_document_url($experience->upload_document, 'experience', (int) ($experience->exp_id ?? $experience->id ?? 0), 'experience_doc') }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o" style="font-size:28px;color:red"></i>
                                                                 </a>
                                                                 @else

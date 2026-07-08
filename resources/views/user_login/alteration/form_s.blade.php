@@ -2266,8 +2266,7 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
                             <div>
-                                <div class="fs-section-title">Have previously applied for Electrical Assistant Qualification Certificate and if yes then mention its number and date</div>
-                                <div class="fs-section-tamil">இதற்கு முன்னாள் விண்ணப்பம் செய்துள்ளீர்களா ? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
+                                @include('user_login.partials.form-s-question-8-head')
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -2337,16 +2336,20 @@
                     @php
                         if (isset($application_details->form_name) && $application_details->form_name == 'S') {
                             $questionNumber = 9;
-                            $cert_name = 'Wireman Competency Certificate / Supervisor Competency Certificate';
+                            $cert_name = 'Wireman Competency Certificate';
+                            $useFormSQuestion9Head = true;
                         } elseif (isset($application_details->form_name) && $application_details->form_name == 'WH') {
                             $questionNumber = 6;
                             $cert_name = 'Wireman Helper Competency Certificate';
+                            $useFormSQuestion9Head = false;
                         } elseif (isset($application_details->form_name) && $application_details->form_name == 'W') {
                             $questionNumber = 7;
                             $cert_name = 'Wireman Competency Certificate / Wireman Helper Competency Certificate';
+                            $useFormSQuestion9Head = false;
                         } else {
                             $questionNumber = 7;
                             $cert_name = 'Wireman Competency Certificate / Wireman Helper Competency Certificate';
+                            $useFormSQuestion9Head = false;
                         }
                     @endphp
 
@@ -2355,8 +2358,12 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $questionNumber }}</span>
                             <div>
+                                @if(!empty($useFormSQuestion9Head))
+                                    @include('user_login.partials.form-s-question-9-head')
+                                @else
                                 <div class="fs-section-title">Do you possess {{ $cert_name }} issued by this Board? If so furnish the details and surrender the same.</div>
                                 <div class="fs-section-tamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் / மேற்பார்வையாளர் திறன் சான்றிதழ் உங்களிடம் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
+                                @endif
                             </div>
                         </div>
                         <div class="fs-section-body">

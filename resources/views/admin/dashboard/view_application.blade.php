@@ -102,7 +102,7 @@
                                                 <!-- Right Side: Applicant Photo -->
                                                 <div class="col-md-4 text-center">
                                                     @if(isset($uploadedPhoto) && !empty($uploadedPhoto->upload_path))
-                                                        <img src="{{ url($uploadedPhoto->upload_path) }}"
+                                                        <img src="{{ competency_media_url($uploadedPhoto->upload_path) }}"
                                                              alt="Applicant Photo"
                                                              class="img-fluid rounded border"
                                                              style="width: 150px; height: 200px; object-fit: cover;">
@@ -192,7 +192,7 @@
 
                                                                 @if($experience->upload_document)
                                                                 <!-- Show Image -->
-                                                                <a href="{{ url($experience->upload_document) }}" target="_blank">
+                                                                <a href="{{ competency_document_url($experience->upload_document, 'experience', (int) ($experience->exp_id ?? $experience->id ?? 0), 'experience_doc') }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o" style="font-size:28px;color:red"></i>
                                                                 </a>
                                                                 @else

@@ -1105,7 +1105,7 @@
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
                                                         <h6>
-                                                            Have previously applied for Electrical Assistant Qualification Certificate and if yes then mention its number and date:
+                                                            Do you already possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.
                                                         </h6>
                                                         <span class="asp-qa-answer {{ $hasPreviousEaQual ? 'is-yes' : 'is-no' }}">
                                                             {{ $hasPreviousEaQual ? 'Yes' : 'No' }}
@@ -1149,7 +1149,7 @@
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
                                                         <h6>
-                                                            Do you possess Wireman Competency Certificate / Supervisor Competency Certificate issued by this Board?
+                                                            Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.
                                                         </h6>
                                                         <span class="asp-qa-answer {{ $hasWiremanCompCert ? 'is-yes' : 'is-no' }}">
                                                             {{ $hasWiremanCompCert ? 'Yes' : 'No' }}

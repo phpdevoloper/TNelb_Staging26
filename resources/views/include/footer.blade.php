@@ -1775,7 +1775,7 @@ $(document).ready(function() {
                                 <div class="prv-sw-section-hd">
                                     <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="prev">8</span>
                                     <div>
-                                        <div class="prv-sw-section-title" id="prvSwSecPrevTitle">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
+                                        <div class="prv-sw-section-title" id="prvSwSecPrevTitle">Do you already possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
                                         <div class="prv-sw-section-tamil" id="prvSwSecPrevTamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
                                     </div>
                                 </div>
@@ -1797,8 +1797,8 @@ $(document).ready(function() {
                                 <div class="prv-sw-section-hd">
                                     <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="wireman">9</span>
                                     <div>
-                                        <div class="prv-sw-section-title" id="prvSwSecWcTitle">Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.</div>
-                                        <div class="prv-sw-section-tamil" id="prvSwSecWcTamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
+                                        <div class="prv-sw-section-title" id="prvSwSecWcTitle">Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.</div>
+                                        <div class="prv-sw-section-tamil" id="prvSwSecWcTamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.</div>
                                     </div>
                                 </div>
                                 <div class="prv-sw-section-body">
@@ -2582,7 +2582,7 @@ $(document).ready(function() {
             // Previous same-type certificate section
             let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevFromId, prevExpiryId;
             if (formCode === 'S') {
-                prevTitle = 'Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.';
+                prevTitle = 'Do you already possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.';
                 prevTamil = 'இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக';
                 prevYesValue = !!((document.getElementById('previous_license_yes') || {}).checked);
                 prevNumId = 'previously_number';
@@ -2635,10 +2635,10 @@ $(document).ready(function() {
                 const wcTitleEl = document.getElementById('prvSwSecWcTitle');
                 const wcTamilEl = document.getElementById('prvSwSecWcTamil');
                 if (wcTitleEl) {
-                    wcTitleEl.textContent = 'Do you possess Wireman Competency Certificate issued by this Board? If so furnish the details and surrender the same.';
+                    wcTitleEl.textContent = 'Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.';
                 }
                 if (wcTamilEl) {
-                    wcTamilEl.textContent = 'இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.';
+                    wcTamilEl.textContent = 'இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.';
                 }
                 const wcYesEl = document.getElementById('yesOption');
                 const wcYesValue = !!(wcYesEl && wcYesEl.checked);
@@ -3643,8 +3643,14 @@ $(document).ready(function() {
 
 
             let photoInput = document.getElementById("upload_photo");
+            const previewPhoto = document.getElementById("preview_applicant");
+            const hasExistingPhotoPreview = !!(
+                previewPhoto &&
+                String(previewPhoto.getAttribute('src') || '').trim() !== '' &&
+                $(previewPhoto).is(':visible')
+            );
 
-            if (photoInput && $(photoInput).is(':visible') && photoInput.files.length === 0) {
+            if (photoInput && $(photoInput).is(':visible') && photoInput.files.length === 0 && !hasExistingPhotoPreview) {
                 $(photoInput).nextAll('.error-message').remove();
                 $('#upload_photo').after('<span class="error-message text-danger d-block mt-1">Photo upload is required.</span>');
                 if (!firstErrorField) firstErrorField = $('#upload_photo');
@@ -3652,14 +3658,20 @@ $(document).ready(function() {
             } else if (photoInput && photoInput.files.length > 0) {
                 const file = photoInput.files[0];
                 if (file) {
-                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/pjpeg', 'image/x-png'];
+                    const allowedExts = ['jpg', 'jpeg', 'png'];
                     const maxSize = 50 * 1024;
-                    if (!allowedTypes.includes(file.type)) {
+                    const fileName = String(file.name || '').toLowerCase();
+                    const fileExt = fileName.includes('.') ? fileName.split('.').pop() : '';
+                    const hasAllowedMime = allowedTypes.includes(String(file.type || '').toLowerCase());
+                    const hasAllowedExt = allowedExts.includes(String(fileExt || '').toLowerCase());
+                    if (!hasAllowedMime && !hasAllowedExt) {
                         $('#upload_photo').after('<span class="error-message text-danger d-block mt-1">Only JPG, JPEG, or PNG images are allowed for photo upload.</span>');
                         if (!firstErrorField) firstErrorField = $('#upload_photo');
                         isValid = false;
                     } else if (file.size > maxSize) {
-                        $('#upload_photo').after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 50 KB.</span>');
+                        const sizeKb = (file.size / 1024).toFixed(1);
+                        $('#upload_photo').after('<span class="error-message text-danger d-block mt-1">Photo size is ' + sizeKb + ' KB. Allowed: up to 50 KB.</span>');
                         if (!firstErrorField) firstErrorField = $('#upload_photo');
                         isValid = false;
                     }
@@ -3679,14 +3691,20 @@ $(document).ready(function() {
                 } else if (signInput.files.length > 0) {
                     const sfile = signInput.files[0];
                     if (sfile) {
-                        const sAllowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                        const sAllowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/pjpeg', 'image/x-png'];
+                        const sAllowedExts = ['jpg', 'jpeg', 'png'];
                         const sMaxSize = 50 * 1024;
-                        if (!sAllowedTypes.includes(sfile.type)) {
+                        const sFileName = String(sfile.name || '').toLowerCase();
+                        const sFileExt = sFileName.includes('.') ? sFileName.split('.').pop() : '';
+                        const sHasAllowedMime = sAllowedTypes.includes(String(sfile.type || '').toLowerCase());
+                        const sHasAllowedExt = sAllowedExts.includes(String(sFileExt || '').toLowerCase());
+                        if (!sHasAllowedMime && !sHasAllowedExt) {
                             $('#upload_sign').after('<span class="error-message text-danger d-block mt-1">Only JPG, JPEG, or PNG images are allowed for signature upload.</span>');
                             if (!firstErrorField) firstErrorField = $('#upload_sign');
                             isValid = false;
                         } else if (sfile.size > sMaxSize) {
-                            $('#upload_sign').after('<span class="error-message text-danger d-block mt-1">Signature file size permitted only 5 KB to 50 KB.</span>');
+                            const sSizeKb = (sfile.size / 1024).toFixed(1);
+                            $('#upload_sign').after('<span class="error-message text-danger d-block mt-1">Signature size is ' + sSizeKb + ' KB. Allowed: up to 50 KB.</span>');
                             if (!firstErrorField) firstErrorField = $('#upload_sign');
                             isValid = false;
                         }
@@ -3695,6 +3713,31 @@ $(document).ready(function() {
             }
 
             if (!isValid) {
+                try {
+                    const $first = (firstErrorField && firstErrorField.length) ? firstErrorField.first() : $();
+                    const fieldId = $first.attr('id') || '';
+                    const fieldName = $first.attr('name') || '';
+                    let firstMessage = '';
+                    if ($first.hasClass('error-message')) {
+                        firstMessage = ($first.text() || '').trim();
+                    }
+                    if (!firstMessage) {
+                        firstMessage = ($first.nextAll('.error-message:visible').first().text() || '').trim();
+                    }
+                    if (!firstMessage) {
+                        firstMessage = ($first.siblings('.error-message:visible').first().text() || '').trim();
+                    }
+                    if (firstMessage) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Validation Error',
+                            text: firstMessage + ((fieldId || fieldName) ? ' [' + (fieldId || fieldName) + ']' : ''),
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                } catch (e) {
+                    // no-op: keep legacy scroll behaviour
+                }
                 scrollCompetencyToValidationError(firstErrorField);
                 $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
                 return;
@@ -5771,8 +5814,8 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 lateFee = data.lateFees;
             }
 
-            fees_date = data.fees_start_date;
-            certificate_name = data.certificate_name;
+            fees_date = data ? data.fees_start_date : '';
+            certificate_name = data ? data.certificate_name : '';
 
             const modalEl = document.getElementById('competencyInstructionsModal');
             if (!modalEl) {

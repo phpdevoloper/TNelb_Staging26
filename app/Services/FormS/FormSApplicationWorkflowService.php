@@ -6,6 +6,11 @@ use App\Models\Mst_Form_s_w;
 
 class FormSApplicationWorkflowService
 {
+    public function isDigitisationApplication(Mst_Form_s_w $application): bool
+    {
+        return strtoupper((string) ($application->appl_type ?? '')) === 'D';
+    }
+
     public function isRenewalApplication(Mst_Form_s_w $application): bool
     {
         return strtoupper((string) ($application->appl_type ?? '')) === 'R';
@@ -40,6 +45,9 @@ class FormSApplicationWorkflowService
     {
         if ($this->isRenewalApplication($application)) {
             return 'RENEWAL';
+        }
+        if ($this->isDigitisationApplication($application)) {
+            return 'DIGITISATION';
         }
         if ($this->isAlterationApplication($application)) {
             return 'ALTERATION';

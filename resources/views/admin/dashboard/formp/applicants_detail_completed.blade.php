@@ -101,7 +101,7 @@
                                                 </div>
                                                 <div class="col-lg-3">
                                                     @if(isset($uploadedPhoto) && !empty($uploadedPhoto->upload_path))
-                                                        <img src="{{ url($uploadedPhoto->upload_path) }}"
+                                                        <img src="{{ competency_media_url($uploadedPhoto->upload_path) }}"
                                                             alt="Applicant Photo"
                                                             class="img-fluid rounded" width="150">
                                                     @else
@@ -134,7 +134,7 @@
                                                                 <td style="width: 20%;">{{ $percentage !== null && $percentage !== '' ? $percentage.'%' : 'N/A' }}</td>
                                                                 <td style="text-align:center;">
                                                                     @if(isset($education->upload_document))
-                                                                        <a href="{{ url($education->upload_document) }}" target="_blank">
+                                                                        <a href="{{ competency_document_url($education->upload_document, 'education', (int) ($education->id ?? 0), 'certificate') }}" target="_blank">
                                                                             <i class="fa fa-file-pdf-o" style="font-size:28px;color:red"></i>
                                                                         </a>
                                                                     @else
@@ -170,7 +170,7 @@
                                                                 <td>{{ (format_total_exp_years($experience->experience ?? $experience->total_exp) ?? '—') }} years</td>
                                                                 <td style="text-align:center;">
                                                                     @if($experience->upload_document)
-                                                                        <a href="{{ url($experience->upload_document) }}" target="_blank">
+                                                                        <a href="{{ competency_document_url($experience->upload_document, 'experience', (int) ($experience->exp_id ?? $experience->id ?? 0), 'experience_doc') }}" target="_blank">
                                                                             <i class="fa fa-file-pdf-o" style="font-size:28px;color:red"></i>
                                                                         </a>
                                                                     @else

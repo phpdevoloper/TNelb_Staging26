@@ -1148,7 +1148,7 @@
                                                 <div class="file-section text-center">
                                                     @if (!empty($edu_details->upload_document))
                                                         <div class="edu-doc-container d-flex align-items-center justify-content-center">
-                                                            <a class="text-primary" href="{{ url($edu_details->upload_document) }}" target="_blank">
+                                                            <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document, 'education', (int) ($edu_details->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
                                                                 <i class="fa fa-file-pdf-o" style="color: red"></i> View
                                                             </a>
                                                             <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
@@ -1372,8 +1372,7 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
                             <div>
-                                <div class="fs-section-title">Do you possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.</div>
-                                <div class="fs-section-tamil">இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
+                                @include('user_login.partials.form-s-question-8-head')
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -1447,12 +1446,15 @@
                         if (isset($application_details->form_name) && $application_details->form_name == 'S') {
                             $questionNumber = 9;
                             $cert_name = 'Wireman Competency Certificate';
+                            $useFormSQuestion9Head = true;
                         } elseif (isset($application_details->form_name) && $application_details->form_name == 'WH') {
                             $questionNumber = 6;
                             $cert_name = 'Wireman Helper Competency Certificate';
+                            $useFormSQuestion9Head = false;
                         } else {
                             $questionNumber = 7;
                             $cert_name = 'Wireman Competency Certificate / Wireman Helper Competency Certificate';
+                            $useFormSQuestion9Head = false;
                         }
                     @endphp
 
@@ -1461,8 +1463,12 @@
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $questionNumber }}</span>
                             <div>
+                                @if(!empty($useFormSQuestion9Head))
+                                    @include('user_login.partials.form-s-question-9-head')
+                                @else
                                 <div class="fs-section-title">Do you possess {{ $cert_name }} issued by this Board? If so furnish the details and surrender the same.</div>
                                 <div class="fs-section-tamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உங்களிடம் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.</div>
+                                @endif
                             </div>
                         </div>
                         <div class="fs-section-body">
