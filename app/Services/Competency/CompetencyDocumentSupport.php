@@ -8,7 +8,8 @@ namespace App\Services\Competency;
 class CompetencyDocumentSupport
 {
     /**
-     * Form codes that use documents_log instead of public education_document / work_experience paths.
+     * Competency certificate forms (S, W, WH, P) store education/work documents
+     * in cc_doc_log + private FORM_* storage — not public upload folders.
      *
      * @return list<string>
      */

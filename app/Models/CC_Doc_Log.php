@@ -11,13 +11,20 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class DDocument extends Model
+/**
+ * Production document audit log (table: documents_log).
+ * application_id / parent_application_id = cc_form_s_meta.app_id
+ */
+class CC_Doc_Log extends Model
 {
-    protected $table = 'd_documents';
+    protected $table = 'cc_doc_log';
+
+    protected $primaryKey = 'doc_id';
 
     protected $fillable = [
         'application_id',
         'parent_application_id',
+        'application_type',
         'module_type',
         'module_ref_id',
         'document_type',
@@ -108,12 +115,12 @@ class DDocument extends Model
 
     public function application(): BelongsTo
     {
-        return $this->belongsTo(DApplication::class, 'application_id');
+        return $this->belongsTo(CC_Forms_Meta::class, 'application_id');
     }
 
     public function parentApplication(): BelongsTo
     {
-        return $this->belongsTo(DApplication::class, 'parent_application_id');
+        return $this->belongsTo(CC_Forms_Meta::class, 'application_id');
     }
 
     public function scopeActive(Builder $query): Builder
@@ -156,20 +163,5 @@ class DDocument extends Model
     public function isPending(): bool
     {
         return $this->status->isPending();
-    }
-
-    public function isApproved(): bool
-    {
-        return $this->status === DocumentVersionStatus::APPROVED;
-    }
-
-    public function isRejected(): bool
-    {
-        return $this->status === DocumentVersionStatus::REJECTED;
-    }
-
-    public function currentApprovalLevel(): ?int
-    {
-        return $this->status->approvalLevel();
     }
 }

@@ -195,7 +195,7 @@ class FormSAlterationService
             if ($newName === '') {
                 throw new RuntimeException('Applicant name cannot be empty.');
             }
-            if (!$request->hasFile('name_alteration_proof')) {
+            if (! $this->alterationHasProof($request, $parent, FormSProofDocumentService::PROOF_NAME_CHANGE, 'name_alteration_proof')) {
                 throw new RuntimeException('Supporting proof document is required for name alteration.');
             }
         }
@@ -204,7 +204,7 @@ class FormSAlterationService
             if ($newAddress === '') {
                 throw new RuntimeException('Applicant address cannot be empty.');
             }
-            if (!$request->hasFile('address_alteration_proof')) {
+            if (! $this->alterationHasProof($request, $parent, FormSProofDocumentService::PROOF_ADDRESS, 'address_alteration_proof')) {
                 throw new RuntimeException('Supporting proof document is required for address alteration.');
             }
         }
@@ -413,7 +413,35 @@ class FormSAlterationService
 
     protected function storeAlterationProof(Mst_Form_s_w $child, UploadedFile $file, string $documentType): void
     {
-        $this->documentHandler->handleAlterationProofUpload($child, $file, $documentType);
+        app(FormSProofDocumentService::class)->saveAlterationProofUpload($child, $file, $documentType);
+    }
+
+    protected function alterationHasProof(
+        Request $request,
+        Mst_Form_s_w $parent,
+        string $proofName,
+        string $uploadField
+    ): bool {
+        if ($request->hasFile($uploadField)) {
+            return true;
+        }
+
+        $draft = Mst_Form_s_w::where('old_application', $parent->application_id)
+            ->where('appl_type', FormSProofDocumentService::ALTERATION_APP_TYPE)
+            ->where('login_id', $parent->login_id)
+            ->where('payment_status', 'draft')
+            ->latest('id')
+            ->first();
+
+        if (! $draft) {
+            return false;
+        }
+
+        return app(FormSProofDocumentService::class)->hasProofDocument(
+            $draft->application_id,
+            $proofName,
+            FormSProofDocumentService::ALTERATION_APP_TYPE
+        );
     }
 
     protected function requestHasNewWorkRows(Request $request): bool

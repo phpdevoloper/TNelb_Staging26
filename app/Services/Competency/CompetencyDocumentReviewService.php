@@ -7,6 +7,7 @@ use App\Models\Mst_experience;
 use App\Models\Mst_Form_s_w;
 use App\Services\FormS\FormSDocumentVersionService;
 use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\FormS\FormSProofDocumentService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -74,6 +75,13 @@ class CompetencyDocumentReviewService
                 }
             }
 
+            if (empty($row->releive_document)) {
+                $log = competency_find_document_log('experience', $refId, 'relieving_doc', $workflowIds);
+                if ($log && !empty($log->file_path)) {
+                    $row->releive_document = $log->file_path;
+                }
+            }
+
             $row->setAttribute('support_document_url', competency_document_url(
                 $row->support_document,
                 'experience',
@@ -114,29 +122,38 @@ class CompetencyDocumentReviewService
 
         $alterationProofs = collect();
         if ($this->workflowService->isAlterationApplication($application)) {
-            $alterationProofs = DocumentsLog::query()
-                ->where('application_id', (int) $application->id)
-                ->where('module_type', 'alteration')
-                ->where('is_active', true)
-                ->orderByDesc('id')
-                ->get()
-                ->unique('document_type')
-                ->values()
-                ->map(function (DocumentsLog $log) {
-                    $type = (string) ($log->document_type ?? '');
-                    $label = match ($type) {
-                        'name_proof' => 'Name alteration supporting proof',
-                        'address_proof' => 'Address alteration supporting proof',
-                        default => ucwords(str_replace('_', ' ', $type)),
-                    };
+            $proofItems = app(FormSProofDocumentService::class)->collectAlterationProofsForReview(
+                (string) $application->application_id,
+                $workflowAppPks
+            );
 
-                    return (object) [
-                        'document_type' => $type,
-                        'label' => $label,
-                        'file_name' => $log->file_name,
-                        'url' => competency_document_log_download_url($log),
-                    ];
-                });
+            if ($proofItems !== []) {
+                $alterationProofs = collect($proofItems);
+            } else {
+                $alterationProofs = DocumentsLog::query()
+                    ->where('application_id', (int) $application->id)
+                    ->where('module_type', 'alteration')
+                    ->where('is_active', true)
+                    ->orderByDesc('id')
+                    ->get()
+                    ->unique('document_type')
+                    ->values()
+                    ->map(function (DocumentsLog $log) {
+                        $type = (string) ($log->document_type ?? '');
+                        $label = match ($type) {
+                            'name_proof' => 'Name alteration supporting proof',
+                            'address_proof' => 'Address alteration supporting proof',
+                            default => ucwords(str_replace('_', ' ', $type)),
+                        };
+
+                        return (object) [
+                            'document_type' => $type,
+                            'label' => $label,
+                            'file_name' => $log->file_name,
+                            'url' => competency_document_log_download_url($log),
+                        ];
+                    });
+            }
         }
 
         $uploadedPhoto = $this->resolveApplicantPhoto($application);

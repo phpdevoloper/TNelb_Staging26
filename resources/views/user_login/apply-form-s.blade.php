@@ -550,7 +550,7 @@
     }
     .fs-section-tamil {
         font-size: .8rem;
-        color: #5a7299;
+        /* color: #5a7299; */
         line-height: 1.4;
         margin-top: 1px;
     }
@@ -582,7 +582,7 @@
     .fs-field-label .req { color: #d9363e; }
     .fs-field-tamil {
         font-size: .76rem;
-        color: #7a90b0;
+        /* color: #7a90b0; */
         margin-bottom: 4px;
         line-height: 1.3;
     }

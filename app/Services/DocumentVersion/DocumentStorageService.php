@@ -4,7 +4,7 @@ namespace App\Services\DocumentVersion;
 
 use App\Enums\DocumentRequestType;
 use App\Models\DDocument;
-use App\Models\DocumentsLog;
+use App\Models\CC_Doc_Log;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -57,7 +57,7 @@ class DocumentStorageService
 
         $useProduction = $useProductionDocumentLog || $this->usesProductionDocumentLog();
         $query = $useProduction
-            ? DocumentsLog::forApplication($applicationId)
+            ? CC_Doc_Log::forApplication($applicationId)
             : DDocument::forApplication($applicationId);
 
         foreach ($query->where('document_type', $documentType)->pluck('file_name') as $fileName) {

@@ -2,15 +2,16 @@
 
 namespace App\Services\FormS;
 
-use App\Models\DocumentsLog;
-use App\Models\Mst_education;
-use App\Models\Mst_experience;
-use App\Models\Mst_Form_s_w;
+use App\Models\CC_Doc_Log;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
+use App\Models\CC_Forms_Meta;
+use App\Models\CC_Proof_doc;
 use App\Services\Competency\CompetencyDocumentSupport;
 use Illuminate\Http\UploadedFile;
 
 /**
- * Bridges Form S controller uploads to documents_log + master tables.
+ * Bridges Form S controller uploads to cc_doc_log + CC master tables.
  */
 class FormSDocumentUploadHandler
 {
@@ -29,8 +30,8 @@ class FormSDocumentUploadHandler
      * @return string|null Approved path for master upload_document (null if pending renewal)
      */
     public function handleEducationUpload(
-        Mst_Form_s_w $workflowApp,
-        Mst_education $masterEducation,
+        CC_Forms_Meta $workflowApp,
+        CC_Education $masterEducation,
         UploadedFile $file,
         ?string $replacementReason = null
     ): ?string {
@@ -39,7 +40,7 @@ class FormSDocumentUploadHandler
             $file,
             'education',
             'certificate',
-            (int) $masterEducation->id,
+            (int) $masterEducation->getKey(),
             $replacementReason,
             'Education document upload'
         );
@@ -51,12 +52,12 @@ class FormSDocumentUploadHandler
      * @return string|null Approved path for master support_document
      */
     public function handleExperienceSupportUpload(
-        Mst_Form_s_w $workflowApp,
-        Mst_experience $masterExperience,
+        CC_Forms_Meta $workflowApp,
+        CC_Experience $masterExperience,
         UploadedFile $file,
         ?string $replacementReason = null
     ): ?string {
-        $refId = (int) $masterExperience->exp_id;
+        $refId = (int) $masterExperience->getKey();
         $log = $this->storeVersionedUpload(
             $workflowApp,
             $file,
@@ -69,68 +70,102 @@ class FormSDocumentUploadHandler
 
         $masterExperience->refresh();
 
-        return $this->resolveMasterPathAfterUpload($log, null, $masterExperience);
+        return $this->resolveMasterPathAfterUpload($log, null, $masterExperience, 'support_document');
     }
 
     /**
-     * @return string|null Path for tnelb_applicant_photos.upload_path
+     * @return string|null Approved path for master relieve_document
      */
-    public function handlePhotoUpload(
-        Mst_Form_s_w $workflowApp,
+    public function handleExperienceRelieveUpload(
+        CC_Forms_Meta $workflowApp,
+        CC_Experience $masterExperience,
         UploadedFile $file,
         ?string $replacementReason = null
     ): ?string {
-        $log = $this->handleApplicationMediaUpload(
-            $workflowApp,
-            $file,
-            'photo',
-            'photo',
-            $replacementReason,
-            'Applicant photo upload'
-        );
-
-        return $this->resolveApplicationMediaPath($log);
-    }
-
-    /**
-     * @return string|null Path for tnelb_applicants_sign.uploaded_doc
-     */
-    public function handleSignatureUpload(
-        Mst_Form_s_w $workflowApp,
-        UploadedFile $file,
-        ?string $replacementReason = null
-    ): ?string {
-        $log = $this->handleApplicationMediaUpload(
-            $workflowApp,
-            $file,
-            'signature',
-            'signature',
-            $replacementReason,
-            'Applicant signature upload'
-        );
-
-        return $this->resolveApplicationMediaPath($log);
-    }
-
-    public function handleAlterationProofUpload(
-        Mst_Form_s_w $workflowApp,
-        UploadedFile $file,
-        string $documentType
-    ): ?string {
+        $refId = (int) $masterExperience->getKey();
         $log = $this->storeVersionedUpload(
             $workflowApp,
             $file,
-            'alteration',
-            $documentType,
-            (int) $workflowApp->id,
-            null,
-            'Alteration supporting proof'
+            'experience',
+            'relieving_doc',
+            $refId,
+            $replacementReason,
+            'Relieving letter upload'
         );
 
-        return $log->file_path ?? null;
+        $masterExperience->refresh();
+
+        return $this->resolveMasterPathAfterUpload($log, null, $masterExperience, 'relieve_document');
     }
 
-    public function seedCarriedForwardIfRenewal(Mst_Form_s_w $workflowApp): void
+    /**
+     * @return string|null Path stored on cc_proof_doc.proof_doc
+     */
+    public function handleProofUpload(
+        CC_Forms_Meta $workflowApp,
+        CC_Proof_doc $proof,
+        UploadedFile $file,
+        ?string $replacementReason = null
+    ): ?string {
+        $config = FormSProofDocumentService::configFor((string) $proof->proof_name);
+
+        $log = $this->storeVersionedUpload(
+            $workflowApp,
+            $file,
+            $config['module_type'],
+            $config['document_type'],
+            (int) $proof->getKey(),
+            $replacementReason,
+            ucfirst(strtolower((string) $proof->proof_name)) . ' document upload'
+        );
+
+        return $this->resolveProofPathAfterUpload($log, $proof);
+    }
+
+    /**
+     * @return string|null Path for cc_proof_doc.proof_doc (PHOTO)
+     */
+    public function handlePhotoUpload(
+        CC_Forms_Meta $workflowApp,
+        CC_Proof_doc $proof,
+        UploadedFile $file,
+        ?string $replacementReason = null
+    ): ?string {
+        return $this->handleProofUpload($workflowApp, $proof, $file, $replacementReason);
+    }
+
+    /**
+     * @return string|null Path for cc_proof_doc.proof_doc (SIGN)
+     */
+    public function handleSignatureUpload(
+        CC_Forms_Meta $workflowApp,
+        CC_Proof_doc $proof,
+        UploadedFile $file,
+        ?string $replacementReason = null
+    ): ?string {
+        return $this->handleProofUpload($workflowApp, $proof, $file, $replacementReason);
+    }
+
+    public function handleAlterationProofUpload(
+        object $workflowApp,
+        CC_Proof_doc $proof,
+        UploadedFile $file
+    ): ?string {
+        $config = FormSProofDocumentService::configFor((string) $proof->proof_name);
+
+        $log = $this->versionService->storeAlterationProofVersion(
+            $file,
+            $workflowApp,
+            $config['module_type'],
+            $config['document_type'],
+            (int) $proof->getKey(),
+            ucfirst(strtolower((string) $proof->proof_name)) . ' alteration proof upload'
+        );
+
+        return $this->resolveProofPathAfterUpload($log, $proof);
+    }
+
+    public function seedCarriedForwardIfRenewal(CC_Forms_Meta $workflowApp): void
     {
         if (!$this->workflowService->isChildWorkflow($workflowApp)) {
             return;
@@ -143,20 +178,20 @@ class FormSDocumentUploadHandler
      * Resolve master education row for a form row (renewal uses parent APP rows).
      */
     public function resolveMasterEducation(
-        Mst_Form_s_w $workflowApp,
+        CC_Forms_Meta $workflowApp,
         ?int $eduId,
         ?string $level = null
-    ): ?Mst_education {
+    ): ?CC_Education {
         $masterApp = $this->workflowService->masterApplication($workflowApp);
 
         if ($eduId) {
-            return Mst_education::where('application_id', $masterApp->application_id)
+            return CC_Education::where('application_id', $masterApp->application_id)
                 ->whereKey($eduId)
                 ->first();
         }
 
         if ($level) {
-            return Mst_education::where('application_id', $masterApp->application_id)
+            return CC_Education::where('application_id', $masterApp->application_id)
                 ->where('educational_level', $level)
                 ->first();
         }
@@ -164,13 +199,37 @@ class FormSDocumentUploadHandler
         return null;
     }
 
+    protected function resolveProofPathAfterUpload(CC_Doc_Log $log, CC_Proof_doc $proof): ?string
+    {
+        if ($log->isPending()) {
+            $proof->refresh();
+
+            return $proof->proof_doc ?: null;
+        }
+
+        $log->refresh();
+        $proof->refresh();
+
+        return $proof->proof_doc;
+    }
+
     protected function resolveMasterPathAfterUpload(
-        DocumentsLog $log,
-        ?Mst_education $education = null,
-        ?Mst_experience $experience = null
+        CC_Doc_Log $log,
+        ?CC_Education $education = null,
+        ?CC_Experience $experience = null,
+        string $experienceField = 'support_document'
     ): ?string {
         if ($log->isPending()) {
-            return $education?->upload_document ?? $experience?->support_document;
+            if ($education) {
+                return $education->upload_document;
+            }
+            if ($experience) {
+                return $experienceField === 'relieve_document'
+                    ? $experience->relieve_document
+                    : $experience->support_document;
+            }
+
+            return null;
         }
 
         $log->refresh();
@@ -182,47 +241,26 @@ class FormSDocumentUploadHandler
         if ($experience) {
             $experience->refresh();
 
-            return $experience->support_document;
+            return $experienceField === 'relieve_document'
+                ? $experience->relieve_document
+                : $experience->support_document;
         }
 
         return null;
     }
 
-    protected function handleApplicationMediaUpload(
-        Mst_Form_s_w $workflowApp,
-        UploadedFile $file,
-        string $moduleType,
-        string $documentType,
-        ?string $replacementReason,
-        string $initialRemarks
-    ): DocumentsLog {
-        return $this->storeVersionedUpload(
-            $workflowApp,
-            $file,
-            $moduleType,
-            $documentType,
-            (int) $workflowApp->id,
-            $replacementReason,
-            $initialRemarks
-        );
-    }
-
-    /**
-     * First upload creates version 1; any later upload for the same document group
-     * (e.g. preview → back to edit → submit again) stores a new version instead.
-     */
     protected function storeVersionedUpload(
-        Mst_Form_s_w $workflowApp,
+        CC_Forms_Meta $workflowApp,
         UploadedFile $file,
         string $moduleType,
         string $documentType,
         int $moduleRefId,
         ?string $replacementReason,
         string $initialRemarks
-    ): DocumentsLog {
-        $workflowPk = (int) $workflowApp->id;
+    ): CC_Doc_Log {
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
         $stage = $this->workflowService->workflowStage($workflowApp);
-        $groupExists = DocumentsLog::forGroup($workflowPk, $moduleType, $moduleRefId, $documentType)->exists();
+        $groupExists = CC_Doc_Log::forGroup($workflowPk, $moduleType, $moduleRefId, $documentType)->exists();
 
         if ($groupExists) {
             $remarks = $this->resolveReplacementRemarks($stage, $replacementReason, $initialRemarks);
@@ -264,28 +302,5 @@ class FormSDocumentUploadHandler
         }
 
         return $fallback . ' (updated on re-save)';
-    }
-
-    protected function resolveApplicationMediaPath(DocumentsLog $log): ?string
-    {
-        if ($log->isPending()) {
-            $workflowApp = Mst_Form_s_w::find($log->application_id);
-            if (!$workflowApp) {
-                return null;
-            }
-
-            $masterApp = $this->workflowService->masterApplication($workflowApp);
-
-            return $this->masterTableService->resolveFilePath(
-                $masterApp,
-                $log->module_type,
-                $log->module_ref_id,
-                $log->document_type
-            );
-        }
-
-        $log->refresh();
-
-        return $log->file_path;
     }
 }

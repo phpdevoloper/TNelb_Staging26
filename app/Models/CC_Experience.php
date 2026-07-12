@@ -29,11 +29,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $support_document
  * @property string|null $total_exp
  */
-class Mst_experience extends Model
+class CC_Experience extends Model
 {
     use HasFactory;
 
-    protected $table = 'tnelb_applicants_exp';
+    protected $table = 'cc_exp';
 
     protected $primaryKey = 'exp_id';
 
@@ -50,19 +50,16 @@ class Mst_experience extends Model
         'total_m',
         'total_d',
         'designation',
-        'board_meeting_details',
-        'board_meeting_date',
         'nature_work',
         'voltage_level',
         'transformer_kva',
+        'relieve_document',
         'releive_document',
         'support_document',
         'total_exp',
-        'qualified_supervisor_recognized',
-        'endorsed_license_type',
-        'endorsed_license_number',
-        'endorsed_contractor_name',
-        'endorsed_support_document',
+        'board_meeting_details',
+        'board_meeting_date',
+        
     ];
 
     protected $casts = [
@@ -75,6 +72,28 @@ class Mst_experience extends Model
         'transformer_kva' => 'decimal:2',
         'total_exp' => 'decimal:2',
     ];
+
+    /** @deprecated Legacy typo alias for relieve_document */
+    public function getReleiveDocumentAttribute(): ?string
+    {
+        return $this->relieve_document;
+    }
+
+    /** @deprecated Legacy typo alias for relieve_document */
+    public function setReleiveDocumentAttribute(?string $value): void
+    {
+        $this->attributes['relieve_document'] = $value;
+    }
+
+    public function getRelieveDocumentAttribute(): ?string
+    {
+        return $this->attributes['relieve_document'] ?? null;
+    }
+
+    public function setRelieveDocumentAttribute(?string $value): void
+    {
+        $this->attributes['relieve_document'] = $value;
+    }
 
     /* ── Legacy attribute aliases (older controllers / views) ── */
 

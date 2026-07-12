@@ -102,7 +102,6 @@
 <div class="scroll-to-top scroll-to-target" data-target="html"><span class="icon-arrow"></span></div>
 
 
-<!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>  -->
 <script src="{{ url('assets/js/jquery.js') }}"></script>
 <script src="{{ url('assets/js/scriptnew.js') }}"></script>
 <script src="{{ url('assets/js/popper.min.js') }}"></script>
@@ -121,8 +120,6 @@
 <script src="{{ url('assets/js/jquery.ajaxchimp.min.js') }}"></script>
 <script src="{{ url('assets/js/parallax-scroll.js') }}"></script>
 <script src="{{ url('assets/admin/src/plugins/src/flatpickr/flatpickr.js') }}"></script>
-{{-- <script src="{{ url('assets/admin/src/plugins/src/flatpickr/custom-flatpickr.js') }}"></script> --}}
-
 <script src="{{ url('assets/js/script.js') }}"></script>
 
 <script>
@@ -150,19 +147,10 @@
 
 <script src="{{ url('assets/js/custom.js') }}?v={{ filemtime(public_path('assets/js/custom.js')) }}"></script>
 <script src="{{ url('assets/js/form_p_script.js') }}"></script>
-
 <script src="{{ url('assets/js/forma.js') }}"></script>
-
-
-
-
-
 <script src="{{ url('assets/js/formsa.js') }}"></script>
-
 <script src="{{ url('assets/js/formsb.js') }}"></script>
-
 <script src="{{ url('assets/js/formb.js') }}"></script>
-
 
 <script src="{{ asset('assets/admin/src/plugins/src/editors/quill/QuillDeltaToHtmlConverter.bundle.js') }}"></script>
 <!-- --------------------------------------------------------------- -->
@@ -3727,14 +3715,6 @@ $(document).ready(function() {
                     if (!firstMessage) {
                         firstMessage = ($first.siblings('.error-message:visible').first().text() || '').trim();
                     }
-                    if (firstMessage) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Validation Error',
-                            text: firstMessage + ((fieldId || fieldName) ? ' [' + (fieldId || fieldName) + ']' : ''),
-                            confirmButtonText: 'OK'
-                        });
-                    }
                 } catch (e) {
                     // no-op: keep legacy scroll behaviour
                 }
@@ -6003,53 +5983,83 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         }
                         
                        
-                        const transactionId = "TRX" + Math.floor(100000 + Math.random() * 900000);
                         const payment_mode = 'UPI';
 
                         const runCompetencyPayment = async function () {
-                            const paymentResponse = await $.ajax({
-                                url: "{{ route('payment.updatePayment') }}",
-                                type: "POST",
-                                dataType: "json",
-                                data: {
-                                    login_id,
-                                    application_id,
-                                    applicantName,
-                                    transaction_id: transactionId,
-                                    transactionDate: transactionDateIso || transactionDate,
-                                    amount,
-                                    payment_mode,
-                                    form_name,
-                                    form_type,
-                                    lateFee: lateFee ?? 0,
-                                    lateMonths: lateMonths ?? 0,
-                                    board_member_fee_exempt: $('#board_member_fee_exempt').val() || '0'
-                                },
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                }
-                            });
-
-                            if (paymentResponse.status === 200) {
-                                showPaymentSuccessPopup(application_id, transactionId, transactionDate, applicantName, amount, form_type, licence_name);
-                            } else {
-                                Swal.fire({
-                                    title: "Payment Failed",
-                                    text: paymentResponse.message || "Something went wrong!",
-                                    icon: "error",
-                                    timer: 3000,
-                                    showConfirmButton: false
+                            const txnId = 'TRX' + Math.floor(100000 + Math.random() * 900000);
+                            let paymentResponse;
+                            try {
+                                paymentResponse = await $.ajax({
+                                    url: "{{ route('payment.updatePayment') }}",
+                                    type: "POST",
+                                    dataType: "json",
+                                    data: {
+                                        login_id,
+                                        application_id,
+                                        applicantName,
+                                        transaction_id: txnId,
+                                        transactionDate: transactionDateIso || transactionDate,
+                                        amount,
+                                        payment_mode,
+                                        form_name,
+                                        form_type,
+                                        lateFee: lateFee ?? 0,
+                                        lateMonths: lateMonths ?? 0,
+                                        board_member_fee_exempt: $('#board_member_fee_exempt').val() || '0',
+                                        _token: $('meta[name="csrf-token"]').attr('content')
+                                    },
+                                    headers: {
+                                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                    }
                                 });
+                            } catch (xhr) {
+                                const msg = (xhr && xhr.responseJSON && xhr.responseJSON.message)
+                                    ? xhr.responseJSON.message
+                                    : (xhr && xhr.responseJSON && xhr.responseJSON.errors
+                                        ? Object.values(xhr.responseJSON.errors).flat().join(' ')
+                                        : window.getAjaxErrorMessage(xhr));
+                                throw new Error(msg || 'Payment could not be completed. Please try again.');
                             }
+
+                            if (paymentResponse.status !== 200) {
+                                throw new Error(paymentResponse.message || 'Payment could not be completed. Please try again.');
+                            }
+
+                            return {
+                                transactionId: txnId,
+                                application_id,
+                                transactionDate,
+                                applicantName,
+                                amount,
+                                form_type,
+                                licence_name,
+                            };
                         };
 
                         // Zero-fee paths (digitization / alteration / board member) — submit directly
                         if (feeExemptSubmit) {
-                            await runCompetencyPayment();
+                            try {
+                                const paid = await runCompetencyPayment();
+                                showPaymentSuccessPopup(
+                                    paid.application_id,
+                                    paid.transactionId,
+                                    paid.transactionDate,
+                                    paid.applicantName,
+                                    paid.amount,
+                                    paid.form_type,
+                                    paid.licence_name
+                                );
+                            } catch (err) {
+                                Swal.fire({
+                                    title: 'Payment Failed',
+                                    text: err.message || 'Something went wrong. Please try again.',
+                                    icon: 'error'
+                                });
+                            }
                             return;
                         }
 
-                        // Paid applications — confirm fees before gateway
+                        // Paid applications — confirm fees before gateway (Pay Now can be retried on failure)
                         Swal.fire({
                             title: "<span style='color:#0d6efd;'>₹ Payment Details</span>",
                             html: `
@@ -6096,6 +6106,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                             showCloseButton: false,
                             allowOutsideClick: false,
                             allowEscapeKey: false,
+                            showLoaderOnConfirm: true,
                             customClass: {
                                 popup: 'swal2-border-radius',
                                 actions: 'd-flex justify-content-around mt-3',
@@ -6103,10 +6114,30 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                             buttonsStyling: false,
                             footer: '<div><span style="font-size: 13px;">Note: </span><span style="font-size: 13px;color: red;">The total amount is exclusive of payment gateway service charges.</span>',
                             preConfirm: async () => {
-                                await runCompetencyPayment();
+                                try {
+                                    return await runCompetencyPayment();
+                                } catch (err) {
+                                    Swal.showValidationMessage(
+                                        err.message || 'Payment failed. You can click Pay Now to try again.'
+                                    );
+                                    return false;
+                                }
                             }
 
                         }).then((result) => {
+                            if (result.isConfirmed && result.value) {
+                                const paid = result.value;
+                                showPaymentSuccessPopup(
+                                    paid.application_id,
+                                    paid.transactionId,
+                                    paid.transactionDate,
+                                    paid.applicantName,
+                                    paid.amount,
+                                    paid.form_type,
+                                    paid.licence_name
+                                );
+                                return;
+                            }
                             if (result.dismiss === Swal.DismissReason.cancel) {
                                 Swal.fire({
                                     title: "Payment Failed!",

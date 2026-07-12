@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CC_Forms_Meta;
+use App\Models\CC_Payments;
 use App\Models\EA_Application_model;
-use App\Models\Mst_documents;
-use App\Models\Mst_education;
-use App\Models\Mst_experience;
-use App\Models\Mst_Form_s_w;
-use App\Models\Payment; // ✅ Add this line
 use App\Models\TnelbFormP;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\File;
-
-use Carbon\Carbon;
-
+use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
+
+    protected $dbNow;
+    public function __construct()
+    {
+        parent::__construct();   
+        $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
+    }
 
     public function updatePayment(Request $request)
     {
@@ -34,16 +34,11 @@ class PaymentController extends Controller
             'board_member_fee_exempt' => 'nullable|in:0,1',
         ]);
 
-        //      dd($request->all());
-        // exit;
+
         if ($request->application_id) {
-            $form = Mst_Form_s_w::where('application_id', $validated['application_id'])->first();
+            $form = CC_Forms_Meta::where('application_id', $validated['application_id'])->first();
         }
         
-
-
-        // $transaction_date = \Carbon\Carbon::createFromFormat('d-m-Y', $request->transactionDate)
-        //                ->format('Y-m-d');
 
         if (!$form) {
             return response()->json([
@@ -68,7 +63,7 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        $payment = Payment::updateOrCreate(
+        $payment = CC_Payments::updateOrCreate(
             [
                 'login_id'        => $validated['login_id'],
                 'application_id'  => $validated['application_id'],
@@ -76,29 +71,28 @@ class PaymentController extends Controller
             [
                 'transaction_id'    => $validated['transaction_id'],
                 'payment_status'    => 'success',
-                'amount'            => $validated['amount'],
+                'amount_paid'            => $validated['amount'],
                 'form_name'         => $form->form_name,
-                'license_name'      => $form->license_name,
+                'cert_name'      => $form->certificate_name,
                 'payment_mode'      => $validated['payment_mode'],
-                'late_fees'         => $validated['lateFee'] ?? 0,
+                'late_fee'         => $validated['lateFee'] ?? 0,
                 'late_months'       => $validated['lateMonths'] ?? 0,
-                'transaction_date'  => $validated['transactionDate']
+                'transaction_date'  => $validated['transactionDate'],
             ]
         );
 
-        // var_dump($request->form_name);die;
 
         if ($payment) {
             if (in_array($request->form_name, ['S', 'W', 'WH'])) {
 
-                Mst_Form_s_w::where('application_id', $validated['application_id'])
+                CC_Forms_Meta::where('application_id', $validated['application_id'])
                 ->update([
-                    'payment_status' => 'payment', // e.g., 'payment', 'draft', etc.
+                    'payment_status' => 'Y', // e.g., 'payment', 'draft', etc.
                 ]);
             }else {
                 EA_Application_model::where('application_id', $validated['application_id'])
                 ->update([
-                    'payment_status' => 'payment', // e.g., 'payment', 'draft', etc.
+                    'payment_status' => 'Y', // e.g., 'payment', 'draft', etc.
                 ]);
             }
         }
@@ -143,7 +137,7 @@ class PaymentController extends Controller
         }
 
 
-        $payment = Payment::updateOrCreate(
+        $payment = CC_Payments::updateOrCreate(
             [
                 'login_id'        => $validated['login_id'],
                 'application_id'  => $validated['application_id'],
@@ -151,11 +145,11 @@ class PaymentController extends Controller
             [
                 'transaction_id'    => $validated['transaction_id'],
                 'payment_status'    => 'success',
-                'amount'            => $validated['amount'],
+                'amount_paid'            => $validated['amount'],
                 'form_name'         => $form->form_name,
-                'license_name'      => $form->license_name,
+                'cert_name'      => $form->license_name,
                 'payment_mode'      => $validated['payment_mode'],
-                'late_fees'         => $validated['lateFee'] ?? 0,
+                'late_fee'         => $validated['lateFee'] ?? 0,
                 'late_months'       => $validated['lateMonths'] ?? 0,
                 'transaction_date'  => $validated['transactionDate'] 
             ]
@@ -163,11 +157,11 @@ class PaymentController extends Controller
 
         if ($payment) {
             $formUpdate = [
-                'payment_status' => 'payment',
-                'updated_at'     => now(),
+                'payment_status' => 'Y',
+                'updated_at'     => $this->dbNow,
             ];
             if (empty($form->submitted_date)) {
-                $formUpdate['submitted_date'] = now();
+                $formUpdate['submitted_date'] = $this->dbNow;
             }
             TnelbFormP::where('application_id', $validated['application_id'])->update($formUpdate);
         }

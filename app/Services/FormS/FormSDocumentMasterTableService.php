@@ -2,12 +2,11 @@
 
 namespace App\Services\FormS;
 
-use App\Models\DocumentsLog;
-use App\Models\Mst_education;
-use App\Models\Mst_experience;
-use App\Models\Mst_Form_s_w;
-use App\Models\TnelbApplicantPhoto;
-use App\Models\TnelbApplicantsSign;
+use App\Models\CC_Doc_Log;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
+use App\Models\CC_Forms_Meta;
+use App\Models\CC_Proof_doc;
 
 class FormSDocumentMasterTableService
 {
@@ -16,7 +15,7 @@ class FormSDocumentMasterTableService
     ) {}
 
     public function resolveFilePath(
-        Mst_Form_s_w $masterApplication,
+        CC_Forms_Meta $masterApplication,
         string $moduleType,
         ?int $moduleRefId,
         string $documentType
@@ -26,7 +25,7 @@ class FormSDocumentMasterTableService
         }
 
         if ($moduleType === 'education') {
-            $path = Mst_education::where('application_id', $masterApplication->application_id)
+            $path = CC_Education::where('application_id', $masterApplication->application_id)
                 ->whereKey($moduleRefId)
                 ->value('upload_document');
 
@@ -36,27 +35,28 @@ class FormSDocumentMasterTableService
         }
 
         if ($moduleType === 'experience') {
-            $path = Mst_experience::where('application_id', $masterApplication->application_id)
+            $column = $documentType === 'relieving_doc' ? 'relieve_document' : 'support_document';
+            $path = CC_Experience::where('application_id', $masterApplication->application_id)
                 ->whereKey($moduleRefId)
-                ->value('support_document');
+                ->value($column);
 
             if ($path) {
                 return $path;
             }
         }
 
-        if ($moduleType === 'photo') {
-            $path = TnelbApplicantPhoto::where('application_id', $masterApplication->application_id)
-                ->value('upload_path');
+        if (in_array($moduleType, ['photo', 'signature', 'aadhaar', 'pan'], true)) {
+            $path = CC_Proof_doc::where('application_id', $masterApplication->application_id)
+                ->whereKey($moduleRefId)
+                ->value('proof_doc');
 
             if ($path) {
                 return $path;
             }
         }
 
-        if ($moduleType === 'signature') {
-            $path = TnelbApplicantsSign::where('application_id', $masterApplication->application_id)
-                ->value('uploaded_doc');
+        if ($moduleType === 'alteration') {
+            $path = CC_Proof_doc::whereKey($moduleRefId)->value('proof_doc');
 
             if ($path) {
                 return $path;
@@ -66,9 +66,18 @@ class FormSDocumentMasterTableService
         return null;
     }
 
-    public function syncApprovedFilePath(DocumentsLog $document): void
+    public function syncApprovedFilePath(CC_Doc_Log $document): void
     {
         if ($document->module_ref_id === null) {
+            return;
+        }
+
+        if ($document->module_type === 'alteration') {
+            CC_Proof_doc::whereKey((int) $document->module_ref_id)->update([
+                'proof_doc' => $document->file_path,
+                'updated_at' => now()->toDateString(),
+            ]);
+
             return;
         }
 
@@ -81,19 +90,20 @@ class FormSDocumentMasterTableService
             $masterApp,
             $document->module_type,
             $document->module_ref_id,
-            $document->file_path
+            $document->file_path,
+            (string) ($document->document_type ?? '')
         );
     }
 
-    protected function resolveMasterApplicationForDocument(DocumentsLog $document): ?Mst_Form_s_w
+    protected function resolveMasterApplicationForDocument(CC_Doc_Log $document): ?CC_Forms_Meta
     {
-        $workflowApp = Mst_Form_s_w::find($document->application_id);
+        $workflowApp = $this->workflowService->findWorkflowByPk((int) $document->application_id);
         if (!$workflowApp) {
             return null;
         }
 
         if ($document->parent_application_id) {
-            $parent = Mst_Form_s_w::find($document->parent_application_id);
+            $parent = $this->workflowService->findWorkflowByPk((int) $document->parent_application_id);
             if ($parent) {
                 return $parent;
             }
@@ -101,7 +111,7 @@ class FormSDocumentMasterTableService
 
         $refId = (int) $document->module_ref_id;
         if ($document->module_type === 'experience' && $refId > 0) {
-            $onChild = Mst_experience::where('application_id', $workflowApp->application_id)
+            $onChild = CC_Experience::where('application_id', $workflowApp->application_id)
                 ->whereKey($refId)
                 ->exists();
             if ($onChild) {
@@ -110,10 +120,26 @@ class FormSDocumentMasterTableService
         }
 
         if ($document->module_type === 'education' && $refId > 0) {
-            $onChild = Mst_education::where('application_id', $workflowApp->application_id)
+            $onChild = CC_Education::where('application_id', $workflowApp->application_id)
                 ->whereKey($refId)
                 ->exists();
             if ($onChild) {
+                return $workflowApp;
+            }
+        }
+
+        if (in_array($document->module_type, ['photo', 'signature', 'aadhaar', 'pan'], true) && $refId > 0) {
+            $onChild = CC_Proof_doc::where('application_id', $workflowApp->application_id)
+                ->whereKey($refId)
+                ->exists();
+            if ($onChild) {
+                return $workflowApp;
+            }
+        }
+
+        if ($document->module_type === 'alteration' && $refId > 0) {
+            $proof = CC_Proof_doc::whereKey($refId)->first();
+            if ($proof && (string) $proof->application_id === (string) $workflowApp->application_id) {
                 return $workflowApp;
             }
         }
@@ -122,13 +148,14 @@ class FormSDocumentMasterTableService
     }
 
     protected function updateMasterFilePath(
-        Mst_Form_s_w $masterApplication,
+        CC_Forms_Meta $masterApplication,
         string $moduleType,
         int $moduleRefId,
-        string $filePath
+        string $filePath,
+        string $documentType = ''
     ): void {
         if ($moduleType === 'education') {
-            Mst_education::where('application_id', $masterApplication->application_id)
+            CC_Education::where('application_id', $masterApplication->application_id)
                 ->whereKey($moduleRefId)
                 ->update(['upload_document' => $filePath]);
 
@@ -136,33 +163,30 @@ class FormSDocumentMasterTableService
         }
 
         if ($moduleType === 'experience') {
-            Mst_experience::where('application_id', $masterApplication->application_id)
+            $column = $documentType === 'relieving_doc' ? 'relieve_document' : 'support_document';
+            CC_Experience::where('application_id', $masterApplication->application_id)
                 ->whereKey($moduleRefId)
-                ->update(['support_document' => $filePath]);
+                ->update([$column => $filePath]);
 
             return;
         }
 
-        if ($moduleType === 'photo') {
-            TnelbApplicantPhoto::updateOrCreate(
-                ['application_id' => $masterApplication->application_id],
-                [
-                    'login_id' => $masterApplication->login_id,
-                    'upload_path' => $filePath,
-                ]
-            );
+        if (in_array($moduleType, ['photo', 'signature', 'aadhaar', 'pan'], true)) {
+            CC_Proof_doc::where('application_id', $masterApplication->application_id)
+                ->whereKey($moduleRefId)
+                ->update([
+                    'proof_doc' => $filePath,
+                    'updated_at' => now()->toDateString(),
+                ]);
 
             return;
         }
 
-        if ($moduleType === 'signature') {
-            TnelbApplicantsSign::updateOrCreate(
-                ['application_id' => $masterApplication->application_id],
-                [
-                    'login_id' => $masterApplication->login_id,
-                    'uploaded_doc' => $filePath,
-                ]
-            );
+        if ($moduleType === 'alteration') {
+            CC_Proof_doc::whereKey($moduleRefId)->update([
+                'proof_doc' => $filePath,
+                'updated_at' => now()->toDateString(),
+            ]);
         }
     }
 }

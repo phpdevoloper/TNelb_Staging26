@@ -6,24 +6,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
-class Mst_education extends Model
+class CC_Education extends Model
 {
     use HasFactory;
-    protected $table = 'tnelb_applicants_edu';
+    protected $table = 'cc_edu';
+    protected $primaryKey = 'edu_id';
     protected $fillable = [
+        'login_id',
+        'application_id',
         'educational_level', 
         'institute_name',
         'month_passing',
         'year_of_passing', 
         'certificate_no', 
-        'percentage',
-        'login_id',
-        'application_id',
-        'edu_serial',
-        'upload_document'
+        'upload_document',
+        'status',
+        'updated_at',
+        'created_at',
     ];
 
-
-
-    
 }

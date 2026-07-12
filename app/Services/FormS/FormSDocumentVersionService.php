@@ -6,12 +6,12 @@ use App\Enums\DocumentApplicationType;
 use App\Enums\DocumentRequestType;
 use App\Enums\DocumentStorageType;
 use App\Enums\DocumentVersionStatus;
-use App\Models\DocumentsLog;
-use App\Models\Mst_education;
-use App\Models\Mst_experience;
+use App\Models\CC_Doc_Log;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
+use App\Models\CC_Forms_Meta;
+use App\Models\CC_Proof_doc;
 use App\Models\Mst_Form_s_w;
-use App\Models\TnelbApplicantPhoto;
-use App\Models\TnelbApplicantsSign;
 use App\Services\DocumentVersion\DocumentStorageService;
 use Illuminate\Http\UploadedFile;
 use RuntimeException;
@@ -25,27 +25,29 @@ class FormSDocumentVersionService
     ) {}
 
     public function getDocumentSummaryForRef(
-        Mst_Form_s_w $workflowApp,
+        CC_Forms_Meta $workflowApp,
         string $moduleType,
         int $moduleRefId,
         string $documentType
     ): array {
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
+
         return [
-            'active' => $this->getActiveVersion($workflowApp->id, $moduleType, $moduleRefId, $documentType),
-            'pending' => $this->getPendingVersion($workflowApp->id, $moduleType, $moduleRefId, $documentType),
+            'active' => $this->getActiveVersion($workflowPk, $moduleType, $moduleRefId, $documentType),
+            'pending' => $this->getPendingVersion($workflowPk, $moduleType, $moduleRefId, $documentType),
         ];
     }
 
     public function uploadNewVersion(
         UploadedFile $file,
-        Mst_Form_s_w $workflowApp,
+        CC_Forms_Meta $workflowApp,
         string $moduleType,
         string $documentType,
         int $moduleRefId,
         ?string $remarks = null,
         ?string $workflowStage = null
-    ): DocumentsLog {
-        $workflowPk = (int) $workflowApp->id;
+    ): CC_Doc_Log {
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
         $stage = $workflowStage ?? $this->workflowService->workflowStage($workflowApp);
 
         if (!$this->groupExists($workflowPk, $moduleType, $moduleRefId, $documentType)) {
@@ -79,14 +81,14 @@ class FormSDocumentVersionService
 
     public function createInitialUpload(
         UploadedFile $file,
-        Mst_Form_s_w $workflowApp,
+        CC_Forms_Meta $workflowApp,
         string $moduleType,
         string $documentType,
         int $moduleRefId,
         ?string $remarks = null,
         ?string $workflowStage = null
-    ): DocumentsLog {
-        $workflowPk = (int) $workflowApp->id;
+    ): CC_Doc_Log {
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
         if ($this->groupExists($workflowPk, $moduleType, $moduleRefId, $documentType)) {
             throw new RuntimeException('Document group already exists. Use uploadNewVersion instead.');
         }
@@ -104,29 +106,30 @@ class FormSDocumentVersionService
         );
     }
 
-    public function seedDocumentReferencesFromParent(Mst_Form_s_w $parent, Mst_Form_s_w $child): void
+    public function seedDocumentReferencesFromParent(CC_Forms_Meta $parent, CC_Forms_Meta $child): void
     {
-        $parent->loadMissing([]);
         $applicationType = DocumentApplicationType::fromWorkflowStage(
             $this->workflowService->workflowStage($child)
         );
+        $childPk = $this->workflowService->workflowPk($child);
 
-        $parentEducations = Mst_education::where('application_id', $parent->application_id)->get();
+        $parentEducations = CC_Education::where('application_id', $parent->application_id)->get();
         foreach ($parentEducations as $parentEducation) {
             $filePath = $parentEducation->upload_document;
             if (!$filePath) {
                 continue;
             }
 
-            if (DocumentsLog::forGroup($child->id, 'education', $parentEducation->id, 'certificate')->exists()) {
+            $eduRefId = (int) $parentEducation->getKey();
+            if (CC_Doc_Log::forGroup($childPk, 'education', $eduRefId, 'certificate')->exists()) {
                 continue;
             }
 
-            DocumentsLog::create([
-                'application_id' => $child->id,
+            CC_Doc_Log::create([
+                'application_id' => $childPk,
                 'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
                 'module_type' => 'education',
-                'module_ref_id' => $parentEducation->id,
+                'module_ref_id' => $eduRefId,
                 'document_type' => 'certificate',
                 'file_name' => basename($filePath),
                 'file_path' => $filePath,
@@ -141,20 +144,20 @@ class FormSDocumentVersionService
             ]);
         }
 
-        $parentExperiences = Mst_experience::where('application_id', $parent->application_id)->get();
+        $parentExperiences = CC_Experience::where('application_id', $parent->application_id)->get();
         foreach ($parentExperiences as $parentExperience) {
             $filePath = $parentExperience->support_document;
             if (!$filePath) {
                 continue;
             }
 
-            $refId = (int) $parentExperience->exp_id;
-            if (DocumentsLog::forGroup($child->id, 'experience', $refId, 'experience_doc')->exists()) {
+            $refId = (int) $parentExperience->getKey();
+            if (CC_Doc_Log::forGroup($childPk, 'experience', $refId, 'experience_doc')->exists()) {
                 continue;
             }
 
-            DocumentsLog::create([
-                'application_id' => $child->id,
+            CC_Doc_Log::create([
+                'application_id' => $childPk,
                 'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
                 'module_type' => 'experience',
                 'module_ref_id' => $refId,
@@ -170,71 +173,158 @@ class FormSDocumentVersionService
                 'is_active' => true,
                 'remarks' => 'Carried forward from parent application ' . $parent->application_id,
             ]);
+
+            $relievePath = $parentExperience->relieve_document;
+            if ($relievePath && ! CC_Doc_Log::forGroup($childPk, 'experience', $refId, 'relieving_doc')->exists()) {
+                CC_Doc_Log::create([
+                    'application_id' => $childPk,
+                    'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
+                    'module_type' => 'experience',
+                    'module_ref_id' => $refId,
+                    'document_type' => 'relieving_doc',
+                    'file_name' => basename($relievePath),
+                    'file_path' => $relievePath,
+                    'old_file_path' => $relievePath,
+                    'storage_type' => DocumentStorageType::PERMANENT,
+                    'request_type' => DocumentRequestType::INITIAL,
+                    'application_type' => $applicationType,
+                    'version_no' => 1,
+                    'status' => DocumentVersionStatus::APPROVED,
+                    'is_active' => true,
+                    'remarks' => 'Carried forward from parent application ' . $parent->application_id,
+                ]);
+            }
         }
 
-        $parentPhoto = TnelbApplicantPhoto::where('application_id', $parent->application_id)->first();
-        if ($parentPhoto && $parentPhoto->upload_path) {
-            $this->seedCarriedForwardMedia($parent, $child, 'photo', 'photo', $parentPhoto->upload_path, $applicationType);
-        }
+        $parentProofs = CC_Proof_doc::where('application_id', $parent->application_id)->get();
+        foreach ($parentProofs as $parentProof) {
+            $filePath = $parentProof->proof_doc;
+            if (! $filePath) {
+                continue;
+            }
 
-        $parentSign = TnelbApplicantsSign::where('application_id', $parent->application_id)->first();
-        if ($parentSign && $parentSign->uploaded_doc) {
-            $this->seedCarriedForwardMedia($parent, $child, 'signature', 'signature', $parentSign->uploaded_doc, $applicationType);
+            $config = FormSProofDocumentService::configFor((string) $parentProof->proof_name);
+            $refId = (int) $parentProof->getKey();
+            if (CC_Doc_Log::forGroup($childPk, $config['module_type'], $refId, $config['document_type'])->exists()) {
+                continue;
+            }
+
+            CC_Doc_Log::create([
+                'application_id' => $childPk,
+                'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
+                'module_type' => $config['module_type'],
+                'module_ref_id' => $refId,
+                'document_type' => $config['document_type'],
+                'file_name' => basename($filePath),
+                'file_path' => $filePath,
+                'old_file_path' => $filePath,
+                'storage_type' => DocumentStorageType::PERMANENT,
+                'request_type' => DocumentRequestType::INITIAL,
+                'application_type' => $applicationType,
+                'version_no' => 1,
+                'status' => DocumentVersionStatus::APPROVED,
+                'is_active' => true,
+                'remarks' => 'Carried forward from parent application ' . $parent->application_id,
+            ]);
         }
     }
 
-    protected function seedCarriedForwardMedia(
-        Mst_Form_s_w $parent,
-        Mst_Form_s_w $child,
-        string $moduleType,
-        string $documentType,
-        string $filePath,
-        DocumentApplicationType $applicationType
-    ): void {
-        $refId = (int) $child->id;
-        if (DocumentsLog::forGroup($child->id, $moduleType, $refId, $documentType)->exists()) {
-            return;
-        }
-
-        DocumentsLog::create([
-            'application_id' => $child->id,
-            'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
-            'module_type' => $moduleType,
-            'module_ref_id' => $refId,
-            'document_type' => $documentType,
-            'file_name' => basename($filePath),
-            'file_path' => $filePath,
-            'old_file_path' => $filePath,
-            'storage_type' => DocumentStorageType::PERMANENT,
-            'request_type' => DocumentRequestType::INITIAL,
-            'application_type' => $applicationType,
-            'version_no' => 1,
-            'status' => DocumentVersionStatus::APPROVED,
-            'is_active' => true,
-            'remarks' => 'Carried forward from parent application ' . $parent->application_id,
-        ]);
-    }
-
-    public function ensureCarriedForwardDocuments(Mst_Form_s_w $workflowApp): int
+    public function ensureCarriedForwardDocuments(CC_Forms_Meta $workflowApp): int
     {
         if (!$this->workflowService->isChildWorkflow($workflowApp)) {
             return 0;
         }
 
         $parent = $this->workflowService->masterApplication($workflowApp);
-        if ($parent->id === $workflowApp->id) {
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
+        if ($this->workflowService->workflowPk($parent) === $workflowPk) {
             return 0;
         }
 
-        $before = DocumentsLog::where('application_id', $workflowApp->id)->count();
+        $before = CC_Doc_Log::where('application_id', $workflowPk)->count();
         $this->seedDocumentReferencesFromParent($parent, $workflowApp);
 
-        return DocumentsLog::where('application_id', $workflowApp->id)->count() - $before;
+        return CC_Doc_Log::where('application_id', $workflowPk)->count() - $before;
+    }
+
+    public function storeAlterationProofVersion(
+        UploadedFile $file,
+        object $alterationWorkflow,
+        string $moduleType,
+        string $documentType,
+        int $proofId,
+        ?string $remarks = null
+    ): CC_Doc_Log {
+        $workflowPk = (int) $alterationWorkflow->getKey();
+        $stage = 'ALTERATION';
+
+        if ($this->groupExists($workflowPk, $moduleType, $proofId, $documentType)) {
+            if ($this->getPendingVersion($workflowPk, $moduleType, $proofId, $documentType)) {
+                throw new RuntimeException(
+                    'A pending version already exists for this alteration proof. Approve or reject it before uploading a new version.'
+                );
+            }
+
+            $nextVersion = $this->getMaxVersionNo($workflowPk, $moduleType, $proofId, $documentType) + 1;
+            $requestType = DocumentRequestType::ALTERATION;
+        } else {
+            $nextVersion = 1;
+            $requestType = DocumentRequestType::INITIAL;
+        }
+
+        $oldFilePath = CC_Proof_doc::whereKey($proofId)->value('proof_doc');
+        $parentPk = $this->resolveLegacyAlterationParentPk($alterationWorkflow);
+
+        $stored = $this->storageService->store(
+            $file,
+            (string) $alterationWorkflow->application_id,
+            $workflowPk,
+            $moduleType,
+            $documentType,
+            $requestType,
+            $stage,
+            true
+        );
+
+        return CC_Doc_Log::create([
+            'application_id' => $workflowPk,
+            'parent_application_id' => $parentPk,
+            'module_type' => $moduleType,
+            'module_ref_id' => $proofId,
+            'document_type' => $documentType,
+            'file_name' => $stored['file_name'],
+            'file_path' => $stored['file_path'],
+            'old_file_path' => $oldFilePath,
+            'storage_type' => DocumentStorageType::PERMANENT,
+            'request_type' => $requestType,
+            'application_type' => DocumentApplicationType::fromWorkflowStage($stage),
+            'version_no' => $nextVersion,
+            'status' => DocumentVersionStatus::PENDING,
+            'is_active' => false,
+            'remarks' => $remarks,
+        ]);
+    }
+
+    protected function resolveLegacyAlterationParentPk(object $alterationWorkflow): ?int
+    {
+        $oldApplicationId = trim((string) ($alterationWorkflow->old_application ?? ''));
+        if ($oldApplicationId === '') {
+            return null;
+        }
+
+        $ccParentPk = CC_Forms_Meta::where('application_id', $oldApplicationId)->value('app_id');
+        if ($ccParentPk) {
+            return (int) $ccParentPk;
+        }
+
+        $legacyParentPk = Mst_Form_s_w::where('application_id', $oldApplicationId)->value('id');
+
+        return $legacyParentPk ? (int) $legacyParentPk : null;
     }
 
     protected function storeVersion(
         UploadedFile $file,
-        Mst_Form_s_w $workflowApp,
+        CC_Forms_Meta $workflowApp,
         string $moduleType,
         string $documentType,
         int $moduleRefId,
@@ -242,7 +332,8 @@ class FormSDocumentVersionService
         DocumentRequestType $requestType,
         ?string $remarks,
         string $workflowStage
-    ): DocumentsLog {
+    ): CC_Doc_Log {
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
         $masterApp = $this->workflowService->masterApplication($workflowApp);
         $oldFilePath = $this->masterTableService->resolveFilePath(
             $masterApp,
@@ -254,7 +345,7 @@ class FormSDocumentVersionService
         $stored = $this->storageService->store(
             $file,
             (string) $workflowApp->application_id,
-            (int) $workflowApp->id,
+            $workflowPk,
             $moduleType,
             $documentType,
             $requestType,
@@ -262,8 +353,8 @@ class FormSDocumentVersionService
             true
         );
 
-        $document = DocumentsLog::create([
-            'application_id' => $workflowApp->id,
+        $document = CC_Doc_Log::create([
+            'application_id' => $workflowPk,
             'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($workflowApp),
             'module_type' => $moduleType,
             'module_ref_id' => $moduleRefId,
@@ -287,9 +378,9 @@ class FormSDocumentVersionService
         return $document;
     }
 
-    protected function finalizeApprovedVersion(DocumentsLog $document): DocumentsLog
+    protected function finalizeApprovedVersion(CC_Doc_Log $document): CC_Doc_Log
     {
-        DocumentsLog::forGroup(
+        CC_Doc_Log::forGroup(
             $document->application_id,
             $document->module_type,
             $document->module_ref_id,
@@ -326,8 +417,8 @@ class FormSDocumentVersionService
         string $moduleType,
         int $moduleRefId,
         string $documentType
-    ): ?DocumentsLog {
-        return DocumentsLog::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)
+    ): ?CC_Doc_Log {
+        return CC_Doc_Log::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)
             ->active()
             ->first();
     }
@@ -337,8 +428,8 @@ class FormSDocumentVersionService
         string $moduleType,
         int $moduleRefId,
         string $documentType
-    ): ?DocumentsLog {
-        return DocumentsLog::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)
+    ): ?CC_Doc_Log {
+        return CC_Doc_Log::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)
             ->pending()
             ->orderByDesc('version_no')
             ->first();
@@ -350,7 +441,7 @@ class FormSDocumentVersionService
         int $moduleRefId,
         string $documentType
     ): bool {
-        return DocumentsLog::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)->exists();
+        return CC_Doc_Log::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)->exists();
     }
 
     protected function getMaxVersionNo(
@@ -359,7 +450,7 @@ class FormSDocumentVersionService
         int $moduleRefId,
         string $documentType
     ): int {
-        return (int) DocumentsLog::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)
+        return (int) CC_Doc_Log::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)
             ->max('version_no');
     }
 }

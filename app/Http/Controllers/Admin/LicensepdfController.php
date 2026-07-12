@@ -2788,9 +2788,9 @@ class LicensepdfController extends Controller
         ), \Mpdf\HTMLParserMode::HEADER_CSS);
 
         $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-        // var_dump($photoPath);exit;
         $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
 
+        // var_dump($photoPath);exit;
         $qc = [];
 
         if ($application->qc == 1) {

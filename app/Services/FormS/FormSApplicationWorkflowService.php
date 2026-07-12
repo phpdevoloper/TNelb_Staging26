@@ -2,26 +2,26 @@
 
 namespace App\Services\FormS;
 
-use App\Models\Mst_Form_s_w;
+use App\Models\CC_Forms_Meta;
 
 class FormSApplicationWorkflowService
 {
-    public function isDigitisationApplication(Mst_Form_s_w $application): bool
+    public function isDigitisationApplication(CC_Forms_Meta $application): bool
     {
         return strtoupper((string) ($application->appl_type ?? '')) === 'D';
     }
 
-    public function isRenewalApplication(Mst_Form_s_w $application): bool
+    public function isRenewalApplication(CC_Forms_Meta $application): bool
     {
         return strtoupper((string) ($application->appl_type ?? '')) === 'R';
     }
 
-    public function isAlterationApplication(Mst_Form_s_w $application): bool
+    public function isAlterationApplication(CC_Forms_Meta $application): bool
     {
         return strtoupper((string) ($application->appl_type ?? '')) === 'A';
     }
 
-    public function isChildWorkflow(Mst_Form_s_w $application): bool
+    public function isChildWorkflow(CC_Forms_Meta $application): bool
     {
         return $this->isRenewalApplication($application) || $this->isAlterationApplication($application);
     }
@@ -29,10 +29,10 @@ class FormSApplicationWorkflowService
     /**
      * Master application row — education/experience data lives on the parent APP.
      */
-    public function masterApplication(Mst_Form_s_w $application): Mst_Form_s_w
+    public function masterApplication(CC_Forms_Meta $application): CC_Forms_Meta
     {
         if ($this->isChildWorkflow($application) && !empty($application->old_application)) {
-            $parent = Mst_Form_s_w::where('application_id', $application->old_application)->first();
+            $parent = CC_Forms_Meta::where('application_id', $application->old_application)->first();
             if ($parent) {
                 return $parent;
             }
@@ -41,7 +41,7 @@ class FormSApplicationWorkflowService
         return $application;
     }
 
-    public function workflowStage(Mst_Form_s_w $application): string
+    public function workflowStage(CC_Forms_Meta $application): string
     {
         if ($this->isRenewalApplication($application)) {
             return 'RENEWAL';
@@ -56,20 +56,22 @@ class FormSApplicationWorkflowService
         return 'NEW';
     }
 
-    public function parentApplicationPk(Mst_Form_s_w $workflowApplication): ?int
+    public function workflowPk(CC_Forms_Meta $application): int
+    {
+        return (int) $application->getKey();
+    }
+
+    public function parentApplicationPk(CC_Forms_Meta $workflowApplication): ?int
     {
         if (!$this->isChildWorkflow($workflowApplication) || empty($workflowApplication->old_application)) {
             return null;
         }
 
-        return Mst_Form_s_w::where('application_id', $workflowApplication->old_application)->value('id');
+        return CC_Forms_Meta::where('application_id', $workflowApplication->old_application)
+            ->value('app_id');
     }
 
-    /**
-     * documents_log.parent_application_id FK may reference d_applications (sample module),
-     * while Form S workflow uses tnelb_application_tbl PKs — return null when not valid.
-     */
-    public function documentsLogParentApplicationId(Mst_Form_s_w $workflowApplication): ?int
+    public function documentsLogParentApplicationId(CC_Forms_Meta $workflowApplication): ?int
     {
         $parentPk = $this->parentApplicationPk($workflowApplication);
         if ($parentPk === null) {
@@ -82,5 +84,10 @@ class FormSApplicationWorkflowService
         }
 
         return $parentPk;
+    }
+
+    public function findWorkflowByPk(int $pk): ?CC_Forms_Meta
+    {
+        return CC_Forms_Meta::find($pk);
     }
 }
