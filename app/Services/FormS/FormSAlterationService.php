@@ -4,10 +4,11 @@ namespace App\Services\FormS;
 
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Models\Mst_experience;
-use App\Models\CC_Forms_Meta;
 use App\Services\Competency\CompetencyCertificateService;
+use App\Services\Competency\CompetencyMetaService;
 use App\Models\Payment;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
@@ -27,7 +28,7 @@ class FormSAlterationService
     ) {}
 
     /**
-     * @return array{ok: bool, message?: string, application?: CC_Forms_Meta}
+     * @return array{ok: bool, message?: string, application?: CC_CompetencyMeta}
      */
     public function verifyParentApplication(string $parentApplicationId, string $loginId): array
     {
@@ -36,19 +37,27 @@ class FormSAlterationService
             return ['ok' => false, 'message' => 'Application ID or Certificate Number is required.'];
         }
 
+        $paidStatuses = ['payment', 'paid', 'Y', 'y'];
+
         $parent = CC_Forms_Meta::where('application_id', $parentApplicationId)
             ->where('login_id', $loginId)
             ->where('form_name', 'S')
             ->whereIn('appl_type', ['N', 'R', 'D'])
-            ->whereIn('payment_status', ['payment', 'paid'])
+            ->where(function ($q) use ($paidStatuses) {
+                $q->whereIn('payment_status', $paidStatuses)
+                    ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) IN ('y','payment','paid')");
+            })
             ->first();
 
         if (!$parent) {
-            $parent = CC_Forms_Meta::where('license_number', $parentApplicationId)
+            $parent = CC_Forms_Meta::where('certificate_no', $parentApplicationId)
                 ->where('login_id', $loginId)
                 ->where('form_name', 'S')
                 ->whereIn('appl_type', ['N', 'R', 'D'])
-                ->whereIn('payment_status', ['payment', 'paid'])
+                ->where(function ($q) use ($paidStatuses) {
+                    $q->whereIn('payment_status', $paidStatuses)
+                        ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) IN ('y','payment','paid')");
+                })
                 ->first();
         }
 
@@ -59,23 +68,26 @@ class FormSAlterationService
         $pendingAlteration = CC_Forms_Meta::where('old_application', $parent->application_id)
             ->where('appl_type', 'A')
             ->where('login_id', $loginId)
-            ->whereIn('status', ['P', ''])
-            ->whereIn('payment_status', ['draft', 'payment'])
-            ->latest('id')
+            ->where(function ($q) {
+                $q->whereIn('app_status', ['P', ''])
+                    ->orWhereNull('app_status');
+            })
+            ->whereIn('payment_status', ['draft', 'payment', 'Y', 'y'])
+            ->latest('app_id')
             ->first();
 
-        if ($pendingAlteration && strtolower((string) $pendingAlteration->payment_status) === 'payment') {
+        if ($pendingAlteration && in_array(strtolower((string) $pendingAlteration->payment_status), ['payment', 'y'], true)) {
             return ['ok' => false, 'message' => 'An alteration request is already submitted for this certificate.'];
         }
 
         return ['ok' => true, 'application' => $parent];
     }
 
-    public function loadParentContext(CC_Forms_Meta $parent): array
+    public function loadParentContext(CC_CompetencyMeta $parent): array
     {
         $masterId = $this->workflowService->masterApplication($parent)->application_id;
 
-        $eduDetails = DB::table('tnelb_applicants_edu')
+        $eduDetails = DB::table('cc_edu')
             ->where('application_id', $masterId)
             ->orderBy('year_of_passing', 'desc')
             ->get();
@@ -95,7 +107,7 @@ class FormSAlterationService
             ->where('appl_type', 'A')
             ->where('login_id', $parent->login_id)
             ->where('payment_status', 'draft')
-            ->latest('id')
+            ->latest('app_id')
             ->first();
 
         $applicantPhoto = $this->resolveApplicantPhoto($parent);
@@ -113,15 +125,15 @@ class FormSAlterationService
      *     uploadedPhoto: ?TnelbApplicantPhoto,
      *     uploadedSign: ?TnelbApplicantsSign,
      *     alterationProofs: Collection,
-     *     parentApplication: CC_Forms_Meta
+     *     parentApplication: CC_CompetencyMeta
      * }
      */
-    public function buildStaffReviewContext(CC_Forms_Meta $application): array
+    public function buildStaffReviewContext(CC_CompetencyMeta $application): array
     {
         return app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($application);
     }
 
-    protected function resolveApplicantPhoto(CC_Forms_Meta $parent): ?TnelbApplicantPhoto
+    protected function resolveApplicantPhoto(CC_CompetencyMeta $parent): ?TnelbApplicantPhoto
     {
         foreach ($this->mediaApplicationIds($parent) as $applicationId) {
             $photo = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
@@ -133,7 +145,7 @@ class FormSAlterationService
         return null;
     }
 
-    protected function resolveApplicantSign(CC_Forms_Meta $parent): ?TnelbApplicantsSign
+    protected function resolveApplicantSign(CC_CompetencyMeta $parent): ?TnelbApplicantsSign
     {
         foreach ($this->mediaApplicationIds($parent) as $applicationId) {
             $sign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
@@ -148,7 +160,7 @@ class FormSAlterationService
     /**
      * @return list<string>
      */
-    protected function mediaApplicationIds(CC_Forms_Meta $parent): array
+    protected function mediaApplicationIds(CC_CompetencyMeta $parent): array
     {
         $ids = [];
         $seen = [];
@@ -166,13 +178,13 @@ class FormSAlterationService
                 break;
             }
 
-            $current = CC_Forms_Meta::where('application_id', $oldId)->first();
+            $current = CC_Forms_Meta::findByApplicationId($oldId);
         }
 
         return $ids;
     }
 
-    public function storeAlterationRequest(Request $request): CC_Forms_Meta
+    public function storeAlterationRequest(Request $request): CC_CompetencyMeta
     {
         $loginId = (string) $request->input('login_id');
         $parentId = trim((string) $request->input('parent_application_id'));
@@ -182,12 +194,12 @@ class FormSAlterationService
             throw new RuntimeException($verify['message'] ?? 'Invalid parent application.');
         }
 
-        /** @var CC_Forms_Meta $parent */
+        /** @var CC_CompetencyMeta $parent */
         $parent = $verify['application'];
         $parentName = trim((string) $parent->applicant_name);
-        $parentAddress = trim((string) $parent->applicants_address);
+        $parentAddress = trim((string) ($parent->applicant_address ?? $parent->applicants_address ?? ''));
         $newName = trim((string) $request->input('applicant_name', ''));
-        $newAddress = trim((string) $request->input('applicants_address', ''));
+        $newAddress = trim((string) $request->input('applicants_address', $request->input('applicant_address', '')));
 
         $alterName = $newName !== $parentName;
         $alterAddress = $newAddress !== $parentAddress;
@@ -223,46 +235,42 @@ class FormSAlterationService
             $alterAddress,
             $alterWork,
             $newName,
-            $newAddress
+            $newAddress,
+            $parentAddress
         ) {
             $child = CC_Forms_Meta::where('old_application', $parent->application_id)
                 ->where('appl_type', 'A')
                 ->where('login_id', $loginId)
                 ->where('payment_status', 'draft')
-                ->latest('id')
+                ->latest('app_id')
                 ->first();
+
+            $formName = (string) ($parent->form_name ?? 'S');
+            $certName = (string) ($parent->certificate_name ?? $parent->license_name ?? '');
 
             $payload = [
                 'login_id' => $loginId,
                 'applicant_name' => $alterName ? $newName : $parent->applicant_name,
                 'fathers_name' => $parent->fathers_name,
                 'applicant_email' => $parent->applicant_email,
-                'applicants_address' => $alterAddress ? $newAddress : $parent->applicants_address,
+                'applicant_address' => $alterAddress ? $newAddress : $parentAddress,
                 'd_o_b' => $parent->d_o_b,
                 'age' => $parent->age,
-                'previously_number' => $parent->previously_number,
-                'previously_valid_to' => $parent->previously_valid_to,
-                'previously_issue_date' => $parent->previously_issue_date,
-                'previously_valid_from' => $parent->previously_valid_from,
-                'wireman_details' => $parent->wireman_details,
-                'form_name' => $parent->form_name,
+                'previous_scc_no' => $parent->previous_scc_no ?? $parent->previously_number ?? null,
+                'scc_to_date' => $parent->scc_to_date ?? $parent->previously_valid_to ?? null,
+                'first_issue_date' => $parent->first_issue_date ?? $parent->previously_issue_date ?? null,
+                'scc_from_date' => $parent->scc_from_date ?? $parent->previously_valid_from ?? null,
+                'form_name' => $formName,
                 'form_id' => $parent->form_id,
-                'license_name' => $parent->license_name,
-                'aadhaar' => $parent->aadhaar,
-                'pancard' => $parent->pancard,
-                'aadhaar_doc' => $parent->aadhaar_doc,
-                'pan_doc' => $parent->pan_doc,
+                'certificate_name' => $certName,
                 'certificate_no' => $parent->certificate_no,
-                'certificate_valid_to' => $parent->certificate_valid_to,
-                'certificate_issue_date' => $parent->certificate_issue_date,
-                'certificate_valid_from' => $parent->certificate_valid_from,
-                'cert_verify' => $parent->cert_verify,
-                'license_verify' => $parent->license_verify,
-                'license_number' => $parent->license_number,
+                'wcc_to' => $parent->wcc_to ?? $parent->certificate_valid_to ?? null,
+                'wcc_issue_date' => $parent->wcc_issue_date ?? $parent->certificate_issue_date ?? null,
+                'wcc_from' => $parent->wcc_from ?? $parent->certificate_valid_from ?? null,
                 'appl_type' => 'A',
                 'old_application' => $parent->application_id,
-                'status' => 'P',
-                'payment_status' => 'payment',
+                'app_status' => 'P',
+                'payment_status' => 'Y',
                 'submitted_date' => now(),
                 'updated_at' => now(),
             ];
@@ -270,12 +278,12 @@ class FormSAlterationService
             if ($child) {
                 $child->update($payload);
             } else {
-                $lastApplication = CC_Forms_Meta::latest('id')->value('application_id');
+                $lastApplication = app(CompetencyMetaService::class)->latestApplicationId();
                 $lastNumber = $lastApplication ? (int) substr($lastApplication, -7) : 1111110;
-                $newApplicationId = 'A' . $parent->form_name . $parent->license_name . date('y')
+                $newApplicationId = 'A' . $formName . $certName . date('y')
                     . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
 
-                $child = CC_Forms_Meta::create(array_merge($payload, [
+                $child = CC_Forms_Meta::createForForm($formName, array_merge($payload, [
                     'application_id' => $newApplicationId,
                     'created_at' => now(),
                 ]));
@@ -303,7 +311,7 @@ class FormSAlterationService
                     'payment_status' => 'success',
                     'amount' => 0,
                     'form_name' => $child->form_name,
-                    'license_name' => $child->license_name,
+                    'license_name' => $child->certificate_name ?? $child->license_name,
                     'payment_mode' => 'N/A',
                     'late_fees' => 0,
                     'late_months' => 0,
@@ -315,7 +323,7 @@ class FormSAlterationService
         });
     }
 
-    public function saveAlterationDraft(Request $request): CC_Forms_Meta
+    public function saveAlterationDraft(Request $request): CC_CompetencyMeta
     {
         $loginId = (string) $request->input('login_id');
         $parentId = trim((string) $request->input('parent_application_id'));
@@ -325,19 +333,20 @@ class FormSAlterationService
             throw new RuntimeException($verify['message'] ?? 'Invalid parent application.');
         }
 
-        /** @var CC_Forms_Meta $parent */
+        /** @var CC_CompetencyMeta $parent */
         $parent = $verify['application'];
+        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicants_address ?? '');
         $newName = trim((string) $request->input('applicant_name', $parent->applicant_name));
-        $newAddress = trim((string) $request->input('applicants_address', $parent->applicants_address));
+        $newAddress = trim((string) $request->input('applicants_address', $request->input('applicant_address', $parentAddress)));
 
-        return DB::transaction(function () use ($request, $parent, $loginId, $newName, $newAddress) {
+        return DB::transaction(function () use ($request, $parent, $loginId, $newName, $newAddress, $parentAddress) {
             $child = $this->findOrCreateAlterationDraftChild($parent, $loginId);
 
             $child->update([
                 'applicant_name' => $newName !== '' ? $newName : $parent->applicant_name,
-                'applicants_address' => $newAddress !== '' ? $newAddress : $parent->applicants_address,
+                'applicant_address' => $newAddress !== '' ? $newAddress : $parentAddress,
                 'payment_status' => 'draft',
-                'status' => 'P',
+                'app_status' => 'P',
                 'updated_at' => now(),
             ]);
 
@@ -362,69 +371,65 @@ class FormSAlterationService
         });
     }
 
-    protected function findOrCreateAlterationDraftChild(CC_Forms_Meta $parent, string $loginId): CC_Forms_Meta
+    protected function findOrCreateAlterationDraftChild(CC_CompetencyMeta $parent, string $loginId): CC_CompetencyMeta
     {
         $child = CC_Forms_Meta::where('old_application', $parent->application_id)
             ->where('appl_type', 'A')
             ->where('login_id', $loginId)
             ->where('payment_status', 'draft')
-            ->latest('id')
+            ->latest('app_id')
             ->first();
 
         if ($child) {
             return $child;
         }
 
-        $lastApplication = CC_Forms_Meta::latest('id')->value('application_id');
+        $formName = (string) ($parent->form_name ?? 'S');
+        $certName = (string) ($parent->certificate_name ?? $parent->license_name ?? '');
+        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicants_address ?? '');
+
+        $lastApplication = app(CompetencyMetaService::class)->latestApplicationId();
         $lastNumber = $lastApplication ? (int) substr($lastApplication, -7) : 1111110;
-        $newApplicationId = 'A' . $parent->form_name . $parent->license_name . date('y')
+        $newApplicationId = 'A' . $formName . $certName . date('y')
             . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
 
-        return CC_Forms_Meta::create([
+        return CC_Forms_Meta::createForForm($formName, [
             'application_id' => $newApplicationId,
             'login_id' => $loginId,
             'applicant_name' => $parent->applicant_name,
             'fathers_name' => $parent->fathers_name,
             'applicant_email' => $parent->applicant_email,
-            'applicants_address' => $parent->applicants_address,
+            'applicant_address' => $parentAddress,
             'd_o_b' => $parent->d_o_b,
             'age' => $parent->age,
-            'previously_number' => $parent->previously_number,
-            'previously_valid_to' => $parent->previously_valid_to,
-            'previously_issue_date' => $parent->previously_issue_date,
-            'previously_valid_from' => $parent->previously_valid_from,
-            'wireman_details' => $parent->wireman_details,
-            'form_name' => $parent->form_name,
+            'previous_scc_no' => $parent->previous_scc_no ?? $parent->previously_number ?? null,
+            'scc_to_date' => $parent->scc_to_date ?? $parent->previously_valid_to ?? null,
+            'first_issue_date' => $parent->first_issue_date ?? $parent->previously_issue_date ?? null,
+            'scc_from_date' => $parent->scc_from_date ?? $parent->previously_valid_from ?? null,
+            'form_name' => $formName,
             'form_id' => $parent->form_id,
-            'license_name' => $parent->license_name,
-            'aadhaar' => $parent->aadhaar,
-            'pancard' => $parent->pancard,
-            'aadhaar_doc' => $parent->aadhaar_doc,
-            'pan_doc' => $parent->pan_doc,
+            'certificate_name' => $certName,
             'certificate_no' => $parent->certificate_no,
-            'certificate_valid_to' => $parent->certificate_valid_to,
-            'certificate_issue_date' => $parent->certificate_issue_date,
-            'certificate_valid_from' => $parent->certificate_valid_from,
-            'cert_verify' => $parent->cert_verify,
-            'license_verify' => $parent->license_verify,
-            'license_number' => $parent->license_number,
+            'wcc_to' => $parent->wcc_to ?? $parent->certificate_valid_to ?? null,
+            'wcc_issue_date' => $parent->wcc_issue_date ?? $parent->certificate_issue_date ?? null,
+            'wcc_from' => $parent->wcc_from ?? $parent->certificate_valid_from ?? null,
             'appl_type' => 'A',
             'old_application' => $parent->application_id,
-            'status' => 'P',
+            'app_status' => 'P',
             'payment_status' => 'draft',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
     }
 
-    protected function storeAlterationProof(CC_Forms_Meta $child, UploadedFile $file, string $documentType): void
+    protected function storeAlterationProof(CC_CompetencyMeta $child, UploadedFile $file, string $documentType): void
     {
         app(FormSProofDocumentService::class)->saveAlterationProofUpload($child, $file, $documentType);
     }
 
     protected function alterationHasProof(
         Request $request,
-        CC_Forms_Meta $parent,
+        CC_CompetencyMeta $parent,
         string $proofName,
         string $uploadField
     ): bool {
@@ -436,7 +441,7 @@ class FormSAlterationService
             ->where('appl_type', FormSProofDocumentService::ALTERATION_APP_TYPE)
             ->where('login_id', $parent->login_id)
             ->where('payment_status', 'draft')
-            ->latest('id')
+            ->latest('app_id')
             ->first();
 
         if (! $draft) {
@@ -493,7 +498,7 @@ class FormSAlterationService
         return !empty($existingFlags[$key]) && (string) $existingFlags[$key] === '1';
     }
 
-    protected function storeNewExperienceRows(Request $request, CC_Forms_Meta $child, string $loginId): void
+    protected function storeNewExperienceRows(Request $request, CC_CompetencyMeta $child, string $loginId): void
     {
         $indexes = $this->collectNewWorkRowIndexes($request);
 

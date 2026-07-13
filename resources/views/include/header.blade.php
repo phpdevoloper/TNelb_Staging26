@@ -1322,6 +1322,7 @@ use Illuminate\Support\Facades\Auth;
 <script>
     const BASE_URL = "{{ UrlHelper::baseFileUrl() }}";
     const DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
+    const DOCUMENT_PUBLIC_BASE_URL = @json(rtrim(trim((string) (config('document_versioning.public_base_url') ?: '')), '/'));
 </script>
 
 <body class="theme-color-two">

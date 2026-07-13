@@ -18,6 +18,45 @@ class DocumentStorageService
         return config('document_versioning.disk', 'private_documents');
     }
 
+    /**
+     * Ensure uploaded competency files are world-readable (0644) for nginx/apache view URLs.
+     */
+    protected function ensurePublicVisibility($disk, string $relativePath): void
+    {
+        try {
+            $disk->setVisibility($relativePath, 'public');
+        } catch (\Throwable $e) {
+            // Best-effort: some adapters may not support visibility.
+        }
+
+        try {
+            $absolute = $disk->path($relativePath);
+            if (is_file($absolute)) {
+                @chmod($absolute, 0644);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+    }
+
+    /**
+     * Do not auto-create folders — storage dirs must already exist on the server.
+     */
+    protected function assertDirectoryExists($disk, string $directory): void
+    {
+        if ($directory === '.' || $directory === '') {
+            return;
+        }
+
+        if ($disk->exists($directory)) {
+            return;
+        }
+
+        throw new RuntimeException(
+            "Document storage directory does not exist: {$directory}. Create it under DOCUMENT_STORAGE_ROOT before uploading."
+        );
+    }
+
     public function buildRelativePath(
         DocumentRequestType $requestType,
         string $applicationNo,
@@ -103,15 +142,15 @@ class DocumentStorageService
         }
 
         $directory = dirname($relativePath);
-        if ($directory !== '.' && !$disk->exists($directory)) {
-            $disk->makeDirectory($directory);
-        }
+        $this->assertDirectoryExists($disk, $directory);
 
         $disk->putFileAs(
             $directory === '.' ? '' : $directory,
             $file,
-            basename($relativePath)
+            basename($relativePath),
+            ['visibility' => 'public']
         );
+        $this->ensurePublicVisibility($disk, $relativePath);
 
         return [
             'file_name' => basename($relativePath),
@@ -154,9 +193,7 @@ class DocumentStorageService
         }
 
         $directory = dirname($relativePath);
-        if ($directory !== '.' && ! $disk->exists($directory)) {
-            $disk->makeDirectory($directory);
-        }
+        $this->assertDirectoryExists($disk, $directory);
 
         $contents = file_get_contents($file->getRealPath());
         if ($contents === false) {
@@ -164,7 +201,8 @@ class DocumentStorageService
         }
 
         $encrypted = app(SensitiveProofCryptService::class)->encryptFileContents($contents);
-        $disk->put($relativePath, $encrypted);
+        $disk->put($relativePath, $encrypted, ['visibility' => 'public']);
+        $this->ensurePublicVisibility($disk, $relativePath);
 
         return [
             'file_name' => basename($relativePath),
@@ -205,7 +243,8 @@ class DocumentStorageService
         }
 
         $encrypted = app(SensitiveProofCryptService::class)->encryptFileContents($contents);
-        $disk->put($encryptedPath, $encrypted);
+        $disk->put($encryptedPath, $encrypted, ['visibility' => 'public']);
+        $this->ensurePublicVisibility($disk, $encryptedPath);
         $disk->delete($relativePath);
 
         return $encryptedPath;
@@ -257,19 +296,23 @@ class DocumentStorageService
         }
 
         $directory = dirname($destinationRelativePath);
-        if ($directory !== '.' && !$disk->exists($directory)) {
-            $disk->makeDirectory($directory);
-        }
+        $this->assertDirectoryExists($disk, $directory);
 
         if ($disk->exists($destinationRelativePath)) {
             $disk->delete($destinationRelativePath);
         }
 
-        $copied = $disk->put($destinationRelativePath, $disk->get($sourceRelativePath));
+        $copied = $disk->put(
+            $destinationRelativePath,
+            $disk->get($sourceRelativePath),
+            ['visibility' => 'public']
+        );
 
         if (!$copied || !$disk->exists($destinationRelativePath)) {
             throw new RuntimeException("Failed to copy file to {$destinationRelativePath}");
         }
+
+        $this->ensurePublicVisibility($disk, $destinationRelativePath);
 
         return $destinationRelativePath;
     }

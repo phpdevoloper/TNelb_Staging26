@@ -414,7 +414,7 @@ class RegisterController extends BaseController
         }
 
         
-        $application = CC_Forms_Meta::where('application_id', $application_id)->first()
+        $application = CC_Forms_Meta::findByApplicationId((string) $application_id)
             ?? DB::table('tnelb_application_tbl')->where('application_id', $application_id)->first();
 
         if (!$application) {

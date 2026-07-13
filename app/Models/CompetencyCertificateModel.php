@@ -11,7 +11,7 @@ abstract class CompetencyCertificateModel extends Model
 {
     public $timestamps = false;
 
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'cc_id';
 
     protected $fillable = [
         'application_id',

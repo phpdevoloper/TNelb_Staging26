@@ -10,6 +10,7 @@ use App\Models\CC_Forms_Meta;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Resolves issued certificates for competency forms S, W, WH, P.
@@ -85,7 +86,7 @@ class CompetencyCertificateService
 
         $formName = $this->resolveFormName($applicationId, $formName);
         $modelClass = $formName ? $this->modelClassForForm($formName) : null;
-        if (! $modelClass) {
+        if (!$modelClass) {
             return null;
         }
 
@@ -95,7 +96,7 @@ class CompetencyCertificateService
     public function asLicenseDetails(string $applicationId, ?string $formName = null): ?object
     {
         $cert = $this->findByApplicationId($applicationId, $formName);
-        if (! $cert) {
+        if (!$cert) {
             return null;
         }
 
@@ -105,7 +106,7 @@ class CompetencyCertificateService
     public function asWorkflowLicense(string $applicationId, ?string $formName = null): ?object
     {
         $cert = $this->findByApplicationId($applicationId, $formName);
-        if (! $cert) {
+        if (!$cert) {
             return null;
         }
 
@@ -113,6 +114,46 @@ class CompetencyCertificateService
             'license_number' => $cert->certificate_no,
             'expires_at' => $cert->valid_to,
         ];
+    }
+
+    /**
+     * Active issued competency certificates for a login (all S/W/WH/P cert + meta tables).
+     *
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    public function activeCertificatesForLogin(string $loginId): \Illuminate\Support\Collection
+    {
+        $loginId = trim($loginId);
+        if ($loginId === '') {
+            return collect();
+        }
+
+        $metaService = app(CompetencyMetaService::class);
+        $rows = collect();
+
+        foreach (self::FORM_MODEL_MAP as $formName => $modelClass) {
+            $metaTable = $metaService->tableForForm($formName);
+            $certTable = (new $modelClass())->getTable();
+            if (!$metaTable || !$certTable) {
+                continue;
+            }
+
+            $part = DB::table($certTable . ' as c')
+                ->join($metaTable . ' as m', 'm.application_id', '=', 'c.application_id')
+                ->where('m.login_id', $loginId)
+                ->whereDate('c.valid_to', '>=', now())
+                ->select(
+                    'c.certificate_no as license_number',
+                    'c.dateof_issue as issued_at',
+                    'c.valid_to as expires_at',
+                    'm.appl_type'
+                )
+                ->get();
+
+            $rows = $rows->merge($part);
+        }
+
+        return $rows;
     }
 
     public function mapCertToLicenseDetails(Model $cert): object
@@ -150,7 +191,7 @@ class CompetencyCertificateService
     {
         $formName = $this->normalizeFormName($formName);
         $modelClass = $this->modelClassForForm($formName);
-        if (! $modelClass) {
+        if (!$modelClass) {
             throw new \InvalidArgumentException("Unsupported competency form for certificate issue: {$formName}");
         }
 
@@ -159,15 +200,24 @@ class CompetencyCertificateService
         if ($applicationId === '' || $certificateNo === '') {
             throw new \InvalidArgumentException('application_id and certificate_no are required to issue a certificate.');
         }
+        // dd('qqqq'); exit;
 
+        // dd([
+        //     'issuedBy'        => $issuedBy ?? null,
+        //     'roles_id'        => Auth::user()->roles_id,
+        //     'user_id'         => Auth::id(),
+        //     'dateof_issue'    => $data['dateof_issue'],
+        //     'valid_from'      => $data['valid_from'],
+        //     'valid_to'        => $data['valid_to'],
+        // ]);exit;
         $now = now();
         $payload = [
             'application_id' => $applicationId,
             'certificate_no' => $certificateNo,
-            'dateof_issue' => $data['dateof_issue'] ?? null,
-            'valid_from' => $data['valid_from'] ?? null,
-            'valid_to' => $data['valid_to'] ?? null,
-            'issued_by' => $data['issued_by'] ?? null,
+            'dateof_issue' => $data['dateof_issue'],
+            'valid_from' => $data['valid_from'],
+            'valid_to' => $data['valid_to'],
+            'issued_by' => Auth::user()->roles_id,
             'cert_status' => $data['cert_status'] ?? 'A',
             'cert_pdf' => $data['cert_pdf'] ?? null,
             'updated_at' => $now,
@@ -199,7 +249,7 @@ class CompetencyCertificateService
         mixed $expiresAt,
         ?string $issuedBy = null
     ): ?Model {
-        if (! $this->supportsForm($formName)) {
+        if (!$this->supportsForm($formName)) {
             return null;
         }
 

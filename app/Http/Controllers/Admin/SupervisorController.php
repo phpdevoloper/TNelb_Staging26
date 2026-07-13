@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use Illuminate\Support\Facades\DB;
 use App\Models\Admin\SupervisorModel;
+use App\Models\Tnelb_CC_Digitization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -1726,6 +1727,8 @@ class SupervisorController extends Controller
                 $login_id
             );
 
+            // dd('success'); exit;
+
             // Generate Licence PDF, encrypt it, and store its path (non-blocking)
             try {
                 app(LicensepdfController::class)->generatePDF($request->application_id);
@@ -1737,6 +1740,7 @@ class SupervisorController extends Controller
             }
             //    dd($this->dbNow); exit;
             $chklistStatus = $request->input('chklist_status', []);
+            
             $workflowTable = app(CompetencyApplicationService::class)
                 ->resolveWorkflowTable($request->application_id, $application);
             app(CompetencyWorkflowService::class)->record($workflowTable, [
@@ -1979,25 +1983,25 @@ class SupervisorController extends Controller
 
 
         if ($applType === 'D') {
-            $licenseDetails = DB::table('tnelb_license')
+            $licenseDetails = DB::table('cc_forms_cert')
                 ->where('application_id', $applicationId)
                 ->first();
 
             if ($licenseDetails) {
                 $this->syncIssuedCertToCcTable(
                     $application,
-                    (string) $licenseDetails->license_number,
-                    $licenseDetails->issued_at,
-                    $licenseDetails->issued_from ?? $licenseDetails->issued_at,
-                    $licenseDetails->expires_at,
+                    (string) $licenseDetails->certificate_no,
+                    $licenseDetails->dateof_issue,
+                    $licenseDetails->valid_from ?? $licenseDetails->dateof_issue,
+                    $licenseDetails->valid_to,
                     $processedBy
                 );
 
                 return [
-                    $licenseDetails->license_number,
-                    $licenseDetails->issued_at,
-                    $licenseDetails->issued_from,
-                    $licenseDetails->expires_at
+                    $licenseDetails->certificate_no,
+                    $licenseDetails->dateof_issue,
+                    $licenseDetails->valid_from,
+                    $licenseDetails->valid_to
                 ];
             }
 
@@ -2005,10 +2009,10 @@ class SupervisorController extends Controller
             $prefix    = $application->license_name;
             $yearMonth = date('Ym');
 
-            $lastSerial = DB::table('tnelb_license')
-                ->where('license_number', 'LIKE', "C{$prefix}{$yearMonth}%")
-                ->orderBy('license_number', 'desc')
-                ->value('license_number');
+            $lastSerial = DB::table('cc_forms_cert')
+                ->where('certificate_no', 'LIKE', "C{$prefix}{$yearMonth}%")
+                ->orderBy('certificate_no', 'desc')
+                ->value('certificate_no');
 
             if ($lastSerial) {
                 $lastNumber   = (int) substr($lastSerial, -5);
@@ -2026,20 +2030,22 @@ class SupervisorController extends Controller
             $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
 
 
-            $expiresAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->pluck('to_date'); //first issue
-            $from_date = Tnelb_CC_Digitization::where('application_id', $applicationId )->pluck('from_date'); //latest from_date
-            $issuedAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->pluck('fissue'); //latest to date
-            // dd($expiresAt); exit;
+            $expiresAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->first()->to_date; //first issue
+            $from_date = Tnelb_CC_Digitization::where('application_id', $applicationId )->first()->from_date; //latest from_date
+            $issuedAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->first()->fissue; //latest to date
+            // dd($issuedAt); exit;
+            $issuedBy = Auth::user()->roles_id;
 
-            // dd($licensePeriod->validity); exit;
+            // dd($issuedBy, $issuedAt); exit;
 
-            $licence_insert = DB::table('tnelb_license')->insert([
+          
+            $licence_insert = DB::table('cc_forms_cert')->insert([
                 'application_id' => $applicationId,
-                'license_number' => $licenseNumber,
-                'issued_by'      => $processedBy,
-                'issued_at'      => $issuedAt, //first issue
-                'issued_from'    => $from_date, //latest from_date
-                'expires_at'     => $expiresAt, //latest to date
+                'certificate_no' => $licenseNumber,
+                'issued_by'      => $issuedBy,
+                'dateof_issue'      => $issuedAt, //first issue
+                'valid_from'    => $from_date, //latest from_date
+                'valid_to'     => $expiresAt, //latest to date
                 'created_at'     => $now,
             ]);
 
@@ -2111,13 +2117,15 @@ class SupervisorController extends Controller
 
         $licence_insert = DB::table('tnelb_license')->insert([
             'application_id' => $applicationId,
-            'license_number' => $licenseNumber,
-            'issued_by'      => $processedBy,
-            'issued_at'      => $issuedAt,
-            'issued_from'    => $now,
-            'expires_at'     => $expiresAt,
+            'certificate_no' => $licenseNumber,
+            'issued_by'      => Auth::user()->roles_id,
+            'dateof_issue'      => $issuedAt, //first issue
+            'valid_from'    => $now,
+            'valid_to'     => $expiresAt,
             'created_at'     => $now,
         ]);
+
+        
 
         $this->syncIssuedCertToCcTable(
             $application,

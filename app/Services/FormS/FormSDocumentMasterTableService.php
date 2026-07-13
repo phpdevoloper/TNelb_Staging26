@@ -5,8 +5,8 @@ namespace App\Services\FormS;
 use App\Models\CC_Doc_Log;
 use App\Models\CC_Education;
 use App\Models\CC_Experience;
-use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
+use App\Models\Competency\CC_CompetencyMeta;
 
 class FormSDocumentMasterTableService
 {
@@ -15,7 +15,7 @@ class FormSDocumentMasterTableService
     ) {}
 
     public function resolveFilePath(
-        CC_Forms_Meta $masterApplication,
+        CC_CompetencyMeta $masterApplication,
         string $moduleType,
         ?int $moduleRefId,
         string $documentType
@@ -95,7 +95,7 @@ class FormSDocumentMasterTableService
         );
     }
 
-    protected function resolveMasterApplicationForDocument(CC_Doc_Log $document): ?CC_Forms_Meta
+    protected function resolveMasterApplicationForDocument(CC_Doc_Log $document): ?CC_CompetencyMeta
     {
         $workflowApp = $this->workflowService->findWorkflowByPk((int) $document->application_id);
         if (!$workflowApp) {
@@ -148,7 +148,7 @@ class FormSDocumentMasterTableService
     }
 
     protected function updateMasterFilePath(
-        CC_Forms_Meta $masterApplication,
+        CC_CompetencyMeta $masterApplication,
         string $moduleType,
         int $moduleRefId,
         string $filePath,

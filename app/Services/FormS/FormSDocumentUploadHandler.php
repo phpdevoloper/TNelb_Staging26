@@ -5,13 +5,13 @@ namespace App\Services\FormS;
 use App\Models\CC_Doc_Log;
 use App\Models\CC_Education;
 use App\Models\CC_Experience;
-use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Services\Competency\CompetencyDocumentSupport;
 use Illuminate\Http\UploadedFile;
 
 /**
- * Bridges Form S controller uploads to cc_doc_log + CC master tables.
+ * Bridges competency form uploads to cc_doc_log + shared CC master tables.
  */
 class FormSDocumentUploadHandler
 {
@@ -30,7 +30,7 @@ class FormSDocumentUploadHandler
      * @return string|null Approved path for master upload_document (null if pending renewal)
      */
     public function handleEducationUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         CC_Education $masterEducation,
         UploadedFile $file,
         ?string $replacementReason = null
@@ -52,7 +52,7 @@ class FormSDocumentUploadHandler
      * @return string|null Approved path for master support_document
      */
     public function handleExperienceSupportUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         CC_Experience $masterExperience,
         UploadedFile $file,
         ?string $replacementReason = null
@@ -77,7 +77,7 @@ class FormSDocumentUploadHandler
      * @return string|null Approved path for master relieve_document
      */
     public function handleExperienceRelieveUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         CC_Experience $masterExperience,
         UploadedFile $file,
         ?string $replacementReason = null
@@ -102,7 +102,7 @@ class FormSDocumentUploadHandler
      * @return string|null Path stored on cc_proof_doc.proof_doc
      */
     public function handleProofUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         CC_Proof_doc $proof,
         UploadedFile $file,
         ?string $replacementReason = null
@@ -126,7 +126,7 @@ class FormSDocumentUploadHandler
      * @return string|null Path for cc_proof_doc.proof_doc (PHOTO)
      */
     public function handlePhotoUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         CC_Proof_doc $proof,
         UploadedFile $file,
         ?string $replacementReason = null
@@ -138,7 +138,7 @@ class FormSDocumentUploadHandler
      * @return string|null Path for cc_proof_doc.proof_doc (SIGN)
      */
     public function handleSignatureUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         CC_Proof_doc $proof,
         UploadedFile $file,
         ?string $replacementReason = null
@@ -165,7 +165,7 @@ class FormSDocumentUploadHandler
         return $this->resolveProofPathAfterUpload($log, $proof);
     }
 
-    public function seedCarriedForwardIfRenewal(CC_Forms_Meta $workflowApp): void
+    public function seedCarriedForwardIfRenewal(CC_CompetencyMeta $workflowApp): void
     {
         if (!$this->workflowService->isChildWorkflow($workflowApp)) {
             return;
@@ -178,7 +178,7 @@ class FormSDocumentUploadHandler
      * Resolve master education row for a form row (renewal uses parent APP rows).
      */
     public function resolveMasterEducation(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         ?int $eduId,
         ?string $level = null
     ): ?CC_Education {
@@ -250,7 +250,7 @@ class FormSDocumentUploadHandler
     }
 
     protected function storeVersionedUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         UploadedFile $file,
         string $moduleType,
         string $documentType,

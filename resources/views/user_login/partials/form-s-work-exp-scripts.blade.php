@@ -14,13 +14,15 @@
             var hideUploadWhenDocExists = @json($hideUploadWhenDocExists);
             var isAlterationMode = @json($isAlterationMode);
             var DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
+            var DOCUMENT_PUBLIC_BASE_URL = @json(rtrim(trim((string) (config('document_versioning.public_base_url') ?: '')), '/'));
 
             function competencyStoredDocHref(storedPath) {
                 storedPath = String(storedPath || '').trim();
                 if (!storedPath) return '';
                 if (/^https?:\/\//i.test(storedPath)) return storedPath;
                 if (/^FORM_[A-Z]+\//i.test(storedPath)) {
-                    return '/' + DOCUMENT_PUBLIC_URL_PREFIX + '/' + storedPath.replace(/^\/+/, '');
+                    var relative = '/' + DOCUMENT_PUBLIC_URL_PREFIX + '/' + storedPath.replace(/^\/+/, '');
+                    return DOCUMENT_PUBLIC_BASE_URL ? (DOCUMENT_PUBLIC_BASE_URL + relative) : relative;
                 }
                 if (storedPath.charAt(0) === '/') return storedPath;
                 return '/' + storedPath.replace(/^\/+/, '');

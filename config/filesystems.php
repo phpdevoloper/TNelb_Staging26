@@ -45,7 +45,19 @@ return [
         'private_documents' => [
             'driver' => 'local',
             'root' => config('document_versioning.storage_root', storage_path('app/documents')),
-            'visibility' => 'private',
+            'visibility' => 'public',
+            'directory_visibility' => 'public',
+            // Explicit modes so nginx/apache (non-owner) can read view URLs
+            'permissions' => [
+                'file' => [
+                    'public' => 0644,
+                    'private' => 0600,
+                ],
+                'dir' => [
+                    'public' => 0755,
+                    'private' => 0700,
+                ],
+            ],
         ],
 
         'without_tmp' => [

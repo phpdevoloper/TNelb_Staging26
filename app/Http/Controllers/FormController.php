@@ -23,6 +23,7 @@ use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Services\ReturnedApplicationEditScope;
 use App\Services\ReturnedApplicationPayloadMerge;
 use App\Services\CcDigitizationLinkService;
@@ -85,7 +86,7 @@ class FormController extends BaseController
 
     private function saveCompetencyProofDocuments(
         Request $request,
-        CC_Forms_Meta $workflowForm,
+        CC_CompetencyMeta $workflowForm,
         ?string $formName
     ): void {
         if (! $this->isCompetencyForm($formName)) {
@@ -200,7 +201,7 @@ class FormController extends BaseController
     private function buildCcFormsMetaPayload(
         Request $request,
         string $applicationId,
-        ?CC_Forms_Meta $existingForm = null,
+        ?CC_CompetencyMeta $existingForm = null,
         array $overrides = []
     ): array {
         return array_merge([
@@ -231,14 +232,14 @@ class FormController extends BaseController
         ], $overrides);
     }
 
-    private function formSMasterApplicationId(CC_Forms_Meta $workflowForm): string
+    private function formSMasterApplicationId(CC_CompetencyMeta $workflowForm): string
     {
         return app(FormSApplicationWorkflowService::class)
             ->masterApplication($workflowForm)
             ->application_id;
     }
 
-    private function resolveFormSMasterApplicationId(CC_Forms_Meta $workflowForm, ?string $formName): string
+    private function resolveFormSMasterApplicationId(CC_CompetencyMeta $workflowForm, ?string $formName): string
     {
         if ($this->isCompetencyForm($formName)) {
             return $this->formSMasterApplicationId($workflowForm);
@@ -248,11 +249,11 @@ class FormController extends BaseController
     }
 
     private function resolveFormSMasterApplicationIdFromWorkflow(
-        ?CC_Forms_Meta $workflowForm,
+        ?CC_CompetencyMeta $workflowForm,
         ?string $formName,
         string $fallbackApplicationId
     ): string {
-        if ($workflowForm instanceof CC_Forms_Meta) {
+        if ($workflowForm instanceof CC_CompetencyMeta) {
             return $this->resolveFormSMasterApplicationId($workflowForm, $formName);
         }
 
@@ -262,7 +263,7 @@ class FormController extends BaseController
     /**
      * @return class-string<CC_Experience>
      */
-    private function resolveExperienceModelClass(?CC_Forms_Meta $workflowForm, ?string $formName): string
+    private function resolveExperienceModelClass(?CC_CompetencyMeta $workflowForm, ?string $formName): string
     {
         return CC_Experience::class;
     }
@@ -275,7 +276,7 @@ class FormController extends BaseController
     private function resolveEducationDocumentForSave(
         Request $request,
         $key,
-        ?CC_Forms_Meta $workflowForm,
+        ?CC_CompetencyMeta $workflowForm,
         ?string $formName,
         CC_Education|null $existingEducation,
         bool $isFileRemoved
@@ -331,7 +332,7 @@ class FormController extends BaseController
     private function applyPendingFormSEducationUpload(
         Request $request,
         $key,
-        CC_Forms_Meta $workflowForm,
+        CC_CompetencyMeta $workflowForm,
         CC_Education $education,
         UploadedFile $file
     ): ?string {
@@ -348,7 +349,7 @@ class FormController extends BaseController
         );
     }
 
-    private function seedFormSDocumentsIfRenewal(CC_Forms_Meta $workflowForm, ?string $formName): void
+    private function seedFormSDocumentsIfRenewal(CC_CompetencyMeta $workflowForm, ?string $formName): void
     {
         if (! $this->isCompetencyForm($formName)) {
             return;
@@ -699,7 +700,7 @@ class FormController extends BaseController
         CC_Experience|null $existing,
         bool $supportRemoved,
         bool $relieveRemoved,
-        ?CC_Forms_Meta $workflowForm = null,
+        ?CC_CompetencyMeta $workflowForm = null,
         ?string $formName = null
     ): array {
         $useVersioned = $workflowForm
@@ -768,7 +769,7 @@ class FormController extends BaseController
     private function applyPendingFormSExperienceRelieveUpload(
         Request $request,
         $key,
-        CC_Forms_Meta $workflowForm,
+        CC_CompetencyMeta $workflowForm,
         CC_Experience $experience,
         UploadedFile $file
     ): ?string {
@@ -788,7 +789,7 @@ class FormController extends BaseController
     private function applyPendingFormSExperienceDocumentUploads(
         Request $request,
         $key,
-        CC_Forms_Meta $workflowForm,
+        CC_CompetencyMeta $workflowForm,
         CC_Experience $experience,
         array $documents
     ): void {
@@ -822,7 +823,7 @@ class FormController extends BaseController
     private function applyPendingFormSExperienceSupportUpload(
         Request $request,
         $key,
-        CC_Forms_Meta $workflowForm,
+        CC_CompetencyMeta $workflowForm,
         CC_Experience $experience,
         UploadedFile $file
     ): ?string {
@@ -940,7 +941,7 @@ class FormController extends BaseController
         array $workRow,
         array &$claimedWorkIds,
         bool $requireAllFields = true,
-        ?CC_Forms_Meta $workflowForm = null,
+        ?CC_CompetencyMeta $workflowForm = null,
         ?string $formName = null
     ): void {
         $experienceModel = $this->resolveExperienceModelClass($workflowForm, $formName);
@@ -1102,7 +1103,7 @@ class FormController extends BaseController
         string $loginId,
         string $applicationId,
         ?string $formName,
-        ?CC_Forms_Meta $workflowForm = null
+        ?CC_CompetencyMeta $workflowForm = null
     ): void {
         if (! $this->hasWorkExperiencePayload($request)) {
             return;
@@ -4054,7 +4055,7 @@ public function update(Request $request, $id)
         return $prefix . $request->form_name . $request->license_name . date('y') . $next;
     }
 
-    private function resolveApplicantName(Request $request, ?CC_Forms_Meta $existingForm = null): string
+    private function resolveApplicantName(Request $request, ?CC_CompetencyMeta $existingForm = null): string
     {
         $name = trim((string) ($request->input('applicant_name', $request->input('Applicant_Name', ''))));
         if ($name !== '') {

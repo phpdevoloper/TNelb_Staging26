@@ -26,6 +26,11 @@ class FormSDocumentController extends Controller
         return $this->storageService->download($log->file_path, $log->file_name);
     }
 
+    /**
+     * Stream a competency file when DOCUMENT_SERVE_VIA_LARAVEL=true.
+     * URL: /{DOCUMENT_PUBLIC_URL_PREFIX}/FORM_S/NEW/...
+     * Disk: DOCUMENT_STORAGE_ROOT (e.g. {project}/competency)
+     */
     public function viewByPath(string $filePath): Response
     {
         $filePath = trim(str_replace('\\', '/', $filePath));

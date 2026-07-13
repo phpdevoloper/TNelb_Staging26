@@ -3,6 +3,7 @@
 namespace App\Services\FormS;
 
 use App\Models\CC_Forms_Meta;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Models\CC_Proof_doc;
 use App\Models\CC_Doc_Log;
 use App\Models\TnelbApplicantPhoto;
@@ -343,7 +344,7 @@ class FormSProofDocumentService
     }
 
     public function saveProofUpload(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         string $masterApplicationId,
         string $appType,
         string $proofName,

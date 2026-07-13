@@ -78,7 +78,7 @@ class CompetencyApplicationService
 
     {
 
-        $legacy = DB::table('tnelb_application_tbl')->where('application_id', trim($applicationId))->first();
+        $legacy = DB::table('cc_form_s_meta')->where('application_id', trim($applicationId))->first();
 
         if ($legacy && in_array(strtoupper(trim((string) ($legacy->form_name ?? ''))), self::CC_META_FORM_CODES, true)) {
 
@@ -158,7 +158,7 @@ class CompetencyApplicationService
 
 
 
-        $legacy = $this->findApplicantRowWithPayment('tnelb_application_tbl as ta', $applicationId, function ($query) {
+        $legacy = $this->findApplicantRowWithPayment('cc_form_s_meta as ta', $applicationId, function ($query) {
 
             $query->whereNotIn('ta.form_name', self::CC_META_FORM_CODES);
 
@@ -166,7 +166,7 @@ class CompetencyApplicationService
 
         if ($legacy) {
 
-            $legacy->_application_source = 'tnelb_application_tbl';
+            $legacy->_application_source = 'cc_form_s_meta';
 
 
 
@@ -434,7 +434,7 @@ class CompetencyApplicationService
 
 
 
-        return 'tnelb_workflow';
+        return 'cc_workflow_forms';
 
     }
 
@@ -476,7 +476,7 @@ class CompetencyApplicationService
 
 
 
-        return 'tnelb_application_tbl';
+        return 'cc_form_s_meta';
 
     }
 
@@ -618,7 +618,7 @@ class CompetencyApplicationService
 
 
 
-        return DB::table('tnelb_application_tbl')->where('application_id', $applicationId)->update($update) > 0;
+        return DB::table('cc_form_s_meta')->where('application_id', $applicationId)->update($update) > 0;
 
     }
 
@@ -732,7 +732,7 @@ class CompetencyApplicationService
 
 
 
-        return DB::table('tnelb_application_tbl')
+        return DB::table('cc_form_s_meta')
 
             ->where('application_id', $applicationId)
 
@@ -820,29 +820,29 @@ class CompetencyApplicationService
 
         if ($applType === 'R') {
 
-            return DB::table('tnelb_application_tbl')
+            return DB::table('cc_form_s_meta')
 
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_application_tbl.application_id')
+                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'cc_form_s_meta.application_id')
 
-                ->where('tnelb_application_tbl.application_id', $applicationId)
+                ->where('cc_form_s_meta.application_id', $applicationId)
 
                 ->select(
 
-                    'tnelb_application_tbl.application_id',
+                    'cc_form_s_meta.application_id',
 
-                    'tnelb_application_tbl.applicant_name AS name',
+                    'cc_form_s_meta.applicant_name AS name',
 
-                    'tnelb_application_tbl.fathers_name',
+                    'cc_form_s_meta.fathers_name',
 
-                    'tnelb_application_tbl.applicants_address',
+                    'cc_form_s_meta.applicants_address',
 
-                    'tnelb_application_tbl.d_o_b',
+                    'cc_form_s_meta.d_o_b',
 
-                    'tnelb_application_tbl.age',
+                    'cc_form_s_meta.age',
 
-                    'tnelb_application_tbl.license_name',
+                    'cc_form_s_meta.license_name',
 
-                    'tnelb_application_tbl.form_name',
+                    'cc_form_s_meta.form_name',
 
                     'tnelb_renewal_license.license_number',
 
@@ -862,39 +862,39 @@ class CompetencyApplicationService
 
 
 
-        return DB::table('tnelb_application_tbl')
+        return DB::table('cc_form_s_meta')
 
-            ->join('tnelb_license', 'tnelb_license.application_id', '=', 'tnelb_application_tbl.application_id')
+            ->join('cc_forms_cert', 'cc_forms_cert.application_id', '=', 'cc_form_s_meta.application_id')
 
-            ->where('tnelb_application_tbl.application_id', $applicationId)
+            ->where('cc_form_s_meta.application_id', $applicationId)
 
             ->select(
 
-                'tnelb_application_tbl.application_id',
+                'cc_form_s_meta.application_id',
 
-                'tnelb_application_tbl.applicant_name AS name',
+                'cc_form_s_meta.applicant_name AS name',
 
-                'tnelb_application_tbl.fathers_name',
+                'cc_form_s_meta.fathers_name',
 
-                'tnelb_application_tbl.applicants_address',
+                'cc_form_s_meta.applicants_address',
 
-                'tnelb_application_tbl.d_o_b',
+                'cc_form_s_meta.d_o_b',
 
-                'tnelb_application_tbl.age',
+                'cc_form_s_meta.age',
 
-                'tnelb_application_tbl.license_name',
+                'cc_form_s_meta.license_name',
 
-                'tnelb_application_tbl.form_name',
+                'cc_form_s_meta.form_name',
 
-                'tnelb_license.license_number',
+                'cc_forms_cert.license_number',
 
-                'tnelb_license.issued_by',
+                'cc_forms_cert.issued_by',
 
-                'tnelb_license.issued_at',
+                'cc_forms_cert.issued_at',
 
-                'tnelb_license.issued_from',
+                'cc_forms_cert.issued_from',
 
-                'tnelb_license.expires_at'
+                'cc_forms_cert.expires_at'
 
             )
 

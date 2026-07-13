@@ -12,6 +12,7 @@ use App\Models\TnelbApplicantsSign;
 use App\Models\TnelbAppsInstitute;
 use App\Models\TnelbFormP;
 use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyCertificateService;
 use Carbon\Carbon;
 
 use Illuminate\Http\Request;
@@ -2249,7 +2250,14 @@ class LicensepdfController extends Controller
             ->whereDate('rl.expires_at', '>=', Carbon::now())
             ->select('rl.license_number', 'rl.issued_at', 'rl.expires_at', 'ta.appl_type');
 
-        $certificateList = $issuedFromFresh->union($issuedFromRenewal)->get()->sortByDesc('issued_at')->values();
+        $legacyCertificateList = $issuedFromFresh->union($issuedFromRenewal)->get();
+        $ccCertificateList = app(CompetencyCertificateService::class)
+            ->activeCertificatesForLogin((string) ($application->login_id ?? ''));
+        $certificateList = $legacyCertificateList
+            ->merge($ccCertificateList)
+            ->unique('license_number')
+            ->sortByDesc('issued_at')
+            ->values();
         $certificateRowsHtml = '';
         foreach ($certificateList as $index => $certificate) {
 

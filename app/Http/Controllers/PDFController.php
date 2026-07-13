@@ -112,7 +112,7 @@ class PDFController extends Controller
 
     private function resolveMasterApplicationIdForPdf(string $applicationId): string
     {
-        $ccMeta = CC_Forms_Meta::where('application_id', $applicationId)->first();
+        $ccMeta = CC_Forms_Meta::findByApplicationId($applicationId);
         if (! $ccMeta) {
             return $applicationId;
         }
@@ -136,19 +136,20 @@ class PDFController extends Controller
             return $contractorForm;
         }
 
-        $legacyForm = DB::table('tnelb_application_tbl')
-            ->where('application_id', $applicationId)
-            ->first();
-        if ($legacyForm) {
-            return $legacyForm;
-        }
-
-        $ccMeta = CC_Forms_Meta::where('application_id', $applicationId)->first();
+        // Prefer CC per-form meta (S/W/WH/P) before legacy tnelb_application_tbl.
+        $ccMeta = CC_Forms_Meta::findByApplicationId($applicationId);
         if ($ccMeta) {
             $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
             $applicationDetails = $this->normalizeCcMetaRowForPdf((object) $ccMeta->toArray());
 
             return $this->enrichCcMetaProofFieldsForPdf($applicationDetails, $masterApplicationId);
+        }
+
+        $legacyForm = DB::table('tnelb_application_tbl')
+            ->where('application_id', $applicationId)
+            ->first();
+        if ($legacyForm) {
+            return $legacyForm;
         }
 
         return TnelbFormP::where('application_id', $applicationId)->first();

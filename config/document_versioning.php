@@ -42,23 +42,47 @@ return [
     'disk' => 'private_documents',
 
     /**
-     * Physical document root (local folder or external/NFS mount).
-     * Apache/nginx Alias should point public URL prefix to this path on production.
+     * Physical document root.
+     * - Empty → {project}/competency
+     * - Absolute → used as-is (/data/docs or D:\docs)
+     * - Relative → from project root (e.g. competency → {project}/competency/FORM_S/...)
+     *
+     * Change anytime via DOCUMENT_STORAGE_ROOT in .env.
      */
-    'storage_root' => env('DOCUMENT_STORAGE_ROOT', storage_path('app/documents')),
+    'storage_root' => (static function (): string {
+        $root = env('DOCUMENT_STORAGE_ROOT');
+        if ($root === null || trim((string) $root) === '') {
+            return base_path('competency');
+        }
+
+        $root = trim(str_replace(['\\'], ['/'], (string) $root));
+
+        // Absolute: Unix (/...) or Windows (D:/... or D:\...)
+        if (str_starts_with($root, '/') || preg_match('/^[A-Za-z]:[\/\\\\]/', $root) === 1) {
+            return str_replace('/', DIRECTORY_SEPARATOR, $root);
+        }
+
+        return base_path($root);
+    })(),
 
     /**
-     * Public URL segment before stored relative path.
-     * Example URL: {public_base_url}/{public_url_prefix}/FORM_S/NEW/EDUCATION/file.pdf
+     * Public URL path segment before stored relative path (FORM_S/...).
+     * Browser: {DOCUMENT_PUBLIC_BASE_URL}/{prefix}/FORM_S/NEW/EDUCATION/file.pdf
+     * Change via DOCUMENT_PUBLIC_URL_PREFIX in .env.
      */
     'public_url_prefix' => env('DOCUMENT_PUBLIC_URL_PREFIX', 'competency'),
 
-    /** Optional override for document base URL (defaults to APP_URL). */
+    /**
+     * Optional absolute origin for document view links.
+     * Empty → relative URLs (/competency/FORM_S/...).
+     * Set on staging/prod if needed, e.g. https://lnxstgweb.tn.gov.in
+     * Change via DOCUMENT_PUBLIC_BASE_URL in .env.
+     */
     'public_base_url' => env('DOCUMENT_PUBLIC_BASE_URL'),
 
     /**
-     * Local dev only: when true, Laravel serves /competency/FORM_* if web server has no Alias.
-     * Production should use external storage + Apache/nginx Alias and set this to false.
+     * When true, Laravel registers GET /{prefix}/FORM_* to stream files from storage_root.
+     * Production with nginx/Apache Alias: set DOCUMENT_SERVE_VIA_LARAVEL=false.
      */
     'serve_via_laravel' => env('DOCUMENT_SERVE_VIA_LARAVEL', true),
 

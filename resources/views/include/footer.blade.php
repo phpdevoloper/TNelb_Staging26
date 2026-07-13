@@ -1973,8 +1973,10 @@ $(document).ready(function() {
                 if (!path) return '';
                 if (/^https?:\/\//i.test(path)) return path;
                 var docPrefix = (typeof DOCUMENT_PUBLIC_URL_PREFIX !== 'undefined' ? DOCUMENT_PUBLIC_URL_PREFIX : 'competency').replace(/^\/+|\/+$/g, '');
+                var docBase = (typeof DOCUMENT_PUBLIC_BASE_URL !== 'undefined' ? DOCUMENT_PUBLIC_BASE_URL : '').replace(/\/+$/g, '');
                 if (/^FORM_[A-Z]+\//i.test(path)) {
-                    return '/' + docPrefix + '/' + path.replace(/^\/+/, '');
+                    var relative = '/' + docPrefix + '/' + path.replace(/^\/+/, '');
+                    return docBase ? (docBase + relative) : relative;
                 }
                 if (path.charAt(0) === '/') return path;
                 return '/' + path.replace(/^\/+/, '');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CC_Forms_Meta;
+use App\Services\Competency\CompetencyMetaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Register;
@@ -90,9 +91,15 @@ class LicenseController extends Controller
                 $updated = DB::table('tnelb_application_tbl')
                     ->where('application_id', $request->application_id)
                     ->update([$verifyField => 1]);
-                if (! $updated && Schema::hasColumn('cc_form_s_meta', $verifyField)) {
-                    CC_Forms_Meta::where('application_id', $request->application_id)
-                        ->update([$verifyField => 1]);
+                if (! $updated) {
+                    $metaTable = app(CompetencyMetaService::class)
+                        ->metaTableForApplicationId((string) $request->application_id);
+                    if ($metaTable && Schema::hasColumn($metaTable, $verifyField)) {
+                        CC_Forms_Meta::updateByApplicationId(
+                            (string) $request->application_id,
+                            [$verifyField => 1]
+                        );
+                    }
                 }
             }
         } else {
@@ -101,9 +108,15 @@ class LicenseController extends Controller
                 $updated = DB::table('tnelb_application_tbl')
                     ->where('application_id', $request->application_id)
                     ->update([$verifyField => 2]);
-                if (! $updated && Schema::hasColumn('cc_form_s_meta', $verifyField)) {
-                    CC_Forms_Meta::where('application_id', $request->application_id)
-                        ->update([$verifyField => 2]);
+                if (! $updated) {
+                    $metaTable = app(CompetencyMetaService::class)
+                        ->metaTableForApplicationId((string) $request->application_id);
+                    if ($metaTable && Schema::hasColumn($metaTable, $verifyField)) {
+                        CC_Forms_Meta::updateByApplicationId(
+                            (string) $request->application_id,
+                            [$verifyField => 2]
+                        );
+                    }
                 }
             }
         }

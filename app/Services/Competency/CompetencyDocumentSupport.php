@@ -3,7 +3,12 @@
 namespace App\Services\Competency;
 
 /**
- * Shared rules for competency certificate uploads (documents_log + private FORM_* storage).
+ * Shared rules for competency certificate uploads (cc_doc_log + FORM_* storage).
+ *
+ * Path / view URL are driven only by config/document_versioning.php (.env):
+ * - DOCUMENT_STORAGE_ROOT
+ * - DOCUMENT_PUBLIC_URL_PREFIX
+ * - DOCUMENT_PUBLIC_BASE_URL
  */
 class CompetencyDocumentSupport
 {
@@ -53,27 +58,35 @@ class CompetencyDocumentSupport
         return 'competency.documents.download';
     }
 
+    /** Absolute filesystem root for uploads (from DOCUMENT_STORAGE_ROOT). */
     public static function storageRoot(): string
     {
-        return (string) config('document_versioning.storage_root', storage_path('app/documents'));
+        return (string) config('document_versioning.storage_root', base_path('competency'));
     }
 
+    /** URL path segment (from DOCUMENT_PUBLIC_URL_PREFIX). */
     public static function publicUrlPrefix(): string
     {
         return trim((string) config('document_versioning.public_url_prefix', 'competency'), '/');
     }
 
+    /**
+     * Absolute origin for document links when DOCUMENT_PUBLIC_BASE_URL is set.
+     * Empty string means "use relative URLs".
+     */
     public static function publicBaseUrl(): string
     {
         $configured = config('document_versioning.public_base_url');
+        if ($configured === null || trim((string) $configured) === '') {
+            return '';
+        }
 
-        return rtrim((string) ($configured ?: config('app.url')), '/');
+        return rtrim(trim((string) $configured), '/');
     }
 
     /**
      * Browser URL for a stored relative path (FORM_S/NEW/EDUCATION/...pdf).
-     * Uses a relative path locally so links work on 127.0.0.1:8000, localhost, etc.
-     * Set DOCUMENT_PUBLIC_BASE_URL on production for a full external URL.
+     * Built only from DOCUMENT_PUBLIC_BASE_URL + DOCUMENT_PUBLIC_URL_PREFIX.
      */
     public static function publicUrlForStoredPath(string $storedPath): string
     {
@@ -81,9 +94,9 @@ class CompetencyDocumentSupport
         $prefix = self::publicUrlPrefix();
         $relative = '/' . $prefix . '/' . ltrim($storedPath, '/');
 
-        $configuredBase = config('document_versioning.public_base_url');
-        if ($configuredBase !== null && trim((string) $configuredBase) !== '') {
-            return rtrim((string) $configuredBase, '/') . $relative;
+        $base = self::publicBaseUrl();
+        if ($base !== '') {
+            return $base . $relative;
         }
 
         return $relative;

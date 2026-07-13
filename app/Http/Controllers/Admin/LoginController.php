@@ -1676,7 +1676,7 @@ class LoginController extends Controller
                 ->get();
 
         if (($applicant->appl_type ?? '') === 'A' && empty($parentApplicantForAlter) && !empty($applicant->old_application)) {
-            $parentApplicantForAlter = CC_Forms_Meta::where('application_id', $applicant->old_application)->first()
+            $parentApplicantForAlter = CC_Forms_Meta::findByApplicationId((string) $applicant->old_application)
                 ?? DB::table('tnelb_application_tbl')
                     ->where('application_id', $applicant->old_application)
                     ->first();
