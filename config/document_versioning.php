@@ -41,6 +41,27 @@ return [
 
     'disk' => 'private_documents',
 
+    /**
+     * Physical document root (local folder or external/NFS mount).
+     * Apache/nginx Alias should point public URL prefix to this path on production.
+     */
+    'storage_root' => env('DOCUMENT_STORAGE_ROOT', storage_path('app/documents')),
+
+    /**
+     * Public URL segment before stored relative path.
+     * Example URL: {public_base_url}/{public_url_prefix}/FORM_S/NEW/EDUCATION/file.pdf
+     */
+    'public_url_prefix' => env('DOCUMENT_PUBLIC_URL_PREFIX', 'competency'),
+
+    /** Optional override for document base URL (defaults to APP_URL). */
+    'public_base_url' => env('DOCUMENT_PUBLIC_BASE_URL'),
+
+    /**
+     * Local dev only: when true, Laravel serves /competency/FORM_* if web server has no Alias.
+     * Production should use external storage + Apache/nginx Alias and set this to false.
+     */
+    'serve_via_laravel' => env('DOCUMENT_SERVE_VIA_LARAVEL', true),
+
     'default_certificate_folder' => 'FORM_S',
 
     'certificate_folders' => [

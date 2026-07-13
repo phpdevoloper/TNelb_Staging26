@@ -15,11 +15,15 @@ use App\Models\Admin\FormbModel;
 use App\Models\Admin\FormsaModel;
 use App\Models\Admin\FormsbModel;
 use App\Models\Admin\UserModel;
-use App\Models\Mst_Form_s_w;
-use App\Models\TnelbApplicantPhoto;
-use App\Models\TnelbApplicantsSign;
+use App\Models\CC_Forms_Meta;
+use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyDocumentSupport;
+use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\CompetencyWorkflowService;
+use App\Models\TnelbApplicantPhoto;
+use App\Models\TnelbApplicantsSign;
 
 use App\Models\Admin\Mst_equipment_tbl;
 
@@ -229,8 +233,6 @@ class LoginController extends Controller
 
         $isSuperadmin = $roleCode === 'SUPADMIN';
 
-        $isPresident = $roleCode === 'PR';
-
         if ($isSuperadmin) {
 
 
@@ -299,244 +301,132 @@ class LoginController extends Controller
             })
             ->all();
 
-        // Pending application counts:
-        // - Supervisor/Supervisor2: (1) apps with no workflow row, OR (2) latest workflow row is forwarded_to Supervisor with appl_status RE (resubmitted by applicant)
-        // - Other roles: apps currently forwarded to the logged-in role (latest workflow row)
+        // Pending application counts (competency: cc_form_s_meta + cc_workflow_* per form; Form P: tnelb_form_p + cc_workflow_formp)
         $pendingCountsMap = [];
-        if (!empty($assignedFormIDs)) {
-            if ($isSupervisorRole) {
-                // Use canonical Supervisor role id for resubmitted check (same as FormController when resubmitting)
-                $supervisorRoleId = (int) (DB::table('mst_roles')->where('role_name', 'Supervisor')->value('r_id') ?? 0);
-                if ($supervisorRoleId === 0) {
-                    $supervisorRoleId = (int) ($staff->roles_id ?? 0);
-                }
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
+        $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
 
-                // Supervisor pending = (1) apps with no workflow row, OR (2) latest workflow RE and forwarded_to Supervisor.
-                // Use a single query: left join to "latest workflow" and filter (tw.id is null) OR (tw.forwarded_to = Supervisor AND tw.appl_status = 'RE').
-                $twLastSub = DB::table('tnelb_workflow')
-                    ->select('application_id', DB::raw('MAX(id) as max_id'))
-                    ->groupBy('application_id');
-
-
-                $pendingCounts = DB::table('tnelb_application_tbl as ta')
-                    ->leftJoinSub($twLastSub, 'tw_last', function ($join) {
-                        $join->on('ta.application_id', '=', 'tw_last.application_id');
-                    })
-                    ->leftJoin('tnelb_workflow as tw', function ($join) {
-                        $join->on('tw.application_id', '=', 'tw_last.application_id')
-                            ->on('tw.id', '=', 'tw_last.max_id');
-                    })
-                    ->whereIn('ta.form_id', $assignedFormIDs)
-                    ->whereIn('ta.status', ['P', 'RE'])
-                    // Only count paid submissions — drafts (payment_status='unpaid') never reach Supervisor.
-                    // Mirrors the filter used by the non-supervisor, Form P and contractor pending queries.
-                    ->whereIn('ta.payment_status', ['payment', 'paid'])
-                    ->whereNotExists(function ($q) {
-                        $q->select(DB::raw(1))->from('tnelb_workflow_a as twa')->whereRaw('twa.application_id = ta.application_id');
-                    })
-                    ->where(function ($q) use ($supervisorRoleId) {
-                        // (1) Brand-new submissions that have never entered the workflow.
-                        $q->whereNull('tw.id')
-                            // (2) Resubmissions: canonical fingerprint set by every applicant-resubmit
-                            //     codepath is appl_status='RE' + processed_by='AP'. Matching on that
-                            //     pair is resilient to role-id mismatches between mst_roles vs
-                            //     mst__staffs__tbls (case/trailing-space variants) that can otherwise
-                            //     leave resubmissions uncounted on the Supervisor dashboard.
-                            ->orWhere(function ($q2) use ($supervisorRoleId) {
-                                $q2->where('tw.appl_status', 'RE')
-                                    ->where(function ($q3) use ($supervisorRoleId) {
-                                        $q3->where('tw.processed_by', 'AP')
-                                            ->orWhere('tw.forwarded_to', $supervisorRoleId);
-                                    });
-                            });
-                    })
-                    ->selectRaw('ta.form_id, ta.appl_type, COUNT(DISTINCT ta.application_id) as cnt')
-                    ->groupBy('ta.form_id', 'ta.appl_type')
-                    ->get();
-
-                // If still 0, fallback: count ALL P/RE for assigned forms (ignore workflow) so at least something shows
-                if ($pendingCounts->isEmpty()) {
-                    $fallbackCounts = DB::table('tnelb_application_tbl as ta')
-                        ->whereIn('ta.form_id', $assignedFormIDs)
-                        ->whereIn('ta.status', ['P', 'RE'])
-                        ->whereIn('ta.payment_status', ['payment', 'paid'])
-                        ->whereNotExists(function ($q) {
-                            $q->select(DB::raw(1))->from('tnelb_workflow_a as twa')->whereRaw('twa.application_id = ta.application_id');
-                        })
-                        ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
-                        ->groupBy('ta.form_id', 'ta.appl_type')
-                        ->get();
-                    if (!$fallbackCounts->isEmpty()) {
-                        $pendingCounts = $fallbackCounts;
-                    }
-                }
-            } else {
-                $roleId = (int) ($staff->roles_id ?? 0);
-
-                $twLast = DB::table('tnelb_workflow')
-                    ->select('application_id', DB::raw('MAX(id) as max_id'))
-                    ->groupBy('application_id');
-
-                $twaLast = DB::table('tnelb_workflow_a')
-                    ->select('application_id', DB::raw('MAX(id) as max_id'))
-                    ->groupBy('application_id');
-
-                $currentFromTw = DB::table('tnelb_workflow as tw')
-                    ->joinSub($twLast, 'tw_last', function ($join) {
-                        $join->on('tw.application_id', '=', 'tw_last.application_id')
-                            ->on('tw.id', '=', 'tw_last.max_id');
-                    })
-                    ->where('tw.forwarded_to', $roleId)
-                    ->whereIn('tw.appl_status', ['F', 'RF'])
-                    ->select('tw.application_id');
-
-                $currentFromTwa = DB::table('tnelb_workflow_a as tw')
-                    ->joinSub($twaLast, 'tw_last', function ($join) {
-                        $join->on('tw.application_id', '=', 'tw_last.application_id')
-                            ->on('tw.id', '=', 'tw_last.max_id');
-                    })
-                    ->where('tw.forwarded_to', $roleId)
-                    ->whereIn('tw.appl_status', ['F', 'RF'])
-                    ->select('tw.application_id');
-
-                // Fallback: if an application has no workflow rows yet (manual edits / legacy data),
-                // infer who should handle it based on the hierarchy:
-                // Supervisor -> Assistant Secretary -> Secretary -> President
-                $previousProcessedBy = match ($roleLevel) {
-                    2 => ['S'], // Assistant Secretary handles after Supervisor/Supervisor2
-                    3 => ['A'],       // Secretary handles after Assistant Secretary
-                    4 => ['SE'],      // President handles after Secretary
-                    default => [],
-                };
-
-                $fallbackAppIds = DB::table('tnelb_application_tbl as ta')
-                    ->whereIn('ta.status', ['F', 'RF'])
-                    ->whereIn('ta.payment_status', ['payment', 'paid'])
-                    ->when(!empty($previousProcessedBy), function ($q) use ($previousProcessedBy) {
-                        return $q->whereIn('ta.processed_by', $previousProcessedBy);
-                    })
-                    ->whereNotExists(function ($q) {
-                        $q->select(DB::raw(1))
-                            ->from('tnelb_workflow as tw')
-                            ->whereRaw('tw.application_id = ta.application_id');
-                    })
-                    ->whereNotExists(function ($q) {
-                        $q->select(DB::raw(1))
-                            ->from('tnelb_workflow_a as twa')
-                            ->whereRaw('twa.application_id = ta.application_id');
-                    })
-                    ->select('ta.application_id');
-
-                $currentAppIds = $currentFromTw->union($currentFromTwa)->union($fallbackAppIds);
-
-                $pendingCounts = DB::query()
-                    ->fromSub($currentAppIds, 'cur')
-                    ->join('tnelb_application_tbl as ta', 'ta.application_id', '=', 'cur.application_id')
-                    ->whereIn('ta.form_id', $assignedFormIDs)
-                    ->whereIn('ta.payment_status', ['payment', 'paid'])
-                    ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
-                    ->groupBy('ta.form_id', 'ta.appl_type')
-                    ->get();
+        if (! empty($assignedFormIDs)) {
+            $supervisorRoleId = (int) (DB::table('mst_roles')->where('role_name', 'Supervisor')->value('r_id') ?? 0);
+            if ($supervisorRoleId === 0) {
+                $supervisorRoleId = (int) ($staff->roles_id ?? 0);
             }
+            $roleId = (int) ($staff->roles_id ?? 0);
 
-            foreach ($pendingCounts as $row) {
+            $ccFormIds = array_values(array_intersect($assignedFormIDs, CompetencyAdminQueryService::CC_META_FORM_IDS));
+            $ccAdminQuery->mergePendingCountRows(
+                $ccAdminQuery->dashboardCcPendingCountRows($ccFormIds, $isSupervisorRole, $supervisorRoleId, $roleId, $roleLevel),
+                $pendingCountsMap
+            );
 
-                $fid = (int)$row->form_id;
+            $legacyFormIds = array_values(array_diff(
+                $assignedFormIDs,
+                $ccFormIds,
+                $formPId > 0 ? [$formPId] : []
+            ));
 
-                $applType = strtoupper((string)($row->appl_type ?? ''));
-
-                $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
-                    ? $applType
-                    : 'N';
-
-                if (!isset($pendingCountsMap[$fid])) {
-                    $pendingCountsMap[$fid] = [
-                        'N' => 0,
-                        'R' => 0,
-                        'D' => 0,
-                        'A' => 0,
-                    ];
-                }
-
-                $pendingCountsMap[$fid][$type] = (int)$row->cnt;
-            }
-
-            // dd($pendingCountsMap);exit;
-
-
-            // Form P uses tnelb_form_p; add its pending counts if Form P is assigned
-            $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
-            if ($formPId > 0 && in_array($formPId, $assignedFormIDs, true)) {
+            if ($legacyFormIds !== []) {
                 if ($isSupervisorRole) {
-                    // Form P Supervisor pending = (1) apps with no workflow row at all (initial submission),
-                    // OR (2) latest workflow row is an applicant resubmission (appl_status='RE' &
-                    // processed_by='AP' / forwarded_to=Supervisor — see Admin\FormPController::resubmit).
-                    // Previously this branch did a flat `whereNotExists tnelb_workflow` which silently
-                    // dropped every Form P resubmission (since the original QU row keeps the join alive).
-                    $supRoleIdFp = isset($supervisorRoleId) ? (int) $supervisorRoleId : 0;
-                    if ($supRoleIdFp === 0) {
-                        $supRoleIdFp = (int) (DB::table('mst_roles')->where('role_name', 'Supervisor')->value('r_id') ?? 0);
-                    }
-                    if ($supRoleIdFp === 0) {
-                        $supRoleIdFp = (int) ($staff->roles_id ?? 0);
-                    }
-
-                    $twLastFormPSub = DB::table('tnelb_workflow')
+                    $twLastSub = DB::table('tnelb_workflow')
                         ->select('application_id', DB::raw('MAX(id) as max_id'))
                         ->groupBy('application_id');
 
-                    $formPCounts = DB::table('tnelb_form_p as ta')
-                        ->leftJoinSub($twLastFormPSub, 'tw_last', function ($join) {
+                    $pendingCounts = DB::table('tnelb_application_tbl as ta')
+                        ->leftJoinSub($twLastSub, 'tw_last', function ($join) {
                             $join->on('ta.application_id', '=', 'tw_last.application_id');
                         })
                         ->leftJoin('tnelb_workflow as tw', function ($join) {
                             $join->on('tw.application_id', '=', 'tw_last.application_id')
                                 ->on('tw.id', '=', 'tw_last.max_id');
                         })
+                        ->whereIn('ta.form_id', $legacyFormIds)
+                        ->whereIn('ta.status', ['P', 'RE'])
                         ->whereIn('ta.payment_status', ['payment', 'paid'])
-                        ->whereIn('ta.app_status', ['P', 'RE'])
-                        ->where(function ($q) use ($supRoleIdFp) {
+                        ->whereNotExists(function ($q) {
+                            $q->select(DB::raw(1))->from('tnelb_workflow_a as twa')->whereRaw('twa.application_id = ta.application_id');
+                        })
+                        ->where(function ($q) use ($supervisorRoleId) {
                             $q->whereNull('tw.id')
-                                ->orWhere(function ($q2) use ($supRoleIdFp) {
+                                ->orWhere(function ($q2) use ($supervisorRoleId) {
                                     $q2->where('tw.appl_status', 'RE')
-                                        ->where(function ($q3) use ($supRoleIdFp) {
+                                        ->where(function ($q3) use ($supervisorRoleId) {
                                             $q3->where('tw.processed_by', 'AP')
-                                                ->orWhere('tw.forwarded_to', $supRoleIdFp);
+                                                ->orWhere('tw.forwarded_to', $supervisorRoleId);
                                         });
                                 });
                         })
-                        ->selectRaw('ta.appl_type, COUNT(DISTINCT ta.application_id) as cnt')
-                        ->groupBy('ta.appl_type')
+                        ->selectRaw('ta.form_id, ta.appl_type, COUNT(DISTINCT ta.application_id) as cnt')
+                        ->groupBy('ta.form_id', 'ta.appl_type')
                         ->get();
                 } else {
-                    $roleId = (int) ($staff->roles_id ?? 0);
                     $twLast = DB::table('tnelb_workflow')
                         ->select('application_id', DB::raw('MAX(id) as max_id'))
                         ->groupBy('application_id');
-                    $formPCounts = DB::table('tnelb_workflow as tw')
+
+                    $twaLast = DB::table('tnelb_workflow_a')
+                        ->select('application_id', DB::raw('MAX(id) as max_id'))
+                        ->groupBy('application_id');
+
+                    $currentFromTw = DB::table('tnelb_workflow as tw')
                         ->joinSub($twLast, 'tw_last', function ($join) {
                             $join->on('tw.application_id', '=', 'tw_last.application_id')
                                 ->on('tw.id', '=', 'tw_last.max_id');
                         })
                         ->where('tw.forwarded_to', $roleId)
                         ->whereIn('tw.appl_status', ['F', 'RF'])
-                        ->join('tnelb_form_p as ta', 'ta.application_id', '=', 'tw.application_id')
+                        ->select('tw.application_id');
+
+                    $currentFromTwa = DB::table('tnelb_workflow_a as tw')
+                        ->joinSub($twaLast, 'tw_last', function ($join) {
+                            $join->on('tw.application_id', '=', 'tw_last.application_id')
+                                ->on('tw.id', '=', 'tw_last.max_id');
+                        })
+                        ->where('tw.forwarded_to', $roleId)
+                        ->whereIn('tw.appl_status', ['F', 'RF'])
+                        ->select('tw.application_id');
+
+                    $previousProcessedBy = match ($roleLevel) {
+                        2 => ['S'],
+                        3 => ['A'],
+                        4 => ['SE'],
+                        default => [],
+                    };
+
+                    $fallbackAppIds = DB::table('tnelb_application_tbl as ta')
+                        ->whereIn('ta.status', ['F', 'RF'])
                         ->whereIn('ta.payment_status', ['payment', 'paid'])
-                        ->selectRaw('ta.appl_type, COUNT(*) as cnt')
-                        ->groupBy('ta.appl_type')
+                        ->when($previousProcessedBy !== [], fn ($q) => $q->whereIn('ta.processed_by', $previousProcessedBy))
+                        ->whereNotExists(function ($q) {
+                            $q->select(DB::raw(1))
+                                ->from('tnelb_workflow as tw')
+                                ->whereRaw('tw.application_id = ta.application_id');
+                        })
+                        ->whereNotExists(function ($q) {
+                            $q->select(DB::raw(1))
+                                ->from('tnelb_workflow_a as twa')
+                                ->whereRaw('twa.application_id = ta.application_id');
+                        })
+                        ->select('ta.application_id');
+
+                    $pendingCounts = DB::query()
+                        ->fromSub($currentFromTw->union($currentFromTwa)->union($fallbackAppIds), 'cur')
+                        ->join('tnelb_application_tbl as ta', 'ta.application_id', '=', 'cur.application_id')
+                        ->whereIn('ta.form_id', $legacyFormIds)
+                        ->whereIn('ta.payment_status', ['payment', 'paid'])
+                        ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
+                        ->groupBy('ta.form_id', 'ta.appl_type')
                         ->get();
                 }
-                if (!isset($pendingCountsMap[$formPId])) {
-                    $pendingCountsMap[$formPId] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
-                }
-                foreach ($formPCounts as $row) {
-                    $applType = strtoupper((string) ($row->appl_type ?? ''));
 
-                    $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
-                        ? $applType
-                        : 'N';
-                    $pendingCountsMap[$formPId][$type] = (int) ($row->cnt ?? 0);
-                }
+                $ccAdminQuery->mergePendingCountRows($pendingCounts ?? collect(), $pendingCountsMap);
+            }
+
+            if ($formPId > 0 && in_array($formPId, $assignedFormIDs, true)) {
+                $ccAdminQuery->mergePendingCountRows(
+                    $ccAdminQuery->dashboardFormPPendingCountRows($isSupervisorRole, $supervisorRoleId, $roleId),
+                    $pendingCountsMap,
+                    $formPId
+                );
             }
 
             // Contractor licences (Form A/B & their variants) use dedicated EA/EB tables.
@@ -803,9 +693,10 @@ class LoginController extends Controller
         $recieved_apps = collect();
         $inprogress = collect();
         if (in_array($staff->name ?? '', ['Secretary', 'President'], true)) {
-            // Applications currently with Secretary (processed_by = 'A')
-            $receivedFromTbl = DB::table('tnelb_application_tbl as ta')
+            $receivedFromCc = $ccAdminQuery->dashboardReceivedFromCcMeta();
+            $receivedFromLegacy = DB::table('tnelb_application_tbl as ta')
                 ->leftJoin('mst_licences as f', 'ta.form_id', '=', 'f.id')
+                ->whereNotIn('ta.form_name', ['S', 'W', 'WH', 'P'])
                 ->whereIn('ta.status', ['F', 'RF'])
                 ->where('ta.processed_by', 'A')
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
@@ -825,7 +716,7 @@ class LoginController extends Controller
                 ->select('application_id', 'form_name', 'created_at', 'updated_at', 'processed_by')
                 ->orderByDesc('created_at')
                 ->get();
-            $receivedFromFormP = DB::table('tnelb_form_p')
+            $receivedFromFormP = DB::table('cc_form_p_meta')
                 ->whereIn('app_status', ['F', 'RF'])
                 ->where('processed_by', 'A')
                 ->whereIn('payment_status', ['payment', 'paid'])
@@ -838,11 +729,17 @@ class LoginController extends Controller
                 )
                 ->orderByDesc('created_at')
                 ->get();
-            $recieved_apps = $receivedFromTbl->merge($receivedFromEa)->merge($receivedFromFormP)->sortByDesc('created_at')->values();
+            $recieved_apps = $receivedFromCc
+                ->merge($receivedFromLegacy)
+                ->merge($receivedFromEa)
+                ->merge($receivedFromFormP)
+                ->sortByDesc('created_at')
+                ->values();
 
-            // In Progress: all applications in progress (status F/RF/QU), with dynamic Received from / Pending With
-            $inprogressFromTbl = DB::table('tnelb_application_tbl as ta')
+            $inprogressFromCc = $ccAdminQuery->dashboardInProgressFromCcMeta();
+            $inprogressFromLegacy = DB::table('tnelb_application_tbl as ta')
                 ->leftJoin('mst_licences as f', 'ta.form_id', '=', 'f.id')
+                ->whereNotIn('ta.form_name', ['S', 'W', 'WH', 'P'])
                 ->whereIn('ta.status', ['F', 'RF', 'QU'])
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
                 ->select(
@@ -861,7 +758,7 @@ class LoginController extends Controller
                 ->select('application_id', 'form_name', 'created_at', 'updated_at', 'processed_by', DB::raw('application_status as status'))
                 ->orderByDesc('updated_at')
                 ->get();
-            $inprogressFromFormP = DB::table('tnelb_form_p')
+            $inprogressFromFormP = DB::table('cc_form_p_meta')
                 ->whereIn('app_status', ['F', 'RF', 'QU'])
                 ->whereIn('payment_status', ['payment', 'paid'])
                 ->select(
@@ -874,18 +771,15 @@ class LoginController extends Controller
                 )
                 ->orderByDesc('updated_at')
                 ->get();
-            $inprogress = $inprogressFromTbl->merge($inprogressFromEa)->merge($inprogressFromFormP)->sortByDesc('updated_at')->values();
+            $inprogress = $inprogressFromCc
+                ->merge($inprogressFromLegacy)
+                ->merge($inprogressFromEa)
+                ->merge($inprogressFromFormP)
+                ->sortByDesc('updated_at')
+                ->values();
         }
 
-        $isPresident = $roleCode === 'PR';
-        // dd($isPresident);exit;
-
-
-        $view = \in_array($roleCode, ['PR', 'SE'], true)
-            ? 'admin.dashboard.president_dashboard'
-            : 'admin.dashboard.staff_dashboard';
-
-        $data =  compact(
+        return view('admin.dashboard.president_dashboard', compact(
             'staff',
             'assignedFormIDs',
             'assignedForms',
@@ -896,9 +790,7 @@ class LoginController extends Controller
             'formColors',
             'recieved_apps',
             'inprogress'
-        );
-
-        return view($view, $data);
+        ));
     }
 
     /**
@@ -1579,15 +1471,8 @@ class LoginController extends Controller
 
 
         $returnForwardUser = null;
-        // Fetch applicant details
-        $applicant = DB::table('tnelb_application_tbl')
-            ->join('payments', 'tnelb_application_tbl.application_id', '=', 'payments.application_id')
-            ->where('tnelb_application_tbl.application_id', $applicant_id)
-            ->select('tnelb_application_tbl.*', 'payments.*')
-            ->first();
-
-
-
+        $appService = app(CompetencyApplicationService::class);
+        $applicant = $appService->findApplicantWithPayment($applicant_id);
 
         if (!$applicant) {
             return abort(403, 'Applicant not found');
@@ -1601,7 +1486,7 @@ class LoginController extends Controller
         $formName = strtoupper((string) ($applicant->form_name ?? ''));
 
         if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
-            $workflowApp = Mst_Form_s_w::where('application_id', $applicant_id)->first();
+            $workflowApp = CC_Forms_Meta::findByApplicationId($applicant_id);
             if ($workflowApp) {
                 $reviewContext = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($workflowApp);
                 $educationalQualifications = $reviewContext['educationalQualifications'];
@@ -1609,9 +1494,9 @@ class LoginController extends Controller
                 $uploadedPhoto = $reviewContext['uploadedPhoto'];
                 $uploadedSign = $reviewContext['uploadedSign'];
                 $alterationProofs = $reviewContext['alterationProofs'];
-                $formSWorkflowAppPk = (int) $workflowApp->id;
+                $formSWorkflowAppPk = (int) $workflowApp->app_id;
                 $parentApp = $reviewContext['parentApplication'] ?? null;
-                $formSMasterWorkflowAppPk = $parentApp ? (int) $parentApp->id : null;
+                $formSMasterWorkflowAppPk = $parentApp ? (int) $parentApp->app_id : null;
                 if ($applicant->appl_type == 'A') {
                     $parentApplicantForAlter = $parentApp;
                     if (!$parentApplicantForAlter && !empty($applicant->old_application)) {
@@ -1752,14 +1637,12 @@ class LoginController extends Controller
 
         // dd($returnForwardUser);exit;
         //  dd($nextForwardUser->roles_id);exit;
-        $user_entry = DB::table('tnelb_application_tbl')
-            ->where('application_id', $applicant_id) // Filter by specific application
-            ->select('*')
-            ->first();
+        $user_entry = $appService->findApplicantWithPayment($applicant_id)
+            ?? DB::table('tnelb_application_tbl')->where('application_id', $applicant_id)->first();
 
         $workflows = $this->queryCompetencyWorkflowsWithReturnApplicantLog(
             $applicant_id,
-            ['mst_roles.role_name', 'tnelb_application_tbl.form_name', 'tnelb_application_tbl.license_name'],
+            ['app_tbl.form_name'],
             true,
             true
         );
@@ -1793,9 +1676,10 @@ class LoginController extends Controller
                 ->get();
 
         if (($applicant->appl_type ?? '') === 'A' && empty($parentApplicantForAlter) && !empty($applicant->old_application)) {
-            $parentApplicantForAlter = DB::table('tnelb_application_tbl')
-                ->where('application_id', $applicant->old_application)
-                ->first();
+            $parentApplicantForAlter = CC_Forms_Meta::where('application_id', $applicant->old_application)->first()
+                ?? DB::table('tnelb_application_tbl')
+                    ->where('application_id', $applicant->old_application)
+                    ->first();
         }
 
         // dd($applicant->license_name); exit;
@@ -3445,84 +3329,40 @@ class LoginController extends Controller
         bool $joinApplicationTbl = true,
         bool $orderByIdDesc = true
     ) {
-        $q = DB::table('tnelb_workflow');
+        $appService = app(CompetencyApplicationService::class);
+        $applicant = $appService->findApplicantWithPayment($applicationId);
+        $workflowTable = $appService->resolveWorkflowTable($applicationId, $applicant);
+        $metaTable = $appService->resolveMetaTable($applicationId, $applicant);
 
-        if ($joinApplicationTbl) {
-            $q->leftJoin('tnelb_application_tbl', 'tnelb_workflow.application_id', '=', 'tnelb_application_tbl.application_id');
+        if ($joinApplicationTbl && in_array($metaTable, app(CompetencyMetaService::class)->allMetaTables(), true) && ! collect($extraSelect)->contains(fn ($s) => is_string($s) && str_contains($s, 'license_name'))) {
+            $extraSelect[] = DB::raw('app_tbl.certificate_name as license_name');
         }
 
-        $q->leftJoin('mst_roles', 'tnelb_workflow.forwarded_to', '=', 'mst_roles.r_id')
-            ->where('tnelb_workflow.application_id', $applicationId);
+        $extraSelect = array_map(function ($item) {
+            if (is_string($item)) {
+                return str_replace('tnelb_application_tbl.', 'app_tbl.', $item);
+            }
 
-        $select = array_merge(['tnelb_workflow.*'], $extraSelect);
+            return $item;
+        }, $extraSelect);
 
-        if (Schema::hasTable('tnelb_return_to_applicant_log')) {
-            $logTable = 'tnelb_return_to_applicant_log';
-            $colQ = Schema::hasColumn($logTable, 'query_types')
-                ? 'r.query_types as return_query_types'
-                : 'NULL::json';
-            $colR = Schema::hasColumn($logTable, 'remarks')
-                ? 'r.remarks as return_remarks'
-                : 'NULL::text';
-
-            $subFromWhere = "FROM {$logTable} r
-                WHERE r.application_id = tnelb_workflow.application_id
-                  AND tnelb_workflow.appl_status = 'QU'
-                  AND tnelb_workflow.processed_by IN ('SE', 'PR')
-                  AND r.returned_by_role = tnelb_workflow.processed_by
-                  AND r.created_at <= tnelb_workflow.created_at + interval '10 seconds'
-                  AND r.created_at >= tnelb_workflow.created_at - interval '2 minutes'
-                ORDER BY abs(extract(epoch from (tnelb_workflow.created_at - r.created_at)))
-                LIMIT 1";
-
-            $select[] = DB::raw("(SELECT {$colQ} {$subFromWhere}) AS return_query_types_raw");
-            $select[] = DB::raw("(SELECT {$colR} {$subFromWhere}) AS return_remarks_raw");
-        }
-
-        $q->select($select);
-
-        if ($orderByIdDesc) {
-            $q->orderByDesc('tnelb_workflow.id');
-        }
-
-        return $this->hydrateWorkflowReturnLogFields($q->get());
+        return app(CompetencyWorkflowService::class)->queryWithReturnApplicantLog(
+            $applicationId,
+            $workflowTable,
+            $metaTable,
+            $extraSelect,
+            $joinApplicationTbl,
+            $orderByIdDesc
+        );
     }
 
     /**
+     * @deprecated Use CompetencyWorkflowService::hydrateWorkflowReturnLogFields()
      * @param  \Illuminate\Support\Collection<int, object>  $workflows
      * @return \Illuminate\Support\Collection<int, object>
      */
     private function hydrateWorkflowReturnLogFields($workflows)
     {
-        foreach ($workflows as $row) {
-            $row->return_log_internal_queries = [];
-            $row->return_log_internal_remarks = null;
-
-            if (property_exists($row, 'return_query_types_raw')) {
-                $raw = $row->return_query_types_raw;
-                unset($row->return_query_types_raw);
-                if ($raw !== null && $raw !== '') {
-                    $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
-                    if (is_array($decoded)) {
-                        $row->return_queries = $decoded;
-                        $row->return_log_internal_queries = $decoded;
-                    }
-                }
-            }
-
-            if (property_exists($row, 'return_remarks_raw')) {
-                $fromLog = $row->return_remarks_raw;
-                if ($fromLog !== null && $fromLog !== '') {
-                    $row->return_log_internal_remarks = $fromLog;
-                    $existing = $row->return_remarks ?? null;
-                    if ($existing === null || $existing === '') {
-                        $row->return_remarks = $fromLog;
-                    }
-                }
-                unset($row->return_remarks_raw);
-            }
-        }
-
-        return $workflows;
+        return app(CompetencyWorkflowService::class)->hydrateWorkflowReturnLogFields($workflows);
     }
 }

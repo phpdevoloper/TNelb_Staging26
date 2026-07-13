@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Mst_Form_s_w;
 use App\Models\Mst_education;
 use App\Models\Mst_experience;
 use App\Models\Mst_documents;
@@ -12,6 +11,7 @@ use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
 use App\Models\TnelbAppsInstitute;
 use App\Models\TnelbFormP;
+use App\Services\Competency\CompetencyApplicationService;
 use Carbon\Carbon;
 
 use Illuminate\Http\Request;
@@ -31,53 +31,11 @@ class LicensepdfController extends Controller
     public function getLicenceDoc($application_id)
     {
         // Fetch application details
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $application_id)
-            ->first();
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
 
 
 
-        if ($application && $application->appl_type === 'R') {
-            // Renewal application → use tnelb_renewal_license
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_renewal_license.license_number',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at'
-                )
-                ->first();
-        } else {
-            // New application → use tnelb_license
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_license', 'tnelb_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_license.license_number',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at'
-                )
-                ->first();
-        }
+        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
 
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
@@ -164,50 +122,10 @@ class LicensepdfController extends Controller
     public function generatePDF($application_id)
     {
 
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $application_id)
-            ->first();
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
         $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
-        if ($application && $application->appl_type === 'R') {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_renewal_license.license_number',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at'
-                )
-                ->first();
-        } else {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_license', 'tnelb_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_license.license_number',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at'
-                )
-                ->first();
-        }
+        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
         }
@@ -730,50 +648,10 @@ class LicensepdfController extends Controller
     public function generatePDF11($application_id)
     {
 
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $application_id)
-            ->first();
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
         $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
-        if ($application && $application->appl_type === 'R') {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_renewal_license.license_number',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at'
-                )
-                ->first();
-        } else {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_license', 'tnelb_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_license.license_number',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at'
-                )
-                ->first();
-        }
+        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
         }
@@ -1190,50 +1068,10 @@ class LicensepdfController extends Controller
     // ----------tamil pdf---------------
     public function generateLicenceTamil($application_id, bool $returnBinary = false)
     {
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $application_id)
-            ->first();
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
         $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
-        if ($application && $application->appl_type === 'R') {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_renewal_license.license_number',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at'
-                )
-                ->first();
-        } else {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_license', 'tnelb_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_license.license_number',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at'
-                )
-                ->first();
-        }
+        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
             return $returnBinary ? null : back()->with('error', 'Application not found.');
         }
@@ -1512,49 +1350,9 @@ class LicensepdfController extends Controller
 
     public function generateLicenceTamil111($application_id, bool $returnBinary = false)
     {
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $application_id)
-            ->first();
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
-        if ($application && $application->appl_type === 'R') {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_renewal_license.license_number',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at'
-                )
-                ->first();
-        } else {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_license', 'tnelb_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_license.license_number',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at'
-                )
-                ->first();
-        }
+        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
             return $returnBinary ? null : back()->with('error', 'Application not found.');
         }
@@ -2405,9 +2203,7 @@ class LicensepdfController extends Controller
     public function generateLicensePDF($application_id)
     {
 
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $application_id)
-            ->first();
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
         $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
 
@@ -2435,47 +2231,7 @@ class LicensepdfController extends Controller
 
 
 
-        if ($application && $application->appl_type === 'R') {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_renewal_license.license_number',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.issued_from',
-                    'tnelb_renewal_license.expires_at'
-                )
-                ->first();
-        } else {
-            $applicant = DB::table('tnelb_application_tbl')
-                ->join('tnelb_license', 'tnelb_license.application_id', '=', 'tnelb_application_tbl.application_id')
-                ->where('tnelb_application_tbl.application_id', $application_id)
-                ->select(
-                    'tnelb_application_tbl.application_id',
-                    'tnelb_application_tbl.applicant_name AS name',
-                    'tnelb_application_tbl.fathers_name',
-                    'tnelb_application_tbl.applicants_address',
-                    'tnelb_application_tbl.d_o_b',
-                    'tnelb_application_tbl.age',
-                    'tnelb_application_tbl.license_name',
-                    'tnelb_application_tbl.form_name',
-                    'tnelb_license.license_number',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.issued_from',
-                    'tnelb_license.expires_at'
-                )
-                ->first();
-        }
+        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
         }

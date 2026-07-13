@@ -11,8 +11,9 @@ use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
-use App\Models\Mst_Form_s_w;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Services\DocumentVersion\DocumentStorageService;
+use App\Services\FormS\SensitiveProofCryptService;
 use Illuminate\Http\UploadedFile;
 use RuntimeException;
 
@@ -25,7 +26,7 @@ class FormSDocumentVersionService
     ) {}
 
     public function getDocumentSummaryForRef(
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         string $moduleType,
         int $moduleRefId,
         string $documentType
@@ -40,7 +41,7 @@ class FormSDocumentVersionService
 
     public function uploadNewVersion(
         UploadedFile $file,
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         string $moduleType,
         string $documentType,
         int $moduleRefId,
@@ -81,7 +82,7 @@ class FormSDocumentVersionService
 
     public function createInitialUpload(
         UploadedFile $file,
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         string $moduleType,
         string $documentType,
         int $moduleRefId,
@@ -106,7 +107,7 @@ class FormSDocumentVersionService
         );
     }
 
-    public function seedDocumentReferencesFromParent(CC_Forms_Meta $parent, CC_Forms_Meta $child): void
+    public function seedDocumentReferencesFromParent(CC_CompetencyMeta $parent, CC_CompetencyMeta $child): void
     {
         $applicationType = DocumentApplicationType::fromWorkflowStage(
             $this->workflowService->workflowStage($child)
@@ -229,7 +230,7 @@ class FormSDocumentVersionService
         }
     }
 
-    public function ensureCarriedForwardDocuments(CC_Forms_Meta $workflowApp): int
+    public function ensureCarriedForwardDocuments(CC_CompetencyMeta $workflowApp): int
     {
         if (!$this->workflowService->isChildWorkflow($workflowApp)) {
             return 0;
@@ -275,7 +276,7 @@ class FormSDocumentVersionService
         $oldFilePath = CC_Proof_doc::whereKey($proofId)->value('proof_doc');
         $parentPk = $this->resolveLegacyAlterationParentPk($alterationWorkflow);
 
-        $stored = $this->storageService->store(
+        $stored = $this->storeUploadedFile(
             $file,
             (string) $alterationWorkflow->application_id,
             $workflowPk,
@@ -312,19 +313,19 @@ class FormSDocumentVersionService
             return null;
         }
 
-        $ccParentPk = CC_Forms_Meta::where('application_id', $oldApplicationId)->value('app_id');
+        $ccParentPk = CC_Forms_Meta::findByApplicationId($oldApplicationId)?->app_id;
         if ($ccParentPk) {
             return (int) $ccParentPk;
         }
 
-        $legacyParentPk = Mst_Form_s_w::where('application_id', $oldApplicationId)->value('id');
+        $legacyParentPk = CC_Forms_meta::where('application_id', $oldApplicationId)->value('id');
 
         return $legacyParentPk ? (int) $legacyParentPk : null;
     }
 
     protected function storeVersion(
         UploadedFile $file,
-        CC_Forms_Meta $workflowApp,
+        CC_CompetencyMeta $workflowApp,
         string $moduleType,
         string $documentType,
         int $moduleRefId,
@@ -342,7 +343,7 @@ class FormSDocumentVersionService
             $documentType
         );
 
-        $stored = $this->storageService->store(
+        $stored = $this->storeUploadedFile(
             $file,
             (string) $workflowApp->application_id,
             $workflowPk,
@@ -452,5 +453,43 @@ class FormSDocumentVersionService
     ): int {
         return (int) CC_Doc_Log::forGroup($workflowApplicationPk, $moduleType, $moduleRefId, $documentType)
             ->max('version_no');
+    }
+
+    /**
+     * @return array{file_name: string, file_path: string, mime_type: string, file_size: int, original_file_name: string}
+     */
+    protected function storeUploadedFile(
+        UploadedFile $file,
+        string $applicationNo,
+        int $applicationId,
+        string $moduleType,
+        string $documentType,
+        DocumentRequestType $requestType,
+        ?string $workflowStage,
+        bool $useProductionDocumentLog
+    ): array {
+        if (SensitiveProofCryptService::requiresEncryptionForModule($moduleType, $documentType)) {
+            return $this->storageService->storeEncrypted(
+                $file,
+                $applicationNo,
+                $applicationId,
+                $moduleType,
+                $documentType,
+                $requestType,
+                $workflowStage,
+                $useProductionDocumentLog
+            );
+        }
+
+        return $this->storageService->store(
+            $file,
+            $applicationNo,
+            $applicationId,
+            $moduleType,
+            $documentType,
+            $requestType,
+            $workflowStage,
+            $useProductionDocumentLog
+        );
     }
 }

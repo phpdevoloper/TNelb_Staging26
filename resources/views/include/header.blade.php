@@ -1321,6 +1321,7 @@ use Illuminate\Support\Facades\Auth;
 </head>
 <script>
     const BASE_URL = "{{ UrlHelper::baseFileUrl() }}";
+    const DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
 </script>
 
 <body class="theme-color-two">
@@ -2345,7 +2346,7 @@ use Illuminate\Support\Facades\Auth;
             <div class="modal-content p-3">
 
                 <div class="modal-header border-0">
-                    <h4 class="text-success w-100 text-center m-0">
+                    <h4 class="text-success w-100 text-center m-0" id="ps_success_modal_title">
                         Payment Successful!
                     </h4>
                 </div>
@@ -2365,14 +2366,14 @@ use Illuminate\Support\Facades\Auth;
                                 <div class="label">Type of Application:</div>
                                 <div class="value" id="ps_licenceName_competency"></div>
 
-                                <div class="label">Transaction ID:</div>
-                                <div class="value" id="ps_transactionId_competency"></div>
+                                <div class="label ps-payment-only">Transaction ID:</div>
+                                <div class="value ps-payment-only" id="ps_transactionId_competency"></div>
 
-                                <div class="label">Transaction Date:</div>
+                                <div class="label ps-transaction-date-label">Transaction Date:</div>
                                 <div class="value" id="ps_transactionDate_competency"></div>
 
-                                <div class="label">Amount Paid:</div>
-                                <div><span>Rs.</span>
+                                <div class="label ps-payment-only">Amount Paid:</div>
+                                <div class="ps-payment-only"><span>Rs.</span>
                                     <span class="value" id="ps_amount_competency"></span>
                                 </div>
                             </div>
@@ -2381,13 +2382,15 @@ use Illuminate\Support\Facades\Auth;
                         <!-- RIGHT DOWNLOAD PANEL -->
                         <div class="col-md-6 text-center">
 
-                            <p class="fw-bold">Download Your Payment Receipt:</p>
-                            <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt()">
-                                <i class="fa fa-file-pdf-o text-danger"></i>
-                                Download Receipt
-                            </button>
+                            <div class="ps-payment-only">
+                                <p class="fw-bold">Download Your Payment Receipt:</p>
+                                <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt()">
+                                    <i class="fa fa-file-pdf-o text-danger"></i>
+                                    Download Receipt
+                                </button>
+                            </div>
 
-                            <p class="fw-bold mt-3">Download Your Application PDF:</p>
+                            <p class="fw-bold ps-app-pdf-heading mt-3">Download Your Application PDF:</p>
 
                             <button class="btn btn-primary btn-sm me-2" onclick="downloadPDF('english')">
                                 <i class="fa fa-file-pdf-o text-danger"></i> English

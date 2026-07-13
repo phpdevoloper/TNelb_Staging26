@@ -5,26 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class CC_Payments extends Model
+class Payment extends Model
 {
     use HasFactory;
-    protected $table = 'cc_payments';
-    protected $primaryKey = 'p_id';
-    protected $fillable = [
-        'login_id', 
-        'application_id', 
-        'transaction_id', 
-        'form_name', 
-        'cert_name', 
-        'late_fee',
-        'late_months',
-        'transaction_date',
-        'application_fee',
-        'amount_paid', 
-        'payment_status', 
-        'payment_mode',
-        'updated_at',
-        'created_at',
 
+    protected $table = 'payments';
+
+    protected $fillable = [
+        'login_id',
+        'application_id',
+        'transaction_id',
+        'payment_status',
+        'amount',
+        'form_name',
+        'license_name',
+        'payment_mode',
+        'late_fee',
+        'late_fees',
+        'late_months',
+        'application_fee',
+        'transaction_date',
     ];
 }

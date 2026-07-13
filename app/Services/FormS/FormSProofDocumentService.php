@@ -4,7 +4,9 @@ namespace App\Services\FormS;
 
 use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
+use App\Models\CC_Doc_Log;
 use App\Models\TnelbApplicantPhoto;
+use App\Services\DocumentVersion\DocumentStorageService;
 use App\Models\TnelbApplicantsSign;
 use Illuminate\Http\UploadedFile;
 use RuntimeException;
@@ -55,7 +57,8 @@ class FormSProofDocumentService
     ];
 
     public function __construct(
-        protected FormSDocumentUploadHandler $uploadHandler
+        protected FormSDocumentUploadHandler $uploadHandler,
+        protected SensitiveProofCryptService $sensitiveProofCrypt
     ) {}
 
     /**
@@ -150,7 +153,7 @@ class FormSProofDocumentService
             return null;
         }
 
-        $workflowPk = (int) (\App\Models\Mst_Form_s_w::where('application_id', $applicationId)->value('id') ?? 0);
+        $workflowPk = (int) (\App\Models\CC_Forms_meta::where('application_id', $applicationId)->value('id') ?? 0);
         if ($workflowPk <= 0) {
             return null;
         }
@@ -258,7 +261,9 @@ class FormSProofDocumentService
         $proof->app_type = $appType;
         $proof->proof_type = $config['proof_type'];
         if ($proofNo !== null && $proofNo !== '') {
-            $proof->proof_no = $proofNo;
+            $proof->proof_no = self::requiresEncryption($proofName)
+                ? $this->sensitiveProofCrypt->encryptProofNumber($proofNo)
+                : $proofNo;
         }
         $proof->status = $proof->status ?: 'A';
         $proof->updated_at = now()->toDateString();
@@ -291,6 +296,50 @@ class FormSProofDocumentService
                 'proof_doc' => null,
                 'updated_at' => now()->toDateString(),
             ]);
+    }
+
+    /**
+     * Encrypt legacy plain PDF proof files (.pdf) to encrypted .bin on disk and update DB paths.
+     */
+    public function ensureProofDocumentEncryptedAtRest(string $applicationId, string $proofName): void
+    {
+        if (! self::requiresEncryption($proofName)) {
+            return;
+        }
+
+        $proof = CC_Proof_doc::where('application_id', $applicationId)
+            ->where('proof_name', $proofName)
+            ->first();
+
+        if (! $proof || empty($proof->proof_doc)) {
+            return;
+        }
+
+        $oldPath = trim(str_replace('\\', '/', (string) $proof->proof_doc));
+        if ($oldPath === '' || SensitiveProofCryptService::isEncryptedProofDocumentPath($oldPath)) {
+            return;
+        }
+
+        $newPath = app(DocumentStorageService::class)->encryptPlainProofFileAtPath($oldPath);
+        if ($newPath === null || $newPath === $oldPath) {
+            return;
+        }
+
+        $proof->update([
+            'proof_doc' => $newPath,
+            'updated_at' => now()->toDateString(),
+        ]);
+
+        CC_Doc_Log::query()
+            ->where('file_path', $oldPath)
+            ->update([
+                'file_path' => $newPath,
+                'file_name' => basename($newPath),
+            ]);
+
+        CC_Doc_Log::query()
+            ->where('old_file_path', $oldPath)
+            ->update(['old_file_path' => $newPath]);
     }
 
     public function saveProofUpload(
@@ -372,6 +421,10 @@ class FormSProofDocumentService
 
     protected function storeLegacyProofFile(string $proofName, UploadedFile $file): string
     {
+        if (self::requiresEncryption($proofName)) {
+            return $this->storeLegacyEncryptedProofFile($proofName, $file);
+        }
+
         $prefix = match ($proofName) {
             self::PROOF_PHOTO => 'user_',
             self::PROOF_SIGN => 'sign_',
@@ -391,5 +444,31 @@ class FormSProofDocumentService
         $file->move($destination, $filename);
 
         return 'attached_documents/' . $filename;
+    }
+
+    protected function storeLegacyEncryptedProofFile(string $proofName, UploadedFile $file): string
+    {
+        $contents = file_get_contents($file->getRealPath());
+        if ($contents === false) {
+            throw new RuntimeException('Unable to read uploaded proof document.');
+        }
+
+        $encrypted = $this->sensitiveProofCrypt->encryptFileContents($contents);
+        $suffix = $proofName === self::PROOF_PAN ? '_pan' : '';
+        $filename = time() . '_' . random_int(10000, 9999999) . $suffix . '.bin';
+        $destination = storage_path('app/private_documents');
+
+        if (! is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        file_put_contents($destination . DIRECTORY_SEPARATOR . $filename, $encrypted);
+
+        return $filename;
+    }
+
+    public static function requiresEncryption(string $proofName): bool
+    {
+        return SensitiveProofCryptService::requiresEncryption($proofName);
     }
 }

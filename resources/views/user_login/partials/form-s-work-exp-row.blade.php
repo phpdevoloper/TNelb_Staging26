@@ -39,7 +39,7 @@
     $durM = $hasRow && $expRow->total_m !== null ? (string) $expRow->total_m : '';
     $durD = $hasRow && $expRow->total_d !== null ? (string) $expRow->total_d : '';
     $supportDoc = $hasRow ? (string) ($expRow->support_document ?? $expRow->upload_document ?? '') : '';
-    $relieveDoc = $hasRow ? (string) ($expRow->releive_document ?? '') : '';
+    $relieveDoc = $hasRow ? (string) ($expRow->releive_document ?? $expRow->relieve_document ?? '') : '';
     $workId = $hasRow ? (string) ($expRow->exp_id ?? $expRow->id ?? '') : '';
     $meetingDetails = $hasRow ? (string) ($expRow->board_meeting_details ?? '') : '';
     $meetingDate = ($hasRow && !empty($expRow->board_meeting_date))
@@ -251,8 +251,8 @@
             <label class="work-card-field-label">Relieving Letter <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             @if ($relieveDoc !== '')
                 <div class="work-relieve-existing mb-1 text-center">
-                    <a class="text-primary" href="{{ asset($relieveDoc) }}" target="_blank" rel="noopener">
-                        <i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View
+                    <a class="text-primary" href="{{ competency_document_url($relieveDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'relieving_doc') }}" target="_blank" rel="noopener">
+                        <i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document
                     </a>
                     <button type="button" class="btn btn-sm btn-danger ml-1 remove-work-relieve-confirm" data-doc-kind="relieve">Remove</button>
                 </div>

@@ -8,13 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\RoleHelper;
-use App\Models\Mst_Form_s_w;
-
-use App\Models\EA_Application_model;
-
-use App\Models\Admin\WorkflowA;
-use App\Models\ESA_Application_model;
-use App\Models\Tnelb_CC_Digitization;
+use App\Models\CC_Forms_Meta;
+use App\Services\Competency\CompetencyAdminQueryService;
+use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyCertificateService;
+use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\CompetencyWorkflowService;
 use Carbon\Carbon;
 
 use function PHPUnit\Framework\isNull;
@@ -30,24 +29,45 @@ class SupervisorController extends Controller
 
     public function index()
     {
-        $userFormID = Auth::user()->form_id;
-        $applications = DB::table('tnelb_application_tbl')
-            ->where('form_id', $userFormID)
-            ->select('*')
-            ->get();
+        $userFormID = (int) Auth::user()->form_id;
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
+
+        if ($ccAdminQuery->isCcMetaFormId($userFormID)) {
+            $metaTable = app(CompetencyMetaService::class)->tableForFormId($userFormID);
+            $applications = DB::table($metaTable ?? 'cc_form_s_meta')
+                ->select('*')
+                ->get();
+        } else {
+            $applications = DB::table('tnelb_application_tbl')
+                ->where('form_id', $userFormID)
+                ->select('*')
+                ->get();
+        }
 
         return view('admin.dashboards.supervisor', compact('applications'));
     }
         // QSC/QC updation--------------
             public function updateQcQsc(Request $request)
         {
-            DB::table('tnelb_application_tbl')
-                ->where('application_id', $request->application_id)
-                ->update([
-                    'qc' => $request->qc,
-                    'qsc' => $request->qsc,
-                    'updated_at' => now(),
-                ]);
+            $applicationId = $request->application_id;
+            $payload = [
+                'qc' => $request->qc,
+                'qsc' => $request->qsc,
+                'updated_at' => now(),
+            ];
+
+            if (CC_Forms_Meta::where('application_id', $applicationId)->exists()) {
+                CC_Forms_Meta::where('application_id', $applicationId)->update($payload);
+            } else {
+                $metaTable = app(CompetencyMetaService::class)->metaTableForApplicationId($applicationId);
+                if ($metaTable) {
+                    DB::table($metaTable)->where('application_id', $applicationId)->update($payload);
+                } else {
+                    DB::table('tnelb_application_tbl')
+                        ->where('application_id', $applicationId)
+                        ->update($payload);
+                }
+            }
 
             return response()->json([
                 'status' => true,
@@ -166,6 +186,39 @@ class SupervisorController extends Controller
 
         $requestedType = strtoupper((string) $request->input('form_type', ''));
         $applTypeFilter = in_array($requestedType, ['N', 'R', 'D', 'A'], true) ? $requestedType : null;
+
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
+        if ($ccAdminQuery->isCcMetaFormId($selectedFormId)) {
+            $roleLevel = (int) (optional($staff->role)->role_level ?? 0);
+            $roleId = (int) ($staff->roles_id ?? 0);
+            $isSupervisorRole = ($roleLevel === 1) || in_array($staff->name ?? '', ['Supervisor', 'Supervisor2'], true);
+
+            if ($isSupervisorRole) {
+                $workflows = $ccAdminQuery->supervisorPendingApplications($selectedFormId, $applTypeFilter, $staff);
+                $returned_applications = $ccAdminQuery->supervisorReturnedApplications($selectedFormId, $applTypeFilter);
+            } else {
+                $previousProcessedBy = match ($roleLevel) {
+                    2 => ['S', 'S2'],
+                    3 => ['A'],
+                    4 => ['SE'],
+                    default => [],
+                };
+                $workflows = $ccAdminQuery->rolePendingApplications($selectedFormId, $roleId, $previousProcessedBy, $applTypeFilter);
+                $returned_applications = collect();
+            }
+
+            [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
+                return strtoupper((string) ($row->appl_type ?? '')) === 'R';
+            });
+
+            $new_applications = $new_applications
+                ->reject(function ($row) {
+                    return strtoupper((string) ($row->appl_type ?? '')) === 'R';
+                })
+                ->values();
+
+            return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
+        }
 
         $roleLevel = (int) (optional($staff->role)->role_level ?? 0); // mst_roles.role_level
         $roleId = (int) ($staff->roles_id ?? 0);
@@ -444,7 +497,18 @@ class SupervisorController extends Controller
             return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal') + ['is_completed_list' => true]);
         }
 
-        // Competency / amendments: tnelb_application_tbl
+        // Competency S/W/WH: cc_form_s_meta (not legacy tnelb_application_tbl)
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
+        if ($ccAdminQuery->isCcMetaFormId($selectedFormId)) {
+            $workflows = $ccAdminQuery->completedApplications($selectedFormId, $applTypeFilter);
+            [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
+                return strtoupper((string) ($row->appl_type ?? '')) === 'R';
+            });
+
+            return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal') + ['is_completed_list' => true]);
+        }
+
+        // Legacy competency / amendments still on tnelb_application_tbl
         $query = DB::table('tnelb_application_tbl as ta')
             ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
             ->leftJoin('tnelb_license as tl', 'tl.application_id', '=', 'ta.application_id')
@@ -499,35 +563,21 @@ class SupervisorController extends Controller
 
     public function get_completed()
     {
+        $assignedFormID = (int) Auth::user()->form_id;
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
 
-        $userRole = Auth::user()->roles_id; // Get logged-in user's role
-        $assignedFormID = Auth::user()->form_id;
-
-
-        $workflows = DB::table('tnelb_application_tbl')
-            ->where('form_id', $assignedFormID) // Filter by Form S
-            ->whereIn('status', ['F', 'A', 'RF']) // Only show new applications
-            ->whereIn('processed_by', ['S', 'A', 'SE', 'PR']) // Only show new applications
-            ->select('*')
-            ->orderBy('id', 'desc')
-            ->get();
+        $workflows = $ccAdminQuery->isCcMetaFormId($assignedFormID)
+            ? $ccAdminQuery->inProgressApplications($assignedFormID, ['F', 'A', 'RF'], ['S', 'A', 'SE', 'PR'])
+            : collect();
 
         return view('admin.supervisor.completed', compact('workflows'));
     }
+
     public function get_completed_wh()
     {
-
-        $userRole = Auth::user()->roles_id; // Get logged-in user's role
         $assignedFormID = 3;
-
-
-        $workflows = DB::table('tnelb_application_tbl')
-            ->where('form_id', $assignedFormID) // Filter by Form S
-            ->whereIn('status', ['F', 'A', 'RF']) // Only show new applications
-            ->whereIn('processed_by', ['S2', 'A', 'SE', 'PR']) // Only show new applications
-            ->select('*')
-            ->orderBy('id', 'desc')
-            ->get();
+        $workflows = app(CompetencyAdminQueryService::class)
+            ->inProgressApplications($assignedFormID, ['F', 'A', 'RF'], ['S2', 'A', 'SE', 'PR']);
 
         return view('admin.supervisor.completed', compact('workflows'));
     }
@@ -652,11 +702,15 @@ class SupervisorController extends Controller
         ]);
 
 
-        $applicant = Mst_Form_s_w::where('application_id', $request->application_id)
-            ->select('*')
-            ->first();
+        $appService = app(CompetencyApplicationService::class);
+        $workflowService = app(CompetencyWorkflowService::class);
 
-        $applicantStatus = $applicant ? $applicant->status : null;
+        $applicant = $appService->findApplicantWithPayment($request->application_id);
+        if (! $applicant) {
+            return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
+        }
+
+        $applicantStatus = $appService->applicationStatus($applicant);
         $isReturnedApplication = $applicantStatus === 'RE';
 
         $queryTypeJson = $request->queryType && is_array($request->queryType) && count($request->queryType) > 0
@@ -701,61 +755,44 @@ class SupervisorController extends Controller
         // ]);
 
 
-        $formType = DB::table('tnelb_application_tbl')
-            ->where('application_id', $request->application_id)
-            ->select('form_id')
-            ->first();
+        $formType = (object) ['form_id' => $applicant->form_id ?? null];
 
-
-
-        $status = match ($staff->name) {
-            'President'   => 'A',
-            'Secretary'   => $formType->form_id == 1 ? 'F' : 'A',
-            'Supervisor'  => $isReturnedApplication ? 'RF' : 'F',
-            'Supervisor2' => $isReturnedApplication ? 'RF' : 'F',
-            'Assistant Secretary'  => 'F',
-            default       => abort(403, 'Unauthorized'),
-        };
+        $status = $appService->resolveForwardStatus($staff->name, $applicant, $formType);
 
         $chklistStatus = $request->input('chklist_status', []);
-
-        // dd(json_encode($chklistStatus)); exit;
-        // Insert data into tnelb_workflow table
-        $workflow = SupervisorModel::create([ // Ensure this is the correct model
+        $workflowTable = $appService->resolveWorkflowTable($request->application_id, $applicant);
+        $workflowPayload = [
             'application_id' => $request->application_id,
-            'appl_status'    => $isReturnedApplication ? 'RF' : 'F', // Forwarded
-            'processed_by'   => $request->processed_by,
+            'appl_status'    => $isReturnedApplication ? 'RF' : 'F',
+            'processed_by'   => $processed_by,
             'forwarded_to'   => $request->forwarded_to,
             'role_id'        => $request->role_id,
             'is_verified'    => $request->checkboxes ?? 'Yes',
             'query_status'   => $query_status,
-
-            'chklist_status' => json_encode($chklistStatus),
-
+            'chklist_status' => $chklistStatus,
             'remarks'        => $request->remarks,
             'created_at'     => $this->dbNow,
             'login_id'       => $staffID,
-            'queries'        => $queryTypeJson,
-            'raised_by'      => $query_status == 'P' ? $raised_by : '',
+            'queries'        => $queryTypeJson ? json_decode($queryTypeJson, true) : null,
+            'raised_by'      => $query_status == 'P' ? $raised_by : $processed_by,
+        ];
+
+        $workflowService->record($workflowTable, $workflowPayload);
+
+        $appService->updateApplicationStatus($request->application_id, [
+            'status' => $status,
+            'processed_by' => $processed_by,
+            'updated_at' => $this->dbNow,
         ]);
 
-
-
-        // Update application status
-        Mst_Form_s_w::where('application_id', $request->application_id)
-            ->update([
-                'status'        => $status, // Role-based forwarding
-                'processed_by'  => $processed_by, // Role-based forwarding
-                'updated_at' => $this->dbNow,
-            ]);
-
-            // qc/qsc approval-----------
-           $qsc = DB::table('tnelb_application_tbl')
+            if ($request->filled('qc') || $request->filled('qsc')) {
+           DB::table($appService->resolveMetaTable($request->application_id, $applicant))
             ->where('application_id', $request->application_id)
             ->update([
                 'qc' => $request->qc,
                 'qsc' => $request->qsc,
             ]);
+            }
 
             // dd($role); exit;
 
@@ -791,11 +828,10 @@ class SupervisorController extends Controller
         ]);
 
 
-        $applicant = Mst_Form_s_w::where('application_id', $request->application_id)
-            ->select('*')
-            ->first();
+        $appService = app(CompetencyApplicationService::class);
+        $applicant = $appService->findApplicantWithPayment($request->application_id);
 
-        $applicantStatus = $applicant ? $applicant->status : null;
+        $applicantStatus = $applicant ? $appService->applicationStatus($applicant) : null;
         $isReturnedApplication = $applicantStatus === 'RE';
 
         $queryTypeJson = $request->queryType && is_array($request->queryType) && count($request->queryType) > 0
@@ -838,10 +874,9 @@ class SupervisorController extends Controller
         // ]);
 
 
-        $formType = DB::table('tnelb_application_tbl')
-            ->where('application_id', $request->application_id)
-            ->select('form_id')
-            ->first();
+        $formType = (object) [
+            'form_id' => app(CompetencyApplicationService::class)->findFormId($request->application_id),
+        ];
 
 
 
@@ -875,12 +910,13 @@ class SupervisorController extends Controller
 
 
         // Update application status
-        Mst_Form_s_w::where('application_id', $request->application_id)
-            ->update([
-                'status'        => $status, // Role-based forwarding
-                'processed_by'  => $processed_by, // Role-based forwarding
+        if ($applicant) {
+            $appService->updateApplicationStatus($request->application_id, [
+                'status' => $status,
+                'processed_by' => $processed_by,
                 'updated_at' => $this->dbNow,
             ]);
+        }
 
         return response()->json([
             'status' => "success",
@@ -1535,6 +1571,106 @@ class SupervisorController extends Controller
     }
 
 
+    /**
+     * Resolve application for secretary/president approval — CC meta first, legacy fallback.
+     */
+    private function resolveCompetencyApplicationForApproval(string $applicationId): ?object
+    {
+        $metaService = app(CompetencyMetaService::class);
+
+        foreach ($metaService->allMetaTables() as $metaTable) {
+            $cc = DB::table($metaTable)->where('application_id', $applicationId)->first();
+            if (! $cc) {
+                continue;
+            }
+
+            $licenseNumber = trim((string) ($cc->certificate_no ?? ''));
+            if ($licenseNumber === '' && strtoupper((string) ($cc->appl_type ?? '')) === 'R') {
+                $parentId = trim((string) ($cc->old_application ?? ''));
+                if ($parentId !== '') {
+                    $parentCert = app(CompetencyCertificateService::class)->asLicenseDetails(
+                        $parentId,
+                        $cc->form_name ?? null
+                    );
+                    $licenseNumber = trim((string) ($parentCert->license_number ?? ''));
+                }
+            }
+
+            return (object) [
+                'id' => $cc->app_id,
+                'application_id' => $cc->application_id,
+                'login_id' => $cc->login_id,
+                'form_name' => $cc->form_name,
+                'license_name' => $cc->certificate_name,
+                'form_id' => $cc->form_id,
+                'appl_type' => $cc->appl_type,
+                'license_number' => $licenseNumber !== '' ? $licenseNumber : null,
+                'old_application' => $cc->old_application ?? null,
+                'status' => $cc->app_status,
+                'app_status' => $cc->app_status,
+                'payment_status' => $cc->payment_status,
+                'processed_by' => $cc->processed_by,
+                '_approval_source' => $metaTable,
+            ];
+        }
+
+        return null;
+    }
+
+    private function markCompetencyApplicationApproved(object $application, string $processedBy, ?string $qc = null, ?string $qsc = null): void
+    {
+        $update = [
+            'processed_by' => $processedBy,
+            'updated_at' => now(),
+        ];
+
+        $metaTable = (string) ($application->_approval_source ?? '');
+        if (in_array($metaTable, app(CompetencyMetaService::class)->allMetaTables(), true)) {
+            $update['app_status'] = 'A';
+            if ($qc !== null) {
+                $update['qc'] = $qc;
+            }
+            if ($qsc !== null) {
+                $update['qsc'] = $qsc;
+            }
+            DB::table($metaTable)->where('application_id', $application->application_id)->update($update);
+
+            return;
+        }
+
+        // Legacy non-competency rows only (not Form S/W/WH in cc_form_s_meta).
+        $update['status'] = 'A';
+        if ($qc !== null) {
+            $update['qc'] = $qc;
+        }
+        if ($qsc !== null) {
+            $update['qsc'] = $qsc;
+        }
+        DB::table('tnelb_application_tbl')
+            ->where('application_id', $application->application_id)
+            ->update($update);
+    }
+
+    /** Dual-write: mirror legacy issue into cc_forms_cert / cc_form_*_cert (one table per form). */
+    private function syncIssuedCertToCcTable(
+        object $application,
+        string $licenseNumber,
+        mixed $issuedAt,
+        mixed $validFrom,
+        mixed $expiresAt,
+        string $processedBy
+    ): void {
+        app(CompetencyCertificateService::class)->syncFromLegacyIssue(
+            $application->form_name ?? null,
+            (string) $application->application_id,
+            $licenseNumber,
+            $issuedAt,
+            $validFrom,
+            $expiresAt,
+            $processedBy
+        );
+    }
+
     public function approveApplication(Request $request)
     {
 
@@ -1547,10 +1683,8 @@ class SupervisorController extends Controller
 
         // dd($request->all());
         // exit;
-        // Fetch the application details
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $request->application_id)
-            ->first();
+        // Fetch the application details (CC meta first for S/W/WH)
+        $application = $this->resolveCompetencyApplicationForApproval($request->application_id);
 
 
         if (!$application) {
@@ -1575,15 +1709,13 @@ class SupervisorController extends Controller
             // Normalize application type once (N = New, R = Renewal)
             $appl_type = strtoupper(preg_replace('/\s+/', '', (string) $application->appl_type));
 
-            DB::table('tnelb_application_tbl')
-                ->where('application_id', $request->application_id)
-                ->update([
-                    'status'     => 'A',
-                    'processed_by' => $processed ?: 'PR',
-                    'updated_at' => now(),
-                ]);
+            $this->markCompetencyApplicationApproved(
+                $application,
+                $processed ?: 'PR',
+                $request->input('qc'),
+                $request->input('qsc')
+            );
 
-            // dd($appl_type); exit;
             // Issue or renew licence and get final number + dates
             [$licenseNumber, $issuedAt, $expiresAt] = $this->issueOrRenewLicense(
                 $application,
@@ -1605,25 +1737,20 @@ class SupervisorController extends Controller
             }
             //    dd($this->dbNow); exit;
             $chklistStatus = $request->input('chklist_status', []);
-            DB::table('tnelb_workflow')->insert([
+            $workflowTable = app(CompetencyApplicationService::class)
+                ->resolveWorkflowTable($request->application_id, $application);
+            app(CompetencyWorkflowService::class)->record($workflowTable, [
                 'application_id' => $request->application_id,
                 'processed_by'   => $request->processed_by,
-                'role_id'        => Auth::user()->roles_id, // Current user role (Secretary)
+                'role_id'        => Auth::user()->roles_id,
                 'appl_status'    => 'A',
-                'chklist_status' => json_encode($chklistStatus),
+                'chklist_status' => $chklistStatus,
                 'remarks'        => $request->remarks ?? 'No remarks provided',
                 'forwarded_to'   => $request->forwarded_to ?? null,
                 'created_at'     => $this->dbNow,
+                'login_id'       => Auth::id(),
+                'raised_by'      => $processed ?: 'PR',
             ]);
-
-                // qc/qsc approval-----------
-           $qsc = DB::table('tnelb_application_tbl')
-            ->where('application_id', $request->application_id)
-            ->update([
-                'qc' => $request->qc,
-                'qsc' => $request->qsc,
-            ]);
-
 
             DB::commit();
 
@@ -1667,10 +1794,8 @@ class SupervisorController extends Controller
 
         // dd($request->all());
         // exit;
-        // Fetch the application details
-        $application = DB::table('tnelb_application_tbl')
-            ->where('application_id', $request->application_id)
-            ->first();
+        // Fetch the application details (cc_form_s_meta first for S/W/WH)
+        $application = $this->resolveCompetencyApplicationForApproval($request->application_id);
 
 
         if (!$application) {
@@ -1695,13 +1820,12 @@ class SupervisorController extends Controller
             // Normalize application type once (N = New, R = Renewal)
             $appl_type = strtoupper(preg_replace('/\s+/', '', (string) $application->appl_type));
 
-            DB::table('tnelb_application_tbl')
-                ->where('application_id', $request->application_id)
-                ->update([
-                    'status'     => 'A',
-                    'processed_by' => $processed ?: 'PR',
-                    'updated_at' => now(),
-                ]);
+            $this->markCompetencyApplicationApproved(
+                $application,
+                $processed ?: 'PR',
+                null,
+                null
+            );
 
 
             // Issue or renew licence and get final number + dates
@@ -1826,6 +1950,8 @@ class SupervisorController extends Controller
                 ]);
 
                 $licenseNumber = $application->license_number;
+                $certIssueDate = $now;
+                $certValidFrom = $issuedAt;
             } else {
 
                 // Existing renewal record still valid – reuse its values
@@ -1834,13 +1960,18 @@ class SupervisorController extends Controller
                 $licenseNumber = $licenseDetails->license_number;
                 $issuedAt      = $licenseDetails->issued_at;
                 $expiresAt     = $licenseDetails->expires_at;
+                $certIssueDate = $licenseDetails->issued_at;
+                $certValidFrom = $licenseDetails->issued_from ?? $licenseDetails->issued_at;
             }
 
-            // dd([
-            //     'licenseNumber' => $licenseNumber,
-            //     'issuedAt'      => $issuedAt,
-            //     'expiresAt'     => $expiresAt
-            // ]);
+            $this->syncIssuedCertToCcTable(
+                $application,
+                (string) $licenseNumber,
+                $certIssueDate,
+                $certValidFrom,
+                $expiresAt,
+                $processedBy
+            );
 
             return [$licenseNumber, $issuedAt, $expiresAt];
         }
@@ -1853,6 +1984,15 @@ class SupervisorController extends Controller
                 ->first();
 
             if ($licenseDetails) {
+                $this->syncIssuedCertToCcTable(
+                    $application,
+                    (string) $licenseDetails->license_number,
+                    $licenseDetails->issued_at,
+                    $licenseDetails->issued_from ?? $licenseDetails->issued_at,
+                    $licenseDetails->expires_at,
+                    $processedBy
+                );
+
                 return [
                     $licenseDetails->license_number,
                     $licenseDetails->issued_at,
@@ -1903,6 +2043,15 @@ class SupervisorController extends Controller
                 'created_at'     => $now,
             ]);
 
+            $this->syncIssuedCertToCcTable(
+                $application,
+                $licenseNumber,
+                $issuedAt,
+                $from_date,
+                $expiresAt,
+                $processedBy
+            );
+
             return [$licenseNumber, $issuedAt, $expiresAt];
         }
 
@@ -1912,6 +2061,15 @@ class SupervisorController extends Controller
             ->first();
 
         if ($licenseDetails) {
+            $this->syncIssuedCertToCcTable(
+                $application,
+                (string) $licenseDetails->license_number,
+                $licenseDetails->issued_at,
+                $licenseDetails->issued_from ?? $licenseDetails->issued_at,
+                $licenseDetails->expires_at,
+                $processedBy
+            );
+
             return [
                 $licenseDetails->license_number,
                 $licenseDetails->issued_at,
@@ -1961,15 +2119,15 @@ class SupervisorController extends Controller
             'created_at'     => $now,
         ]);
 
+        $this->syncIssuedCertToCcTable(
+            $application,
+            $licenseNumber,
+            $issuedAt,
+            $now,
+            $expiresAt,
+            $processedBy
+        );
 
-
-        //         dd([
-        //     'licenseNumber' => $licenseNumber,
-        //     'issuedAt'      => $issuedAt,
-        //     'expiresAt'     => $expiresAt
-        // ]);exit;
-        // dd('111');
-        // exit;
         return [$licenseNumber, $issuedAt, $expiresAt];
     }
 

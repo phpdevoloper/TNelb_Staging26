@@ -9,6 +9,7 @@ use App\Enums\DocumentVersionStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\CC_Forms_Meta;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -112,12 +113,12 @@ class DocumentsLog extends Model
 
     public function application(): BelongsTo
     {
-        return $this->belongsTo(Mst_Form_s_w::class, 'application_id');
+        return $this->belongsTo(CC_Forms_Meta::class, 'application_id', 'app_id');
     }
 
     public function parentApplication(): BelongsTo
     {
-        return $this->belongsTo(Mst_Form_s_w::class, 'parent_application_id');
+        return $this->belongsTo(CC_Forms_Meta::class, 'parent_application_id', 'app_id');
     }
 
     public function scopeActive(Builder $query): Builder

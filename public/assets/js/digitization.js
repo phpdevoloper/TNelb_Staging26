@@ -409,9 +409,7 @@ $(document).on("click", "#digitizationSubmit", function () {
 
                 $("#declaration-error-renew").addClass("d-none");
 
-                await loadInstructions();
-
-                competencyModal.show();
+                // Digitisation has no payment step — continue on the form after certificate details are saved.
             }
         },
 

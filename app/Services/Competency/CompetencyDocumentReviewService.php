@@ -2,9 +2,12 @@
 
 namespace App\Services\Competency;
 
+use App\Models\CC_Doc_Log;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
+use App\Models\CC_Forms_Meta;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Models\DocumentsLog;
-use App\Models\Mst_experience;
-use App\Models\Mst_Form_s_w;
 use App\Services\FormS\FormSDocumentVersionService;
 use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\FormS\FormSProofDocumentService;
@@ -23,34 +26,34 @@ class CompetencyDocumentReviewService
 
     /**
      * @return array{
-     *     educationalQualifications: \Illuminate\Support\Collection,
+     *     educationalQualifications: Collection,
      *     workExperience: Collection,
      *     uploadedPhoto: ?\App\Models\TnelbApplicantPhoto,
      *     uploadedSign: ?\App\Models\TnelbApplicantsSign,
      *     alterationProofs: Collection,
-     *     parentApplication: Mst_Form_s_w
+     *     parentApplication: CC_CompetencyMeta
      * }
      */
-    public function buildStaffReviewContext(Mst_Form_s_w $application): array
+    public function buildStaffReviewContext(CC_CompetencyMeta $application): array
     {
         $master = $this->workflowService->masterApplication($application);
         $masterId = (string) $master->application_id;
         $childId = (string) $application->application_id;
         $workflowAppPks = array_values(array_unique(array_filter([
-            (int) $application->id,
-            (int) $master->id,
+            $this->workflowService->workflowPk($application),
+            $this->workflowService->workflowPk($master),
         ])));
 
         if ($this->workflowService->isChildWorkflow($application)) {
             $this->documentVersionService->ensureCarriedForwardDocuments($application);
         }
 
-        $educationalQualifications = DB::table('tnelb_applicants_edu')
-            ->where('application_id', $masterId)
+        $educationalQualifications = CC_Education::where('application_id', $masterId)
             ->orderByDesc('year_of_passing')
             ->get()
             ->map(function ($row) use ($workflowAppPks) {
-                $eduId = (int) ($row->id ?? 0);
+                $eduId = (int) ($row->edu_id ?? 0);
+                $row->id = $eduId;
                 $row->document_url = competency_document_url(
                     $row->upload_document ?? null,
                     'education',
@@ -62,22 +65,22 @@ class CompetencyDocumentReviewService
                 return $row;
             });
 
-        $enrichExperienceDocument = function (Mst_experience $row, bool $isNew) use ($application, $workflowAppPks) {
+        $enrichExperienceDocument = function (CC_Experience $row, bool $isNew) use ($application, $workflowAppPks) {
             $refId = (int) $row->exp_id;
             $workflowIds = $isNew
-                ? [(int) $application->id]
+                ? [$this->workflowService->workflowPk($application)]
                 : $workflowAppPks;
 
             if (empty($row->support_document)) {
                 $log = competency_find_document_log('experience', $refId, 'experience_doc', $workflowIds);
-                if ($log && !empty($log->file_path)) {
+                if ($log && ! empty($log->file_path)) {
                     $row->support_document = $log->file_path;
                 }
             }
 
             if (empty($row->releive_document)) {
                 $log = competency_find_document_log('experience', $refId, 'relieving_doc', $workflowIds);
-                if ($log && !empty($log->file_path)) {
+                if ($log && ! empty($log->file_path)) {
                     $row->releive_document = $log->file_path;
                 }
             }
@@ -101,17 +104,17 @@ class CompetencyDocumentReviewService
             return $row;
         };
 
-        $parentExperience = Mst_experience::where('application_id', $masterId)
+        $parentExperience = CC_Experience::where('application_id', $masterId)
             ->orderBy('exp_id')
             ->get()
-            ->map(fn (Mst_experience $row) => $enrichExperienceDocument($row, false));
+            ->map(fn (CC_Experience $row) => $enrichExperienceDocument($row, false));
 
         $newExperience = collect();
         if ($childId !== $masterId && $this->workflowService->isAlterationApplication($application)) {
-            $newExperience = Mst_experience::where('application_id', $childId)
+            $newExperience = CC_Experience::where('application_id', $childId)
                 ->orderBy('exp_id')
                 ->get()
-                ->map(function (Mst_experience $row) use ($enrichExperienceDocument) {
+                ->map(function (CC_Experience $row) use ($enrichExperienceDocument) {
                     $row->setAttribute('is_alteration_new', true);
 
                     return $enrichExperienceDocument($row, true);
@@ -131,7 +134,7 @@ class CompetencyDocumentReviewService
                 $alterationProofs = collect($proofItems);
             } else {
                 $alterationProofs = DocumentsLog::query()
-                    ->where('application_id', (int) $application->id)
+                    ->where('application_id', $this->workflowService->workflowPk($application))
                     ->where('module_type', 'alteration')
                     ->where('is_active', true)
                     ->orderByDesc('id')
@@ -156,10 +159,10 @@ class CompetencyDocumentReviewService
             }
         }
 
-        $uploadedPhoto = $this->resolveApplicantPhoto($application);
-        $uploadedSign = $this->resolveApplicantSign($application);
+        $uploadedPhoto = $this->resolveApplicantPhoto($application, $workflowAppPks);
+        $uploadedSign = $this->resolveApplicantSign($application, $workflowAppPks);
 
-        if ($uploadedPhoto && !empty($uploadedPhoto->upload_path)) {
+        if ($uploadedPhoto && empty($uploadedPhoto->media_url) && ! empty($uploadedPhoto->upload_path)) {
             $uploadedPhoto->setAttribute('media_url', $this->resolveMediaUrl(
                 $uploadedPhoto->upload_path,
                 'photo',
@@ -168,7 +171,7 @@ class CompetencyDocumentReviewService
             ));
         }
 
-        if ($uploadedSign && !empty($uploadedSign->uploaded_doc)) {
+        if ($uploadedSign && empty($uploadedSign->media_url) && ! empty($uploadedSign->uploaded_doc)) {
             $uploadedSign->setAttribute('media_url', $this->resolveMediaUrl(
                 $uploadedSign->uploaded_doc,
                 'signature',
@@ -187,20 +190,79 @@ class CompetencyDocumentReviewService
         ];
     }
 
-  protected function resolveMediaUrl(string $storedPath, string $moduleType, string $documentType, array $workflowAppPks): ?string
+    protected function resolveMediaUrl(string $storedPath, string $moduleType, string $documentType, array $workflowAppPks): ?string
     {
+        $storedPath = trim($storedPath);
+
+        if ($storedPath !== '' && preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
+            return competency_document_path_url($storedPath);
+        }
+
         foreach ($workflowAppPks as $wfPk) {
-            $url = competency_document_url($storedPath, $moduleType, $wfPk, $documentType, [$wfPk]);
-            if ($url) {
-                return $url;
+            $log = $this->findActiveDocLog((int) $wfPk, $moduleType, $documentType);
+            if ($log) {
+                return competency_document_log_download_url($log)
+                    ?? competency_document_path_url($log->file_path);
             }
         }
 
-        return competency_media_url($storedPath);
+        if ($storedPath !== '' && $this->legacyMediaFileExists($storedPath)) {
+            return competency_media_url($storedPath);
+        }
+
+        return null;
     }
 
-    protected function resolveApplicantPhoto(Mst_Form_s_w $application): ?\App\Models\TnelbApplicantPhoto
+    protected function findActiveDocLog(int $workflowAppPk, string $moduleType, string $documentType): DocumentsLog|CC_Doc_Log|null
     {
+        if ($workflowAppPk <= 0) {
+            return null;
+        }
+
+        $ccLog = CC_Doc_Log::query()
+            ->where('application_id', $workflowAppPk)
+            ->where('module_type', $moduleType)
+            ->where('document_type', $documentType)
+            ->where('is_active', true)
+            ->orderByDesc('doc_id')
+            ->first();
+
+        if ($ccLog) {
+            return $ccLog;
+        }
+
+        return DocumentsLog::query()
+            ->where('application_id', $workflowAppPk)
+            ->where('module_type', $moduleType)
+            ->where('document_type', $documentType)
+            ->where('is_active', true)
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    protected function legacyMediaFileExists(string $storedPath): bool
+    {
+        $storedPath = trim(str_replace('\\', '/', $storedPath));
+        if ($storedPath === '') {
+            return false;
+        }
+
+        if (str_starts_with($storedPath, 'http://') || str_starts_with($storedPath, 'https://')) {
+            return true;
+        }
+
+        $relative = ltrim($storedPath, '/');
+
+        return is_file(public_path($relative)) || is_file(storage_path('app/'.$relative));
+    }
+
+    protected function resolveApplicantPhoto(CC_CompetencyMeta $application, array $workflowAppPks = []): ?\App\Models\TnelbApplicantPhoto
+    {
+        $fromLog = $this->resolvePhotoFromDocLog($workflowAppPks);
+        if ($fromLog) {
+            return $fromLog;
+        }
+
         foreach ($this->mediaApplicationIds($application) as $applicationId) {
             $photo = \App\Models\TnelbApplicantPhoto::where('application_id', $applicationId)->first();
             if ($photo && trim((string) ($photo->upload_path ?? '')) !== '') {
@@ -211,8 +273,13 @@ class CompetencyDocumentReviewService
         return null;
     }
 
-    protected function resolveApplicantSign(Mst_Form_s_w $application): ?\App\Models\TnelbApplicantsSign
+    protected function resolveApplicantSign(CC_CompetencyMeta $application, array $workflowAppPks = []): ?\App\Models\TnelbApplicantsSign
     {
+        $fromLog = $this->resolveSignFromDocLog($workflowAppPks);
+        if ($fromLog) {
+            return $fromLog;
+        }
+
         foreach ($this->mediaApplicationIds($application) as $applicationId) {
             $sign = \App\Models\TnelbApplicantsSign::where('application_id', $applicationId)->first();
             if ($sign && trim((string) ($sign->uploaded_doc ?? '')) !== '') {
@@ -224,9 +291,55 @@ class CompetencyDocumentReviewService
     }
 
     /**
+     * @param  list<int>  $workflowAppPks
+     */
+    protected function resolvePhotoFromDocLog(array $workflowAppPks): ?\App\Models\TnelbApplicantPhoto
+    {
+        foreach (array_values(array_unique(array_filter(array_map('intval', $workflowAppPks)))) as $wfPk) {
+            $log = $this->findActiveDocLog($wfPk, 'photo', 'photo');
+            if (! $log || empty($log->file_path)) {
+                continue;
+            }
+
+            $photo = new \App\Models\TnelbApplicantPhoto([
+                'upload_path' => $log->file_path,
+            ]);
+            $photo->setAttribute('media_url', competency_document_log_download_url($log)
+                ?? competency_document_path_url($log->file_path));
+
+            return $photo;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<int>  $workflowAppPks
+     */
+    protected function resolveSignFromDocLog(array $workflowAppPks): ?\App\Models\TnelbApplicantsSign
+    {
+        foreach (array_values(array_unique(array_filter(array_map('intval', $workflowAppPks)))) as $wfPk) {
+            $log = $this->findActiveDocLog($wfPk, 'signature', 'signature');
+            if (! $log || empty($log->file_path)) {
+                continue;
+            }
+
+            $sign = new \App\Models\TnelbApplicantsSign([
+                'uploaded_doc' => $log->file_path,
+            ]);
+            $sign->setAttribute('media_url', competency_document_log_download_url($log)
+                ?? competency_document_path_url($log->file_path));
+
+            return $sign;
+        }
+
+        return null;
+    }
+
+    /**
      * @return list<string>
      */
-    protected function mediaApplicationIds(Mst_Form_s_w $application): array
+    protected function mediaApplicationIds(CC_CompetencyMeta $application): array
     {
         $ids = [];
         $seen = [];
@@ -234,7 +347,7 @@ class CompetencyDocumentReviewService
 
         while ($current) {
             $appId = trim((string) ($current->application_id ?? ''));
-            if ($appId !== '' && !isset($seen[$appId])) {
+            if ($appId !== '' && ! isset($seen[$appId])) {
                 $ids[] = $appId;
                 $seen[$appId] = true;
             }
@@ -244,7 +357,7 @@ class CompetencyDocumentReviewService
                 break;
             }
 
-            $current = Mst_Form_s_w::where('application_id', $oldId)->first();
+            $current = CC_Forms_Meta::findByApplicationId($oldId);
         }
 
         return $ids;

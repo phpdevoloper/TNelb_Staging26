@@ -2,9 +2,12 @@
 
 namespace App\Services\FormS;
 
+use App\Models\CC_Experience;
+use App\Models\CC_Forms_Meta;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Models\Mst_experience;
-use App\Models\Mst_Form_s_w;
+use App\Models\CC_Forms_Meta;
+use App\Services\Competency\CompetencyCertificateService;
 use App\Models\Payment;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
@@ -24,7 +27,7 @@ class FormSAlterationService
     ) {}
 
     /**
-     * @return array{ok: bool, message?: string, application?: Mst_Form_s_w}
+     * @return array{ok: bool, message?: string, application?: CC_Forms_Meta}
      */
     public function verifyParentApplication(string $parentApplicationId, string $loginId): array
     {
@@ -33,7 +36,7 @@ class FormSAlterationService
             return ['ok' => false, 'message' => 'Application ID or Certificate Number is required.'];
         }
 
-        $parent = Mst_Form_s_w::where('application_id', $parentApplicationId)
+        $parent = CC_Forms_Meta::where('application_id', $parentApplicationId)
             ->where('login_id', $loginId)
             ->where('form_name', 'S')
             ->whereIn('appl_type', ['N', 'R', 'D'])
@@ -41,7 +44,7 @@ class FormSAlterationService
             ->first();
 
         if (!$parent) {
-            $parent = Mst_Form_s_w::where('license_number', $parentApplicationId)
+            $parent = CC_Forms_Meta::where('license_number', $parentApplicationId)
                 ->where('login_id', $loginId)
                 ->where('form_name', 'S')
                 ->whereIn('appl_type', ['N', 'R', 'D'])
@@ -53,7 +56,7 @@ class FormSAlterationService
             return ['ok' => false, 'message' => 'No valid issued Form S application found for your account.'];
         }
 
-        $pendingAlteration = Mst_Form_s_w::where('old_application', $parent->application_id)
+        $pendingAlteration = CC_Forms_Meta::where('old_application', $parent->application_id)
             ->where('appl_type', 'A')
             ->where('login_id', $loginId)
             ->whereIn('status', ['P', ''])
@@ -68,7 +71,7 @@ class FormSAlterationService
         return ['ok' => true, 'application' => $parent];
     }
 
-    public function loadParentContext(Mst_Form_s_w $parent): array
+    public function loadParentContext(CC_Forms_Meta $parent): array
     {
         $masterId = $this->workflowService->masterApplication($parent)->application_id;
 
@@ -77,15 +80,18 @@ class FormSAlterationService
             ->orderBy('year_of_passing', 'desc')
             ->get();
 
-        $expDetails = Mst_experience::where('application_id', $masterId)
+        $expDetails = CC_Experience::where('application_id', $masterId)
             ->orderBy('exp_id')
             ->get();
 
-        $licenseDetails = DB::table('tnelb_license')
+        $licenseDetails = app(CompetencyCertificateService::class)->asLicenseDetails(
+            (string) $parent->application_id,
+            $parent->form_name ?? 'S'
+        ) ?? DB::table('tnelb_license')
             ->where('application_id', $parent->application_id)
             ->first();
 
-        $alterationDraft = Mst_Form_s_w::where('old_application', $parent->application_id)
+        $alterationDraft = CC_Forms_Meta::where('old_application', $parent->application_id)
             ->where('appl_type', 'A')
             ->where('login_id', $parent->login_id)
             ->where('payment_status', 'draft')
@@ -107,15 +113,15 @@ class FormSAlterationService
      *     uploadedPhoto: ?TnelbApplicantPhoto,
      *     uploadedSign: ?TnelbApplicantsSign,
      *     alterationProofs: Collection,
-     *     parentApplication: Mst_Form_s_w
+     *     parentApplication: CC_Forms_Meta
      * }
      */
-    public function buildStaffReviewContext(Mst_Form_s_w $application): array
+    public function buildStaffReviewContext(CC_Forms_Meta $application): array
     {
         return app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($application);
     }
 
-    protected function resolveApplicantPhoto(Mst_Form_s_w $parent): ?TnelbApplicantPhoto
+    protected function resolveApplicantPhoto(CC_Forms_Meta $parent): ?TnelbApplicantPhoto
     {
         foreach ($this->mediaApplicationIds($parent) as $applicationId) {
             $photo = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
@@ -127,7 +133,7 @@ class FormSAlterationService
         return null;
     }
 
-    protected function resolveApplicantSign(Mst_Form_s_w $parent): ?TnelbApplicantsSign
+    protected function resolveApplicantSign(CC_Forms_Meta $parent): ?TnelbApplicantsSign
     {
         foreach ($this->mediaApplicationIds($parent) as $applicationId) {
             $sign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
@@ -142,7 +148,7 @@ class FormSAlterationService
     /**
      * @return list<string>
      */
-    protected function mediaApplicationIds(Mst_Form_s_w $parent): array
+    protected function mediaApplicationIds(CC_Forms_Meta $parent): array
     {
         $ids = [];
         $seen = [];
@@ -160,13 +166,13 @@ class FormSAlterationService
                 break;
             }
 
-            $current = Mst_Form_s_w::where('application_id', $oldId)->first();
+            $current = CC_Forms_Meta::where('application_id', $oldId)->first();
         }
 
         return $ids;
     }
 
-    public function storeAlterationRequest(Request $request): Mst_Form_s_w
+    public function storeAlterationRequest(Request $request): CC_Forms_Meta
     {
         $loginId = (string) $request->input('login_id');
         $parentId = trim((string) $request->input('parent_application_id'));
@@ -176,7 +182,7 @@ class FormSAlterationService
             throw new RuntimeException($verify['message'] ?? 'Invalid parent application.');
         }
 
-        /** @var Mst_Form_s_w $parent */
+        /** @var CC_Forms_Meta $parent */
         $parent = $verify['application'];
         $parentName = trim((string) $parent->applicant_name);
         $parentAddress = trim((string) $parent->applicants_address);
@@ -219,7 +225,7 @@ class FormSAlterationService
             $newName,
             $newAddress
         ) {
-            $child = Mst_Form_s_w::where('old_application', $parent->application_id)
+            $child = CC_Forms_Meta::where('old_application', $parent->application_id)
                 ->where('appl_type', 'A')
                 ->where('login_id', $loginId)
                 ->where('payment_status', 'draft')
@@ -264,12 +270,12 @@ class FormSAlterationService
             if ($child) {
                 $child->update($payload);
             } else {
-                $lastApplication = Mst_Form_s_w::latest('id')->value('application_id');
+                $lastApplication = CC_Forms_Meta::latest('id')->value('application_id');
                 $lastNumber = $lastApplication ? (int) substr($lastApplication, -7) : 1111110;
                 $newApplicationId = 'A' . $parent->form_name . $parent->license_name . date('y')
                     . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
 
-                $child = Mst_Form_s_w::create(array_merge($payload, [
+                $child = CC_Forms_Meta::create(array_merge($payload, [
                     'application_id' => $newApplicationId,
                     'created_at' => now(),
                 ]));
@@ -309,7 +315,7 @@ class FormSAlterationService
         });
     }
 
-    public function saveAlterationDraft(Request $request): Mst_Form_s_w
+    public function saveAlterationDraft(Request $request): CC_Forms_Meta
     {
         $loginId = (string) $request->input('login_id');
         $parentId = trim((string) $request->input('parent_application_id'));
@@ -319,7 +325,7 @@ class FormSAlterationService
             throw new RuntimeException($verify['message'] ?? 'Invalid parent application.');
         }
 
-        /** @var Mst_Form_s_w $parent */
+        /** @var CC_Forms_Meta $parent */
         $parent = $verify['application'];
         $newName = trim((string) $request->input('applicant_name', $parent->applicant_name));
         $newAddress = trim((string) $request->input('applicants_address', $parent->applicants_address));
@@ -344,7 +350,7 @@ class FormSAlterationService
             }
 
             if ($this->requestHasNewWorkRows($request)) {
-                Mst_experience::where('application_id', $child->application_id)->delete();
+                CC_Experience::where('application_id', $child->application_id)->delete();
                 try {
                     $this->storeNewExperienceRows($request, $child, $loginId);
                 } catch (RuntimeException $e) {
@@ -356,9 +362,9 @@ class FormSAlterationService
         });
     }
 
-    protected function findOrCreateAlterationDraftChild(Mst_Form_s_w $parent, string $loginId): Mst_Form_s_w
+    protected function findOrCreateAlterationDraftChild(CC_Forms_Meta $parent, string $loginId): CC_Forms_Meta
     {
-        $child = Mst_Form_s_w::where('old_application', $parent->application_id)
+        $child = CC_Forms_Meta::where('old_application', $parent->application_id)
             ->where('appl_type', 'A')
             ->where('login_id', $loginId)
             ->where('payment_status', 'draft')
@@ -369,12 +375,12 @@ class FormSAlterationService
             return $child;
         }
 
-        $lastApplication = Mst_Form_s_w::latest('id')->value('application_id');
+        $lastApplication = CC_Forms_Meta::latest('id')->value('application_id');
         $lastNumber = $lastApplication ? (int) substr($lastApplication, -7) : 1111110;
         $newApplicationId = 'A' . $parent->form_name . $parent->license_name . date('y')
             . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
 
-        return Mst_Form_s_w::create([
+        return CC_Forms_Meta::create([
             'application_id' => $newApplicationId,
             'login_id' => $loginId,
             'applicant_name' => $parent->applicant_name,
@@ -411,14 +417,14 @@ class FormSAlterationService
         ]);
     }
 
-    protected function storeAlterationProof(Mst_Form_s_w $child, UploadedFile $file, string $documentType): void
+    protected function storeAlterationProof(CC_Forms_Meta $child, UploadedFile $file, string $documentType): void
     {
         app(FormSProofDocumentService::class)->saveAlterationProofUpload($child, $file, $documentType);
     }
 
     protected function alterationHasProof(
         Request $request,
-        Mst_Form_s_w $parent,
+        CC_Forms_Meta $parent,
         string $proofName,
         string $uploadField
     ): bool {
@@ -426,7 +432,7 @@ class FormSAlterationService
             return true;
         }
 
-        $draft = Mst_Form_s_w::where('old_application', $parent->application_id)
+        $draft = CC_Forms_Meta::where('old_application', $parent->application_id)
             ->where('appl_type', FormSProofDocumentService::ALTERATION_APP_TYPE)
             ->where('login_id', $parent->login_id)
             ->where('payment_status', 'draft')
@@ -487,7 +493,7 @@ class FormSAlterationService
         return !empty($existingFlags[$key]) && (string) $existingFlags[$key] === '1';
     }
 
-    protected function storeNewExperienceRows(Request $request, Mst_Form_s_w $child, string $loginId): void
+    protected function storeNewExperienceRows(Request $request, CC_Forms_Meta $child, string $loginId): void
     {
         $indexes = $this->collectNewWorkRowIndexes($request);
 
@@ -524,7 +530,7 @@ class FormSAlterationService
 
             $created++;
 
-            $experience = Mst_experience::create([
+            $experience = CC_Experience::create([
                 'login_id' => $loginId,
                 'application_id' => $child->application_id,
                 'emp_type' => $empTypes[$key] ?? null,

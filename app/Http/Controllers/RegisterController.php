@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Admin\TnelbFee;
 use App\Models\admin\TnelbForms;
 use App\Models\EA_Application_model;
-use App\Models\Mst_Form_s_w;
+use App\Models\CC_Forms_Meta;
 use App\Models\MstLicence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -414,7 +414,8 @@ class RegisterController extends BaseController
         }
 
         
-        $application = Mst_Form_s_w::where('application_id', $application_id)->first();
+        $application = CC_Forms_Meta::where('application_id', $application_id)->first()
+            ?? DB::table('tnelb_application_tbl')->where('application_id', $application_id)->first();
 
         if (!$application) {
             return redirect()->back()->with('error', 'Application not found.');

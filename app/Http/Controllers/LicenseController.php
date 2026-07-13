@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Mst_Form_s_w;
+use App\Models\CC_Forms_Meta;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Register;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -86,22 +86,24 @@ class LicenseController extends Controller
 
         if ($query == true) {
             if (!empty($request->type)) {
-                if ($request->type == "License") {
-                    Mst_Form_s_w::where('application_id', $request->application_id)
-                        ->update(['license_verify' => 1]);
-                } else {
-                    Mst_Form_s_w::where('application_id', $request->application_id)
-                        ->update(['cert_verify' => 1]);
+                $verifyField = $request->type == 'License' ? 'license_verify' : 'cert_verify';
+                $updated = DB::table('tnelb_application_tbl')
+                    ->where('application_id', $request->application_id)
+                    ->update([$verifyField => 1]);
+                if (! $updated && Schema::hasColumn('cc_form_s_meta', $verifyField)) {
+                    CC_Forms_Meta::where('application_id', $request->application_id)
+                        ->update([$verifyField => 1]);
                 }
             }
         } else {
             if (!empty($request->type)) {
-                if ($request->type == "License") {
-                    Mst_Form_s_w::where('application_id', $request->application_id)
-                        ->update(['license_verify' => 2]);
-                } else {
-                    Mst_Form_s_w::where('application_id', $request->application_id)
-                        ->update(['cert_verify' => 2]);
+                $verifyField = $request->type == 'License' ? 'license_verify' : 'cert_verify';
+                $updated = DB::table('tnelb_application_tbl')
+                    ->where('application_id', $request->application_id)
+                    ->update([$verifyField => 2]);
+                if (! $updated && Schema::hasColumn('cc_form_s_meta', $verifyField)) {
+                    CC_Forms_Meta::where('application_id', $request->application_id)
+                        ->update([$verifyField => 2]);
                 }
             }
         }

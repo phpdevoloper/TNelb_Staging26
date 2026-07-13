@@ -13,6 +13,18 @@
             var TWO_YEARS_MS = 730 * 86400000;
             var hideUploadWhenDocExists = @json($hideUploadWhenDocExists);
             var isAlterationMode = @json($isAlterationMode);
+            var DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
+
+            function competencyStoredDocHref(storedPath) {
+                storedPath = String(storedPath || '').trim();
+                if (!storedPath) return '';
+                if (/^https?:\/\//i.test(storedPath)) return storedPath;
+                if (/^FORM_[A-Z]+\//i.test(storedPath)) {
+                    return '/' + DOCUMENT_PUBLIC_URL_PREFIX + '/' + storedPath.replace(/^\/+/, '');
+                }
+                if (storedPath.charAt(0) === '/') return storedPath;
+                return '/' + storedPath.replace(/^\/+/, '');
+            }
 
             // Keep local in this partial so pages that don't load form_s.js
             // still have the same upload-error cleanup behavior.
@@ -127,11 +139,7 @@
                     ? 'input[name="existing_work_relieving_document[]"]'
                     : 'input[name="existing_work_document[]"]';
                 var path = ($row.find(sel).first().val() || '').trim();
-                if (!path) return '';
-                if (/^https?:\/\//i.test(path)) return path;
-                var base = (typeof BASE_URL !== 'undefined' ? BASE_URL : '').replace(/\/$/, '');
-                if (path.charAt(0) === '/') return base + path;
-                return base + '/' + path.replace(/^\/+/, '');
+                return competencyStoredDocHref(path);
             }
 
             function summaryAttachmentBlock(label, $input, naText, $row) {

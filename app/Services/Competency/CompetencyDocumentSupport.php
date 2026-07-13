@@ -52,4 +52,45 @@ class CompetencyDocumentSupport
     {
         return 'competency.documents.download';
     }
+
+    public static function storageRoot(): string
+    {
+        return (string) config('document_versioning.storage_root', storage_path('app/documents'));
+    }
+
+    public static function publicUrlPrefix(): string
+    {
+        return trim((string) config('document_versioning.public_url_prefix', 'competency'), '/');
+    }
+
+    public static function publicBaseUrl(): string
+    {
+        $configured = config('document_versioning.public_base_url');
+
+        return rtrim((string) ($configured ?: config('app.url')), '/');
+    }
+
+    /**
+     * Browser URL for a stored relative path (FORM_S/NEW/EDUCATION/...pdf).
+     * Uses a relative path locally so links work on 127.0.0.1:8000, localhost, etc.
+     * Set DOCUMENT_PUBLIC_BASE_URL on production for a full external URL.
+     */
+    public static function publicUrlForStoredPath(string $storedPath): string
+    {
+        $storedPath = trim(str_replace('\\', '/', $storedPath));
+        $prefix = self::publicUrlPrefix();
+        $relative = '/' . $prefix . '/' . ltrim($storedPath, '/');
+
+        $configuredBase = config('document_versioning.public_base_url');
+        if ($configuredBase !== null && trim((string) $configuredBase) !== '') {
+            return rtrim((string) $configuredBase, '/') . $relative;
+        }
+
+        return $relative;
+    }
+
+    public static function serveViaLaravel(): bool
+    {
+        return (bool) config('document_versioning.serve_via_laravel', true);
+    }
 }

@@ -33,6 +33,7 @@ class CC_Experience extends Model
 {
     use HasFactory;
 
+    /** Shared across competency forms S, W, WH, P (`cc_exp`). */
     protected $table = 'cc_exp';
 
     protected $primaryKey = 'exp_id';

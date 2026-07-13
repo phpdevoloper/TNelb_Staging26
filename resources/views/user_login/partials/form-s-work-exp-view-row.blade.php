@@ -80,13 +80,13 @@
     }
 
     $supportDoc = (string) ($expRow->support_document ?? $expRow->upload_document ?? '');
-    $relieveDoc = (string) ($expRow->releive_document ?? '');
+    $relieveDoc = (string) ($expRow->releive_document ?? $expRow->relieve_document ?? '');
     $supportDocUrl = !empty($expRow->support_document_url)
         ? $expRow->support_document_url
-        : ($supportDoc !== '' ? competency_document_url($supportDoc, 'experience', (int) ($expRow->exp_id ?? 0), 'experience_doc') : null);
+        : ($supportDoc !== '' ? competency_document_url($supportDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'experience_doc') : null);
     $relieveDocUrl = !empty($expRow->releive_document_url)
         ? $expRow->releive_document_url
-        : ($relieveDoc !== '' ? competency_document_url($relieveDoc, 'experience', (int) ($expRow->exp_id ?? 0), 'relieving_doc') : null);
+        : ($relieveDoc !== '' ? competency_document_url($relieveDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'relieving_doc') : null);
     $isAlterationNew = !empty($expRow->is_alteration_new);
     $sno = isset($sno) ? $sno : 1;
     $rowIndex = $rowIndex ?? ($sno - 1);

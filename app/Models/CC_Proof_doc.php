@@ -9,6 +9,7 @@ class CC_Proof_doc extends Model
 {
     use HasFactory;
 
+    /** Shared across competency forms S, W, WH, P (`cc_proof_doc`). */
     protected $table = 'cc_proof_doc';
 
     protected $primaryKey = 'p_id';

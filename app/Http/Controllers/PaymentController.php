@@ -6,16 +6,17 @@ use App\Models\CC_Forms_Meta;
 use App\Models\CC_Payments;
 use App\Models\EA_Application_model;
 use App\Models\TnelbFormP;
+use App\Services\Competency\CompetencyMetaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class PaymentController extends Controller
+class PaymentController extends BaseController
 {
 
     protected $dbNow;
     public function __construct()
     {
-        parent::__construct();   
+        parent::__construct();
         $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
     }
 
@@ -36,7 +37,7 @@ class PaymentController extends Controller
 
 
         if ($request->application_id) {
-            $form = CC_Forms_Meta::where('application_id', $validated['application_id'])->first();
+            $form = CC_Forms_Meta::findByApplicationId($validated['application_id']);
         }
         
 
@@ -83,16 +84,13 @@ class PaymentController extends Controller
 
 
         if ($payment) {
-            if (in_array($request->form_name, ['S', 'W', 'WH'])) {
-
-                CC_Forms_Meta::where('application_id', $validated['application_id'])
-                ->update([
-                    'payment_status' => 'Y', // e.g., 'payment', 'draft', etc.
-                ]);
-            }else {
+            $metaService = app(CompetencyMetaService::class);
+            if ($metaService->supportsForm((string) ($form->form_name ?? ''))) {
+                $form->update(['payment_status' => 'Y']);
+            } else {
                 EA_Application_model::where('application_id', $validated['application_id'])
                 ->update([
-                    'payment_status' => 'Y', // e.g., 'payment', 'draft', etc.
+                    'payment_status' => 'Y',
                 ]);
             }
         }

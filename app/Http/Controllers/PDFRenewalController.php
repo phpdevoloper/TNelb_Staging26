@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-use App\Models\Mst_Form_s_w;
+use App\Services\Competency\CompetencyApplicationService;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
 use App\Models\Mst_education;
 use App\Models\Mst_experience;
 use App\Models\Mst_documents;
@@ -19,23 +21,55 @@ use Stichoza\GoogleTranslate\GoogleTranslate;
 
 class PDFRenewalController extends Controller
 {
+    private function resolveRenewalApplication(string $applicationId): object
+    {
+        $form = app(CompetencyApplicationService::class)->findApplicantWithPayment($applicationId);
+        if (! $form) {
+            abort(404, 'Application not found');
+        }
+
+        return $form;
+    }
+
+    private function resolveRenewalEducation(string $applicationId, object $form)
+    {
+        $masterId = trim((string) ($form->old_application ?? $applicationId));
+        $ccRows = CC_Education::where('application_id', $masterId)->orderByDesc('year_of_passing')->get();
+        if ($ccRows->isNotEmpty()) {
+            return $ccRows;
+        }
+
+        $education = Mst_education::where('application_id', $applicationId)->get();
+        if ($education->isEmpty()) {
+            $education = Mst_education::where('application_id', $form->old_application ?? '')->get();
+        }
+
+        return $education;
+    }
+
+    private function resolveRenewalExperience(string $applicationId, object $form)
+    {
+        $masterId = trim((string) ($form->old_application ?? $applicationId));
+        $ccRows = CC_Experience::where('application_id', $masterId)->orderBy('exp_id')->get();
+        if ($ccRows->isNotEmpty()) {
+            return $ccRows;
+        }
+
+        $experience = Mst_experience::where('application_id', $applicationId)->get();
+        if ($experience->isEmpty()) {
+            $experience = Mst_experience::where('application_id', $form->old_application ?? '')->get();
+        }
+
+        return $experience;
+    }
+
     public function generaterenewalPDF($newApplicationId)
     {
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->firstOrFail();
+        $form = $this->resolveRenewalApplication($newApplicationId);
 
 
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-
-        if ($education->isEmpty()) {
-            $education = Mst_education::where('application_id', $form->old_application)->get();
-        }
-
-
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
-
-        if ($experience->isEmpty()) {
-            $experience = Mst_experience::where('application_id', $form->old_application)->get();
-        }
+        $education = $this->resolveRenewalEducation($newApplicationId, $form);
+        $experience = $this->resolveRenewalExperience($newApplicationId, $form);
         
         
         $documents = Schema::hasTable('mst_documents')
@@ -206,9 +240,9 @@ class PDFRenewalController extends Controller
     public function generatetcp($newApplicationId)
     {
         // Fetch form details
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+        $form = $this->resolveRenewalApplication($newApplicationId);
+        $education = $this->resolveRenewalEducation($newApplicationId, $form);
+        $experience = $this->resolveRenewalExperience($newApplicationId, $form);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
         // $documents = Mst_documents::where('application_id', $newApplicationId)->first();
         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
@@ -431,7 +465,7 @@ class PDFRenewalController extends Controller
     public function generaterenewalTamilPDF($newApplicationId)
     {
 
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->firstOrFail();
+        $form = $this->resolveRenewalApplication($newApplicationId);
 
 
         $education = Mst_education::where('application_id', $newApplicationId)->get();
@@ -439,13 +473,8 @@ class PDFRenewalController extends Controller
         if ($education->isEmpty()) {
             $education = Mst_education::where('application_id', $form->old_application)->get();
         }
-
-
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
-
-        if ($experience->isEmpty()) {
-            $experience = Mst_experience::where('application_id', $form->old_application)->get();
-        }
+        
+        $experience = $this->resolveRenewalExperience($newApplicationId, $form);
         
         
         $documents = Schema::hasTable('mst_documents')
@@ -701,9 +730,9 @@ class PDFRenewalController extends Controller
 
     public function downloadPaymentReceipt($newApplicationId)
     {
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+        $form = $this->resolveRenewalApplication($newApplicationId);
+        $education = $this->resolveRenewalEducation($newApplicationId, $form);
+        $experience = $this->resolveRenewalExperience($newApplicationId, $form);
         $documents = Schema::hasTable('mst_documents')
             ? Mst_documents::where('application_id', $newApplicationId)->first()
             : null;

@@ -6,7 +6,7 @@ use App\Models\Admin\Mst_equipment_tbl;
 use App\Models\EA_Application_model;
 use App\Models\Equipment_storetmp_A;
 use App\Models\ESA_Application_model;
-use App\Models\Mst_Form_s_w;
+use App\Services\Competency\CompetencyApplicationService;
 use App\Models\ProprietorformA;
 use App\Models\Tnelb_Addressproof_cl;
 use App\Models\Tnelb_banksolvency_a;
@@ -30,7 +30,7 @@ class PDFFormAController extends Controller
             ?? DB::table('tnelb_esa_applications')->where('application_id', $newApplicationId)->first()
             ?? DB::table('tnelb_esb_applications')->where('application_id', $newApplicationId)->first()
             ?? DB::table('tnelb_eb_applications')->where('application_id', $newApplicationId)->first()
-            ?? Mst_Form_s_w::where('application_id', $newApplicationId)->first();
+            ?? app(CompetencyApplicationService::class)->findApplicantWithPayment($newApplicationId);
 
         $education = TnelbApplicantStaffDetail::where('application_id', $newApplicationId)->orderby('id', 'ASC')->get();
         $proprietor = ProprietorformA::where('application_id', $newApplicationId)->where('proprietor_flag', '1')->get();

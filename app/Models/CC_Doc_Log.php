@@ -12,8 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Production document audit log (table: documents_log).
- * application_id / parent_application_id = cc_form_s_meta.app_id
+ * Production document audit log (table: cc_doc_log).
+ * application_id / parent_application_id = cc_form_*_meta.app_id (any competency form).
  */
 class CC_Doc_Log extends Model
 {

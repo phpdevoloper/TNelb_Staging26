@@ -554,7 +554,15 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
     Route::get('/download/{versionId}', [DocumentSampleController::class, 'download'])->name('download');
 });
 
-// ------------------------ Competency document log (FORM_S / FORM_W / FORM_WH / …) ------------------------
+// ------------------------ Competency document files (local dev fallback only) ------------------------
+// Production: set DOCUMENT_SERVE_VIA_LARAVEL=false and configure Apache/nginx Alias so
+// {DOCUMENT_PUBLIC_URL_PREFIX}/FORM_* is served directly from DOCUMENT_STORAGE_ROOT.
+if (config('document_versioning.serve_via_laravel', true)) {
+    Route::get('/competency/{filePath}', [FormSDocumentController::class, 'viewByPath'])
+        ->where('filePath', 'FORM_[A-Z]+/.+')
+        ->name('competency.file');
+}
+
 Route::prefix('competency/documents')->name('competency.documents.')->group(function () {
     Route::get('/download/{logId}', [FormSDocumentController::class, 'download'])->name('download');
 });

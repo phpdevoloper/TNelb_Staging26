@@ -28,7 +28,10 @@ use App\Services\ReturnedApplicationPayloadMerge;
 use App\Services\CcDigitizationLinkService;
 use App\Services\FormS\FormSDocumentUploadHandler;
 use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\Competency\CompetencyCertificateService;
+use App\Services\Competency\CompetencyMetaService;
 use App\Services\FormS\FormSProofDocumentService;
+use App\Services\FormS\SensitiveProofCryptService;
 use Illuminate\Http\UploadedFile;
 
 class FormController extends BaseController
@@ -54,7 +57,7 @@ class FormController extends BaseController
         ->first();
     }
 
-    /** Competency certificate forms stored in cc_form_s_meta (Form S, W, WH, P). */
+    /** Competency forms S / W / WH / P — meta is per-form; edu/exp/proof use shared cc_* tables. */
     private function isCompetencyForm(?string $formName): bool
     {
         return in_array($formName, ['S', 'W', 'WH', 'P'], true);
@@ -180,6 +183,18 @@ class FormController extends BaseController
                 $formName
             );
         }
+
+        if ($request->input('aadhaar_doc_removed') !== '1') {
+            $proofService->ensureProofDocumentEncryptedAtRest(
+                $masterApplicationId,
+                FormSProofDocumentService::PROOF_AADHAAR
+            );
+        }
+
+        $proofService->ensureProofDocumentEncryptedAtRest(
+            $masterApplicationId,
+            FormSProofDocumentService::PROOF_PAN
+        );
     }
 
     private function buildCcFormsMetaPayload(
@@ -1356,7 +1371,7 @@ class FormController extends BaseController
             return;
         }
 
-        $existingForm = CC_Forms_Meta::where('application_id', $applicationId)->first();
+        $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
         if (! $existingForm) {
             return;
         }
@@ -1364,13 +1379,18 @@ class FormController extends BaseController
         $editable = array_flip($editableSections);
         $formName = strtoupper((string) ($request->input('form_name') ?: $existingForm->form_name));
         $masterAppId = $this->resolveFormSMasterApplicationId($existingForm, $formName);
+        $proofCrypt = app(SensitiveProofCryptService::class);
 
-        $aadhaarPlain = (string) (CC_Proof_doc::where('application_id', $masterAppId)
-            ->where('proof_name', FormSProofDocumentService::PROOF_AADHAAR)
-            ->value('proof_no') ?? '');
-        $panPlain = CC_Proof_doc::where('application_id', $masterAppId)
-            ->where('proof_name', FormSProofDocumentService::PROOF_PAN)
-            ->value('proof_no');
+        $aadhaarPlain = (string) ($proofCrypt->decryptProofNumber(
+            CC_Proof_doc::where('application_id', $masterAppId)
+                ->where('proof_name', FormSProofDocumentService::PROOF_AADHAAR)
+                ->value('proof_no')
+        ) ?? '');
+        $panPlain = $proofCrypt->decryptProofNumber(
+            CC_Proof_doc::where('application_id', $masterAppId)
+                ->where('proof_name', FormSProofDocumentService::PROOF_PAN)
+                ->value('proof_no')
+        );
 
         $fmtDate = static function ($v): ?string {
             if ($v === null || $v === '') {
@@ -1428,22 +1448,49 @@ class FormController extends BaseController
         }
     }
 
+    private function competencyCertificateService(): CompetencyCertificateService
+    {
+        return app(CompetencyCertificateService::class);
+    }
+
+    private function loadIssuedCertificateForView(string $applicationId, ?string $formName = null): ?object
+    {
+        $cert = $this->competencyCertificateService()->asLicenseDetails($applicationId, $formName);
+        if ($cert) {
+            return $cert;
+        }
+
+        return DB::table('tnelb_license')
+            ->where('application_id', $applicationId)
+            ->select('*')
+            ->first();
+    }
+
     /**
-     * Populate issued licence number for renewal fee AJAX when tnelb_license has no row or empty number.
+     * Populate issued licence number for renewal fee AJAX when cert row has no number yet.
      */
     private function enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details)
     {
         if (!$application_details) {
             return $license_details;
         }
-        $issued = $license_details ? trim((string) ($license_details->license_number ?? '')) : '';
+        $issued = $license_details ? trim((string) ($license_details->license_number ?? $license_details->certificate_no ?? '')) : '';
         if ($issued === '') {
             $issued = trim((string) ($application_details->license_number ?? ''));
         }
         if ($issued === '') {
-            $compRow = CC_Forms_Meta::where('application_id', $appl_id)->first();
+            $compRow = CC_Forms_Meta::findByApplicationId($appl_id);
             if ($compRow) {
                 $issued = trim((string) ($compRow->wcc_no ?? ''));
+            }
+        }
+        if ($issued === '') {
+            $cert = $this->competencyCertificateService()->asLicenseDetails(
+                $appl_id,
+                $application_details->form_name ?? null
+            );
+            if ($cert) {
+                return $cert;
             }
         }
         if ($issued === '') {
@@ -1459,6 +1506,135 @@ class FormController extends BaseController
         return $license_details;
     }
 
+    /** Dashboard/edit views expect draft|payment labels (not raw N/Y). */
+    private function normalizeCcPaymentStatusForEdit(?string $status): string
+    {
+        $normalized = strtolower(trim((string) $status));
+
+        return match ($normalized) {
+            'n', 'draft', '' => 'draft',
+            'y', 'payment', 'paid', 'success' => 'payment',
+            default => $normalized !== '' ? $normalized : 'draft',
+        };
+    }
+
+    /** Map cc_form_s_meta columns to legacy edit_application field names. */
+    private function normalizeCcMetaRowForEdit(object $row): object
+    {
+        $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
+        $row->status = $row->status ?? $row->app_status ?? null;
+        $row->applicants_address = $row->applicants_address ?? $row->applicant_address ?? null;
+        $row->previously_number = $row->previously_number ?? $row->previous_scc_no ?? null;
+        $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
+        $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
+        $row->previously_valid_to = $row->previously_valid_to ?? $row->scc_to_date ?? null;
+        $row->previously_date = $row->previously_date ?? $row->scc_to_date ?? null;
+        $row->competency_certificate_no = $row->competency_certificate_no ?? $row->wcc_no ?? null;
+        $row->certificate_no = $row->certificate_no ?? $row->wcc_no ?? null;
+        $row->certificate_valid_to = $row->certificate_valid_to ?? $row->wcc_to ?? null;
+        $row->certificate_issue_date = $row->certificate_issue_date ?? $row->wcc_issue_date ?? null;
+        $row->certificate_valid_from = $row->certificate_valid_from ?? $row->wcc_from ?? null;
+        $row->certificate_date = $row->certificate_date ?? $row->wcc_to ?? null;
+        $row->payment_status = $this->normalizeCcPaymentStatusForEdit($row->payment_status ?? null);
+        $row->id = $row->id ?? $row->app_id ?? null;
+        $row->form_id = $row->form_id ?? null;
+        $row->license_verify = isset($row->license_verify)
+            ? (int) $row->license_verify
+            : (! empty($row->previously_number) ? 1 : 0);
+        $row->cert_verify = isset($row->cert_verify)
+            ? (int) $row->cert_verify
+            : (! empty($row->certificate_no) ? 1 : 0);
+
+        return $row;
+    }
+
+    private function enrichCcMetaProofFieldsForEdit(object $applicationDetails, string $masterApplicationId): object
+    {
+        $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
+            ->whereIn('proof_type', ['aadhaar', 'pan'])
+            ->get();
+
+        foreach ($proofRows as $proof) {
+            $proofType = strtolower((string) ($proof->proof_type ?? ''));
+            if ($proofType === 'aadhaar') {
+                if (! empty($proof->proof_no)) {
+                    $applicationDetails->aadhaar = $proof->proof_no;
+                }
+                if (! empty($proof->proof_doc)) {
+                    $applicationDetails->aadhaar_doc = $proof->proof_doc;
+                }
+            } elseif ($proofType === 'pan') {
+                if (! empty($proof->proof_no)) {
+                    $applicationDetails->pancard = $proof->proof_no;
+                }
+                if (! empty($proof->proof_doc)) {
+                    $applicationDetails->pan_doc = $proof->proof_doc;
+                    $applicationDetails->pancard_doc = $proof->proof_doc;
+                }
+            }
+        }
+
+        return $applicationDetails;
+    }
+
+    /**
+     * Load Form S / W / WH / P draft edit data from CC tables
+     * (per-form cc_form_*_meta + shared cc_edu, cc_exp, cc_proof_doc).
+     *
+     * @return array{application_details: object, edu_details: \Illuminate\Support\Collection, exp_details: \Illuminate\Support\Collection, master_application_id: string}|null
+     */
+    private function loadCompetencyEditBundle(string $applicationId): ?array
+    {
+        $ccMeta = CC_Forms_Meta::findByApplicationId($applicationId);
+        if (! $ccMeta || ! in_array($ccMeta->form_name, ['S', 'W', 'WH'], true)) {
+            return null;
+        }
+
+        $masterMeta = app(FormSApplicationWorkflowService::class)->masterApplication($ccMeta);
+        $masterApplicationId = (string) $masterMeta->application_id;
+
+        $applicationDetails = $this->normalizeCcMetaRowForEdit((object) $ccMeta->toArray());
+        $applicationDetails = $this->enrichCcMetaProofFieldsForEdit($applicationDetails, $masterApplicationId);
+
+        $eduDetails = CC_Education::where('application_id', $masterApplicationId)
+            ->orderByDesc('year_of_passing')
+            ->get()
+            ->map(function (CC_Education $edu) {
+                $row = (object) $edu->toArray();
+                $row->id = $edu->edu_id;
+
+                return $row;
+            });
+
+        $expDetails = CC_Experience::where('application_id', $masterApplicationId)
+            ->orderBy('exp_id')
+            ->get()
+            ->map(function (CC_Experience $exp) {
+                $row = (object) $exp->toArray();
+                $row->id = $exp->exp_id;
+                $row->releive_document = $exp->relieve_document ?? $exp->releive_document ?? null;
+
+                return $row;
+            });
+
+        return [
+            'application_details' => $applicationDetails,
+            'edu_details' => $eduDetails,
+            'exp_details' => $expDetails,
+            'master_application_id' => $masterApplicationId,
+        ];
+    }
+
+    private function assertApplicantOwnsApplication(object $applicationDetails): ?\Illuminate\Http\RedirectResponse
+    {
+        $loginId = Auth::user()->login_id ?? session('login_id');
+        if (! $loginId || (string) ($applicationDetails->login_id ?? '') !== (string) $loginId) {
+            return redirect()->route('dashboard')->with('error', 'You can only edit your own application.');
+        }
+
+        return null;
+    }
+
 
     public function editApplication($appl_id)
     {
@@ -1470,61 +1646,71 @@ class FormController extends BaseController
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
 
-        
-        $application_details = DB::table('tnelb_application_tbl')
-        ->where('application_id', $appl_id)
-        ->select('*')
-        ->first();
+        $proofApplicationId = $appl_id;
+        $ccBundle = $this->loadCompetencyEditBundle($appl_id);
+
+        if ($ccBundle) {
+            $application_details = $ccBundle['application_details'];
+            $edu_details = $ccBundle['edu_details'];
+            $exp_details = $ccBundle['exp_details'];
+            $proofApplicationId = $ccBundle['master_application_id'];
+        } else {
+            $application_details = DB::table('tnelb_application_tbl')
+                ->where('application_id', $appl_id)
+                ->select('*')
+                ->first();
+
+            if (! $application_details) {
+                return redirect()->route('dashboard')->with('error', 'Application not found.');
+            }
+
+            $edu_details = DB::table('tnelb_applicants_edu')
+                ->where('application_id', $appl_id)
+                ->select('*')
+                ->orderBy('year_of_passing', 'desc')
+                ->get();
+
+            $exp_details = DB::table('tnelb_applicants_exp')
+                ->where('application_id', $appl_id)
+                ->select('*')
+                ->orderBy('exp_id', 'asc')
+                ->get();
+        }
+
+        if ($redirect = $this->assertApplicantOwnsApplication($application_details)) {
+            return $redirect;
+        }
 
         $this->decryptPanForDisplay($application_details);
 
-        
         $form_details = MstLicence::where('status', 1)
             ->select('*')
             ->get()
             ->toArray();
-        
+
         $current_form = collect($form_details)->firstWhere('form_code', $application_details->form_name);
 
-         $licence_name = DB::table('mst_licences')->where('form_code', $application_details->form_name)->first();
+        $licence_name = DB::table('mst_licences')->where('form_code', $application_details->form_name)->first();
 
         if (!$current_form) {
             abort(504, 'Form Not Found..');
         }
-        
+
         $fees_details = $this->getApplicableFee($current_form['id']);
 
         if (!$fees_details) {
             abort(505, 'The requested form details could not be found.');
         }
 
-
-        if (!$application_details) {
-            return redirect()->route('dashboard')->with('error', 'Application not found.');
-        }
-
-        $edu_details = DB::table('tnelb_applicants_edu')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->orderBy('year_of_passing', 'desc')
-            ->get();
-
-        $exp_details = DB::table('tnelb_applicants_exp')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->orderBy('exp_id', 'asc')
-            ->get();
-
-
-        $license_details = DB::table('tnelb_license')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->first();
+        $license_details = $this->loadIssuedCertificateForView(
+            $appl_id,
+            $application_details->form_name ?? null
+        );
         $license_details = $this->enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details);
 
-        $applicant_photo = $this->loadApplicantPhotoForView($appl_id);
+        $applicant_photo = $this->loadApplicantPhotoForView($proofApplicationId);
 
-        $proof_doc = $this->loadApplicantSignForView($appl_id);
+        $proof_doc = $this->loadApplicantSignForView($proofApplicationId);
 
         $applicationid = $appl_id;
 
@@ -1579,24 +1765,44 @@ class FormController extends BaseController
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
 
-        $application_details = DB::table('tnelb_application_tbl')
-            ->where('application_id', $appl_id)
-            ->select('*')
-            ->first();
+        $proofApplicationId = $appl_id;
+        $ccBundle = $this->loadCompetencyEditBundle($appl_id);
+
+        if ($ccBundle) {
+            $application_details = $ccBundle['application_details'];
+            $edu_details = $ccBundle['edu_details'];
+            $exp_details = $ccBundle['exp_details'];
+            $proofApplicationId = $ccBundle['master_application_id'];
+        } else {
+            $application_details = DB::table('tnelb_application_tbl')
+                ->where('application_id', $appl_id)
+                ->select('*')
+                ->first();
+
+            if (! $application_details) {
+                return redirect()->route('dashboard')->with('error', 'Application not found.');
+            }
+
+            $edu_details = DB::table('tnelb_applicants_edu')
+                ->where('application_id', $appl_id)
+                ->orderBy('year_of_passing', 'desc')
+                ->get();
+
+            $exp_details = DB::table('tnelb_applicants_exp')
+                ->where('application_id', $appl_id)
+                ->orderBy('exp_id', 'asc')
+                ->get();
+        }
 
         $this->decryptPanForDisplay($application_details);
 
-        if (!$application_details) {
-            return redirect()->route('dashboard')->with('error', 'Application not found.');
-        }
-
-        if ((string) $application_details->status !== 'QU') {
+        $returnStatus = strtoupper(trim((string) ($application_details->status ?? $application_details->app_status ?? '')));
+        if ($returnStatus !== 'QU') {
             return redirect()->route('dashboard')->with('error', 'This page is only for applications returned with a query.');
         }
 
-        $loginId = session('login_id');
-        if (!$loginId || (string) $application_details->login_id !== (string) $loginId) {
-            return redirect()->route('dashboard')->with('error', 'You can only edit your own returned application.');
+        if ($redirect = $this->assertApplicantOwnsApplication($application_details)) {
+            return $redirect;
         }
 
         $form_details = MstLicence::where('status', 1)->select('*')->get()->toArray();
@@ -1612,23 +1818,14 @@ class FormController extends BaseController
             abort(505, 'The requested form details could not be found.');
         }
 
-        $edu_details = DB::table('tnelb_applicants_edu')
-            ->where('application_id', $appl_id)
-            ->orderBy('year_of_passing', 'desc')
-            ->get();
-
-        $exp_details = DB::table('tnelb_applicants_exp')
-            ->where('application_id', $appl_id)
-            ->orderBy('exp_id', 'asc')
-            ->get();
-
-        $license_details = DB::table('tnelb_license')
-            ->where('application_id', $appl_id)
-            ->first();
+        $license_details = $this->loadIssuedCertificateForView(
+            $appl_id,
+            $application_details->form_name ?? null
+        );
         $license_details = $this->enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details);
 
-        $applicant_photo = $this->loadApplicantPhotoForView($appl_id);
-        $proof_doc = $this->loadApplicantSignForView($appl_id);
+        $applicant_photo = $this->loadApplicantPhotoForView($proofApplicationId);
+        $proof_doc = $this->loadApplicantSignForView($proofApplicationId);
         $applicationid = $appl_id;
 
         // Applicant-facing copy: only what was recorded in return-to-applicant log (not tnelb_query_applicable / internal staff queries)
@@ -1926,7 +2123,7 @@ class FormController extends BaseController
         // Idempotency guard: if the client already has an application_id, do not insert
         // a new application row. Route through draft_update so the same record is updated.
         $existingApplicationId = trim((string) $request->input('application_id', ''));
-        if ($existingApplicationId !== '' && CC_Forms_Meta::where('application_id', $existingApplicationId)->exists()) {
+        if ($existingApplicationId !== '' && CC_Forms_Meta::existsByApplicationId($existingApplicationId)) {
             return $this->draft_update($request, $existingApplicationId);
         }
 
@@ -1946,7 +2143,8 @@ class FormController extends BaseController
             // Generate New Application ID
             $appl_type = $request->appl_type ?? '';
             if (in_array($appl_type, ['R', 'D'], true)) {
-                $lastApplication = CC_Forms_Meta::latest('app_id')->value('application_id');
+                $metaService = app(CompetencyMetaService::class);
+        $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
                     $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
@@ -1954,7 +2152,8 @@ class FormController extends BaseController
                     $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . '1111111';
                 }     
             }else{
-                $lastApplication = CC_Forms_Meta::latest('app_id')->value('application_id');
+                $metaService = app(CompetencyMetaService::class);
+        $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
                     $newApplicationId = $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
@@ -1966,7 +2165,7 @@ class FormController extends BaseController
             
             $aadhaarFilename = null;
             
-            $form = CC_Forms_Meta::create(array_merge([
+            $form = CC_Forms_Meta::createForForm((string) ($request->form_name ?? 'S'), array_merge([
                 'login_id'            => $loginId,
                 'application_id'      => $newApplicationId,
                 'applicant_name'      => $request->applicant_name ?? '',
@@ -2186,7 +2385,7 @@ class FormController extends BaseController
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
 
-        $existingForm = CC_Forms_Meta::where('application_id', $applicationId)->first();
+        $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
         $masterApplicationId = $existingForm
             ? $this->resolveFormSMasterApplicationId($existingForm, $request->form_name ?? null)
             : $applicationId;
@@ -2387,6 +2586,14 @@ class FormController extends BaseController
         });
         $validator->validate();
 
+        $action = $request->input('form_action', 'draft');
+        $existingPaymentStatus = strtoupper(trim((string) ($existingForm->payment_status ?? '')));
+        $paymentStatus = $action === 'draft'
+            ? 'N'
+            : (in_array($existingPaymentStatus, ['Y', 'PAYMENT', 'PAID'], true)
+                ? $existingForm->payment_status
+                : 'payment');
+
         DB::beginTransaction();
 
         $loginId = $request->login_id;
@@ -2410,7 +2617,7 @@ class FormController extends BaseController
                 'wcc_to'            => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'wcc_issue_date'    => $request->certificate_issue_date ?: null,
                 'wcc_from'          => $request->certificate_valid_from ?: null,
-                'payment_status'    => 'payment',
+                'payment_status'    => $paymentStatus,
                 'submitted_date'    => $this->dbNow,
                 'updated_at'        => $this->dbNow,
             ]));
@@ -2517,7 +2724,9 @@ class FormController extends BaseController
 
             return response()->json([
                 'status' => 'success',
-                'message'=> 'Draft updated and submitted successfully!',
+                'message'=> $action === 'draft'
+                    ? 'Draft saved successfully!'
+                    : 'Draft updated and submitted successfully!',
                 'application_id' => $applicationId,
                 'applicantName' => $existingForm->applicant_name
             ]);
@@ -2693,7 +2902,7 @@ class FormController extends BaseController
 
         $applicationId = $id;
         $existingForm = $applicationId
-            ? CC_Forms_Meta::where('application_id', $applicationId)->first()
+            ? CC_Forms_Meta::findByApplicationId($applicationId)
             : null;
         $masterApplicationId = $existingForm
             ? $this->resolveFormSMasterApplicationId($existingForm, $request->form_name ?? null)
@@ -2705,6 +2914,10 @@ class FormController extends BaseController
 
         if (!$existingForm && $applicationId) {
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
+        }
+
+        if ($guard = $this->assertDigitizationCanSave($request, $applicationId)) {
+            return $guard;
         }
 
         $uploadPhotoRule = (! $existingPhoto || empty($existingPhoto->upload_path))
@@ -2810,7 +3023,7 @@ class FormController extends BaseController
         DB::beginTransaction();
 
         try {
-            $form = $id ? CC_Forms_Meta::where('application_id', $id)->first() : null;
+            $form = $id ? CC_Forms_Meta::findByApplicationId($id) : null;
 
             if ($form) {
                 $applicationId = $form->application_id;
@@ -2832,7 +3045,7 @@ class FormController extends BaseController
                 $form->update($metaPayload);
             } else {
                 $metaPayload['created_at'] = $this->dbNow;
-                $form = CC_Forms_Meta::create($metaPayload);
+                $form = CC_Forms_Meta::createForForm((string) ($metaPayload['form_name'] ?? $request->form_name ?? 'S'), $metaPayload);
             }
 
 
@@ -3019,7 +3232,7 @@ class FormController extends BaseController
         $applicationId = $id;
 
         $existingForm = $applicationId
-            ? CC_Forms_Meta::where('application_id', $applicationId)->first()
+            ? CC_Forms_Meta::findByApplicationId($applicationId)
             : null;
         $masterApplicationId = $existingForm
             ? $this->resolveFormSMasterApplicationId($existingForm, $request->form_name ?? null)
@@ -3128,7 +3341,7 @@ class FormController extends BaseController
 
         try {
             $form = $id
-                ? CC_Forms_Meta::where('application_id', $id)->where('appl_type', 'R')->first()
+                ? (($found = CC_Forms_Meta::findByApplicationId($id)) && strtoupper((string) ($found->appl_type ?? '')) === 'R' ? $found : null)
                 : null;
 
             if ($form) {
@@ -3153,7 +3366,7 @@ class FormController extends BaseController
                 $form->update($metaPayload);
             } else {
                 $metaPayload['created_at'] = $nowTs;
-                $form = CC_Forms_Meta::create($metaPayload);
+                $form = CC_Forms_Meta::createForForm((string) ($metaPayload['form_name'] ?? $request->form_name ?? 'S'), $metaPayload);
             }
 
             $type_of_apps = MstLicence::where('form_code', $form->form_name)
@@ -3283,7 +3496,7 @@ public function update(Request $request, $id)
         }
 
         $applicationId = $id;
-        $existingForm = CC_Forms_Meta::where('application_id', $applicationId)->first();
+        $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
         $masterApplicationId = $existingForm
             ? $this->resolveFormSMasterApplicationId($existingForm, $request->form_name ?? null)
             : $applicationId;
@@ -3387,15 +3600,16 @@ public function update(Request $request, $id)
 
             
             $appl_type = $request->appl_type ?? '';
-            $form = CC_Forms_Meta::where('application_id', $id)
-            ->where('appl_type', $appl_type)
-            ->first();
+            $form = ($found = CC_Forms_Meta::findByApplicationId($id)) && strtoupper((string) ($found->appl_type ?? '')) === strtoupper((string) $appl_type)
+                ? $found
+                : null;
 
             if ($form) {
                 $applicationId = $form->application_id;
             } else {
 
-                $lastApplication = CC_Forms_Meta::latest('app_id')->value('application_id');
+                $metaService = app(CompetencyMetaService::class);
+        $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
                     $applicationId = $appl_type . $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
@@ -3433,11 +3647,10 @@ public function update(Request $request, $id)
                     'updated_at'         => $this->dbNow,
             ]);
 
-            $renewal_form = CC_Forms_Meta::updateOrCreate(
-                [
-                    'application_id' => $applicationId
-                ],
-                $renewalPayload
+            $renewal_form = CC_Forms_Meta::updateOrCreateByApplicationId(
+                $applicationId,
+                $renewalPayload,
+                (string) ($request->form_name ?? 'S')
             );
 
             $applicationId = $renewal_form->application_id;
@@ -3827,7 +4040,8 @@ public function update(Request $request, $id)
     private function generateCompetencyApplicationId(Request $request): string
     {
         $applType = $request->appl_type ?? '';
-        $lastApplication = CC_Forms_Meta::latest('app_id')->value('application_id');
+        $metaService = app(CompetencyMetaService::class);
+        $lastApplication = $metaService->latestApplicationId();
         if ($lastApplication) {
             $lastNumber = (int) substr($lastApplication, -7);
             $next = str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
@@ -3913,7 +4127,7 @@ public function update(Request $request, $id)
         $existingId = trim((string) ($applicationId ?? $request->input('application_id', '')));
 
         // Draft resubmit / edit — application already exists; do not force the cert modal again.
-        if ($existingId !== '' && CC_Forms_Meta::where('application_id', $existingId)->exists()) {
+        if ($existingId !== '' && CC_Forms_Meta::existsByApplicationId($existingId)) {
             return null;
         }
 

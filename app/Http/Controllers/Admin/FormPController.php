@@ -22,7 +22,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-use App\Services\ReturnedApplicationEditScope;
+use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyWorkflowService;
 
 class FormPController extends Controller
 {
@@ -366,10 +367,10 @@ class FormPController extends Controller
             default               => 'F',
         };
 
-        SupervisorModel::create([
+        app(CompetencyWorkflowService::class)->record('cc_workflow_formp', [
             'application_id' => $request->application_id,
             'appl_status'    => $app_status_workflow,
-            'processed_by'   => $request->processed_by,
+            'processed_by'   => $processed_by,
             'forwarded_to'   => $request->forwarded_to,
             'role_id'        => $request->role_id,
             'is_verified'    => $request->checkboxes ?? 'Yes',
@@ -377,8 +378,8 @@ class FormPController extends Controller
             'remarks'        => $request->remarks,
             'created_at'     => $this->dbNow,
             'login_id'       => $staffID,
-            'queries'        => $queryTypeJson,
-            'raised_by'      => $query_status === 'P' ? $raised_by : '',
+            'queries'        => $queryTypeJson ? json_decode($queryTypeJson, true) : null,
+            'raised_by'      => $query_status === 'P' ? $raised_by : $processed_by,
         ]);
 
         DB::table('tnelb_form_p')

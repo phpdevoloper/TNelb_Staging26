@@ -113,6 +113,21 @@ if (!function_exists('safeDecrypt')) {
     }
 }
 
+if (!function_exists('displayProofNumber')) {
+    /**
+     * Show Aadhaar/PAN from encrypted cc_proof_doc.proof_no or legacy plain values.
+     */
+    function displayProofNumber($value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return (string) (app(\App\Services\FormS\SensitiveProofCryptService::class)
+            ->decryptProofNumber((string) $value) ?? '');
+    }
+}
+
 
 if (!function_exists('format_total_exp_years')) {
     /**
@@ -148,17 +163,25 @@ if (!function_exists('db_now')) {
 }
 
 if (!function_exists('competency_document_log_download_url')) {
-    function competency_document_log_download_url(?\App\Models\DocumentsLog $log): ?string
+    /**
+     * @param  \App\Models\DocumentsLog|\App\Models\CC_Doc_Log|null  $log
+     */
+    function competency_document_log_download_url($log): ?string
     {
         if (!$log) {
             return null;
         }
 
-        if (\Illuminate\Support\Facades\Route::has('competency.documents.download')) {
-            return route('competency.documents.download', $log->id);
+        $logId = $log->getKey();
+        if ($logId === null) {
+            return null;
         }
 
-        return route('form-s.documents.download', $log->id);
+        if (\Illuminate\Support\Facades\Route::has('competency.documents.download')) {
+            return route('competency.documents.download', $logId);
+        }
+
+        return route('form-s.documents.download', $logId);
     }
 }
 
@@ -221,6 +244,57 @@ if (!function_exists('competency_find_document_log')) {
     }
 }
 
+if (!function_exists('competency_find_cc_document_log')) {
+    /**
+     * Locate the active cc_doc_log row for a competency workflow document group.
+     *
+     * @param  list<int>  $workflowAppPks  cc_form_s_meta.app_id values (child first, then parent)
+     */
+    function competency_find_cc_document_log(
+        string $moduleType,
+        int $moduleRefId,
+        string $documentType = 'certificate',
+        array $workflowAppPks = [],
+        ?string $storedPath = null
+    ): ?\App\Models\CC_Doc_Log {
+        $workflowAppPks = array_values(array_unique(array_filter(array_map('intval', $workflowAppPks))));
+
+        foreach ($workflowAppPks as $workflowAppPk) {
+            if ($workflowAppPk <= 0) {
+                continue;
+            }
+
+            $log = \App\Models\CC_Doc_Log::query()
+                ->where('application_id', $workflowAppPk)
+                ->where('module_type', $moduleType)
+                ->where('module_ref_id', $moduleRefId)
+                ->where('document_type', $documentType)
+                ->where('is_active', true)
+                ->orderByDesc('doc_id')
+                ->first();
+
+            if ($log) {
+                return $log;
+            }
+        }
+
+        if ($storedPath !== null && trim($storedPath) !== '') {
+            $storedPath = trim($storedPath);
+
+            return \App\Models\CC_Doc_Log::query()
+                ->where('is_active', true)
+                ->where(function ($q) use ($storedPath) {
+                    $q->where('file_path', $storedPath)
+                        ->orWhere('old_file_path', $storedPath);
+                })
+                ->orderByDesc('doc_id')
+                ->first();
+        }
+
+        return null;
+    }
+}
+
 if (!function_exists('form_s_find_document_log')) {
     /** @deprecated Use competency_find_document_log() */
     function form_s_find_document_log(
@@ -234,10 +308,62 @@ if (!function_exists('form_s_find_document_log')) {
     }
 }
 
+if (!function_exists('competency_document_path_url')) {
+    /**
+     * Build browser URL from stored DB path using external upload path configuration.
+     * Example: {APP_URL}/competency/FORM_S/NEW/EDUCATION/260712_SC261111114_EDU_001.pdf
+     */
+    function competency_document_path_url(?string $storedPath): ?string
+    {
+        if ($storedPath === null || trim($storedPath) === '') {
+            return null;
+        }
+
+        $storedPath = trim(str_replace('\\', '/', $storedPath));
+
+        if (str_starts_with($storedPath, 'http://') || str_starts_with($storedPath, 'https://')) {
+            return $storedPath;
+        }
+
+        if (preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
+            return \App\Services\Competency\CompetencyDocumentSupport::publicUrlForStoredPath($storedPath);
+        }
+
+        return '/' . ltrim($storedPath, '/');
+    }
+}
+
+if (!function_exists('proof_document_url')) {
+    /**
+     * Browser URL for Aadhaar/PAN uploads (versioned FORM_* or legacy encrypted blob).
+     */
+    function proof_document_url(?string $storedPath, string $legacyType = 'aadhaar'): ?string
+    {
+        if ($storedPath === null || trim($storedPath) === '') {
+            return null;
+        }
+
+        $storedPath = trim(str_replace('\\', '/', $storedPath));
+
+        if (preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
+            return competency_document_path_url($storedPath);
+        }
+
+        if (str_starts_with($storedPath, 'http://') || str_starts_with($storedPath, 'https://')) {
+            return $storedPath;
+        }
+
+        return route('document.show', [
+            'type' => $legacyType,
+            'filename' => basename($storedPath),
+        ]);
+    }
+}
+
 if (!function_exists('competency_document_url')) {
     /**
-     * Resolve a browser URL for competency documents using documents_log (private FORM_* storage).
-     * Falls back to legacy public paths only when no log entry exists.
+     * Resolve a browser URL for competency documents.
+     * Versioned FORM_* paths: /competency/FORM_S/NEW/EDUCATION/...pdf
      *
      * @param  list<int>  $workflowAppPks
      */
@@ -248,19 +374,29 @@ if (!function_exists('competency_document_url')) {
         string $documentType = 'certificate',
         array $workflowAppPks = []
     ): ?string {
+        $storedPath = $storedPath !== null ? trim((string) $storedPath) : '';
+
+        if ($storedPath !== '') {
+            return competency_document_path_url($storedPath);
+        }
+
         $log = null;
+        $ccLog = null;
 
         if ($moduleType !== '' && $moduleRefId > 0) {
-            $log = competency_find_document_log($moduleType, $moduleRefId, $documentType, $workflowAppPks, $storedPath);
-        } elseif ($storedPath !== null && trim($storedPath) !== '') {
-            $log = competency_find_document_log('', 0, $documentType, [], $storedPath);
+            $log = competency_find_document_log($moduleType, $moduleRefId, $documentType, $workflowAppPks, null);
+            $ccLog = $log ? null : competency_find_cc_document_log($moduleType, $moduleRefId, $documentType, $workflowAppPks, null);
         }
 
-        if ($log) {
-            return competency_document_log_download_url($log);
+        if ($ccLog && ! empty($ccLog->file_path)) {
+            return competency_document_path_url($ccLog->file_path);
         }
 
-        return competency_media_url($storedPath);
+        if ($log && ! empty($log->file_path)) {
+            return competency_document_path_url($log->file_path);
+        }
+
+        return null;
     }
 }
 
@@ -307,11 +443,24 @@ if (!function_exists('competency_media_url')) {
             ->first();
 
         if ($log) {
-            return competency_document_log_download_url($log);
+            return competency_document_path_url($log->file_path);
+        }
+
+        $ccLog = \App\Models\CC_Doc_Log::query()
+            ->where('is_active', true)
+            ->where(function ($q) use ($path) {
+                $q->where('file_path', $path)
+                    ->orWhere('old_file_path', $path);
+            })
+            ->orderByDesc('doc_id')
+            ->first();
+
+        if ($ccLog) {
+            return competency_document_path_url($ccLog->file_path);
         }
 
         if (preg_match('#^FORM_[A-Z]+/#', $path)) {
-            return null;
+            return competency_document_path_url($path);
         }
 
         return str_starts_with($path, 'http://') || str_starts_with($path, 'https://')

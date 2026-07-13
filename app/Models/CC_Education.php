@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 class CC_Education extends Model
 {
     use HasFactory;
+
+    /** Shared across competency forms S, W, WH, P (`cc_edu`). */
     protected $table = 'cc_edu';
     protected $primaryKey = 'edu_id';
     protected $fillable = [

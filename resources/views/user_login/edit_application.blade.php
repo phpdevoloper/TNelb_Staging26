@@ -1373,7 +1373,7 @@
                                                                     @if (!empty($edu_details->upload_document))
                                                                         <div class="edu-doc-container d-flex align-items-center justify-content-center">
                                                                             <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document, 'education', (int) ($edu_details->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
-                                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View
+                                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View Document
                                                                             </a>
                                                                             <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
                                                                         </div>
@@ -1913,7 +1913,8 @@
                         </div>
                         <div class="fs-section-body p-0">
                             @php
-                                $decryptedaadhar = !empty($application_details->aadhaar) ? safeDecrypt($application_details->aadhaar) : '';
+                                $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
+                                $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
                                 $hasPhoto = !empty($applicant_photo->upload_path);
                                 $hasSign  = !empty($proof_doc?->uploaded_doc);
@@ -1970,7 +1971,7 @@
                                         <td style="min-width:200px;">
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $application_details->aadhaar_doc]) }}" target="_blank" style="color:#007bff;">
+                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
@@ -1994,7 +1995,7 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $application_details->pancard ?? '') }}">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -2004,7 +2005,7 @@
                                         <td style="min-width:200px;">
                                             @if (!empty($existingPanDoc))
                                                 <div class="pan-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $existingPanDoc]) }}" target="_blank" style="color:#007bff;">
+                                                    <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
@@ -2085,7 +2086,7 @@
                                 @endif
                             </div>
                         </label>
-                        <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;font-size:.82rem;">Please check the declaration box before proceeding.</span>
+                        <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
                     </div>
 
                     {{-- Hidden fields --}}

@@ -4,13 +4,18 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Mst_Form_s_w;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
+use App\Models\CC_Forms_Meta;
+use App\Models\CC_Proof_doc;
 use App\Models\Mst_education;
 use App\Models\Mst_experience;
 use App\Models\Mst_documents;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbFormP;
 use App\Models\TnelbAppsInstitute;
+use App\Services\FormS\FormSApplicationWorkflowService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use TCPDF;
@@ -63,6 +68,128 @@ class PDFController extends Controller
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    /** Map cc_form_s_meta columns to legacy PDF field names. */
+    private function normalizeCcMetaRowForPdf(object $row): object
+    {
+        $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
+        $row->status = $row->status ?? $row->app_status ?? null;
+        $row->applicants_address = $row->applicants_address ?? $row->applicant_address ?? null;
+        $row->previously_number = $row->previously_number ?? $row->previous_scc_no ?? null;
+        $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
+        $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
+        $row->previously_valid_to = $row->previously_valid_to ?? $row->scc_to_date ?? null;
+        $row->previously_date = $row->previously_date ?? $row->scc_to_date ?? null;
+        $row->certificate_no = $row->certificate_no ?? $row->wcc_no ?? null;
+        $row->certificate_valid_to = $row->certificate_valid_to ?? $row->wcc_to ?? null;
+        $row->certificate_issue_date = $row->certificate_issue_date ?? $row->wcc_issue_date ?? null;
+        $row->certificate_valid_from = $row->certificate_valid_from ?? $row->wcc_from ?? null;
+        $row->certificate_date = $row->certificate_date ?? $row->wcc_to ?? null;
+
+        return $row;
+    }
+
+    private function enrichCcMetaProofFieldsForPdf(object $applicationDetails, string $masterApplicationId): object
+    {
+        $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
+            ->whereIn('proof_type', ['aadhaar', 'pan'])
+            ->get();
+
+        foreach ($proofRows as $proof) {
+            $proofType = strtolower((string) ($proof->proof_type ?? ''));
+            if ($proofType === 'aadhaar') {
+                if (! empty($proof->proof_no)) {
+                    $applicationDetails->aadhaar = $proof->proof_no;
+                }
+            } elseif ($proofType === 'pan' && ! empty($proof->proof_no)) {
+                $applicationDetails->pancard = $proof->proof_no;
+            }
+        }
+
+        return $applicationDetails;
+    }
+
+    private function resolveMasterApplicationIdForPdf(string $applicationId): string
+    {
+        $ccMeta = CC_Forms_Meta::where('application_id', $applicationId)->first();
+        if (! $ccMeta) {
+            return $applicationId;
+        }
+
+        return (string) app(FormSApplicationWorkflowService::class)
+            ->masterApplication($ccMeta)
+            ->application_id;
+    }
+
+    private function resolveApplicationFormForPdf(string $applicationId): ?object
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return null;
+        }
+
+        $contractorForm = DB::table('tnelb_ea_applications')
+            ->where('application_id', $applicationId)
+            ->first();
+        if ($contractorForm) {
+            return $contractorForm;
+        }
+
+        $legacyForm = DB::table('tnelb_application_tbl')
+            ->where('application_id', $applicationId)
+            ->first();
+        if ($legacyForm) {
+            return $legacyForm;
+        }
+
+        $ccMeta = CC_Forms_Meta::where('application_id', $applicationId)->first();
+        if ($ccMeta) {
+            $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+            $applicationDetails = $this->normalizeCcMetaRowForPdf((object) $ccMeta->toArray());
+
+            return $this->enrichCcMetaProofFieldsForPdf($applicationDetails, $masterApplicationId);
+        }
+
+        return TnelbFormP::where('application_id', $applicationId)->first();
+    }
+
+    private function resolveEducationForPdf(string $applicationId): Collection
+    {
+        $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+
+        $ccRows = CC_Education::where('application_id', $masterApplicationId)
+            ->orderByDesc('year_of_passing')
+            ->get();
+        if ($ccRows->isNotEmpty()) {
+            return $ccRows;
+        }
+
+        $legacyRows = Mst_education::where('application_id', $applicationId)->get();
+        if ($legacyRows->isNotEmpty()) {
+            return $legacyRows;
+        }
+
+        return Mst_education::where('application_id', $masterApplicationId)->get();
+    }
+
+    private function resolveExperienceForPdf(string $applicationId): Collection
+    {
+        $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+
+        $ccRows = CC_Experience::where('application_id', $masterApplicationId)
+            ->orderBy('exp_id')
+            ->get();
+        if ($ccRows->isNotEmpty()) {
+            return $ccRows;
+        }
+
+        $legacyRows = Mst_experience::where('application_id', $applicationId)->get();
+        if ($legacyRows->isNotEmpty()) {
+            return $legacyRows;
+        }
+
+        return Mst_experience::where('application_id', $masterApplicationId)->get();
     }
 
     /**
@@ -803,11 +930,11 @@ class PDFController extends Controller
     public function generatePDF($newApplicationId)
     {
         
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
+        $form = $this->resolveApplicationFormForPdf($newApplicationId);
 
         // var_dump(format_date($form->previously_number));die;
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+        $education = $this->resolveEducationForPdf($newApplicationId);
+        $experience = $this->resolveExperienceForPdf($newApplicationId);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
 
@@ -1272,9 +1399,9 @@ class PDFController extends Controller
     public function generatetcp($newApplicationId)
     {
         // Fetch form details
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+        $form = $this->resolveApplicationFormForPdf($newApplicationId);
+        $education = $this->resolveEducationForPdf($newApplicationId);
+        $experience = $this->resolveExperienceForPdf($newApplicationId);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
 
@@ -1501,9 +1628,9 @@ class PDFController extends Controller
     public function generateTamilPDF($newApplicationId)
     {
 
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+        $form = $this->resolveApplicationFormForPdf($newApplicationId);
+        $education = $this->resolveEducationForPdf($newApplicationId);
+        $experience = $this->resolveExperienceForPdf($newApplicationId);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
 
@@ -1953,17 +2080,17 @@ class PDFController extends Controller
     {
       // dd($newApplicationId);
       // exit;
-        $form= DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
-                // ?? DB::table('tnelb_esa_applications')->where('application_id', $newApplicationId)->first()
-                // ?? DB::table('tnelb_esb_applications')->where('application_id', $newApplicationId)->first()
-                // ?? DB::table('tnelb_eb_applications')->where('application_id', $newApplicationId)->first()
-                ?? Mst_Form_s_w::where('application_id', $newApplicationId)->first()
-                ??TnelbFormP::where('application_id', $newApplicationId)->first();
+        $form = DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
+                ?? $this->resolveApplicationFormForPdf($newApplicationId);
+
+        if (! $form) {
+            return redirect()->back()->with('error', 'Application not found!');
+        }
 
         $license_name= DB::table('mst_licences')->where('form_code', $form->form_name)->first();
 
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+        $education = $this->resolveEducationForPdf($newApplicationId);
+        $experience = $this->resolveExperienceForPdf($newApplicationId);
         // $documents = Mst_documents::where('application_id', $newApplicationId)->first();
         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
 
@@ -2164,13 +2291,17 @@ class PDFController extends Controller
 //     }
     public function generateLicensePDF($newApplicationId)
     {
-        $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
+        $form = $this->resolveApplicationFormForPdf($newApplicationId);
         // var_dump($form->appl_type);die;
 
 
         // var_dump($form);die;
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+        if (! $form) {
+            return redirect()->back()->with('error', 'No records found!');
+        }
+
+        $education = $this->resolveEducationForPdf($newApplicationId);
+        $experience = $this->resolveExperienceForPdf($newApplicationId);
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
 
         if ($form->appl_type == 'R') {

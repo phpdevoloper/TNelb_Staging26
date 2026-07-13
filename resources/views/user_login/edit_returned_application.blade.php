@@ -3,6 +3,7 @@
 @php
     $editFormName = $application_details->form_name ?? '';
     $editLicenseName = $application_details->license_name ?? '';
+    $editShowBoardMember = ($editFormName === 'S');
 @endphp
 
 <style>
@@ -902,9 +903,52 @@
     }
 
     @if ($editFormName === 'S')
-    @include('user_login.partials.form-s-work-exp-styles')
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'S'])
     @endif
 </style>
+
+@if ($editFormName === 'S')
+<style>
+    @include('user_login.partials.form-s-work-exp-7ab-styles')
+    .fs-section:has(.work-exp-wrap) {
+        overflow: visible;
+    }
+    #work-container-previous .work-entry-block > .work-fields.work-row,
+    #work-container-previous .work-fields.work-row {
+        background: #ffffff !important;
+        border: 1px solid #c8d8f5 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+    }
+    #work-container-previous .work-fields.work-row:hover {
+        border-color: #b8cfe8 !important;
+        box-shadow: 0 4px 14px rgba(3, 90, 179, 0.18) !important;
+    }
+    #work-exp-summary-panel-previous .wx-order-card {
+        background: #ffffff !important;
+        border: 1px solid #c8d8f5 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+        padding: 12px 14px !important;
+    }
+    #work-container-previous .work-row-head {
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
+        border-bottom: 1px solid #dde5f3 !important;
+    }
+    #work-container-previous .work-row:not(.is-complete) .work-row-head {
+        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
+        border-bottom: 1px solid #dde5f3 !important;
+    }
+    #work-container-previous .work-row-head-actions .work-row-remove,
+    #work-container-previous .work-row-remove.remove-work {
+        color: #c1272d !important;
+    }
+    #work-container-previous .work-row-head-actions .work-row-remove .fa,
+    #work-container-previous .work-row-remove.remove-work .fa {
+        color: #c1272d !important;
+    }
+</style>
+@endif
 
 
 @php
@@ -1366,7 +1410,7 @@
                                                                     @if (!empty($edu_details->upload_document))
                                                                         <div class="edu-doc-container d-flex align-items-center justify-content-center">
                                                                             <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document, 'education', (int) ($edu_details->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
-                                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View
+                                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View Document
                                                                             </a>
                                                                             <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
                                                                         </div>
@@ -1528,12 +1572,9 @@
                         </div>
                         <div class="fs-section-body">
                             @if ($editFormName === 'S')
-                            @php
-                                $workExpCanEdit = ! ($returnedIsPartial ?? false) || ($retCanEdit('experience') ?? false);
-                            @endphp
-                            @include('user_login.partials.form-s-work-exp-edit-block', [
-                                'workExpWithActions' => $workExpCanEdit,
-                                'showAddRow' => $workExpCanEdit,
+                            @include('user_login.partials.form-s-work-exp-7ab-body', [
+                                'exp_details' => $exp_details,
+                                'hideUploadWhenDocExists' => true,
                             ])
                             @else
                             <div class="fs-table-wrap">
@@ -1724,7 +1765,7 @@
                                             @endif
                                         </span>
                                     </div>
-                                    <div class="col-12 col-md-3">
+                                    <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
@@ -1733,13 +1774,22 @@
                                                value="{{ $application_details->previously_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
+                                               id="previously_valid_from" name="previously_valid_from" type="date"
+                                               data-error="#previouslyFromDateError"
+                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
+                                               value="{{ $application_details->previously_valid_from ?? '' }}">
+                                        <span id="previouslyFromDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
-                                               id="previously_date" name="previously_date" type="date"
+                                               id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
                                                {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_date }}">
+                                               value="{{ $application_details->previously_valid_to ?? $application_details->previously_date }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1799,7 +1849,7 @@
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_date) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_valid_to ?? $application_details->certificate_date) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
@@ -1832,7 +1882,7 @@
                                                             </span>
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
+                                                        <div class="col-12 col-md-2">
                                                             <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
@@ -1841,12 +1891,21 @@
                                                                    {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">From date <span class="req">*</span></div>
+                                                            <input class="form-control text-box single-line verify-valid-from"
+                                                                   id="certificate_valid_from" name="certificate_valid_from"
+                                                                   data-error="#certFromDateError" type="date"
+                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}"
+                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                            <span id="certFromDateError" class="text-danger"></span>
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">To date <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-date"
-                                                                   id="certificate_date" name="certificate_date"
+                                                                   id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->certificate_date }}"
+                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}"
                                                                    {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
@@ -1868,7 +1927,7 @@
 
                     @php
                         if ($formName === 'S') {
-                            $uploadQuestionNo = 9;
+                            $uploadQuestionNo = 10;
                         } elseif ($formName === 'W') {
                             $uploadQuestionNo = 8;
                         } elseif ($formName === 'WH') {
@@ -1891,7 +1950,8 @@
                         </div>
                         <div class="fs-section-body p-0">
                             @php
-                                $decryptedaadhar = !empty($application_details->aadhaar) ? safeDecrypt($application_details->aadhaar) : '';
+                                $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
+                                $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
                                 $hasPhoto = !empty($applicant_photo->upload_path);
                                 $hasSign  = !empty($proof_doc?->uploaded_doc);
@@ -1953,7 +2013,7 @@
                                             <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="aadhaar_doc">
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $application_details->aadhaar_doc]) }}" target="_blank" style="color:#007bff;">
+                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
@@ -1979,7 +2039,7 @@
                                         </td>
                                         <td style="min-width:180px;">
                                             <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-pan-no">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $application_details->pancard ?? '') }}">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                             </div>
                                         </td>
@@ -1991,7 +2051,7 @@
                                             <div class="fs-return-upload-cell{{ $retLockClass('pan_doc') }}" data-return-section="pan_doc">
                                             @if (!empty($existingPanDoc))
                                                 <div class="pan-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $existingPanDoc]) }}" target="_blank" style="color:#007bff;">
+                                                    <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
@@ -2086,6 +2146,9 @@
                     <input type="hidden" id="form_id" name="form_id"
                         value="{{ isset($application_details) ? $application_details->form_id : '' }}">
                     <input type="hidden" id="amount" name="amount" value="">
+                    @if ($editShowBoardMember)
+                    <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
+                    @endif
                     <input type="hidden" id="appl_type" name="appl_type"
                         value="{{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }}">
                     @csrf
@@ -2959,7 +3022,72 @@
 
 </script>
 @if ($editFormName === 'S')
-@include('user_login.partials.form-s-work-exp-scripts')
+@include('user_login.partials.form-s-work-exp-scripts', [
+    'editFormName' => 'S',
+    'showBoardMemberEmploymentType' => false,
+    'enableBoardMemberFeeExempt' => $editShowBoardMember,
+    'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
+    'hideUploadWhenDocExists' => true,
+])
+<script>
+    (function () {
+        var BOARD_MEMBER_TYPE = 'board_member_tnelb';
+
+        function get7bWorkRow() {
+            return $('#work-container-current .work-fields').first();
+        }
+
+        function sync7bSegmentedActive($input) {
+            var $toggle = $('.fs-7b-board-toggle');
+            $toggle.find('.fs-segmented-opt').removeClass('is-active');
+            $input.closest('.fs-segmented-opt').addClass('is-active');
+        }
+
+        function apply7bBoardToggle(mode, isInit) {
+            var $root = $('#fs-7b-root');
+            var $row = get7bWorkRow();
+            if (!$root.length) return;
+
+            var isYes = mode === 'yes';
+            $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
+            $('#fs-7b-board-details').toggleClass('d-none', !isYes);
+
+            if (!$row.length) {
+                if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                    window.wxSyncBoardMemberRenewalFee();
+                }
+                return;
+            }
+
+            var $emp = $row.find('.work-employment-type');
+            if (isYes) {
+                if ($emp.val() !== BOARD_MEMBER_TYPE) {
+                    $emp.val(BOARD_MEMBER_TYPE).trigger('change');
+                }
+                $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+            } else if ($emp.val() === BOARD_MEMBER_TYPE) {
+                $emp.val('').trigger('change');
+            }
+
+            if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
+                window.wxSyncBoardMemberRenewalFee();
+            }
+        }
+
+        $(document).ready(function () {
+            $('input[name="current_work_board_member"]').on('change', function () {
+                sync7bSegmentedActive($(this));
+                apply7bBoardToggle($(this).val(), false);
+            });
+
+            var $checked = $('input[name="current_work_board_member"]:checked');
+            if ($checked.length) {
+                sync7bSegmentedActive($checked);
+                apply7bBoardToggle($checked.val(), true);
+            }
+        });
+    })();
+</script>
 @endif
 
 {{-- ░░ RETURNED APPLICATION — query reasons + submit corrections ░░ --}}

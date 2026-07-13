@@ -5,6 +5,7 @@ namespace App\Services\DocumentVersion;
 use App\Enums\DocumentRequestType;
 use App\Models\DDocument;
 use App\Models\CC_Doc_Log;
+use App\Services\FormS\SensitiveProofCryptService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -121,6 +122,95 @@ class DocumentStorageService
         ];
     }
 
+    /**
+     * Store Aadhaar/PAN uploads as encrypted .bin blobs (Laravel Crypt).
+     *
+     * @return array{file_name: string, file_path: string, mime_type: string, file_size: int, original_file_name: string}
+     */
+    public function storeEncrypted(
+        UploadedFile $file,
+        string $applicationNo,
+        int $applicationId,
+        string $moduleType,
+        string $documentType,
+        DocumentRequestType $requestType,
+        ?string $workflowStage = null,
+        bool $useProductionDocumentLog = false
+    ): array {
+        $sequenceNo = $this->nextSequenceNo($applicationId, $documentType, $useProductionDocumentLog);
+        $relativePath = $this->buildRelativePath(
+            $requestType,
+            $applicationNo,
+            $moduleType,
+            $documentType,
+            $sequenceNo,
+            $workflowStage,
+            'bin'
+        );
+        $disk = Storage::disk($this->disk());
+
+        if ($disk->exists($relativePath)) {
+            $disk->delete($relativePath);
+        }
+
+        $directory = dirname($relativePath);
+        if ($directory !== '.' && ! $disk->exists($directory)) {
+            $disk->makeDirectory($directory);
+        }
+
+        $contents = file_get_contents($file->getRealPath());
+        if ($contents === false) {
+            throw new RuntimeException('Unable to read uploaded proof document.');
+        }
+
+        $encrypted = app(SensitiveProofCryptService::class)->encryptFileContents($contents);
+        $disk->put($relativePath, $encrypted);
+
+        return [
+            'file_name' => basename($relativePath),
+            'file_path' => $relativePath,
+            'mime_type' => 'application/octet-stream',
+            'file_size' => strlen($encrypted),
+            'original_file_name' => $file->getClientOriginalName(),
+        ];
+    }
+
+    /**
+     * Encrypt a legacy plain PDF already stored on disk; returns new .bin path or null if skipped.
+     */
+    public function encryptPlainProofFileAtPath(string $relativePath): ?string
+    {
+        $relativePath = trim(str_replace('\\', '/', $relativePath));
+        if ($relativePath === '' || SensitiveProofCryptService::isEncryptedProofDocumentPath($relativePath)) {
+            return null;
+        }
+
+        if (! preg_match('/\.pdf$/i', $relativePath)) {
+            return null;
+        }
+
+        $disk = Storage::disk($this->disk());
+        if (! $disk->exists($relativePath)) {
+            return null;
+        }
+
+        $contents = $disk->get($relativePath);
+        if ($contents === '' || ! str_starts_with($contents, '%PDF')) {
+            return null;
+        }
+
+        $encryptedPath = preg_replace('/\.pdf$/i', '.bin', $relativePath);
+        if ($encryptedPath === null || $encryptedPath === $relativePath) {
+            return null;
+        }
+
+        $encrypted = app(SensitiveProofCryptService::class)->encryptFileContents($contents);
+        $disk->put($encryptedPath, $encrypted);
+        $disk->delete($relativePath);
+
+        return $encryptedPath;
+    }
+
     public function promoteToPermanent(string $tempRelativePath): string
     {
         return $tempRelativePath;
@@ -193,6 +283,24 @@ class DocumentStorageService
         }
 
         $safeName = str_replace(['"', '\\'], '', $downloadName);
+        $crypt = app(SensitiveProofCryptService::class);
+
+        if ($crypt::isEncryptedProofDocumentPath($relativePath)) {
+            $encrypted = $disk->get($relativePath);
+
+            try {
+                $decrypted = $crypt->decryptFileContents($encrypted);
+            } catch (\Throwable) {
+                abort(500, 'Could not decrypt document.');
+            }
+
+            $displayName = $crypt->displayFileNameForProofDocument($safeName);
+
+            return response($decrypted, 200, [
+                'Content-Type' => $crypt->inlineMimeTypeForProofDocument($relativePath, $safeName),
+                'Content-Disposition' => 'inline; filename="' . $displayName . '"',
+            ]);
+        }
 
         return $disk->response($relativePath, $safeName, [
             'Content-Type' => $this->mimeTypeForFile($safeName),

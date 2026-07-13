@@ -943,17 +943,44 @@ $(document).ready(function() {
             renderLocalFilePreviewForInput($(this));
         });
 
+        function resolveCompetencyApplType() {
+            const $form = $('#competency_form_ws, #competency_form_p').first();
+            if ($form.length) {
+                const fromForm = String($form.find('[name="appl_type"]').first().val() || '').trim().toUpperCase();
+                if (fromForm) {
+                    return fromForm;
+                }
+            }
+            return String($('#appl_type').val() || '').trim().toUpperCase();
+        }
+        window.resolveCompetencyApplType = resolveCompetencyApplType;
+
         function isDigitizationApplType() {
-            return String($('#appl_type').val() || '').trim().toUpperCase() === 'D';
+            return resolveCompetencyApplType() === 'D';
         }
         window.isDigitizationApplType = isDigitizationApplType;
 
         /** Digitisation and Alteration submit without payment; New/Renewal require payment. */
         function isNoPaymentApplType() {
-            const appl = String($('#appl_type').val() || '').trim().toUpperCase();
+            const appl = resolveCompetencyApplType();
             return appl === 'D' || appl === 'A';
         }
         window.isNoPaymentApplType = isNoPaymentApplType;
+
+        function isFeeExemptCompetencySuccess(applicationId, formType, feeExemptHint) {
+            if (feeExemptHint === true) {
+                return true;
+            }
+            if (typeof isNoPaymentApplType === 'function' && isNoPaymentApplType()) {
+                return true;
+            }
+            const appId = String(applicationId || '').trim().toUpperCase();
+            if (appId.startsWith('D') || appId.startsWith('A')) {
+                return true;
+            }
+            return /digitization|alteration/i.test(String(formType || ''));
+        }
+        window.isFeeExemptCompetencySuccess = isFeeExemptCompetencySuccess;
 
         async function saveCompetencyDraftSilently() {
             const formWsEl = $('#competency_form_ws')[0];
@@ -1945,9 +1972,12 @@ $(document).ready(function() {
                 path = String(path).trim();
                 if (!path) return '';
                 if (/^https?:\/\//i.test(path)) return path;
-                const base = (typeof BASE_URL !== 'undefined' ? BASE_URL : '').replace(/\/$/, '');
-                if (path.charAt(0) === '/') return base + path;
-                return base + '/' + path.replace(/^\/+/, '');
+                var docPrefix = (typeof DOCUMENT_PUBLIC_URL_PREFIX !== 'undefined' ? DOCUMENT_PUBLIC_URL_PREFIX : 'competency').replace(/^\/+|\/+$/g, '');
+                if (/^FORM_[A-Z]+\//i.test(path)) {
+                    return '/' + docPrefix + '/' + path.replace(/^\/+/, '');
+                }
+                if (path.charAt(0) === '/') return path;
+                return '/' + path.replace(/^\/+/, '');
             };
             // Uniform document pill — always renders the PDF icon + "View Document" label.
             // Filenames are intentionally hidden in the preview so every row looks consistent
@@ -1981,19 +2011,51 @@ $(document).ready(function() {
             const docLabelForInput = function (inputId) {
                 const inp = document.getElementById(inputId);
                 if (!inp) return '<span class="prv-sw-doc-empty">—</span>';
-                if (inp.files && inp.files[0]) {
-                    return docPillStatic();
+
+                const removedMap = {
+                    aadhaar_doc: 'aadhaar_doc_removed',
+                    pancard_doc: 'pancard_doc_removed',
+                };
+                const removedId = removedMap[inputId];
+                if (removedId) {
+                    const removedEl = document.getElementById(removedId);
+                    if (removedEl && String(removedEl.value || '').trim() === '1') {
+                        return '<span class="prv-sw-doc-empty">—</span>';
+                    }
                 }
+
+                if (inp.files && inp.files[0]) {
+                    return docPillLink(URL.createObjectURL(inp.files[0]));
+                }
+
                 const sib = inp.nextElementSibling;
                 if (sib && sib.classList && sib.classList.contains('local-file-preview')) {
                     const a = sib.querySelector('a');
-                    if (a) return docPillLink(a.getAttribute('href'));
+                    if (a && a.getAttribute('href')) return docPillLink(a.getAttribute('href'));
                 }
-                const wrap = inp.closest('td, .fs-upload-card, tr');
+
+                const wrap = inp.closest('td, .fs-upload-card, tr, .fs-return-upload-cell, .fs-section-body');
                 if (wrap) {
-                    const a = wrap.querySelector('.fs-doc-existing a, a[href*="private_documents"], a[href*="attached_documents"]');
-                    if (a) return docPillLink(a.getAttribute('href'));
+                    const existingLink = wrap.querySelector(
+                        '.aadhaar-doc-container a[href], .pan-doc-container a[href], '
+                        + '.fs-doc-existing a[href], a[href*="private_documents"], '
+                        + 'a[href*="attached_documents"], a[href*="/competency/"], a[href*="competency/"]'
+                    );
+                    if (existingLink && existingLink.getAttribute('href')) {
+                        return docPillLink(existingLink.getAttribute('href'));
+                    }
                 }
+
+                const inputWrap = inp.closest('.aadhaar-doc-input, .pan-doc-input');
+                if (inputWrap && inputWrap.parentElement) {
+                    const siblingLink = inputWrap.parentElement.querySelector(
+                        '.aadhaar-doc-container a[href], .pan-doc-container a[href]'
+                    );
+                    if (siblingLink && siblingLink.getAttribute('href')) {
+                        return docPillLink(siblingLink.getAttribute('href'));
+                    }
+                }
+
                 return '<span class="prv-sw-doc-empty">—</span>';
             };
             const imageSrcAny = function (ids) {
@@ -3622,11 +3684,11 @@ $(document).ready(function() {
             }
 
             if (!$('#declarationCheckbox').is(':checked')) {
-                $('#checkboxError').show();
+                $('#checkboxError').removeClass('d-none');
                 if (!firstErrorField) firstErrorField = $('#checkboxError');
                 isValid = false;
             } else {
-                $('#checkboxError').hide();
+                $('#checkboxError').addClass('d-none');
             }
 
 
@@ -6047,11 +6109,13 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                                     paid.applicantName,
                                     paid.amount,
                                     paid.form_type,
-                                    paid.licence_name
+                                    paid.licence_name,
+                                    false,
+                                    { feeExempt: noPaymentApplType }
                                 );
                             } catch (err) {
                                 Swal.fire({
-                                    title: 'Payment Failed',
+                                    title: noPaymentApplType ? 'Submission Failed' : 'Payment Failed',
                                     text: err.message || 'Something went wrong. Please try again.',
                                     icon: 'error'
                                 });
@@ -6134,7 +6198,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                                     paid.applicantName,
                                     paid.amount,
                                     paid.form_type,
-                                    paid.licence_name
+                                    paid.licence_name,
+                                    false,
+                                    { feeExempt: noPaymentApplType }
                                 );
                                 return;
                             }
@@ -6216,11 +6282,16 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         }
     }
                                             
-    function showPaymentSuccessPopup(loginId, transactionId, transactionDate, applicantName, amount,form_type,licence_name, isFormP) {
+    function showPaymentSuccessPopup(loginId, transactionId, transactionDate, applicantName, amount, form_type, licence_name, isFormP, options) {
         isFormP = (typeof isFormP !== 'undefined' && isFormP === true);
+        options = options || {};
         window.paymentIsFormP = isFormP;
 
-        // alert(applicantName);
+        const isFeeExemptSubmit = (typeof isFeeExemptCompetencySuccess === 'function')
+            ? isFeeExemptCompetencySuccess(loginId, form_type, options.feeExempt === true)
+            : (options.feeExempt === true);
+        const $modal = $("#paymentSuccessModal");
+
         $("#ps_applicantName_competency").text(applicantName);
         $("#ps_applicationId_competency").text(loginId);
         $("#ps_licenceName_competency").text(licence_name);
@@ -6228,16 +6299,29 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         $("#ps_transactionDate_competency").text(transactionDate);
         $("#ps_amount_competency").text(amount);
 
+        // Digitisation (D) and Alteration (A): no payment UI. New (N) / Renewal (R): full payment success.
+        if (isFeeExemptSubmit) {
+            $modal.find("#ps_success_modal_title").text("Application Submitted Successfully!");
+            $modal.find(".ps-payment-only").addClass("d-none");
+            $modal.find(".ps-transaction-date-label").text("Submission Date:");
+            $modal.find(".ps-app-pdf-heading").removeClass("mt-3");
+        } else {
+            $modal.find("#ps_success_modal_title").text("Payment Successful!");
+            $modal.find(".ps-payment-only").removeClass("d-none");
+            $modal.find(".ps-transaction-date-label").text("Transaction Date:");
+            $modal.find(".ps-app-pdf-heading").addClass("mt-3");
+        }
+
         // store ID globally for download actions
         window.paymentAppId = loginId;
         window.paymentFormType = form_type;
-        $("#paymentSuccessModal").modal({
+        $modal.modal({
             backdrop: 'static',   
             keyboard: false     
         });
 
         // Show bootstrap modal
-        $("#paymentSuccessModal").modal("show");
+        $modal.modal("show");
        
        
         // Swal.fire({

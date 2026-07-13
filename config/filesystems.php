@@ -44,7 +44,7 @@ return [
 
         'private_documents' => [
             'driver' => 'local',
-            'root' => storage_path('app/documents'),
+            'root' => config('document_versioning.storage_root', storage_path('app/documents')),
             'visibility' => 'private',
         ],
 
