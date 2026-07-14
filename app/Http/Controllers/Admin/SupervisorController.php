@@ -15,6 +15,7 @@ use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\CompetencyWorkflowService;
+use App\Services\FormS\FormSAlterationService;
 use Carbon\Carbon;
 
 use function PHPUnit\Framework\isNull;
@@ -1652,24 +1653,80 @@ class SupervisorController extends Controller
             ->update($update);
     }
 
-    /** Dual-write: mirror legacy issue into cc_forms_cert / cc_form_*_cert (one table per form). */
-    private function syncIssuedCertToCcTable(
+    private function competencyCertificateService(): CompetencyCertificateService
+    {
+        return app(CompetencyCertificateService::class);
+    }
+
+    /** Persist issued certificate into the per-form cc_*_cert table (N/R/D share one table). */
+    private function persistCompetencyCertificate(
         object $application,
-        string $licenseNumber,
+        string $applicationId,
+        string $certificateNo,
         mixed $issuedAt,
         mixed $validFrom,
-        mixed $expiresAt,
-        string $processedBy
+        mixed $validTo
     ): void {
-        app(CompetencyCertificateService::class)->syncFromLegacyIssue(
-            $application->form_name ?? null,
-            (string) $application->application_id,
-            $licenseNumber,
-            $issuedAt,
-            $validFrom,
-            $expiresAt,
-            $processedBy
+        $this->competencyCertificateService()->issueOrUpdate(
+            (string) ($application->form_name ?? ''),
+            [
+                'application_id' => $applicationId,
+                'certificate_no' => $certificateNo,
+                'dateof_issue' => $issuedAt,
+                'valid_from' => $validFrom ?? $issuedAt,
+                'valid_to' => $validTo,
+                'cert_status' => 'A',
+            ]
         );
+    }
+
+    private function nextCompetencyCertificateNumber(object $application): string
+    {
+        $prefix = $application->license_name;
+        $yearMonth = date('Ym');
+        $certTable = $this->competencyCertificateService()->certTableForForm($application->form_name ?? null)
+            ?? 'cc_forms_cert';
+
+        $lastSerial = DB::table($certTable)
+            ->where('certificate_no', 'LIKE', "C{$prefix}{$yearMonth}%")
+            ->orderByDesc('certificate_no')
+            ->value('certificate_no');
+
+        if ($lastSerial) {
+            $newNumber = str_pad((int) substr($lastSerial, -5) + 1, 5, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '00001';
+        }
+
+        return "C{$prefix}{$yearMonth}{$newNumber}";
+    }
+
+    private function resolvePreviousCertExpiryForRenewal(object $application, string $applicationId): ?string
+    {
+        $certService = $this->competencyCertificateService();
+        $parentId = trim((string) ($application->old_application ?? ''));
+
+        if ($parentId !== '') {
+            $parentCert = $certService->asLicenseDetails($parentId, $application->form_name ?? null);
+
+            return $parentCert->expires_at ?? null;
+        }
+
+        $certificateNo = trim((string) ($application->license_number ?? ''));
+        if ($certificateNo === '') {
+            return null;
+        }
+
+        $certTable = $certService->certTableForForm($application->form_name ?? null);
+        if (!$certTable) {
+            return null;
+        }
+
+        return DB::table($certTable)
+            ->where('certificate_no', $certificateNo)
+            ->where('application_id', '!=', $applicationId)
+            ->orderByDesc('valid_to')
+            ->value('valid_to');
     }
 
     public function approveApplication(Request $request)
@@ -1729,12 +1786,17 @@ class SupervisorController extends Controller
 
             // dd('success'); exit;
 
-            // Generate Licence PDF, encrypt it, and store its path (non-blocking)
+            // Regenerate licence PDF on the issued certificate application (parent for alterations).
+            $pdfApplicationId = $appl_type === 'A'
+                ? trim((string) ($application->old_application ?? $request->application_id))
+                : $request->application_id;
+
             try {
-                app(LicensepdfController::class)->generatePDF($request->application_id);
+                app(LicensepdfController::class)->generatePDF($pdfApplicationId);
             } catch (\Throwable $e) {
                 Log::warning('Failed to generate/store encrypted licence PDF after approval', [
-                    'application_id' => $request->application_id,
+                    'application_id' => $pdfApplicationId,
+                    'alteration_application_id' => $appl_type === 'A' ? $request->application_id : null,
                     'error' => $e->getMessage(),
                 ]);
             }
@@ -1766,23 +1828,27 @@ class SupervisorController extends Controller
                     'issued_at'      => $issuedAt,
                     'expires_at'     => $expiresAt,
                 ], 200);
-            } else {
+            }
 
+            if ($appl_type === 'A') {
                 return response()->json([
                     'status'        => 'success',
-                    'message'        => 'Application approved successfully!',
+                    'message'        => 'Alteration approved successfully! Certificate has been regenerated.',
                     'license_number' => $licenseNumber,
                     'issued_at'      => $issuedAt,
                     'expires_at'     => $expiresAt,
                 ], 200);
             }
+
+            return response()->json([
+                'status'        => 'success',
+                'message'        => 'Application approved successfully!',
+                'license_number' => $licenseNumber,
+                'issued_at'      => $issuedAt,
+                'expires_at'     => $expiresAt,
+            ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            dd([
-                'message' => $e->getMessage(),
-                'line'    => $e->getLine(),
-                'file'    => $e->getFile(),
-            ]);
             return response()->json(['error' => 'Something went wrong: ' . $e->getMessage()], 500);
         }
     }
@@ -1896,244 +1962,128 @@ class SupervisorController extends Controller
      */
     private function issueOrRenewLicense(object $application, int $licenceId, string $applType, string $processedBy, string $applicationId, string $loginId): array
     {
+        $certService = $this->competencyCertificateService();
+        $formName = (string) ($application->form_name ?? '');
 
-        // Renewal flow
+        // Renewal flow — one cc_*_cert row per application_id
         if ($applType === 'R') {
-            $licenseDetails = DB::table('tnelb_renewal_license')
-                ->where('application_id', $applicationId)
-                ->first();
-
-
-
-            $previousCertExpiry = DB::table('tnelb_license')
-                ->where('license_number', $application->license_number)
-                ->value('expires_at');
-
+            $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
+            $previousCertExpiry = $this->resolvePreviousCertExpiryForRenewal($application, $applicationId);
+            $previousExpiryCarbon = $previousCertExpiry ? Carbon::parse($previousCertExpiry) : db_now();
             $now = db_now();
 
-            // dd($previousCertExpiry, $now);
-            // exit;
-
-            // dd($applType); exit;
             if (!$licenseDetails || $now->greaterThan(Carbon::parse($licenseDetails->expires_at))) {
+                $issuedAt = $previousExpiryCarbon->copy()->addDay()->format('Y-m-d');
+                $effectiveApplType = $applType;
 
-
-                $issuedAt = Carbon::parse($previousCertExpiry)
-                    ->addDays(1)
-                    ->format('Y-m-d');
-
-
-                if ($now > $previousCertExpiry) {
-                    $applType = 'N';
+                if ($now->greaterThan($previousExpiryCarbon)) {
+                    $effectiveApplType = 'N';
                 }
 
+                $licensePeriod = $this->resolveLicenseValidity($licenceId, $effectiveApplType);
+                $monthsToAdd = (int) ($licensePeriod->validity ?? 0);
 
-                $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
-
-                $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
-
-                // $expiresAtone     = $now->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-
-                $expiresAt = Carbon::parse($previousCertExpiry)->copy()
+                $expiresAt = $previousExpiryCarbon->copy()
                     ->addMonths($monthsToAdd)
                     ->subDay()
                     ->format('Y-m-d');
 
+                $licenseNumber = (string) $application->license_number;
 
-
-
-                DB::table('tnelb_renewal_license')->insert([
-                    'login_id'       => $loginId,
-                    'license_number' => $application->license_number,
-                    'application_id' => $applicationId,
-                    'issued_by'      => $processedBy,
-                    'issued_at'      => $now,
-                    'issued_from'    => $issuedAt,
-                    'expires_at'     => $expiresAt,
-                    'created_at'     => $now,
-                ]);
-
-                $licenseNumber = $application->license_number;
-                $certIssueDate = $now;
-                $certValidFrom = $issuedAt;
-            } else {
-
-                // Existing renewal record still valid – reuse its values
-
-
-                $licenseNumber = $licenseDetails->license_number;
-                $issuedAt      = $licenseDetails->issued_at;
-                $expiresAt     = $licenseDetails->expires_at;
-                $certIssueDate = $licenseDetails->issued_at;
-                $certValidFrom = $licenseDetails->issued_from ?? $licenseDetails->issued_at;
-            }
-
-            $this->syncIssuedCertToCcTable(
-                $application,
-                (string) $licenseNumber,
-                $certIssueDate,
-                $certValidFrom,
-                $expiresAt,
-                $processedBy
-            );
-
-            return [$licenseNumber, $issuedAt, $expiresAt];
-        }
-
-
-
-        if ($applType === 'D') {
-            $licenseDetails = DB::table('cc_forms_cert')
-                ->where('application_id', $applicationId)
-                ->first();
-
-            if ($licenseDetails) {
-                $this->syncIssuedCertToCcTable(
+                $this->persistCompetencyCertificate(
                     $application,
-                    (string) $licenseDetails->certificate_no,
-                    $licenseDetails->dateof_issue,
-                    $licenseDetails->valid_from ?? $licenseDetails->dateof_issue,
-                    $licenseDetails->valid_to,
-                    $processedBy
+                    $applicationId,
+                    $licenseNumber,
+                    $now,
+                    $issuedAt,
+                    $expiresAt
                 );
 
+                return [$licenseNumber, $issuedAt, $expiresAt];
+            }
+
+            return [
+                $licenseDetails->license_number,
+                $licenseDetails->issued_at,
+                $licenseDetails->expires_at,
+            ];
+        }
+
+        if ($applType === 'A') {
+            $metaTable = (string) ($application->_approval_source ?? app(CompetencyMetaService::class)->metaTableForApplicationId($applicationId) ?? '');
+            if ($metaTable === '') {
+                throw new \RuntimeException('Alteration application meta table not found.');
+            }
+
+            $result = app(FormSAlterationService::class)->applyApprovedAlterationChanges($applicationId, $metaTable);
+
+            return [
+                $result['license_number'],
+                $result['issued_at'],
+                $result['expires_at'],
+            ];
+        }
+
+        if ($applType === 'D') {
+            $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
+
+            if ($licenseDetails) {
                 return [
-                    $licenseDetails->certificate_no,
-                    $licenseDetails->dateof_issue,
-                    $licenseDetails->valid_from,
-                    $licenseDetails->valid_to
+                    $licenseDetails->license_number,
+                    $licenseDetails->issued_at,
+                    $licenseDetails->valid_from ?? $licenseDetails->issued_from,
+                    $licenseDetails->expires_at,
                 ];
             }
 
-            // Create a brand new licence entry
-            $prefix    = $application->license_name;
-            $yearMonth = date('Ym');
+            $licenseNumber = $this->nextCompetencyCertificateNumber($application);
+            $digitization = Tnelb_CC_Digitization::where('application_id', $applicationId)->first();
+            $expiresAt = $digitization->to_date;
+            $fromDate = $digitization->from_date;
+            $issuedAt = $digitization->fissue;
 
-            $lastSerial = DB::table('cc_forms_cert')
-                ->where('certificate_no', 'LIKE', "C{$prefix}{$yearMonth}%")
-                ->orderBy('certificate_no', 'desc')
-                ->value('certificate_no');
-
-            if ($lastSerial) {
-                $lastNumber   = (int) substr($lastSerial, -5);
-                $newNumber    = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-            } else {
-                $newNumber = '00001';
-            }
-
-            $now = db_now();
-
-            $licenseNumber = "C{$prefix}{$yearMonth}{$newNumber}";
-            $issuedAt      = $now;
-
-            $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
-            $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
-
-
-            $expiresAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->first()->to_date; //first issue
-            $from_date = Tnelb_CC_Digitization::where('application_id', $applicationId )->first()->from_date; //latest from_date
-            $issuedAt = Tnelb_CC_Digitization::where('application_id', $applicationId )->first()->fissue; //latest to date
-            // dd($issuedAt); exit;
-            $issuedBy = Auth::user()->roles_id;
-
-            // dd($issuedBy, $issuedAt); exit;
-
-          
-            $licence_insert = DB::table('cc_forms_cert')->insert([
-                'application_id' => $applicationId,
-                'certificate_no' => $licenseNumber,
-                'issued_by'      => $issuedBy,
-                'dateof_issue'      => $issuedAt, //first issue
-                'valid_from'    => $from_date, //latest from_date
-                'valid_to'     => $expiresAt, //latest to date
-                'created_at'     => $now,
-            ]);
-
-            $this->syncIssuedCertToCcTable(
+            $this->persistCompetencyCertificate(
                 $application,
+                $applicationId,
                 $licenseNumber,
                 $issuedAt,
-                $from_date,
-                $expiresAt,
-                $processedBy
+                $fromDate,
+                $expiresAt
             );
 
             return [$licenseNumber, $issuedAt, $expiresAt];
         }
 
         // Fresh licence (N) flow
-        $licenseDetails = DB::table('tnelb_license')
-            ->where('application_id', $applicationId)
-            ->first();
+        $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
 
         if ($licenseDetails) {
-            $this->syncIssuedCertToCcTable(
-                $application,
-                (string) $licenseDetails->license_number,
-                $licenseDetails->issued_at,
-                $licenseDetails->issued_from ?? $licenseDetails->issued_at,
-                $licenseDetails->expires_at,
-                $processedBy
-            );
-
             return [
                 $licenseDetails->license_number,
                 $licenseDetails->issued_at,
-                $licenseDetails->issued_from,
-                $licenseDetails->expires_at
+                $licenseDetails->valid_from ?? $licenseDetails->issued_from,
+                $licenseDetails->expires_at,
             ];
         }
 
-        // Create a brand new licence entry
-        $prefix    = $application->license_name;
-        $yearMonth = date('Ym');
-
-        $lastSerial = DB::table('tnelb_license')
-            ->where('license_number', 'LIKE', "C{$prefix}{$yearMonth}%")
-            ->orderBy('license_number', 'desc')
-            ->value('license_number');
-
-        if ($lastSerial) {
-            $lastNumber   = (int) substr($lastSerial, -5);
-            $newNumber    = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '00001';
-        }
-
         $now = db_now();
-
-        $licenseNumber = "C{$prefix}{$yearMonth}{$newNumber}";
-        $issuedAt      = $now;
+        $licenseNumber = $this->nextCompetencyCertificateNumber($application);
+        $issuedAt = $now;
 
         $licensePeriod = $this->resolveLicenseValidity($licenceId, $applType);
-        $monthsToAdd   = (int) ($licensePeriod->validity ?? 0);
-
+        $monthsToAdd = (int) ($licensePeriod->validity ?? 0);
 
         $expiresAt = Carbon::parse($now)->copy()->addMonths($monthsToAdd)
             ->subDay()
             ->toDateString();
 
-        // dd($licensePeriod->validity); exit;
-
-        $licence_insert = DB::table('tnelb_license')->insert([
-            'application_id' => $applicationId,
-            'certificate_no' => $licenseNumber,
-            'issued_by'      => Auth::user()->roles_id,
-            'dateof_issue'      => $issuedAt, //first issue
-            'valid_from'    => $now,
-            'valid_to'     => $expiresAt,
-            'created_at'     => $now,
-        ]);
-
-        
-
-        $this->syncIssuedCertToCcTable(
+        $this->persistCompetencyCertificate(
             $application,
+            $applicationId,
             $licenseNumber,
             $issuedAt,
             $now,
-            $expiresAt,
-            $processedBy
+            $expiresAt
         );
 
         return [$licenseNumber, $issuedAt, $expiresAt];

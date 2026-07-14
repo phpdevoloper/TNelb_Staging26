@@ -8,6 +8,7 @@ use App\Models\CC_Form_wh_cert;
 use App\Models\CC_Forms_cert;
 use App\Models\CC_Forms_Meta;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -70,11 +71,7 @@ class CompetencyCertificateService
             return $this->normalizeFormName($fromFormP);
         }
 
-        $fromLegacy = DB::table('tnelb_application_tbl')->where('application_id', $applicationId)->value('form_name');
-
-        return ($fromLegacy && $this->supportsForm($fromLegacy))
-            ? $this->normalizeFormName($fromLegacy)
-            : null;
+        return null;
     }
 
     public function findByApplicationId(string $applicationId, ?string $formName = null): ?Model
@@ -275,8 +272,168 @@ class CompetencyCertificateService
         }
     }
 
+    /**
+     * Verify issued certificate fields against the per-form cc_*_cert table.
+     */
+    public function certificateDetailsMatch(
+        string $applicationId,
+        ?string $formName,
+        string $certificateNo,
+        mixed $dateOfIssue,
+        mixed $validFrom,
+        mixed $validTo
+    ): bool {
+        $applicationId = trim($applicationId);
+        $certificateNo = trim($certificateNo);
+        if ($applicationId === '' || $certificateNo === '') {
+            return false;
+        }
+
+        $formName = $this->normalizeFormName($formName);
+        $cert = $this->findByApplicationId($applicationId, $formName);
+
+        if (!$cert) {
+            $certTable = $this->certTableForForm($formName);
+            if (!$certTable) {
+                return false;
+            }
+
+            $row = DB::table($certTable)
+                ->where('application_id', $applicationId)
+                ->where('certificate_no', $certificateNo)
+                ->first();
+
+            if (!$row) {
+                return false;
+            }
+
+            $cert = (object) $row;
+        }
+
+        return $this->certRowMatchesInput($cert, $certificateNo, $dateOfIssue, $validFrom, $validTo);
+    }
+
+    /**
+     * Find an issued certificate row by number and validity dates (explicit cert table).
+     */
+    public function findCertByDetailsInTable(
+        string $certTable,
+        string $certificateNo,
+        mixed $dateOfIssue,
+        mixed $validFrom,
+        mixed $validTo
+    ): ?object {
+        $certTable = trim($certTable);
+        $certificateNo = trim($certificateNo);
+        if ($certTable === '' || $certificateNo === '') {
+            return null;
+        }
+
+        $rows = DB::table($certTable)
+            ->where('certificate_no', $certificateNo)
+            ->get();
+
+        foreach ($rows as $row) {
+            if ($this->certRowMatchesInput($row, $certificateNo, $dateOfIssue, $validFrom, $validTo)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find an issued certificate row by number and validity dates (launcher lookup).
+     */
+    public function findCertByDetails(
+        ?string $formName,
+        string $certificateNo,
+        mixed $dateOfIssue,
+        mixed $validFrom,
+        mixed $validTo
+    ): ?object {
+        $certificateNo = trim($certificateNo);
+        if ($certificateNo === '') {
+            return null;
+        }
+
+        $formName = $this->normalizeFormName($formName);
+        $certTable = $this->certTableForForm($formName);
+        if (!$certTable) {
+            return null;
+        }
+
+        return $this->findCertByDetailsInTable(
+            $certTable,
+            $certificateNo,
+            $dateOfIssue,
+            $validFrom,
+            $validTo
+        );
+    }
+
+    public function licenseDetailsFromCertTable(string $certTable, string $applicationId): ?object
+    {
+        $applicationId = trim($applicationId);
+        $certTable = trim($certTable);
+        if ($applicationId === '' || $certTable === '') {
+            return null;
+        }
+
+        $row = DB::table($certTable)->where('application_id', $applicationId)->first();
+
+        if (!$row) {
+            return null;
+        }
+
+        return (object) [
+            'application_id' => $row->application_id,
+            'license_number' => $row->certificate_no,
+            'certificate_no' => $row->certificate_no,
+            'issued_at' => $row->dateof_issue,
+            'issued_from' => $row->valid_from,
+            'expires_at' => $row->valid_to,
+            'valid_from' => $row->valid_from,
+            'valid_to' => $row->valid_to,
+            'issued_by' => $row->issued_by ?? null,
+            'cert_status' => $row->cert_status ?? null,
+            'cert_pdf' => $row->cert_pdf ?? null,
+        ];
+    }
+
+    private function certRowMatchesInput(
+        object $cert,
+        string $certificateNo,
+        mixed $dateOfIssue,
+        mixed $validFrom,
+        mixed $validTo
+    ): bool {
+        if (strcasecmp(trim((string) ($cert->certificate_no ?? '')), trim($certificateNo)) !== 0) {
+            return false;
+        }
+
+        return $this->normalizeCertDate($cert->dateof_issue ?? null) === $this->normalizeCertDate($dateOfIssue)
+            && $this->normalizeCertDate($cert->valid_from ?? null) === $this->normalizeCertDate($validFrom)
+            && $this->normalizeCertDate($cert->valid_to ?? null) === $this->normalizeCertDate($validTo);
+    }
+
+    private function normalizeCertDate(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     private function normalizeFormName(?string $formName): string
     {
-        return strtoupper(trim((string) $formName));
+        $formName = strtoupper(trim((string) $formName));
+
+        return $formName === 'H' ? 'WH' : $formName;
     }
 }

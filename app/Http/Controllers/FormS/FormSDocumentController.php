@@ -4,6 +4,7 @@ namespace App\Http\Controllers\FormS;
 
 use App\Http\Controllers\Controller;
 use App\Models\CC_Doc_Log;
+use App\Models\CC_Proof_doc;
 use App\Models\DocumentsLog;
 use App\Services\DocumentVersion\DocumentStorageService;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,12 +19,73 @@ class FormSDocumentController extends Controller
     {
         $ccLog = CC_Doc_Log::find($logId);
         if ($ccLog) {
-            return $this->storageService->download($ccLog->file_path, $ccLog->file_name);
+            $filePath = $this->resolveDownloadPath($ccLog->file_path, $ccLog);
+            if ($filePath !== null) {
+                return $this->storageService->download($filePath, $ccLog->file_name ?: basename($filePath));
+            }
         }
 
         $log = DocumentsLog::findOrFail($logId);
+        $filePath = $this->resolveDownloadPath($log->file_path, null, $log);
+        if ($filePath === null) {
+            abort(404, 'Document file not found.');
+        }
 
-        return $this->storageService->download($log->file_path, $log->file_name);
+        return $this->storageService->download($filePath, $log->file_name ?: basename($filePath));
+    }
+
+    /**
+     * cc_doc_log paths can drift from cc_proof_doc; photo/signature live in proof_doc.
+     */
+    protected function resolveDownloadPath(
+        ?string $filePath,
+        ?CC_Doc_Log $ccLog = null,
+        ?DocumentsLog $legacyLog = null
+    ): ?string {
+        $filePath = trim(str_replace('\\', '/', (string) $filePath));
+
+        if ($filePath !== '' && $this->storageService->exists($filePath)) {
+            return $filePath;
+        }
+
+        if ($ccLog) {
+            $proofPath = $this->proofDocPathForLog($ccLog);
+            if ($proofPath !== null && $this->storageService->exists($proofPath)) {
+                return $proofPath;
+            }
+        }
+
+        if ($filePath !== '' && is_file(public_path($filePath))) {
+            return $filePath;
+        }
+
+        return null;
+    }
+
+    protected function proofDocPathForLog(CC_Doc_Log $log): ?string
+    {
+        if (! in_array((string) $log->module_type, ['photo', 'signature', 'aadhaar', 'pan'], true)) {
+            return null;
+        }
+
+        if ($log->module_ref_id) {
+            $fromRef = CC_Proof_doc::whereKey((int) $log->module_ref_id)->value('proof_doc');
+            if ($fromRef) {
+                return trim(str_replace('\\', '/', (string) $fromRef));
+            }
+        }
+
+        if ($log->file_path) {
+            $fromPath = CC_Proof_doc::query()
+                ->where('proof_doc', $log->file_path)
+                ->value('proof_doc');
+
+            if ($fromPath) {
+                return trim(str_replace('\\', '/', (string) $fromPath));
+            }
+        }
+
+        return null;
     }
 
     /**

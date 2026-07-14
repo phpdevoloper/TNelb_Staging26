@@ -807,13 +807,32 @@
                                             $isAlterationApp = ($applicant->appl_type ?? '') === 'A';
                                             $parentForAlter = $parentApplicantForAlter ?? null;
                                             $nameAltered = $isAlterationApp && $parentForAlter
-                                                && trim((string) ($applicant->applicant_name ?? '')) !== trim((string) ($parentForAlter->applicant_name ?? ''));
-                                            $addressAltered = $isAlterationApp && $parentForAlter
-                                                && trim((string) ($applicant->applicants_address ?? '')) !== trim((string) ($parentForAlter->applicants_address ?? ''));
+                                                && trim((string) ($applicant->applicant_name ?? '')) !== trim((string) ($parentForAlter->applicant_name ?? $parentForAlter->applicants_name ?? ''));
                                             $hasAlteredWork = $isAlterationApp && ($workExperience ?? collect())->contains(function ($row) {
                                                 return !empty($row->is_alteration_new);
                                             });
                                             $hasAlterationProofs = $isAlterationApp && ($alterationProofs ?? collect())->isNotEmpty();
+                                            $nameProofDoc = ($alterationProofs ?? collect())->first(function ($proof) {
+                                                return ($proof->document_type ?? '') === 'name_proof';
+                                            });
+                                            $addressProofDoc = ($alterationProofs ?? collect())->first(function ($proof) {
+                                                return ($proof->document_type ?? '') === 'address_proof';
+                                            });
+                                            $resolveAlterProofUrl = function ($proof) {
+                                                if (! $proof) {
+                                                    return null;
+                                                }
+                                                if (! empty($proof->url)) {
+                                                    return $proof->url;
+                                                }
+                                                $storedPath = trim((string) ($proof->proof_doc ?? ''));
+                                                return $storedPath !== '' ? competency_document_path_url($storedPath) : null;
+                                            };
+                                            $nameProofUrl = $resolveAlterProofUrl($nameProofDoc);
+                                            $addressProofUrl = $resolveAlterProofUrl($addressProofDoc);
+                                            $parentAddressValue = trim((string) ($parentForAlter->applicants_address ?? $parentForAlter->applicant_address ?? ''));
+                                            $addressAltered = $isAlterationApp && $parentForAlter
+                                                && trim((string) ($applicant->applicants_address ?? $applicant->applicant_address ?? '')) !== $parentAddressValue;
                                         @endphp
                                         @if($isAlterationApp && ($nameAltered || $addressAltered || $hasAlteredWork || $hasAlterationProofs))
                                         <div class="asp-alteration-summary mt-3 mb-2">
@@ -854,6 +873,21 @@
                                                                             @if($parentForAlter && trim((string) ($parentForAlter->applicant_name ?? '')) !== '')
                                                                                 <div class="text-muted small mt-1">Previously: {{ $parentForAlter->applicant_name }}</div>
                                                                             @endif
+                                                                            @if(!empty($nameProofUrl))
+                                                                                <div class="mt-1">
+                                                                                    <a href="{{ $nameProofUrl }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary small">
+                                                                                        <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                                        <span>View name proof</span>
+                                                                                    </a>
+                                                                                </div>
+                                                                            @endif
+                                                                        @elseif(!empty($nameProofUrl))
+                                                                            <div class="mt-1">
+                                                                                <a href="{{ $nameProofUrl }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary small">
+                                                                                    <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                                    <span>View name proof</span>
+                                                                                </a>
+                                                                            </div>
                                                                         @endif
                                                                     </td>
                                                                 </tr>
@@ -867,9 +901,24 @@
                                                                         {{ $applicant->applicants_address }}
                                                                         @if($addressAltered)
                                                                             <span class="asp-alter-badge ms-1">ALTER</span>
-                                                                            @if($parentForAlter && trim((string) ($parentForAlter->applicants_address ?? '')) !== '')
-                                                                                <div class="text-muted small mt-1">Previously: {{ $parentForAlter->applicants_address }}</div>
+                                                                            @if($parentForAlter && $parentAddressValue !== '')
+                                                                                <div class="text-muted small mt-1">Previously: {{ $parentAddressValue }}</div>
                                                                             @endif
+                                                                            @if(!empty($addressProofUrl))
+                                                                                <div class="mt-1">
+                                                                                    <a href="{{ $addressProofUrl }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary small">
+                                                                                        <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                                        <span>View address proof</span>
+                                                                                    </a>
+                                                                                </div>
+                                                                            @endif
+                                                                        @elseif(!empty($addressProofUrl))
+                                                                            <div class="mt-1">
+                                                                                <a href="{{ $addressProofUrl }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary small">
+                                                                                    <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                                    <span>View address proof</span>
+                                                                                </a>
+                                                                            </div>
                                                                         @endif
                                                                     </td>
                                                                 </tr>
@@ -947,11 +996,16 @@
                                                     </thead>
                                                     <tbody>
                                                         @foreach($alterationProofs as $proof)
+                                                        @php
+                                                            $proofViewUrl = !empty($proof->url)
+                                                                ? $proof->url
+                                                                : (!empty($proof->proof_doc) ? competency_document_path_url($proof->proof_doc) : null);
+                                                        @endphp
                                                         <tr>
                                                             <td>{{ $proof->label ?? 'Supporting proof' }}</td>
                                                             <td>
-                                                                @if(!empty($proof->url))
-                                                                    <a href="{{ $proof->url }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary">
+                                                                @if(!empty($proofViewUrl))
+                                                                    <a href="{{ $proofViewUrl }}" target="_blank" rel="noopener noreferrer" class="doc-pdf-link text-primary">
                                                                         <i class="fa fa-file-pdf-o text-danger"></i>
                                                                         <span>View Document</span>
                                                                     </a>
@@ -1131,13 +1185,7 @@
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
-                                                            @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->previously_number }}" data-license_from_date="{{ $applicant->previously_valid_from }}" data-license_date="{{ $prevValidTo }}" data-license_issue_date="{{ $applicant->previously_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
-                                                            @elseif($applicant->admincverify == 1)
-                                                                <span class="text-success small fw-semibold">(Valid Certificate)</span>
-                                                            @elseif($applicant->admincverify == 2)
-                                                                <span class="text-danger small fw-semibold">(Invalid Certificate)</span>
-                                                            @endif
+                                                            <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->previously_number }}" data-license_from_date="{{ $applicant->previously_valid_from }}" data-license_date="{{ $prevValidTo }}" data-license_issue_date="{{ $applicant->previously_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -1175,13 +1223,7 @@
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
-                                                            @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
-                                                            @elseif($applicant->admincverify == 1)
-                                                                <span class="text-success small fw-semibold">(Valid License)</span>
-                                                            @elseif($applicant->admincverify == 2)
-                                                                <span class="text-danger small fw-semibold">(Invalid License)</span>
-                                                            @endif
+                                                            <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -1217,13 +1259,7 @@
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
-                                                            @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
-                                                            @elseif($applicant->admincverify == 1)
-                                                                <span class="text-success small fw-semibold">(Valid License)</span>
-                                                            @elseif($applicant->admincverify == 2)
-                                                                <span class="text-danger small fw-semibold">(Invalid License)</span>
-                                                            @endif
+                                                            <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -1257,13 +1293,7 @@
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
-                                                            @if ($applicant->admincverify == null)
-                                                                <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
-                                                            @elseif($applicant->admincverify == 1)
-                                                                <span class="text-success small fw-semibold">(Valid License)</span>
-                                                            @elseif($applicant->admincverify == 2)
-                                                                <span class="text-danger small fw-semibold">(Invalid License)</span>
-                                                            @endif
+                                                            <span class="badge badge-primary admin_verify" data-license_number="{{ $applicant->certificate_no }}" data-license_from_date="{{ $applicant->certificate_valid_from }}" data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}" data-license_issue_date="{{ $applicant->certificate_issue_date }}" data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -1272,30 +1302,20 @@
                                             <!-- ----------------------------------------------- -->
                                             
                                             @php
-                                                $decryptedaadhar = null;
-                                                try {
-                                                    $decryptedaadhar = !empty($applicant->aadhaar) ? Crypt::decryptString($applicant->aadhaar) : null;
-                                                } catch (\Throwable $e) {
-                                                    $decryptedaadhar = null;
-                                                }
+                                                $decryptedAadhaar = displayProofNumber($applicant->aadhaar ?? '');
+                                                $decryptedPan = displayProofNumber($applicant->pancard ?? '');
 
-                                                $decryptedPan = null;
-                                                try {
-                                                    $decryptedPan = !empty($applicant->pancard) ? Crypt::decryptString($applicant->pancard) : null;
-                                                } catch (\Throwable $e) {
-                                                    $decryptedPan = null;
-                                                }
+                                                $masked = strlen($decryptedAadhaar) === 12
+                                                    ? str_repeat('X', 8) . substr($decryptedAadhaar, -4)
+                                                    : ($decryptedAadhaar !== '' ? 'Invalid Aadhaar' : '—');
 
-                                                $masked = (is_string($decryptedaadhar) && strlen($decryptedaadhar) === 12)
-                                                    ? str_repeat('X', 8) . substr($decryptedaadhar, -4)
-                                                    : 'N/A';
-
-                                                $maskedPan = (is_string($decryptedPan) && strlen($decryptedPan) === 10)
+                                                $maskedPan = strlen($decryptedPan) === 10
                                                     ? str_repeat('X', 6) . substr($decryptedPan, -4)
-                                                    : 'N/A';
+                                                    : ($decryptedPan !== '' ? 'Invalid PAN' : '—');
 
                                                 $panDocument = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
-
+                                                $aadhaarDocUrl = proof_document_url($applicant->aadhaar_doc ?? null, 'aadhaar');
+                                                $panDocUrl = proof_document_url($panDocument, 'pan');
                                             @endphp
 
                                             <div class="asp-docs-block">
@@ -1305,9 +1325,9 @@
                                                         <span class="fw-bold" style="color: #111;">Aadhaar</span>
                                                     </div>
                                                     <div class="col-lg-6 text-lg-end">
-                                                        @if (!empty($applicant->aadhaar_doc))
-                                                            <span class="fw-bold" style="color: #515365">{{ $masked }}</span>
-                                                            <a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $applicant->aadhaar_doc]) }}"
+                                                        <span class="fw-bold" style="color: #515365">{{ $masked }}</span>
+                                                        @if ($aadhaarDocUrl)
+                                                            <a href="{{ $aadhaarDocUrl }}"
                                                                target="_blank"
                                                                class="applicant-inline-doc-link ms-1"
                                                                title="Open Aadhaar document">
@@ -1315,7 +1335,7 @@
                                                                 <span>View Document</span>
                                                             </a>
                                                         @else
-                                                            <span class="text-muted small">No document</span>
+                                                            <span class="text-muted small ms-1">No document</span>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -1325,8 +1345,8 @@
                                                     </div>
                                                     <div class="col-lg-6 text-lg-end">
                                                         <span class="fw-bold" style="color: #515365">{{ $maskedPan }}</span>
-                                                        @if (!empty($panDocument))
-                                                            <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $panDocument]) }}"
+                                                        @if ($panDocUrl)
+                                                            <a href="{{ $panDocUrl }}"
                                                                target="_blank"
                                                                class="applicant-inline-doc-link ms-1"
                                                                title="Open PAN document">
@@ -1440,7 +1460,18 @@
                                                         <p><strong> Payment Status</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p class="badge badge-success">{{ strtoupper($applicant->payment_status) }}</p>
+                                                        @php
+                                                            $paymentStatusRaw = strtoupper(trim((string) ($applicant->payment_status ?? '')));
+                                                            $paymentStatusLabel = match ($paymentStatusRaw) {
+                                                                'Y', 'PAYMENT', 'PAID', 'SUCCESS' => 'Success',
+                                                                'N', 'DRAFT' => 'Draft',
+                                                                default => $paymentStatusRaw !== '' ? $paymentStatusRaw : 'N/A',
+                                                            };
+                                                            $paymentStatusBadge = in_array($paymentStatusRaw, ['Y', 'PAYMENT', 'PAID', 'SUCCESS'], true)
+                                                                ? 'badge-success'
+                                                                : 'badge-warning';
+                                                        @endphp
+                                                        <p class="badge {{ $paymentStatusBadge }}">{{ $paymentStatusLabel }}</p>
                                                     </div>
 
                                                     <div class="col-lg-6">
@@ -2498,44 +2529,33 @@
         });
 
         $(document).on("click", ".admin_verify", function () {
-            let btn = $(this); 
-            // 🔹 Select only from the correct section
-            let licenseNumber = $(this).data("license_number");
-            let licenseDate = $(this).data("license_date");
-            let licenseIssueDate = $(this).data("license_issue_date");
+            let btn = $(this);
+            let licenseNumber = btn.data("license_number");
+            let licenseDate = btn.data("license_date");
+            let type = btn.data("type");
+            let label = (type === "certificate") ? "Certificate" : "License";
 
-            let type = $(this).data("type");
-
-            let application_id = @json($applicant->application_id);
-            
-            let url = "{{ route('admin.verifylicense') }}";
-            
-            // console.log(licenseNumber, licenseDate, licenseIssueDate, url);
-            // return false;
             $.ajax({
-                url: url,
+                url: "{{ route('admin.verifylicense') }}",
                 method: "POST",
                 data: {
-                    license_number : licenseNumber,
-                    date : licenseDate,
-                    issue_date : licenseIssueDate,
-                    type : type,
-                    application_id : application_id,
+                    license_number: licenseNumber,
+                    date: licenseDate,
+                    type: type,
                     _token: $('meta[name="csrf-token"]').attr("content"),
                 },
                 success: function (response) {
-                    btn.hide(); // hide the button
+                    btn.hide();
 
                     if (response.exists) {
-                        btn.after('<span class="text-success ms-2">(Valid License.)</span>'); // ✅ tick mark
+                        btn.after('<span class="text-success ms-2 small fw-semibold">(Valid ' + label + ')</span>');
                     } else {
-                        btn.after('<span class="text-danger ms-2">(Invalid License.)</span>'); // ❌ cross mark
+                        btn.after('<span class="text-danger ms-2 small fw-semibold">(Invalid ' + label + ')</span>');
                     }
-
                 },
                 error: function () {
-                    btn.hide(); // also hide on error
-                    btn.after('<span class="text-danger ms-2">🚫 Something went wrong!.</span>'); // error icon
+                    btn.hide();
+                    btn.after('<span class="text-danger ms-2 small fw-semibold">Verification failed.</span>');
                 },
             });
         });

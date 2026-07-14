@@ -318,7 +318,7 @@ class FormSDocumentVersionService
             return (int) $ccParentPk;
         }
 
-        $legacyParentPk = CC_Forms_meta::where('application_id', $oldApplicationId)->value('id');
+        $legacyParentPk = CC_Forms_meta::where('application_id', $oldApplicationId)->value('app_id');
 
         return $legacyParentPk ? (int) $legacyParentPk : null;
     }

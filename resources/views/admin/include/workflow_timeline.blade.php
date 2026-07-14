@@ -73,10 +73,10 @@
                                         static fn ($item) => is_string($item) && $item !== ''
                                     ));
                                     $forwardedRoleName = trim((string) ($row->role_name ?? $row->name ?? ''));
-                                    $returnLogInternalRemark = $row->remarks
-                                        ?? $row->return_remarks_raw
+                                    $returnLogInternalRemark = $row->remarks ?? null;
+                                    $returnRemarksDisplay = $row->return_remarks
+                                        ?? $row->return_log_internal_remarks
                                         ?? null;
-                                    $returnRemarksDisplay = $row->return_remarks ?? $row->return_remarks_raw ?? null;
                                     $queries = $row->queries ?? null;
                                     if ($queries === null || $queries === '') {
                                         $queries = [];
@@ -131,21 +131,23 @@
                                 @endif
 
                                 {{-- Case 1: Secretary/President → return to applicant (purple) --}}
-                                @if ($isExternalApplicantReturn)
+                                    @if ($isExternalApplicantReturn)
                                     <p class="t-meta-time">Application returned to Applicant</p>
+                                    @if ($returnLogInternalRemark !== null && $returnLogInternalRemark !== '')
                                     <p class="t-meta-time mb-0">
-                                        <span class="fw-semibold">Remark :</span>
-                                        {{ $returnLogInternalRemark !== null && $returnLogInternalRemark !== '' ? $returnLogInternalRemark : '—' }}
+                                        <span class="fw-semibold">Staff remark :</span>
+                                        {{ $returnLogInternalRemark }}
                                     </p>
+                                    @endif
                                     @if ($queries !== [] && $queries != $applicantFacingQueries)
                                         <p class="t-meta-internal mb-1">
-                                            <span class="fw-semibold">Note: Query</span>
+                                            <span class="fw-semibold">Internal note :</span>
                                             ({{ implode(', ', $queries) }})
                                         </p>
                                     @endif
                                     @if ($applicantFacingQueries !== [])
                                         <p class="t-meta-applicant-return mb-1">
-                                            <span class="fw-semibold">Note: Query</span>
+                                            <span class="fw-semibold">Query to applicant :</span>
                                             ({{ implode(', ', $applicantFacingQueries) }})
                                         </p>
                                     @endif

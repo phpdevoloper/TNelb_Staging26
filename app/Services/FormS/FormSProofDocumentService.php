@@ -154,7 +154,7 @@ class FormSProofDocumentService
             return null;
         }
 
-        $workflowPk = (int) (\App\Models\CC_Forms_meta::where('application_id', $applicationId)->value('id') ?? 0);
+        $workflowPk = (int) (\App\Models\CC_Forms_meta::where('application_id', $applicationId)->value('app_id') ?? 0);
         if ($workflowPk <= 0) {
             return null;
         }
@@ -182,47 +182,125 @@ class FormSProofDocumentService
             ->whereIn('proof_name', [self::PROOF_NAME_CHANGE, self::PROOF_ADDRESS])
             ->get();
 
-        $items = [];
+        $itemsByType = [];
+
         foreach ($rows as $row) {
             $config = self::configFor((string) $row->proof_name);
+            $documentType = $config['document_type'];
             $storedPath = (string) ($row->proof_doc ?: $this->resolveAlterationProofPathFromLog(
                 $alterationApplicationId,
                 (string) $row->proof_name
             ) ?? '');
 
-            if ($storedPath === '') {
+            $item = $this->buildAlterationProofReviewItem(
+                (string) $row->proof_name,
+                $storedPath,
+                (int) $row->getKey(),
+                $workflowAppPks
+            );
+
+            if ($item) {
+                $itemsByType[$documentType] = $item;
+            }
+        }
+
+        foreach ($this->collectAlterationProofsFromDocLogs($workflowAppPks) as $item) {
+            $documentType = (string) ($item->document_type ?? '');
+            if ($documentType !== '' && ! isset($itemsByType[$documentType])) {
+                $itemsByType[$documentType] = $item;
+            }
+        }
+
+        return array_values($itemsByType);
+    }
+
+    /**
+     * @param  list<int>  $workflowAppPks
+     */
+    protected function buildAlterationProofReviewItem(
+        string $proofName,
+        string $storedPath,
+        int $moduleRefId,
+        array $workflowAppPks
+    ): ?object {
+        $storedPath = trim($storedPath);
+        if ($storedPath === '') {
+            return null;
+        }
+
+        $config = self::configFor($proofName);
+        $url = competency_document_path_url($storedPath);
+        if (! $url) {
+            $url = competency_document_url(
+                $storedPath,
+                $config['module_type'],
+                $moduleRefId,
+                $config['document_type'],
+                $workflowAppPks
+            );
+        }
+        if (! $url) {
+            $url = competency_media_url($storedPath);
+        }
+
+        return (object) [
+            'document_type' => $config['document_type'],
+            'label' => match ($proofName) {
+                self::PROOF_NAME_CHANGE => 'Name alteration supporting proof',
+                self::PROOF_ADDRESS => 'Address alteration supporting proof',
+                default => ucwords(str_replace('_', ' ', strtolower($proofName))),
+            },
+            'file_name' => basename($storedPath),
+            'url' => $url,
+            'proof_doc' => $storedPath,
+        ];
+    }
+
+    /**
+     * @param  list<int>  $workflowAppPks
+     * @return list<object{document_type: string, label: string, file_name: string, url: ?string, proof_doc: ?string}>
+     */
+    protected function collectAlterationProofsFromDocLogs(array $workflowAppPks): array
+    {
+        $items = [];
+        $seenTypes = [];
+
+        foreach ($workflowAppPks as $workflowPk) {
+            if ($workflowPk <= 0) {
                 continue;
             }
-            $url = null;
 
-            foreach ($workflowAppPks as $wfPk) {
-                $url = competency_document_url(
+            $logs = \App\Models\CC_Doc_Log::query()
+                ->where('application_id', $workflowPk)
+                ->where('module_type', 'alteration')
+                ->whereIn('document_type', ['name_proof', 'address_proof'])
+                ->orderByDesc('doc_id')
+                ->get();
+
+            foreach ($logs as $log) {
+                $documentType = (string) ($log->document_type ?? '');
+                if ($documentType === '' || isset($seenTypes[$documentType])) {
+                    continue;
+                }
+
+                $storedPath = trim((string) ($log->file_path ?? ''));
+                if ($storedPath === '') {
+                    continue;
+                }
+
+                $seenTypes[$documentType] = true;
+                $proofName = self::proofNameFromAlterationDocumentType($documentType);
+                $item = $this->buildAlterationProofReviewItem(
+                    $proofName,
                     $storedPath,
-                    $config['module_type'],
-                    (int) $wfPk,
-                    $config['document_type'],
+                    (int) ($log->module_ref_id ?? 0),
                     $workflowAppPks
                 );
-                if ($url) {
-                    break;
+
+                if ($item) {
+                    $items[] = $item;
                 }
             }
-
-            if (! $url) {
-                $url = competency_media_url($storedPath);
-            }
-
-            $items[] = (object) [
-                'document_type' => $config['document_type'],
-                'label' => match ((string) $row->proof_name) {
-                    self::PROOF_NAME_CHANGE => 'Name alteration supporting proof',
-                    self::PROOF_ADDRESS => 'Address alteration supporting proof',
-                    default => ucwords(str_replace('_', ' ', strtolower((string) $row->proof_name))),
-                },
-                'file_name' => basename($storedPath),
-                'url' => $url,
-                'proof_doc' => $storedPath,
-            ];
         }
 
         return $items;
@@ -236,6 +314,27 @@ class FormSProofDocumentService
 
         $path = $this->uploadHandler->handleAlterationProofUpload($alterationWorkflow, $proof, $file);
 
+        if ($path) {
+            $proof->update([
+                'proof_doc' => $path,
+                'updated_at' => now()->toDateString(),
+            ]);
+        }
+
+        return $path;
+    }
+
+    public function syncAlterationProofFromLog(CC_CompetencyMeta $workflow, string $documentType): ?string
+    {
+        $proofName = self::proofNameFromAlterationDocumentType($documentType);
+        $applicationId = (string) $workflow->application_id;
+        $proof = $this->ensureProofRow($applicationId, self::ALTERATION_APP_TYPE, $proofName);
+
+        if (trim((string) ($proof->proof_doc ?? '')) !== '') {
+            return trim((string) $proof->proof_doc);
+        }
+
+        $path = $this->resolveAlterationProofPathFromLog($applicationId, $proofName);
         if ($path) {
             $proof->update([
                 'proof_doc' => $path,

@@ -71,22 +71,51 @@ class CompetencyDocumentReviewService
                 ? [$this->workflowService->workflowPk($application)]
                 : $workflowAppPks;
 
-            if (empty($row->support_document)) {
-                $log = competency_find_document_log('experience', $refId, 'experience_doc', $workflowIds);
-                if ($log && ! empty($log->file_path)) {
-                    $row->support_document = $log->file_path;
+            $resolveDocPath = function (string $documentType, ?string $storedPath) use ($refId, $workflowIds): ?string {
+                $storedPath = trim((string) ($storedPath ?? ''));
+                if ($storedPath !== '') {
+                    return $storedPath;
                 }
+
+                foreach ($workflowIds as $workflowPk) {
+                    if ($workflowPk <= 0) {
+                        continue;
+                    }
+
+                    $ccLog = \App\Models\CC_Doc_Log::forGroup(
+                        $workflowPk,
+                        'experience',
+                        $refId,
+                        $documentType
+                    )->orderByDesc('doc_id')->first();
+
+                    if ($ccLog && trim((string) ($ccLog->file_path ?? '')) !== '') {
+                        return trim((string) $ccLog->file_path);
+                    }
+                }
+
+                $legacyLog = competency_find_document_log('experience', $refId, $documentType, $workflowIds);
+
+                return $legacyLog && trim((string) ($legacyLog->file_path ?? '')) !== ''
+                    ? trim((string) $legacyLog->file_path)
+                    : null;
+            };
+
+            $supportPath = $resolveDocPath('experience_doc', $row->support_document ?? $row->upload_document ?? null);
+            if ($supportPath) {
+                $row->support_document = $supportPath;
             }
 
-            if (empty($row->releive_document)) {
-                $log = competency_find_document_log('experience', $refId, 'relieving_doc', $workflowIds);
-                if ($log && ! empty($log->file_path)) {
-                    $row->releive_document = $log->file_path;
-                }
+            $relievePath = $resolveDocPath(
+                'relieving_doc',
+                $row->relieve_document ?? $row->releive_document ?? null
+            );
+            if ($relievePath) {
+                $row->relieve_document = $relievePath;
             }
 
             $row->setAttribute('support_document_url', competency_document_url(
-                $row->support_document,
+                $supportPath,
                 'experience',
                 $refId,
                 'experience_doc',
@@ -94,7 +123,7 @@ class CompetencyDocumentReviewService
             ));
 
             $row->setAttribute('releive_document_url', competency_document_url(
-                $row->releive_document,
+                $relievePath,
                 'experience',
                 $refId,
                 'relieving_doc',
@@ -133,29 +162,68 @@ class CompetencyDocumentReviewService
             if ($proofItems !== []) {
                 $alterationProofs = collect($proofItems);
             } else {
-                $alterationProofs = DocumentsLog::query()
-                    ->where('application_id', $this->workflowService->workflowPk($application))
+                $workflowPk = $this->workflowService->workflowPk($application);
+                $ccLogs = CC_Doc_Log::query()
+                    ->where('application_id', $workflowPk)
                     ->where('module_type', 'alteration')
-                    ->where('is_active', true)
-                    ->orderByDesc('id')
+                    ->whereIn('document_type', ['name_proof', 'address_proof'])
+                    ->orderByDesc('doc_id')
                     ->get()
                     ->unique('document_type')
-                    ->values()
-                    ->map(function (DocumentsLog $log) {
+                    ->values();
+
+                if ($ccLogs->isNotEmpty()) {
+                    $alterationProofs = $ccLogs->map(function (CC_Doc_Log $log) use ($workflowAppPks) {
                         $type = (string) ($log->document_type ?? '');
                         $label = match ($type) {
                             'name_proof' => 'Name alteration supporting proof',
                             'address_proof' => 'Address alteration supporting proof',
                             default => ucwords(str_replace('_', ' ', $type)),
                         };
+                        $storedPath = trim((string) ($log->file_path ?? ''));
 
                         return (object) [
                             'document_type' => $type,
                             'label' => $label,
-                            'file_name' => $log->file_name,
-                            'url' => competency_document_log_download_url($log),
+                            'file_name' => (string) ($log->file_name ?: basename($storedPath)),
+                            'url' => $storedPath !== ''
+                                ? (competency_document_path_url($storedPath)
+                                    ?? competency_document_url(
+                                        $storedPath,
+                                        'alteration',
+                                        (int) ($log->module_ref_id ?? 0),
+                                        $type,
+                                        $workflowAppPks
+                                    ))
+                                : null,
+                            'proof_doc' => $storedPath !== '' ? $storedPath : null,
                         ];
                     });
+                } else {
+                    $alterationProofs = DocumentsLog::query()
+                        ->where('application_id', $workflowPk)
+                        ->where('module_type', 'alteration')
+                        ->where('is_active', true)
+                        ->orderByDesc('id')
+                        ->get()
+                        ->unique('document_type')
+                        ->values()
+                        ->map(function (DocumentsLog $log) {
+                            $type = (string) ($log->document_type ?? '');
+                            $label = match ($type) {
+                                'name_proof' => 'Name alteration supporting proof',
+                                'address_proof' => 'Address alteration supporting proof',
+                                default => ucwords(str_replace('_', ' ', $type)),
+                            };
+
+                            return (object) [
+                                'document_type' => $type,
+                                'label' => $label,
+                                'file_name' => $log->file_name,
+                                'url' => competency_document_log_download_url($log),
+                            ];
+                        });
+                }
             }
         }
 
@@ -263,9 +331,16 @@ class CompetencyDocumentReviewService
             return $fromLog;
         }
 
+        $fromProof = $this->resolvePhotoFromProofDoc($application);
+        if ($fromProof) {
+            return $fromProof;
+        }
+
         foreach ($this->mediaApplicationIds($application) as $applicationId) {
             $photo = \App\Models\TnelbApplicantPhoto::where('application_id', $applicationId)->first();
-            if ($photo && trim((string) ($photo->upload_path ?? '')) !== '') {
+            if ($photo && $this->legacyMediaIsReachable((string) ($photo->upload_path ?? ''))) {
+                $photo->setAttribute('media_url', competency_media_url($photo->upload_path));
+
                 return $photo;
             }
         }
@@ -280,9 +355,16 @@ class CompetencyDocumentReviewService
             return $fromLog;
         }
 
+        $fromProof = $this->resolveSignFromProofDoc($application);
+        if ($fromProof) {
+            return $fromProof;
+        }
+
         foreach ($this->mediaApplicationIds($application) as $applicationId) {
             $sign = \App\Models\TnelbApplicantsSign::where('application_id', $applicationId)->first();
-            if ($sign && trim((string) ($sign->uploaded_doc ?? '')) !== '') {
+            if ($sign && $this->legacyMediaIsReachable((string) ($sign->uploaded_doc ?? ''))) {
+                $sign->setAttribute('media_url', competency_media_url($sign->uploaded_doc));
+
                 return $sign;
             }
         }
@@ -304,8 +386,7 @@ class CompetencyDocumentReviewService
             $photo = new \App\Models\TnelbApplicantPhoto([
                 'upload_path' => $log->file_path,
             ]);
-            $photo->setAttribute('media_url', competency_document_log_download_url($log)
-                ?? competency_document_path_url($log->file_path));
+            $photo->setAttribute('media_url', $this->viewableMediaUrl($log->file_path, $log));
 
             return $photo;
         }
@@ -327,8 +408,7 @@ class CompetencyDocumentReviewService
             $sign = new \App\Models\TnelbApplicantsSign([
                 'uploaded_doc' => $log->file_path,
             ]);
-            $sign->setAttribute('media_url', competency_document_log_download_url($log)
-                ?? competency_document_path_url($log->file_path));
+            $sign->setAttribute('media_url', $this->viewableMediaUrl($log->file_path, $log));
 
             return $sign;
         }
@@ -361,5 +441,78 @@ class CompetencyDocumentReviewService
         }
 
         return $ids;
+    }
+
+    protected function resolvePhotoFromProofDoc(CC_CompetencyMeta $application): ?\App\Models\TnelbApplicantPhoto
+    {
+        $proofService = app(FormSProofDocumentService::class);
+
+        foreach ($this->mediaApplicationIds($application) as $applicationId) {
+            $path = $proofService->resolveProofPath($applicationId, FormSProofDocumentService::PROOF_PHOTO);
+            if (! $path) {
+                continue;
+            }
+
+            $photo = new \App\Models\TnelbApplicantPhoto([
+                'application_id' => $applicationId,
+                'upload_path' => $path,
+            ]);
+            $photo->setAttribute('media_url', competency_media_url($path));
+
+            return $photo;
+        }
+
+        return null;
+    }
+
+    protected function resolveSignFromProofDoc(CC_CompetencyMeta $application): ?\App\Models\TnelbApplicantsSign
+    {
+        $proofService = app(FormSProofDocumentService::class);
+
+        foreach ($this->mediaApplicationIds($application) as $applicationId) {
+            $path = $proofService->resolveProofPath($applicationId, FormSProofDocumentService::PROOF_SIGN);
+            if (! $path) {
+                continue;
+            }
+
+            $sign = new \App\Models\TnelbApplicantsSign([
+                'application_id' => $applicationId,
+                'uploaded_doc' => $path,
+            ]);
+            $sign->setAttribute('media_url', competency_media_url($path));
+
+            return $sign;
+        }
+
+        return null;
+    }
+
+    protected function viewableMediaUrl(?string $storedPath, DocumentsLog|CC_Doc_Log|null $log = null): ?string
+    {
+        $storedPath = trim(str_replace('\\', '/', (string) $storedPath));
+
+        if ($storedPath !== '' && preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
+            return competency_document_path_url($storedPath);
+        }
+
+        if ($log) {
+            return competency_document_log_download_url($log);
+        }
+
+        return competency_media_url($storedPath);
+    }
+
+    protected function legacyMediaIsReachable(string $storedPath): bool
+    {
+        $storedPath = trim(str_replace('\\', '/', $storedPath));
+        if ($storedPath === '') {
+            return false;
+        }
+
+        if (preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
+            return app(\App\Services\DocumentVersion\DocumentStorageService::class)->exists($storedPath);
+        }
+
+        return $this->legacyMediaFileExists($storedPath);
     }
 }

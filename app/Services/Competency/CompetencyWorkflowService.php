@@ -202,22 +202,23 @@ class CompetencyWorkflowService
                 ? 'r.remarks as return_remarks'
                 : 'NULL::text';
 
-            $subFromWhere = "FROM {$logTable} r
-                WHERE r.application_id = wf.application_id
-                  AND wf.appl_status = 'QU'
-                  AND wf.processed_by IN ('SE', 'PR')
-                  AND r.returned_by_role = wf.processed_by::text
-                  AND r.created_at <= wf.created_at + interval '10 seconds'
-                  AND r.created_at >= wf.created_at - interval '2 minutes'
-                ORDER BY abs(extract(epoch from (wf.created_at - r.created_at)))
-                LIMIT 1";
-
             if ($workflowTable !== 'tnelb_workflow') {
                 $subFromWhere = "FROM {$logTable} r
                 WHERE r.application_id = wf.application_id
-                  AND wf.appl_status = 'QU'
-                  AND r.created_at <= wf.created_at + interval '10 seconds'
-                  AND r.created_at >= wf.created_at - interval '2 minutes'
+                  AND TRIM(wf.appl_status) = 'QU'
+                  AND (
+                    r.returned_by_role = TRIM(COALESCE(wf.raised_by::text, ''))
+                    OR r.returned_by_staff_id = wf.processed_by
+                    OR r.returned_by_staff_id::text = TRIM(COALESCE(wf.login_id::text, ''))
+                  )
+                ORDER BY abs(extract(epoch from (wf.created_at - r.created_at)))
+                LIMIT 1";
+            } else {
+                $subFromWhere = "FROM {$logTable} r
+                WHERE r.application_id = wf.application_id
+                  AND TRIM(wf.appl_status) = 'QU'
+                  AND TRIM(wf.processed_by::text) IN ('SE', 'PR')
+                  AND r.returned_by_role = TRIM(wf.processed_by::text)
                 ORDER BY abs(extract(epoch from (wf.created_at - r.created_at)))
                 LIMIT 1";
             }
@@ -304,8 +305,68 @@ class CompetencyWorkflowService
                 }
                 unset($row->return_remarks_raw);
             }
+
+            if (
+                strtoupper(trim((string) ($row->appl_status ?? ''))) === 'QU'
+                && (
+                    empty($row->return_remarks)
+                    || empty($row->return_log_internal_queries)
+                )
+            ) {
+                $this->attachNearestReturnLogToWorkflowRow($row);
+            }
         }
 
         return $workflows;
+    }
+
+    private function attachNearestReturnLogToWorkflowRow(object $row): void
+    {
+        if (! Schema::hasTable('tnelb_return_to_applicant_log')) {
+            return;
+        }
+
+        $query = DB::table('tnelb_return_to_applicant_log as r')
+            ->where('r.application_id', $row->application_id ?? '');
+
+        $raisedBy = strtoupper(trim((string) ($row->raised_by ?? '')));
+        $processedBy = strtoupper(trim((string) ($row->processed_by ?? '')));
+
+        if (in_array($raisedBy, ['SE', 'PR'], true)) {
+            $query->where('r.returned_by_role', $raisedBy);
+        } elseif (in_array($processedBy, ['SE', 'PR'], true)) {
+            $query->where('r.returned_by_role', $processedBy);
+        } elseif (isset($row->processed_by) && is_numeric($row->processed_by)) {
+            $query->where('r.returned_by_staff_id', (int) $row->processed_by);
+        } elseif (isset($row->login_id) && is_numeric($row->login_id)) {
+            $query->where('r.returned_by_staff_id', (int) $row->login_id);
+        }
+
+        if (! empty($row->created_at)) {
+            $query->orderByRaw('abs(extract(epoch from (?::timestamp - r.created_at))) asc', [$row->created_at]);
+        } else {
+            $query->orderByDesc('r.created_at');
+        }
+
+        $logRow = $query->first();
+        if (! $logRow) {
+            return;
+        }
+
+        if (empty($row->return_remarks) && ! empty($logRow->remarks)) {
+            $row->return_remarks = $logRow->remarks;
+            $row->return_log_internal_remarks = $logRow->remarks;
+        }
+
+        if (empty($row->return_log_internal_queries) && ! empty($logRow->query_types)) {
+            $decoded = is_string($logRow->query_types) ? json_decode($logRow->query_types, true) : $logRow->query_types;
+            if (is_array($decoded)) {
+                $row->return_queries = $decoded;
+                $row->return_log_internal_queries = array_values(array_filter(
+                    $decoded,
+                    static fn ($item) => is_string($item) && $item !== ''
+                ));
+            }
+        }
     }
 }

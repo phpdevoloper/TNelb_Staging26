@@ -202,6 +202,11 @@ class FormSDocumentUploadHandler
     protected function resolveProofPathAfterUpload(CC_Doc_Log $log, CC_Proof_doc $proof): ?string
     {
         if ($log->isPending()) {
+            $pendingPath = trim((string) ($log->file_path ?? ''));
+            if ($pendingPath !== '') {
+                return $pendingPath;
+            }
+
             $proof->refresh();
 
             return $proof->proof_doc ?: null;
@@ -220,6 +225,11 @@ class FormSDocumentUploadHandler
         string $experienceField = 'support_document'
     ): ?string {
         if ($log->isPending()) {
+            $pendingPath = trim((string) ($log->file_path ?? ''));
+            if ($pendingPath !== '') {
+                return $pendingPath;
+            }
+
             if ($education) {
                 return $education->upload_document;
             }

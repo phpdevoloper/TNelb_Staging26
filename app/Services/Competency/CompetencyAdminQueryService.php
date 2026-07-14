@@ -560,6 +560,36 @@ class CompetencyAdminQueryService
     }
 
     /**
+     * Completed competency apps (TRIM(app_status) = A) for dashboard card counts.
+     */
+    public function dashboardCcCompletedCountRows(array $ccFormIds): Collection
+    {
+        $rows = collect();
+
+        foreach (array_values(array_unique(array_map('intval', $ccFormIds))) as $formId) {
+            if (! $this->isCcMetaFormId($formId)) {
+                continue;
+            }
+
+            $metaTable = $this->metaTableForFormId($formId);
+            if ($metaTable === null) {
+                continue;
+            }
+
+            $rows = $rows->merge(
+                DB::table("{$metaTable} as ta")
+                    ->where('ta.form_id', $formId)
+                    ->where(DB::raw('TRIM(ta.app_status)'), 'A')
+                    ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
+                    ->groupBy('ta.form_id', 'ta.appl_type')
+                    ->get()
+            );
+        }
+
+        return $rows;
+    }
+
+    /**
      * Merge dashboard pending count rows into pendingCountsMap structure.
      *
      * @param  array<int, array{N: int, R: int, D: int, A: int}>  $pendingCountsMap

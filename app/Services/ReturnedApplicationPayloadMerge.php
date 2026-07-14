@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\Mst_education;
-use App\Models\Mst_experience;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
 use App\Models\TnelbAppsInstitute;
 use App\Models\TnelbFormP;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Restores locked applicant-return payloads from the database before validation/update (partial QU submit).
@@ -16,7 +18,7 @@ final class ReturnedApplicationPayloadMerge
 {
     public static function mergeEducationArraysIntoRequest(Request $request, string $applicationId): void
     {
-        $rows = Mst_education::where('application_id', $applicationId)->orderBy('id')->get();
+        $rows = self::educationRowsForApplication($applicationId);
         $level = [];
         $inst = [];
         $month = [];
@@ -52,7 +54,7 @@ final class ReturnedApplicationPayloadMerge
 
     public static function mergeExperienceArraysIntoRequest(Request $request, string $applicationId, string $formName): void
     {
-        $rows = Mst_experience::where('application_id', $applicationId)->orderBy('exp_id')->get();
+        $rows = self::experienceRowsForApplication($applicationId);
 
         if ($formName === 'S') {
             $empType = [];
@@ -235,6 +237,40 @@ final class ReturnedApplicationPayloadMerge
         }
 
         return ['category' => $stored, 'licence' => null];
+    }
+
+    private static function educationRowsForApplication(string $applicationId): Collection
+    {
+        $ccRows = CC_Education::where('application_id', $applicationId)->orderBy('edu_id')->get();
+        if ($ccRows->isNotEmpty()) {
+            return $ccRows->map(static function (CC_Education $row) {
+                $row->id = $row->edu_id;
+
+                return $row;
+            });
+        }
+
+        return collect(
+            DB::table('tnelb_applicants_edu')
+                ->where('application_id', $applicationId)
+                ->orderBy('id')
+                ->get()
+        );
+    }
+
+    private static function experienceRowsForApplication(string $applicationId): Collection
+    {
+        $ccRows = CC_Experience::where('application_id', $applicationId)->orderBy('exp_id')->get();
+        if ($ccRows->isNotEmpty()) {
+            return $ccRows;
+        }
+
+        return collect(
+            DB::table('tnelb_applicants_exp')
+                ->where('application_id', $applicationId)
+                ->orderBy('exp_id')
+                ->get()
+        );
     }
 
     public static function mergeFormPInstituteArraysIntoRequest(Request $request, string $applicationId): void

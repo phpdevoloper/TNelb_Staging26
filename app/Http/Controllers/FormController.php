@@ -33,6 +33,8 @@ use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\SensitiveProofCryptService;
+use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyWorkflowService;
 use Illuminate\Http\UploadedFile;
 
 class FormController extends BaseController
@@ -1425,12 +1427,12 @@ class FormController extends BaseController
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_EDUCATION])) {
             $request->files->remove('education_document');
-            ReturnedApplicationPayloadMerge::mergeEducationArraysIntoRequest($request, $applicationId);
+            ReturnedApplicationPayloadMerge::mergeEducationArraysIntoRequest($request, $masterAppId);
         }
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_EXPERIENCE])) {
             $request->files->remove('work_document');
-            ReturnedApplicationPayloadMerge::mergeExperienceArraysIntoRequest($request, $applicationId, $formName);
+            ReturnedApplicationPayloadMerge::mergeExperienceArraysIntoRequest($request, $masterAppId, $formName);
         }
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_PHOTO])) {
@@ -2583,7 +2585,6 @@ class FormController extends BaseController
         });
         $validator->after(function ($validator) use ($request) {
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
-            $this->validateFormSQualifiedSupervisor($request, $validator);
         });
         $validator->validate();
 
@@ -2747,18 +2748,34 @@ class FormController extends BaseController
             return response()->json(['status' => 'error', 'message' => 'Unauthorized.'], 401);
         }
 
-        $app = DB::table('tnelb_application_tbl')->where('application_id', $appl_id)->first();
-        if (!$app) {
+        $appService = app(CompetencyApplicationService::class);
+        $workflowService = app(CompetencyWorkflowService::class);
+
+        $ccApplicant = $appService->findApplicantWithPayment($appl_id);
+        $legacyApp = DB::table('tnelb_application_tbl')->where('application_id', $appl_id)->first();
+
+        if (! $ccApplicant && ! $legacyApp) {
             return response()->json(['status' => 'error', 'message' => 'Application not found.'], 404);
         }
-        if ((string) $app->status !== 'QU') {
+
+        $returnStatus = '';
+        if ($ccApplicant) {
+            $returnStatus = strtoupper(trim((string) ($ccApplicant->status ?? $ccApplicant->app_status ?? '')));
+        }
+        if ($returnStatus !== 'QU' && $legacyApp) {
+            $returnStatus = strtoupper(trim((string) ($legacyApp->status ?? '')));
+        }
+        if ($returnStatus !== 'QU') {
             return response()->json(['status' => 'error', 'message' => 'This application is not under query.'], 400);
         }
 
+        $ownerLoginId = $ccApplicant->login_id ?? $legacyApp->login_id ?? null;
         $loginId = session('login_id');
-        if (!$loginId || (string) $app->login_id !== (string) $loginId) {
+        if (!$loginId || (string) $ownerLoginId !== (string) $loginId) {
             return response()->json(['status' => 'error', 'message' => 'You can only submit corrections for your own application.'], 403);
         }
+
+        $originalPaymentStatus = $ccApplicant->payment_status ?? $legacyApp->payment_status ?? null;
 
         $queryReasonsForSubmit = [];
         $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
@@ -2772,39 +2789,74 @@ class FormController extends BaseController
         $data = json_decode($response->getContent(), true);
 
         if (isset($data['status']) && $data['status'] === 'success') {
-            // Preserve original payment_status (draft_update sets it to 'payment'; do not change for returned-applicant submit)
-            $updateData = [
-                'status'       => 'RE',
-                'processed_by' => 'AP',
-                'updated_at'   => $this->dbNow,
-                'payment_status' => $app->payment_status,
-            ];
-            DB::table('tnelb_application_tbl')
-                ->where('application_id', $appl_id)
-                ->update($updateData);
+            if ($ccApplicant) {
+                $appService->updateApplicationStatus($appl_id, [
+                    'app_status'   => 'RE',
+                    'processed_by' => 'AP',
+                    'updated_at'   => $this->dbNow,
+                ]);
+
+                if ($originalPaymentStatus !== null) {
+                    CC_Forms_Meta::updateByApplicationId($appl_id, [
+                        'payment_status' => $originalPaymentStatus,
+                    ]);
+                }
+
+                $supervisorRoleId = RoleHelper::supervisorWorkflowRoleId(Auth::user());
+                if ($supervisorRoleId) {
+                    $workflowTable = $appService->resolveWorkflowTable($appl_id, $ccApplicant);
+                    $workflowService->record($workflowTable, [
+                        'application_id' => $appl_id,
+                        'appl_status'    => 'RE',
+                        'processed_by'   => 'AP',
+                        'forwarded_to'   => $supervisorRoleId,
+                        'role_id'        => $supervisorRoleId,
+                        'is_verified'    => 'Yes',
+                        'query_status'   => null,
+                        'remarks'        => 'Resubmitted by applicant after query.',
+                        'queries'        => null,
+                        'raised_by'      => 'AP',
+                        'login_id'       => Auth::id(),
+                        'created_at'     => $this->dbNow,
+                    ]);
+                }
+            }
+
+            if ($legacyApp) {
+                DB::table('tnelb_application_tbl')
+                    ->where('application_id', $appl_id)
+                    ->update([
+                        'status'         => 'RE',
+                        'processed_by'   => 'AP',
+                        'updated_at'     => $this->dbNow,
+                        'payment_status' => $originalPaymentStatus ?? $legacyApp->payment_status,
+                    ]);
+            }
+
+            if (! $ccApplicant) {
+                $supervisorRoleId = RoleHelper::supervisorWorkflowRoleId(Auth::user());
+
+                if ($supervisorRoleId) {
+                    SupervisorModel::create([
+                        'application_id' => $appl_id,
+                        'appl_status'    => 'RE',
+                        'processed_by'   => 'AP',
+                        'forwarded_to'   => $supervisorRoleId,
+                        'role_id'        => $supervisorRoleId,
+                        'is_verified'    => 'Yes',
+                        'query_status'   => null,
+                        'remarks'        => 'Resubmitted by applicant after query.',
+                        'queries'        => null,
+                        'raised_by'      => null,
+                        'created_at'     => $this->dbNow,
+                    ]);
+                }
+            }
 
             DB::table('tnelb_query_applicable')
                 ->where('application_id', $appl_id)
                 ->where('query_status', 'P')
                 ->update(['query_status' => 'R', 'updated_at' => $this->dbNow]);
-
-            $supervisorRoleId = RoleHelper::supervisorWorkflowRoleId(Auth::user());
-
-            if ($supervisorRoleId) {
-                SupervisorModel::create([
-                    'application_id' => $appl_id,
-                    'appl_status'    => 'RE',
-                    'processed_by'   => 'AP',
-                    'forwarded_to'   => $supervisorRoleId,
-                    'role_id'        => $supervisorRoleId,
-                    'is_verified'    => 'Yes',
-                    'query_status'   => null,
-                    'remarks'        => 'Resubmitted by applicant after query.',
-                    'queries'        => null,
-                    'raised_by'      => null,
-                    'created_at'     => $this->dbNow,
-                ]);
-            }
 
             return response()->json([
                 'status'  => 'success',

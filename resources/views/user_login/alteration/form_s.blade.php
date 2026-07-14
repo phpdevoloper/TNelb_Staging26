@@ -2,6 +2,7 @@
 
 @php
     $isAlterationMode = !empty($is_alteration_mode);
+    $isAlterationEditable = !empty($alteration_editable_mode);
     $parentApplicationId = $parent_application_id ?? ($application_details->application_id ?? '');
 @endphp
 
@@ -208,6 +209,13 @@
         -webkit-appearance: none;
     }
     .fs-alt-form .fs-mandatory-bar { display: none; }
+    .fs-alt-form--editable .fs-alt-options-bar__hint {
+        color: #035ab3;
+    }
+    .fs-alt-form--editable #fsAltSectionApplicant .fs-view-block input,
+    .fs-alt-form--editable #fsAltSectionApplicant .fs-view-block textarea {
+        background: #fff;
+    }
     .fs-alt-options-bar {
         margin: 0;
         padding: 16px 18px 14px;
@@ -1397,7 +1405,7 @@
                 </div>
                 @endif
 
-                <form id="competency_form_ws" enctype="multipart/form-data" class="{{ $isAlterationMode ? 'fs-alt-form' : '' }}">
+                <form id="competency_form_ws" enctype="multipart/form-data" class="{{ $isAlterationMode ? 'fs-alt-form' : '' }}{{ $isAlterationEditable ? ' fs-alt-form--editable' : '' }}">
 
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id"
@@ -1539,6 +1547,7 @@
                                     </div>
                                 </div>
                             </div>
+                            @unless($isAlterationMode)
                             <div class="fs-edit-block">
                                 <div class="row">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
@@ -1620,6 +1629,7 @@
                                     </div>
                                 </div>
                             </div>
+                            @endunless
                         </div>
                     </div>
 
@@ -2304,16 +2314,25 @@
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
                                                {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               >
+                                               value="{{ $application_details->previously_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
+                                               id="previously_valid_from" name="previously_valid_from" type="date"
+                                               data-error="#previouslyFromDateError"
+                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
+                                               value="{{ $application_details->previously_valid_from ?? '' }}">
+                                        <span id="previouslyFromDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
-                                               id="previously_date" name="previously_date" type="date"
+                                               id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
                                                {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_date }}">
+                                               value="{{ $application_details->previously_valid_to ?? $application_details->previously_date }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -2373,14 +2392,14 @@
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_date) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_valid_to ?? $application_details->certificate_date) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
                             <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->certificate_no) ? 'block' : 'none' }};">
                                                         @php
                                                             if($application_details->form_name == 'S'){
-                                                                $cert_type = 'supervisor';
+                                                                $cert_type = 'certificate';
                                                             }else if($application_details->form_name == 'WH'){
                                                                 $cert_type = 'helper';
                                                             }else{
@@ -2406,20 +2425,30 @@
                                                             </span>
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
+                                                        <div class="col-12 col-md-2">
                                                             <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   >
+                                                                   value="{{ $application_details->certificate_issue_date }}"
+                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">From date <span class="req">*</span></div>
+                                                            <input class="form-control text-box single-line verify-valid-from"
+                                                                   id="certificate_valid_from" name="certificate_valid_from"
+                                                                   data-error="#certFromDateError" type="date"
+                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}"
+                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                            <span id="certFromDateError" class="text-danger"></span>
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <div class="fs-field-label">To date <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-date"
-                                                                   id="certificate_date" name="certificate_date"
+                                                                   id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->certificate_date }}"
+                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}"
                                                                    {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
@@ -2464,10 +2493,11 @@
                         </div>
                         <div class="fs-section-body p-0">
                             @php
-                                $decryptedaadhar = !empty($application_details->aadhaar) ? safeDecrypt($application_details->aadhaar) : '';
+                                $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
+                                $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
                                 $hasPhoto = !empty($applicant_photo?->upload_path);
-                                $signPathRaw = $proof_doc->uploaded_doc ?? $application_details->upload_sign ?? $application_details->signature ?? '';
+                                $signPathRaw = $proof_doc?->uploaded_doc ?? $application_details->upload_sign ?? $application_details->signature ?? '';
                                 $hasSign = !empty($signPathRaw);
                                 $photoPreviewSrc = $hasPhoto ? competency_media_url($applicant_photo->upload_path) : '';
                                 $signPreviewSrc = $hasSign ? competency_media_url($signPathRaw) : '';
@@ -2524,7 +2554,7 @@
                                         <td style="min-width:200px;">
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $application_details->aadhaar_doc]) }}" target="_blank" style="color:#007bff;">
+                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
@@ -2548,7 +2578,7 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $application_details->pancard ?? '') }}">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -2558,7 +2588,7 @@
                                         <td style="min-width:200px;">
                                             @if (!empty($existingPanDoc))
                                                 <div class="pan-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $existingPanDoc]) }}" target="_blank" style="color:#007bff;">
+                                                    <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
@@ -2643,7 +2673,7 @@
                                 @endif
                             </div>
                         </label>
-                        <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;font-size:.82rem;">Please check the declaration box before proceeding.</span>
+                        <span id="checkboxError" class="text-danger mt-2 d-block d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
                     </div>
 
                     {{-- Hidden fields --}}
@@ -2696,6 +2726,7 @@
         window.formSAltStoreUrl = "{{ route('form_s_alt.store') }}";
         window.formSAltDraftUrl = "{{ route('form_s_alt.draft') }}";
         window.dashboardUrl = "{{ route('dashboard') }}";
+        window.formSAltEditableMode = @json($isAlterationEditable);
     </script>
     <script src="{{ url('assets/js/alteration.js') }}"></script>
 

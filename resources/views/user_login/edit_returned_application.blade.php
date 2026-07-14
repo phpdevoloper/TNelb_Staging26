@@ -1124,10 +1124,16 @@
                     @endphp
                     <input type="hidden" id="license_number" name="license_number" value="{{ $_issued_lic_renew }}">
 
-                    {{-- ═══ SECTION 1 to 4 — Applicant Details ═══ --}}
+                    {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
                     @php
+                        $formName = $application_details->form_name ?? '';
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
+                        $emailVal = ($formName === 'S')
+                            ? (isset($application_details->applicant_email) && $application_details->applicant_email !== ''
+                                ? $application_details->applicant_email
+                                : (Auth::user()->email ?? ''))
+                            : '';
                         $addressVal = isset($application_details) ? $application_details->applicants_address : Auth::user()->address;
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
@@ -1166,11 +1172,25 @@
                                             <div class="fs-view-value {{ empty($fathersNameVal) ? 'fs-view-value--empty' : '' }}" data-view-for="Fathers_Name">{{ $fathersNameVal ?: 'Not provided' }}</div>
                                         </div>
                                     </div>
+                                    @if($formName === 'S')
+                                    <div class="col-12 col-md-6 mb-2 mt-2">
+                                        <div class="fs-field-head">
+                                            <span class="fs-field-num">3</span>
+                                            <div class="fs-field-head-text">
+                                                <div class="fs-field-label">Email ID</div>
+                                                <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
+                                            </div>
+                                        </div>
+                                        <div class="fs-view-grid-value-box">
+                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicant_email">{{ $emailVal ?: 'Not provided' }}</div>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </div>
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-field-num">3</span>
+                                            <span class="fs-field-num">{{ $formName === 'S' ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address</div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
@@ -1184,7 +1204,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-field-num">4</span>
+                                                    <span class="fs-field-num">{{ $formName === 'S' ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>Date of Birth</div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
@@ -1231,10 +1251,26 @@
                                         <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
+                                @if($formName === 'S')
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="fs-field-head">
+                                            <span class="fs-field-num">3</span>
+                                            <div class="fs-field-head-text">
+                                                <div class="fs-field-label">Email ID <span class="req">*</span></div>
+                                                <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
+                                            </div>
+                                        </div>
+                                        <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
+                                            maxlength="191" required value="{{ $emailVal }}">
+                                        <span class="error-message text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-field-num">3</span>
+                                            <span class="fs-field-num">{{ $formName === 'S' ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
@@ -1247,7 +1283,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-field-num">4</span>
+                                                    <span class="fs-field-num">{{ $formName === 'S' ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>D.O.B <span class="req">*</span></div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
@@ -1273,12 +1309,10 @@
                         </div>
                     </div>
 
-                    @php $formName = $application_details->form_name ?? ''; @endphp
-
-                    {{-- ═══ SECTION 5 — Education ═══ --}}
+                    {{-- ═══ SECTION 6 — Education (Form S) / SECTION 5 — Education (others) ═══ --}}
                     <div class="fs-section{{ $retLockClass('education') }}" data-return-section="education">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">5</span>
+                            <span class="fs-section-num">{{ $formName === 'S' ? 6 : 5 }}</span>
                             <div>
                                 <div class="fs-section-title">
                                     Applicant's Educational / Technical Qualification and pass details
@@ -1750,27 +1784,21 @@
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previously_number) ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                               placeholder="Certificate Number" {{ !empty($application_details->previously_number) ? 'readonly':'' }} value="{{ $application_details->previously_number }}" maxlength="80">
-                                        <input type="hidden" id="l_verify" name="l_verify" value="{{ $application_details->license_verify }}">
+                                               placeholder="Certificate Number" value="{{ $application_details->previously_number }}" maxlength="80">
+                                        <input type="hidden" id="l_verify" name="l_verify" value="1">
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
                                         <span id="license_messagdfde" class="mt-1"></span>
-                                        <span class="mt-1 verify_status {{ $application_details->license_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                            @if (!empty($application_details->previously_number))
-                                                {!! $application_details->license_verify == 0 ? '&#128683; Invalid License.' : '&#10004; Valid License.' !!}
-                                            @endif
-                                        </span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
                                                value="{{ $application_details->previously_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
@@ -1779,7 +1807,6 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
                                                id="previously_valid_from" name="previously_valid_from" type="date"
                                                data-error="#previouslyFromDateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
                                                value="{{ $application_details->previously_valid_from ?? '' }}">
                                         <span id="previouslyFromDateError" class="text-danger"></span>
                                     </div>
@@ -1788,19 +1815,8 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
                                                id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
                                                value="{{ $application_details->previously_valid_to ?? $application_details->previously_date }}">
                                         <span id="dateError" class="text-danger"></span>
-                                    </div>
-                                    <div class="col-12 col-md-2">
-                                        <div class="fs-verify-actions">
-                                            @if (!empty($application_details->previously_number))
-                                                <button type="button" class="btn btn-danger remove_verify" data-type="superviser"><i class="fa fa-trash"></i> Delete</button>
-                                                <button type="button" class="btn btn-primary verify-btn btn-forms d-none" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                            @else
-                                                <button type="button" class="btn btn-primary verify-btn" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                            @endif
-                                        </div>
                                     </div>
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
@@ -1865,21 +1881,15 @@
                                                         @endphp
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span>@if($application_details->form_name == 'S')<span class="text-muted" style="font-size:.75rem;font-weight:400;"> (eg. W1234)</span>@else<span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, LB2026041234 / LWH2026041234)</span>@endif</div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
                                                                    placeholder="Certificate Number" maxlength="80"
-                                                                   value="{{ $application_details->certificate_no }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
-                                                            <input type="hidden" id="cert_verify" name="cert_verify" value="{{ $application_details->cert_verify }}">
+                                                                   value="{{ $application_details->certificate_no }}">
+                                                            <input type="hidden" id="cert_verify" name="cert_verify" value="1">
                                                             <span id="licenseError" class="text-danger"></span>
                                                             <span id="license_message" class="mt-1"></span>
-                                                            <span id="verify_status" class="mt-1 {{ $application_details->cert_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                                                @if (!empty($application_details->certificate_no))
-                                                                    {!! $application_details->cert_verify == 0 ? '&#128683; Invalid License.' : '&#10004; Valid License.' !!}
-                                                                @endif
-                                                            </span>
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1887,8 +1897,7 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ $application_details->certificate_issue_date }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->certificate_issue_date }}">
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1896,8 +1905,7 @@
                                                             <input class="form-control text-box single-line verify-valid-from"
                                                                    id="certificate_valid_from" name="certificate_valid_from"
                                                                    data-error="#certFromDateError" type="date"
-                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}">
                                                             <span id="certFromDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1905,19 +1913,8 @@
                                                             <input class="form-control text-box single-line verify-date"
                                                                    id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}">
                                                             <span id="certDateError" class="text-danger"></span>
-                                                        </div>
-                                                        <div class="col-12 col-md-2">
-                                                            <div class="fs-verify-actions">
-                                                            @if (!empty($application_details->certificate_no))
-                                                                <button type="button" class="btn btn-danger remove_verify" data-type="superviser_two"><i class="fa fa-trash"></i> Delete</button>
-                                                                <button type="button" class="btn btn-primary verify-btn d-none" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                                            @else
-                                                                <button type="button" class="btn btn-primary verify-btn" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                                            @endif
-                                                            </div>
                                                         </div>
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
@@ -2148,6 +2145,10 @@
                     <input type="hidden" id="amount" name="amount" value="">
                     @if ($editShowBoardMember)
                     <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
+                    <div id="board-member-fee-notice" class="alert alert-info d-none mb-3 py-2 px-3" role="status" style="font-size:.9rem;">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <strong>Fee not applicable:</strong> Applicants with TNEB/TANGEDCO Board Member work experience are exempt from application fees. You may proceed without payment.
+                    </div>
                     @endif
                     <input type="hidden" id="appl_type" name="appl_type"
                         value="{{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }}">

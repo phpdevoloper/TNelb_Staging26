@@ -2,29 +2,28 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Mst_education;
-use App\Models\Mst_experience;
-use App\Models\Mst_documents;
 use App\Models\MstLicence;
 use App\Models\Tnelb_CC_Digitization;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
-use App\Models\TnelbAppsInstitute;
-use App\Models\TnelbFormP;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyCertificateService;
+use App\Services\Competency\CompetencyDocumentReviewService;
+use App\Services\Competency\CompetencyDocumentSupport;
+use App\Services\Competency\CompetencyMetaService;
+use App\Services\DocumentVersion\DocumentStorageService;
+use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\FormS\FormSProofDocumentService;
+use App\Services\FormS\SensitiveProofCryptService;
+use App\Models\Competency\CC_CompetencyMeta;
 use Carbon\Carbon;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Mpdf\Mpdf;
-
-use Mpdf\QrCode\QrCode;
-use Mpdf\QrCode\Output;
 
 class LicensepdfController extends Controller
 {
@@ -124,8 +123,7 @@ class LicensepdfController extends Controller
     {
 
         $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
-        $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
+        [$applicant_photo, $applicant_sign] = $this->resolveLicensePdfApplicantMedia($application_id);
         $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
@@ -258,9 +256,7 @@ class LicensepdfController extends Controller
                 </style>
             ', \Mpdf\HTMLParserMode::HEADER_CSS);
 
-            $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-
-            $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
+            [$photoPath, $signPath] = $this->licensePdfMediaPaths($applicant_photo, $applicant_sign ?? null);
 
             $qrValue = 'TNELB QR TESTING';
 
@@ -487,9 +483,7 @@ class LicensepdfController extends Controller
                 </style>
             ', \Mpdf\HTMLParserMode::HEADER_CSS);
 
-            $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-
-            $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
+            [$photoPath, $signPath] = $this->licensePdfMediaPaths($applicant_photo, $applicant_sign ?? null);
 
             $qrValue = 'TNELB QR TESTING';
 
@@ -637,7 +631,7 @@ class LicensepdfController extends Controller
             Storage::disk('local')->put($encryptedPathTa, Crypt::encryptString($pdfBinaryTa));
         }
 
-        // Save paths to `tnelb_license.license_pdf_en` / `license_pdf_ta`
+        // Save paths to cc_form_*_cert (cert_pdf / license_pdf_*)
         $this->storeEncryptedLicensePdfPath($application_id, $encryptedPathEn, $encryptedPathTa);
 
         // Stream English PDF to browser (existing behavior)
@@ -646,432 +640,12 @@ class LicensepdfController extends Controller
             ->header('Content-Disposition', 'inline; filename="' . $fileNameEn . '"');
     }
 
-    public function generatePDF11($application_id)
-    {
-
-        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
-        $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
-        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
-        if (!$applicant) {
-            return back()->with('error', 'Application not found.');
-        }
-
-        if ($applicant->license_name == 'B') {
-            $certificate_name = 'Electrician';
-            $content_text = 'The holder of this certificate is authorized to carry out Medium and Low Voltage electrical installation works under a licensed contractor, or to perform operation and maintenance works of Medium and Low Voltage installations in the concerned establishment with due authorization.';
-        } else if ($applicant->license_name == 'H') {
-            $certificate_name = 'WIREMAN HELPER';
-            $content_text = 'The holder of this certificate may work as an assistant to an electrician under a licensed electrical contractor for carrying out Medium and Low Voltage electrical installation works, or may, with the authorization of the establishment, work as an assistant to an electrician in the operation and maintenance of Medium and Low Voltage installations of the establishment.';
-        } else {
-            $certificate_name = '';
-            $content_text = 'This Certificate holder is permitted to supervise <strong>H.V and M.V. Electrical installation works</strong> under licensed contractor or to work as authorised person under rule 3 of Indian Electricity Rule 1956.';
-        }
-
-
-        $certificateRow = '';
-
-        if (!empty($certificate_name)) {
-            $certificateRow = '
-                <tr>
-                    <td class="lbl">Certificate</td>
-                    <td class="colon">:</td>
-                    <td class="val">' . $certificate_name . '</td>
-                </tr>
-            ';
-        }
-
-        // Different layout for WH form: full A4, no backside text/signatures
-        if ($applicant->form_name === 'WH') {
-            $mpdf = new \Mpdf\Mpdf([
-                'mode' => 'utf-8',
-                'format' => 'A4',
-                'orientation' => 'P',
-                'margin_top' => 18,
-                'margin_bottom' => 18,
-                'margin_left' => 15,
-                'margin_right' => 15,
-            ]);
-
-            $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-            $mpdf->WriteHTML('
-                <style>
-                    body {
-                        font-family: helvetica, sans-serif;
-                        font-size: 10pt;
-                    }
-                    .heading-main {
-                        text-align: center;
-                        font-size: 14pt;
-                        font-weight: bold;
-                    }
-                    .heading-sub {
-                        text-align: center;
-                        font-size: 11pt;
-                        margin-bottom: 8px;
-                    }
-                    .cert-title {
-                        text-align: center;
-                        font-size: 12pt;
-                        font-weight: bold;
-                        text-decoration: underline;
-                        margin-bottom: 12px;
-                    }
-                    .info-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-size: 10pt;
-                    }
-                    .info-table td {
-                        padding: 3px 4px;
-                        vertical-align: top;
-                    }
-                    .lbl {
-                        width: 22%;
-                        font-weight: bold;
-                    }
-                    .colon {
-                        width: 2%;
-                        text-align: center;
-                    }
-                    .photo-box {
-                        width: 30mm;
-                        height: 35mm;
-                        border: 0.3mm solid #000;
-                        margin-bottom: 6mm;
-                    }
-                    .sign-box {
-                        width: 30mm;
-                        height: 12mm;
-                        border: 0.3mm solid #000;
-                        margin-top: 3mm;
-                    }
-                </style>
-            ', \Mpdf\HTMLParserMode::HEADER_CSS);
-
-            $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-            $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
-            $qrValue = 'TNELB QR TESTING';
-
-            $html = '
-                <div class="heading-main">
-                    TAMIL NADU ELECTRICAL LICENCING BOARD
-                </div>
-                <div class="heading-sub">
-                    Thiru Vi. Ka. Indl. Estate, Guindy, Chennai - 600 032.
-                </div>
-                <div class="cert-title">
-                    WIREMAN HELPER LICENCE
-                </div>
-
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="70%" valign="top">
-                            <table class="info-table">
-                                <tr>
-                                    <td class="lbl">WH.No</td>
-                                    <td class="colon">:</td>
-                                    <td>' . ($applicant->license_number ?? '') . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">D.O.I</td>
-                                    <td class="colon">:</td>
-                                    <td>' . (!empty($applicant->issued_at) ? date('d M Y', strtotime($applicant->issued_at)) : '') . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">Validity</td>
-                                    <td class="colon">:</td>
-                                    <td>' . (isset($applicant->issued_at, $applicant->expires_at)
-                ? format_date($applicant->issued_at) . ' To ' . format_date($applicant->expires_at)
-                : '') . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">Name</td>
-                                    <td class="colon">:</td>
-                                    <td>' . e($applicant->name) . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">F/H Name</td>
-                                    <td class="colon">:</td>
-                                    <td>' . e($applicant->fathers_name) . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">Date of Birth</td>
-                                    <td class="colon">:</td>
-                                    <td>' . (!empty($applicant->d_o_b) ? date('d M Y', strtotime($applicant->d_o_b)) : '') . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">Address</td>
-                                    <td class="colon">:</td>
-                                    <td>' . nl2br(e($applicant->applicants_address)) . '</td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td width="30%" valign="top" align="center">
-                            <div class="photo-box" style="margin-bottom:4mm;">
-                                ' . ($photoPath ? '<img src="' . $photoPath . '" style="width:30mm; height:35mm; object-fit:cover;">' : '') . '
-                            </div>
-                            <div class="sign-box">
-                                ' . ($signPath ? '<img src="' . $signPath . '" style="width:30mm; height:12mm; object-fit:contain;">' : '') . '
-                            </div>
-                            <div style="font-size:8pt; margin-top:2mm;">
-                                Signature of Applicant
-                            </div>
-                            <div style="margin-top:4mm;">
-                                <barcode code="' . $qrValue . '" type="QR" size="0.8" error="M" />
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-            ';
-
-            $mpdf->WriteHTML($html);
-        } else {
-            // A4 layout for all other forms
-            $mpdf = new \Mpdf\Mpdf([
-                'mode' => 'utf-8',
-                'format' => 'A4',
-                'orientation' => 'P',
-                'margin_top' => 18,
-                'margin_bottom' => 18,
-                'margin_left' => 15,
-                'margin_right' => 15,
-            ]);
-
-            $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-            $mpdf->WriteHTML('
-                <style>
-                    @page {
-                        size: A4;
-                        margin: 15mm;
-                    }
-                    body {
-                        margin: 0;
-                        padding: 0;
-                        font-family: helvetica, sans-serif;
-                        font-size: 10pt;
-                    }
-                    .card {
-                        width: 100%;
-                        border: 0.4mm solid #000;
-                        box-sizing: border-box;
-                        padding: 6mm;
-                    }
-                    .header {
-                        text-align: center;
-                        font-size: 12pt;
-                        font-weight: bold;
-                        margin-bottom: 4mm;
-                    }
-                    .sub-header {
-                        text-align: center;
-                        font-size: 10pt;
-                        margin-bottom: 6mm;
-                    }
-                    .content {
-                        font-size: 9pt;
-                    }
-                    .photo {
-                        width: 22mm;
-                        height: 22mm;
-                        border: 0.3mm solid #000;
-                        box-sizing: border-box;
-                        overflow: hidden;
-                    }
-                    .info-table {
-                        font-size: 9pt;
-                        border-collapse: collapse;
-                    }
-                    .info-table td {
-                        padding: 1.5mm 1mm;
-                        vertical-align: top;
-                    }
-                    .info-table .lbl {
-                        width: 30mm;
-                        font-weight: bold;
-                    }
-                    .info-table .colon {
-                        width: 3mm;
-                        text-align: center;
-                    }
-                    .footer {
-                        margin-top: 8mm;
-                        text-align: center;
-                        font-size: 8pt;
-                    }
-                </style>
-            ', \Mpdf\HTMLParserMode::HEADER_CSS);
-
-            $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-
-            $qrValue = 'TNELB QR TESTING';
-
-            $html = '
-            <div class="card">
-
-                <div class="header">
-                    TAMIL NADU ELECTRICAL LICENCING BOARD
-                </div>
-                <div class="sub-header">
-                    Thiru Vi. Ka. Indl. Estate, Guindy, Chennai - 600 032.
-                </div>
-
-                <div class="content">
-                    <table width="100%" cellspacing="0" cellpadding="0">
-                        <tr>
-                            <td width="70%" valign="top">
-                                <table class="info-table">
-                                    <tr>
-                                        <td class="lbl">Licence No</td>
-                                        <td class="colon">:</td>
-                                        <td class="val">' . $applicant->license_number . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="lbl">D.O.I</td>
-                                        <td class="colon">:</td>
-                                        <td class="val">' . date('d M Y', strtotime($applicant->issued_at)) . '</td>
-                                    </tr>
-                                     <tr>
-                                        <td class="lbl">Validity</td>
-                                        <td class="colon">:</td>
-                                        <td class="val">' . format_date($applicant->issued_at) . '<small style="font-weight: bold;"> To </small>' . format_date($applicant->expires_at) . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="lbl">Name</td>
-                                        <td class="colon">:</td>
-                                        <td class="val">' . $applicant->name . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="lbl">F/H Name</td>
-                                        <td class="colon">:</td>
-                                        <td class="val">' . $applicant->fathers_name . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="lbl">Date of Birth</td>
-                                        <td class="colon">:</td>
-                                        <td class="val">' . date('d M Y', strtotime($applicant->d_o_b)) . '</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="lbl">Address</td>
-                                        <td class="colon">:</td>
-                                        <td class="val">' . $applicant->applicants_address . '</td>
-                                    </tr>'
-                . $certificateRow . '
-                                </table>
-
-                            </td>
-
-                            <!-- RIGHT : PHOTO -->
-                            <td width="30%" valign="top">
-                                <table width="100%" cellspacing="0" cellpadding="0">
-                                    <!-- PHOTO ROW -->
-                                    <tr>
-                                        <td align="center">
-                                            <div class="photo">
-                                                ' . ($photoPath
-                    ? '<img src="' . $photoPath . '" style="width:22mm; height:22mm; object-fit:cover;">'
-                    : '') . '
-                                            </div>
-                                        </td>
-                                    </tr>
-
-                                    <!-- SPACE BETWEEN PHOTO & QR -->
-                                    <tr>
-                                        <td height="3mm"></td>
-                                    </tr>
-
-                                    <!-- QR ROW -->
-                                    <tr>
-                                        <td align="center">
-                                            <barcode code="' . $qrValue . '" type="QR" size="0.6" error="M" />
-                                        </td>
-                                    </tr>
-
-                                    <!-- BOTTOM SAFE SPACE -->
-                                    <tr>
-                                        <td height="4mm"></td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-
-                </div>
-
-                <!-- FOOTER -->
-                <div class="footer">
-                    Issued by TNELB | Tamil Nadu
-                </div>
-
-            </div>
-            ';
-
-            $mpdf->WriteHTML($html);
-            $mpdf->AddPage('L');
-            $backHtml = '
-                <div class="card">
-            
-                    <div class="content" style="font-size:9.5pt; line-height:1.4;">
-            
-                        <div style="text-align:right; font-size:7pt; margin-bottom:2mm;">
-                            Visit us at : www.tnelb.gov.in
-                        </div>
-            
-                        <div style="margin-top:4mm;text-align: justify;">
-                            ' . $content_text . '   
-                        </div>
-            
-                        <br><br><br><br>
-            
-                        <!-- SIGNATURE AREA -->
-                        <table width="100%" style="margin-top:15mm;">
-                            <tr>
-                                <td width="45%" style="text-align:left;">
-                                    <div style="height:12mm;"></div>
-                                    <strong>Secretary</strong>
-                                </td>
-            
-                                <td width="55%" style="text-align:right;">
-                                    <div style="height:12mm;"></div>
-                                    <strong>President</strong>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>';
-            $mpdf->WriteHTML($backHtml);
-        }
-        $fileNameEn = ($applicant->license_number ?? $application_id) . '_EN.pdf';
-        $pdfBinaryEn = $mpdf->Output($fileNameEn, 'S');
-
-        // Build Tamil PDF in the same request
-        $pdfBinaryTa = $this->generateLicenceTamil($application_id, true);
-
-        // Encrypt and store both securely
-        $encryptedPathEn = 'private_documents/license_pdfs/' . $application_id . '_en.pdf.enc';
-        Storage::disk('local')->put($encryptedPathEn, Crypt::encryptString($pdfBinaryEn));
-
-        $encryptedPathTa = null;
-        if (is_string($pdfBinaryTa) && $pdfBinaryTa !== '') {
-            $encryptedPathTa = 'private_documents/license_pdfs/' . $application_id . '_ta.pdf.enc';
-            Storage::disk('local')->put($encryptedPathTa, Crypt::encryptString($pdfBinaryTa));
-        }
-
-        // Save paths to `tnelb_license.license_pdf_en` / `license_pdf_ta`
-        $this->storeEncryptedLicensePdfPath($application_id, $encryptedPathEn, $encryptedPathTa);
-
-        // Stream English PDF to browser (existing behavior)
-        return response($pdfBinaryEn)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="' . $fileNameEn . '"');
-    }
 
     // ----------tamil pdf---------------
     public function generateLicenceTamil($application_id, bool $returnBinary = false)
     {
         $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
-        $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
+        [$applicant_photo, $applicant_sign] = $this->resolveLicensePdfApplicantMedia($application_id);
         $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
             return $returnBinary ? null : back()->with('error', 'Application not found.');
@@ -1200,8 +774,7 @@ class LicensepdfController extends Controller
             }
             </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
 
-        $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-        $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
+        [$photoPath, $signPath] = $this->licensePdfMediaPaths($applicant_photo, $applicant_sign ?? null);
         $qrValue = 'sdfdgsdg';
 
         $html = '
@@ -1347,278 +920,284 @@ class LicensepdfController extends Controller
         return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
     }
 
-    // ----------------------
 
-    public function generateLicenceTamil111($application_id, bool $returnBinary = false)
+    /**
+     * Resolve applicant photo/signature for licence PDFs (CC proof docs, doc logs, legacy tables).
+     *
+     * @return array{0: object|null, 1: object|null}
+     */
+    private function resolveLicensePdfApplicantMedia(string $applicationId): array
     {
-        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
-        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
-        if (!$applicant) {
-            return $returnBinary ? null : back()->with('error', 'Application not found.');
-        }
+        $applicationId = trim($applicationId);
+        $proofService = app(FormSProofDocumentService::class);
+        $photo = null;
+        $sign = null;
 
-        if ($applicant->license_name == 'B') {
-            $certificate_name = 'Electrician';
-            $content_text = 'இச்சான்று பெற்றவர் நடுத்தர மற்றும் குறைந்த மின்னழுத்த மின்னமைப்பு பணிகளை உரிமம் பெற்றுரியின் ஒப்பந்தக்காரரின் கீழ் மேற்கொள்ளலாம் அல்லது நடுத்தர மற்றும் குறைந்த அழுத்த நிறுவனத்தின் இயக்குதல் மற்றும் பராமரிப்பு பணிகளை அந்நிறுவனத்தில் அங்கீகாரத்துடன் மேற்கொள்ளலாம்.';
-        } else if ($applicant->license_name == 'H') {
-            $certificate_name = 'WIREMAN HELPER';
-            $content_text = 'இச்சான்று பெற்றவர் நடுத்தர மற்றும் குறைந்த மின்னழுத்த அமைப்பு பணிகளை மேற்கோள்வதில் உரிமம் பெற்ற மின் ஒப்பந்தக்காரரிடம் மின் கம்பியாளருக்கு உதவியாளராக பணிபுரியலாம். அல்லது நடுத்தர மற்றும் குறைந்த அழுத்த நிறுவனத்தின் இயக்குதல் மற்றும் பராமரிப்பு பணியில் மின்கம்பியாளருக்கு உதவியாளராக நிறுவனத்தின் அங்கீகாரத்துடன் மேற்கொள்ளலாம்.';
+        $meta = app(CompetencyMetaService::class)->findModel($applicationId);
+        if ($meta instanceof CC_CompetencyMeta) {
+            $masterId = (string) app(FormSApplicationWorkflowService::class)
+                ->masterApplication($meta)
+                ->application_id;
+
+            $photo = $proofService->loadPhotoForView($masterId) ?: $proofService->loadPhotoForView($applicationId);
+            $sign = $proofService->loadSignForView($masterId) ?: $proofService->loadSignForView($applicationId);
+
+            try {
+                $ctx = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($meta);
+                $photo = $ctx['uploadedPhoto'] ?? $photo;
+                $sign = $ctx['uploadedSign'] ?? $sign;
+            } catch (\Throwable $e) {
+                Log::warning('License PDF media resolve via review context failed', [
+                    'application_id' => $applicationId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         } else {
-            $certificate_name = '';
-            $content_text = 'இச்சான்றிதழ் பெற்றவர், உரிமம் பெற்ற மின் ஒப்பந்தக்காரரின் கீழ் உயர் மின்னழுத்த (H.V) மற்றும் நடுத்தர மின்னழுத்த (M.V) மின் நிறுவல் பணிகளை மேற்பார்வை செய்ய அனுமதிக்கப்படுகிறார்; அல்லது இந்திய மின்சார விதிகள், 1956 இன் விதி 3 இன் கீழ் அங்கீகரிக்கப்பட்ட நபராக பணியாற்ற அனுமதிக்கப்படுகிறார்.';
+            $photo = $proofService->loadPhotoForView($applicationId);
+            $sign = $proofService->loadSignForView($applicationId);
+
+            if (! $photo) {
+                $photo = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+            }
+            if (! $sign) {
+                $sign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
+            }
         }
 
-        $certificateRow = '';
-
-        if (!empty($certificate_name)) {
-            $certificateRow = '
-                <tr>
-                    <td class="lbl">தே.சான்று எண்</td>
-                    <td class="colon">:</td>
-                    <td class="val">' . $certificate_name . '</td>
-                </tr>
-            ';
-        }
-
-        $defaultConfig = (new \Mpdf\Config\ConfigVariables())->getDefaults();
-        $fontDirs = $defaultConfig['fontDir'];
-
-        $defaultFontConfig = (new \Mpdf\Config\FontVariables())->getDefaults();
-        $fontData = $defaultFontConfig['fontdata'];
-
-        $mpdf = new \Mpdf\Mpdf([
-            'mode' => 'utf-8',
-            'fontDir' => array_merge($fontDirs, [
-                public_path('fonts'),
-            ]),
-            'fontdata' => array_merge($fontData, [
-                'notosanstamil' => [
-                    'R' => 'NotoSansTamil-Regular.ttf',
-                ]
-            ]),
-            'default_font' => 'notosanstamil',
-            // A4 output (required): previously CR100 card size
-            'format' => 'A4',
-            'orientation' => 'P',
-            'margin_top' => 10,
-            'margin_bottom' => 10,
-            'margin_left' => 10,
-            'margin_right' => 10,
-        ]);
-
-
-        $mpdf->autoScriptToLang = true;
-        $mpdf->autoLangToFont = true;
-
-
-        $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-        $mpdf->WriteHTML('<style>
-            body { font-family: notosanstamil; font-size: 14pt; }
-            .card { border: 1px solid #000; padding: 18px; box-sizing: border-box; width: 100%; }
-            .header { color: #003366; text-align: center; font-size: 20pt; font-weight: bold; margin-bottom: 16px; }
-            .content { font-size: 14pt; }
-            .photo {
-                width: 38mm;
-                height: 38mm;
-                border: 0.3mm solid #000;
-                box-sizing: border-box;
-                overflow: hidden;
-            }
-           .info-table {
-                font-size: 14pt;
-                border-collapse: collapse;
-            }
-
-            .info-table td { padding: 2.2mm 2mm; vertical-align: top; }
-
-            .info-table .lbl { width: 38mm; font-weight: bold; }
-
-            .info-table .colon {
-                width: 2mm;
-                text-align: center;
-            }
-            .footer { margin-top: 16px; text-align: center; font-size: 12pt; }
-            </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
-
-        $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-
-        $qrValue = 'sdfdgsdg';
-
-        $html = '
-        <div class="card">
-
-            <!-- HEADER -->
-            <div class="header">
-                தமிழ்நாடு மின் உரிமம் வழங்கும் வாரியம்<br>
-                திரு.வி.க. தொழிற்பேட்டை, கிண்டி, சென்னை – 32.
-            </div>
-
-            <!-- BODY -->
-            <div class="content">
-
-               <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <!-- LEFT : DETAILS -->
-                        <td width="70%" valign="top">
-
-                            <table class="info-table">
-                                <tr>
-                                    <td class="lbl">த. சா. எண்</td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . $applicant->license_number . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">வ.நாள்</td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . date('d M Y', strtotime($applicant->issued_at)) . '</td>
-                                </tr>
-                                 <tr>
-                                    <td class="lbl">செ.கா</td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . format_date($applicant->issued_at) . '<small style="font-weight: bold;"> To </small>' . format_date($applicant->expires_at) . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">பெயர்</td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . $applicant->name . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">த / க பெயர்</td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . $applicant->fathers_name . '</td>
-                                </tr>
-                                 <tr>
-                                    <td class="lbl">பிறந்த நாள்</td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . date('d M Y', strtotime($applicant->d_o_b)) . '</td>
-                                </tr>
-                                <tr>
-                                    <td class="lbl">விலாசம்</td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . $applicant->applicants_address . '</td>
-                                </tr>'
-            . $certificateRow . '
-                            </table>
-
-                        </td>
-
-                        <!-- RIGHT : PHOTO -->
-                        <td width="30%" valign="top">
-                            <table width="100%" cellspacing="0" cellpadding="0">
-                                <!-- PHOTO ROW -->
-                                <tr>
-                                    <td align="center">
-                                        <div class="photo">
-                                            ' . ($photoPath
-                ? '<img src="' . $photoPath . '" style="width:38mm; height:38mm; object-fit:cover;">'
-                : '') . '
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <!-- SPACE BETWEEN PHOTO & QR -->
-                                <tr>
-                                    <td height="3mm"></td>
-                                </tr>
-
-                                <!-- QR ROW -->
-                                <tr>
-                                    <td align="center">
-                                        <barcode code="' . $qrValue . '" type="QR" size="0.9" error="M" />
-                                    </td>
-                                </tr>
-
-                                <!-- BOTTOM SAFE SPACE -->
-                                <tr>
-                                    <td height="3mm"></td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-
-            </div>
-
-            <!-- FOOTER -->
-            <div class="footer">
-                Issued by TNELB | தமிழ்நாடு
-            </div>
-
-        </div>
-        ';
-
-        $mpdf->WriteHTML($html);
-        $mpdf->AddPage('L');
-        $backHtml = '
-            <div class="card">
-
-                <div class="content" style="font-size:9.5pt; line-height:1.4;">
-
-                    <div style="text-align:right; font-size:7pt; margin-bottom:2mm;">
-                        Visit us at : www.tnelb.gov.in
-                    </div>
-
-                    <div style="margin-top:4mm; text-align: justify;">
-                        ' . $content_text . '   
-                    </div>
-
-                    <br><br><br><br>
-
-                    <!-- SIGNATURE AREA -->
-                    <table width="100%" style="margin-top:6mm;">
-                        <tr>
-                            <td width="45%" style="text-align:left;">
-                                <div style="height:12mm;"></div>
-                                <strong>செயலாளர்</strong>
-                            </td>
-
-                            <td width="55%" style="text-align:right;">
-                                <div style="height:12mm;"></div>
-                                <strong>தலைவர்</strong>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            </div>';
-        $mpdf->WriteHTML($backHtml);
-
-        if ($returnBinary) {
-            return $mpdf->Output('Application_Details.pdf', 'S');
-        }
-
-        return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
+        return [$photo, $sign];
     }
 
     /**
-     * Stream Tamil licence PDF for non-FormP applications.
-     * This uses the existing Tamil generator directly.
+     * Absolute filesystem path mPDF can embed (handles public, storage, FORM_* and encrypted .bin).
      */
-    public function streamLicenceTa(string $application_id)
+    private function resolveMpdfImagePath(?string $storedPath): ?string
     {
-        return $this->generateLicenceTamil($application_id, false);
+        $storedPath = trim(str_replace('\\', '/', (string) $storedPath));
+        if ($storedPath === '') {
+            return null;
+        }
+
+        if (preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
+            $storage = app(DocumentStorageService::class);
+            if ($storage->exists($storedPath)) {
+                $absolute = rtrim($storage->physicalRootPath(), '/\\')
+                    . DIRECTORY_SEPARATOR
+                    . str_replace('/', DIRECTORY_SEPARATOR, ltrim($storedPath, '/'));
+
+                if (is_file($absolute)) {
+                    return $this->materializeMpdfImageFile($absolute);
+                }
+
+                try {
+                    $raw = $storage->exists($storedPath)
+                        ? \Illuminate\Support\Facades\Storage::disk($storage->disk())->get($storedPath)
+                        : null;
+                    if ($raw !== null && $raw !== '') {
+                        return $this->materializeMpdfImageBytes($raw, $storedPath);
+                    }
+                } catch (\Throwable) {
+                    // fall through to alternate roots
+                }
+            }
+
+            foreach (array_unique([
+                $storage->physicalRootPath(),
+                CompetencyDocumentSupport::storageRoot(),
+            ]) as $root) {
+                $absolute = rtrim((string) $root, '/\\')
+                    . DIRECTORY_SEPARATOR
+                    . str_replace('/', DIRECTORY_SEPARATOR, ltrim($storedPath, '/'));
+                if (is_file($absolute)) {
+                    return $this->materializeMpdfImageFile($absolute);
+                }
+            }
+
+            return null;
+        }
+
+        $candidates = [
+            public_path(ltrim($storedPath, '/')),
+            storage_path('app/' . ltrim($storedPath, '/')),
+        ];
+
+        foreach ($candidates as $absolute) {
+            if (is_file($absolute)) {
+                return $this->materializeMpdfImageFile($absolute);
+            }
+        }
+
+        return null;
+    }
+
+    private function materializeMpdfImageFile(string $absolutePath): ?string
+    {
+        try {
+            $raw = file_get_contents($absolutePath);
+
+            return $raw === false ? null : $this->materializeMpdfImageBytes($raw, $absolutePath);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to materialize image for licence PDF', [
+                'path' => $absolutePath,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    private function materializeMpdfImageBytes(string $bytes, string $referencePath): ?string
+    {
+        if ($bytes === '') {
+            return null;
+        }
+
+        try {
+            if (SensitiveProofCryptService::isEncryptedProofDocumentPath($referencePath)) {
+                $bytes = app(SensitiveProofCryptService::class)->decryptFileContents($bytes);
+            }
+
+            $normalizedRef = trim(str_replace('\\', '/', $referencePath), '/');
+            $needsTemp = SensitiveProofCryptService::isEncryptedProofDocumentPath($referencePath)
+                || preg_match('#^FORM_[A-Z]+/#', $normalizedRef)
+                || ! is_file($referencePath);
+
+            if ($needsTemp) {
+                $ext = strtolower(pathinfo($referencePath, PATHINFO_EXTENSION) ?: '');
+                if ($ext === '' || $ext === 'bin') {
+                    $ext = 'jpg';
+                    if (str_starts_with($bytes, "\x89PNG")) {
+                        $ext = 'png';
+                    } elseif (str_starts_with($bytes, 'GIF8')) {
+                        $ext = 'gif';
+                    }
+                }
+
+                $tmp = tempnam(sys_get_temp_dir(), 'tnelb_pdf_img_') . '.' . $ext;
+                file_put_contents($tmp, $bytes);
+
+                return $tmp;
+            }
+
+            return $referencePath;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to decode image bytes for licence PDF', [
+                'path' => $referencePath,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string} photoPath, signPath
+     */
+    private function licensePdfMediaPaths(?object $photo, ?object $sign): array
+    {
+        return [
+            $this->resolveMpdfImagePath($photo->upload_path ?? null),
+            $this->resolveMpdfImagePath($sign->uploaded_doc ?? null),
+        ];
+    }
+
+    private function competencyCertService(): CompetencyCertificateService
+    {
+        return app(CompetencyCertificateService::class);
+    }
+
+    /**
+     * Map cc_form_*_cert row to the licence-shaped object used by PDF templates.
+     */
+    private function competencyCertLicenceRow(string $applicationId, ?string $formName = null): ?object
+    {
+        $cert = $this->competencyCertService()->findByApplicationId($applicationId, $formName);
+        if (! $cert) {
+            return null;
+        }
+
+        $row = (object) $cert->toArray();
+
+        return (object) [
+            'application_id' => $row->application_id ?? $applicationId,
+            'license_number' => $row->certificate_no ?? null,
+            'issued_by' => $row->issued_by ?? null,
+            'issued_at' => $row->dateof_issue ?? null,
+            'expires_at' => $row->valid_to ?? null,
+            'valid_from' => $row->valid_from ?? null,
+            'license_pdf_en' => $row->license_pdf_en ?? $row->cert_pdf ?? null,
+            'license_pdf_ta' => $row->license_pdf_ta ?? null,
+            'license_pdf_bilingual' => $row->license_pdf_bilingual ?? null,
+            'cert_pdf' => $row->cert_pdf ?? null,
+        ];
+    }
+
+    private function competencyCertTableForApplication(string $applicationId, ?string $formName = null): ?string
+    {
+        $formName = $this->competencyCertService()->resolveFormName($applicationId, $formName);
+
+        return $formName ? $this->competencyCertService()->certTableForForm($formName) : null;
+    }
+
+    /**
+     * Contractor licence PDFs: licence fields live on the contractor application row.
+     */
+    private function contractorPdfApplicant(string $applicationId, string $formTable): ?object
+    {
+        if (! Schema::hasTable($formTable)) {
+            return null;
+        }
+
+        $row = DB::table($formTable)->where('application_id', $applicationId)->first();
+        if (! $row) {
+            return null;
+        }
+
+        return (object) [
+            'application_id' => $row->application_id,
+            'name' => $row->applicant_name ?? null,
+            'license_name' => $row->license_name ?? null,
+            'form_name' => $row->form_name ?? null,
+            'license_number' => $row->license_number ?? null,
+            'issued_by' => $row->issued_by ?? null,
+            'issued_at' => $row->issued_at ?? null,
+            'expires_at' => $row->expires_at ?? null,
+        ];
     }
 
     private function storeEncryptedLicensePdfPath($applicationId, string $encryptedPathEn, ?string $encryptedPathTa = null): void
     {
         try {
-            if (!Schema::hasTable('tnelb_license')) {
+            $certTable = $this->competencyCertTableForApplication($applicationId);
+            if ($certTable === null || ! Schema::hasTable($certTable)) {
+                Log::warning('No competency cert table found for license PDF path storage', [
+                    'application_id' => $applicationId,
+                ]);
+
                 return;
             }
 
-            // Build update payload for separate EN / TA columns
-            $payload = ['license_pdf_en' => $encryptedPathEn];
-            if ($encryptedPathTa) {
-                $payload['license_pdf_ta'] = $encryptedPathTa;
+            $payload = [];
+            if (Schema::hasColumn($certTable, 'license_pdf_en')) {
+                $payload['license_pdf_en'] = $encryptedPathEn;
+                if ($encryptedPathTa && Schema::hasColumn($certTable, 'license_pdf_ta')) {
+                    $payload['license_pdf_ta'] = $encryptedPathTa;
+                }
+            } elseif (Schema::hasColumn($certTable, 'cert_pdf')) {
+                $payload['cert_pdf'] = $encryptedPathEn;
             }
 
-            $updated = DB::table('tnelb_license')
+            if ($payload === []) {
+                return;
+            }
+
+            $updated = DB::table($certTable)
                 ->where('application_id', $applicationId)
                 ->update($payload);
 
             if ((int) $updated === 0) {
-                Log::warning('No tnelb_license row updated for license_pdf_en / license_pdf_ta', [
+                Log::warning('No competency cert row updated for license PDF paths', [
                     'application_id' => $applicationId,
+                    'table' => $certTable,
                     'payload' => $payload,
                 ]);
             }
@@ -1633,26 +1212,50 @@ class LicensepdfController extends Controller
     }
 
     /**
-     * Licence row for Form P: new → tnelb_license, renewal → tnelb_renewal_license.
+     * Issued certificate row for Form P (cc_form_p_meta + cc_form_p_cert).
      */
     private function getFormPLicenceRow(string $applicationId): ?object
     {
-        $formP = DB::table('tnelb_form_p')->where('application_id', $applicationId)->first();
-        if (! $formP) {
+        if (! DB::table('cc_form_p_meta')->where('application_id', $applicationId)->exists()) {
             return null;
         }
-        $applType = strtoupper(trim($formP->appl_type ?? 'N'));
 
-        if ($applType === 'R') {
-            return DB::table('tnelb_renewal_license')->where('application_id', $applicationId)->first();
-        }
-
-        return DB::table('tnelb_license')->where('application_id', $applicationId)->first();
+        return $this->competencyCertLicenceRow($applicationId, 'P');
     }
 
     private function formPLicenceTableForApplType(string $applType): string
     {
-        return strtoupper(trim($applType)) === 'R' ? 'tnelb_renewal_license' : 'tnelb_license';
+        return 'cc_form_p_cert';
+    }
+
+    private function updateCompetencyCertPdfPayload(string $applicationId, array $payload, ?string $formName = null): void
+    {
+        $certTable = $this->competencyCertTableForApplication($applicationId, $formName);
+        if ($certTable === null || ! Schema::hasTable($certTable) || $payload === []) {
+            return;
+        }
+
+        try {
+            DB::table($certTable)
+                ->where('application_id', $applicationId)
+                ->update($payload);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to update competency cert PDF paths', [
+                'application_id' => $applicationId,
+                'table' => $certTable,
+                'payload' => $payload,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Stream Tamil licence PDF for non-FormP applications.
+     * This uses the existing Tamil generator directly.
+     */
+    public function streamLicenceTa(string $application_id)
+    {
+        return $this->generateLicenceTamil($application_id, false);
     }
 
     /**
@@ -1765,7 +1368,7 @@ class LicensepdfController extends Controller
     public function generateFormPLicencePdfs(string $applicationId): ?string
     {
         // Fetch Form P application
-        $formP = DB::table('tnelb_form_p')
+        $formP = DB::table('cc_form_p_meta')
             ->where('application_id', $applicationId)
             ->first();
 
@@ -1778,16 +1381,7 @@ class LicensepdfController extends Controller
 
         $applType = strtoupper(trim($formP->appl_type ?? 'N')); // N or R
 
-        // Determine licence source (fresh vs renewal)
-        if ($applType === 'R') {
-            $licence = DB::table('tnelb_renewal_license')
-                ->where('application_id', $applicationId)
-                ->first();
-        } else {
-            $licence = DB::table('tnelb_license')
-                ->where('application_id', $applicationId)
-                ->first();
-        }
+        $licence = $this->competencyCertLicenceRow($applicationId, 'P');
 
         if (!$licence) {
             Log::warning('generateFormPLicencePdfs: licence record not found for Form P', [
@@ -1821,7 +1415,7 @@ class LicensepdfController extends Controller
             return $licence->license_pdf_en;
         }
 
-        $applicantPhoto = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+        $applicantPhoto = $this->resolveLicensePdfApplicantMedia($applicationId)[0];
 
         // Normalized applicant data for template
         $applicant = (object) [
@@ -1867,7 +1461,7 @@ class LicensepdfController extends Controller
             </style>
         ', \Mpdf\HTMLParserMode::HEADER_CSS);
 
-        $photoPath = !empty($applicantPhoto->upload_path) ? public_path($applicantPhoto->upload_path) : null;
+        $photoPath = $this->resolveMpdfImagePath($applicantPhoto->upload_path ?? null);
         $qrValue   = 'TNELB FORM P ' . $applicant->license_number;
 
         $enHtml = '
@@ -2159,9 +1753,7 @@ class LicensepdfController extends Controller
             }
 
             try {
-                DB::table($licenceTable)
-                    ->where('application_id', $applicationId)
-                    ->update($payload);
+                $this->updateCompetencyCertPdfPayload($applicationId, $payload, 'P');
             } catch (\Throwable $e) {
                 Log::warning('Failed to update Form P bilingual licence PDF path', [
                     'application_id' => $applicationId,
@@ -2185,9 +1777,10 @@ class LicensepdfController extends Controller
                 'license_pdf_en' => $encryptedPathEn,
                 'license_pdf_ta' => $encryptedPathTa,
             ];
-            DB::table($licenceTable)
-                ->where('application_id', $applicationId)
-                ->update($legacyPayload);
+            if (! Schema::hasColumn($licenceTable, 'license_pdf_en') && Schema::hasColumn($licenceTable, 'cert_pdf')) {
+                $legacyPayload = ['cert_pdf' => $encryptedPathEn];
+            }
+            $this->updateCompetencyCertPdfPayload($applicationId, $legacyPayload, 'P');
         } catch (\Throwable $e) {
             Log::warning('Failed to update licence PDF paths for Form P', [
                 'application_id' => $applicationId,
@@ -2205,8 +1798,7 @@ class LicensepdfController extends Controller
     {
 
         $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $application_id)->first();
-        $applicant_sign  = TnelbApplicantsSign::where('application_id', $application_id)->first();
+        [$applicant_photo, $applicant_sign] = $this->resolveLicensePdfApplicantMedia($application_id);
 
         $licence_name = DB::table('mst_licences')->where('cert_licence_code', $application->license_name)
             ->where('status', 1)
@@ -2236,26 +1828,11 @@ class LicensepdfController extends Controller
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
         }
-        $issuedFromFresh = DB::table('tnelb_license as l')
-            ->join('tnelb_application_tbl as ta', 'ta.application_id', '=', 'l.application_id')
-            ->where('ta.login_id', $application->login_id)
-            // ->where('l.license_number', '!=', $applicant->license_number) 
-            ->whereDate('l.expires_at', '>=', Carbon::now())
-            ->select('l.license_number', 'l.issued_at', 'l.expires_at', 'ta.appl_type');
-
-        $issuedFromRenewal = DB::table('tnelb_renewal_license as rl')
-            ->join('tnelb_application_tbl as ta', 'ta.application_id', '=', 'rl.application_id')
-            ->where('ta.login_id', $application->login_id)
-            ->where('rl.license_number', '!=', $applicant->license_number) 
-            ->whereDate('rl.expires_at', '>=', Carbon::now())
-            ->select('rl.license_number', 'rl.issued_at', 'rl.expires_at', 'ta.appl_type');
-
-        $legacyCertificateList = $issuedFromFresh->union($issuedFromRenewal)->get();
-        $ccCertificateList = app(CompetencyCertificateService::class)
-            ->activeCertificatesForLogin((string) ($application->login_id ?? ''));
-        $certificateList = $legacyCertificateList
-            ->merge($ccCertificateList)
-            ->unique('license_number')
+        $certificateList = app(CompetencyCertificateService::class)
+            ->activeCertificatesForLogin((string) ($application->login_id ?? ''))
+            ->filter(function ($certificate) use ($applicant) {
+                return ($certificate->license_number ?? '') !== ($applicant->license_number ?? '');
+            })
             ->sortByDesc('issued_at')
             ->values();
         $certificateRowsHtml = '';
@@ -2551,8 +2128,7 @@ class LicensepdfController extends Controller
             </style>'
         ), \Mpdf\HTMLParserMode::HEADER_CSS);
 
-        $photoPath = !empty($applicant_photo->upload_path) ? public_path($applicant_photo->upload_path) : null;
-        $signPath  = !empty($applicant_sign?->uploaded_doc) ? public_path($applicant_sign->uploaded_doc) : null;
+        [$photoPath, $signPath] = $this->licensePdfMediaPaths($applicant_photo, $applicant_sign ?? null);
 
         // var_dump($photoPath);exit;
         $qc = [];
@@ -2776,67 +2352,16 @@ class LicensepdfController extends Controller
 
     public function generateFormaPDF($application_id)
     {
-        // Fetch application details
-
-        // dd($application_id);
-        // exit;
         $application = DB::table('tnelb_ea_applications')->where('application_id', $application_id)->first();
-
-        $appltype = trim($application->appl_type);
-
-        if ($appltype === 'N') {
-            $applicant = DB::table('tnelb_license')
-                ->join('tnelb_ea_applications', 'tnelb_license.application_id', '=', 'tnelb_ea_applications.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-                    'tnelb_ea_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_ea_applications.license_name',
-                    'tnelb_ea_applications.form_name',
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
-        } else {
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join('tnelb_ea_applications', 'tnelb_renewal_license.application_id', '=', 'tnelb_ea_applications.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-                    'tnelb_ea_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_ea_applications.license_name',
-                    'tnelb_ea_applications.form_name',
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
+        if (! $application) {
+            return back()->with('error', 'Application not found.');
         }
 
-
+        $applicant = $this->contractorPdfApplicant($application_id, 'tnelb_ea_applications');
+        $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            ->where('application_id', $application_id)
+            ->orderby('id')
+            ->get();
 
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
@@ -2998,62 +2523,11 @@ class LicensepdfController extends Controller
         $appltype = strtoupper(trim($application->appl_type));
 
 
-        // ---------------------------------------
-        // 2. FRESH APPLICATION (appl_type = N)
-        // ---------------------------------------
-        if ($appltype === 'N') {
-
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-        // ---------------------------------------
-        // 3. RENEWAL APPLICATION
-        // ---------------------------------------
-        else {
-
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
+        $applicant = $this->contractorPdfApplicant($application_id, $table_name);
+        $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            ->where('application_id', $application_id)
+            ->orderBy('id')
+            ->get();
 
         // ---------------------------------------
         // 4. RETURN OR LOAD PDF VIEW
@@ -3379,592 +2853,6 @@ class LicensepdfController extends Controller
 
 
 
-    public function generateFormcontractor_download_final_bk($application_id)
-    {
-        // ---------------------------------------
-        // 1. DETECT WHICH TABLE HAS THE APPLICATION
-        // ---------------------------------------
-        $application = null;
-        $table_name = null;
-
-        $tables = [
-            'tnelb_esa_applications',
-            'tnelb_esb_applications',
-            'tnelb_eb_applications',
-            'tnelb_ea_applications'
-        ];
-
-        foreach ($tables as $t) {
-            $record = DB::table($t)
-                ->where('application_id', $application_id)
-                ->first();
-
-            if ($record) {
-                $application = $record;
-                $table_name = $t;
-                break;
-            }
-        }
-
-        if (!$application) {
-            return back()->with('error', 'Application ID not found.');
-        }
-
-        // Clean appl_type
-        $appltype = strtoupper(trim($application->appl_type));
-
-
-        // ---------------------------------------
-        // 2. FRESH APPLICATION (appl_type = N)
-        // ---------------------------------------
-        if ($appltype === 'N') {
-
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-        // ---------------------------------------
-        // 3. RENEWAL APPLICATION
-        // ---------------------------------------
-        else {
-
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-
-        // ---------------------------------------
-        // 4. RETURN OR LOAD PDF VIEW
-        // ---------------------------------------
-
-        $mpdf = new Mpdf([
-            'format' => [210, 175],
-            'margin_left' => 10,
-            'margin_right' => 10,
-            'margin_top' => 10,
-            'margin_bottom' => 10,
-            'default_font_size' => 9
-        ]);
-
-        $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-
-        $formname = $applicant->form_name;
-
-        // dd($formname);
-        // exit;
-
-        $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
-
-
-        // dd($license_name);
-        // exit;
-
-        $mpdf->WriteHTML('<style>
-        body { }
-        p, td, th { padding: 0px; }
-        p {font-size:15px;}
-        .tbl_center { text-align: center;!important }
-        .mt-2 { margin-top: 5; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td {  padding: 8px; text-align:left; }
-        .highlight { font-weight: bold; color: white; background-color: green; padding: 5px; text-align:center; font-size:16px; }
-        .photo-container { text-align: right; padding-right: 10px; }
-        .photo-container img { width: 132px; height: 170px; border: 1px solid #000; object-fit: cover; display: block; }
-        .highlight_text{color:green;}
-        .staff_tbl td{text-align:center;}
-        .license_name{ font-size:15px;text-align:center;font-weight:bold; text-decoration:underline;}
-        .font-weight{font-weight:bold;}
-        .blue{color:#074282;}
-        .orange{color:#ec4b05;}
-        .txt_uppercase{text-transform:uppercase;}
-        .line-height-30{line-height:25px;}
-        .text-indent-40 {text-indent: 40px;}
-        .text-indent-60 {text-indent: 50px;}
-        .text-justify {text-align: justify;}
-        .font-size-14{ font-size:13px;}
-        .mb-5{margin-bottom:5px;}
-        .mb-1{margin-bottom:1px;}
-        .mb-10{margin-bottom:10px;}
-        .pb-10{padding: bottom 10px!important;}
-        .mt-5{margin-top:5px;}
-        .mt-1{margin-top:1px;}
-        
-    </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
-        $grade_name = $applicant->license_name;
-        // dd($grade_name);
-        // exit;
-
-        if ($grade_name == 'EA') {
-            $grade_name_txt = 'EA Grade Contractor Licence';
-        } elseif ($grade_name == 'ESA') {
-            $grade_name_txt = 'ESA Grade Contractor Licence';
-        } elseif ($grade_name == 'ESB') {
-            $grade_name_txt = 'ESB Grade Contractor Licence';
-        } elseif ($grade_name == 'EB') {
-            $grade_name_txt = 'EB Grade Contractor Licence ';
-        }
-        $qrData = url('/verify-certificate/' . $applicant->application_id);
-
-
-
-        // Start building the PDF content
-        $html = '
-<table width="100%" class="mt-1 mb-1">
-    <tr>
-        <!-- LEFT CONTENT -->
-        <td width="90%" style="text-align:center; padding-top:10px;">
-
-            <div class="header-block">
-                <h3 class="blue mb-10 pb-10 ">GOVERNMENT OF TAMILNADU</h3>
-                <br>
-
-                <h3 class="blue mb-10 pb-10">ELECTRICAL LICENSING BOARD</h3>
-                <br>
-
-                <p class="blue mb-10 pb-10">
-                    Thiru.Vi.Ka. Indl. Estate, Guindy, Chennai - 600 032.
-                </p>
-                <br>
-
-                <p class="license_name orange mt-10">
-                    ' . $grade_name_txt . '
-                </p>
-            </div>
-
-        </td>
-
-        <!-- RIGHT QR -->
-        <td width="10%" style="text-align:right; vertical-align:top; padding-top:10px;">
-            <barcode 
-                code="' . htmlspecialchars($qrData) . '" 
-                type="QR" 
-                size="1"
-                error="H"
-            />
-        </td>
-    </tr>
-</table>';
-
-
-
-
-
-        $html .= '
-        <table style="width:100%; border:0; mt-1 mb-1">
-            <tr>
-                <td class="label " style="text-align:left;"><h4 class="orange  font-size-14">Licence No : ' . $applicant->license_number . '</h4></td>
-                <td class="label" style="text-align:right;"><h4 class="orange  font-size-14"> Issued Date : ' . format_date($applicant->issued_at) . '</h4></td>
-            </tr>
-        </table>';
-
-
-        $html .= '<p class="mt-1 mb-1 line-height-30 font-size-14 blue font-weight text-indent-40 text-justify"> Mr./Ms./Messrs. ' . $applicant->name . ' (Application ID. ' . $applicant->application_id . ') are licensed to undertake electrical system works for low and medium voltage consumers in Tamil Nadu, limited to a maximum of 50 kW (63 kVA generator). This license is granted according to the regulations of the Electrical Licensing Board, approved by the Government of Tamil Nadu in the following Government Orders, under Rule 45(1) of the Indian Electricity Rules, 1956. </p>';
-
-
-        $html .= '
-        <p class="mt-5 mb-5 blue font-size-14 font-weight  text-indent-60">1.Government Order No. M.S.No. 1246 Public Works Department, dated 31.3.1955 </p>
-        <p class="mt-5 mb-5 blue font-weight font-size-14 text-indent-60">2.Government Order No. M.S.No.1983 Public Works Department, dated 07.10.1987 </p>
-         <p class="mt-5 mb-5 blue font-weight font-size-14 text-indent-60">3.Government Order No. M.S.No.2744 Public Works Department, dated 24.12.1990 </p>
-         <p class="mt-5 mb-5 blue font-weight font-size-14 text-indent-60">4.Government Order No. M.S.No.27 Energy (B.) Department, dated 08.03.2000 </p>';
-
-        $html .= '<p class=" mb-5 orange font-size-14 font-weight  text-indent-60 txt_uppercase">This license is valid for the following period :</p>';
-
-
-
-        $proprietors = DB::table('proprietordetailsform_A')
-            ->where('application_id', $application_id)
-            ->where('proprietor_flag', '1')
-            ->orderBy('id')
-            ->get();
-
-        $html .= '
-        <table style="width:100%; border:0;" class="mt-1 mb-1">
-            <tr>
-                <td class="label blue txt_uppercase" style="text-align:left;">
-                    <h4>Proprietor / Partner / Director Name </h4>
-                </td>
-                <td> : </td>
-                <td>
-            ';
-
-        if ($proprietors->count() > 0) {
-            foreach ($proprietors as $proprietor) {
-                $html .= '
-                
-                        ' . strtoupper($proprietor->proprietor_name) . ',
-                ';
-            }
-        } else {
-            $html .= '
-            —';
-        }
-
-        $html .= '
-        </td>
-        </tr>
-        <tr>
-        <td class="label blue txt_uppercase" style="text-align:left;">
-                    <h4>Name of the authorized person
-        and specimen signature </h4>  </td>
-        <td> : </td>
-
-        <td> Authorized Person Name </td>
-
-        
-        </tr>
-        </table>';
-
-
-        $html .= '
-         
-            <table style="width:100%; border:0;" class="mt-1 mb-1">
-                <tr>
-                    <td class="label font-size-14 blue font-weight" style="text-align:left;">Secretary </td>
-                    <td class="label font-size-14 blue font-weight" style="text-align:right;">President</td>
-                </tr>
-            </table>';
-
-
-
-
-
-
-
-
-
-        // $html .= '<h4 class="mt-2 highlight"> Payment Details</h4>
-        // <table class="tbl_center bank">
-        //     <tr>
-        //         <th class="">Bank Name</th>
-        //         <th class="">Mode of Payment</th>
-        //         <th class="">Amount</th>
-        //         <th class="">Payment Date</th>
-        //         <th class="">Transaction ID</th>
-        //     </tr>
-        //     <tr>
-        //         <td>State Bank of India</td>
-        //         <td>UPI</td>
-        //         <td>' . ($payment->amount ?? 'N/A') . '</td>
-        //         <td>25-02-2025</td>
-        //         <td>' . ($payment->transaction_id ?? 'N/A') . '</td>
-        //     </tr>
-        // </table>';
-
-        // Declaration
-
-
-        // Write HTML to PDF
-        $mpdf->WriteHTML($html);
-
-
-
-        // Footer section
-        // $mpdf->SetFooter('
-        // <table style="width:100%; font-size:12px;">
-        //     <tr>
-        //         <td style="text-align:left;">TNELB</td>
-        //         <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-
-        //     </tr>
-        // </table>
-        // ');
-
-        return response($mpdf->Output('License_A_approval.pdf', 'I'))
-            ->header('Content-Type', 'application/pdf');
-    }
-
-
-
-    // -----------for all contractor license generateFormcontractor_download-------------------
-
-    public function generateFormcontractor_download_bk($application_id)
-    {
-        // ---------------------------------------
-        // 1. DETECT WHICH TABLE HAS THE APPLICATION
-        // ---------------------------------------
-        $application = null;
-        $table_name = null;
-
-        $tables = [
-            'tnelb_esa_applications',
-            'tnelb_esb_applications',
-            'tnelb_eb_applications',
-            'tnelb_ea_applications'
-        ];
-
-        foreach ($tables as $t) {
-            $record = DB::table($t)
-                ->where('application_id', $application_id)
-                ->first();
-
-            if ($record) {
-                $application = $record;
-                $table_name = $t;
-                break;
-            }
-        }
-
-        if (!$application) {
-            return back()->with('error', 'Application ID not found.');
-        }
-
-        // Clean appl_type
-        $appltype = strtoupper(trim($application->appl_type));
-
-
-        // ---------------------------------------
-        // 2. FRESH APPLICATION (appl_type = N)
-        // ---------------------------------------
-        if ($appltype === 'N') {
-
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-        // ---------------------------------------
-        // 3. RENEWAL APPLICATION
-        // ---------------------------------------
-        else {
-
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-
-        // ---------------------------------------
-        // 4. RETURN OR LOAD PDF VIEW
-        // ---------------------------------------
-
-        $mpdf = new Mpdf(['default_font_size' => 10]);
-        $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-
-        $formname = $applicant->form_name;
-
-        // dd($formname);
-        // exit;
-
-        $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
-
-
-        // dd($license_name);
-        // exit;
-
-        $mpdf->WriteHTML('<style>
-        body {  }
-        p, td, th { padding: 0px; }
-        p 
-        .tbl_center { text-align: center;!important }
-        .mt-2 { margin-top: 5; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td {  padding: 8px; text-align:left; }
-        .highlight { font-weight: bold; color: white; background-color: green; padding: 5px; text-align:center; font-size:16px; }
-        .photo-container { text-align: right; padding-right: 10px; }
-        .photo-container img { width: 132px; height: 170px; border: 1px solid #000; object-fit: cover; display: block; }
-        .highlight_text{color:green;}
-        .staff_tbl td{text-align:center;}
-    </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
-
-        // Start building the PDF content
-        $html = '
-        <h3 style="text-align: center;" class="">GOVERNMENT OF TAMILNADU</h3>
-        <h4 style="text-align: center;" class="">THE ELECTRICAL LICENSING BOARD</h4>
-        <p style="text-align: center;">Thiru.Vi.Ka.Indl.Estate, Guindy, Chennai – 600032.</p>
-        <h4 style="text-align: center;" class=""> Form  "' . $license_name->form_code . '" License "' . $license_name->licence_name . '"</h4>
-        
-        <h3 style="text-align: center;" class=""> License Number : <span class = "">' . $applicant->license_number . '</span></h3>';
-
-        if ($appltype === 'N') {
-            $apply_type = "Fresh Application";
-        } else {
-            $apply_type = "Renewal Application";
-        }
-
-
-
-
-        $html .= '<table class="tbl-no-border" style="margin: 0 auto; width: 70%;">';
-
-
-
-        $html .= '  <tr><td class="label">Applicantion ID :</td><td class="value">' . $applicant->application_id . '</td></tr>';
-        $html .= '  <tr><td class="label">Applicant Name :</td><td class="value">' . $applicant->name . '</td></tr>';
-
-        $html .= '  <tr><td class="label">Application Type :</td><td class="value">' . $apply_type . '</td></tr>';
-
-
-        $html .= '</table>';
-
-
-        $html .= '
-<h4 class="mt-2 tbl_center">Details of Staff appointed under this Contractor License</h4>
-<table class="staff_tbl" border="1">
-    <tr>
-        <th>S.No</th>
-        <th>Staff Name</th>
-        <th>Qualification </th>
-        <th>Category </th>
-        <th>Competency Certificate Number & Validity </th>
-    </tr>';
-
-        if ($staffDetails->count() > 0) {
-            $i = 1;
-            foreach ($staffDetails as $staff) {
-                $html .= '
-            <tr>
-                <td>' . $i++ . '</td>
-                <td>' . strtoupper($staff->staff_name) . '</td>
-                <td>' . strtoupper($staff->staff_qualification) . '</td>
-                <td>' . strtoupper($staff->staff_category) . '</td>
-                <td>' . $staff->cc_number . ', ' . (!empty($staff->cc_validity) ? date('d-m-Y', strtotime($staff->cc_validity)) : 'N/A') . '</td>
-
-            </tr>';
-            }
-        } else {
-            $html .= '<tr><td colspan="5" style="text-align:center;">No staff found</td></tr>';
-        }
-
-        $html .= '</table>';
-
-        $html .= '
-        <table style="width:100%; border:0;">
-            <tr>
-                <td class="label " style="text-align:left;"><h4>Issued At : ' . format_date($applicant->issued_at) . '</h4></td>
-                <td class="label" style="text-align:right;"><h4>Expires At : ' . format_date($applicant->expires_at) . '</h4></td>
-            </tr>
-        </table>';
-
-
-        $html .= '
-            <br><br>
-            <br><br>
-            <br><br>
-            <table style="width:100%; border:0;">
-                <tr>
-                    <td class="label" style="text-align:left;">Date : ' . date('d-m-Y') . '</td>
-                    <td class="label" style="text-align:right;">Issued By : ' . $applicant->issued_by . '</td>
-                </tr>
-            </table>';
-
-
-
-
-
-
-        // $html .= '<h4 class="mt-2 highlight"> Payment Details</h4>
-        // <table class="tbl_center bank">
-        //     <tr>
-        //         <th class="">Bank Name</th>
-        //         <th class="">Mode of Payment</th>
-        //         <th class="">Amount</th>
-        //         <th class="">Payment Date</th>
-        //         <th class="">Transaction ID</th>
-        //     </tr>
-        //     <tr>
-        //         <td>State Bank of India</td>
-        //         <td>UPI</td>
-        //         <td>' . ($payment->amount ?? 'N/A') . '</td>
-        //         <td>25-02-2025</td>
-        //         <td>' . ($payment->transaction_id ?? 'N/A') . '</td>
-        //     </tr>
-        // </table>';
-
-        // Declaration
-
-
-        // Write HTML to PDF
-        $mpdf->WriteHTML($html);
-
-
-
-        // Footer section
-        $mpdf->SetFooter('
-        <table style="width:100%; font-size:12px;">
-            <tr>
-                <td style="text-align:right;">TNELB</td>
-                
-            </tr>
-        </table>
-        ');
-
-        return response($mpdf->Output('License_A_approval.pdf', 'I'))
-            ->header('Content-Type', 'application/pdf');
-    }
     // ---------------------------- admin side final pdf forma download---------------------------
 
     public function generateForma_downloadPDF($application_id)
@@ -4002,62 +2890,11 @@ class LicensepdfController extends Controller
         $appltype = strtoupper(trim($application->appl_type));
 
 
-        // ---------------------------------------
-        // 2. FRESH APPLICATION (appl_type = N)
-        // ---------------------------------------
-        if ($appltype === 'N') {
-
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-        // ---------------------------------------
-        // 3. RENEWAL APPLICATION
-        // ---------------------------------------
-        else {
-
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
+        $applicant = $this->contractorPdfApplicant($application_id, $table_name);
+        $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            ->where('application_id', $application_id)
+            ->orderBy('id')
+            ->get();
 
         // ---------------------------------------
         // 4. RETURN OR LOAD PDF VIEW
@@ -4297,225 +3134,6 @@ class LicensepdfController extends Controller
             ->header('Content-Type', 'application/pdf');
     }
 
-    //   ----------------------------------------------------
-
-    public function generateForma_downloadPDF_bk($application_id)
-    {
-        // Fetch application details
-
-        // dd($application_id);
-        // Detect application from 4 form tables
-        $application = DB::table('tnelb_esa_applications')->where('application_id', $application_id)->first()
-            ?? DB::table('tnelb_esb_applications')->where('application_id', $application_id)->first()
-            ?? DB::table('tnelb_eb_applications')->where('application_id', $application_id)->first()
-            ?? DB::table('tnelb_ea_applications')->where('application_id', $application_id)->first();
-
-        if (!$application) {
-            return back()->with('error', 'Application not found.');
-        }
-
-        $formname = trim($application->form_name);
-        $appltype = trim($application->appl_type); // N or R
-
-        // Dynamic form table mapping
-        $formTables = [
-            'SA' => 'tnelb_esa_applications',
-            'SB' => 'tnelb_esb_applications',
-            'A'  => 'tnelb_ea_applications',
-            'B'  => 'tnelb_eb_applications',
-        ];
-
-        // Pick correct application table
-        $formTable = $formTables[$formname];
-
-        // License table based on fresh/renew
-        $licenseTable = ($appltype === 'N') ? 'tnelb_license' : 'tnelb_renewal_license';
-
-        // Applicant details (License + Form Table Join)
-        $applicant = DB::table($licenseTable)
-            ->join($formTable, "$licenseTable.application_id", '=', "$formTable.application_id")
-            ->where("$licenseTable.application_id", $application_id)
-            ->select(
-                "$licenseTable.application_id",
-                "$licenseTable.issued_by",
-                "$licenseTable.issued_at",
-                "$licenseTable.expires_at",
-                "$licenseTable.license_number",
-                "$formTable.applicant_name AS name",
-                "$formTable.license_name",
-                "$formTable.form_name"
-            )
-            ->first();
-
-        if (!$applicant) {
-            return back()->with('error', 'Application details missing.');
-        }
-
-
-
-        $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-            ->where('application_id', $application_id)
-            ->orderBy('id')
-            ->get();
-
-        $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
-        $payment = DB::table('payments')->where('application_id', $application_id)->first();
-
-        // Initialize mPDF
-        $mpdf = new Mpdf(['default_font_size' => 10]);
-        $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-
-        $formname = $applicant->form_name;
-
-        // dd($formname);
-        // exit;
-
-        $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
-
-
-        // dd($license_name);
-        // exit;
-
-        $mpdf->WriteHTML('<style>
-        body {  }
-        p, td, th { padding: 0px; }
-        p 
-        .tbl_center { text-align: center;!important }
-        .mt-2 { margin-top: 5; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td {  padding: 8px; text-align:left; }
-        .highlight { font-weight: bold; color: white; background-color: green; padding: 5px; text-align:center; font-size:16px; }
-        .photo-container { text-align: right; padding-right: 10px; }
-        .photo-container img { width: 132px; height: 170px; border: 1px solid #000; object-fit: cover; display: block; }
-        .highlight_text{color:green;}
-        .staff_tbl td{text-align:center;}
-    </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
-
-        // Start building the PDF content
-        $html = '
-        <h3 style="text-align: center;" class="">GOVERNMENT OF TAMILNADU</h3>
-        <h4 style="text-align: center;" class="">THE ELECTRICAL LICENSING BOARD</h4>
-        <p style="text-align: center;">Thiru.Vi.Ka.Indl.Estate, Guindy, Chennai – 600032.</p>
-        <h4 style="text-align: center;" class="highlight_text"> Form  "' . $license_name->form_code . '" License "' . $license_name->licence_name . '"</h4>
-        
-        <h3 style="text-align: center;" class=""> License Number : <span class = "highlight_text">' . $applicant->license_number . '</span></h3>';
-
-        if ($appltype === 'N') {
-            $apply_type = "Fresh Application";
-        } else {
-            $apply_type = "Renewal Application";
-        }
-
-
-
-
-        $html .= '<table class="tbl-no-border" style="margin: 0 auto; width: 70%;">';
-
-
-
-        $html .= '  <tr><td class="label">Applicantion ID :</td><td class="value">' . $applicant->application_id . '</td></tr>';
-        $html .= '  <tr><td class="label">Applicant Name :</td><td class="value">' . $applicant->name . '</td></tr>';
-
-        $html .= '  <tr><td class="label">Application Type :</td><td class="value">' . $apply_type . '</td></tr>';
-
-
-        $html .= '</table>';
-
-
-        $html .= '
-<h4 class="mt-2 tbl_center">Details of Staff appointed under this Contractor License</h4>
-<table class="staff_tbl" border="1">
-    <tr>
-        <th>S.No</th>
-        <th>Staff Name</th>
-        <th>Qualification </th>
-        <th>Category </th>
-        <th>Competency Certificate Number & Validity </th>
-    </tr>';
-
-        if ($staffDetails->count() > 0) {
-            $i = 1;
-            foreach ($staffDetails as $staff) {
-                $html .= '
-            <tr>
-                <td>' . $i++ . '</td>
-                <td>' . strtoupper($staff->staff_name) . '</td>
-                <td>' . strtoupper($staff->staff_qualification) . '</td>
-                <td>' . strtoupper($staff->staff_category) . '</td>
-                <td>' . $staff->cc_number . ', ' . (!empty($staff->cc_validity) ? date('d-m-Y', strtotime($staff->cc_validity)) : 'N/A') . '</td>
-
-            </tr>';
-            }
-        } else {
-            $html .= '<tr><td colspan="5" style="text-align:center;">No staff found</td></tr>';
-        }
-
-        $html .= '</table>';
-
-        $html .= '
-        <table style="width:100%; border:0;">
-            <tr>
-                <td class="label " style="text-align:left;"><h4>Issued At : ' . format_date($applicant->issued_at) . '</h4></td>
-                <td class="label" style="text-align:right;"><h4>Expires At : ' . format_date($applicant->expires_at) . '</h4></td>
-            </tr>
-        </table>';
-
-
-        $html .= '
-            <br><br>
-            <br><br>
-            <br><br>
-            <table style="width:100%; border:0;">
-                <tr>
-                    <td class="label" style="text-align:left;">Date : ' . date('d-m-Y') . '</td>
-                    <td class="label" style="text-align:right;">Issued By : ' . $applicant->issued_by . '</td>
-                </tr>
-            </table>';
-
-
-
-
-
-
-        // $html .= '<h4 class="mt-2 highlight"> Payment Details</h4>
-        // <table class="tbl_center bank">
-        //     <tr>
-        //         <th class="">Bank Name</th>
-        //         <th class="">Mode of Payment</th>
-        //         <th class="">Amount</th>
-        //         <th class="">Payment Date</th>
-        //         <th class="">Transaction ID</th>
-        //     </tr>
-        //     <tr>
-        //         <td>State Bank of India</td>
-        //         <td>UPI</td>
-        //         <td>' . ($payment->amount ?? 'N/A') . '</td>
-        //         <td>25-02-2025</td>
-        //         <td>' . ($payment->transaction_id ?? 'N/A') . '</td>
-        //     </tr>
-        // </table>';
-
-        // Declaration
-
-
-        // Write HTML to PDF
-        $mpdf->WriteHTML($html);
-
-
-
-        // Footer section
-        $mpdf->SetFooter('
-        <table style="width:100%; font-size:12px;">
-            <tr>
-                <td style="text-align:right;">TNELB</td>
-                
-            </tr>
-        </table>
-        ');
-
-        return response($mpdf->Output('License_A_approval.pdf', 'I'))
-            ->header('Content-Type', 'application/pdf');
-    }
 
 
 
@@ -4523,66 +3141,16 @@ class LicensepdfController extends Controller
 
     public function generateFormsaPDF($application_id)
     {
-        // Fetch application details
-
-
         $application = DB::table('tnelb_esa_applications')->where('application_id', $application_id)->first();
-
-        $appltype = trim($application->appl_type);
-
-        if ($appltype === 'N') {
-            $applicant = DB::table('tnelb_license')
-                ->join('tnelb_esa_applications', 'tnelb_license.application_id', '=', 'tnelb_esa_applications.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-                    'tnelb_esa_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_esa_applications.license_name',
-                    'tnelb_esa_applications.form_name',
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
-        } else {
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join('tnelb_esa_applications', 'tnelb_renewal_license.application_id', '=', 'tnelb_esa_applications.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-                    'tnelb_esa_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_esa_applications.license_name',
-                    'tnelb_esa_applications.form_name',
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
+        if (! $application) {
+            return back()->with('error', 'Application not found.');
         }
 
-
+        $applicant = $this->contractorPdfApplicant($application_id, 'tnelb_esa_applications');
+        $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            ->where('application_id', $application_id)
+            ->orderby('id')
+            ->get();
 
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
@@ -4712,66 +3280,16 @@ class LicensepdfController extends Controller
 
     public function generateFormsbPDF($application_id)
     {
-        // Fetch application details
-
-
         $application = DB::table('tnelb_esb_applications')->where('application_id', $application_id)->first();
-
-        $appltype = trim($application->appl_type);
-
-        if ($appltype === 'N') {
-            $applicant = DB::table('tnelb_license')
-                ->join('tnelb_esb_applications', 'tnelb_license.application_id', '=', 'tnelb_esb_applications.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-                    'tnelb_esb_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_esb_applications.license_name',
-                    'tnelb_esb_applications.form_name',
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
-        } else {
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join('tnelb_esb_applications', 'tnelb_renewal_license.application_id', '=', 'tnelb_esb_applications.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-                    'tnelb_esb_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_esb_applications.license_name',
-                    'tnelb_esb_applications.form_name',
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
+        if (! $application) {
+            return back()->with('error', 'Application not found.');
         }
 
-
+        $applicant = $this->contractorPdfApplicant($application_id, 'tnelb_esb_applications');
+        $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            ->where('application_id', $application_id)
+            ->orderby('id')
+            ->get();
 
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
@@ -4897,68 +3415,16 @@ class LicensepdfController extends Controller
 
     public function generateFormbPDF($application_id)
     {
-        // Fetch application details
-
-
         $application = DB::table('tnelb_eb_applications')->where('application_id', $application_id)->first();
-
-
-
-        $appltype = trim($application->appl_type);
-
-        if ($appltype === 'N') {
-            $applicant = DB::table('tnelb_license')
-                ->join('tnelb_eb_applications', 'tnelb_license.application_id', '=', 'tnelb_eb_applications.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-                    'tnelb_eb_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_eb_applications.license_name',
-                    'tnelb_eb_applications.form_name',
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
-        } else {
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join('tnelb_eb_applications', 'tnelb_renewal_license.application_id', '=', 'tnelb_esb_applications.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-                    'tnelb_esb_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_eb_applications.license_name',
-                    'tnelb_eb_applications.form_name',
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderby('id')
-                // ->where('staff_flag', 1)
-                ->get();
+        if (! $application) {
+            return back()->with('error', 'Application not found.');
         }
 
-
+        $applicant = $this->contractorPdfApplicant($application_id, 'tnelb_eb_applications');
+        $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            ->where('application_id', $application_id)
+            ->orderby('id')
+            ->get();
 
         if (!$applicant) {
             return back()->with('error', 'Application not found.');
@@ -5080,135 +3546,6 @@ class LicensepdfController extends Controller
     }
 
 
-    public function generateFormaPDF1($application_id)
-    {
-        $application = DB::table('tnelb_ea_applications')
-            ->where('application_id', $application_id)
-            ->first();
-
-        $appl_type = preg_replace('/\s+/', '', $application->appl_type);
-
-        if ($application && $appl_type === 'R') {
-            // Renewal application → use tnelb_renewal_license
-            $applicant = DB::table('tnelb_ea_applications')
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'tnelb_ea_applications.application_id')
-                ->where('tnelb_ea_applications.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-                    'tnelb_ea_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_ea_applications.license_name',
-                    'tnelb_ea_applications.form_name',
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-        } else {
-            // Fetch application details
-            $applicant = DB::table('tnelb_license')
-                ->join('tnelb_ea_applications', 'tnelb_license.application_id', '=', 'tnelb_ea_applications.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-                    'tnelb_ea_applications.applicant_name AS name',
-                    // 'tnelb_applicant_formA.fathers_name',
-                    // 'tnelb_applicant_formA.applicants_address',
-                    // 'tnelb_applicant_formA.d_o_b',
-                    // 'tnelb_applicant_formA.age',
-                    'tnelb_ea_applications.license_name',
-                    'tnelb_ea_applications.form_name',
-                    'tnelb_license.license_number'
-                )
-                ->first();
-        }
-
-        if (!$applicant) {
-            return back()->with('error', 'Application not found.');
-        }
-
-
-        $payment = DB::table('payments')->where('application_id', $application_id)->first();
-
-        // Initialize mPDF
-        $mpdf = new Mpdf(['default_font_size' => 10]);
-        $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
-
-
-        $mpdf->WriteHTML('<style>
-        body { line-height: 1.5; }
-        p, td, th { padding: 5px; }
-        .tbl_center { text-align: center; }
-        .mt-2 { margin-top: 10px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #000; padding: 8px; }
-        .highlight { font-weight: bold; color: white; background-color: green; padding: 5px; }
-        .photo-container { text-align: right; padding-right: 10px; }
-        .photo-container img { width: 132px; height: 170px; border: 1px solid #000; object-fit: cover; display: block; }
-    </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
-
-        // Start building the PDF content
-        $html = '
-        <h3 style="text-align: center;" class="">GOVERNMENT OF TAMILNADU</h3>
-        <h4 style="text-align: center;" class="">THE ELECTRICAL LICENSING BOARD</h4>
-        <p style="text-align: center;">Thiru.Vi.Ka.Indl.Estate, Guindy, Chennai – 600032.</p>
-        <h4 style="text-align: center;" class=""> Form ' . $applicant->form_name . ' License "' . $applicant->license_name . '"</h4>
-        <p style="text-align: center;">License for Contractor Certificate</p>
-        <h3 style="text-align: center;" class="">' . $applicant->license_number . '</h3>';
-
-
-
-
-        $html .= '
-        <h4 class="mt-2 "> License Summary</h4>
-        <table>
-            <tr><th class="highlight">Applicant ID</th><td>' . $applicant->application_id . '</td></tr>
-            <tr><th class="highlight">Name</th><td>' . $applicant->name . '</td></tr>
-            <tr><th class="highlight">License Name</th><td>' . $applicant->license_name . '</td></tr>
-            <tr><th class="highlight">Issued By</th><td>' . $applicant->issued_by . '</td></tr>
-            <tr><th class="highlight">Issued At</th><td>' . $applicant->issued_at . '</td></tr>
-            <tr><th class="highlight">Expired At</th><td>' . $applicant->expires_at . '</td></tr>
-        </table>';
-
-
-        $html .= '<h4 class="mt-2 "> Payment Details</h4>
-        <table class="tbl_center">
-            <tr>
-                <th class="highlight">Bank Name</th>
-                <th class="highlight">Mode of Payment</th>
-                <th class="highlight">Amount</th>
-                <th class="highlight">Payment Date</th>
-                <th class="highlight">Transaction ID</th>
-            </tr>
-            <tr>
-                <td>State Bank of India</td>
-                <td>UPI</td>
-                <td>' . ($payment->amount ?? 'N/A') . '</td>
-                <td>25-02-2025</td>
-                <td>' . ($payment->transaction_id ?? 'N/A') . '</td>
-            </tr>
-        </table>';
-
-        // Declaration
-        $html .= '
-        <br>
-        <p><strong>Place:</strong> Chennai</p>
-        <p><strong>Date:</strong> ' . date('d-m-Y') . '</p>';
-
-        // Write HTML to PDF
-        $mpdf->WriteHTML($html);
-
-        // Output PDF
-        return response($mpdf->Output('Application_Details.pdf', 'I'))
-            ->header('Content-Type', 'application/pdf');
-    }
 
 
     // -------------License tamil pdf------------------------
@@ -5268,64 +3605,11 @@ class LicensepdfController extends Controller
         $appltype = strtoupper(trim($application->appl_type));
 
 
-        // ---------------------------------------
-        // 2. FRESH APPLICATION (appl_type = N)
-        // ---------------------------------------
-        if ($appltype === 'N') {
-
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
-                ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-        // ---------------------------------------
-        // 3. RENEWAL APPLICATION
-        // ---------------------------------------
-        else {
-
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
-
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
-
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
-
-            $staffDetails = DB::table('tnelb_applicant_formA_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
-
-
-
+        $applicant = $this->contractorPdfApplicant($application_id, $table_name);
+        $staffDetails = DB::table('tnelb_applicant_formA_staffdetails')
+            ->where('application_id', $application_id)
+            ->orderBy('id')
+            ->get();
 
         // ---------------------------------------
         // 4. RETURN OR LOAD PDF VIEW
@@ -5747,40 +4031,29 @@ class LicensepdfController extends Controller
             return $default;
         }
 
-        /* -------------------------------------------------
-     * 1️⃣ Renewal license (highest priority)
-     * ------------------------------------------------- */
-        $renewal = DB::table('tnelb_renewal_license')
-            ->select('issued_at', 'expires_at')
-            ->where('license_number', $certNo)
-            ->orderBy('expires_at', 'desc')
-            ->first();
+        $ccCertTables = [
+            'B' => 'cc_form_w_cert',
+            'H' => 'cc_form_wh_cert',
+            'C' => 'cc_forms_cert',
+        ];
 
-        if ($renewal) {
-            return [
-                'valid_from' => date('d-m-Y', strtotime($renewal->issued_at)),
-                'valid_upto' => date('d-m-Y', strtotime($renewal->expires_at)),
-            ];
+        if (isset($ccCertTables[$type])) {
+            $cert = DB::table($ccCertTables[$type])
+                ->select('dateof_issue as issued_at', 'valid_to as expires_at')
+                ->where('certificate_no', 'like', '%' . $certNo)
+                ->orderByDesc('valid_to')
+                ->first();
+
+            if ($cert) {
+                return [
+                    'valid_from' => date('d-m-Y', strtotime($cert->issued_at)),
+                    'valid_upto' => date('d-m-Y', strtotime($cert->expires_at)),
+                ];
+            }
         }
 
         /* -------------------------------------------------
-     * 2️⃣ New license
-     * ------------------------------------------------- */
-        $license = DB::table('tnelb_license')
-            ->select('issued_at', 'expires_at')
-            ->where('license_number', $certNo)
-            ->orderBy('expires_at', 'desc')
-            ->first();
-
-        if ($license) {
-            return [
-                'valid_from' => date('d-m-Y', strtotime($license->issued_at)),
-                'valid_upto' => date('d-m-Y', strtotime($license->expires_at)),
-            ];
-        }
-
-        /* -------------------------------------------------
-     * 3️⃣ Certificate table fallback
+     * Legacy certificate table fallback (scert/wcert/whcert)
      * ------------------------------------------------- */
         $cert = DB::table($tableMap[$type])
             ->select('frdate1', 'vdate')

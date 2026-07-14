@@ -1873,18 +1873,39 @@ use Illuminate\Support\Facades\Auth;
                 <div class="modal-body">
                     <div class="col-md-12">
                         <form class="mt-0 digi_form" id="alterationForm">
-                            <div class="form-group" id="alteration_parent_app_row">
-                                <div class="row mb-2">
-                                    <div class="col-lg-4">
-                                        <label for="alter_parent_application_id">Application ID / Certificate Number <span class="fill">*</span></label>
-                                    </div>
-                                    <div class="col-lg-6">
-                                        <input type="text" class="form-control" id="alter_parent_application_id" name="alter_parent_application_id"
-                                               placeholder="e.g. DSC261111218 or certificate number" maxlength="80" autocomplete="off">
-                                        <span class="error text-danger" id="alter_parent_app_error"></span>
+                            <section class="digi-section" aria-labelledby="alter-cert-section-title">
+                                <h6 class="digi-section-title" id="alter-cert-section-title">Certificate Details <span class="fill">*</span></h6>
+
+                                <div class="digi-field">
+                                    <label class="digi-field-label" for="alter_certificate_no">Certificate No <span class="fill">*</span></label>
+                                    <div class="digi-field-control">
+                                        <input type="text" class="form-control" id="alter_certificate_no" name="alter_certificate_no"
+                                               placeholder="Enter certificate number" maxlength="80" autocomplete="off">
+                                        <span class="error text-danger" id="alter_certificate_no_error"></span>
                                     </div>
                                 </div>
-                            </div>
+
+                                <div class="digi-dates-grid" style="margin-top:12px;">
+                                    <div class="digi-date-item">
+                                        <label for="alter_date_of_issue">Date of Issue <span class="fill">*</span></label>
+                                        <input type="date" class="form-control digi-date-input" id="alter_date_of_issue" name="alter_date_of_issue"
+                                               min="1900-01-01" max="{{ date('Y-m-d') }}">
+                                        <span class="error text-danger" id="alter_date_of_issue_error"></span>
+                                    </div>
+                                    <div class="digi-date-item">
+                                        <label for="alter_valid_from">Valid From <span class="fill">*</span></label>
+                                        <input type="date" class="form-control digi-date-input" id="alter_valid_from" name="alter_valid_from"
+                                               min="1900-01-01" max="{{ date('Y-m-d') }}">
+                                        <span class="error text-danger" id="alter_valid_from_error"></span>
+                                    </div>
+                                    <div class="digi-date-item">
+                                        <label for="alter_valid_to">Valid To <span class="fill">*</span></label>
+                                        <input type="date" class="form-control digi-date-input" id="alter_valid_to" name="alter_valid_to"
+                                               min="1900-01-01" max="2099-12-31">
+                                        <span class="error text-danger" id="alter_valid_to_error"></span>
+                                    </div>
+                                </div>
+                            </section>
                             <div class="form-group d-none" id="alteration_cert_row">
                                 <div class="row mb-2">
                                     <div class="col-lg-4">

@@ -229,7 +229,7 @@
             return false;
         }
 
-        if (flags.optName) {
+        if (flags.alterName) {
             var name = ($('#Applicant_Name').val() || '').trim();
             if (!name || name === parentName) {
                 Swal.fire('Validation', 'Enter a new applicant name different from the current name.', 'warning');
@@ -241,7 +241,7 @@
             }
         }
 
-        if (flags.optAddress) {
+        if (flags.alterAddress) {
             var addr = ($('#applicants_address').val() || '').trim();
             if (!addr || addr === parentAddress) {
                 Swal.fire('Validation', 'Enter a new address different from the current address.', 'warning');
@@ -253,7 +253,7 @@
             }
         }
 
-        if (flags.optWork && !hasNewWorkRows()) {
+        if (flags.optWork && !hasNewWorkRows() && !flags.alterName && !flags.alterAddress) {
             Swal.fire('Validation', 'Add at least one new work experience entry.', 'warning');
             return false;
         }
@@ -264,11 +264,11 @@
         }
 
         if (!$('#declarationCheckbox').is(':checked')) {
-            $('#checkboxError').show();
-            Swal.fire('Validation', 'Please accept the declaration before submitting.', 'warning');
+            $('#checkboxError').removeClass('d-none');
+            $('#declarationCheckbox').focus();
             return false;
         }
-        $('#checkboxError').hide();
+        $('#checkboxError').addClass('d-none');
 
         return true;
     }
@@ -321,6 +321,64 @@
         });
     }
 
+    function clearAlterLauncherFieldErrors() {
+        $('#alter_certificate_no_error, #alter_date_of_issue_error, #alter_valid_from_error, #alter_valid_to_error').text('');
+    }
+
+    function validateAlterLauncherFields() {
+        clearAlterLauncherFieldErrors();
+
+        var certificateNo = ($('#alter_certificate_no').val() || '').trim();
+        var dateOfIssue = ($('#alter_date_of_issue').val() || '').trim();
+        var validFrom = ($('#alter_valid_from').val() || '').trim();
+        var validTo = ($('#alter_valid_to').val() || '').trim();
+        var hasError = false;
+
+        if (!certificateNo) {
+            $('#alter_certificate_no_error').text('Certificate number is required.');
+            hasError = true;
+        }
+
+        if (!dateOfIssue) {
+            $('#alter_date_of_issue_error').text('Date of issue is required.');
+            hasError = true;
+        }
+
+        if (!validFrom) {
+            $('#alter_valid_from_error').text('Valid from date is required.');
+            hasError = true;
+        }
+
+        if (!validTo) {
+            $('#alter_valid_to_error').text('Valid to date is required.');
+            hasError = true;
+        }
+
+        if (validFrom && validTo && validTo < validFrom) {
+            $('#alter_valid_to_error').text('Valid to must be on or after valid from.');
+            hasError = true;
+        }
+
+        return {
+            hasError: hasError,
+            certificateNo: certificateNo,
+            dateOfIssue: dateOfIssue,
+            validFrom: validFrom,
+            validTo: validTo
+        };
+    }
+
+    function showCertificateNotFoundAndRedirect() {
+        Swal.fire({
+            icon: 'error',
+            title: 'Certificate Details Not Found.',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        }).then(function () {
+            window.location.href = window.dashboardUrl || '/dashboard';
+        });
+    }
+
     function initLauncherModal() {
         var modalEl = document.getElementById('alteration');
         if (!modalEl || typeof bootstrap === 'undefined') return;
@@ -346,12 +404,8 @@
         $(document).off('click.formSAltLauncher', '#alterationSubmit').on('click.formSAltLauncher', '#alterationSubmit', async function () {
             if (!window.formSAltLauncher) return;
 
-            $('#alter_parent_app_error').text('');
-
-            var parentId = ($('#alter_parent_application_id').val() || '').trim();
-
-            if (!parentId) {
-                $('#alter_parent_app_error').text('Application ID or certificate number is required.');
+            var fields = validateAlterLauncherFields();
+            if (fields.hasError) {
                 return;
             }
 
@@ -366,24 +420,68 @@
                     url: window.formSAltVerifyUrl || '/form_s_alt/verify',
                     type: 'POST',
                     data: {
-                        parent_application_id: parentId,
+                        certificate_no: fields.certificateNo,
+                        date_of_issue: fields.dateOfIssue,
+                        valid_from: fields.validFrom,
+                        valid_to: fields.validTo,
                         form: certCode,
                         _token: $('meta[name="csrf-token"]').attr('content')
                     }
                 });
 
                 if (res && res.status === 'success') {
-                    window.location.href = res.redirect_url || ('/form_s_alt?parent=' + encodeURIComponent(res.application_id || parentId) + '&form=' + encodeURIComponent(certCode));
+                    window.location.href = res.redirect_url || ('/form_s_alt?parent=' + encodeURIComponent(res.application_id || '') + '&form=' + encodeURIComponent(certCode));
+                } else if (res && res.status === 'certificate_not_found') {
+                    showCertificateNotFoundAndRedirect();
                 } else {
-                    $('#alter_parent_app_error').text((res && res.message) ? res.message : 'Verification failed.');
+                    $('#alter_certificate_no_error').text((res && res.message) ? res.message : 'Verification failed.');
                 }
             } catch (xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Verification failed.';
-                $('#alter_parent_app_error').text(msg);
+                var payload = xhr.responseJSON || {};
+                if (payload.status === 'certificate_not_found') {
+                    showCertificateNotFoundAndRedirect();
+                    return;
+                }
+
+                var msg = payload.message ? payload.message : 'Verification failed.';
+                if (payload.errors) {
+                    if (payload.errors.certificate_no) {
+                        $('#alter_certificate_no_error').text(payload.errors.certificate_no[0]);
+                    }
+                    if (payload.errors.date_of_issue) {
+                        $('#alter_date_of_issue_error').text(payload.errors.date_of_issue[0]);
+                    }
+                    if (payload.errors.valid_from) {
+                        $('#alter_valid_from_error').text(payload.errors.valid_from[0]);
+                    }
+                    if (payload.errors.valid_to) {
+                        $('#alter_valid_to_error').text(payload.errors.valid_to[0]);
+                    }
+                } else {
+                    $('#alter_certificate_no_error').text(msg);
+                }
             } finally {
                 $btn.prop('disabled', false);
             }
         });
+    }
+
+    function initAlterationEditableMode() {
+        if (!window.formSAltEditableMode) {
+            lockNonAlterableFields();
+            return;
+        }
+
+        $('#fsAltOptName, #fsAltOptAddress, #fsAltOptWork').prop('checked', true);
+        applyAlterationOptions(null);
+        updateChipStyles();
+
+        var root = document.getElementById('fsAltFormRoot');
+        if (root) {
+            window.setTimeout(function () {
+                root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+        }
     }
 
     function initAlterationFormPage() {
@@ -393,9 +491,8 @@
         parentAddress = ($('#fs_alt_parent_address').val() || '').trim();
 
         clearNewWorkRows();
-        lockNonAlterableFields();
-        updateChipStyles();
         initProofCompact();
+        updateChipStyles();
 
         $('#fsAltOptName').on('change', function () {
             applyAlterationOptions($(this).is(':checked') ? 'name' : null);
@@ -407,7 +504,14 @@
             applyAlterationOptions($(this).is(':checked') ? 'work' : null);
         });
 
+        initAlterationEditableMode();
+
         $('#Applicant_Name, #applicants_address').on('input change', syncAlterFlagsFromForm);
+        $(document).on('change.formSAltDecl', '#declarationCheckbox', function () {
+            if ($(this).is(':checked')) {
+                $('#checkboxError').addClass('d-none');
+            }
+        });
         $(document).on('change.formSAltWork input.formSAltWork', '.js-work-container input, .js-work-container textarea, .js-work-container select', syncAlterFlagsFromForm);
         $(document).on('click.formSAltWork', '#work-exp-add-btn-previous', function () {
             if (!$('#fsAltOptWork').is(':checked')) return false;

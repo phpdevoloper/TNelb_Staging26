@@ -110,7 +110,7 @@ return [
         'pan' => 'PROOF',
         'photo' => 'PHOTO',
         'signature' => 'SIGNATURE',
-        'alteration' => 'ALTERATION',
+        'alteration' => 'PROOF',
     ],
 
     'document_folders' => [
@@ -123,8 +123,8 @@ return [
         'signature' => 'SIGNATURE',
         'aadhaar_doc' => 'PROOF',
         'pancard_doc' => 'PROOF',
-        'name_proof' => 'ALTERATION',
-        'address_proof' => 'ALTERATION',
+        'name_proof' => 'PROOF',
+        'address_proof' => 'PROOF',
     ],
 
     'file_type_codes' => [

@@ -2,6 +2,7 @@
 
 namespace App\Services\FormS;
 
+use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\Competency\CC_CompetencyMeta;
@@ -9,18 +10,20 @@ use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Models\Mst_experience;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
+use App\Models\CC_Proof_doc;
 use App\Models\Payment;
-use App\Models\TnelbApplicantPhoto;
-use App\Models\TnelbApplicantsSign;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use RuntimeException;
 
 class FormSAlterationService
 {
+    private const FORM_S_CERT_TABLE = 'cc_forms_cert';
+
     public function __construct(
         protected FormSApplicationWorkflowService $workflowService,
         protected FormSDocumentUploadHandler $documentHandler,
@@ -83,25 +86,290 @@ class FormSAlterationService
         return ['ok' => true, 'application' => $parent];
     }
 
+    /**
+     * @param  array{
+     *     certificate_no: string,
+     *     date_of_issue: mixed,
+     *     valid_from: mixed,
+     *     valid_to: mixed,
+     * }  $certificateDetails
+     * @return array{ok: bool, message?: string, application?: CC_CompetencyMeta, certificate_not_found?: bool}
+     */
+    public function verifyLauncherRequest(string $loginId, string $formName, array $certificateDetails): array
+    {
+        $certificateNo = trim((string) ($certificateDetails['certificate_no'] ?? ''));
+        $dateOfIssue = $certificateDetails['date_of_issue'] ?? null;
+        $validFrom = $certificateDetails['valid_from'] ?? null;
+        $validTo = $certificateDetails['valid_to'] ?? null;
+
+        if ($certificateNo === '' || $dateOfIssue === null || $dateOfIssue === ''
+            || $validFrom === null || $validFrom === ''
+            || $validTo === null || $validTo === '') {
+            return ['ok' => false, 'message' => 'Certificate number and validity dates are required.'];
+        }
+
+        $cert = app(CompetencyCertificateService::class)->findCertByDetailsInTable(
+            self::FORM_S_CERT_TABLE,
+            $certificateNo,
+            $dateOfIssue,
+            $validFrom,
+            $validTo
+        );
+
+        if (!$cert) {
+            return ['ok' => false, 'message' => 'Certificate Details Not Found.', 'certificate_not_found' => true];
+        }
+
+        $applicationId = trim((string) ($cert->application_id ?? ''));
+        if ($applicationId === '') {
+            return ['ok' => false, 'message' => 'Certificate Details Not Found.', 'certificate_not_found' => true];
+        }
+
+        $verify = $this->verifyParentApplication($applicationId, $loginId);
+        if (!$verify['ok']) {
+            return ['ok' => false, 'message' => 'Certificate Details Not Found.', 'certificate_not_found' => true];
+        }
+
+        return ['ok' => true, 'application' => $verify['application']];
+    }
+
+    public function hasAlterationDraftFor(string $parentApplicationId, string $loginId): bool
+    {
+        return CC_Forms_Meta::where('old_application', trim($parentApplicationId))
+            ->where('appl_type', 'A')
+            ->where('login_id', $loginId)
+            ->where('payment_status', 'draft')
+            ->exists();
+    }
+
+    public function markLauncherVerifiedForParent(string $formCode, string $applicationId): void
+    {
+        session([
+            'competency_alt_verified' => [
+                'form' => strtoupper(trim($formCode)),
+                'application_id' => trim($applicationId),
+                'verified_at' => time(),
+            ],
+        ]);
+    }
+
+    public function markLauncherVerified(string $formCode, string $applicationId, array $certificateDetails): void
+    {
+        session([
+            'competency_alt_verified' => [
+                'form' => strtoupper(trim($formCode)),
+                'application_id' => trim($applicationId),
+                'certificate_no' => trim((string) ($certificateDetails['certificate_no'] ?? '')),
+                'date_of_issue' => $certificateDetails['date_of_issue'] ?? null,
+                'valid_from' => $certificateDetails['valid_from'] ?? null,
+                'valid_to' => $certificateDetails['valid_to'] ?? null,
+                'verified_at' => time(),
+            ],
+        ]);
+    }
+
+    public function isLauncherVerifiedFor(string $formCode, string $applicationId): bool
+    {
+        $stored = session('competency_alt_verified');
+        if (!is_array($stored)) {
+            return false;
+        }
+
+        return strtoupper((string) ($stored['form'] ?? '')) === strtoupper(trim($formCode))
+            && trim((string) ($stored['application_id'] ?? '')) === trim($applicationId);
+    }
+
+    /**
+     * Build view payload for the alteration form after certificate verification.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildAlterationFormViewData(CC_CompetencyMeta $parent, bool $editableMode = true): array
+    {
+        $parent = $this->normalizeParentForDisplay($parent);
+        $context = $this->loadParentContext($parent);
+        $masterApplicationId = (string) $this->workflowService->masterApplication($parent)->application_id;
+
+        $applicationDetails = $this->normalizeApplicationMetaForFormDisplay(
+            (object) $parent->toArray()
+        );
+
+        if ($context['alterationDraft']) {
+            $draft = $this->normalizeParentForDisplay($context['alterationDraft']);
+            $applicationDetails->applicant_name = $draft->applicant_name;
+            $address = trim((string) ($draft->applicant_address ?? $draft->applicants_address ?? ''));
+            $applicationDetails->applicant_address = $address;
+            $applicationDetails->applicants_address = $address;
+        }
+
+        $applicationDetails = $this->enrichApplicationProofFields($applicationDetails, $masterApplicationId);
+
+        return [
+            'applicationid' => $parent->application_id,
+            'parent_application_id' => $parent->application_id,
+            'application_details' => $applicationDetails,
+            'parent_application_details' => $parent,
+            'edu_details' => $context['eduDetails'],
+            'exp_details' => $context['expDetails'],
+            'license_details' => $context['licenseDetails'],
+            'applicant_photo' => $context['applicantPhoto'] ?? null,
+            'proof_doc' => $context['proofDoc'] ?? null,
+            'is_alteration_mode' => true,
+            'alteration_editable_mode' => $editableMode,
+            'alteration_draft' => $context['alterationDraft'],
+            'fees_details' => null,
+            'form_details' => [],
+            'licence_name' => null,
+            'queries' => collect(),
+        ];
+    }
+
+    public function normalizeParentForDisplay(CC_CompetencyMeta $application): CC_CompetencyMeta
+    {
+        $normalized = clone $application;
+        $address = trim((string) ($normalized->applicant_address ?? $normalized->applicants_address ?? ''));
+        $normalized->applicant_address = $address;
+        $normalized->applicants_address = $address;
+
+        return $normalized;
+    }
+
+    /**
+     * Map cc_form_*_meta columns to legacy form field names used by Form S blades.
+     * Q8 = previous supervisor cert (previous_scc_*), Q9 = wireman cert (wcc_*).
+     */
+    public function normalizeApplicationMetaForFormDisplay(object $row): object
+    {
+        $row = clone $row;
+
+        $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
+        $row->applicants_address = $row->applicants_address ?? $row->applicant_address ?? null;
+        $row->previously_number = $row->previously_number ?? $row->previous_scc_no ?? null;
+        $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
+        $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
+        $row->previously_valid_to = $row->previously_valid_to ?? $row->scc_to_date ?? null;
+        $row->previously_date = $row->previously_date ?? $row->scc_to_date ?? null;
+        $row->competency_certificate_no = $row->competency_certificate_no ?? $row->wcc_no ?? null;
+        $row->certificate_no = $row->certificate_no ?? $row->wcc_no ?? null;
+        $row->certificate_valid_to = $row->certificate_valid_to ?? $row->wcc_to ?? null;
+        $row->certificate_issue_date = $row->certificate_issue_date ?? $row->wcc_issue_date ?? null;
+        $row->certificate_valid_from = $row->certificate_valid_from ?? $row->wcc_from ?? null;
+        $row->certificate_date = $row->certificate_date ?? $row->wcc_to ?? null;
+        $row->license_verify = isset($row->license_verify)
+            ? (int) $row->license_verify
+            : (! empty($row->previously_number) ? 1 : 0);
+        $row->cert_verify = isset($row->cert_verify)
+            ? (int) $row->cert_verify
+            : (! empty($row->certificate_no) ? 1 : 0);
+
+        return $row;
+    }
+
+    public function enrichApplicationWithCertificateDetails(object $application, ?object $licenseDetails): object
+    {
+        $application = clone $application;
+
+        if (!$licenseDetails) {
+            return $application;
+        }
+
+        // Issued Form S certificate details are kept separate from Q8/Q9 answers.
+        $certificateNo = trim((string) ($licenseDetails->license_number ?? $licenseDetails->certificate_no ?? ''));
+        if ($certificateNo !== '') {
+            $application->license_number = $certificateNo;
+        }
+
+        $issueDate = $licenseDetails->issued_at ?? $licenseDetails->dateof_issue ?? null;
+        if ($issueDate) {
+            $application->issued_certificate_issue_date = $this->formatDateValue($issueDate);
+        }
+
+        $validFrom = $licenseDetails->valid_from ?? $licenseDetails->issued_from ?? null;
+        if ($validFrom) {
+            $application->issued_certificate_valid_from = $this->formatDateValue($validFrom);
+        }
+
+        $validTo = $licenseDetails->valid_to ?? $licenseDetails->expires_at ?? null;
+        if ($validTo) {
+            $application->issued_certificate_valid_to = $this->formatDateValue($validTo);
+        }
+
+        return $application;
+    }
+
+    protected function enrichApplicationProofFields(object $application, string $masterApplicationId): object
+    {
+        $application = clone $application;
+
+        $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
+            ->whereIn('proof_type', ['aadhaar', 'pan'])
+            ->get();
+
+        foreach ($proofRows as $proof) {
+            $proofType = strtolower((string) ($proof->proof_type ?? ''));
+            if ($proofType === 'aadhaar') {
+                if (! empty($proof->proof_no)) {
+                    $application->aadhaar = $proof->proof_no;
+                }
+                if (! empty($proof->proof_doc)) {
+                    $application->aadhaar_doc = $proof->proof_doc;
+                }
+            } elseif ($proofType === 'pan') {
+                if (! empty($proof->proof_no)) {
+                    $application->pancard = $proof->proof_no;
+                }
+                if (! empty($proof->proof_doc)) {
+                    $application->pan_doc = $proof->proof_doc;
+                    $application->pancard_doc = $proof->proof_doc;
+                }
+            }
+        }
+
+        return $application;
+    }
+
+    private function formatDateValue(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     public function loadParentContext(CC_CompetencyMeta $parent): array
     {
         $masterId = $this->workflowService->masterApplication($parent)->application_id;
 
-        $eduDetails = DB::table('cc_edu')
-            ->where('application_id', $masterId)
-            ->orderBy('year_of_passing', 'desc')
-            ->get();
+        $eduDetails = CC_Education::where('application_id', $masterId)
+            ->orderByDesc('year_of_passing')
+            ->get()
+            ->map(function (CC_Education $edu) {
+                $row = (object) $edu->toArray();
+                $row->id = $edu->edu_id;
+
+                return $row;
+            });
 
         $expDetails = CC_Experience::where('application_id', $masterId)
             ->orderBy('exp_id')
-            ->get();
+            ->get()
+            ->map(function (CC_Experience $exp) {
+                $row = (object) $exp->toArray();
+                $row->id = $exp->exp_id;
+                $row->releive_document = $exp->relieve_document ?? $exp->releive_document ?? null;
 
-        $licenseDetails = app(CompetencyCertificateService::class)->asLicenseDetails(
-            (string) $parent->application_id,
-            $parent->form_name ?? 'S'
-        ) ?? DB::table('tnelb_license')
-            ->where('application_id', $parent->application_id)
-            ->first();
+                return $row;
+            });
+
+        $licenseDetails = app(CompetencyCertificateService::class)->licenseDetailsFromCertTable(
+            self::FORM_S_CERT_TABLE,
+            (string) $parent->application_id
+        );
 
         $alterationDraft = CC_Forms_Meta::where('old_application', $parent->application_id)
             ->where('appl_type', 'A')
@@ -133,10 +401,12 @@ class FormSAlterationService
         return app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($application);
     }
 
-    protected function resolveApplicantPhoto(CC_CompetencyMeta $parent): ?TnelbApplicantPhoto
+    protected function resolveApplicantPhoto(CC_CompetencyMeta $parent): ?object
     {
+        $proofService = app(FormSProofDocumentService::class);
+
         foreach ($this->mediaApplicationIds($parent) as $applicationId) {
-            $photo = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+            $photo = $proofService->loadPhotoForView($applicationId);
             if ($photo && trim((string) ($photo->upload_path ?? '')) !== '') {
                 return $photo;
             }
@@ -145,10 +415,12 @@ class FormSAlterationService
         return null;
     }
 
-    protected function resolveApplicantSign(CC_CompetencyMeta $parent): ?TnelbApplicantsSign
+    protected function resolveApplicantSign(CC_CompetencyMeta $parent): ?object
     {
+        $proofService = app(FormSProofDocumentService::class);
+
         foreach ($this->mediaApplicationIds($parent) as $applicationId) {
-            $sign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
+            $sign = $proofService->loadSignForView($applicationId);
             if ($sign && trim((string) ($sign->uploaded_doc ?? '')) !== '') {
                 return $sign;
             }
@@ -201,8 +473,8 @@ class FormSAlterationService
         $newName = trim((string) $request->input('applicant_name', ''));
         $newAddress = trim((string) $request->input('applicants_address', $request->input('applicant_address', '')));
 
-        $alterName = $newName !== $parentName;
-        $alterAddress = $newAddress !== $parentAddress;
+        $alterName = $request->input('alter_name') === '1' || ($newName !== '' && $newName !== $parentName);
+        $alterAddress = $request->input('alter_address') === '1' || ($newAddress !== '' && $newAddress !== $parentAddress);
         $alterWork = $this->requestHasNewWorkRows($request);
 
         if (!$alterName && !$alterAddress && !$alterWork) {
@@ -289,12 +561,20 @@ class FormSAlterationService
                 ]));
             }
 
-            if ($alterName && $request->hasFile('name_alteration_proof')) {
-                $this->storeAlterationProof($child, $request->file('name_alteration_proof'), 'name_proof');
+            if ($alterName) {
+                if ($request->hasFile('name_alteration_proof')) {
+                    $this->storeAlterationProof($child, $request->file('name_alteration_proof'), 'name_proof');
+                } else {
+                    app(FormSProofDocumentService::class)->syncAlterationProofFromLog($child, 'name_proof');
+                }
             }
 
-            if ($alterAddress && $request->hasFile('address_alteration_proof')) {
-                $this->storeAlterationProof($child, $request->file('address_alteration_proof'), 'address_proof');
+            if ($alterAddress) {
+                if ($request->hasFile('address_alteration_proof')) {
+                    $this->storeAlterationProof($child, $request->file('address_alteration_proof'), 'address_proof');
+                } else {
+                    app(FormSProofDocumentService::class)->syncAlterationProofFromLog($child, 'address_proof');
+                }
             }
 
             if ($alterWork) {
@@ -568,10 +848,234 @@ class FormSAlterationService
                     $experience->update(['support_document' => $path]);
                 }
             }
+
+            $relieveFile = $request->file('work_relieving_letter');
+            if (is_array($relieveFile) && isset($relieveFile[$key])) {
+                $relieveFile = $relieveFile[$key];
+            } elseif (! $relieveFile instanceof UploadedFile) {
+                $relieveFile = null;
+            }
+            if ($relieveFile && $relieveFile->isValid()) {
+                $relievePath = $this->documentHandler->handleExperienceRelieveUpload(
+                    $child,
+                    $experience,
+                    $relieveFile
+                );
+                if ($relievePath) {
+                    $experience->update(['relieve_document' => $relievePath]);
+                }
+            }
         }
 
         if ($created === 0) {
             throw new RuntimeException('Add at least one new work experience entry.');
+        }
+    }
+
+    /**
+     * Apply approved alteration changes to the parent application, registration profile,
+     * and master work experience. Returns existing certificate details for PDF regeneration.
+     *
+     * @return array{
+     *     parent_application_id: string,
+     *     license_number: string,
+     *     issued_at: mixed,
+     *     expires_at: mixed
+     * }
+     */
+    public function applyApprovedAlterationChanges(string $alterationApplicationId, string $alterationMetaTable): array
+    {
+        $alterationApplicationId = trim($alterationApplicationId);
+        $childRow = DB::table($alterationMetaTable)
+            ->where('application_id', $alterationApplicationId)
+            ->first();
+
+        if (! $childRow) {
+            throw new RuntimeException('Alteration application not found.');
+        }
+
+        $parentId = trim((string) ($childRow->old_application ?? ''));
+        if ($parentId === '') {
+            throw new RuntimeException('Parent application not found for alteration.');
+        }
+
+        $metaService = app(CompetencyMetaService::class);
+        $parentTable = $metaService->metaTableForApplicationId($parentId);
+        if (! $parentTable) {
+            throw new RuntimeException('Parent application meta table not found.');
+        }
+
+        $parentRow = DB::table($parentTable)->where('application_id', $parentId)->first();
+        if (! $parentRow) {
+            throw new RuntimeException('Parent application record not found.');
+        }
+
+        $parentUpdates = ['updated_at' => now()];
+
+        $childName = trim((string) ($childRow->applicant_name ?? ''));
+        $parentName = trim((string) ($parentRow->applicant_name ?? ''));
+        if ($childName !== '' && $childName !== $parentName) {
+            $parentUpdates['applicant_name'] = $childName;
+        }
+
+        $childAddress = trim((string) ($childRow->applicant_address ?? $childRow->applicants_address ?? ''));
+        $parentAddress = trim((string) ($parentRow->applicant_address ?? $parentRow->applicants_address ?? ''));
+        if ($childAddress !== '' && $childAddress !== $parentAddress) {
+            $parentUpdates['applicant_address'] = $childAddress;
+            $parentUpdates['applicants_address'] = $childAddress;
+        }
+
+        if (count($parentUpdates) > 1) {
+            DB::table($parentTable)->where('application_id', $parentId)->update($parentUpdates);
+        }
+
+        $this->syncLegacyApplicationProfile($parentId, $parentUpdates);
+        $this->syncRegistrationProfile((string) ($childRow->login_id ?? ''), $childRow);
+        $this->mergeApprovedWorkExperienceToMaster($childRow, $parentId);
+
+        $licenseDetails = app(CompetencyCertificateService::class)->asLicenseDetails(
+            $parentId,
+            $childRow->form_name ?? null
+        );
+
+        if (! $licenseDetails || trim((string) ($licenseDetails->license_number ?? '')) === '') {
+            throw new RuntimeException('Issued certificate not found for parent application.');
+        }
+
+        return [
+            'parent_application_id' => $parentId,
+            'license_number' => (string) $licenseDetails->license_number,
+            'issued_at' => $licenseDetails->issued_at,
+            'expires_at' => $licenseDetails->expires_at,
+        ];
+    }
+
+    protected function syncLegacyApplicationProfile(string $parentApplicationId, array $parentUpdates): void
+    {
+        if (! DB::getSchemaBuilder()->hasTable('tnelb_application_tbl')) {
+            return;
+        }
+
+        $legacyUpdate = array_intersect_key(
+            $parentUpdates,
+            array_flip(['applicant_name', 'applicant_address', 'applicants_address', 'updated_at'])
+        );
+
+        if (count($legacyUpdate) <= 1) {
+            return;
+        }
+
+        DB::table('tnelb_application_tbl')
+            ->where('application_id', $parentApplicationId)
+            ->update($legacyUpdate);
+    }
+
+    protected function syncRegistrationProfile(string $loginId, object $childRow): void
+    {
+        $loginId = trim($loginId);
+        if ($loginId === '' || ! DB::getSchemaBuilder()->hasTable('tnelb_registers')) {
+            return;
+        }
+
+        $register = DB::table('tnelb_registers')->where('login_id', $loginId)->first();
+        if (! $register) {
+            return;
+        }
+
+        $update = ['updated_at' => now()];
+
+        $fullName = trim((string) ($childRow->applicant_name ?? ''));
+        if ($fullName !== '') {
+            [$salutation, $firstName, $lastName] = $this->parseApplicantNameForRegistration($fullName);
+            if ($salutation !== null) {
+                $update['salutation'] = $salutation;
+            }
+            if ($firstName !== '') {
+                $update['first_name'] = $firstName;
+            }
+            if ($lastName !== '') {
+                $update['last_name'] = $lastName;
+            }
+        }
+
+        $address = trim((string) ($childRow->applicant_address ?? $childRow->applicants_address ?? ''));
+        if ($address !== '') {
+            $update['address'] = $address;
+        }
+
+        if (count($update) > 1) {
+            DB::table('tnelb_registers')->where('login_id', $loginId)->update($update);
+        }
+    }
+
+    /**
+     * @return array{0: ?string, 1: string, 2: string}
+     */
+    protected function parseApplicantNameForRegistration(string $fullName): array
+    {
+        $salutations = ['Mr', 'Mrs', 'Ms', 'Dr'];
+        $parts = preg_split('/\s+/', trim($fullName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($parts === []) {
+            return [null, '', ''];
+        }
+
+        $first = rtrim($parts[0], '.');
+        if (in_array($first, $salutations, true)) {
+            $salutation = $first;
+            $nameParts = array_slice($parts, 1);
+        } else {
+            $salutation = null;
+            $nameParts = $parts;
+        }
+
+        if ($nameParts === []) {
+            return [$salutation, '', ''];
+        }
+
+        if (count($nameParts) === 1) {
+            return [$salutation, $nameParts[0], ''];
+        }
+
+        $lastName = (string) array_pop($nameParts);
+
+        return [$salutation, implode(' ', $nameParts), $lastName];
+    }
+
+    protected function mergeApprovedWorkExperienceToMaster(object $childRow, string $parentApplicationId): void
+    {
+        $childApplicationId = trim((string) ($childRow->application_id ?? ''));
+        if ($childApplicationId === '') {
+            return;
+        }
+
+        $parentMeta = CC_Forms_Meta::findByApplicationId($parentApplicationId);
+        if (! $parentMeta) {
+            return;
+        }
+
+        $masterApplicationId = (string) $this->workflowService->masterApplication($parentMeta)->application_id;
+        $newRows = CC_Experience::where('application_id', $childApplicationId)->get();
+
+        foreach ($newRows as $row) {
+            CC_Experience::create([
+                'login_id' => $row->login_id ?: ($childRow->login_id ?? null),
+                'application_id' => $masterApplicationId,
+                'emp_type' => $row->emp_type,
+                'org_name' => $row->org_name,
+                'org_address' => $row->org_address,
+                'designation' => $row->designation,
+                'from_date' => $row->from_date,
+                'to_date' => $row->to_date,
+                'total_y' => $row->total_y,
+                'total_m' => $row->total_m,
+                'total_d' => $row->total_d,
+                'nature_work' => $row->nature_work,
+                'voltage_level' => $row->voltage_level,
+                'transformer_kva' => $row->transformer_kva,
+                'support_document' => $row->support_document,
+                'relieve_document' => $row->relieve_document ?? $row->releive_document ?? null,
+            ]);
         }
     }
 }

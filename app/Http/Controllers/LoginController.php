@@ -38,10 +38,27 @@ class LoginController extends BaseController
      */
     private function isReturnedQueryDraftRow(object $row): bool
     {
-        $st = strtoupper(trim((string) ($row->status ?? $row->application_status ?? $row->app_status ?? '')));
+        $st = $this->normalizeWorkflowStatus($row->status ?? $row->application_status ?? $row->app_status ?? '');
         $ps = strtolower(trim((string) ($row->payment_status ?? '')));
 
         return $st === 'QU' && in_array($ps, ['draft', 'n'], true);
+    }
+
+    private function isReturnedQueryRow(object $row): bool
+    {
+        return $this->normalizeWorkflowStatus($row->status ?? $row->application_status ?? $row->app_status ?? '') === 'QU';
+    }
+
+    /** Trim padded char/varchar codes from cc_form_*_meta (e.g. app_status "QU   "). */
+    private function normalizeWorkflowStatus(?string $status): string
+    {
+        return strtoupper(trim((string) $status));
+    }
+
+    /** SQL CASE for surfacing returned (QU) draft rows first in competency lists. */
+    private function ccMetaReturnedFirstOrderSql(string $statusColumn, string $paymentColumn): string
+    {
+        return "(CASE WHEN TRIM({$statusColumn}) = 'QU' AND LOWER(TRIM(COALESCE({$paymentColumn}, ''))) IN ('draft', 'n') THEN 0 ELSE 1 END)";
     }
 
     /** Competency forms stored in per-form cc_form_*_meta tables. */
@@ -82,6 +99,7 @@ class LoginController extends BaseController
             'ta.updated_at',
             'ta.old_application',
             'ta.certificate_no',
+            'ta.processed_by',
         ];
     }
 
@@ -105,14 +123,32 @@ class LoginController extends BaseController
     /** Align cc_form_*_meta row shape with legacy tnelb_application_tbl fields used by dashboard views. */
     private function normalizeCcWorkflowRow(object $workflow): object
     {
-        if (! isset($workflow->license_name) || $workflow->license_name === null || $workflow->license_name === '') {
-            $workflow->license_name = $workflow->certificate_name ?? null;
+        $workflow->application_id = trim((string) ($workflow->application_id ?? ''));
+        $workflow->form_name = strtoupper(trim((string) ($workflow->form_name ?? '')));
+        $workflow->appl_type = strtoupper(trim((string) ($workflow->appl_type ?? '')));
+        $workflow->certificate_name = trim((string) ($workflow->certificate_name ?? ''));
+
+        if (! isset($workflow->license_name) || trim((string) ($workflow->license_name ?? '')) === '') {
+            $workflow->license_name = $workflow->certificate_name !== '' ? $workflow->certificate_name : null;
+        } else {
+            $workflow->license_name = trim((string) $workflow->license_name);
         }
-        if (! isset($workflow->status) || $workflow->status === null || $workflow->status === '') {
-            $workflow->status = $workflow->app_status ?? null;
-        }
+
+        $workflow->status = $this->normalizeWorkflowStatus($workflow->status ?? $workflow->app_status ?? null);
         $workflow->application_status = $workflow->status;
         $workflow->payment_status = $this->normalizeCcPaymentStatus($workflow->payment_status ?? null);
+
+        if (! isset($workflow->id) && isset($workflow->app_id)) {
+            $workflow->id = $workflow->app_id;
+        }
+
+        if (empty($workflow->created_at) && ! empty($workflow->submitted_date)) {
+            $workflow->created_at = $workflow->submitted_date;
+        }
+
+        if (isset($workflow->processed_by)) {
+            $workflow->processed_by = trim((string) $workflow->processed_by);
+        }
 
         return $workflow;
     }
@@ -120,13 +156,7 @@ class LoginController extends BaseController
     /** Map tnelb_form_p row shape to fields expected by dashboard views. */
     private function normalizeFormPWorkflowRow(object $workflow): object
     {
-        if (! isset($workflow->status) || $workflow->status === null || $workflow->status === '') {
-            $workflow->status = $workflow->app_status ?? null;
-        }
-        $workflow->application_status = $workflow->status;
-        $workflow->payment_status = $this->normalizeCcPaymentStatus($workflow->payment_status ?? null);
-
-        return $workflow;
+        return $this->normalizeCcWorkflowRow($workflow);
     }
 
     private function loadCompetencyIssuedCertificate(object $workflow): ?object
@@ -321,7 +351,7 @@ class LoginController extends BaseController
         foreach ($this->competencySwMetaTables() as $metaTable) {
             $rows = DB::table("{$metaTable} as ta")
                 ->where('ta.login_id', $loginId)
-                ->orderByRaw("(CASE WHEN ta.app_status = 'QU' AND LOWER(TRIM(COALESCE(ta.payment_status, ''))) IN ('draft', 'n') THEN 0 ELSE 1 END)")
+                ->orderByRaw($this->ccMetaReturnedFirstOrderSql('ta.app_status', 'ta.payment_status'))
                 ->orderByDesc('ta.submitted_date')
                 ->get($ccSelect);
 
@@ -341,15 +371,13 @@ class LoginController extends BaseController
             ->where('ta.login_id', $loginId)
             ->whereNotIn('ta.form_name', $this->competencyCcMetaFormNames())
             ->when($ccApplicationIds !== [], fn ($query) => $query->whereNotIn('ta.application_id', $ccApplicationIds))
-            ->orderByRaw("(CASE WHEN ta.status = 'QU' AND LOWER(TRIM(COALESCE(ta.payment_status, ''))) IN ('draft', 'n') THEN 0 ELSE 1 END)")
+            ->orderByRaw($this->ccMetaReturnedFirstOrderSql('ta.status', 'ta.payment_status'))
             ->orderByDesc('ta.submitted_date')
             ->get()
             ->map(function ($workflow) {
-                if (! isset($workflow->status)) {
-                    $workflow->status = $workflow->app_status ?? null;
-                }
-
-                return $this->enrichCompetencyWorkflowRow($workflow);
+                return $this->enrichCompetencyWorkflowRow(
+                    $this->normalizeCcWorkflowRow($workflow)
+                );
             });
 
         return $ccWorkflows->merge($legacyWorkflows)->values();
@@ -754,7 +782,7 @@ class LoginController extends BaseController
             $ccRenewalApplicationIds = $ccRenewalApplicationIds->merge(
                 DB::table($metaTable)
                     ->where('login_id', $loginId)
-                    ->where('appl_type', 'R')
+                    ->whereRaw("TRIM(appl_type) = 'R'")
                     ->pluck('application_id')
             );
         }
@@ -767,7 +795,7 @@ class LoginController extends BaseController
             $renewal_applications = $renewal_applications->merge(
                 DB::table("{$metaTable} as ta")
                     ->where('ta.login_id', $loginId)
-                    ->where('ta.appl_type', 'R')
+                    ->whereRaw("TRIM(ta.appl_type) = 'R'")
                     ->select($this->ccMetaSelectColumns())
                     ->orderByDesc('ta.submitted_date')
                     ->get()
@@ -825,7 +853,7 @@ class LoginController extends BaseController
 
         $all_form_p = DB::table('cc_form_p_meta as ta')
             ->where('ta.login_id', $loginId)
-            ->orderByRaw("(CASE WHEN ta.app_status = 'QU' AND LOWER(TRIM(COALESCE(ta.payment_status, ''))) IN ('draft', 'n') THEN 0 ELSE 1 END)")
+            ->orderByRaw($this->ccMetaReturnedFirstOrderSql('ta.app_status', 'ta.payment_status'))
             ->orderByDesc('ta.submitted_date')
             ->get()
             ->map(function ($workflow) {
@@ -837,7 +865,7 @@ class LoginController extends BaseController
         $legacyFormP = DB::table('tnelb_form_p as ta')
             ->where('ta.login_id', $loginId)
             ->when($migratedFormPIds !== [], fn ($query) => $query->whereNotIn('ta.application_id', $migratedFormPIds))
-            ->orderByRaw("(CASE WHEN ta.app_status = 'QU' AND LOWER(TRIM(COALESCE(ta.payment_status, ''))) IN ('draft', 'n') THEN 0 ELSE 1 END)")
+            ->orderByRaw($this->ccMetaReturnedFirstOrderSql('ta.app_status', 'ta.payment_status'))
             ->orderByDesc('ta.submitted_date')
             ->get()
             ->map(function ($workflow) {
@@ -943,10 +971,13 @@ class LoginController extends BaseController
         $mergedData = $workflows_present->merge($all_form_p);
         $mergedData = $mergedData
             ->sort(function ($a, $b) {
-                $pa = $this->isReturnedQueryDraftRow($a);
-                $pb = $this->isReturnedQueryDraftRow($b);
+                $pa = $this->isReturnedQueryRow($a);
+                $pb = $this->isReturnedQueryRow($b);
                 if ($pa !== $pb) {
                     return $pa ? -1 : 1;
+                }
+                if ($this->isReturnedQueryDraftRow($a) !== $this->isReturnedQueryDraftRow($b)) {
+                    return $this->isReturnedQueryDraftRow($a) ? -1 : 1;
                 }
                 $ta = strtotime((string) ($a->submitted_date ?? $a->created_at ?? '1970-01-01'));
                 $tb = strtotime((string) ($b->submitted_date ?? $b->created_at ?? '1970-01-01'));
@@ -1043,7 +1074,7 @@ class LoginController extends BaseController
                         $parts[] = 'pending';
                     }
 
-                    $st = strtoupper((string) ($row->status ?? $row->application_status ?? $row->app_status ?? ''));
+                    $st = $this->normalizeWorkflowStatus($row->status ?? $row->application_status ?? $row->app_status ?? '');
                     $byCode = [
                         'P' => ['submitted'],
                         'F' => ['in progress'],
@@ -1089,12 +1120,12 @@ class LoginController extends BaseController
 
 
         $returnapplication = $workflows_cl
-        ->where('application_status', 'RET')
-        ->values();
+            ->filter(function ($workflow) {
+                $status = $this->normalizeWorkflowStatus($workflow->application_status ?? $workflow->status ?? '');
 
-        $returnapplication = $workflows_cl
-        ->whereIn('application_status', ['RET', 'RETD'])
-        ->values();
+                return in_array($status, ['RET', 'RETD'], true);
+            })
+            ->values();
 
         
         $mstLicences = DB::table('mst_licences')->get();

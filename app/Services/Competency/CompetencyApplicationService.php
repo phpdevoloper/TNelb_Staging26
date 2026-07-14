@@ -166,11 +166,7 @@ class CompetencyApplicationService
 
         if ($legacy) {
 
-            $legacy->_application_source = 'cc_form_s_meta';
-
-
-
-            return $legacy;
+            return $this->normalizeMetaRowForAdmin($legacy, 'cc_form_s_meta', $applicationId);
 
         }
 
@@ -292,6 +288,14 @@ class CompetencyApplicationService
 
         $row->certificate_date = $row->certificate_date ?? $row->wcc_to ?? null;
 
+        $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
+
+        $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
+
+        $row->admincverify = $row->admincverify ?? null;
+
+        $row->adminlverify = $row->adminlverify ?? null;
+
 
 
         return $row;
@@ -316,13 +320,35 @@ class CompetencyApplicationService
 
             $proofType = strtolower((string) ($proof->proof_type ?? ''));
 
-            if ($proofType === 'aadhaar' && ! empty($proof->proof_no)) {
+            if ($proofType === 'aadhaar') {
 
-                $applicationDetails->aadhaar = $proof->proof_no;
+                if (! empty($proof->proof_no)) {
 
-            } elseif ($proofType === 'pan' && ! empty($proof->proof_no)) {
+                    $applicationDetails->aadhaar = $proof->proof_no;
 
-                $applicationDetails->pancard = $proof->proof_no;
+                }
+
+                if (! empty($proof->proof_doc)) {
+
+                    $applicationDetails->aadhaar_doc = $proof->proof_doc;
+
+                }
+
+            } elseif ($proofType === 'pan') {
+
+                if (! empty($proof->proof_no)) {
+
+                    $applicationDetails->pancard = $proof->proof_no;
+
+                }
+
+                if (! empty($proof->proof_doc)) {
+
+                    $applicationDetails->pan_doc = $proof->proof_doc;
+
+                    $applicationDetails->pancard_doc = $proof->proof_doc;
+
+                }
 
             }
 
@@ -357,6 +383,10 @@ class CompetencyApplicationService
         $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
 
         $row->applicants_address = $row->applicants_address ?? $row->applicant_address ?? null;
+
+        $row->admincverify = $row->admincverify ?? null;
+
+        $row->adminlverify = $row->adminlverify ?? null;
 
 
 
@@ -816,89 +846,31 @@ class CompetencyApplicationService
 
 
 
-        $applType = strtoupper(trim((string) ($application->appl_type ?? '')));
-
-        if ($applType === 'R') {
-
-            return DB::table('cc_form_s_meta')
-
-                ->join('tnelb_renewal_license', 'tnelb_renewal_license.application_id', '=', 'cc_form_s_meta.application_id')
-
-                ->where('cc_form_s_meta.application_id', $applicationId)
-
-                ->select(
-
-                    'cc_form_s_meta.application_id',
-
-                    'cc_form_s_meta.applicant_name AS name',
-
-                    'cc_form_s_meta.fathers_name',
-
-                    'cc_form_s_meta.applicants_address',
-
-                    'cc_form_s_meta.d_o_b',
-
-                    'cc_form_s_meta.age',
-
-                    'cc_form_s_meta.license_name',
-
-                    'cc_form_s_meta.form_name',
-
-                    'tnelb_renewal_license.license_number',
-
-                    'tnelb_renewal_license.issued_by',
-
-                    'tnelb_renewal_license.issued_at',
-
-                    'tnelb_renewal_license.issued_from',
-
-                    'tnelb_renewal_license.expires_at'
-
-                )
-
-                ->first();
-
+        $app = DB::table('cc_form_s_meta')->where('application_id', $applicationId)->first();
+        if (! $app) {
+            return null;
         }
 
+        $cert = app(CompetencyCertificateService::class)->asLicenseDetails(
+            $applicationId,
+            $app->form_name ?? null
+        );
 
-
-        return DB::table('cc_form_s_meta')
-
-            ->join('cc_forms_cert', 'cc_forms_cert.application_id', '=', 'cc_form_s_meta.application_id')
-
-            ->where('cc_form_s_meta.application_id', $applicationId)
-
-            ->select(
-
-                'cc_form_s_meta.application_id',
-
-                'cc_form_s_meta.applicant_name AS name',
-
-                'cc_form_s_meta.fathers_name',
-
-                'cc_form_s_meta.applicants_address',
-
-                'cc_form_s_meta.d_o_b',
-
-                'cc_form_s_meta.age',
-
-                'cc_form_s_meta.license_name',
-
-                'cc_form_s_meta.form_name',
-
-                'cc_forms_cert.license_number',
-
-                'cc_forms_cert.issued_by',
-
-                'cc_forms_cert.issued_at',
-
-                'cc_forms_cert.issued_from',
-
-                'cc_forms_cert.expires_at'
-
-            )
-
-            ->first();
+        return (object) [
+            'application_id' => $applicationId,
+            'name' => $app->applicant_name ?? null,
+            'fathers_name' => $app->fathers_name ?? null,
+            'applicants_address' => $app->applicants_address ?? null,
+            'd_o_b' => $app->d_o_b ?? null,
+            'age' => $app->age ?? null,
+            'license_name' => $app->license_name ?? $app->certificate_name ?? null,
+            'form_name' => $app->form_name ?? null,
+            'license_number' => $cert->license_number ?? null,
+            'issued_by' => $cert->issued_by ?? null,
+            'issued_at' => $cert->issued_at ?? null,
+            'issued_from' => $cert->valid_from ?? $cert->issued_from ?? null,
+            'expires_at' => $cert->expires_at ?? null,
+        ];
 
     }
 

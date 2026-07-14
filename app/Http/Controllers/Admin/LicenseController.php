@@ -67,28 +67,6 @@ class LicenseController extends Controller
         ->whereDate($table === 'tnelb_license' ? 'expires_at' : 'vdate', $request->date)
         ->exists();
 
-        // if ($query == true) {
-        //     if(!empty($request->type)){
-        //         if ($request->type == "License") {
-        //             Mst_Form_s_w::where('application_id', $request->application_id)
-        //             ->update(['adminLverify' => 1]);
-        //         }else{
-        //             Mst_Form_s_w::where('application_id', $request->application_id)
-        //             ->update(['adminCverify' => 1]);
-        //         }
-        //     }
-        // }else {
-        //     if(!empty($request->type)){
-        //         if ($request->type == "License") {
-        //             Mst_Form_s_w::where('application_id', $request->application_id)
-        //             ->update(['adminLverify' => 2]);
-        //         }else{
-        //             Mst_Form_s_w::where('application_id', $request->application_id)
-        //             ->update(['adminCverify' => 2]);
-        //         }
-        //     }
-        // }
-
         return response()->json(['exists' => $query]);
     }
 

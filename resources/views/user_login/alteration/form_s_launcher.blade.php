@@ -7,6 +7,7 @@
 <script>
     window.formSAltLauncher = true;
     window.formSAltVerifyUrl = "{{ route('form_s_alt.verify') }}";
+    window.dashboardUrl = "{{ route('dashboard') }}";
     window.formSAltCert = @json($form_code ?? 'S');
     window.formSAltCertLabel = @json($form_label ?? 'Supervisor Competency Certificate [Form S]');
     @if(session('alteration_error'))

@@ -863,48 +863,18 @@ class LoginController extends Controller
             ->all();
 
         $completedCountsMap = [];
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
 
-        // Completed from tnelb_application_tbl (competency + amendments that use this table)
-        $tblCounts = DB::table('tnelb_application_tbl as ta')
-            ->whereIn('ta.form_id', $assignedFormIDs)
-            ->where('ta.status', 'A')
-            ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
-            ->groupBy('ta.form_id', 'ta.appl_type')
-            ->get();
+        $ccFormIds = array_values(array_intersect($assignedFormIDs, CompetencyAdminQueryService::CC_META_FORM_IDS));
 
-        foreach ($tblCounts as $row) {
-            $fid = (int) $row->form_id;
-            $applType = strtoupper((string) ($row->appl_type ?? ''));
-            $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
-                ? $applType
-                : 'N';
-            if (!isset($completedCountsMap[$fid])) {
-                $completedCountsMap[$fid] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
-            }
-            $completedCountsMap[$fid][$type] = (int) $row->cnt;
+        if ($ccFormIds !== []) {
+            $ccAdminQuery->mergePendingCountRows(
+                $ccAdminQuery->dashboardCcCompletedCountRows($ccFormIds),
+                $completedCountsMap
+            );
         }
 
-        // Form P completed
-        $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
-        if ($formPId > 0 && in_array($formPId, $assignedFormIDs, true)) {
-            $formPCounts = DB::table('tnelb_form_p as ta')
-                ->where('ta.app_status', 'A')
-                ->selectRaw('ta.appl_type, COUNT(*) as cnt')
-                ->groupBy('ta.appl_type')
-                ->get();
-            if (!isset($completedCountsMap[$formPId])) {
-                $completedCountsMap[$formPId] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
-            }
-            foreach ($formPCounts as $row) {
-                $applType = strtoupper((string) ($row->appl_type ?? ''));
-                $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
-                    ? $applType
-                    : 'N';
-                $completedCountsMap[$formPId][$type] = (int) ($row->cnt ?? 0);
-            }
-        }
-
-        // Contractor tables: tnelb_ea_applications (EA, SA etc)
+        // Contractor tables: tnelb_ea_applications (Form A/B and variants)
         $contractorLicences = $licences->filter(function ($lic) use ($contractorCategoryIds) {
             if (!empty($contractorCategoryIds)) {
                 return in_array((int) ($lic->category_id ?? 0), $contractorCategoryIds, true);
@@ -913,21 +883,11 @@ class LoginController extends Controller
         });
 
         if ($contractorLicences->isNotEmpty()) {
-            $contractorLicences = DB::table('mst_licences')
-                ->select('id', 'form_name', 'cert_licence_code', 'licence_name', 'category_id')
-                ->get();
-            // Map: cert_licence_code => licence IDs
             $contractorFormToIds = $contractorLicences
-                ->groupBy('cert_licence_code')
-                ->map(fn($g) => $g->pluck('id')->all());
-
-            // Dynamic mapping: FORM NAME -> CERT LICENCE CODE
-            $formNameToCode = $contractorLicences
-                ->mapWithKeys(function ($item) {
-                    $key = preg_replace('/[^A-Z0-9]/', '', strtoupper($item->form_name));
-                    return [$key => strtoupper($item->cert_licence_code)];
+                ->groupBy(function ($lic) {
+                    return strtoupper((string) ($lic->form_code ?? ''));
                 })
-                ->toArray();
+                ->map(fn ($group) => $group->pluck('id')->all());
 
             $contractorTables = ['tnelb_ea_applications'];
 
@@ -936,8 +896,7 @@ class LoginController extends Controller
             }
 
             foreach ($contractorTables as $tbl) {
-
-                if (!Schema::hasTable($tbl)) {
+                if (! Schema::hasTable($tbl)) {
                     continue;
                 }
 
@@ -947,22 +906,10 @@ class LoginController extends Controller
                     ->groupBy('ta.form_name', 'ta.appl_type')
                     ->get();
 
-                $formShortToCode = [
-                    'A'  => 'EA',
-                    'B'  => 'EB',
-                    'SA' => 'ESA',
-                    'SB' => 'ESB',
-                ];
-
                 foreach ($rows as $row) {
+                    $formCode = strtoupper(trim((string) ($row->form_name ?? '')));
 
-                    $formName = strtoupper(trim((string) ($row->form_name ?? '')));
-
-                    $formCode = $formShortToCode[$formName] ?? null;
-
-                    // dd($formCode);exit;
-
-                    if (empty($formCode) || !isset($contractorFormToIds[$formCode])) {
+                    if ($formCode === '' || ! isset($contractorFormToIds[$formCode])) {
                         continue;
                     }
 
@@ -970,11 +917,10 @@ class LoginController extends Controller
                     $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
                         ? $applType
                         : 'N';
-                    $cnt  = (int) ($row->cnt ?? 0);
+                    $cnt = (int) ($row->cnt ?? 0);
 
                     foreach ($contractorFormToIds[$formCode] as $licId) {
-
-                        if (!isset($completedCountsMap[$licId])) {
+                        if (! isset($completedCountsMap[$licId])) {
                             $completedCountsMap[$licId] = ['N' => 0, 'R' => 0, 'D' => 0, 'A' => 0];
                         }
 
@@ -1119,80 +1065,35 @@ class LoginController extends Controller
         $formCode = $licence ? strtoupper((string) ($licence->cert_licence_code ?? '')) : '';
 
         $rows = collect();
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
+        $contractorTablesByCode = [
+            'EA' => 'tnelb_ea_applications',
+            'SA' => 'tnelb_esa_applications',
+            'B'  => 'tnelb_eb_applications',
+            'SB' => 'tnelb_esb_applications',
+        ];
 
-        // Form P
-        $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
-        if ($formPId > 0 && $formId === $formPId && Schema::hasTable('tnelb_form_p')) {
-            // Form P dates and licence metadata live on tnelb_license / tnelb_renewal_license (see generateFormPLicencePdfs), not on tnelb_form_p.
-            $rows = DB::table('tnelb_form_p as ta')
-                ->leftJoin('tnelb_license as tl', 'tl.application_id', '=', 'ta.application_id')
-                ->leftJoin('tnelb_renewal_license as tr', 'tr.application_id', '=', 'ta.application_id')
-                ->where('ta.app_status', 'A');
-            $applyApplTypeScope($rows, 'ta');
-            $rows = $rows->select(
+        if ($ccAdminQuery->isCcMetaFormId($formId)) {
+            $applTypeFilter = $applyApplTypeFilter ? $formTypeFilter : null;
+            $rows = $ccAdminQuery->completedApplications($formId, $applTypeFilter);
+        } elseif (isset($contractorTablesByCode[$formCode]) && Schema::hasTable($contractorTablesByCode[$formCode])) {
+            $tbl = $contractorTablesByCode[$formCode];
+            $query = DB::table($tbl . ' as ta')
+                ->where('ta.application_status', 'A');
+            $applyApplTypeScope($query, 'ta');
+            $rows = $query->select(
                 'ta.application_id',
                 'ta.applicant_name',
                 'ta.appl_type',
                 'ta.created_at',
                 DB::raw("'A' as status"),
-                DB::raw('COALESCE(ta.license_number, tl.license_number, tr.license_number) as license_number'),
-                DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
-                DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
-                DB::raw("'P' as form_name")
+                'ta.license_number',
+                DB::raw('NULL as issued_at'),
+                DB::raw('NULL as expires_at'),
+                DB::raw('ta.form_name as form_name')
             )
-                ->orderByDesc('ta.id')
+                ->orderByDesc('ta.updated_at')
                 ->get();
-        } else {
-            // Contractor tables
-            $contractorTablesByCode = [
-                'EA' => 'tnelb_ea_applications',
-                'SA' => 'tnelb_esa_applications',
-                'B'  => 'tnelb_eb_applications',
-                'SB' => 'tnelb_esb_applications',
-            ];
-
-            if (isset($contractorTablesByCode[$formCode]) && Schema::hasTable($contractorTablesByCode[$formCode])) {
-                $tbl = $contractorTablesByCode[$formCode];
-                $rows = DB::table($tbl . ' as ta')
-                    ->leftJoin('tnelb_license as tl', 'tl.application_id', '=', 'ta.application_id')
-                    ->leftJoin('tnelb_renewal_license as tr', 'tr.application_id', '=', 'ta.application_id')
-                    ->where('ta.application_status', 'A');
-                $applyApplTypeScope($rows, 'ta');
-                $rows = $rows->select(
-                    'ta.application_id',
-                    'ta.applicant_name',
-                    'ta.created_at',
-                    DB::raw("'A' as status"),
-                    DB::raw('COALESCE(tl.license_number, tr.license_number) as license_number'),
-                    DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
-                    DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
-                    DB::raw('ta.form_name as form_name')
-                )
-                    ->orderByDesc('ta.updated_at')
-                    ->get();
-            } else {
-                // Competency / amendments: tnelb_application_tbl
-                $rows = DB::table('tnelb_application_tbl as ta')
-                    ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
-                    ->leftJoin('tnelb_license as tl', 'tl.application_id', '=', 'ta.application_id')
-                    ->leftJoin('tnelb_renewal_license as tr', 'tr.application_id', '=', 'ta.application_id')
-                    ->where('ta.form_id', $formId)
-                    ->where('ta.status', 'A');
-                $applyApplTypeScope($rows, 'ta');
-                $rows = $rows->select(
-                    'ta.application_id',
-                    'ta.applicant_name',
-                    'ta.appl_type',
-                    'ta.created_at',
-                    'ta.status',
-                    DB::raw('COALESCE(tl.license_number, tr.license_number) as license_number'),
-                    DB::raw('COALESCE(tl.issued_at, tr.issued_at) as issued_at'),
-                    DB::raw('COALESCE(tl.expires_at, tr.expires_at) as expires_at'),
-                    DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name')
-                )
-                    ->orderByDesc('ta.id')
-                    ->get();
-            }
         }
 
         $data = collect($rows)->values()->map(function ($r, $idx) use ($formCode) {
@@ -1499,6 +1400,14 @@ class LoginController extends Controller
                 $formSMasterWorkflowAppPk = $parentApp ? (int) $parentApp->app_id : null;
                 if ($applicant->appl_type == 'A') {
                     $parentApplicantForAlter = $parentApp;
+                    if ($parentApplicantForAlter) {
+                        $parentApplicantForAlter->applicants_address = $parentApplicantForAlter->applicants_address
+                            ?? $parentApplicantForAlter->applicant_address
+                            ?? null;
+                        $parentApplicantForAlter->applicant_name = $parentApplicantForAlter->applicant_name
+                            ?? $parentApplicantForAlter->applicants_name
+                            ?? null;
+                    }
                     if (!$parentApplicantForAlter && !empty($applicant->old_application)) {
                         $parentApplicantForAlter = DB::table('tnelb_application_tbl')
                             ->where('application_id', $applicant->old_application)
@@ -3211,15 +3120,14 @@ class LoginController extends Controller
         $workflows = collect();
         $user_entry = null;
 
-        // 1. Competency / amendments: tnelb_application_tbl (status A)
-        $applicant = DB::table('tnelb_application_tbl as ta')
-            ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
-            ->where('ta.application_id', $applicant_id)
-            ->where('ta.status', 'A')
-            ->select('ta.*', DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'), DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name'))
-            ->first();
+        $appService = app(CompetencyApplicationService::class);
+        $ccApplicant = $appService->findApplicantWithPayment($applicant_id);
+        $ccStatus = $ccApplicant
+            ? strtoupper(trim((string) ($ccApplicant->app_status ?? $ccApplicant->status ?? '')))
+            : '';
 
-        if ($applicant) {
+        if ($ccApplicant && $ccStatus === 'A') {
+            $applicant = $ccApplicant;
             $user_entry = $applicant;
             $workflows = $this->queryCompetencyWorkflowsWithReturnApplicantLog(
                 $applicant_id,
@@ -3229,26 +3137,7 @@ class LoginController extends Controller
             );
         }
 
-        // 2. Form P
-        if (!$applicant && Schema::hasTable('tnelb_form_p')) {
-            $row = DB::table('tnelb_form_p')->where('application_id', $applicant_id)->where('app_status', 'A')->first();
-            if ($row) {
-                $applicant = (object) array_merge((array) $row, [
-                    'form_name' => 'Form P',
-                    'license_name' => $row->license_name ?? 'P',
-                    'applicant_name' => $row->applicant_name ?? 'N/A',
-                ]);
-                $user_entry = $applicant;
-                $workflows = $this->queryCompetencyWorkflowsWithReturnApplicantLog(
-                    $applicant_id,
-                    ['mst_roles.role_name'],
-                    false,
-                    true
-                );
-            }
-        }
-
-        // 3. Contractor (EA, SA, B, SB)
+        // Contractor (EA, SA, B, SB)
         if (!$applicant) {
             foreach (['tnelb_ea_applications', 'tnelb_esa_applications', 'tnelb_eb_applications', 'tnelb_esb_applications'] as $tbl) {
                 if (!Schema::hasTable($tbl)) {
