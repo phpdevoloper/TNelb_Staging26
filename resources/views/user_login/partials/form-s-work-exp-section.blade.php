@@ -12,6 +12,7 @@
     $showSummaryPanel = $showSummaryPanel ?? true;
     $showAddRow = $showAddRow ?? true;
     $hideDuration = !empty($hideDuration);
+    $hideDates = !empty($hideDates) || $workPart === 'current';
     $hideRemoveButton = !empty($hideRemoveButton);
     $hideBoardPanelNote = !empty($hideBoardPanelNote);
     $useBootstrapGrid = !empty($useBootstrapGrid);
@@ -47,7 +48,7 @@
                                 <th>Designation</th>
                                 <th>Nature of Work</th>
                                 <th>Voltage Level</th>
-                                <th class="wx-summary-th-kva">Transformer kVA<br>(max 1000kVA)</th>
+                                <th class="wx-summary-th-kva">Transformer(kVA)</th>
                                 <th class="wx-summary-th-total-exp">Total<br>Experience</th>
                                 <th>Attachment</th>
                                 <th class="wx-summary-th-actions">Actions</th>
@@ -75,6 +76,7 @@
                     'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
                     'defaultTillDate' => $defaultTillDate,
                     'hideDuration' => $hideDuration,
+                    'hideDates' => $hideDates,
                     'hideRemoveButton' => $hideRemoveButton,
                     'hideBoardPanelNote' => $hideBoardPanelNote,
                     'useBootstrapGrid' => $useBootstrapGrid,
@@ -92,6 +94,7 @@
                     'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
                     'defaultTillDate' => $defaultTillDate,
                     'hideDuration' => $hideDuration,
+                    'hideDates' => $hideDates,
                     'hideRemoveButton' => $hideRemoveButton,
                     'hideBoardPanelNote' => $hideBoardPanelNote,
                     'useBootstrapGrid' => $useBootstrapGrid,

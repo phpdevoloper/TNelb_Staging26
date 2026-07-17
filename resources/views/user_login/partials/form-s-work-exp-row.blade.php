@@ -50,6 +50,7 @@
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
     $defaultTillDate = !empty($defaultTillDate);
     $hideDuration = !empty($hideDuration);
+    $hideDates = !empty($hideDates) || $workPart === 'current';
     $hideRemoveButton = !empty($hideRemoveButton);
     $hideBoardPanelNote = !empty($hideBoardPanelNote);
     $useBootstrapGrid = !empty($useBootstrapGrid);
@@ -122,20 +123,6 @@
             <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="40" autocomplete="off" disabled placeholder="e.g. ESA/12345" value="{{ $licenceNo }}">
             <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
-        @if ($useBootstrapGrid)
-        <div class="work-board-member-panel col-12" style="{{ $isBoardMemberRow ? '' : 'display:none;' }}">
-            <div class="row g-2">
-                <div class="col-12 col-md-8 work-card-field work-board-meeting-field" data-field="board-meeting-details">
-                    <label class="work-card-field-label">Details of the meeting <span class="req">*</span></label>
-                    <textarea class="form-control work-board-meeting-details" @if ($meetingDetailsName) name="{{ $meetingDetailsName }}" @endif rows="2" maxlength="500" autocomplete="off" placeholder="Enter details of the board meeting attended" {{ $isBoardMemberRow ? '' : 'disabled' }}>{{ $meetingDetails }}</textarea>
-                </div>
-                <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-date">
-                    <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
-                    <input type="date" class="form-control work-board-meeting-date" @if ($meetingDateName) name="{{ $meetingDateName }}" @endif value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" {{ $isBoardMemberRow ? '' : 'disabled' }}>
-                </div>
-            </div>
-        </div>
-        @endif
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="organisation">
             <label class="work-card-field-label">Organisation <span class="req">*</span></label>
             <input type="text" class="form-control work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled placeholder="Organisation name" value="{{ $orgName }}">
@@ -167,10 +154,11 @@
             </select>
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="transformer-kva">
-            <label class="work-card-field-label">Transformer kVA(max 1000kVA) <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+            <label class="work-card-field-label">Transformer (kVA) <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <input type="number" class="form-control work-transformer-kva" name="work_transformer_kva[]" min="0" max="9999999" step="any" inputmode="decimal" autocomplete="off" disabled placeholder="e.g. 250" value="{{ $kva }}">
             <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
         </div>
+        @unless ($hideDates)
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="from-date">
             <label class="work-card-field-label">From date <span class="req">*</span></label>
             <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $workFromDate }}" title="From date" aria-label="Period of experience: from date" disabled>
@@ -184,6 +172,11 @@
             </label>
             <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="{{ $isTill ? '1' : '0' }}">
         </div>
+        @else
+        <input type="hidden" class="work-date-from" name="work_date_from[]" value="" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" class="work-date-to" name="work_date_to[]" value="" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="0" @if($alterationExistingRow) disabled @endif>
+        @endunless
         @unless ($hideDuration)
         <div class="work-card-field work-card-field--duration">
             <label class="work-card-field-label">Duration</label>
@@ -207,7 +200,7 @@
         <input type="hidden" class="work-duration-m" value="{{ $durM }}">
         <input type="hidden" class="work-duration-d" value="{{ $durD }}">
         @endunless
-        @unless ($useBootstrapGrid)
+        {{-- Board-meeting UI for non-§7b layouts only; §7b uses form-s-work-exp-7b-row. --}}
         <div class="work-board-member-panel work-row-grid-span" style="{{ $isBoardMemberRow ? '' : 'display:none;' }}">
             <div class="work-board-member-panel-hd">
                 <span class="work-board-member-panel-badge">Board Member</span>
@@ -218,8 +211,13 @@
             </div>
             <div class="work-board-member-panel-body">
                 <div class="work-card-field work-board-meeting-field" data-field="board-meeting-details">
-                    <label class="work-card-field-label">Details of the meeting <span class="req">*</span></label>
-                    <textarea class="form-control work-board-meeting-details" @if ($meetingDetailsName) name="{{ $meetingDetailsName }}" @endif rows="2" maxlength="500" autocomplete="off" placeholder="Enter details of the board meeting attended" {{ $isBoardMemberRow ? '' : 'disabled' }}>{{ $meetingDetails }}</textarea>
+                    <label class="work-card-field-label">Details of the meeting attended<span class="req">*</span></label>
+                    <select class="form-control work-board-meeting-details" @if ($meetingDetailsName) name="{{ $meetingDetailsName }}" @endif autocomplete="off" {{ $isBoardMemberRow ? '' : 'disabled' }}>
+                        <option value="">Select</option>
+                        @for ($meetingOpt = 100; $meetingOpt <= 999; $meetingOpt++)
+                            <option value="{{ $meetingOpt }}" {{ (string) $meetingDetails === (string) $meetingOpt ? 'selected' : '' }}>{{ $meetingOpt }}</option>
+                        @endfor
+                    </select>
                 </div>
                 <div class="work-card-field work-board-meeting-field" data-field="board-meeting-date">
                     <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
@@ -230,7 +228,6 @@
             <p class="work-board-member-panel-note"><i class="fa fa-paperclip"></i> Attach supporting documents for the meeting in the <strong>Supporting docs</strong> field below.</p>
             @endunless
         </div>
-        @endunless
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="support-doc">
             <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>
             @if ($supportDoc !== '')

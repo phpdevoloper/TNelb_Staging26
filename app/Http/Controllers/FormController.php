@@ -1231,6 +1231,7 @@ class FormController extends BaseController
             $des = trim((string) ($designations[$i] ?? ''));
             $from = trim((string) ($fromDates[$i] ?? ''));
             $to = trim((string) ($toDates[$i] ?? ''));
+            $isFormSCurrent = (($request->form_name ?? '') === 'S' && $section === 'current');
 
             $any = ($wl !== '' || $ex !== '' || $des !== '' || $from !== '' || $to !== '');
             if (! $any) {
@@ -1243,17 +1244,19 @@ class FormController extends BaseController
             if ($des === '') {
                 $validator->errors()->add("designation.$i", 'Designation is required.');
             }
-            if ($from === '') {
-                $validator->errors()->add("work_date_from.$i", 'From date is required.');
-            }
-            if ($to === '') {
-                $validator->errors()->add("work_date_to.$i", 'To date is required.');
+            if (! $isFormSCurrent) {
+                if ($from === '') {
+                    $validator->errors()->add("work_date_from.$i", 'From date is required.');
+                }
+                if ($to === '') {
+                    $validator->errors()->add("work_date_to.$i", 'To date is required.');
+                }
             }
             if ($ex === '') {
                 $validator->errors()->add("experience.$i", 'Experience (in years) is required.');
             }
 
-            if ($from !== '' && $to !== '') {
+            if (! $isFormSCurrent && $from !== '' && $to !== '') {
                 try {
                     $fromC = Carbon::parse($from)->startOfDay();
                     $toC = Carbon::parse($to)->startOfDay();
@@ -3265,7 +3268,14 @@ class FormController extends BaseController
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->formErrorResponse($e);
+        
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
         }
     }
 

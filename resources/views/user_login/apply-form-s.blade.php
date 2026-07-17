@@ -1836,6 +1836,24 @@
     .work-exp-wrap .wx-order-edit-link .fa {
         font-size: .7rem;
     }
+
+    .declaration-error {
+        margin: 13px 18px 16px;
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .declaration-error svg {
+        width: 16px;
+        height: 16px;
+    }
 </style>
 
 {{-- ░░ BREADCRUMB ░░ --}}
@@ -1843,7 +1861,7 @@
     <div class="container">
         <ul id="breadcrumb">
             <li><a href="{{ route('dashboard')}}"><span class="fa fa-home"></span> Dashboard</a></li>
-            <li><a href="#"><span class="fa fa-info-circle"></span> Form S</a></li>
+            <li><a href="#"><span class="fa fa-info-circle"></span> Form S - New</a></li>
         </ul>
     </div>
 </div>
@@ -1856,8 +1874,8 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Supervisor Competency Certificate</h5>
-                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
+                    <h5>Application for Supervisor Competency Certificate - New</h5>
+                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதியது</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
                 <div class="instructions-link">
@@ -2139,23 +2157,8 @@
 
                                 <div id="fs-7b-board-details" class="fs-7b-board-details{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}">
                                 <div id="fs-7b-work-wrap" class="fs-7b-work-wrap">
-                                @include('user_login.partials.form-s-work-exp-section', [
+                                @include('user_login.partials.form-s-work-exp-7b-section', [
                                     'exp_details' => $currentExpDetails,
-                                    'workContainerId' => 'work-container-current',
-                                    'workAddBtnId' => 'work-exp-add-btn-current',
-                                    'workRowCountId' => 'work-exp-row-count-current',
-                                    'workSummaryTbodyId' => 'work-exp-summary-tbody-current',
-                                    'workMaxRows' => 1,
-                                    'workMinRows' => 1,
-                                    'workPart' => 'current',
-                                    'showSummaryPanel' => false,
-                                    'showAddRow' => false,
-                                    'showBoardMemberEmploymentType' => true,
-                                    'defaultTillDate' => true,
-                                    'hideDuration' => true,
-                                    'hideRemoveButton' => true,
-                                    'hideBoardPanelNote' => true,
-                                    'useBootstrapGrid' => true,
                                 ])
                                 </div>
                                 </div>
@@ -2394,11 +2397,19 @@
                             <span class="checkmark"></span>
                             <div class="decl-text">
                                 I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
+                                I request that I may be granted a Supervisor Competency Certificate. <span class="section-req">*</span>
                                 <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
                             </div>
                         </label>
-                        <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;font-size:.82rem;">Please check the declaration box before proceeding.</span>
+                        {{-- <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span> --}}
+                        <div class="declaration-error d-none" id="declaration-error-new-application">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                            Please agree to the declarations to submit the application.
+                        </div>
                     </div>
 
                     {{-- Hidden fields --}}

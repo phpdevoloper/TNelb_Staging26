@@ -510,6 +510,7 @@
 
             /** Board Member: disable contractor / technical columns; enable org, dates, uploads. */
             function applyBoardMemberEmployment($tr) {
+                var isCurrentPart = $tr.closest('.js-work-container[data-work-part="current"], #work-container-current').length > 0;
                 var $cat = $tr.find('.work-contractor-cat');
                 var $lic = $tr.find('.work-licence-number');
                 var $emp = $tr.find('.work-employer-input');
@@ -540,23 +541,29 @@
                 unlockWorkField($tr, $emp, 'organisation');
                 unlockWorkField($tr, $addr, 'organisation-address');
                 unlockWorkField($tr, $des, 'designation');
-                unlockWorkField($tr, $yFrom, 'from-date');
                 $emp.prop('required', true);
                 $addr.prop('required', true);
                 $des.prop('required', true);
-                $yFrom.prop('required', true);
-                $till.prop('disabled', false);
+
+                /* §7b has no From/To dates — do not mark hidden date inputs required. */
+                if (!isCurrentPart) {
+                    unlockWorkField($tr, $yFrom, 'from-date');
+                    $yFrom.prop('required', true);
+                    $till.prop('disabled', false);
+                    applyTillDate($tr);
+                    if (!$yTo.prop('disabled')) {
+                        $yTo.prop('required', true);
+                    }
+                } else {
+                    $yFrom.prop('required', false);
+                    $yTo.prop('required', false);
+                }
 
                 unlockWorkField($tr, $doc, 'support-doc');
                 $doc.prop('required', true);
 
-                applyTillDate($tr);
-                if (!$yTo.prop('disabled')) {
-                    $yTo.prop('required', true);
-                }
-
                 $rel.prop('required', false);
-                if (!$till.is(':checked')) {
+                if (!isCurrentPart && !$till.is(':checked')) {
                     unlockWorkField($tr, $rel, 'relieve');
                 }
                 $tr.find('[data-field="relieve"] .work-card-field-label .req').hide();
@@ -907,15 +914,18 @@
                 var type = ($tr.find('.work-employment-type').val() || '').trim();
                 if (!type) return false;
                 var isBoardMember = (type === BOARD_MEMBER_TYPE);
+                var isCurrentPart = $tr.closest('.js-work-container[data-work-part="current"], #work-container-current').length > 0;
                 /* Every enabled required text/select must be filled. */
                 var ok = true;
                 $tr.find('select[required], input[type="text"][required], input[type="number"][required]').each(function() {
                     if ($(this).prop('disabled')) return;
                     if (($(this).val() || '').trim() === '') { ok = false; return false; }
                 });
-                if (!readWorkDateFromInput($tr.find('.work-date-from'))) ok = false;
-                if (!$tr.find('.work-date-till').is(':checked') && !$tr.find('.work-date-to').prop('disabled')
-                    && !readWorkDateFromInput($tr.find('.work-date-to'))) ok = false;
+                if (!isCurrentPart) {
+                    if (!readWorkDateFromInput($tr.find('.work-date-from'))) ok = false;
+                    if (!$tr.find('.work-date-till').is(':checked') && !$tr.find('.work-date-to').prop('disabled')
+                        && !readWorkDateFromInput($tr.find('.work-date-to'))) ok = false;
+                }
                 if (!ok) return false;
                 if (!isBoardMember) {
                     var voltage = ($tr.find('.work-voltage').val() || '').trim();
@@ -928,7 +938,7 @@
                 var $doc = $tr.find('.work-doc-input');
                 if (!$doc.prop('disabled') && !workInputHasFile($doc)) return false;
                 var till = $tr.find('.work-date-till').is(':checked');
-                if (!till && !isBoardMember) {
+                if (!till && !isBoardMember && !isCurrentPart) {
                     var $rel = $tr.find('.work-relieve-input');
                     if (!$rel.prop('disabled') && !workInputHasFile($rel)) return false;
                 }

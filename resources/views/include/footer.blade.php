@@ -175,22 +175,6 @@ $(document).ready(function() {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
 
-<!--
-<script>
-    $('a[data-toggle="formtab"]').click(function(event) {
-        event.preventDefault(); // Prevent default anchor click behavior
-        var targetId = $(this).attr('href'); // Get the target tab's ID
-
-        // Remove active class from all tabs and links
-        $('.tabs-panels').removeClass('active');
-        $('a[data-toggle="formtab"]').removeClass('active');
-
-        // Add active class to the clicked tab and its corresponding content
-        $(targetId).addClass('active');
-        $('a[href="' + targetId + '"]').addClass('active');
-    });
-</script> -->
-
 <script>
     // JavaScript to ensure footer is at the bottom
     function setFooterPosition() {
@@ -2872,6 +2856,13 @@ $(document).ready(function() {
             }
         }
 
+        $(document).off('change.fsDeclaration', '#declarationCheckbox').on('change.fsDeclaration', '#declarationCheckbox', function () {
+            if ($(this).is(':checked')) {
+                $('#checkboxError').addClass('d-none');
+                $('#declaration-error-renew').addClass('d-none');
+            }
+        });
+
         $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -3300,25 +3291,27 @@ $(document).ready(function() {
                         isValid = false;
                     }
 
-                    /* Column 11 — Period of Experience (dates) */
-                    if (fromDate.length && !fromIso) {
-                        fromDate.after('<span class="error-message text-danger d-block mt-1">From date is required.</span>');
-                        if (!firstErrorField) firstErrorField = fromDate;
-                        isValid = false;
-                    }
-                    if (!isTillDate) {
-                        if (toDate.length && !toIso) {
-                            toDate.after('<span class="error-message text-danger d-block mt-1">To date is required (or tick "Till date").</span>');
-                            if (!firstErrorField) firstErrorField = toDate;
+                    /* Column 11 — Period of Experience (dates); not collected for Form S §7b */
+                    if (!isFormS7bCurrentWorkRow($row)) {
+                        if (fromDate.length && !fromIso) {
+                            fromDate.after('<span class="error-message text-danger d-block mt-1">From date is required.</span>');
+                            if (!firstErrorField) firstErrorField = fromDate;
                             isValid = false;
                         }
-                        if (fromDate.length && toDate.length && fromIso && toIso) {
-                            const from = new Date(fromIso + 'T12:00:00');
-                            const to = new Date(toIso + 'T12:00:00');
-                            if (!isNaN(from.getTime()) && !isNaN(to.getTime()) && to < from) {
-                                showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
+                        if (!isTillDate) {
+                            if (toDate.length && !toIso) {
+                                toDate.after('<span class="error-message text-danger d-block mt-1">To date is required (or tick "Till date").</span>');
                                 if (!firstErrorField) firstErrorField = toDate;
                                 isValid = false;
+                            }
+                            if (fromDate.length && toDate.length && fromIso && toIso) {
+                                const from = new Date(fromIso + 'T12:00:00');
+                                const to = new Date(toIso + 'T12:00:00');
+                                if (!isNaN(from.getTime()) && !isNaN(to.getTime()) && to < from) {
+                                    showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
+                                    if (!firstErrorField) firstErrorField = toDate;
+                                    isValid = false;
+                                }
                             }
                         }
                     }
@@ -3686,11 +3679,16 @@ $(document).ready(function() {
             }
 
             if (!$('#declarationCheckbox').is(':checked')) {
-                $('#checkboxError').removeClass('d-none');
-                if (!firstErrorField) firstErrorField = $('#checkboxError');
+                $('#declaration-error-new-application').removeClass('d-none');
+                if (!firstErrorField) {
+                    firstErrorField = $('#declarationCheckbox').length
+                        ? $('#declarationCheckbox')
+                        : $('#checkboxError');
+                }
                 isValid = false;
             } else {
                 $('#checkboxError').addClass('d-none');
+                $('#declaration-error-new-application').addClass('d-none');
             }
 
 

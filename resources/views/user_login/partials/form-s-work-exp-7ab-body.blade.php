@@ -64,23 +64,8 @@
 
     <div id="fs-7b-board-details" class="fs-7b-board-details{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}">
         <div id="fs-7b-work-wrap" class="fs-7b-work-wrap">
-            @include('user_login.partials.form-s-work-exp-section', [
+            @include('user_login.partials.form-s-work-exp-7b-section', [
                 'exp_details' => $currentExpDetails,
-                'workContainerId' => 'work-container-current',
-                'workAddBtnId' => 'work-exp-add-btn-current',
-                'workRowCountId' => 'work-exp-row-count-current',
-                'workSummaryTbodyId' => 'work-exp-summary-tbody-current',
-                'workMaxRows' => 1,
-                'workMinRows' => 1,
-                'workPart' => 'current',
-                'showSummaryPanel' => false,
-                'showAddRow' => false,
-                'showBoardMemberEmploymentType' => true,
-                'defaultTillDate' => true,
-                'hideDuration' => true,
-                'hideRemoveButton' => true,
-                'hideBoardPanelNote' => true,
-                'useBootstrapGrid' => true,
                 'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
                 'isAlterationMode' => $isAlterationMode,
             ])

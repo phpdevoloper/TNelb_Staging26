@@ -3241,15 +3241,13 @@ class FormAController extends BaseController
 
     public function expiry_date_change()
     {
-
-        $licensedates = DB::table('tnelb_license')
-            ->select('id', 'application_id', 'license_number', 'expires_at')
-            ->unionAll(
-                DB::table('tnelb_renewal_license')
-                    ->selectRaw('ren_id as id, application_id, license_number, expires_at')
-            )
-            ->orderBy('id', 'ASC')
+        
+        $licensedates = DB::table('cc_forms_cert')
+            ->select('cc_id', 'application_id', 'certificate_no', 'valid_to')
+            ->orderBy('cc_id', 'ASC')
             ->get();
+
+        
         return view('user_login.license_datechange.index', compact('licensedates'));
     }
 

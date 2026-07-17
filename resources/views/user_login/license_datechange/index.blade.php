@@ -103,23 +103,27 @@
             @csrf
             <div class="row align-items-center">
                 <div class="col-md-6 mb-3">
-                    <label for="license_number" class="form-label">License Number</label>
+                    <label for="license_number" class="form-label">Certificate No</label>
                     <select class="form-control" name="license_number" id="license_number">
-                        <option value="0">Select License</option>
+                        <option value="0">Select Certificate No</option>
                         @foreach($licensedates as $license)
-                            <option value="{{ $license->license_number }}">{{ $license->license_number }}</option>
+                        @php
+                            // var_dump($license);
+                            // die();
+                        @endphp
+                            <option value="{{ $license->certificate_no }}">{{ $license->certificate_no }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label for="expiry" class="form-label">Expiry Date</label>
+                    <label for="expiry" class="form-label">Valid To Date</label>
                     <input type="date" class="form-control" name="expires_at" id="expiry">
                 </div>
             </div>
 
             <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success px-4 py-2">Save Expiry Date</button>
+                <button type="submit" class="btn btn-success px-4 py-2">Save Valid To Date</button>
             </div>
         </form>
 
@@ -197,8 +201,8 @@ $(document).ready(function () {
 
         if (licenseNumber && licenseNumber !== '0') {
             $.get(BASE_URL + `/get-license-expiry/${licenseNumber}`, function (data) {
-                if (data.expires_at) {
-                    $('#expiry').val(data.expires_at);
+                if (data.valid_to) {
+                    $('#expiry').val(data.valid_to);
                 } else {
                     $('#expiry').val('');
                 }
