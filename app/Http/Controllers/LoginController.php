@@ -21,9 +21,11 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
+use App\Models\CC_checklist_applicant;
+
 class LoginController extends BaseController
 {
-  
+
 
      protected $today;
 
@@ -441,7 +443,7 @@ class LoginController extends BaseController
     }
 
     public function login()
-    { 
+    {
         // DB::table('tnelb_ea_applications')->truncate();
         // DB::table('tnelb_eb_applications')->truncate();
         // DB::table('tnelb_esa_applications')->truncate();
@@ -519,7 +521,7 @@ class LoginController extends BaseController
 //     echo "No record found";
 // }
 
- 
+
 
 //  dd($show);
 // exit;
@@ -897,7 +899,7 @@ class LoginController extends BaseController
                 'ta.form_name',
                 'ta.license_name',
                 DB::raw("'N' as license_type"),
-                DB::raw('NULL::timestamp as renewal_expires_at')   
+                DB::raw('NULL::timestamp as renewal_expires_at')
             )
 
                 ->from('tnelb_license as l')
@@ -916,7 +918,7 @@ class LoginController extends BaseController
                         'ta.form_name',
                         'ta.license_name',
                         DB::raw("'R' as license_type"),
-                        'rl.expires_at as renewal_expires_at'   
+                        'rl.expires_at as renewal_expires_at'
                     )
                         ->where('rl.login_id', $loginId)
                         ->whereNotIn('ta.form_name', ['S', 'W', 'WH', 'P'])
@@ -1127,9 +1129,9 @@ class LoginController extends BaseController
             })
             ->values();
 
-        
+
         $mstLicences = DB::table('mst_licences')->get();
-     
+
 
         return view('user_login.index', compact(
             'loginId',

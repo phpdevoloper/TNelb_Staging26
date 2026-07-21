@@ -3,7 +3,7 @@
     |--------------------------------------------------------------------------
     | Admin Routes for (Supervisor, Accountant, Secretary, and President)
     |--------------------------------------------------------------------------
-    | 
+    |
 */
 
     use Illuminate\Support\Facades\Route;
@@ -184,6 +184,9 @@ use App\Http\Controllers\Admin\EquipmentController;
 
         // Misc
             Route::post('/returntoSupervisor', [ApplicationController::class, 'returntoSupervisor'])->name('returntoSupervisor');
+
+            Route::post('/returntoSecretary', [ApplicationController::class, 'returntoSecretary'])->name('returntoSecretary');
+
             Route::post('/returnToApplicant', [ApplicationController::class, 'returnToApplicant'])->name('returnToApplicant');
 
 
@@ -207,7 +210,7 @@ use App\Http\Controllers\Admin\EquipmentController;
 
         // ---------------------------------------------Form S------------------------------------
         Route::get('/completed_formsa', [FormsaprocessController::class, 'completed_formsa'])->name('completed_formsa');
-        
+
         Route::get('/viewformsa', [FormsaprocessController::class, 'view_formsa'])->name('view_formsa');
 
         Route::get('/applicants_detail_formsa/{applicant_id}', [FormsaprocessController::class, 'applicants_detail_formsa'])->name('applicants_detail_formsa');
@@ -243,12 +246,12 @@ use App\Http\Controllers\Admin\EquipmentController;
           Route::get('/completed_formsb', [FormSBprocessController::class, 'completed_formsb'])->name('completed_formsb');
 
           Route::get('/view_formsb_pending', [FormSBprocessController::class, 'view_formsb_pending'])->name('view_formsb_pending');
-        
+
           Route::get('/viewformsb', [FormSBprocessController::class, 'view_formsb'])->name('view_formsb');
 
           Route::get('/applicants_detail_formsb/{applicant_id}', [FormSBprocessController::class, 'applicants_detail_formsb'])->name('applicants_detail_formsb');
 
-          
+
         Route::post('/forwardApplicationformsb/{role}', [FormSBprocessController::class, 'forwardApplicationformsb'])->name('forwardApplicationformsb');
 
         Route::post('/approveApplicationFormsb', [FormSBprocessController::class, 'approveApplicationFormsb'])
@@ -260,11 +263,11 @@ use App\Http\Controllers\Admin\EquipmentController;
         Route::get('/view_formsb_completed', [FormSBprocessController::class, 'view_formsb_completed'])->name('view_formsb_completed');
 
                 //   ----------Secretary-----------------------
-        Route::get('/view_sec_formsb_completed', [FormSBprocessController::class, 'view_sec_formsb_completed'])->name('view_sec_formsb_completed'); 
+        Route::get('/view_sec_formsb_completed', [FormSBprocessController::class, 'view_sec_formsb_completed'])->name('view_sec_formsb_completed');
 
          Route::get('/view_sec_formsb_pending', [FormSBprocessController::class, 'view_sec_formsb_pending'])->name('view_sec_formsb_pending');
 
-         
+
 
         //  -----president------------
 
@@ -282,12 +285,12 @@ use App\Http\Controllers\Admin\EquipmentController;
          // ------------------Form EB--------------------------------
 
           Route::get('/completed_formb', [FormBprocessController::class, 'completed_formb'])->name('completed_formb');
-        
+
           Route::get('/viewformb', [FormBprocessController::class, 'view_formb'])->name('view_formb');
 
           Route::get('/applicants_detail_formb/{applicant_id}', [FormBprocessController::class, 'applicants_detail_formb'])->name('applicants_detail_formb');
 
-          
+
         Route::post('/forwardApplicationformb/{role}', [FormBprocessController::class, 'forwardApplicationformb'])->name('forwardApplicationformb');
 
         Route::post('/approveApplicationFormb', [FormBprocessController::class, 'approveApplicationFormb'])
@@ -301,7 +304,7 @@ use App\Http\Controllers\Admin\EquipmentController;
         Route::get('/view_formb_pending', [FormBprocessController::class, 'view_formb_pending'])->name('view_formb_pending');
 
         //   ----------Secretary-----------------------
-        Route::get('/view_sec_formb_completed', [FormBprocessController::class, 'view_sec_formb_completed'])->name('view_sec_formb_completed'); 
+        Route::get('/view_sec_formb_completed', [FormBprocessController::class, 'view_sec_formb_completed'])->name('view_sec_formb_completed');
 
          Route::get('/view_sec_formb_pending', [FormBprocessController::class, 'view_sec_formb_pending'])->name('view_sec_formb_pending');
 
@@ -520,10 +523,10 @@ use App\Http\Controllers\Admin\EquipmentController;
             Route::post('/verifylicense', [LicenseController::class, 'verifylicense'])->name('verifylicense');
 
 
-    //  ----------------------------checklist---------------------------  
-        Route::get('/checklist', [ChecklistController::class, 'index'])->name('checklist');  
-        
-        Route::post('/checkliststore', [ChecklistController::class, 'store'])->name('checkliststore');  
+    //  ----------------------------checklist---------------------------
+        Route::get('/checklist', [ChecklistController::class, 'index'])->name('checklist');
+
+        Route::post('/checkliststore', [ChecklistController::class, 'store'])->name('checkliststore');
         Route::post('/update-checklist-status', [ChecklistController::class, 'updateStatus'])
          ->name('updateChecklistStatus');
 
@@ -547,13 +550,13 @@ use App\Http\Controllers\Admin\EquipmentController;
 
   // -------------------Equipment add----------------------
             Route::get('/equiplist', [EquipmentController::class, 'index'])->name('equiplist');
-            
+
             Route::post('/equipment/updateStatus',[EquipmentController::class, 'updateStatus'])->name('equipment.updateStatus');
 
             Route::post('/equipment/operations', [EquipmentController::class, 'operations'])->name('equipment.operations');
 
              // --------------------Filepath----------------------
-              
+
             Route::get('/fileloc', [FilelocationController::class, 'index'])->name('fileloc');
 
             Route::get('/formmodule', [FilelocationController::class, 'formmodule'])->name('formmodule');
@@ -577,7 +580,7 @@ use App\Http\Controllers\Admin\EquipmentController;
 
             // -------------------Equipment add----------------------
             Route::get('/equiplist', [EquipmentController::class, 'index'])->name('equiplist');
-            
+
             Route::post('/equipment/updateStatus',[EquipmentController::class, 'updateStatus'])->name('equipment.updateStatus');
 
             Route::post('/equipment/operations', [EquipmentController::class, 'operations'])->name('equipment.operations');
@@ -589,7 +592,7 @@ use App\Http\Controllers\Admin\EquipmentController;
             Route::post('/licences/updateForm', [LicenceManagementController::class, 'updateForm'])->name('updateForm');
             Route::post('/licences/formHistory', [LicenceManagementController::class, 'formHistory'])->name('formHistory');
             Route::get('/licences/licenceCategory', [LicenceManagementController::class, 'licenceCategory'])->name('licenceCategory');
-            
+
             Route::post('/licences/add_category', [LicenceManagementController::class, 'add_category'])->name('add_category');
             Route::get('/licences/view_licences', [LicenceManagementController::class, 'view_licences'])->name('view_licences');
             Route::post('/licences/add_licence', [LicenceManagementController::class, 'add_licence'])->name('add_licence');
@@ -612,9 +615,9 @@ use App\Http\Controllers\Admin\EquipmentController;
        Route::post('/returntoapplicantforma', [ApplicationController::class, 'returntoapplicantForma'])->name('returntoapplicantforma');
 
 
-       
-        
-        
+
+
+
 
         });
 

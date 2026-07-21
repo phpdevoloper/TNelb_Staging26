@@ -577,49 +577,46 @@ function updateStatusformmodule(fileId, status, checkbox) {
 }
 
 // --------------------------------------------------------------------------------------
-
 $(document).ready(function () {
-    $(".licenseFilter").each(function () {
-        let filter = $(this);
-        let tableId = filter.data("table");
-        let tableElement = $("#" + tableId);
 
-        // ✅ Prevent DataTable reinitialisation
-        let table;
-        if ($.fn.DataTable.isDataTable(tableElement)) {
-            table = tableElement.DataTable();
-        } else {
-            table = tableElement.DataTable({
-                pageLength: 10,
-            });
-        }
-
-        // Column index of "Certificate Name / Form Name"
-        let licenseColumn = table.column(1);
-        let licenses = [];
-
-        // Collect unique licence names
-        licenseColumn.data().each(function (value) {
-            let licenceName = value.split("/")[0].trim();
-            if (!licenses.includes(licenceName)) {
-                licenses.push(licenceName);
-            }
-        });
-
-        // Populate dropdown
-        licenses.sort().forEach(function (licence) {
-            filter.append(`<option value="${licence}">${licence}</option>`);
-        });
-
-        // Filter on change
-        filter.on("change", function () {
-            let selected = $(this).val();
-
-            if (selected) {
-                licenseColumn.search(selected, true, false).draw();
-            } else {
-                licenseColumn.search("").draw();
-            }
-        });
+    let table = $("#style-3").DataTable({
+        pageLength: 10,
+        retrieve: true
     });
+
+    // ---------------- Licence Filter ----------------
+    let licenceColumn = table.column(1);
+    let licences = [];
+
+    licenceColumn.data().each(function (value) {
+        let licence = value.trim();
+
+        if ($.inArray(licence, licences) === -1) {
+            licences.push(licence);
+        }
+    });
+
+    licences.sort();
+
+    licences.forEach(function (licence) {
+        $(".licenseFilter").append(
+            `<option value="${licence}">${licence}</option>`
+        );
+    });
+
+    // ---------------- Combined Filters ----------------
+    $(".licenseFilter, .typeFilter").on("change", function () {
+
+        let licence = $(".licenseFilter").val();
+        let type = $(".typeFilter").val();
+
+        // Licence column (1)
+        table.column(1).search(licence ? '^' + licence + '$' : '', true, false);
+
+        // Application Type column (2)
+        table.column(2).search(type ? '^' + type + '$' : '', true, false);
+
+        table.draw();
+    });
+
 });

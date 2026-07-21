@@ -104,11 +104,10 @@ class ChecklistController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-
-
-
     public function store(Request $request)
     {
+
+        // dd($request->all()); exit;
         $validator = Validator::make($request->all(), [
             'cert_license_id' => 'required|integer',
             'appl_type'       => 'required|in:N,R,D,A',

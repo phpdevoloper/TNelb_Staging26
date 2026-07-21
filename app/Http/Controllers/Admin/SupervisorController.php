@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use Illuminate\Support\Facades\DB;
 use App\Models\Admin\SupervisorModel;
 use App\Models\Tnelb_CC_Digitization;
+use App\Models\CC_checklist_applicant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -48,40 +49,408 @@ class SupervisorController extends Controller
 
         return view('admin.dashboards.supervisor', compact('applications'));
     }
-        // QSC/QC updation--------------
-            public function updateQcQsc(Request $request)
-        {
-            $applicationId = $request->application_id;
-            $payload = [
-                'qc' => $request->qc,
-                'qsc' => $request->qsc,
-                'updated_at' => now(),
-            ];
+    // QSC/QC updation--------------
+    public function updateQcQsc(Request $request)
+    {
+        $applicationId = $request->application_id;
+        $payload = [
+            'qc' => $request->qc,
+            'qsc' => $request->qsc,
+            'updated_at' => now(),
+        ];
 
-            if (CC_Forms_Meta::where('application_id', $applicationId)->exists()) {
-                CC_Forms_Meta::where('application_id', $applicationId)->update($payload);
+        if (CC_Forms_Meta::where('application_id', $applicationId)->exists()) {
+            CC_Forms_Meta::where('application_id', $applicationId)->update($payload);
+        } else {
+            $metaTable = app(CompetencyMetaService::class)->metaTableForApplicationId($applicationId);
+            if ($metaTable) {
+                DB::table($metaTable)->where('application_id', $applicationId)->update($payload);
             } else {
-                $metaTable = app(CompetencyMetaService::class)->metaTableForApplicationId($applicationId);
-                if ($metaTable) {
-                    DB::table($metaTable)->where('application_id', $applicationId)->update($payload);
-                } else {
-                    DB::table('tnelb_application_tbl')
-                        ->where('application_id', $applicationId)
-                        ->update($payload);
-                }
+                DB::table('tnelb_application_tbl')
+                    ->where('application_id', $applicationId)
+                    ->update($payload);
             }
+        }
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Updated successfully'
+        return response()->json([
+            'status' => true,
+            'message' => 'Updated successfully'
+        ]);
+    }
+
+
+     public function view_applications(Request $request)
+    {
+
+
+        $staff = Auth::user();
+
+        // dd($staff->roles_id);exit;
+        if (!$staff) {
+            return abort(403, 'Unauthorized');
+        }
+
+        $selectedFormId = (int) ($request->input('form_id') ?? $staff->form_id);
+        if ($selectedFormId <= 0) {
+            return view('admin.supervisor.view', [
+                'workflows' => collect(),
+                'new_applications' => collect(),
+                'renewal' => collect(),
+                'returned_applications' => collect(),
+                'is_completed_list' => true,
             ]);
         }
 
-     public function view_applications(Request $request)
-    {   
-        
+        $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
+        if ($formPId > 0 && $selectedFormId === $formPId) {
+            $roleLevel = (int) (optional($staff->role)->role_level ?? 0);
+            $roleId = (int) ($staff->roles_id ?? 0);
+            $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R', 'D', 'A'], true) ? strtoupper((string) $request->input('form_type')) : null;
+            if ($roleLevel === 1) {
+                $query = DB::table('tnelb_form_p as ta')
+                    ->whereIn('ta.payment_status', ['payment', 'paid'])
+                    ->whereIn('ta.app_status', ['P', 'RE'])
+                    ->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))->from('cc_workflow_forms as tw')->whereRaw('tw.application_id = ta.application_id');
+                    })
+                    ->select(
+                        'ta.*',
+                        DB::raw("'Form P' as form_name"),
+                        DB::raw('ta.license_name as license_name'),
+                        DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
+                    );
+                if ($applTypeFilter) {
+                    $query->where('ta.appl_type', $applTypeFilter);
+                }
+                $workflows = $query
+                    ->orderByDesc('ta.submitted_date')
+                    ->orderByDesc('ta.id')
+                    ->get();
+                 } elseif ($roleLevel === 3) {
+                $query = DB::table('tnelb_form_p as ta')
+                    ->whereIn('ta.payment_status', ['payment', 'paid'])
+                    ->whereIn('ta.app_status', ['P', 'PRE'])
+                    ->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))->from('cc_workflow_forms as tw')->whereRaw('tw.application_id = ta.application_id');
+                    })
+                    ->select(
+                        'ta.*',
+                        DB::raw("'Form P' as form_name"),
+                        DB::raw('ta.license_name as license_name'),
+                        DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
+                    );
+                if ($applTypeFilter) {
+                    $query->where('ta.appl_type', $applTypeFilter);
+                }
+                $workflows = $query
+                    ->orderByDesc('ta.submitted_date')
+                    ->orderByDesc('ta.id')
+                    ->get();
+            }
+
+            else {
+                $twLast = DB::table('cc_workflow_forms')->select('application_id', DB::raw('MAX(id) as max_id'))->groupBy('application_id');
+                $currentAppIds = DB::table('cc_workflow_forms as tw')
+                    ->joinSub($twLast, 'tw_last', function ($join) {
+                        $join->on('tw.application_id', '=', 'tw_last.application_id')->on('tw.id', '=', 'tw_last.max_id');
+                    })
+                    ->where('tw.forwarded_to', $roleId)->whereIn('tw.appl_status', ['F', 'RF'])->select('tw.application_id');
+                $workflows = DB::query()->fromSub($currentAppIds, 'cur')
+                    ->join('tnelb_form_p as ta', 'ta.application_id', '=', 'cur.application_id')
+                    ->whereIn('ta.payment_status', ['payment', 'paid'])
+                    ->select(
+                        'ta.*',
+                        DB::raw("'Form P' as form_name"),
+                        DB::raw('ta.license_name as license_name'),
+                        DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
+                    )
+                    ->orderByDesc('ta.id')
+                    ->get();
+                if ($applTypeFilter) {
+                    $workflows = collect($workflows)->filter(function ($row) use ($applTypeFilter) {
+                        return strtoupper((string) ($row->appl_type ?? '')) === $applTypeFilter;
+                    })->values();
+                }
+            }
+            // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with QU in history) +
+            // Form P apps returned to Supervisor/upper staff with an open workflow query (RE + latest tw.query_status P).
+            $twLastFormP = DB::table('cc_workflow_forms')
+                ->select('application_id', DB::raw('MAX(id) as max_id'))
+                ->groupBy('application_id');
+
+            $returnedQuery = DB::table('tnelb_form_p as ta')
+                ->whereIn('ta.payment_status', ['payment', 'paid'])
+                ->where(function ($q) use ($twLastFormP) {
+                    $q->where('ta.app_status', 'QU')
+                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM cc_workflow_forms tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))")
+                        ->orWhere(function ($q2) use ($twLastFormP) {
+                            $q2->whereIn('ta.app_status', ['P', 'RE'])
+                                ->whereExists(function ($sub) use ($twLastFormP) {
+                                    $sub->select(DB::raw(1))
+                                        ->from('cc_workflow_forms as tw')
+                                        ->joinSub($twLastFormP, 'tw_last', function ($join) {
+                                            $join->on('tw.application_id', '=', 'tw_last.application_id')
+                                                ->on('tw.id', '=', 'tw_last.max_id');
+                                        })
+                                        ->whereColumn('tw.application_id', 'ta.application_id')
+                                        ->where('tw.query_status', 'P');
+                                });
+                        });
+                })
+                ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))
+                ->orderByDesc('ta.submitted_date')
+                ->orderByDesc('ta.id');
+            if ($applTypeFilter) {
+                $returnedQuery->where('ta.appl_type', $applTypeFilter);
+            }
+
+            $returned_applications = $returnedQuery->get();
+
+            [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
+                return strtoupper((string) ($row->appl_type ?? '')) === 'R';
+            });
+            return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
+        }
+
+        $requestedType = strtoupper((string) $request->input('form_type', ''));
+        $applTypeFilter = in_array($requestedType, ['N', 'R', 'D', 'A'], true) ? $requestedType : null;
+
+        $ccAdminQuery = app(CompetencyAdminQueryService::class);
+        if ($ccAdminQuery->isCcMetaFormId($selectedFormId)) {
+            $roleLevel = (int) (optional($staff->role)->role_level ?? 0);
+            $roleId = (int) ($staff->roles_id ?? 0);
+            $isSupervisorRole = ($roleLevel === 1) || in_array($staff->name ?? '', ['Supervisor', 'Supervisor2'], true);
+
+            if ($isSupervisorRole) {
+                $workflows = $ccAdminQuery->supervisorPendingApplications($selectedFormId, $applTypeFilter, $staff);
+                $returned_applications = $ccAdminQuery->supervisorReturnedApplications($selectedFormId, $applTypeFilter);
+            } else {
+                $previousProcessedBy = match ($roleLevel) {
+                    2 => ['S', 'S2'],
+                    3 => ['A'],
+                    4 => ['SE'],
+                    default => [],
+                };
+                $workflows = $ccAdminQuery->rolePendingApplications($selectedFormId, $roleId, $previousProcessedBy, $applTypeFilter);
+                $returned_applications = collect();
+            }
+
+            [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
+                return strtoupper((string) ($row->appl_type ?? '')) === 'R';
+            });
+
+            $new_applications = $new_applications
+                ->reject(function ($row) {
+                    return strtoupper((string) ($row->appl_type ?? '')) === 'R';
+                })
+                ->values();
+
+            return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
+        }
+
+        $roleLevel = (int) (optional($staff->role)->role_level ?? 0); // mst_roles.role_level
+        $roleId = (int) ($staff->roles_id ?? 0);
+        $isSupervisorRole = ($roleLevel === 1) || in_array($staff->name ?? '', ['Supervisor', 'Supervisor2'], true);
+
+        // Supervisor: show (1) apps with no workflow, OR (2) latest workflow RE and forwarded_to Supervisor (resubmitted).
+        // Other roles: show apps currently forwarded to them (latest workflow row).
+        if ($isSupervisorRole) {
+            $supervisorRoleId = RoleHelper::supervisorWorkflowRoleId($staff);
+            $twLast = DB::table('cc_workflow_forms')
+                ->select('application_id', DB::raw('MAX(id) as max_id'))
+                ->groupBy('application_id');
+
+            // Match dashboard: no payment_status filter; (no workflow) OR (latest workflow RE + forwarded_to Supervisor)
+            $query = DB::table('cc_form_s_meta as ta')
+                ->leftJoinSub($twLast, 'tw_last', function ($join) {
+                    $join->on('ta.application_id', '=', 'tw_last.application_id');
+                })
+                ->leftJoin('cc_workflow_forms as tw', function ($join) {
+                    $join->on('tw.application_id', '=', 'tw_last.application_id')
+                        ->on('tw.id', '=', 'tw_last.max_id');
+                })
+                ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
+                ->where('ta.form_id', $selectedFormId)
+                ->whereIn('ta.status', ['P', 'RE'])
+                ->whereIn('ta.payment_status', ['payment', 'paid'])
+                ->whereNotExists(function ($q) {
+                    $q->select(DB::raw(1))
+                        ->from('cc_workflow_forms_a as twa')
+                        ->whereRaw('twa.application_id = ta.application_id');
+                })
+                ->where(function ($q) use ($supervisorRoleId) {
+                    $q->whereNull('tw.id')
+                        ->orWhere(function ($q2) use ($supervisorRoleId) {
+                            $q2->where('tw.forwarded_to', $supervisorRoleId)->where('tw.appl_status', 'RE');
+                        });
+                });
+
+            if ($applTypeFilter) {
+                $query->where('ta.appl_type', $applTypeFilter);
+            }
+
+            $workflows = $query
+                ->select(
+                    'ta.*',
+                    DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'),
+                    DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name'),
+                    DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
+                )
+                ->distinct()
+                ->orderByDesc('ta.submitted_date')
+                ->orderByDesc('ta.id')
+                ->get();
+
+            // If list still empty, use same fallback as dashboard: all P/RE for this form (no workflow filter)
+            if ($workflows->isEmpty()) {
+                $fallbackQuery = DB::table('cc_form_s_meta as ta')
+                    ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
+                    ->where('ta.form_id', $selectedFormId)
+                    ->whereIn('ta.status', ['P', 'RE'])
+                    ->whereIn('ta.payment_status', ['payment', 'paid'])
+                    ->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('cc_workflow_forms_a as twa')
+                            ->whereRaw('twa.application_id = ta.application_id');
+                    });
+                if ($applTypeFilter) {
+                    $fallbackQuery->where('ta.appl_type', $applTypeFilter);
+                }
+                $workflows = $fallbackQuery
+                    ->select(
+                        'ta.*',
+                        DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'),
+                        DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name'),
+                        DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
+                    )
+                    ->orderByDesc('ta.submitted_date')
+                    ->orderByDesc('ta.id')
+                    ->get();
+            }
+
+            // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with return history)
+            $returned_applications = DB::table('cc_form_s_meta as ta')
+                ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
+                ->where('ta.form_id', $selectedFormId)
+                ->whereIn('ta.payment_status', ['payment', 'paid'])
+                ->where(function ($q) {
+                    $q->where('ta.status', 'QU')
+                        ->orWhereRaw("(ta.status IN ('P','RE') AND EXISTS (SELECT 1 FROM cc_workflow_forms tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))");
+                })
+                ->when($applTypeFilter, function ($q) use ($applTypeFilter) {
+                    return $q->where('ta.appl_type', $applTypeFilter);
+                })
+                ->select(
+                    'ta.*',
+                    DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'),
+                    DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name')
+                )
+                ->orderByDesc('ta.submitted_date')
+                ->orderByDesc('ta.id')
+                ->get();
+        } else {
+            $previousProcessedBy = match ($roleLevel) {
+                2 => ['S', 'S2'], // Accountant handles after Supervisor/Supervisor2
+                3 => ['A'],       // Secretary handles after Accountant
+                4 => ['SE'],      // President handles after Secretary
+                default => [],
+            };
+
+            $twLast = DB::table('cc_workflow_forms')
+                ->select('application_id', DB::raw('MAX(id) as max_id'))
+                ->groupBy('application_id');
+
+            $twaLast = DB::table('cc_workflow_forms_a')
+                ->select('application_id', DB::raw('MAX(id) as max_id'))
+                ->groupBy('application_id');
+
+            $currentFromTw = DB::table('cc_workflow_forms as tw')
+                ->joinSub($twLast, 'tw_last', function ($join) {
+                    $join->on('tw.application_id', '=', 'tw_last.application_id')
+                        ->on('tw.w_id', '=', 'tw_last.max_id');
+                })
+                ->where('tw.forwarded_to', $roleId)
+                ->whereIn('tw.appl_status', ['F', 'RF'])
+                ->select('tw.application_id');
+
+            $currentFromTwa = DB::table('cc_workflow_forms_a as tw')
+                ->joinSub($twaLast, 'tw_last', function ($join) {
+                    $join->on('tw.application_id', '=', 'tw_last.application_id')
+                        ->on('tw.w_id', '=', 'tw_last.max_id');
+                })
+                ->where('tw.forwarded_to', $roleId)
+                ->whereIn('tw.appl_status', ['F', 'RF'])
+                ->select('tw.application_id');
+
+            $fallbackAppIds = DB::table('cc_form_s_meta as ta')
+                ->where('ta.form_id', $selectedFormId)
+                ->whereIn('ta.status', ['F', 'RF'])
+                ->whereIn('ta.payment_status', ['payment', 'paid'])
+                ->when(!empty($previousProcessedBy), function ($q) use ($previousProcessedBy) {
+                    return $q->whereIn('ta.processed_by', $previousProcessedBy);
+                })
+                ->whereNotExists(function ($q) {
+                    $q->select(DB::raw(1))
+                        ->from('cc_workflow_forms as tw')
+                        ->whereRaw('tw.application_id = ta.application_id');
+                })
+                ->whereNotExists(function ($q) {
+                    $q->select(DB::raw(1))
+                        ->from('cc_workflow_forms_a as twa')
+                        ->whereRaw('twa.application_id = ta.application_id');
+                })
+                ->select('ta.application_id');
+
+            $currentAppIds = $currentFromTw->union($currentFromTwa)->union($fallbackAppIds);
+
+            $query = DB::query()
+                ->fromSub($currentAppIds, 'cur')
+                ->join('cc_form_s_meta as ta', 'ta.application_id', '=', 'cur.application_id')
+                ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
+                ->where('ta.form_id', $selectedFormId)
+                ->whereIn('ta.payment_status', ['payment', 'paid']);
+
+            if ($applTypeFilter) {
+                $query->where('ta.appl_type', $applTypeFilter);
+            }
+
+            $workflows = $query
+                ->select(
+                    'ta.*',
+                    DB::raw('COALESCE(ml.form_name, ta.form_name) as form_name'),
+                    DB::raw('COALESCE(ml.licence_name, ta.license_name) as license_name'),
+                    DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
+                )
+                ->distinct()
+                ->orderByDesc('ta.submitted_date')
+                ->orderByDesc('ta.id')
+                ->get();
+
+            $returned_applications = collect();
+        }
+
+        [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
+            return strtoupper((string) ($row->appl_type ?? '')) === 'R';
+        });
+
+        $new_applications = $new_applications
+            ->sortByDesc('submitted_date')
+            ->values();
+
+        $renewal = $renewal
+            ->sortByDesc('submitted_date')
+            ->values();
+
+        return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
+    }
+
+    public function view_applications_tbl(Request $request)
+    {
+
 
         $staff = Auth::user();
+
+        // dd($staff->roles_id);exit;
         if (!$staff) {
             return abort(403, 'Unauthorized');
         }
@@ -700,7 +1069,7 @@ class SupervisorController extends Controller
             'checkboxes'     => 'nullable|string',
             'queryswitch'    => 'nullable|string',
             'queryType'      => 'array',
-            'remarks'        => 'nullable|string'
+            'remarks'        => 'required|string'
         ]);
 
 
@@ -756,12 +1125,58 @@ class SupervisorController extends Controller
         //     'created_at'     => now(),
         // ]);
 
+      $checklistData = [];
+
+        foreach ($request->check_id as $id => $checkId) {
+
+            $checklistData[] = [
+                'id'      => $checkId,
+                'checked' => (int) ($request->checklists[$id] ?? 0),
+                'verify'  => (int) ($request->status[$id] ?? 0),
+            ];
+        }
+// dd($applicant->certificate_name); exit;
+        // dd(([
+        //     'login_id'        => Auth::id(),
+        //     'applicant_id'    => $request->application_id,
+        //     'cert_license_id' => $applicant->id,
+        //     // 'check_id'       => $request->check_id[array_key_first($request->check_id)],
+        //     'checklist_json'  => json_encode($checklistData),
+        //     'updated_by'      => Auth::id(),
+        // ]));
+        // exit;
+
+
+        $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
+        ->where('certificate_name', $applicant->certificate_name)
+        ->first();
+
+        if($Existingcheck){
+            $Existingcheck->update([
+
+                // 'certificate_name'       => $request->certificate_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        } else {
+
+            CC_Checklist_applicant::create([
+                'login_id'        => Auth::id(),
+                'applicant_id'    => $request->application_id,
+                'cert_license_id' => $applicant->id,
+                'certificate_name'       => $applicant->certificate_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        }
+
+
 
         $formType = (object) ['form_id' => $applicant->form_id ?? null];
 
         $status = $appService->resolveForwardStatus($staff->name, $applicant, $formType);
 
-        $chklistStatus = $request->input('chklist_status', []);
+        // $chklistStatus = $request->input('chklist_status', []);
         $workflowTable = $appService->resolveWorkflowTable($request->application_id, $applicant);
         $workflowPayload = [
             'application_id' => $request->application_id,
@@ -771,13 +1186,16 @@ class SupervisorController extends Controller
             'role_id'        => $request->role_id,
             'is_verified'    => $request->checkboxes ?? 'Yes',
             'query_status'   => $query_status,
-            'chklist_status' => $chklistStatus,
+            // 'chklist_status' => $chklistStatus,
             'remarks'        => $request->remarks,
             'created_at'     => $this->dbNow,
             'login_id'       => $staffID,
             'queries'        => $queryTypeJson ? json_decode($queryTypeJson, true) : null,
             'raised_by'      => $query_status == 'P' ? $raised_by : $processed_by,
         ];
+
+
+
 
         $workflowService->record($workflowTable, $workflowPayload);
 
@@ -787,22 +1205,22 @@ class SupervisorController extends Controller
             'updated_at' => $this->dbNow,
         ]);
 
-            if ($request->filled('qc') || $request->filled('qsc')) {
-           DB::table($appService->resolveMetaTable($request->application_id, $applicant))
-            ->where('application_id', $request->application_id)
-            ->update([
-                'qc' => $request->qc,
-                'qsc' => $request->qsc,
-            ]);
-            }
+        if ($request->filled('qc') || $request->filled('qsc')) {
+            DB::table($appService->resolveMetaTable($request->application_id, $applicant))
+                ->where('application_id', $request->application_id)
+                ->update([
+                    'qc' => $request->qc,
+                    'qsc' => $request->qsc,
+                ]);
+        }
 
-            // dd($role); exit;
+        // dd($role); exit;
 
-            if($request->forwarded_to =='assistantsecretary '){
+        if ($request->forwarded_to == 'assistantsecretary ') {
 
-                dd('111'); exit;
-                $role= 'Assistant Secretary';
-            }
+
+            $role = 'Assistant Secretary';
+        }
 
         return response()->json([
             'status' => "success",
@@ -1736,7 +2154,7 @@ class SupervisorController extends Controller
             'application_id' => 'required|string',
             'processed_by'   => 'required|string',
             'forwarded_to'   => 'integer',
-            'remarks'        => 'nullable|string',
+            'remarks'        => 'required|string',
         ]);
 
         // dd($request->all());
@@ -1802,7 +2220,62 @@ class SupervisorController extends Controller
             }
             //    dd($this->dbNow); exit;
             $chklistStatus = $request->input('chklist_status', []);
-            
+
+             $checklistData = [];
+
+        foreach ($request->check_id as $id => $checkId) {
+
+            $checklistData[] = [
+                'id'      => $checkId,
+                'checked' => (int) ($request->checklists[$id] ?? 0),
+                'verify'  => (int) ($request->status[$id] ?? 0),
+            ];
+        }
+// dd($applicant->certificate_name); exit;
+        // dd(([
+        //     'login_id'        => Auth::id(),
+        //     'applicant_id'    => $request->application_id,
+        //     'cert_license_id' => $applicant->id,
+        //     // 'check_id'       => $request->check_id[array_key_first($request->check_id)],
+        //     'checklist_json'  => json_encode($checklistData),
+        //     'updated_by'      => Auth::id(),
+        // ]));
+        // exit;
+        
+        $appService = app(CompetencyApplicationService::class);
+        $workflowService = app(CompetencyWorkflowService::class);
+        $applicant = $appService->findApplicantWithPayment($request->application_id);
+        if (! $applicant) {
+                    return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
+        }
+
+                $applicantStatus = $appService->applicationStatus($applicant);
+                $isReturnedApplication = $applicantStatus === 'RE';
+
+        $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
+        ->where('certificate_name', $applicant->certificate_name)
+        ->first();
+
+        if($Existingcheck){
+            $Existingcheck->update([
+
+                // 'certificate_name'       => $request->certificate_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        } else {
+
+            CC_Checklist_applicant::create([
+                'login_id'        => Auth::id(),
+                'applicant_id'    => $request->application_id,
+                'cert_license_id' => $applicant->id,
+                'certificate_name'       => $applicant->certificate_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        }
+
+
             $workflowTable = app(CompetencyApplicationService::class)
                 ->resolveWorkflowTable($request->application_id, $application);
             app(CompetencyWorkflowService::class)->record($workflowTable, [
@@ -1810,7 +2283,7 @@ class SupervisorController extends Controller
                 'processed_by'   => $request->processed_by,
                 'role_id'        => Auth::user()->roles_id,
                 'appl_status'    => 'A',
-                'chklist_status' => $chklistStatus,
+                
                 'remarks'        => $request->remarks ?? 'No remarks provided',
                 'forwarded_to'   => $request->forwarded_to ?? null,
                 'created_at'     => $this->dbNow,

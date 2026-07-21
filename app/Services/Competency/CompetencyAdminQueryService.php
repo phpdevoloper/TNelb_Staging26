@@ -189,6 +189,8 @@ class CompetencyAdminQueryService
      */
     public function rolePendingApplications(int $formId, int $roleId, array $previousProcessedBy, ?string $applTypeFilter = null): Collection
     {
+
+
         $workflowTable = $this->workflowTableForFormId($formId);
         $metaTable = $this->metaTableForFormId($formId);
         if ($workflowTable === null || $metaTable === null) {
@@ -205,12 +207,12 @@ class CompetencyAdminQueryService
                     ->on('tw.w_id', '=', 'tw_last.max_id');
             })
             ->where('tw.forwarded_to', $roleId)
-            ->whereIn(DB::raw('TRIM(tw.appl_status)'), ['F', 'RF'])
+            ->whereIn(DB::raw('TRIM(tw.appl_status)'), ['F', 'RF','PRE'])
             ->select('tw.application_id');
 
         $fallbackAppIds = DB::table("{$metaTable} as ta")
             ->where('ta.form_id', $formId)
-            ->whereIn(DB::raw('TRIM(ta.app_status)'), ['F', 'RF'])
+            ->whereIn(DB::raw('TRIM(ta.app_status)'), ['F', 'RF','PRE'])
             ->where($this->paidPaymentConstraint('ta'))
             ->when($previousProcessedBy !== [], fn ($q) => $q->whereIn('ta.processed_by', $previousProcessedBy))
             ->whereNotExists(function ($q) use ($workflowTable) {
@@ -368,8 +370,10 @@ class CompetencyAdminQueryService
             $twLast = DB::table($workflowTable)
                 ->select('application_id', DB::raw('MAX(w_id) as max_id'))
                 ->groupBy('application_id');
-
+// dd($roleId); exit;
             if ($isSupervisorRole) {
+
+            // dd($roleLevel); exit;
                 $query = DB::table("{$metaTable} as ta")
                     ->leftJoinSub($twLast, 'tw_last', function ($join) {
                         $join->on('ta.application_id', '=', 'tw_last.application_id');
@@ -391,7 +395,10 @@ class CompetencyAdminQueryService
                                     });
                             });
                     });
+
             } else {
+
+            // dd($roleLevel); exit;
                 $previousProcessedBy = match ($roleLevel) {
                     2 => ['S', 'S2'],
                     3 => ['A'],
@@ -399,18 +406,20 @@ class CompetencyAdminQueryService
                     default => [],
                 };
 
+                // dd($previousProcessedBy); exit;
+
                 $currentAppIds = DB::table("{$workflowTable} as tw")
                     ->joinSub($twLast, 'tw_last', function ($join) {
                         $join->on('tw.application_id', '=', 'tw_last.application_id')
                             ->on('tw.w_id', '=', 'tw_last.max_id');
                     })
                     ->where('tw.forwarded_to', $roleId)
-                    ->whereIn(DB::raw('TRIM(tw.appl_status)'), ['F', 'RF'])
+                    ->whereIn(DB::raw('TRIM(tw.appl_status)'), ['F', 'RF','PRE'])
                     ->select('tw.application_id');
 
                 $fallbackAppIds = DB::table("{$metaTable} as ta")
                     ->where('ta.form_id', $formId)
-                    ->whereIn(DB::raw('TRIM(ta.app_status)'), ['F', 'RF'])
+                    ->whereIn(DB::raw('TRIM(ta.app_status)'), ['F', 'RF','PRE'])
                     ->where($this->paidPaymentConstraint('ta'))
                     ->when($previousProcessedBy !== [], fn ($q) => $q->whereIn('ta.processed_by', $previousProcessedBy))
                     ->whereNotExists(function ($q) use ($workflowTable) {
@@ -425,6 +434,16 @@ class CompetencyAdminQueryService
                     ->join("{$metaTable} as ta", 'ta.application_id', '=', 'cur.application_id')
                     ->where('ta.form_id', $formId)
                     ->where($this->paidPaymentConstraint('ta'));
+
+                    if ($roleId == 3) {
+
+                        $query->where(function ($q) {
+                            $q->where('ta.app_status', 'PRE');
+                            // ->Where('ta.processed_by', 'PR');
+                        });
+                    }
+
+
             }
 
             $formRows = $query
@@ -433,6 +452,7 @@ class CompetencyAdminQueryService
                 ->get();
 
             if ($isSupervisorRole && $formRows->isEmpty()) {
+
                 $formRows = DB::table("{$metaTable} as ta")
                     ->where('ta.form_id', $formId)
                     ->whereIn(DB::raw('TRIM(ta.app_status)'), ['P', 'RE'])

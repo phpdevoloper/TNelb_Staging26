@@ -121,7 +121,7 @@
                                     {{-- <small class="text-muted">Competency / Contractor / Amendments</small> --}}
                                 </div>
                             </div>
-    
+
                         </header>
                     </div>
                 </div>
@@ -150,6 +150,8 @@
                                                     && strtoupper($summary['form_name'] ?? '') === 'FORM A';
 
                                                 $roleName = $staff->name ?? '';
+
+
                                                 if ($isFormAContractor && in_array($roleName, ['Supervisor', 'Supervisor2'], true)) {
                                                     $newHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'N']);
                                                     $renewHref = route('admin.view_form', ['type' => 'A', 'form_type' => 'R']);
@@ -216,7 +218,7 @@
                             </div>
                         </div>
                     @endif
-                    
+
                     @if(!empty($contractorCards))
                     <div class="col-xl-4 col-lg-12 mb-4">
                         <div class="card h-100 shadow-none rounded-3 overflow-hidden president-dashboard-card">
@@ -307,7 +309,7 @@
                                                         RENEWAL <span class="ms-1 fw-bold text-danger">{{ $summary['renewal_count'] ?? 0 }}</span>
                                                     </a>
                                                 </div>
-                                            </div>  
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -344,10 +346,10 @@
                                         <tbody>
                                             @php $i = 1; @endphp
                                             @foreach ($inprogress as $row)
-                                        
+
                                             <tr>
-                                                
-                                                
+
+
                                                @php
                                             $badge_class = 'badge-secondary';
                                             $fn = strtoupper($row->form_name ?? '');
@@ -359,11 +361,11 @@
                                             elseif ($fn == 'P') $badge_class = 'badge-info';
                                             elseif (in_array($fn, ['B', 'EB', 'SB'])) $badge_class = 'badge-primary';
 
-                                            
+
                                             if (($row->return_flag ?? null) == 1 && $row->application_status != 'RET') {
                                                 $received_from = 'Applicant';
                                             }
-                                            
+
                                             else {
                                                 $received_from = '';
                                                 if (($row->processed_by ?? '') === 'S' || ($row->processed_by ?? '') === 'S2') {
@@ -382,7 +384,7 @@
                                              if (($row->return_flag ?? null) == 1 && $row->application_status == 'RET') {
                                                 $pending_with = 'Applicant';
                                             }
-                                            
+
                                             else {
                                                 $row_status = strtoupper($row->status ?? '');
                                                 $forwardRoleRaw = trim((string) ($row->latest_forward_role_name ?? ''));
@@ -427,7 +429,7 @@
 
                                                @if($row->form_name == 'P')
                                                     <a href=" route('admin.application_details_formp', ['applicant_id' => $row->application_id])">
-                                                        
+
                                                         {{ $row->application_id }}
                                                     </a>
                                                 @elseif($row->form_name == 'A')
@@ -436,12 +438,12 @@
                                                     </a>
                                                 @else
                                                     <a href=" route('admin.application_details', ['applicant_id' => $row->application_id])">
-                                                        
+
                                                         {{ $row->application_id }}
                                                     </a>
 
                                                @endif
-                                                  
+
 
                                                     @if(($row->return_flag ?? null) == 1 && $row->application_status != 'RET')
                                                         <span class="badge badge-danger ml-1">Resubmitted</span>

@@ -256,7 +256,7 @@ class CompetencyWorkflowService
             }
 
             if (isset($row->processed_by) && is_numeric($row->processed_by)) {
-                $staff = DB::table('mst_login_users')->where('id', (int) $row->processed_by)->first();
+                $staff = DB::table('mst_login_users')->where('s_id', (int) $row->processed_by)->first();
                 if ($staff) {
                     $row->processed_by = match ($staff->user_name ?? $staff->name ?? '') {
                         'president' => 'PR',

@@ -168,13 +168,28 @@
                                 </div>
 
                                 <div class="row mt-3">
-                                    <div class="col-md-2 offset-md-2 mt-3">
-                                        <label><strong>Filter by Licence</strong></label>
+                                    <div class="col-md-2  mt-3 ">
+                                        <label class="float-end"><strong>Filter by Licence</strong></label>
                                     </div>
 
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <select class="form-select licenseFilter" data-table="style-3">
-                                            <option value="">All Licences</option>
+                                            <option value="">All Certificate/Licences</option>
+                                        </select>
+                                    </div>
+
+
+                                     <div class="col-md-2  mt-3 ">
+                                        <label class="float-end"><strong>Filter by Application Type</strong></label>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <select class="form-select typeFilter" data-table="style-3">
+                                            <option value="">All Types</option>
+                                            <option value="New">New</option>
+                                            <option value="Renewal">Renewal</option>
+                                            <option value="Digitization">Digitization</option>
+                                            <option value="Alteration">Alteration</option>
                                         </select>
                                     </div>
                                 </div>

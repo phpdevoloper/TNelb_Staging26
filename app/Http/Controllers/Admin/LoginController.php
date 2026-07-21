@@ -42,6 +42,8 @@ use App\Models\Admin\Mst_checklist;
 use App\Models\Admin\Mst_Logins;
 use Illuminate\Support\Facades\Storage;
 
+use App\Models\CC_checklist_applicant;
+
 class LoginController extends Controller
 {
     public function index()
@@ -395,7 +397,7 @@ class LoginController extends Controller
                     $fallbackAppIds = DB::table('tnelb_application_tbl as ta')
                         ->whereIn('ta.status', ['F', 'RF'])
                         ->whereIn('ta.payment_status', ['payment', 'paid'])
-                        ->when($previousProcessedBy !== [], fn ($q) => $q->whereIn('ta.processed_by', $previousProcessedBy))
+                        ->when($previousProcessedBy !== [], fn($q) => $q->whereIn('ta.processed_by', $previousProcessedBy))
                         ->whereNotExists(function ($q) {
                             $q->select(DB::raw(1))
                                 ->from('tnelb_workflow as tw')
@@ -416,6 +418,8 @@ class LoginController extends Controller
                         ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
                         ->groupBy('ta.form_id', 'ta.appl_type')
                         ->get();
+
+
                 }
 
                 $ccAdminQuery->mergePendingCountRows($pendingCounts ?? collect(), $pendingCountsMap);
@@ -887,7 +891,7 @@ class LoginController extends Controller
                 ->groupBy(function ($lic) {
                     return strtoupper((string) ($lic->form_code ?? ''));
                 })
-                ->map(fn ($group) => $group->pluck('id')->all());
+                ->map(fn($group) => $group->pluck('id')->all());
 
             $contractorTables = ['tnelb_ea_applications'];
 
@@ -1165,8 +1169,8 @@ class LoginController extends Controller
             'applicants_address' => $applicant->applicants_address,
             'd_o_b' => $applicant->d_o_b,
             'age' => $applicant->age,
-            // 'checklist' => $applicant->checklist,  
-            // 'process' => $applicant->process       
+            // 'checklist' => $applicant->checklist,
+            // 'process' => $applicant->process
         ]);
     }
 
@@ -1462,7 +1466,7 @@ class LoginController extends Controller
         // Get the current user's role ID
         $staff = Auth::user();
 
-        // dd($staff->name);exit;    
+        // dd($staff->name);exit;
 
         if (!$staff || !$staff->roles_id) {
             return abort(403, 'Unauthorized');
@@ -1569,29 +1573,51 @@ class LoginController extends Controller
             ->orderByDesc('qa.id')
             ->get();
 
-            $cc_digitization = DB::table('tnelb_cc_digitization')
-                ->where('application_id', $applicant_id)
-                ->first();
-            $checklist = DB::table('mst_checklists as mc')
-                ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
-                ->where('ml.cert_licence_code', $applicant->license_name)
-                ->where('mc.appl_type', $applicant->appl_type)
-                ->where('mc.status', 1)
-                ->select(
-                    'mc.*',
-                    'ml.licence_name',
-                    'ml.cert_licence_code'
-                )
-                ->get();
+        $cc_digitization = DB::table('tnelb_cc_digitization')
+            ->where('application_id', $applicant_id)
+            ->first();
+        $checklist = DB::table('mst_checklists as mc')
+            ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
+            ->where('ml.cert_licence_code', $applicant->license_name)
+            ->where('mc.appl_type', $applicant->appl_type)
+            ->where('mc.status', 1)
+            ->select(
+                'mc.*',
+                'ml.licence_name',
+                'ml.cert_licence_code'
+            )
+            ->get();
 
         if (($applicant->appl_type ?? '') === 'A' && empty($parentApplicantForAlter) && !empty($applicant->old_application)) {
             $parentApplicantForAlter = CC_Forms_Meta::findByApplicationId((string) $applicant->old_application)
                 ?? DB::table('tnelb_application_tbl')
-                    ->where('application_id', $applicant->old_application)
-                    ->first();
+                ->where('application_id', $applicant->old_application)
+                ->first();
         }
 
-        // dd($applicant->license_name); exit;
+        $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)
+            ->where('certificate_name', $applicant->certificate_name)
+            ->first();
+
+      $checkedList_1 = [];
+        $verifyList = [];
+
+        if ($Existingchecklist && $Existingchecklist->checklist_json) {
+
+            $json = json_decode($Existingchecklist->checklist_json, true);
+
+            foreach ($json as $row) {
+
+                $checkedList_1[$row['id']] = $row['checked'];
+                $verifyList[$row['id']]  = $row['verify'];
+            }
+
+
+        }
+
+        // dd($checkedList);exit;
+
+        // dd($verifyList);exit;
 
         // Determine view based on user role
         $view = match ($staff->name) {
@@ -1608,7 +1634,28 @@ class LoginController extends Controller
         };
 
         // var_dump($nextForwardUser);exit;
-        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff', 'cc_digitization', 'checklist', 'alterationProofs', 'formSWorkflowAppPk', 'formSMasterWorkflowAppPk', 'parentApplicantForAlter'));
+        return view($view, compact(
+            'applicant',
+            'educationalQualifications',
+            'workExperience',
+            'uploadedPhoto',
+            'uploadedSign',
+            'nextForwardUser',
+            'returnForwardUser',
+            'workflows',
+            'queries',
+            'user_entry',
+            'staff',
+            'cc_digitization',
+            'checklist',
+            'alterationProofs',
+            'formSWorkflowAppPk',
+            'formSMasterWorkflowAppPk',
+            'parentApplicantForAlter',
+            // 'checklist',
+            'checkedList_1',
+            'verifyList'
+        ));
     }
 
     public function presidentDashboard()
@@ -2082,7 +2129,7 @@ class LoginController extends Controller
                 // $nextForwardUser = DB::table('mst__staffs__tbls')
                 //     ->where('name', $processed_by)
                 //     ->select('name', 'roles_id')
-                //     ->first(); 
+                //     ->first();
 
                 $nextForwardUser = DB::table('mst__staffs__tbls')
                     ->where('name', 'Secretary')
@@ -2469,7 +2516,7 @@ class LoginController extends Controller
     //             'payments.payment_mode',
     //             'payments.created_at as payment_date'
     //         )
-    //         ->latest('payments.created_at') 
+    //         ->latest('payments.created_at')
     //         ->first();
 
     //     if (!$applicant) {
@@ -2565,12 +2612,12 @@ class LoginController extends Controller
 
 
     //     $user_entry = DB::table('tnelb_ea_applications')
-    //         ->where('application_id', $applicant_id) 
+    //         ->where('application_id', $applicant_id)
     //         ->select('*')
     //         ->first();
 
     //           $documents = DB::table('tnelb_applicant_doc_A')
-    //         ->where('application_id', $applicant_id) 
+    //         ->where('application_id', $applicant_id)
     //         ->select('*')
     //         ->first();
 
@@ -2578,7 +2625,7 @@ class LoginController extends Controller
     //     $workflows = DB::table('tnelb_workflow_a')
     //         ->leftjoin('tnelb_ea_applications', 'tnelb_workflow_a.application_id', '=', 'tnelb_ea_applications.application_id')
     //         ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
-    //         ->where('tnelb_workflow_a.application_id', $applicant_id) 
+    //         ->where('tnelb_workflow_a.application_id', $applicant_id)
     //         ->select('tnelb_workflow_a.*', 'mst__roles.name', 'tnelb_ea_applications.form_name', 'tnelb_ea_applications.license_name')
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
@@ -2587,8 +2634,8 @@ class LoginController extends Controller
 
     //     $queries = DB::table('tnelb_query_applicable as qa')
     //         ->leftJoin('tnelb_ea_applications as ta', 'qa.application_id', '=', 'ta.application_id')
-    //         ->where('qa.application_id', $applicant_id) 
-    //         ->where('qa.query_status', 'P') 
+    //         ->where('qa.application_id', $applicant_id)
+    //         ->where('qa.query_status', 'P')
     //         ->select('qa.*')
     //         ->first() ?? null;
 
@@ -2645,7 +2692,7 @@ class LoginController extends Controller
     //             'payments.payment_mode',
     //             'payments.created_at as payment_date'
     //         )
-    //         ->latest('payments.created_at') 
+    //         ->latest('payments.created_at')
     //         ->first();
 
     //     if (!$applicant) {
@@ -2738,12 +2785,12 @@ class LoginController extends Controller
 
 
     //     $user_entry = DB::table('tnelb_ea_applications')
-    //         ->where('application_id', $applicant_id) 
+    //         ->where('application_id', $applicant_id)
     //         ->select('*')
     //         ->first();
 
     //           $documents = DB::table('tnelb_applicant_doc_A')
-    //         ->where('application_id', $applicant_id) 
+    //         ->where('application_id', $applicant_id)
     //         ->select('*')
     //         ->first();
 
@@ -2751,7 +2798,7 @@ class LoginController extends Controller
     //     $workflows = DB::table('tnelb_workflow_a')
     //         ->leftjoin('tnelb_ea_applications', 'tnelb_workflow_a.application_id', '=', 'tnelb_ea_applications.application_id')
     //         ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
-    //         ->where('tnelb_workflow_a.application_id', $applicant_id) 
+    //         ->where('tnelb_workflow_a.application_id', $applicant_id)
     //         ->select('tnelb_workflow_a.*', 'mst__roles.name', 'tnelb_ea_applications.form_name', 'tnelb_ea_applications.license_name')
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
@@ -2760,8 +2807,8 @@ class LoginController extends Controller
 
     //     $queries = DB::table('tnelb_query_applicable as qa')
     //         ->leftJoin('tnelb_ea_applications as ta', 'qa.application_id', '=', 'ta.application_id')
-    //         ->where('qa.application_id', $applicant_id) 
-    //         ->where('qa.query_status', 'P') 
+    //         ->where('qa.application_id', $applicant_id)
+    //         ->where('qa.query_status', 'P')
     //         ->select('qa.*')
     //         ->first() ?? null;
 
@@ -3223,7 +3270,7 @@ class LoginController extends Controller
         $workflowTable = $appService->resolveWorkflowTable($applicationId, $applicant);
         $metaTable = $appService->resolveMetaTable($applicationId, $applicant);
 
-        if ($joinApplicationTbl && in_array($metaTable, app(CompetencyMetaService::class)->allMetaTables(), true) && ! collect($extraSelect)->contains(fn ($s) => is_string($s) && str_contains($s, 'license_name'))) {
+        if ($joinApplicationTbl && in_array($metaTable, app(CompetencyMetaService::class)->allMetaTables(), true) && ! collect($extraSelect)->contains(fn($s) => is_string($s) && str_contains($s, 'license_name'))) {
             $extraSelect[] = DB::raw('app_tbl.certificate_name as license_name');
         }
 

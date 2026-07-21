@@ -8,6 +8,9 @@ git commit -m "Digitization Design Form S"
 1.Total 2 years of Experience Claculation
 2.In Educational Qualification -> 5th row insertion issue - if the 5th row inserted its delete the previous row details
 
+php artisan serve code : C:\xampp\php\php.exe artisan serve --host=10.163.2.43 --port=8000
+
+C:\xampp\php\php.exe artisan serve --host=10.163.2.43 --port=8000
 
 git commit -m "QC staff completion"
 

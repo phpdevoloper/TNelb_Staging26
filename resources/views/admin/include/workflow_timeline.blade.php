@@ -28,8 +28,8 @@
                         <div class="item-timeline">
                             <p class="t-time">{{ format_date_other($row->created_at) }}</p>
 
-                            <div class="t-dot 
-                                {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : ($row->appl_status == 'QU' ? 't-dot-warning' : 't-dot-info')) }}">
+                            <div class="t-dot
+                                {{ $row->appl_status == 'RE' || $row->appl_status == 'PRE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : ($row->appl_status == 'QU' ? 't-dot-warning' : 't-dot-info')) }}">
                             </div>
 
                             <div class="t-text">
@@ -106,6 +106,8 @@
                                     <p>Returned by {{ $roleLabel }}</p>
                                 @elseif ($applStatus === 'RE')
                                     <p>Returned by {{ $roleLabel }}</p>
+                                @elseif ($applStatus === 'PRE')
+                                    <p>Returned by {{ $roleLabel }}</p>
                                 @elseif ($applStatus === 'A')
                                     <p>Approved by {{ $roleLabel }}</p>
                                 @elseif ($applStatus === 'RJ')
@@ -118,6 +120,12 @@
                                     <p class="t-meta-time">
                                         @if ($applStatus === 'RJ')
                                             Reason: {{ $row->reject_reason }}
+                                        @elseif ($applStatus === 'PRE')
+                                            Returned to {{ $forwardedRoleName }}
+                                            @if (!$remarksInColoredBlock && !empty($row->remarks))
+                                                <br>
+                                                Remarks: {{ $row->remarks }}
+                                            @endif
                                         @elseif ($forwardedRoleName !== '')
                                             Forwarded to {{ $forwardedRoleName }}
                                             @if (!$remarksInColoredBlock && !empty($row->remarks))
