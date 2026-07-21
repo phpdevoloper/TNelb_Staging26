@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Intervention\Image\Colors\Rgb\Channels\Red;
 
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class LicenseController extends Controller

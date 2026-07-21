@@ -48,10 +48,12 @@ class FormSDigitizationController extends BaseController
         $request->validate([
             'ccnumber'   => 'required|digits_between:1,5',
             'fissue'     => 'required|date',
-            'from_date'  => 'required|date',
+            'from_date'  => 'required|date|after_or_equal:fissue',
             'to_date'    => 'required|date|after_or_equal:from_date',
             'qc_det'         => 'required',
             'cc_doc'     => 'required|mimes:pdf|max:250'
+        ], [
+            'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
         ]);
 
         $toDate = Carbon::parse($request->to_date);
@@ -72,9 +74,11 @@ class FormSDigitizationController extends BaseController
 
             $request->validate([
                 'cl_type'         => 'required',
-                'licence_no'      => 'required|max:20',
+                'licence_no'      => 'required|digits_between:1,5',
                 'contractor_name' => 'required|max:100',
                 'qc_doc'          => 'required|mimes:pdf|max:250',
+            ], [
+                'licence_no.digits_between' => 'Licence Number must contain numbers only (1 to 5 digits).',
             ]);
         }
 

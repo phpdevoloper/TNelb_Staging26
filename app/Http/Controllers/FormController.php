@@ -437,16 +437,6 @@ class FormController extends BaseController
             if (trim((string) ($request->work_board_meeting_date[$key] ?? '')) === '') {
                 return 'Date of Meeting is required when Board member employment type is selected.';
             }
-
-            $supportRemoved = isset($request->removed_document_work[$key])
-                && (string) $request->removed_document_work[$key] === '1';
-            $existingDoc = trim((string) ($request->existing_work_document[$key] ?? ''));
-            $hasNewDoc = isset($request->file('work_document')[$key])
-                && $request->file('work_document')[$key]->isValid();
-
-            if ($supportRemoved || ($existingDoc === '' && ! $hasNewDoc)) {
-                return 'Supporting document is required when Board member employment type is selected.';
-            }
         }
 
         return null;
@@ -533,7 +523,8 @@ class FormController extends BaseController
     }
 
     /**
-     * Calendar-style years / months / days between two dates (Form S only; aligned with apply-form-s `calendarDiffYMD`).
+     * Inclusive calendar Y/M/D for Form S work experience (aligned with front-end `calendarDiffYMD`).
+     * Both From and To count: e.g. 01-07-2020 → 30-06-2021 = 1y 0m 0d; → 01-07-2021 = 1y 0m 1d.
      *
      * @return array{y:int,m:int,d:int}|null
      */
@@ -554,13 +545,15 @@ class FormController extends BaseController
             return null;
         }
 
-        $y = $to->year - $from->year;
-        $m = $to->month - $from->month;
-        $d = $to->day - $from->day;
+        $end = $to->copy()->addDay();
+
+        $y = $end->year - $from->year;
+        $m = $end->month - $from->month;
+        $d = $end->day - $from->day;
 
         if ($d < 0) {
             $m--;
-            $d += Carbon::create($to->year, $to->month, 1)->subDay()->day;
+            $d += Carbon::create($end->year, $end->month, 1)->subDay()->day;
         }
         if ($m < 0) {
             $y--;
@@ -572,7 +565,7 @@ class FormController extends BaseController
                 $y--;
                 $m += 12;
             }
-            $d += Carbon::create($to->year, $to->month, 1)->subDay()->day;
+            $d += Carbon::create($end->year, $end->month, 1)->subDay()->day;
         }
 
         return [
@@ -1262,7 +1255,8 @@ class FormController extends BaseController
                     $toC = Carbon::parse($to)->startOfDay();
                     if ($toC->lt($fromC)) {
                         $validator->errors()->add("work_date_to.$i", 'To date must be greater than or equal to From date.');
-                    } else {
+                    } elseif (($request->form_name ?? '') !== 'S') {
+                        // Form S uses combined inclusive total (validateFormSWorkExperienceMinimumYears).
                         $minimumToDate = $fromC->copy()->addYears(2);
                         if ($toC->lt($minimumToDate)) {
                             $validator->errors()->add("work_date_to.$i", 'Minimum 2 Years Experience needed');
@@ -1338,13 +1332,14 @@ class FormController extends BaseController
             }
 
             $anyFilled = true;
-            $totalDays += $from->diffInDays($to);
+            // Inclusive of From and To (+1 day), matching front-end duration.
+            $totalDays += $from->diffInDays($to) + 1;
             if ($firstFilledKey === null) {
                 $firstFilledKey = $key;
             }
         }
 
-        // 2 calendar years = 730 days (allows exact 2-year ranges without false negatives).
+        // 2 calendar years ≈ 730 inclusive days (e.g. 01-07-2024 → 30-06-2026).
         if ($anyFilled && $totalDays < 730) {
             $validator->errors()->add(
                 'work_date_to.'.($firstFilledKey ?? 0),
@@ -2088,6 +2083,10 @@ class FormController extends BaseController
                 ) {
                     continue;
                 }
+                // Form S §7b supporting docs are optional.
+                if (strtolower(trim((string) ($request->work_exp_section[$key] ?? ''))) === 'current') {
+                    continue;
+                }
                 $hasFile = $request->hasFile('work_document.'.$key);
                 $existing = $request->input('existing_work_document.'.$key);
                 if (! $hasFile && ($existing === null || $existing === '')) {
@@ -2562,6 +2561,10 @@ class FormController extends BaseController
                     || empty($request->experience[$key] ?? null)
                     || empty($request->designation[$key] ?? null)
                 ) {
+                    continue;
+                }
+                // Form S §7b supporting docs are optional.
+                if (strtolower(trim((string) ($request->work_exp_section[$key] ?? ''))) === 'current') {
                     continue;
                 }
                 $hasFile = $request->hasFile('work_document.'.$key);

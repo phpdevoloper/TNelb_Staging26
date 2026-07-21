@@ -290,6 +290,13 @@ $(document).on("click", "#digitizationSubmit", function () {
         isValid = false;
     }
 
+    if (fissue && from_date && new Date(fissue) > new Date(from_date)) {
+        $("#fissue_error").html(
+            "Date of First Issue must be less than or equal to Validity From date",
+        );
+        isValid = false;
+    }
+
     if (!qc) {
         $("#qc_error").html("Please select Yes or No");
         isValid = false;
@@ -325,6 +332,9 @@ $(document).on("click", "#digitizationSubmit", function () {
 
         if (licence_no === "") {
             $("#licence_no_error").html("License Number is required");
+            isValid = false;
+        } else if (!/^\d+$/.test(licence_no)) {
+            $("#licence_no_error").html("Licence Number must contain numbers only");
             isValid = false;
         }
 
@@ -439,6 +449,14 @@ $(document).on("change", 'input[name="cc_doc"]', function () {
 
 $(document).on("keyup", 'input[name="cl_type"]', function () {
     $("#cl_type_error").html("");
+});
+
+$(document).on("input", 'input[name="licence_no"]', function () {
+    var cleaned = String($(this).val() || "").replace(/\D+/g, "");
+    if ($(this).val() !== cleaned) {
+        $(this).val(cleaned);
+    }
+    $("#licence_no_error").html("");
 });
 
 $(document).on("keyup", 'input[name="licence_no"]', function () {

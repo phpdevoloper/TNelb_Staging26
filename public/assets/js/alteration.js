@@ -325,17 +325,78 @@
         $('#alter_certificate_no_error, #alter_date_of_issue_error, #alter_valid_from_error, #alter_valid_to_error').text('');
     }
 
+    function clearAlterLauncherPrefill() {
+        $('#alter_certificate_no').val('');
+        $('#alter_date_of_issue').val('');
+        $('#alter_valid_from').val('');
+        $('#alter_valid_to').val('');
+    }
+
+    function applyAlterCertificateSelection($opt) {
+        if (!$opt || !$opt.length || !$opt.val()) {
+            clearAlterLauncherPrefill();
+            return;
+        }
+        $('#alter_certificate_no').val(String($opt.data('certificateNo') || '').trim());
+        $('#alter_date_of_issue').val(String($opt.data('dateOfIssue') || '').trim());
+        $('#alter_valid_from').val(String($opt.data('validFrom') || '').trim());
+        $('#alter_valid_to').val(String($opt.data('validTo') || '').trim());
+        clearAlterLauncherFieldErrors();
+    }
+
+    function populateAlterCertificateDropdown(certificates) {
+        var $select = $('#alter_certificate_select');
+        if (!$select.length) return;
+
+        $select.empty().append($('<option>', { value: '', text: '— Select certificate —' }));
+        (certificates || []).forEach(function (cert) {
+            var $opt = $('<option>', {
+                value: String(cert.application_id || ''),
+                text: String(cert.label || cert.certificate_no || cert.application_id || '')
+            });
+            $opt.attr('data-certificate-no', cert.certificate_no || '');
+            $opt.attr('data-date-of-issue', cert.date_of_issue || '');
+            $opt.attr('data-valid-from', cert.valid_from || '');
+            $opt.attr('data-valid-to', cert.valid_to || '');
+            $select.append($opt);
+        });
+
+        if (!(certificates || []).length) {
+            $select.append($('<option>', {
+                value: '',
+                text: 'No issued certificates found',
+                disabled: true
+            }));
+        }
+    }
+
+    async function loadAlterCertificates(certCode) {
+        var url = window.formSAltCertificatesUrl || '/form_s_alt/certificates';
+        try {
+            var res = await $.ajax({
+                url: url,
+                type: 'GET',
+                data: { form: certCode || 'S' }
+            });
+            populateAlterCertificateDropdown((res && res.certificates) ? res.certificates : []);
+        } catch (err) {
+            populateAlterCertificateDropdown([]);
+            $('#alter_certificate_no_error').text('Unable to load certificates. Please try again.');
+        }
+    }
+
     function validateAlterLauncherFields() {
         clearAlterLauncherFieldErrors();
 
+        var selected = ($('#alter_certificate_select').val() || '').trim();
         var certificateNo = ($('#alter_certificate_no').val() || '').trim();
         var dateOfIssue = ($('#alter_date_of_issue').val() || '').trim();
         var validFrom = ($('#alter_valid_from').val() || '').trim();
         var validTo = ($('#alter_valid_to').val() || '').trim();
         var hasError = false;
 
-        if (!certificateNo) {
-            $('#alter_certificate_no_error').text('Certificate number is required.');
+        if (!selected || !certificateNo) {
+            $('#alter_certificate_no_error').text('Please select a certificate / licence.');
             hasError = true;
         }
 
@@ -392,12 +453,21 @@
 
         var $subtitle = $('#alteration .modal-subtitle');
         if ($subtitle.length) {
-            $subtitle.text(certLabel + ' — enter the issued certificate details to alter.');
+            $subtitle.text(certLabel + ' — select an issued certificate / licence to alter.');
         }
 
         if (window.formSAltLauncherError) {
             Swal.fire('Verification failed', window.formSAltLauncherError, 'error');
         }
+
+        clearAlterLauncherPrefill();
+        $('#alter_certificate_select').val('');
+        loadAlterCertificates(certCode);
+
+        $(document).off('change.formSAltLauncher', '#alter_certificate_select')
+            .on('change.formSAltLauncher', '#alter_certificate_select', function () {
+                applyAlterCertificateSelection($(this).find('option:selected'));
+            });
 
         alterationModal.show();
 

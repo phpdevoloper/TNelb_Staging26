@@ -73,7 +73,7 @@
                     <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" required placeholder="e.g. Site Engineer" value="{{ $designation }}">
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="support-doc">
-                    <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>
+                    <label class="work-card-field-label">Supporting docs</label>
                     @if ($supportDoc !== '')
                         <div class="work-doc-existing mb-1 text-center">
                             <a class="text-primary" href="{{ asset($supportDoc) }}" target="_blank" rel="noopener">
@@ -83,9 +83,9 @@
                         </div>
                     @endif
                     <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined{{ $hideSupportUpload ? ' d-none work-upload-hidden-until-remove' : '' }}" data-upload-kind="work" data-doc-field="support">
-                        <input class="form-control work-doc-input" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" {{ $hideSupportUpload ? '' : 'required' }}>
+                        <input class="form-control work-doc-input" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
                     </div>
-                    <span class="work-card-field-hint{{ $hideSupportUpload ? ' d-none work-upload-hint-hidden-until-remove' : '' }}"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
+                    <span class="work-card-field-hint{{ $hideSupportUpload ? ' d-none work-upload-hint-hidden-until-remove' : '' }}"><i class="fa fa-info-circle"></i> Optional — PDF / JPG / PNG, 5-200 KB</span>
                 </div>
             </div>
         </div>

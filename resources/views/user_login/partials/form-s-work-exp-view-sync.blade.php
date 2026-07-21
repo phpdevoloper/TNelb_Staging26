@@ -54,10 +54,12 @@
         var from = new Date(fromIso + 'T12:00:00');
         var to = new Date(toIso + 'T12:00:00');
         if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return null;
-        var y = to.getFullYear() - from.getFullYear();
-        var m = to.getMonth() - from.getMonth();
-        var d = to.getDate() - from.getDate();
-        if (d < 0) { m--; d += new Date(to.getFullYear(), to.getMonth(), 0).getDate(); }
+        /* Inclusive of From and To (measure to To+1 day). */
+        var end = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1, 12, 0, 0);
+        var y = end.getFullYear() - from.getFullYear();
+        var m = end.getMonth() - from.getMonth();
+        var d = end.getDate() - from.getDate();
+        if (d < 0) { m--; d += new Date(end.getFullYear(), end.getMonth(), 0).getDate(); }
         if (m < 0) { y--; m += 12; }
         return { y: y, m: m, d: d };
     }
@@ -105,7 +107,9 @@
             var diff = calendarDiff(fromIso, toEff);
             if (diff) { yN = diff.y; mN = diff.m; dN = diff.d; }
         }
-        var kvaTxt = (volt === 'up_to_650v') ? 'Not applicable' : (kva ? esc(kva + ' kVA') : '—');
+        var kvaTxt = (volt === 'up_to_650v')
+            ? 'Not applicable'
+            : (!kva ? '—' : (kva === 'Above 1000' ? esc(kva) : esc(kva + ' kVA')));
         var empCell = '<span class="wx-sum-main">' + esc(empTxt) + '</span>';
         if (type === 'electrical_contractor' && cat) empCell += '<span class="wx-sum-sub">Cat: ' + esc(cat) + '</span>';
         if (type === 'electrical_contractor' && lic) empCell += '<span class="wx-sum-sub">Licence: ' + esc(lic) + '</span>';

@@ -70,7 +70,6 @@ class CC_Experience extends Model
         'total_y' => 'integer',
         'total_m' => 'integer',
         'total_d' => 'integer',
-        'transformer_kva' => 'decimal:2',
         'total_exp' => 'decimal:2',
     ];
 

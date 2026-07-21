@@ -201,15 +201,18 @@
                 $tr.find('.work-experience-total-hidden').val('');
             }
 
-            /** Calendar Y/M/D between two local dates (mirrors the server `workExperienceCalendarYmd`). */
+            /** Inclusive calendar Y/M/D: both From and To count (measure to To+1 day).
+             *  e.g. 01-07-2020 → 30-06-2021 = 1y 0m 0d; → 01-07-2021 = 1y 0m 1d.
+             *  Mirrors server `workExperienceCalendarYmd`. */
             function calendarDiffYMD(from, to) {
                 if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return null;
-                var y = to.getFullYear() - from.getFullYear();
-                var m = to.getMonth() - from.getMonth();
-                var d = to.getDate() - from.getDate();
+                var end = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1, 12, 0, 0);
+                var y = end.getFullYear() - from.getFullYear();
+                var m = end.getMonth() - from.getMonth();
+                var d = end.getDate() - from.getDate();
                 if (d < 0) {
                     m--;
-                    d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+                    d += new Date(end.getFullYear(), end.getMonth(), 0).getDate();
                 }
                 if (m < 0) {
                     y--;
@@ -221,7 +224,7 @@
                         y--;
                         m += 12;
                     }
-                    d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+                    d += new Date(end.getFullYear(), end.getMonth(), 0).getDate();
                 }
                 return { y: y, m: m, d: d };
             }
@@ -325,7 +328,8 @@
                     if (isNaN(from.getTime()) || isNaN(to.getTime())) return;
                     if (to < from) return;
                     anyFilled = true;
-                    totalMs += (to - from);
+                    /* Inclusive of From and To (+1 day). */
+                    totalMs += (to - from) + 86400000;
                 });
                 return { ms: totalMs, hasAny: anyFilled };
             }
@@ -560,7 +564,11 @@
                 }
 
                 unlockWorkField($tr, $doc, 'support-doc');
-                $doc.prop('required', true);
+                /* §7b supporting docs are optional. */
+                $doc.prop('required', !isCurrentPart);
+                if (isCurrentPart) {
+                    $tr.find('[data-field="support-doc"] .req').hide();
+                }
 
                 $rel.prop('required', false);
                 if (!isCurrentPart && !$till.is(':checked')) {
@@ -768,8 +776,12 @@
                     $str.find('.work-row-summary-voltage').text(voltage ? (VOLTAGE_LABEL[voltage] || voltage) : '—');
                     if (voltage === VOLTAGE_DISABLES_KVA) {
                         $str.find('.work-row-summary-kva').text('Not applicable');
+                    } else if (!kva) {
+                        $str.find('.work-row-summary-kva').text('—');
+                    } else if (kva === 'Above 1000') {
+                        $str.find('.work-row-summary-kva').text('Above 1000');
                     } else {
-                        $str.find('.work-row-summary-kva').text(kva ? (kva + ' kVA') : '—');
+                        $str.find('.work-row-summary-kva').text(kva + ' kVA');
                     }
                 }
 
@@ -936,7 +948,7 @@
                     if (!readWorkDateFromInput($tr.find('.work-board-meeting-date'))) return false;
                 }
                 var $doc = $tr.find('.work-doc-input');
-                if (!$doc.prop('disabled') && !workInputHasFile($doc)) return false;
+                if (!isCurrentPart && !$doc.prop('disabled') && !workInputHasFile($doc)) return false;
                 var till = $tr.find('.work-date-till').is(':checked');
                 if (!till && !isBoardMember && !isCurrentPart) {
                     var $rel = $tr.find('.work-relieve-input');
@@ -988,14 +1000,14 @@
                 $tr.find('.work-duration-y').val(String(diff.y));
                 $tr.find('.work-duration-m').val(String(diff.m));
                 $tr.find('.work-duration-d').val(String(diff.d));
-                var yearsDec = (to - from) / 86400000 / 365.25;
+                var yearsDec = ((to - from) / 86400000 + 1) / 365.25;
                 var rounded = Math.round(yearsDec * 10) / 10;
                 $tr.find('.work-experience-total-hidden').val(rounded.toFixed(1));
                 validateWorkRowDateRange($tr);
                 done();
             }
 
-            /** Lock or unlock the row's relieving-letter upload based on the till-date checkbox. */
+            /** Lock To-date / relieving when "Till date" is checked; show today's date in To. */
             function applyTillDate($tr) {
                 var $till = $tr.find('.work-date-till');
                 var checked = $till.is(':checked');
@@ -1003,7 +1015,18 @@
 
                 var $toDate = $tr.find('.work-date-to');
                 if (checked) {
-                    $toDate.val('').prop('disabled', true).prop('required', false);
+                    var today = todayIso();
+                    var node = $toDate.get(0);
+                    if (node) {
+                        node.setAttribute('data-raw', today);
+                        if (node.type === 'date') {
+                            $toDate.val(today);
+                        } else {
+                            var parts = today.split('-');
+                            $toDate.val(parts[2] + '-' + parts[1] + '-' + parts[0]);
+                        }
+                    }
+                    $toDate.prop('disabled', true).prop('required', false);
                 } else {
                     $toDate.prop('disabled', false);
                     // Required-state for $toDate is re-evaluated by applyEmploymentType.
@@ -1328,6 +1351,13 @@
             });
 
             /* Type / voltage / till-date drive all the conditional locks. */
+            $(document).on('input', '.js-work-container .work-licence-number, #work-container .work-licence-number', function() {
+                var $el = $(this);
+                var cleaned = String($el.val() || '').replace(/\D+/g, '');
+                if ($el.val() !== cleaned) {
+                    $el.val(cleaned);
+                }
+            });
             $(document).on('change', '.js-work-container .work-employment-type, #work-container .work-employment-type', function() {
                 applyEmploymentType($workRow(this));
                 if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
@@ -1642,10 +1672,11 @@
                 }
             });
 
-            function setFeeNotice(exempt) {
+            function setFeeNotice(/* exempt */) {
                 var $notice = $('#board-member-fee-notice');
                 if (!$notice.length) return;
-                $notice.toggleClass('d-none', !exempt);
+                /* Keep fee exemption silent once §7b board-member details apply — do not show the banner. */
+                $notice.addClass('d-none');
             }
 
             window.wxSyncBoardMemberRenewalFee = async function() {

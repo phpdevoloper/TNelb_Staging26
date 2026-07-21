@@ -30,7 +30,11 @@
     $designation = $hasRow ? (string) ($expRow->designation ?? '') : '';
     $nature = $hasRow ? (string) ($expRow->nature_work ?? '') : '';
     $voltage = $hasRow ? (string) ($expRow->voltage_level ?? '') : '';
-    $kva = $hasRow && $expRow->transformer_kva !== null && $expRow->transformer_kva !== '' ? $expRow->transformer_kva : '';
+    $kva = $hasRow && $expRow->transformer_kva !== null && $expRow->transformer_kva !== '' ? (string) $expRow->transformer_kva : '';
+    if ($kva !== '' && is_numeric($kva)) {
+        $kva = (string) (0 + $kva);
+    }
+    $kvaOptions = ['25', '315', '400', '500', '630', '800', '1000', 'Above 1000'];
     $workFromDate = ($hasRow && $expRow->from_date) ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
     $workToDate = ($hasRow && $expRow->to_date) ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
     $isTill = $hasRow && $workFromDate !== '' && $workToDate === '';
@@ -109,7 +113,7 @@
             </select>
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="contractor-cat">
-            <label class="work-card-field-label">Grade of Licence<span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+            <label class="work-card-field-label">Grade of Licence <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             <select class="form-control work-contractor-cat" name="work_contractor_category[]" disabled>
                 <option value="">—</option>
                 @foreach (['ESA', 'EA', 'ESB', 'EB'] as $cat)
@@ -119,8 +123,8 @@
             <span class="work-card-field-hint" data-hint="cat" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="licence-number">
-            <label class="work-card-field-label">Licence <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="40" autocomplete="off" disabled placeholder="e.g. ESA/12345" value="{{ $licenceNo }}">
+            <label class="work-card-field-label">Licence No <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+            <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="15" inputmode="numeric" pattern="[0-9]*" autocomplete="off" disabled placeholder="e.g. 12345" value="{{ preg_replace('/\D+/', '', (string) $licenceNo) }}">
             <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="organisation">
@@ -155,7 +159,12 @@
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="transformer-kva">
             <label class="work-card-field-label">Transformer (kVA) <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="number" class="form-control work-transformer-kva" name="work_transformer_kva[]" min="0" max="9999999" step="any" inputmode="decimal" autocomplete="off" disabled placeholder="e.g. 250" value="{{ $kva }}">
+            <select class="form-control work-transformer-kva" name="work_transformer_kva[]" disabled autocomplete="off">
+                <option value="">Select</option>
+                @foreach ($kvaOptions as $kvaOpt)
+                    <option value="{{ $kvaOpt }}" {{ (string) $kva === (string) $kvaOpt ? 'selected' : '' }}>{{ $kvaOpt }}</option>
+                @endforeach
+            </select>
             <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
         </div>
         @unless ($hideDates)

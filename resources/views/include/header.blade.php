@@ -1508,7 +1508,7 @@ use Illuminate\Support\Facades\Auth;
                             <section class="digi-section" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }} aria-label="Qualified Supervisor for EA/ESA Contractor License">
                                 <div class="digi-qc-gate">
                                     <p class="digi-qc-question">
-                                        Is Supervisory Competency Certificate recognized as a Qualified Supervisor for an EA/ESA Contractor License?
+                                        Is Supervisory Competency Certificate recognized in EA/ESA Contractor License as a Qualified Supervisor?
                                     </p>
                                     <div class="digi-qc-toggle" role="radiogroup" aria-label="Qualified Supervisor recognition">
                                         <label>
@@ -1539,11 +1539,12 @@ use Illuminate\Support\Facades\Auth;
                                     <div class="digi-field">
                                         <label class="digi-field-label" for="digi_licence_no">
                                             Licence Number <span class="fill">*</span>
-                                            <span class="digi-field-hint">e.g. 12345</span>
+                                            <span class="digi-field-hint">Numbers only (e.g. 12345)</span>
                                         </label>
                                         <div class="digi-field-control">
-                                            <input type="number" class="form-control" id="digi_licence_no" name="licence_no"
-                                                oninput="if(this.value.length > 5) this.value = this.value.slice(0,5);">
+                                            <input type="text" class="form-control" id="digi_licence_no" name="licence_no"
+                                                inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off"
+                                                placeholder="e.g. 12345">
                                             <span class="error text-danger" id="licence_no_error"></span>
                                         </div>
                                     </div>
@@ -1740,7 +1741,7 @@ use Illuminate\Support\Facades\Auth;
                             <div class="form-group" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }}>
                                 <div class="row mb-2">
                                     <div class="col-lg-8">
-                                        <label>Is Supervisory Competency Certificate recognized as a Qualified Supervisor for an EA/ESA Contractor License</label>
+                                        <label>Is Supervisory Competency Certificate recognized in EA/ESA Contractor License as a Qualified Supervisor?</label>
 
                                     </div>
                                     <div class="col-12 col-md-3">
@@ -1784,7 +1785,9 @@ use Illuminate\Support\Facades\Auth;
 
                                     </div>
                                     <div class="col-12 col-md-5">
-                                        <input type="number" max="20" class="form-control" name="licence_no">
+                                        <input type="text" class="form-control" name="licence_no"
+                                            inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off"
+                                            placeholder="e.g. 12345">
                                         <span class="error text-danger" id="licence_no_error"></span>
                                     </div>
 
@@ -1877,10 +1880,12 @@ use Illuminate\Support\Facades\Auth;
                                 <h6 class="digi-section-title" id="alter-cert-section-title">Certificate Details <span class="fill">*</span></h6>
 
                                 <div class="digi-field">
-                                    <label class="digi-field-label" for="alter_certificate_no">Certificate No <span class="fill">*</span></label>
+                                    <label class="digi-field-label" for="alter_certificate_select">Select Certificate <span class="fill">*</span></label>
                                     <div class="digi-field-control">
-                                        <input type="text" class="form-control" id="alter_certificate_no" name="alter_certificate_no"
-                                               placeholder="Enter certificate number" maxlength="80" autocomplete="off">
+                                        <select class="form-control" id="alter_certificate_select" name="alter_certificate_select" autocomplete="off">
+                                            <option value="">— Select certificate —</option>
+                                        </select>
+                                        <input type="hidden" id="alter_certificate_no" name="alter_certificate_no" value="">
                                         <span class="error text-danger" id="alter_certificate_no_error"></span>
                                     </div>
                                 </div>
@@ -1889,19 +1894,19 @@ use Illuminate\Support\Facades\Auth;
                                     <div class="digi-date-item">
                                         <label for="alter_date_of_issue">Date of Issue <span class="fill">*</span></label>
                                         <input type="date" class="form-control digi-date-input" id="alter_date_of_issue" name="alter_date_of_issue"
-                                               min="1900-01-01" max="{{ date('Y-m-d') }}">
+                                               min="1900-01-01" max="{{ date('Y-m-d') }}" readonly>
                                         <span class="error text-danger" id="alter_date_of_issue_error"></span>
                                     </div>
                                     <div class="digi-date-item">
                                         <label for="alter_valid_from">Valid From <span class="fill">*</span></label>
                                         <input type="date" class="form-control digi-date-input" id="alter_valid_from" name="alter_valid_from"
-                                               min="1900-01-01" max="{{ date('Y-m-d') }}">
+                                               min="1900-01-01" max="{{ date('Y-m-d') }}" readonly>
                                         <span class="error text-danger" id="alter_valid_from_error"></span>
                                     </div>
                                     <div class="digi-date-item">
                                         <label for="alter_valid_to">Valid To <span class="fill">*</span></label>
                                         <input type="date" class="form-control digi-date-input" id="alter_valid_to" name="alter_valid_to"
-                                               min="1900-01-01" max="2099-12-31">
+                                               min="1900-01-01" max="2099-12-31" readonly>
                                         <span class="error text-danger" id="alter_valid_to_error"></span>
                                     </div>
                                 </div>
@@ -1913,8 +1918,6 @@ use Illuminate\Support\Facades\Auth;
 
                                     </div>
                                     <div class="col-lg-6">
-
-
 
                                         <select class="form-control" id="alter_cert_name" name="cert_name">
                                             <option value="0">---Select Type---</option>
@@ -1929,23 +1932,10 @@ use Illuminate\Support\Facades\Auth;
                                         <span class="error text-danger" id="cert_name_error"></span>
 
                                     </div>
-
                                 </div>
-
                             </div>
-
-
-
-
-
-
-
                         </form>
-
-
                     </div>
-
-
                 </div>
 
                 <div class="modal-footer justify-content-center">

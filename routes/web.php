@@ -133,6 +133,7 @@ Route::middleware(['auth'])->group(function () {
 
     // CC Alteration-----------------------------
     Route::get('form_s_alt', [FormSAlteration::class, 'index'])->name('form_s_alt');
+    Route::get('form_s_alt/certificates', [FormSAlteration::class, 'listCertificates'])->name('form_s_alt.certificates');
     Route::post('form_s_alt/verify', [FormSAlteration::class, 'verifyParent'])->name('form_s_alt.verify');
     Route::post('form_s_alt/store', [FormSAlteration::class, 'store'])->name('form_s_alt.store');
     Route::post('form_s_alt/draft', [FormSAlteration::class, 'saveDraft'])->name('form_s_alt.draft');

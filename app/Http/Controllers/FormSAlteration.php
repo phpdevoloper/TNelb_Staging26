@@ -58,8 +58,6 @@ class FormSAlteration extends BaseController
 
         }
 
-
-
         $parentId = trim((string) $request->query('parent', ''));
 
         $formCode = $this->resolveFormCode($request);
@@ -133,26 +131,35 @@ class FormSAlteration extends BaseController
 
     }
 
-
-
-    public function verifyParent(Request $request)
-
+    /**
+     * Dropdown data: issued certificates/licences for the logged-in applicant.
+     */
+    public function listCertificates(Request $request)
     {
+        if (! Auth::check()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized.', 'certificates' => []], 401);
+        }
 
         $formCode = $this->resolveFormCode($request);
+        $loginId = (string) Auth::user()->login_id;
+        $certificates = $this->alterationService->listIssuedCertificatesForLogin($loginId, $formCode);
 
+        return response()->json([
+            'status' => 'success',
+            'form' => $formCode,
+            'certificates' => $certificates,
+        ]);
+    }
 
+    public function verifyParent(Request $request)
+    {
+        $formCode = $this->resolveFormCode($request);
 
         if ($formCode !== 'S') {
-
             return response()->json([
-
                 'status' => 'error',
-
                 'message' => 'Alteration for this certificate type is not available yet.',
-
             ], 422);
-
         }
 
 

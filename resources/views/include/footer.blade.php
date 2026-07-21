@@ -2235,12 +2235,14 @@ $(document).ready(function() {
                 const from = new Date(fromIso + 'T12:00:00');
                 const to = new Date(toIso + 'T12:00:00');
                 if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return null;
-                let y = to.getFullYear() - from.getFullYear();
-                let m = to.getMonth() - from.getMonth();
-                let d = to.getDate() - from.getDate();
+                /* Inclusive of From and To (measure to To+1 day). */
+                const end = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1, 12, 0, 0);
+                let y = end.getFullYear() - from.getFullYear();
+                let m = end.getMonth() - from.getMonth();
+                let d = end.getDate() - from.getDate();
                 if (d < 0) {
                     m--;
-                    d += new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+                    d += new Date(end.getFullYear(), end.getMonth(), 0).getDate();
                 }
                 if (m < 0) {
                     y--;
@@ -2370,7 +2372,7 @@ $(document).ready(function() {
                     ? 'Not applicable'
                     : ((voltVal === VOLTAGE_DISABLES_KVA_SW)
                         ? 'Not applicable'
-                        : (kvaRaw ? esc(kvaRaw + ' kVA') : '—'));
+                        : (!kvaRaw ? '—' : (kvaRaw === 'Above 1000' ? esc(kvaRaw) : esc(kvaRaw + ' kVA'))));
 
                 const periodHtml = buildSwWorkPeriodHtml(fr, to, tillChk, yPart, mPart, dPart);
                 const isTill = tillChk && tillChk.checked;
@@ -3228,6 +3230,10 @@ $(document).ready(function() {
                             licenceNumber.after('<span class="error-message text-danger d-block mt-1">Licence number is required.</span>');
                             if (!firstErrorField) firstErrorField = licenceNumber;
                             isValid = false;
+                        } else if (licenceNumber.length && !/^\d+$/.test((licenceNumber.val() || '').trim())) {
+                            licenceNumber.after('<span class="error-message text-danger d-block mt-1">Licence number must contain numbers only.</span>');
+                            if (!firstErrorField) firstErrorField = licenceNumber;
+                            isValid = false;
                         }
                     }
 
@@ -3317,11 +3323,29 @@ $(document).ready(function() {
                     }
                     /* 2-year minimum is enforced as a combined total across all rows (after this .each() loop). */
 
-                    /* Column 12 — Supporting documents (always required for S) */
-                    if (!hasSupportingDoc) {
-                        $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">Supporting document is required.</span>');
-                        if (!firstErrorField) firstErrorField = workDocument.length ? workDocument : designation;
-                        isValid = false;
+                    /* Column 12 — Supporting documents (required for 7a; optional for 7b) */
+                    if (!isFormS7bCurrentWorkRow($row)) {
+                        if (!hasSupportingDoc) {
+                            $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">Supporting document is required.</span>');
+                            if (!firstErrorField) firstErrorField = workDocument.length ? workDocument : designation;
+                            isValid = false;
+                        } else if (workDocument.length && workDocument.get(0) && workDocument.get(0).files && workDocument.get(0).files.length) {
+                            const file = workDocument.get(0).files[0];
+                            if (file) {
+                                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+                                const minSize = 5 * 1024;
+                                const maxSize = 200 * 1024;
+                                if (allowedTypes.indexOf(file.type) === -1) {
+                                    $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">Only PDF, JPG or PNG files are allowed.</span>');
+                                    if (!firstErrorField) firstErrorField = workDocument;
+                                    isValid = false;
+                                } else if (file.size < minSize || file.size > maxSize) {
+                                    $workErrorTarget.after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 200 KB.</span>');
+                                    if (!firstErrorField) firstErrorField = workDocument;
+                                    isValid = false;
+                                }
+                            }
+                        }
                     } else if (workDocument.length && workDocument.get(0) && workDocument.get(0).files && workDocument.get(0).files.length) {
                         const file = workDocument.get(0).files[0];
                         if (file) {
@@ -3509,7 +3533,8 @@ $(document).ready(function() {
                     if (isNaN(fromD.getTime()) || isNaN(toD.getTime())) return;
                     if (toD < fromD) return;
                     anyFilled = true;
-                    totalMs += (toD - fromD);
+                    /* Inclusive of From and To (+1 day). */
+                    totalMs += (toD - fromD) + 86400000;
                     if (!$firstFilledToDate) $firstFilledToDate = $to;
                 });
                 if (anyFilled && totalMs < twoYearsMs) {

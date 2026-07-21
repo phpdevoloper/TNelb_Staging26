@@ -87,6 +87,113 @@ class FormSAlterationService
     }
 
     /**
+     * Issued certificates/licences for the logged-in applicant (alteration launcher dropdown).
+     *
+     * @return list<array{
+     *     application_id: string,
+     *     certificate_no: string,
+     *     date_of_issue: string|null,
+     *     valid_from: string|null,
+     *     valid_to: string|null,
+     *     appl_type: string,
+     *     label: string
+     * }>
+     */
+    public function listIssuedCertificatesForLogin(string $loginId, string $formCode = 'S'): array
+    {
+        $loginId = trim($loginId);
+        if ($loginId === '') {
+            return [];
+        }
+
+        $formCode = strtoupper(trim($formCode));
+        $certForm = match ($formCode) {
+            'H' => 'WH',
+            default => $formCode,
+        };
+
+        $certService = app(CompetencyCertificateService::class);
+        $metaService = app(CompetencyMetaService::class);
+        $certTable = $certService->certTableForForm($certForm);        
+        $metaTable = $metaService->tableForForm($certForm);
+        if (! $certTable || ! $metaTable) {
+            return [];
+        }
+
+        $paidStatuses = ['payment', 'paid', 'Y', 'y'];
+        $rows = DB::table($certTable.' as c')
+            ->join($metaTable.' as m', 'm.application_id', '=', 'c.application_id')
+            ->where('m.login_id', $loginId)
+            ->whereIn('m.appl_type', ['N', 'R', 'D'])
+            ->where(function ($q) use ($paidStatuses) {
+                $q->whereIn('m.payment_status', $paidStatuses)
+                    ->orWhereRaw("LOWER(TRIM(COALESCE(m.payment_status, ''))) IN ('y','payment','paid')");
+            })
+            ->whereNotNull('c.certificate_no')
+            ->where('c.certificate_no', '!=', '')
+            ->orderByDesc('c.valid_to')
+            ->orderByDesc('c.dateof_issue')
+            ->select(
+                'c.application_id',
+                'c.certificate_no',
+                'c.dateof_issue',
+                'c.valid_from',
+                'c.valid_to',
+                'm.appl_type'
+            )
+            ->get();
+
+        $fmt = static function ($value): ?string {
+            if ($value === null || $value === '') {
+                return null;
+            }
+            try {
+                return Carbon::parse($value)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+
+        $fmtDisplay = static function (?string $iso): string {
+            if ($iso === null || $iso === '') {
+                return '—';
+            }
+            try {
+                return Carbon::parse($iso)->format('d-m-Y');
+            } catch (\Throwable $e) {
+                return $iso;
+            }
+        };
+
+        $applLabels = ['N' => 'New', 'R' => 'Renewal', 'D' => 'Digitization'];
+
+        return $rows->map(function ($row) use ($fmt, $fmtDisplay, $applLabels) {
+            $issue = $fmt($row->dateof_issue ?? null);
+            $from = $fmt($row->valid_from ?? null);
+            $to = $fmt($row->valid_to ?? null);
+            $certNo = trim((string) ($row->certificate_no ?? ''));
+            $appl = strtoupper(trim((string) ($row->appl_type ?? '')));
+            $applTxt = $applLabels[$appl] ?? $appl;
+
+            return [
+                'application_id' => (string) ($row->application_id ?? ''),
+                'certificate_no' => $certNo,
+                'date_of_issue' => $issue,
+                'valid_from' => $from,
+                'valid_to' => $to,
+                'appl_type' => $appl,
+                'label' => trim(
+                    $certNo
+                    .' ('.$applTxt.')'
+                    .' — Issue '.$fmtDisplay($issue)
+                    .' | From '.$fmtDisplay($from)
+                    .' | To '.$fmtDisplay($to)
+                ),
+            ];
+        })->values()->all();
+    }
+
+    /**
      * @param  array{
      *     certificate_no: string,
      *     date_of_issue: mixed,

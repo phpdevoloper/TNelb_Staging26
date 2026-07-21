@@ -52,7 +52,13 @@
     $natureTxt = $natureLabels[$nature] ?? ($nature !== '' ? $nature : '—');
     $voltage = (string) ($expRow->voltage_level ?? '');
     $voltTxt = $voltageLabels[$voltage] ?? ($voltage !== '' ? $voltage : '—');
-    $kvaTxt = ($voltage === 'up_to_650v') ? 'Not applicable' : (($expRow->transformer_kva !== null && $expRow->transformer_kva !== '') ? $expRow->transformer_kva . ' kVA' : '—');
+    $kvaRaw = ($expRow->transformer_kva !== null && $expRow->transformer_kva !== '') ? (string) $expRow->transformer_kva : '';
+    if ($kvaRaw !== '' && is_numeric($kvaRaw)) {
+        $kvaRaw = (string) (0 + $kvaRaw);
+    }
+    $kvaTxt = ($voltage === 'up_to_650v')
+        ? 'Not applicable'
+        : ($kvaRaw === '' ? '—' : ($kvaRaw === 'Above 1000' ? 'Above 1000' : ($kvaRaw . ' kVA')));
 
     $fromIso = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
     $toIso = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
