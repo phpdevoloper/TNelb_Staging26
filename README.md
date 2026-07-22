@@ -14,6 +14,10 @@ C:\xampp\php\php.exe artisan serve --host=10.163.2.43 --port=8000
 
 git commit -m "QC staff completion"
 
+
+git config user.name "saravana perumal"
+git config user.email "saravanaperumal768@gmail.com"
+
 Array value
 dd($tempDocs->pluck('qc_code')->toArray());
 

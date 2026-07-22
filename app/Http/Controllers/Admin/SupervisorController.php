@@ -1145,8 +1145,8 @@ class SupervisorController extends Controller
         //     'updated_by'      => Auth::id(),
         // ]));
         // exit;
-
-
+        
+      
         $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
         ->where('certificate_name', $applicant->certificate_name)
         ->first();
@@ -1214,13 +1214,15 @@ class SupervisorController extends Controller
                 ]);
         }
 
-        // dd($role); exit;
+     
 
-        if ($request->forwarded_to == 'assistantsecretary ') {
-
-
+         if ($role == 'assistantsecretary') {
+            
+            
             $role = 'Assistant Secretary';
-        }
+            }
+            
+            // dd($role); exit;
 
         return response()->json([
             'status' => "success",

@@ -435,13 +435,13 @@ class CompetencyAdminQueryService
                     ->where('ta.form_id', $formId)
                     ->where($this->paidPaymentConstraint('ta'));
 
-                    if ($roleId == 3) {
+                    // if ($roleId == 3) {
 
-                        $query->where(function ($q) {
-                            $q->where('ta.app_status', 'PRE');
-                            // ->Where('ta.processed_by', 'PR');
-                        });
-                    }
+                    //     $query->where(function ($q) {
+                    //         $q->where('ta.app_status', 'PRE');
+                    //         // ->Where('ta.processed_by', 'PR');
+                    //     });
+                    // }
 
 
             }

@@ -3850,7 +3850,12 @@ public function update(Request $request, $id)
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return $this->formErrorResponse($e);
+             return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 500);
         }
     }
 

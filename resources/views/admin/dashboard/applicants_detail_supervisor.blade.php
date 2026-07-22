@@ -911,7 +911,7 @@
                                             aria-controls="home-tab-pane" aria-selected="true">Personal Details</button>
                                     </li>
 
-                                    @if($applicant->appl_type != 'D')
+                                   @if(!in_array($applicant->appl_type, ['D', 'A']))
 
                                         <li class="nav-item" role="presentation">
                                             <button class="nav-link " id="contact-tab" data-bs-toggle="tab"
@@ -2001,6 +2001,7 @@
                                                     data-bs-target="#rejectionModal">Reject</button>
                                             </div>
                                             {{-- Row 2: Return actions (single line) --}}
+                                            @if(!in_array($applicant->appl_type, ['D', 'A']))
                                             <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
 
                                                 <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info"
@@ -2008,6 +2009,7 @@
                                                     Return to Applicant
                                                 </button>
                                             </div>
+                                            @endif
                                         </div>
                                     </div>
 
