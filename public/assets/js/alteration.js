@@ -258,6 +258,28 @@
             return false;
         }
 
+        /* Same 650V / 2-year rule as New / Renewal / Digitization (shared work-exp scripts). */
+        if (flags.alterWork || (flags.optWork && hasNewWorkRows())) {
+            if (typeof window.wxValidateFormSCountableExperience === 'function') {
+                var expCheck = window.wxValidateFormSCountableExperience();
+                if (!expCheck.ok) {
+                    var $msg = $('#work-exp-total-msg-previous').length
+                        ? $('#work-exp-total-msg-previous')
+                        : $('#work-exp-total-msg');
+                    if ($msg.length) {
+                        $msg.html(
+                            '<div class="work-exp-total-error text-danger small" role="alert">' +
+                                expCheck.message +
+                            '</div>'
+                        );
+                    }
+                    Swal.fire('Validation', expCheck.message, 'warning');
+                    scrollToSection('#fsAltSectionWork');
+                    return false;
+                }
+            }
+        }
+
         if (!flags.alterName && !flags.alterAddress && !flags.alterWork) {
             Swal.fire('Validation', 'Make the selected change(s) before submitting.', 'warning');
             return false;

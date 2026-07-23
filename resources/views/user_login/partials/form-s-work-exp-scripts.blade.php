@@ -15,6 +15,64 @@
             var isAlterationMode = @json($isAlterationMode);
             var DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
             var DOCUMENT_PUBLIC_BASE_URL = @json(rtrim(trim((string) (config('document_versioning.public_base_url') ?: '')), '/'));
+            /* Shared with §7b Representing Organisation select (temporary sample list). */
+            var REPRESENTING_ORG_OPTIONS = [
+                ['TANGEDCO', 'TANGEDCO'],
+                ['TANTRANSCO', 'TANTRANSCO'],
+                ['TNEB Limited', 'TNEB Limited'],
+                ['Tamil Nadu Generation and Distribution Corporation', 'Tamil Nadu Generation and Distribution Corporation'],
+                ['Private Contractor / Firm', 'Private Contractor / Firm'],
+                ['Central Government PSU', 'Central Government PSU'],
+                ['State Government Department', 'State Government Department']
+            ];
+            window.wx7bRepresentingOrgOptions = REPRESENTING_ORG_OPTIONS;
+
+            /**
+             * Ensure §7b "Representing Organisation" is a <select> everywhere
+             * (covers legacy markup / cloned text inputs in #work-container-current).
+             */
+            function ensure7bRepresentingOrgSelect($scope) {
+                var $roots = $scope && $scope.length
+                    ? $scope
+                    : $('#work-container-current .work-fields, .js-work-container[data-work-part="current"] .work-fields');
+                $roots.each(function () {
+                    var $tr = $(this);
+                    var $field = $tr.find('[data-field="organisation"]').first();
+                    var $emp = $tr.find('.work-employer-input').first();
+                    if (!$emp.length) return;
+
+                    $field.find('.work-card-field-label').each(function () {
+                        var $lab = $(this);
+                        var t = ($lab.html() || '').replace(/\s+/g, ' ');
+                        if (/Representing Organisation/i.test(t) || /Organisation/i.test(t)) {
+                            $lab.html('Representing Organisation<span class="req">*</span>');
+                        }
+                    });
+
+                    if ($emp.is('select')) return;
+
+                    var current = ($emp.val() || '').trim();
+                    var wasDisabled = !!$emp.prop('disabled');
+                    var wasRequired = !!$emp.prop('required');
+                    var $sel = $('<select class="form-control work-employer-input" name="work_employer_name[]" autocomplete="off" aria-label="Representing Organisation"></select>');
+                    $sel.append($('<option></option>').attr('value', '').text('Select organisation'));
+                    var matched = false;
+                    REPRESENTING_ORG_OPTIONS.forEach(function (pair) {
+                        var opt = $('<option></option>').attr('value', pair[0]).text(pair[1]);
+                        if (current && current === pair[0]) {
+                            opt.prop('selected', true);
+                            matched = true;
+                        }
+                        $sel.append(opt);
+                    });
+                    if (current && !matched) {
+                        $sel.append($('<option></option>').attr('value', current).text(current).prop('selected', true));
+                    }
+                    if (wasRequired) $sel.prop('required', true);
+                    if (wasDisabled) $sel.prop('disabled', true);
+                    $emp.replaceWith($sel);
+                });
+            }
 
             function competencyStoredDocHref(storedPath) {
                 storedPath = String(storedPath || '').trim();
@@ -76,6 +134,42 @@
                 var $prev = $('#work-container-previous .work-fields');
                 if ($prev.length) return $prev;
                 return $('#work-container .work-fields');
+            }
+
+            /** Voltage "Up to 650V" does not count toward the combined experience total (all appl types). */
+            function workRowCountsTowardExperienceTotal($tr) {
+                if (!$tr || !$tr.length) return false;
+                var voltage = ($tr.find('.work-voltage').val() || '').trim();
+                return voltage !== VOLTAGE_DISABLES_KVA;
+            }
+
+            function totalDurationAcrossRows() {
+                var totalMs = 0;
+                var anyCountable = false;
+                var anyDatedExcluded650v = false;
+                workFieldsForTwoYearTotal().each(function() {
+                    var $tr = $(this);
+                    var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
+                    var toStr = effectiveToStr($tr);
+                    if (!fromStr || !toStr) return;
+                    var from = new Date(fromStr + 'T12:00:00');
+                    var to   = new Date(toStr + 'T12:00:00');
+                    if (isNaN(from.getTime()) || isNaN(to.getTime())) return;
+                    if (to < from) return;
+                    if (!workRowCountsTowardExperienceTotal($tr)) {
+                        anyDatedExcluded650v = true;
+                        return;
+                    }
+                    anyCountable = true;
+                    /* Inclusive of From and To (+1 day). */
+                    totalMs += (to - from) + 86400000;
+                });
+                return {
+                    ms: totalMs,
+                    hasAny: anyCountable,
+                    hasExcluded650vOnly: anyDatedExcluded650v && !anyCountable,
+                    hasExcluded650v: anyDatedExcluded650v
+                };
             }
 
             function workExpTotalMsgEl() {
@@ -315,25 +409,6 @@
                 return readWorkDateFromInput($tr.find('.work-date-to'));
             }
 
-            function totalDurationAcrossRows() {
-                var totalMs = 0;
-                var anyFilled = false;
-                workFieldsForTwoYearTotal().each(function() {
-                    var $tr = $(this);
-                    var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
-                    var toStr = effectiveToStr($tr);
-                    if (!fromStr || !toStr) return;
-                    var from = new Date(fromStr + 'T12:00:00');
-                    var to   = new Date(toStr + 'T12:00:00');
-                    if (isNaN(from.getTime()) || isNaN(to.getTime())) return;
-                    if (to < from) return;
-                    anyFilled = true;
-                    /* Inclusive of From and To (+1 day). */
-                    totalMs += (to - from) + 86400000;
-                });
-                return { ms: totalMs, hasAny: anyFilled };
-            }
-
             /** Validation message lives below the card, outside .work-row border. */
             function workRowCard($tr) {
                 if (!$tr || !$tr.length) return $();
@@ -427,11 +502,19 @@
                 /* Legacy banner under the cards (kept for backward compatibility with footer.blade.php). */
                 var $msg = workExpTotalMsgEl();
                 if ($msg.length) {
-                    if (!t.hasAny || t.ms >= TWO_YEARS_MS) { $msg.empty(); }
-                    else {
+                    var needsTwoYears = t.hasAny || t.hasExcluded650vOnly;
+                    if (!needsTwoYears || t.ms >= TWO_YEARS_MS) {
+                        $msg.empty();
+                    } else if (t.hasExcluded650vOnly) {
                         $msg.html(
-                            '<div class="work-exp-total-error text-danger" role="alert">' +
-                                'Minimum 2 Years Experience needed across all entries.' +
+                            '<div class="work-exp-total-error error-message text-danger" role="alert">' +
+                                'Experience with Voltage Level "Up to 650V" is not counted. Add experience above 650V totaling at least 2 years.' +
+                            '</div>'
+                        );
+                    } else {
+                        $msg.html(
+                            '<div class="work-exp-total-error error-message text-danger" role="alert">' +
+                                'Minimum 2 Years Experience needed across all entries (Voltage up to 650V is not counted).' +
                             '</div>'
                         );
                     }
@@ -826,6 +909,12 @@
                     $box.append($durRow);
                 }
                 $periodCell.append($box);
+                if (voltage === VOLTAGE_DISABLES_KVA) {
+                    $periodCell.append(
+                        $('<div class="text-danger small mt-1" style="font-weight:600;">')
+                            .text('Not counted toward experience (Up to 650V)')
+                    );
+                }
 
                 /* Col 8 — Attachments */
                 var $docInput = $tr.find('.work-doc-input');
@@ -863,7 +952,7 @@
                 }
             }
 
-            /** Complete rows switch to compact order-card layout (no status badge in UI). */
+            /** Complete rows stay expanded until Submit (so the done button is visible), then collapse to summary. */
             function updateRowStatus($tr) {
                 if (isAlterationFrozenRow($tr)) {
                     $tr.addClass('is-complete work-row--compact').removeClass('work-row--expanded');
@@ -878,12 +967,9 @@
                 var useSummary = workContainerUsesSummaryPanel(workContainerFor($tr));
                 $tr.toggleClass('is-complete', complete);
                 if (complete) {
+                    /* First time complete: keep the form open so Submit appears. Collapse only via Submit / chevron. */
                     if (!wasComplete) {
-                        if (useSummary) {
-                            $tr.removeClass('work-row--expanded');
-                        } else {
-                            $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-                        }
+                        $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
                     } else if (!useSummary) {
                         $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
                     }
@@ -1067,6 +1153,7 @@
                     // Required-state is re-evaluated by applyEmploymentType (only required when a type is chosen).
                 }
                 setFieldLock($tr, 'transformer-kva', locked);
+                $tr.find('.work-card-field-hint[data-hint="duration-650v"]').toggle(locked);
             }
 
             /** Drive every column's enable / required state from the Employment Type. */
@@ -1186,7 +1273,12 @@
                 updateRowHeader($tr);
             }
 
-            function initWorkRow($tr) { applyEmploymentType($tr); }
+            function initWorkRow($tr) {
+                if ($tr.closest('#work-container-current, .js-work-container[data-work-part="current"]').length) {
+                    ensure7bRepresentingOrgSelect($tr);
+                }
+                applyEmploymentType($tr);
+            }
 
             function refreshWorkSerials() {
                 workContainers().each(function() {
@@ -1384,6 +1476,8 @@
                 $tr.find('.work-transformer-kva').nextAll('.error-message').remove();
                 $tr.find('.work-card-field[data-field="transformer-kva"] .error-message').remove();
                 updateRowHeader($tr);
+                /* Up to 650V rows are excluded from the combined experience total. */
+                updateOverallTotalYears();
             });
             $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
@@ -1407,6 +1501,9 @@
             $(document).on('input change', '.js-work-container .work-fields :input, #work-container .work-fields :input', function() {
                 var $tr = $workRow(this);
                 updateRowStatus($tr);
+            });
+            $(document).on('wx:recheck-complete', '.js-work-container .work-fields, #work-container .work-fields', function() {
+                updateRowStatus($(this));
             });
             /* File-input change also affects "Complete" pill and summary attachments. */
             $(document).on('change', '.js-work-container .work-doc-input, .js-work-container .work-relieve-input, #work-container .work-doc-input, #work-container .work-relieve-input', function() {
@@ -1627,6 +1724,25 @@
                     }, 180);
                 }
             });
+
+            /**
+             * Shared 2-year / Up-to-650V gate for New, Renewal, Digitization, Edit, Alteration.
+             * Returns { ok: true } or { ok: false, message: '...' }.
+             */
+            window.wxValidateFormSCountableExperience = function () {
+                var t = totalDurationAcrossRows();
+                var needsTwoYears = t.hasAny || t.hasExcluded650vOnly;
+                if (!needsTwoYears || t.ms >= TWO_YEARS_MS) {
+                    return { ok: true, total: t };
+                }
+                return {
+                    ok: false,
+                    total: t,
+                    message: t.hasExcluded650vOnly
+                        ? 'Experience with Voltage Level "Up to 650V" is not counted. Add experience above 650V totaling at least 2 years.'
+                        : 'Minimum 2 Years Experience needed across all entries (Voltage up to 650V is not counted).'
+                };
+            };
         })();
 
 @if (!empty($enableBoardMemberRenewalFeeExempt) || !empty($enableBoardMemberFeeExempt))

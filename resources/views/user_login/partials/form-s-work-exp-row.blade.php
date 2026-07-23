@@ -203,6 +203,7 @@
                     <input type="text" class="form-control work-duration-d" readonly inputmode="none" tabindex="-1" placeholder="0" value="{{ $durD }}" aria-label="Days in this period">
                 </div>
             </div>
+            <span class="work-card-field-hint" data-hint="duration-650v" style="display:none;"><i class="fa fa-info-circle"></i> Not counted toward experience total (voltage up to 650V)</span>
         </div>
         @else
         <input type="hidden" class="work-duration-y" value="{{ $durY }}">
@@ -271,15 +272,15 @@
             <span class="work-card-field-hint" data-hint="relieve-default"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
         </div>
         @endif
-
-        @if ($showSummaryPanel)
-        <div class="work-row-done-bar{{ $useBootstrapGrid ? ' col-12' : '' }}">
-            <button type="button" class="work-row-done-btn" aria-label="Submit this entry and return to summary card">
-                <i class="fa fa-check" aria-hidden="true"></i> Submit
-            </button>
-        </div>
-        @endif
     </div>
+
+    @if ($showSummaryPanel)
+    <div class="work-row-done-bar{{ $useBootstrapGrid ? ' col-12' : '' }}">
+        <button type="button" class="work-row-done-btn" aria-label="Submit this entry and return to summary card">
+            <i class="fa fa-check" aria-hidden="true"></i> Submit
+        </button>
+    </div>
+    @endif
 
         <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $totalExp }}" @if($alterationExistingRow) disabled @endif>
         <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $orgName }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>

@@ -44,6 +44,10 @@
                 <table class="table table-sm no-border-table board-member-detail-table">
                     <tbody>
                         <tr>
+                            <th>Representing Organisation</th>
+                            <td>{{ trim((string) ($expRow->org_name ?? $expRow->company_name ?? '')) !== '' ? ($expRow->org_name ?? $expRow->company_name) : '—' }}</td>
+                        </tr>
+                        <tr>
                             <th>Details of the meeting</th>
                             <td>{{ $meetingDetails !== '' ? $meetingDetails : '—' }}</td>
                         </tr>

@@ -1667,7 +1667,7 @@ $(document).ready(function() {
                                             <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="7b">7b</span>
                                             <div>
                                                 <div class="prv-sw-section-title">Are you a Board member of TNELB or Ex board member of TNELB?</div>
-                                                <div class="prv-sw-section-tamil">தமிழ்நாடு மின்சார வாரிய கோப்புறை / முன்னாள் கோப்புறை உறுப்பினரா?</div>
+                                                <div class="prv-sw-section-tamil">நீங்கள் மின்சார உரிமையாளர்கள் வாரியத்தின் குழு உறுப்பினரா / முன்னாள் குழு உறுப்பினரா?</div>
                                             </div>
                                         </div>
                                         <div class="prv-sw-section-body">
@@ -1676,7 +1676,7 @@ $(document).ready(function() {
                                                 <div class="row g-2">
                                                     <div class="col-12 col-sm-6">
                                                         <div class="prv-sw-field mb-0">
-                                                            <div class="prv-sw-label">Organisation</div>
+                                                            <div class="prv-sw-label">Representing Organisation</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bOrg">&mdash;</div>
                                                         </div>
                                                     </div>
@@ -2374,7 +2374,10 @@ $(document).ready(function() {
                         ? 'Not applicable'
                         : (!kvaRaw ? '—' : (kvaRaw === 'Above 1000' ? esc(kvaRaw) : esc(kvaRaw + ' kVA'))));
 
-                const periodHtml = buildSwWorkPeriodHtml(fr, to, tillChk, yPart, mPart, dPart);
+                const periodHtml = buildSwWorkPeriodHtml(fr, to, tillChk, yPart, mPart, dPart)
+                    + ((voltVal === VOLTAGE_DISABLES_KVA_SW)
+                        ? '<div class="text-danger small mt-1" style="font-weight:600;">Not counted toward experience (Up to 650V)</div>'
+                        : '');
                 const isTill = tillChk && tillChk.checked;
                 const relieveNote = isTill ? 'Not required (Till date)' : (isBoardMember ? 'Optional' : null);
                 const attachHtml = '<div class="wx-sum-attach-stack">'
@@ -2794,8 +2797,10 @@ $(document).ready(function() {
         }
 
         function scrollCompetencyToValidationError(firstErrorField) {
-            $('#work-container .work-fields.work-row--compact').each(function () {
-                if ($(this).find('.error-message').length) {
+            $('#work-container .work-fields.work-row--compact, .js-work-container .work-fields.work-row--compact').each(function () {
+                if ($(this).find('.error-message').filter(function () {
+                    return (($(this).text() || '').trim() !== '');
+                }).length) {
                     $(this).addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
                     $(this).find('.work-row-toggle-btn').attr('aria-expanded', 'true');
                     if (typeof window.wxSyncWorkSummaryTable === 'function') {
@@ -2804,7 +2809,36 @@ $(document).ready(function() {
                 }
             });
 
-            const $visibleMsg = $('#competency_form_ws .error-message:visible').first();
+            const hasErrorText = function ($el) {
+                return !!($el && $el.length && (($el.text() || '').trim() !== ''));
+            };
+
+            /* Prefer real error text — ignore empty placeholder .error-message spans in the markup.
+               Also include Form S combined experience banner (.work-exp-total-error). */
+            let $visibleMsg = $(
+                '#competency_form_ws .error-message:visible, ' +
+                '#competency_form_ws .work-exp-total-error:visible, ' +
+                '#competency_form_p .error-message:visible, ' +
+                '#competency_form_p .work-exp-total-error:visible'
+            )
+                .filter(function () { return hasErrorText($(this)); })
+                .first();
+
+            if (!$visibleMsg.length && firstErrorField && firstErrorField.length) {
+                $visibleMsg = firstErrorField.nextAll('.error-message:visible, .work-exp-total-error:visible')
+                    .add(firstErrorField.siblings('.error-message:visible, .work-exp-total-error:visible'))
+                    .add(firstErrorField.closest('td, .work-card-field, .form-group, .fs-field-head, .col-12, .col-md-6, .work-exp-wrap, .fs-section').find('.error-message:visible, .work-exp-total-error:visible'))
+                    .filter(function () { return hasErrorText($(this)); })
+                    .first();
+            }
+
+            /* 650V / 2-year banner is often the only visible cue while row fields are collapsed. */
+            if (!$visibleMsg.length) {
+                $visibleMsg = $('.work-exp-total-error:visible').filter(function () {
+                    return hasErrorText($(this));
+                }).first();
+            }
+
             if ($visibleMsg.length) {
                 const msgEl = $visibleMsg.get(0);
                 if (msgEl && typeof msgEl.scrollIntoView === 'function') {
@@ -2820,23 +2854,29 @@ $(document).ready(function() {
             revealCompetencySectionForField(firstErrorField);
 
             let $scrollTarget = firstErrorField.filter(':visible');
-            if (!$scrollTarget.length && firstErrorField.is('.error-message')) {
+            if (!$scrollTarget.length && firstErrorField.is('.error-message') && hasErrorText(firstErrorField)) {
                 $scrollTarget = firstErrorField;
             }
             if (!$scrollTarget.length) {
-                $scrollTarget = firstErrorField.nextAll('.error-message').filter(':visible').first();
+                $scrollTarget = firstErrorField.nextAll('.error-message').filter(function () {
+                    return $(this).is(':visible') && hasErrorText($(this));
+                }).first();
             }
             if (!$scrollTarget.length) {
-                $scrollTarget = firstErrorField.siblings('.error-message').filter(':visible').first();
+                $scrollTarget = firstErrorField.siblings('.error-message').filter(function () {
+                    return $(this).is(':visible') && hasErrorText($(this));
+                }).first();
             }
             if (!$scrollTarget.length) {
                 const $section = firstErrorField.closest('.fs-section');
                 if ($section.length) {
-                    $scrollTarget = $section.find('.error-message:visible').first();
+                    $scrollTarget = $section.find('.error-message:visible').filter(function () {
+                        return hasErrorText($(this));
+                    }).first();
                 }
             }
             if (!$scrollTarget.length) {
-                $scrollTarget = firstErrorField.closest('tr, .form-group, .fs-field-head, td').filter(':visible').first();
+                $scrollTarget = firstErrorField.closest('tr, .form-group, .fs-field-head, td, .work-card-field').filter(':visible').first();
             }
             if (!$scrollTarget.length) {
                 $scrollTarget = firstErrorField;
@@ -3510,12 +3550,13 @@ $(document).ready(function() {
             });
 
             // Form S only: combined-total experience must be >= 2 calendar years (730 days).
-            // "Till date" rows are evaluated against today's date for the duration calc.
+            // Voltage "Up to 650V" rows are excluded — if those are the only dated rows, still fail.
             if (isSWorkForm) {
                 var twoYearsMs = 730 * 86400000;
                 var totalMs = 0;
-                var anyFilled = false;
-                var $firstFilledToDate = null;
+                var anyCountable = false;
+                var anyDatedExcluded650v = false;
+                var $firstErrorDate = null;
                 var todayIso = (function () {
                     var d = new Date();
                     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -3532,20 +3573,37 @@ $(document).ready(function() {
                     var toD = new Date(tIso + 'T12:00:00');
                     if (isNaN(fromD.getTime()) || isNaN(toD.getTime())) return;
                     if (toD < fromD) return;
-                    anyFilled = true;
+                    if (($tr.find('.work-voltage').val() || '').trim() === 'up_to_650v') {
+                        anyDatedExcluded650v = true;
+                        if (!$firstErrorDate) $firstErrorDate = $tr.find('.work-voltage').first();
+                        return;
+                    }
+                    anyCountable = true;
                     /* Inclusive of From and To (+1 day). */
                     totalMs += (toD - fromD) + 86400000;
-                    if (!$firstFilledToDate) $firstFilledToDate = $to;
+                    if (!$firstErrorDate) $firstErrorDate = $to;
                 });
-                if (anyFilled && totalMs < twoYearsMs) {
+                var needsTwoYears = anyCountable || anyDatedExcluded650v;
+                if (needsTwoYears && totalMs < twoYearsMs) {
                     var $combinedMsg = $('#work-exp-total-msg-previous').length
                         ? $('#work-exp-total-msg-previous')
                         : $('#work-exp-total-msg');
+                    var combinedText = (!anyCountable && anyDatedExcluded650v)
+                        ? 'Experience with Voltage Level "Up to 650V" is not counted. Add experience above 650V totaling at least 2 years.'
+                        : 'Minimum 2 Years Experience needed across all entries (Voltage up to 650V is not counted).';
                     if ($combinedMsg.length) {
-                        $combinedMsg.html('<div class="work-exp-total-error text-danger small" role="alert">Minimum 2 Years Experience needed across all entries.</div>');
+                        $combinedMsg.html(
+                            '<div class="work-exp-total-error error-message text-danger small" role="alert">' +
+                                combinedText +
+                            '</div>'
+                        );
                     }
-                    if (!firstErrorField && $firstFilledToDate && $firstFilledToDate.length) {
-                        firstErrorField = $firstFilledToDate;
+                    /* Prefer the visible banner — collapsed summary rows hide voltage/date inputs. */
+                    if (!firstErrorField) {
+                        var $banner = $combinedMsg.find('.work-exp-total-error').first();
+                        firstErrorField = $banner.length
+                            ? $banner
+                            : ($firstErrorDate && $firstErrorDate.length ? $firstErrorDate : $combinedMsg);
                     }
                     isValid = false;
                 }
@@ -3705,6 +3763,7 @@ $(document).ready(function() {
 
             if (!$('#declarationCheckbox').is(':checked')) {
                 $('#declaration-error-new-application').removeClass('d-none');
+                $('#checkboxError').removeClass('d-none');
                 if (!firstErrorField) {
                     firstErrorField = $('#declarationCheckbox').length
                         ? $('#declarationCheckbox')
@@ -6123,9 +6182,26 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                             };
                         };
 
-                        // Zero-fee paths (digitization / alteration / board member) — submit directly
+                        // Zero-fee paths — submit directly (no payment gateway UI)
                         if (feeExemptSubmit) {
                             try {
+                                // Digitisation / Alteration: form save already finalises; do not create payment records.
+                                if (noPaymentApplType) {
+                                    showPaymentSuccessPopup(
+                                        application_id,
+                                        '',
+                                        transactionDate,
+                                        applicantName,
+                                        0,
+                                        form_type,
+                                        licence_name,
+                                        false,
+                                        { feeExempt: true }
+                                    );
+                                    return;
+                                }
+
+                                // Board-member fee exemption (N/R Form S) still records a zero-amount payment.
                                 const paid = await runCompetencyPayment();
                                 showPaymentSuccessPopup(
                                     paid.application_id,
@@ -6136,7 +6212,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                                     paid.form_type,
                                     paid.licence_name,
                                     false,
-                                    { feeExempt: noPaymentApplType }
+                                    { feeExempt: true }
                                 );
                             } catch (err) {
                                 Swal.fire({
@@ -6320,17 +6396,19 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         $("#ps_applicantName_competency").text(applicantName);
         $("#ps_applicationId_competency").text(loginId);
         $("#ps_licenceName_competency").text(licence_name);
-        $("#ps_transactionId_competency").text(transactionId);
         $("#ps_transactionDate_competency").text(transactionDate);
-        $("#ps_amount_competency").text(amount);
 
-        // Digitisation (D) and Alteration (A): no payment UI. New (N) / Renewal (R): full payment success.
+        // Digitisation (D) / Alteration (A) / board-member waiver: never show or retain payment details.
         if (isFeeExemptSubmit) {
+            $("#ps_transactionId_competency").text('');
+            $("#ps_amount_competency").text('');
             $modal.find("#ps_success_modal_title").text("Application Submitted Successfully!");
             $modal.find(".ps-payment-only").addClass("d-none");
             $modal.find(".ps-transaction-date-label").text("Submission Date:");
             $modal.find(".ps-app-pdf-heading").removeClass("mt-3");
         } else {
+            $("#ps_transactionId_competency").text(transactionId);
+            $("#ps_amount_competency").text(amount);
             $modal.find("#ps_success_modal_title").text("Payment Successful!");
             $modal.find(".ps-payment-only").removeClass("d-none");
             $modal.find(".ps-transaction-date-label").text("Transaction Date:");

@@ -66,7 +66,9 @@
         padding: 0 !important;
         cursor: pointer;
     }
-    .fs-breadcrumb-bar #breadcrumb a:hover { text-decoration: underline !important; }
+    .fs-breadcrumb-bar #breadcrumb a:hover { 
+        text-decoration: underline !important; 
+    }
 
     /* ── Main card ────────────────────────────────────── */
     .fs-card {

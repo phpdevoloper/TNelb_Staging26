@@ -121,7 +121,7 @@
         letter-spacing: .5px;
     }
     .fs-card-header .header-titles .draft-title {
-        margin: 2px 0 0;
+        margin: 5px 0 0;
         font-size: .74rem;
         font-weight: 600;
         line-height: 1.15;

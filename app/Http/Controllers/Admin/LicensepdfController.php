@@ -2174,6 +2174,16 @@ class LicensepdfController extends Controller
                     ';
         }
 
+        if ($application && $application->appl_type === 'R') {
+            $appltye = 'Renewal Application';
+        } else if ($application && $application->appl_type === 'N') {
+            $appltye = 'New Application';
+        } else if ($application && $application->appl_type === 'D') {
+            $appltye = 'Digitization Application';
+        } else {
+            $appltye = 'Alteration Application';
+        }
+
         $html = '
         <div class="card">
 

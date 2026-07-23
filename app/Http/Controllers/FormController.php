@@ -211,8 +211,8 @@ class FormController extends BaseController
             'application_id'      => $applicationId,
             'applicant_name'      => $this->resolveApplicantName($request, $existingForm),
             'fathers_name'        => $request->fathers_name ?? $request->Fathers_Name ?? $existingForm?->fathers_name,
-            'applicant_email'     => $request->input('applicant_email'),
-            'applicant_address'   => $request->applicants_address ?? $existingForm?->applicant_address,
+            'applicant_email'     => $this->resolveApplicantEmail($request, $existingForm),
+            'applicant_address'   => $this->resolveApplicantAddress($request, $existingForm),
             'd_o_b'               => $request->d_o_b ?? $request->dob ?? $existingForm?->d_o_b,
             'age'                 => $request->age ?? $existingForm?->age,
             'previous_scc_no'     => $request->previously_number ?? $existingForm?->previous_scc_no ?? 0,
@@ -1269,8 +1269,9 @@ class FormController extends BaseController
         }
     }
 
-    /**
-     * Form S §7 — work experience: combined duration across ALL rows must be at least 2 calendar years (730 days).
+     /**
+     * Form S 7a — work experience: combined duration across ALL countable rows must be at least 2 calendar years (730 days).
+     * Rows with Voltage Level "Up to 650V" are excluded from this total (New / Renewal / Digitization / Alteration).
      * (Per-row check was replaced with a combined-total check so that multiple short stints can add up.)
      *
      * "Till date" rows (work_to_till_date[$key] === '1') are evaluated against today's date when
@@ -1286,6 +1287,7 @@ class FormController extends BaseController
         $toDates = $request->input('work_date_to', []);
         $tillFlags = $request->input('work_to_till_date', []);
         $sections = $request->input('work_exp_section', []);
+        $voltages = $request->input('work_voltage_level', []);
         if (! is_array($fromDates)) {
             return;
         }
@@ -1295,9 +1297,14 @@ class FormController extends BaseController
         if (! is_array($sections)) {
             $sections = [];
         }
+        if (! is_array($voltages)) {
+            $voltages = [];
+        }
 
         $totalDays = 0;
         $anyFilled = false;
+        $anyCountable = false;
+        $anyDatedExcluded650v = false;
         $firstFilledKey = null;
         $today = Carbon::now()->startOfDay();
 
@@ -1309,6 +1316,9 @@ class FormController extends BaseController
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
             $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+
+            $isUpTo650v = strtolower(trim((string) ($voltages[$key] ?? ''))) === 'up_to_650v';
+
 
             if ($fromRaw === '') {
                 continue;
@@ -1331,7 +1341,22 @@ class FormController extends BaseController
                 continue;
             }
 
-            $anyFilled = true;
+            // Up to 650V does not count toward the combined experience total.
+            if ($isUpTo650v) {
+                $anyDatedExcluded650v = true;
+                if ($firstFilledKey === null) {
+                    $firstFilledKey = $key;
+                }
+                continue;
+            }
+
+            $anyCountable = true;
+            
+            
+
+
+
+
             // Inclusive of From and To (+1 day), matching front-end duration.
             $totalDays += $from->diffInDays($to) + 1;
             if ($firstFilledKey === null) {
@@ -1339,13 +1364,17 @@ class FormController extends BaseController
             }
         }
 
-        // 2 calendar years ≈ 730 inclusive days (e.g. 01-07-2024 → 30-06-2026).
-        if ($anyFilled && $totalDays < 730) {
-            $validator->errors()->add(
-                'work_date_to.'.($firstFilledKey ?? 0),
-                'Minimum 2 Years Experience needed across all entries.'
-            );
-        }
+         // 2 calendar years ≈ 730 inclusive days. Fail when only Up to 650V exists (0 countable days).
+         $needsTwoYears = $anyCountable || $anyDatedExcluded650v;
+         if ($needsTwoYears && $totalDays < 730) {
+             $message = (! $anyCountable && $anyDatedExcluded650v)
+                 ? 'Experience with Voltage Level "Up to 650V" is not counted. Add experience above 650V totaling at least 2 years.'
+                 : 'Minimum 2 Years Experience needed across all entries (Voltage up to 650V is not counted).';
+             $validator->errors()->add(
+                 'work_date_to.'.($firstFilledKey ?? 0),
+                 $message
+             );
+         }
     }
 
     private function decryptPanForDisplay($applicationDetails): void
@@ -2175,8 +2204,8 @@ class FormController extends BaseController
                 'application_id'      => $newApplicationId,
                 'applicant_name'      => $request->applicant_name ?? '',
                 'fathers_name'        => $request->fathers_name ?? '',
-                'applicant_email'     => $request->input('applicant_email'),
-                'applicant_address'   => $request->applicants_address,
+                'applicant_email'     => $this->resolveApplicantEmail($request),
+                'applicant_address'   => $this->resolveApplicantAddress($request),
                 'd_o_b'               => $request->dob ?? $request->d_o_b,
                 'age'                 => $request->age,
                 'previous_scc_no'   => $request->previously_number ?? 0,
@@ -2613,8 +2642,8 @@ class FormController extends BaseController
                 'login_id'          => $request->login_id,
                 'applicant_name'    => $request->applicant_name,
                 'fathers_name'      => $request->fathers_name,
-                'applicant_email'   => $request->input('applicant_email'),
-                'applicant_address' => $request->applicants_address,
+                'applicant_email'   => $this->resolveApplicantEmail($request, $existingForm),
+                'applicant_address' => $this->resolveApplicantAddress($request, $existingForm),
                 'd_o_b'             => $request->d_o_b,
                 'age'               => $request->age,
                 'previous_scc_no'   => $request->previously_number,
@@ -3850,12 +3879,7 @@ public function update(Request $request, $id)
         } catch (\Exception $e) {
             DB::rollBack();
 
-             return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ], 500);
+            return $this->formErrorResponse($e);
         }
     }
 
@@ -4152,6 +4176,44 @@ public function update(Request $request, $id)
         }
 
         return 'Applicant';
+    }
+
+
+    /**
+     * applicant_address is NOT NULL on cc_form_*_meta.
+     * Empty request values become null via ConvertEmptyStringsToNull — coalesce to existing/user/''.
+     */
+    private function resolveApplicantAddress(Request $request, ?CC_CompetencyMeta $existingForm = null): string
+    {
+        foreach ([
+            $request->input('applicants_address'),
+            $request->input('applicant_address'),
+            $existingForm?->applicant_address,
+            Auth::user()->address ?? null,
+        ] as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function resolveApplicantEmail(Request $request, ?CC_CompetencyMeta $existingForm = null): ?string
+    {
+        foreach ([
+            $request->input('applicant_email'),
+            $existingForm?->applicant_email,
+            Auth::user()->email ?? null,
+        ] as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     private function linkCcDigitizationIfNeeded(Request $request, string $applicationId, string $loginId): void

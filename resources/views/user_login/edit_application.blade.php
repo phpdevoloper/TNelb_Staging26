@@ -125,7 +125,7 @@
         letter-spacing: .5px;
     }
     .fs-card-header .header-titles .draft-title {
-        margin: 2px 0 0;
+        margin: 5px 0 0;
         font-size: .74rem;
         font-weight: 600;
         line-height: 1.15;
@@ -975,9 +975,19 @@
         $editNotesLang = 'English';
         $editNotesSize = '8 KB';
     }
+
+    $editApplTypeCode = strtoupper(trim((string) ($application_details->appl_type ?? 'N')));
+    $editApplTypeLabels = [
+        'N' => ['en' => 'New', 'ta' => 'புதியது'],
+        'R' => ['en' => 'Renewal', 'ta' => 'புதுப்பித்தல்'],
+        'D' => ['en' => 'Digitisation', 'ta' => 'கணினிமயமாக்கல்'],
+        'A' => ['en' => 'Alteration', 'ta' => 'மாற்றம்'],
+    ];
+    $editApplTypeEn = $editApplTypeLabels[$editApplTypeCode]['en'] ?? $editApplTypeCode;
+    $editApplTypeTa = $editApplTypeLabels[$editApplTypeCode]['ta'] ?? '';
 @endphp
 
-{{-- ░░ BREADCRUMB ░░ --}}
+{{-- BREADCRUMB --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
         <ul id="breadcrumb">
@@ -987,17 +997,17 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{-- PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for {{ $editEnglishTitle }}</h5>
+                    <h5>Application for {{ $editEnglishTitle }} - {{ $editApplTypeEn }}</h5>
                     @if($editTamilTitle)
-                        <h5 class="tamil-title">{{ $editTamilTitle }}</h5>
+                        <h5 class="tamil-title">{{ $editTamilTitle }}@if($editApplTypeTa) - {{ $editApplTypeTa }}@endif</h5>
                     @endif
                     <span class="form-badge">FORM - {{ $editFormName }} / Certificate {{ $editLicenseName }}</span>
                     <h5 class="draft-title">Draft Application</h5>
@@ -1008,7 +1018,7 @@
                 </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- Mandatory notice --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
@@ -1035,7 +1045,7 @@
             </div>
             @endif
 
-            {{-- ── Form body ── --}}
+            {{-- Form body --}}
             <div class="fs-form-body fs-form apply-card">
 
                 <form id="competency_form_ws" enctype="multipart/form-data">
@@ -1057,7 +1067,7 @@
                     @endphp
                     <input type="hidden" id="license_number" name="license_number" value="{{ $_issued_lic_renew }}">
 
-                    {{-- ═══ SECTION 1 to 4 — Applicant Details ═══ --}}
+                    {{-- SECTION 1 to 4 — Applicant Details --}}
                     @php
                         $formName = $application_details->form_name ?? '';
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
@@ -1067,7 +1077,15 @@
                                 ? $application_details->applicant_email
                                 : (Auth::user()->email ?? ''))
                             : '';
-                        $addressVal = isset($application_details) ? $application_details->applicants_address : Auth::user()->address;
+                        $addressVal = '';
+                        if (isset($application_details)) {
+                            $addressVal = trim((string) ($application_details->applicants_address
+                                ?? $application_details->applicant_address
+                                ?? ''));
+                        }
+                        if ($addressVal === '') {
+                            $addressVal = trim((string) (Auth::user()->address ?? ''));
+                        }
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1109,11 +1127,10 @@
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Email ID</div>
                                                 <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
-                                                <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
-                                            maxlength="191" value="{{ $emailVal }}">
                                             </div>
-                  
-                                        
+                                        </div>
+                                        <div class="fs-view-grid-value-box">
+                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicant_email">{{ $emailVal ?: 'Not provided' }}</div>
                                         </div>
                                     </div>
                                 </div>

@@ -1503,8 +1503,7 @@
     /* Shown only while editing a complete entry (expanded full form) */
     .work-row-done-bar {
         display: none;
-        grid-column: 1 / -1;
-        margin-top: 4px;
+        margin: 0 16px 14px;
         padding-top: 12px;
         border-top: 1px dashed var(--wx-border);
         text-align: right;
@@ -1518,7 +1517,7 @@
         font-size: .78rem;
         font-weight: 600;
         color: #fff;
-        background: var(--wx-accent);
+        background: var(--wx-accent, #035ab3);
         border: none;
         border-radius: 5px;
         cursor: pointer;
@@ -2139,7 +2138,7 @@
                                                     Are you a Board member of TNELB or Ex board member of TNELB?
                                                     <span class="section-req">*</span>
                                                 </div>
-                                                <div class="fs-section-tamil">தமிழ்நாடு மின்சார வாரிய கோப்புறை / முன்னாள் கோப்புறை உறுப்பினரா?</div>
+                                                <div class="fs-section-tamil">நீங்கள் மின்சார உரிமையாளர்கள் வாரியத்தின் குழு உறுப்பினரா / முன்னாள் குழு உறுப்பினரா?</div>
                                             </div>
                                             <div class="fs-segmented-toggle fs-7b-board-toggle" role="radiogroup" aria-label="Board member of TNELB or Ex board member">
                                                 <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? '' : ' is-active' }}">
