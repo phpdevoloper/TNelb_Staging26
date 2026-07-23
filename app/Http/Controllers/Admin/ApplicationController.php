@@ -10,7 +10,7 @@ use App\Models\CC_Forms_Meta;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyWorkflowService;
-use App\Models\CC_checklist_applicant;
+use App\Models\CC_Checklist_applicant;
 use App\Models\EA_Application_model;
 use Carbon\Carbon;
 
