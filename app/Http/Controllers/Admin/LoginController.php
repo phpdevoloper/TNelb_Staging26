@@ -42,7 +42,7 @@ use App\Models\Admin\Mst_checklist;
 use App\Models\Admin\Mst_Logins;
 use Illuminate\Support\Facades\Storage;
 
-use App\Models\CC_checklist_applicant;
+use App\Models\CC_Checklist_applicant;
 
 class LoginController extends Controller
 {

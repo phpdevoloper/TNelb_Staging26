@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use Illuminate\Support\Facades\DB;
 use App\Models\Admin\SupervisorModel;
 use App\Models\Tnelb_CC_Digitization;
-use App\Models\CC_checklist_applicant;
+use App\Models\CC_Checklist_applicant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -2087,6 +2087,7 @@ class SupervisorController extends Controller
         mixed $validFrom,
         mixed $validTo
     ): void {
+        
         $this->competencyCertificateService()->issueOrUpdate(
             (string) ($application->form_name ?? ''),
             [
@@ -2233,7 +2234,7 @@ class SupervisorController extends Controller
                 'verify'  => (int) ($request->status[$id] ?? 0),
             ];
         }
-// dd($applicant->certificate_name); exit;
+// dd($application->certificate_name); exit;
         // dd(([
         //     'login_id'        => Auth::id(),
         //     'applicant_id'    => $request->application_id,
@@ -2243,20 +2244,59 @@ class SupervisorController extends Controller
         //     'updated_by'      => Auth::id(),
         // ]));
         // exit;
+
+        if($appl_type =='A'){
+            // dd('111'); exit;
+
+            $alter_insert = DB::table('cc_forms_cert')->where('application_id', $request->application_id)->first();
+
+            if(!$alter_insert){
+                $metadata = DB::table('cc_form_s_meta')->where('application_id', $request->application_id)->first();
+                dd($metadata->old_application); exit;
+                $alter_insert = DB::table('cc_forms_cert')->where('application_id', $request->application_id)->first();
+                $alter_insert = DB::table('cc_forms_cert')-> create([
+                    'application_id' => $request->application_id,
+                    'certificate_no' => $licenseNumber,
+                    'dateof_issue'   => $issuedAt,
+                    'valid_from'     => $issuedAt,
+                    'valid_to'       => $expiresAt,
+                    'cert_status'    => 'A',
+                    'created_at'     => now(),
+                ]);
+            }
+            dd($alter_insert); exit;
+            $licenseNumber = $alter_insert->license_number;
+        } 
         
         $appService = app(CompetencyApplicationService::class);
+
+        
         $workflowService = app(CompetencyWorkflowService::class);
         $applicant = $appService->findApplicantWithPayment($request->application_id);
         if (! $applicant) {
                     return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
         }
 
-                $applicantStatus = $appService->applicationStatus($applicant);
-                $isReturnedApplication = $applicantStatus === 'RE';
+        $applicantStatus = $appService->applicationStatus($applicant);
+        $isReturnedApplication = $applicantStatus === 'RE';
 
         $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
         ->where('certificate_name', $applicant->certificate_name)
         ->first();
+        // dd($licenseNumber); exit;
+
+        
+
+        $meta_tbl_certIupdate = DB::table('cc_form_s_meta')
+            ->where('application_id', $request->application_id)
+            ->update([
+                'certificate_no' => $licenseNumber,
+                'updated_at' => now(),
+               
+            ]);
+
+            
+
 
         if($Existingcheck){
             $Existingcheck->update([
@@ -2292,6 +2332,9 @@ class SupervisorController extends Controller
                 'login_id'       => Auth::id(),
                 'raised_by'      => $processed ?: 'PR',
             ]);
+
+
+
 
             DB::commit();
 
@@ -2474,8 +2517,12 @@ class SupervisorController extends Controller
                     $expiresAt
                 );
 
+                
+
                 return [$licenseNumber, $issuedAt, $expiresAt];
             }
+
+            // dd($licenseDetails->license_number); exit;
 
             return [
                 $licenseDetails->license_number,
@@ -2491,7 +2538,7 @@ class SupervisorController extends Controller
             }
 
             $result = app(FormSAlterationService::class)->applyApprovedAlterationChanges($applicationId, $metaTable);
-
+                // dd($result); exit;
             return [
                 $result['license_number'],
                 $result['issued_at'],

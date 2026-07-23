@@ -2146,7 +2146,7 @@ class LicensepdfController extends Controller
         // var_dump($signPath);
         // exit;
 
-        $employment = $digi_details->cl_type . ' - ' . $digi_details->licence_no . ' - ' . $digi_details->contractor_name;
+      
 
         $qrValue = 'Tnelb QR Testing';
 
@@ -2154,6 +2154,7 @@ class LicensepdfController extends Controller
         $oldCertificateRow = '';
 
         if ($application && $application->appl_type === 'D') {
+            $employment = $digi_details->cl_type . ' - ' . $digi_details->licence_no . ' - ' . $digi_details->contractor_name;
             $oldCertificateRow = '
                     <tr>
                         <td class="lbl">
@@ -2164,7 +2165,13 @@ class LicensepdfController extends Controller
                         </td>
                         <td class="colon">:</td>
                         <td class="val">' . $digi_details->ccnumber . '</td>
-                    </tr>';
+                    </tr>
+                     <tr>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en"> Details of Employment </div><div class="lbl-ta" lang="ta">வேலை விவரங்கள்</div></div></td>
+                                    <td class="colon">:</td>
+                                    <td class="val">' . $employment . '</td>
+                                </tr>
+                    ';
         }
 
         $html = '
@@ -2217,11 +2224,7 @@ class LicensepdfController extends Controller
                                 </tr>
 
                              ' . $oldCertificateRow . '
-                                <tr>
-                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en"> Details of Employment </div><div class="lbl-ta" lang="ta">வேலை விவரங்கள்</div></div></td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . $employment . '</td>
-                                </tr>
+                               
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
                                     <td class="colon">:</td>

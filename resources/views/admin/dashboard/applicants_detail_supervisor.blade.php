@@ -1388,8 +1388,8 @@
                                                 </div>
 
                                                 @php
-                                                    $certValidTo = $applicant->certificate_valid_to ?? $applicant->certificate_date ?? null;
-                                                    $hasWiremanCompCert = !empty($applicant->certificate_no) || !empty($certValidTo);
+                                                    $certValidTo = $applicant->wcc_from ?? $applicant->wcc_to ?? null;
+                                                    $hasWiremanCompCert = !empty($applicant->wcc_no) || !empty($certValidTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -1407,30 +1407,30 @@
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Certificate Number</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
+                                                                    class="asp-detail-value">{{ $applicant->wcc_no ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($applicant->wcc_issue_date) ? format_date($applicant->wcc_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">From date</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->certificate_valid_from) ? format_date($applicant->certificate_valid_from) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($applicant->wcc_from) ? format_date($applicant->wcc_from) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">To date</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($certValidTo) ? format_date($certValidTo) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($applicant->wcc_to) ? format_date($applicant->wcc_to) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->certificate_no }}"
-                                                                data-license_from_date="{{ $applicant->certificate_valid_from }}"
-                                                                data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}"
-                                                                data-license_issue_date="{{ $applicant->certificate_issue_date }}"
+                                                                data-license_number="{{ $applicant->wcc_no }}"
+                                                                data-license_from_date="{{ $applicant->wcc_from }}"
+                                                                data-license_date="{{ $applicant->wcc_to ?? $applicant->certificate_date }}"
+                                                                data-license_issue_date="{{ $applicant->wcc_issue_date }}"
                                                                 data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
