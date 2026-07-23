@@ -1000,10 +1000,12 @@ class LicensepdfController extends Controller
                 }
             }
 
-            foreach (array_unique([
-                $storage->physicalRootPath(),
-                CompetencyDocumentSupport::storageRoot(),
-            ]) as $root) {
+            foreach (
+                array_unique([
+                    $storage->physicalRootPath(),
+                    CompetencyDocumentSupport::storageRoot(),
+                ]) as $root
+            ) {
                 $absolute = rtrim((string) $root, '/\\')
                     . DIRECTORY_SEPARATOR
                     . str_replace('/', DIRECTORY_SEPARATOR, ltrim($storedPath, '/'));
@@ -1838,22 +1840,21 @@ class LicensepdfController extends Controller
         $certificateRowsHtml = '';
         foreach ($certificateList as $index => $certificate) {
 
-        if($certificate->appl_type == 'N'){
-            $appltye = 'New';
-
-        }elseif($certificate->appl_type == 'R'){
-             $appltye = 'Renewal';
-        }elseif($certificate->appl_type == 'D'){
-            $appltye = 'Digitization';
-        }else{
-            $appltye = 'Alteration';
-        }
+            if ($certificate->appl_type == 'N') {
+                $appltye = 'New';
+            } elseif ($certificate->appl_type == 'R') {
+                $appltye = 'Renewal';
+            } elseif ($certificate->appl_type == 'D') {
+                $appltye = 'Digitization';
+            } else {
+                $appltye = 'Alteration';
+            }
             $isExpired = !empty($certificate->expires_at) && strtotime((string) $certificate->expires_at) < strtotime(date('Y-m-d'));
             $statusInner = $isExpired
                 ? '<div class="st-en">Expired</div><div class="st-ta" lang="ta">காலாவதியானது</div>'
                 : '<div class="st-en">Active</div><div class="st-ta" lang="ta">செயலில்</div>';
             $statusClass = $isExpired ? 'status-expired' : 'status-active';
-            
+
             $certificateRowsHtml .= '
                         <tr>
                             <td width="6%" align="center">' . ($index + 1) . '</td>
@@ -2146,7 +2147,7 @@ class LicensepdfController extends Controller
         // var_dump($signPath);
         // exit;
 
-      
+
 
         $qrValue = 'Tnelb QR Testing';
 
@@ -2154,34 +2155,46 @@ class LicensepdfController extends Controller
         $oldCertificateRow = '';
 
         if ($application && $application->appl_type === 'D') {
-            $employment = $digi_details->cl_type . ' - ' . $digi_details->licence_no . ' - ' . $digi_details->contractor_name;
+
+            $employment = $digi_details->cl_type . ' - ' .
+                $digi_details->licence_no . ' - ' .
+                $digi_details->contractor_name;
+
             $oldCertificateRow = '
-                    <tr>
-                        <td class="lbl">
-                            <div class="lbl-bi">
-                                <div class="lbl-en">Old Certificate Number</div>
-                                <div class="lbl-ta" lang="ta">பழைய சான்றிதழ் எண்</div>
-                            </div>
-                        </td>
-                        <td class="colon">:</td>
-                        <td class="val">' . $digi_details->ccnumber . '</td>
-                    </tr>
-                     <tr>
-                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en"> Details of Employment </div><div class="lbl-ta" lang="ta">வேலை விவரங்கள்</div></div></td>
-                                    <td class="colon">:</td>
-                                    <td class="val">' . $employment . '</td>
-                                </tr>
-                    ';
+                        <tr>
+                            <td class="lbl">
+                                <div class="lbl-bi">
+                                    <div class="lbl-en">Old Certificate Number</div>
+                                    <div class="lbl-ta" lang="ta">பழைய சான்றிதழ் எண்</div>
+                                </div>
+                            </td>
+                            <td class="colon">:</td>
+                            <td class="val">' . $digi_details->ccnumber . '</td>
+                        </tr>';
+
+                            if ($digi_details->cl_type != '0') {
+                                $oldCertificateRow .= '
+                        <tr>
+                            <td class="lbl">
+                                <div class="lbl-bi">
+                                    <div class="lbl-en">Details of Employment</div>
+                                    <div class="lbl-ta" lang="ta">வேலை விவரங்கள்</div>
+                                </div>
+                            </td>
+                            <td class="colon">:</td>
+                            <td class="val">' . $employment . '</td>
+                        </tr>';
+                            }
         }
         if ($application && $application->appl_type === 'R') {
-                    $appltye = 'Renewal Application';
-                } else if ($application && $application->appl_type === 'N') {
-                    $appltye = 'New Application';
-                } else if ($application && $application->appl_type === 'D') {
-                    $appltye = 'Digitization Application';
-                } else {
-                    $appltye = 'Alteration Application';
-                }
+            $appltye = 'Renewal Application';
+        } else if ($application && $application->appl_type === 'N') {
+            $appltye = 'New Application';
+        } else if ($application && $application->appl_type === 'D') {
+            $appltye = 'Digitization Application';
+        } else {
+            $appltye = 'Alteration Application';
+        }
         $html = '
         <div class="card">
 
