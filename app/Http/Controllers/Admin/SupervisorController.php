@@ -2252,20 +2252,24 @@ class SupervisorController extends Controller
 
             if(!$alter_insert){
                 $metadata = DB::table('cc_form_s_meta')->where('application_id', $request->application_id)->first();
-                dd($metadata->old_application); exit;
-                $alter_insert = DB::table('cc_forms_cert')->where('application_id', $request->application_id)->first();
-                $alter_insert = DB::table('cc_forms_cert')-> create([
+                // dd($metadata->old_application); exit;
+                $licensedetails = DB::table('cc_forms_cert')
+                ->where('application_id', $metadata->old_application)
+                ->latest('cc_id')
+                ->first();
+                // dd($licensedetails); exit;
+                $alter_insert = DB::table('cc_forms_cert')->insert([
                     'application_id' => $request->application_id,
                     'certificate_no' => $licenseNumber,
-                    'dateof_issue'   => $issuedAt,
-                    'valid_from'     => $issuedAt,
-                    'valid_to'       => $expiresAt,
+                    'dateof_issue'   => $licensedetails->dateof_issue,
+                    'valid_from'     => $licensedetails->valid_from,
+                    'valid_to'       => $licensedetails->valid_to,
                     'cert_status'    => 'A',
-                    'created_at'     => now(),
+                    'created_at'     => $this->dbNow,
                 ]);
             }
-            dd($alter_insert); exit;
-            $licenseNumber = $alter_insert->license_number;
+            // dd($alter_insert); exit;
+            // $licenseNumber = $alter_insert->license_number;
         } 
         
         $appService = app(CompetencyApplicationService::class);
