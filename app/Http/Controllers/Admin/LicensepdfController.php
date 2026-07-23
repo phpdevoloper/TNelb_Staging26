@@ -2186,6 +2186,7 @@ class LicensepdfController extends Controller
                         </tr>';
                             }
         }
+
         if ($application && $application->appl_type === 'R') {
             $appltye = 'Renewal Application';
         } else if ($application && $application->appl_type === 'N') {
@@ -2195,6 +2196,7 @@ class LicensepdfController extends Controller
         } else {
             $appltye = 'Alteration Application';
         }
+
         $html = '
         <div class="card">
 

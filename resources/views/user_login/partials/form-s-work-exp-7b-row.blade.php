@@ -62,7 +62,11 @@
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation">
                     <label class="work-card-field-label">Representing Organisation<span class="req">*</span></label>
-                    <input type="text" class="form-control work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" required placeholder="Organisation name" value="{{ $orgName }}">
+                    @include('user_login.partials.form-s-7b-representing-org-select', [
+                        'orgName' => $orgName,
+                        'required' => true,
+                        'disabled' => $alterationExistingRow,
+                    ])
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation-address">
                     <label class="work-card-field-label">Address <span class="req">*</span></label>
@@ -85,7 +89,7 @@
                     <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined{{ $hideSupportUpload ? ' d-none work-upload-hidden-until-remove' : '' }}" data-upload-kind="work" data-doc-field="support">
                         <input class="form-control work-doc-input" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
                     </div>
-                    <span class="work-card-field-hint{{ $hideSupportUpload ? ' d-none work-upload-hint-hidden-until-remove' : '' }}"><i class="fa fa-info-circle"></i> Optional — PDF / JPG / PNG, 5-200 KB</span>
+                    <span class="work-card-field-hint{{ $hideSupportUpload ? ' d-none work-upload-hint-hidden-until-remove' : '' }}"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
                 </div>
             </div>
         </div>

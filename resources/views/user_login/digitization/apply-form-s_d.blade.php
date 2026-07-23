@@ -792,6 +792,13 @@
     #work-container-previous .work-row-remove.remove-work .fa {
         color: #c1272d !important;
     }
+    /* Ensure 7a Submit is visible once the row is complete and still being edited */
+    #work-container-previous .work-row.is-complete.work-row--expanded {
+        overflow: visible !important;
+    }
+    #work-container-previous .work-row.is-complete.work-row--expanded .work-row-done-bar {
+        display: block !important;
+    }
 </style>
 
 {{-- ░░ BREADCRUMB ░░ --}}
@@ -1777,6 +1784,11 @@
                 .html(isImage ? '<i class="fa fa-image"></i> Preview image' : '<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
             $input.closest('.form-s-file-upload-wrap').after($preview);
             clearWorkRowUploadErrors($input.closest('.work-fields'));
+            /* Re-evaluate 7a complete/Submit after preview is attached (runs after shared work-exp handlers). */
+            var $workRow = $input.closest('.work-fields');
+            if ($workRow.length) {
+                $workRow.trigger('wx:recheck-complete');
+            }
         });
 
         $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {

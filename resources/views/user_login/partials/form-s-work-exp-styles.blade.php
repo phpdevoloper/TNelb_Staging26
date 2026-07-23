@@ -731,13 +731,15 @@
     /* Shown only while editing a complete entry (expanded full form) */
     .work-row-done-bar {
         display: none;
-        grid-column: 1 / -1;
-        margin-top: 4px;
+        margin: 0 16px 14px;
         padding-top: 12px;
         border-top: 1px dashed var(--wx-border);
         text-align: right;
     }
     .work-row.is-complete.work-row--expanded .work-row-done-bar { display: block; }
+    .work-row.is-complete.work-row--expanded {
+        overflow: visible;
+    }
     .work-row-done-btn {
         display: inline-flex;
         align-items: center;

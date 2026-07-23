@@ -685,6 +685,7 @@ class FormSAlterationService
             }
 
             if ($alterWork) {
+                $this->assertFormSCountableExperienceMinimum($parent, $request);
                 $this->storeNewExperienceRows($request, $child, $loginId);
             }
 
@@ -885,6 +886,108 @@ class FormSAlterationService
         return !empty($existingFlags[$key]) && (string) $existingFlags[$key] === '1';
     }
 
+    /**
+     * Combined experience total for alteration: parent (master) rows + new request rows.
+     * Voltage "Up to 650V" does not count; overall countable total must be ≥ 730 inclusive days.
+     */
+    protected function assertFormSCountableExperienceMinimum(CC_CompetencyMeta $parent, Request $request): void
+    {
+        $totalDays = 0;
+        $anyCountable = false;
+        $anyDatedExcluded650v = false;
+        $today = Carbon::now()->startOfDay();
+
+        $masterId = $this->workflowService->masterApplication($parent)->application_id;
+        $existing = CC_Experience::where('application_id', $masterId)->orderBy('exp_id')->get();
+
+        foreach ($existing as $exp) {
+            $fromRaw = trim((string) ($exp->from_date ?? ''));
+            $toRaw = trim((string) ($exp->to_date ?? ''));
+            if ($fromRaw === '') {
+                continue;
+            }
+
+            try {
+                $from = Carbon::parse($fromRaw)->startOfDay();
+                $to = $toRaw !== ''
+                    ? Carbon::parse($toRaw)->startOfDay()
+                    : $today;
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            if ($to->lt($from)) {
+                continue;
+            }
+
+            $voltage = strtolower(trim((string) ($exp->voltage_level ?? '')));
+            if ($voltage === 'up_to_650v') {
+                $anyDatedExcluded650v = true;
+                continue;
+            }
+
+            $anyCountable = true;
+            $totalDays += $from->diffInDays($to) + 1;
+        }
+
+        $indexes = $this->collectNewWorkRowIndexes($request);
+        $fromDates = (array) $request->input('work_date_from', []);
+        $toDates = (array) $request->input('work_date_to', []);
+        $tillFlags = (array) $request->input('work_to_till_date', []);
+        $sections = (array) $request->input('work_exp_section', []);
+        $voltages = (array) $request->input('work_voltage_level', []);
+        if ($voltages === []) {
+            $voltages = (array) $request->input('work_voltage', []);
+        }
+
+        foreach ($indexes as $key) {
+            if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
+                continue;
+            }
+
+            $fromRaw = trim((string) ($fromDates[$key] ?? ''));
+            $toRaw = trim((string) ($toDates[$key] ?? ''));
+            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            if ($fromRaw === '') {
+                continue;
+            }
+            if ($toRaw === '' && ! $isTill) {
+                continue;
+            }
+
+            try {
+                $from = Carbon::parse($fromRaw)->startOfDay();
+                $to = $toRaw !== ''
+                    ? Carbon::parse($toRaw)->startOfDay()
+                    : $today;
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            if ($to->lt($from)) {
+                continue;
+            }
+
+            $voltage = strtolower(trim((string) ($voltages[$key] ?? '')));
+            if ($voltage === 'up_to_650v') {
+                $anyDatedExcluded650v = true;
+                continue;
+            }
+
+            $anyCountable = true;
+            $totalDays += $from->diffInDays($to) + 1;
+        }
+
+        $needsTwoYears = $anyCountable || $anyDatedExcluded650v;
+        if ($needsTwoYears && $totalDays < 730) {
+            throw new RuntimeException(
+                (! $anyCountable && $anyDatedExcluded650v)
+                    ? 'Experience with Voltage Level "Up to 650V" is not counted. Add experience above 650V totaling at least 2 years.'
+                    : 'Minimum 2 Years Experience needed across all entries (Voltage up to 650V is not counted).'
+            );
+        }
+    }
+
     protected function storeNewExperienceRows(Request $request, CC_CompetencyMeta $child, string $loginId): void
     {
         $indexes = $this->collectNewWorkRowIndexes($request);
@@ -909,7 +1012,10 @@ class FormSAlterationService
         $durM = (array) $request->input('work_duration_m', []);
         $durD = (array) $request->input('work_duration_d', []);
         $natures = (array) $request->input('work_nature', []);
-        $voltages = (array) $request->input('work_voltage', []);
+        $voltages = (array) $request->input('work_voltage_level', []);
+        if ($voltages === []) {
+            $voltages = (array) $request->input('work_voltage', []);
+        }
         $kvas = (array) $request->input('work_transformer_kva', []);
 
         $created = 0;
