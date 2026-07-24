@@ -159,12 +159,15 @@
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="transformer-kva">
             <label class="work-card-field-label">Transformer (kVA) <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <select class="form-control work-transformer-kva" name="work_transformer_kva[]" disabled autocomplete="off">
+            {{-- Select is UI-only: disabled fields are omitted from FormData and break [] index alignment.
+                 Hidden sync always posts one slot per work row (same pattern as work_to_till_date[]). --}}
+            <select class="form-control work-transformer-kva" disabled autocomplete="off" aria-label="Transformer kVA">
                 <option value="">Select</option>
                 @foreach ($kvaOptions as $kvaOpt)
                     <option value="{{ $kvaOpt }}" {{ (string) $kva === (string) $kvaOpt ? 'selected' : '' }}>{{ $kvaOpt }}</option>
                 @endforeach
             </select>
+            <input type="hidden" class="work-transformer-kva-sync" name="work_transformer_kva[]" value="{{ $kva }}" @if($alterationExistingRow) disabled @endif>
             <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
         </div>
         @unless ($hideDates)
@@ -242,8 +245,8 @@
             <label class="work-card-field-label">Supporting docs <span class="req">*</span></label>
             @if ($supportDoc !== '')
                 <div class="work-doc-existing mb-1 text-center">
-                    <a class="text-primary" href="{{ asset($supportDoc) }}" target="_blank" rel="noopener">
-                        <i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View
+                    <a class="text-primary" href="{{ competency_document_url($supportDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'experience_doc') }}" target="_blank" rel="noopener">
+                        <i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document
                     </a>
                     <button type="button" class="btn btn-sm btn-danger ml-1 remove-work-doc-confirm" data-doc-kind="support">Remove</button>
                 </div>

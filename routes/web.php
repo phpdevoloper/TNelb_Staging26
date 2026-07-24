@@ -211,7 +211,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/edit_application/{application_id}', [FormController::class, 'edit_application'])->name('edit_application');
     Route::get('/edit_returned_application/{application_id}', [FormController::class, 'editReturnedApplication'])->name('edit_returned_application');
-    Route::get('/renew_formcc/{application_id}', [RegisterController::class, 'renew_formcc'])->name('renew_formcc');
+    Route::get('/cc_renew_form/{application_id}', [RegisterController::class, 'cc_renew_form'])->name('cc_renew_form');
     Route::get('/renew-form_ea/{application_id}', [EA_RenewalController::class, 'renew_form_ea'])->name('renew-form_ea');
     Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])->name('document.show');
     Route::post('/delete_education', [FormController::class, 'delete_education'])->name('delete_education');

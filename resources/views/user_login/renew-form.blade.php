@@ -715,8 +715,14 @@
     .fs-form #checkboxError {
         font-size: .78rem !important;
         line-height: 1.3;
-        display: block;
         margin-top: 2px;
+    }
+    .fs-form #checkboxError.d-none {
+        display: none !important;
+    }
+    .fs-form #checkboxError:not(.d-none) {
+        display: block !important;
+        color: #c1272d !important;
     }
 
     /* ── PDF icon always red ─────────────────────────── */
@@ -746,20 +752,33 @@
 
 @php
     $renewFormName = $application_details->form_name ?? '';
-    $renewLicenseName = $application_details->license_name ?? '';
+    $renewLicenseName = $application_details->license_name ?? $application_details->certificate_name ?? '';
     $renewEnglishTitle = isset($licence_name->licence_name) ? $licence_name->licence_name : 'Competency Certificate';
     if ($renewFormName === 'S') {
         $renewTamilTitle = 'மேற்பார்வையாளர் தகுதி சான்றிதழ் புதுப்பித்தல் விண்ணப்பம்';
+        $renewNotesPdf = 'assets/pdf/form_s_notes.pdf';
+        $renewNotesLang = 'English';
+        $renewNotesSize = '8 KB';
     } elseif ($renewFormName === 'W') {
         $renewTamilTitle = 'மின்கம்பியாளர் தகுதி சான்றிதழ் புதுப்பித்தல் விண்ணப்பம்';
+        $renewNotesPdf = 'assets/pdf/form_w_notes.pdf';
+        $renewNotesLang = 'தமிழ்';
+        $renewNotesSize = '38 KB';
     } elseif ($renewFormName === 'WH') {
         $renewTamilTitle = 'மின் கம்பி உதவியாளர் தகுதிச் சான்றிதழ் புதுப்பித்தல் விண்ணப்பம்';
+        $renewNotesPdf = 'assets/pdf/form_wh_notes.pdf';
+        $renewNotesLang = 'தமிழ்';
+        $renewNotesSize = '38 KB';
     } else {
         $renewTamilTitle = '';
+        $renewNotesPdf = 'assets/pdf/form_s_notes.pdf';
+        $renewNotesLang = 'English';
+        $renewNotesSize = '8 KB';
     }
-    $renewNotesPdf = 'assets/pdf/form_s_notes.pdf';
-    $renewNotesLang = 'English';
-    $renewNotesSize = '8 KB';
+    $applicant_photo = $applicant_photo ?? (object) ['upload_path' => ''];
+    $proof_doc = $proof_doc ?? (object) ['uploaded_doc' => ''];
+    $edu_details = isset($edu_details) ? collect($edu_details) : collect();
+    $exp_details = isset($exp_details) ? collect($exp_details) : collect();
 @endphp
 
 @if ($renewFormName === 'S')
@@ -780,8 +799,32 @@
         box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
     }
     #work-container-previous .work-fields.work-row:hover {
-        border-color: #b8cfe8 !important;
-        box-shadow: 0 4px 14px rgba(3, 90, 179, 0.18) !important;
+        border-color: #c8d8f5 !important;
+        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
+    }
+    #work-container-previous .work-row.is-complete.work-row--expanded {
+        overflow: visible !important;
+    }
+    /* Duration (Years / Months / Days) — clear bordered group */
+    #work-container-previous .work-card-field--duration .work-card-duration-readout {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 4px !important;
+        padding: 6px 7px !important;
+        max-width: 220px !important;
+        background: #fff !important;
+        border: 1px solid #035ab3 !important;
+        border-radius: 6px !important;
+        box-shadow: none !important;
+    }
+    #work-container-previous .work-card-duration-cell .form-control {
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 1px !important;
+        color: #035ab3 !important;
+        font-weight: 700 !important;
+        text-align: center !important;
     }
     #work-exp-summary-panel-previous .wx-order-card {
         background: #ffffff !important;
@@ -801,6 +844,41 @@
     #work-container-previous .work-row-head-actions .work-row-remove,
     #work-container-previous .work-row-remove.remove-work {
         color: #c1272d !important;
+    }
+    /* Submit always visible while the details card is open (not hover-gated) */
+    #work-container-previous .work-row:not(.work-row--in-summary):not(.work-row--compact) .work-row-done-bar,
+    #work-container-previous .work-row.work-row--expanded .work-row-done-bar,
+    #work-container-previous .work-row.is-complete.work-row--expanded .work-row-done-bar {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 16px 14px !important;
+        padding: 12px 0 4px !important;
+        text-align: right !important;
+        border-top: 1px dashed #c8d8f5 !important;
+        position: relative !important;
+        z-index: 2 !important;
+        pointer-events: auto !important;
+    }
+    #work-container-previous .work-row:not(.work-row--in-summary):not(.work-row--compact) .work-row-done-btn,
+    #work-container-previous .work-row.work-row--expanded .work-row-done-btn,
+    #work-container-previous .work-row.is-complete.work-row--expanded .work-row-done-btn {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        color: #fff !important;
+        background: #035ab3 !important;
+        border: none !important;
+    }
+    #work-container-previous .work-row-done-btn:hover,
+    #work-container-previous .work-row-done-btn:focus,
+    #work-container-previous .work-row-done-btn:active {
+        background: #035ab3 !important;
+        color: #fff !important;
+        opacity: 1 !important;
     }
     #work-container-previous .work-row-head-actions .work-row-remove .fa,
     #work-container-previous .work-row-remove.remove-work .fa {
@@ -853,6 +931,13 @@
                     <input type="hidden" id="application_id" name="application_id"
                         value="{{ isset($application_details) ? $application_details->application_id : '' }}">
                     @php
+                        $_renewApplType = strtoupper(trim((string) ($application_details->appl_type ?? '')));
+                        $_renewOldAppl = $_renewApplType === 'R'
+                            ? trim((string) ($application_details->old_application ?? ''))
+                            : trim((string) ($application_details->application_id ?? ''));
+                    @endphp
+                    <input type="hidden" id="old_application" name="old_application" value="{{ $_renewOldAppl }}">
+                    @php
                         $_renew_issued = '';
                         if (!empty($license_details) && trim((string) ($license_details->license_number ?? '')) !== '') {
                             $_renew_issued = trim((string) $license_details->license_number);
@@ -871,7 +956,15 @@
                                 ? $application_details->applicant_email
                                 : (Auth::user()->email ?? ''))
                             : '';
-                        $addressVal = isset($application_details) ? $application_details->applicants_address : Auth::user()->address;
+                        $addressVal = '';
+                        if (isset($application_details)) {
+                            $addressVal = trim((string) ($application_details->applicants_address
+                                ?? $application_details->applicant_address
+                                ?? ''));
+                        }
+                        if ($addressVal === '') {
+                            $addressVal = trim((string) (Auth::user()->address ?? ''));
+                        }
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1094,35 +1187,34 @@
                                     <tbody id="education-container">
                                         
                                         @if ($edu_details->isNotEmpty())
-                                        @foreach ($edu_details as $edu_details)
+                                        @foreach ($edu_details as $eduRow)
                                         <tr class="education-fields text-center" data-edu-index="{{ $loop->index }}">
                                             <td class="edu-serial text-center">{{ $loop->iteration }}</td>
                                             <td>
-                                                <input type="hidden" name="education_id" value="{{ $edu_details->id }}">
                                                 <select class="form-control" name="educational_level[]">
-                                                    <option disabled {{ empty($edu_details->educational_level) ? 'selected' : '' }}>Select Education</option>
+                                                    <option disabled {{ empty($eduRow->educational_level) ? 'selected' : '' }}>Select Education</option>
                                                     @if($isRenewS)
-                                                        <option value="DEE" {{ $edu_details->educational_level == 'DEE' ? 'selected' : '' }}>Diploma(Electrical Engineering)</option>
-                                                        <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
-                                                        <option value="MEE" {{ $edu_details->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
-                                                        <option value="AMIE" {{ $edu_details->educational_level == 'AMIE' ? 'selected' : '' }}>A pass in AMIE</option>
+                                                        <option value="DEE" {{ $eduRow->educational_level == 'DEE' ? 'selected' : '' }}>Diploma(Electrical Engineering)</option>
+                                                        <option value="BEE" {{ $eduRow->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
+                                                        <option value="MEE" {{ $eduRow->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
+                                                        <option value="AMIE" {{ $eduRow->educational_level == 'AMIE' ? 'selected' : '' }}>A pass in AMIE</option>
                                                     @elseif($isRenewW)
-                                                        <option value="NTC" {{ $edu_details->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
-                                                        <option value="Provisional" {{ $edu_details->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
-                                                        <option value="Ex-Serviceman" {{ $edu_details->educational_level == 'Ex-Serviceman' ? 'selected' : '' }}>Ex-Serviceman</option>
-                                                        <option value="H to B" {{ $edu_details->educational_level == 'H to B' ? 'selected' : '' }}>H to B</option>
-                                                        <option value="SCVT" {{ $edu_details->educational_level == 'SCVT' ? 'selected' : '' }}>SCVT</option>
+                                                        <option value="NTC" {{ $eduRow->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
+                                                        <option value="Provisional" {{ $eduRow->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
+                                                        <option value="Ex-Serviceman" {{ $eduRow->educational_level == 'Ex-Serviceman' ? 'selected' : '' }}>Ex-Serviceman</option>
+                                                        <option value="H to B" {{ $eduRow->educational_level == 'H to B' ? 'selected' : '' }}>H to B</option>
+                                                        <option value="SCVT" {{ $eduRow->educational_level == 'SCVT' ? 'selected' : '' }}>SCVT</option>
                                                     @else
-                                                        <option value="Up to 8th Standard" {{ $edu_details->educational_level == 'Up to 8th Standard' ? 'selected' : '' }}>Up to 8th Standard</option>
-                                                        <option value="Wireman Helper Examination" {{ $edu_details->educational_level == 'Wireman Helper Examination' ? 'selected' : '' }}>Wireman Helper Examination</option>
-                                                        <option value="ITI Certificate" {{ $edu_details->educational_level == 'ITI Certificate' ? 'selected' : '' }}>ITI Certificate</option>
+                                                        <option value="Up to 8th Standard" {{ $eduRow->educational_level == 'Up to 8th Standard' ? 'selected' : '' }}>Up to 8th Standard</option>
+                                                        <option value="Wireman Helper Examination" {{ $eduRow->educational_level == 'Wireman Helper Examination' ? 'selected' : '' }}>Wireman Helper Examination</option>
+                                                        <option value="ITI Certificate" {{ $eduRow->educational_level == 'ITI Certificate' ? 'selected' : '' }}>ITI Certificate</option>
                                                     @endif
                                                 </select>
                                             </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $edu_details->institute_name ?? ($isRenewWH ? 'Dept of Employment & Training' : '') }}"></td>
+                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $eduRow->institute_name ?? ($isRenewWH ? 'Dept of Employment & Training' : '') }}"></td>
                                             <td>
                                                 @php
-                                                    $boundMonth = $edu_details->month_of_passing ?? $edu_details->month_passing ?? '';
+                                                    $boundMonth = $eduRow->month_of_passing ?? $eduRow->month_passing ?? '';
                                                     $boundMonth = $boundMonth !== '' ? str_pad((string) ((int) $boundMonth), 2, '0', STR_PAD_LEFT) : '';
                                                 @endphp
                                                 <select name="month_of_passing[]" class="form-control">
@@ -1135,22 +1227,22 @@
                                             </td>
                                             <td>
                                                 <select name="year_of_passing[]" class="form-control">
-                                                    <option value="0" disabled {{ empty($edu_details->year_of_passing) ? 'selected' : '' }}>Select Year</option>
+                                                    <option value="0" disabled {{ empty($eduRow->year_of_passing) ? 'selected' : '' }}>Select Year</option>
                                                     @php $currentYear = date('Y'); @endphp
                                                     @for ($year = $currentYear; $year >= 1980; $year--)
-                                                        <option value="{{ $year }}" {{ $edu_details->year_of_passing == $year ? 'selected' : '' }}>{{ $year }}</option>
+                                                        <option value="{{ $year }}" {{ $eduRow->year_of_passing == $year ? 'selected' : '' }}>{{ $year }}</option>
                                                     @endfor
                                                 </select>
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" value="{{ $edu_details->certificate_no ?? '' }}">
+                                                <input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" value="{{ $eduRow->certificate_no ?? '' }}">
                                                 <span class="error text-danger certificate-error"></span>
                                             </td>
                                             <td>
                                                 <div class="file-section text-center">
-                                                    @if (!empty($edu_details->upload_document))
+                                                    @if (!empty($eduRow->upload_document))
                                                         <div class="edu-doc-container d-flex align-items-center justify-content-center">
-                                                            <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document, 'education', (int) ($edu_details->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
+                                                            <a class="text-primary" href="{{ competency_document_url($eduRow->upload_document, 'education', (int) ($eduRow->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
                                                                 <i class="fa fa-file-pdf-o" style="color: red"></i> View
                                                             </a>
                                                             <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
@@ -1169,12 +1261,12 @@
                                             </td>
                                             <td class="form-s-actions-cell text-center p-1">
                                                 <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn btn-danger btn-sm remove-education remove_edu py-1 px-2" data-edu_id="{{ $edu_details->id }}" data-url="{{ route('delete_education') }}" title="Remove row">
+                                                    <button type="button" class="btn btn-danger btn-sm remove-education remove_edu py-1 px-2" data-edu_id="{{ $eduRow->id }}" data-url="{{ route('delete_education') }}" title="Remove row">
                                                         <i class="fa fa-trash-o"></i>
                                                     </button>
                                                 </div>
-                                                <input type="hidden" name="edu_id[]" value="{{ $edu_details->id }}">
-                                                <input type="hidden" name="existing_document[]" value="{{ $edu_details->upload_document }}">
+                                                <input type="hidden" name="edu_id[]" value="{{ $eduRow->id }}">
+                                                <input type="hidden" name="existing_document[]" value="{{ $eduRow->upload_document ?? '' }}">
                                                 <input type="hidden" class="removed-document-edu" name="removed_document[]" value="0">
                                             </td>
                                         </tr>
@@ -1303,15 +1395,19 @@
                                     <tbody id="work-container">
                                         @if ($exp_details->isNotEmpty())
                                         @foreach ($exp_details as $expRow)
+                                        @php
+                                            $wFromIso = !empty($expRow->from_date) ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
+                                            $wToIso = !empty($expRow->to_date) ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
+                                        @endphp
                                         <tr class="work-fields text-center">
                                             <td class="work-serial">{{ $loop->iteration }}</td>
                                             <td>
-                                                <input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $expRow->company_name ?? $expRow->emp_cate ?? '' }}">
+                                                <input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $expRow->org_name ?? $expRow->company_name ?? $expRow->emp_cate ?? '' }}">
                                             </td>
                                             <td>
                                                 <div class="d-flex" style="gap:6px;">
-                                                    <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $expRow->work_date_from ?? $expRow->from_date ?? '' }}">
-                                                    <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $expRow->work_date_to ?? $expRow->to_date ?? '' }}">
+                                                    <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $wFromIso }}">
+                                                    <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $wToIso }}">
                                                     <input type="text" class="form-control work-year-total-display" value="{{ $expRow->work_experience_total ?? $expRow->total_exp ?? $expRow->experience ?? '' }}" readonly>
                                                 </div>
                                                 <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $expRow->work_experience_total ?? $expRow->total_exp ?? $expRow->experience ?? '' }}">
@@ -1369,7 +1465,7 @@
                     @endif
 
                     @if($isRenewS)
-                    {{-- ═══ SECTION 4 — Previous License (Form S only) ═══ --}}
+                    {{-- ═══ SECTION 8 — Previous Supervisor Certificate (Form S only) ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
@@ -1378,70 +1474,77 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
+                            @php
+                                $prevSccNo = !empty($application_details->previous_scc_no) ? $application_details->previous_scc_no : '';
+                              
+                                $previouslyIssueDate = !empty($application_details->first_issue_date)
+                                    ? \Carbon\Carbon::parse($application_details->first_issue_date)->format('Y-m-d')
+                                    : '';
+                                $previouslyValidFrom = !empty($application_details->ssc_from_date)
+                                    ? \Carbon\Carbon::parse($application_details->ssc_from_date)->format('Y-m-d')
+                                    : '';
+                                $previouslyValidTo = !empty($application_details->ssc_to_date) 
+                                    ? \Carbon\Carbon::parse($application_details->ssc_to_date)->format('Y-m-d')
+                                    : '';
+                                $hasPrevScc = $prevSccNo !== '';
+
+    
+                            @endphp
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ !empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ $hasPrevScc ? 'checked' : '' }}>
                                     <label class="form-check-label" for="previous_license_yes">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ $hasPrevScc ? '' : 'checked' }}>
                                     <label class="form-check-label" for="previous_license_no">No</label>
                                 </div>
                             </div>
-                            @php
-                                $previouslyIssueDate = !empty($application_details->previously_issue_date) ? \Carbon\Carbon::parse($application_details->previously_issue_date)->format('Y-m-d') : '';
-                                $previouslyDate = !empty($application_details->previously_date) ? \Carbon\Carbon::parse($application_details->previously_date)->format('Y-m-d') : '';
-                            @endphp
-                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previously_number) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasPrevScc ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
-                                <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Certificate Number<span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234,LC2026041234)</span></div>
-                                    <input autocomplete="off" class="form-control text-box single-line verify-input"
-                                           id="previously_number" name="previously_number" type="text"
-                                           data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                           placeholder="License Number" {{ !empty($application_details->previously_number) ? 'readonly':'' }} value="{{ $application_details->previously_number }}" maxlength="80">
-                                    <input type="hidden" id="l_verify" name="l_verify" value="{{ $application_details->license_verify }}">
-                                    <span id="licenseError" class="text-danger"></span>
-                                </div>
-                                <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
-                                    <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
-                                           id="previously_issue_date" name="previously_issue_date" type="date"
-                                           data-error="#previouslyIssueDateError"
-                                           {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                           value="{{ $previouslyIssueDate }}">
-                                    <span id="previouslyIssueDateError" class="text-danger"></span>
-                                </div>
-                                <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
-                                    <input autocomplete="off" class="form-control text-box single-line verify-date"
-                                           id="previously_date" name="previously_date" type="date"
-                                           data-error="#dateError"
-                                           {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                           value="{{ $previouslyDate }}">
-                                    <span id="dateError" class="text-danger"></span>
-                                    <span id="verify_result"></span>
-                                    <span id="license_messagdfde" class="mt-1"></span>
-                                    <span class="mt-1 verify_status {{ $application_details->license_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                        @if (!empty($application_details->previously_number))
-                                            {!! $application_details->license_verify == 0 ? '&#128683; License not verified.' : '&#10004; License verified.' !!}
-                                        @endif
-                                    </span>
-                                </div>
-                                <div class="col-12 col-md-2">
-                                    <div class="fs-verify-actions">
-                                        @if (!empty($application_details->previously_number))
-                                            <button type="button" class="btn btn-danger remove_verify" data-type="superviser"><i class="fa fa-trash"></i> Delete</button>
-                                            <button type="button" class="btn btn-primary verify-btn btn-forms d-none" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                        @else
-                                            <button type="button" class="btn btn-primary verify-btn" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                        @endif
+                                    <div class="col-12 col-md-3">
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-input"
+                                               id="previously_number" name="previously_number" type="text"
+                                               data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
+                                               placeholder="Certificate Number" {{ $hasPrevScc ? 'readonly' : '' }}
+                                               value="{{ $prevSccNo }}" maxlength="80">
+                                        <input type="hidden" id="l_verify" name="l_verify" value="{{ $application_details->license_verify ?? ($hasPrevScc ? 1 : 0) }}">
+                                        <span id="licenseError" class="text-danger"></span>
+                                        <span id="verify_result"></span>
+                                        <span id="license_messagdfde" class="mt-1"></span>
                                     </div>
-                                </div></div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
+                                               id="previously_issue_date" name="previously_issue_date" type="date"
+                                               data-error="#previouslyIssueDateError"
+                                               {{ $hasPrevScc ? 'readonly' : '' }}
+                                               value="{{ $previouslyIssueDate }}">
+                                        <span id="previouslyIssueDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
+                                               id="previously_valid_from" name="previously_valid_from" type="date"
+                                               data-error="#previouslyFromDateError"
+                                               {{ $hasPrevScc ? 'readonly' : '' }}
+                                               value="{{ $previouslyValidFrom }}">
+                                        <span id="previouslyFromDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control text-box single-line verify-date"
+                                               id="previously_valid_to" name="previously_valid_to" type="date"
+                                               data-error="#dateError"
+                                               {{ $hasPrevScc ? 'readonly' : '' }}
+                                               value="{{ $previouslyValidTo }}">
+                                        <span id="dateError" class="text-danger"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    {{-- /SECTION 4 --}}
                     @endif
 
                     @php
@@ -1474,76 +1577,78 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
+                            @php
+                                $wiremanCertNo = !empty($application_details->wcc_no) ? $application_details->wcc_no : '';
+                                $certificateIssueDate = !empty($application_details->wcc_issue_date)
+                                    ? \Carbon\Carbon::parse($application_details->wcc_issue_date)->format('Y-m-d')
+                                    : '';
+                                $certificateValidFrom = !empty($application_details->wcc_from)
+                                    ? \Carbon\Carbon::parse($application_details->wcc_from)->format('Y-m-d')
+                                    : '';
+                                $certificateValidTo = !empty($application_details->wcc_to)
+                                    ? \Carbon\Carbon::parse($application_details->wcc_to)->format('Y-m-d')
+                                    : '';
+                                $hasWiremanCert = $wiremanCertNo !== '';
+                                if ($application_details->form_name == 'S') {
+                                    $cert_type = 'supervisor';
+                                } elseif ($application_details->form_name == 'WH') {
+                                    $cert_type = 'helper';
+                                } else {
+                                    $cert_type = 'certificate';
+                                }
+                            @endphp
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ !empty($application_details->certificate_no) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ $hasWiremanCert ? 'checked' : '' }}>
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_no) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ $hasWiremanCert ? '' : 'checked' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
-                            @php
-                                $certificateIssueDate = !empty($application_details->certificate_issue_date) ? \Carbon\Carbon::parse($application_details->certificate_issue_date)->format('Y-m-d') : '';
-                                $certificateExpiryDate = !empty($application_details->certificate_date) ? \Carbon\Carbon::parse($application_details->certificate_date)->format('Y-m-d') : '';
-                            @endphp
-                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->certificate_no) ? 'block' : 'none' }};">
-                                @php
-                                    if($application_details->form_name == 'S'){
-                                        $cert_type = 'supervisor';
-                                    }else if($application_details->form_name == 'WH'){
-                                        $cert_type = 'helper';
-                                    }else{
-                                        $cert_type = 'certificate';
-                                    }
-                                @endphp
+                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ $hasWiremanCert ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
-                                <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234,LB2026041234)</span></div>
-                                    <input class="form-control text-box single-line verify-input"
-                                           id="certificate_no" name="competency_certificate_no" type="text"
-                                           data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
-                                           placeholder="Certificate No" maxlength="12"
-                                           value="{{ $application_details->certificate_no }}"
-                                           {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
-                                    <input type="hidden" id="cert_verify" name="cert_verify" value="{{ $application_details->cert_verify }}">
-                                    <span id="license_message" class="mt-1"></span>
-                                    <span id="verify_status" class="mt-1 {{ $application_details->cert_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                        @if (!empty($application_details->certificate_no))
-                                            {!! $application_details->cert_verify == 0 ? '&#128683; License not verified.' : '&#10004; License verified.' !!}
-                                        @endif
-                                    </span>
-                                    <span id="certError" class="text-danger"></span>
-                                </div>
-                                <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
-                                    <input class="form-control text-box single-line verify-issue-date"
-                                           id="certificate_issue_date" name="certificate_issue_date"
-                                           data-error="#certIssueDateError" type="date"
-                                           value="{{ $certificateIssueDate }}"
-                                           {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
-                                    <span id="certIssueDateError" class="text-danger"></span>
-                                </div>
-                                <div class="col-12 col-md-3">
-                                    <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
-                                    <input class="form-control text-box single-line verify-date"
-                                           id="certificate_date" name="certificate_date"
-                                           data-error="#certDateError" type="date"
-                                           value="{{ $certificateExpiryDate }}"
-                                           {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
-                                    <span id="certDateError" class="text-danger"></span>
-                                </div>
-                                <div class="col-12 col-md-2">
-                                    <div class="fs-verify-actions">
-                                        @if (!empty($application_details->certificate_no))
-                                            <button type="button" class="btn btn-danger remove_verify" data-type="superviser_two"><i class="fa fa-trash"></i> Delete</button>
-                                            <button type="button" class="btn btn-primary verify-btn d-none" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                        @else
-                                            <button type="button" class="btn btn-primary verify-btn" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
-                                        @endif
+                                    <div class="col-12 col-md-3">
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234)</span></div>
+                                        <input class="form-control text-box single-line verify-input"
+                                               id="certificate_no" name="competency_certificate_no" type="text"
+                                               data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
+                                               placeholder="Certificate Number" maxlength="80"
+                                               value="{{ $wiremanCertNo }}"
+                                               {{ $hasWiremanCert ? 'readonly' : '' }}>
+                                        <span id="license_message" class="mt-1"></span>
+                                        <span id="certError" class="text-danger"></span>
                                     </div>
-                                </div></div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
+                                        <input class="form-control text-box single-line verify-issue-date"
+                                               id="certificate_issue_date" name="certificate_issue_date"
+                                               data-error="#certIssueDateError" type="date"
+                                               value="{{ $certificateIssueDate }}"
+                                               {{ $hasWiremanCert ? 'readonly' : '' }}>
+                                        <span id="certIssueDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input class="form-control text-box single-line verify-valid-from"
+                                               id="certificate_valid_from" name="certificate_valid_from"
+                                               data-error="#certFromDateError" type="date"
+                                               value="{{ $certificateValidFrom }}"
+                                               {{ $hasWiremanCert ? 'readonly' : '' }}>
+                                        <span id="certFromDateError" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
+                                        <input class="form-control text-box single-line verify-date"
+                                               id="certificate_valid_to" name="certificate_valid_to"
+                                               data-error="#certDateError" type="date"
+                                               value="{{ $certificateValidTo }}"
+                                               {{ $hasWiremanCert ? 'readonly' : '' }}>
+                                        <span id="certDateError" class="text-danger"></span>
+                                    </div>
+                                    
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1723,12 +1828,29 @@
                             <input type="checkbox" id="declarationCheckbox" required>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.
-                                I request you to issue me the qualification certificate. <span class="req">*</span>
-                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். தகுதி சான்றிதழ் எனக்கு வழங்குமாறு வேண்டுகிறேன்.</span>
+                                @if ($renewFormName === 'S')
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
+                                    I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                @elseif ($renewFormName === 'W')
+                                    I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<br>
+                                    I request that I may be granted a Wireman Competency Certificate.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br>எனக்கு மின்கம்பியாளர் தகுதி சான்றிதழ் எனக்கு வழங்குமாறு வேண்டுகிறேன்.</span>
+                                @elseif ($renewFormName === 'WH')
+                                    I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<br>
+                                    I request that I may be granted a Wireman Helper Competency Certificate.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br>எனக்கு மின்கம்பி உதவியாளர் தகுதி சான்றிதழ் எனக்கு வழங்குமாறு வேண்டுகிறேன்.</span>
+                                @elseif ($renewFormName === 'P')
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<br>
+                                    I request that I may be granted a Power Generating Station Operation and Maintenance Competency Certificate.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br>மின்சாரம் உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழை எனக்கு வழங்குமாறு நான் கேட்டுக்கொள்கிறேன்.</span>
+                                @else
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
+                                @endif
                             </div>
                         </label>
-                        <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;">Please check the declaration box before proceeding.</span>
+                        <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
                     </div>
 
                     {{-- Hidden fields --}}
@@ -1738,9 +1860,10 @@
                         value="{{ isset($application_details) ? $application_details->license_name : '' }}">
                     <input type="hidden" id="form_id" name="form_id"
                         value="{{ isset($application_details) ? $application_details->form_id : '' }}">
-                    <input type="hidden" id="amount" name="amount" value="750">
+                    <input type="hidden" id="amount" name="amount" value="{{ isset($fees_details->fees) ? $fees_details->fees : '' }}">
                     <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
                     <input type="hidden" id="appl_type" name="appl_type" value="R">
+                    <input type="hidden" name="pancard_doc_removed" id="pancard_doc_removed" value="0">
                     @csrf
 
                     <div id="board-member-fee-notice" class="alert alert-info d-none mb-3 py-2 px-3" role="status" style="font-size:.9rem;">
@@ -1858,14 +1981,23 @@
 <script>
     function clearLocalPreview($fileInput) {
         var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-        var $preview = $wrap.next('.local-file-preview');
+        var $preview = $wrap.length
+            ? $wrap.nextAll('.local-file-preview').first()
+            : $fileInput.nextAll('.local-file-preview').first();
         var oldUrl = $preview.data('blobUrl');
         if (oldUrl) URL.revokeObjectURL(oldUrl);
         $preview.remove();
         $fileInput.removeAttr('data-has-local-file');
     }
 
-    $(document).on('change', 'input[type="file"][name^="education_document"], input[type="file"][name^="work_document"]', function() {
+    /* Same §7a preview behaviour as edit_application.
+       Also bind by class — jQuery [name="work_document[]"] is unreliable. */
+    $(document).on(
+        'change',
+        'input[type="file"][name^="education_document"],' +
+        'input.work-doc-input, input.work-relieve-input,' +
+        'input[type="file"][name="work_document[]"], input[type="file"][name="work_relieving_letter[]"]',
+        function() {
         var $input = $(this);
         clearLocalPreview($input);
 
@@ -1874,7 +2006,8 @@
 
         var allowed = ['application/pdf', 'image/jpeg', 'image/png'];
         var maxSize = 200 * 1024;
-        if (allowed.indexOf(file.type) === -1) {
+        var typeOk = allowed.indexOf(file.type) !== -1 || /\.(pdf|jpe?g|png)$/i.test(file.name || '');
+        if (!typeOk) {
             window.alert('Only PDF, JPG, PNG files are allowed.');
             this.value = '';
             $input.removeAttr('data-has-local-file');
@@ -1889,7 +2022,7 @@
 
         $input.attr('data-has-local-file', '1');
         var blobUrl = URL.createObjectURL(file);
-        var isImage = file.type.indexOf('image/') === 0;
+        var isImage = (file.type && file.type.indexOf('image/') === 0) || /\.(jpe?g|png)$/i.test(file.name || '');
         var $preview = $('<div class="local-file-preview"></div>').data('blobUrl', blobUrl);
         if (isImage) {
             $preview.append($('<img>', { src: blobUrl, class: 'img-preview', alt: 'Selected image preview' }));
@@ -1900,7 +2033,9 @@
             rel: 'noopener noreferrer',
             class: 'preview-link'
         }).html(isImage ? '<i class="fa fa-image"></i> Preview image' : '<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
-        $input.closest('.form-s-file-upload-wrap').after($preview);
+        var $wrap = $input.closest('.form-s-file-upload-wrap');
+        ($wrap.length ? $wrap : $input).after($preview);
+        $input.closest('.work-fields').trigger('wx:recheck-complete');
     });
 
     $(document).on('change', '#aadhaar_doc', function() {
@@ -2012,11 +2147,8 @@
             var $fileInput = $scope.find('#pancard_doc').first();
             $docContainer.removeClass('d-flex align-items-center justify-content-center').addClass('d-none').hide();
             $docInput.removeClass('d-none').show();
+            $scope.find('#pancard_doc_removed').val('1');
             clearLocalPreview($fileInput);
-        });
-    });
-
-    // Age calculation on DOB change
     $('#d_o_b').on('change', function() {
         const dobVal = $(this).val();
         const errorEl = $('#dob-error');
@@ -2450,6 +2582,35 @@
             updateOverallTotalYears();
         });
     })();
+</script>
+
+{{-- Same date display helper as edit_application (DD-MM-YYYY ↔ native date picker) --}}
+<script>
+    function initDateDisplay(inp) {
+        if (!inp) return;
+        function toDisplay(raw) {
+            if (!raw) return;
+            var p = String(raw).split('-');
+            if (p.length === 3) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        }
+        if (inp.value && /^\d{4}-\d{2}-\d{2}$/.test(inp.value)) {
+            inp.setAttribute('data-raw', inp.value);
+            toDisplay(inp.value);
+        }
+        inp.addEventListener('focus', function() {
+            var raw = this.getAttribute('data-raw') || '';
+            this.type = 'date'; if (raw) this.value = raw;
+        });
+        inp.addEventListener('blur', function() {
+            if (this.type === 'date' && this.value) {
+                this.setAttribute('data-raw', this.value); toDisplay(this.value);
+            }
+        });
+        inp.addEventListener('change', function() {
+            if (this.type === 'date' && this.value) this.setAttribute('data-raw', this.value);
+        });
+    }
+    document.querySelectorAll('#competency_form_ws .work-date-from, #competency_form_ws .work-date-to').forEach(initDateDisplay);
 </script>
 
 @if ($renewFormName === 'S')

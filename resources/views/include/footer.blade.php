@@ -878,6 +878,8 @@ $(document).ready(function() {
         }
 
         function renderLocalFilePreviewForInput($input) {
+            /* Form S §7a/7b View Document is owned by page handlers (edit/renew) + work-exp scripts.
+               Keep this helper for W / WH only — same as before. */
             if (!isWiremanOrWiremanHelperForm()) return;
             if (!$input || !$input.length) return;
 
@@ -966,6 +968,29 @@ $(document).ready(function() {
         }
         window.isFeeExemptCompetencySuccess = isFeeExemptCompetencySuccess;
 
+        /** Rebuild work_transformer_kva[] so each work row posts one aligned slot (disabled selects are skipped by FormData). */
+        function appendWorkTransformerKvaToFormData(formData, formRoot) {
+            if (!formData || !formRoot) return;
+            formData.delete('work_transformer_kva[]');
+            $(formRoot).find('.js-work-container .work-fields, #work-container .work-fields').each(function () {
+                const $row = $(this);
+                const $sync = $row.find('.work-transformer-kva-sync').first();
+                const $sel = $row.find('select.work-transformer-kva').first();
+                let kva = '';
+                if ($sync.length && !$sync.prop('disabled')) {
+                    kva = ($sync.val() || '').toString().trim();
+                } else if ($sel.length && !$sel.prop('disabled')) {
+                    kva = ($sel.val() || '').toString().trim();
+                }
+                const voltage = ($row.find('.work-voltage').val() || '').toString().trim();
+                if (voltage === 'up_to_650v') {
+                    kva = '';
+                }
+                formData.append('work_transformer_kva[]', kva);
+            });
+        }
+        window.appendWorkTransformerKvaToFormData = appendWorkTransformerKvaToFormData;
+
         async function saveCompetencyDraftSilently() {
             const formWsEl = $('#competency_form_ws')[0];
             const formPEl = $('#competency_form_p')[0];
@@ -974,6 +999,10 @@ $(document).ready(function() {
 
             const formData = new FormData(formEl);
             formData.set('form_action', 'draft');
+
+            if (formWsEl) {
+                appendWorkTransformerKvaToFormData(formData, formWsEl);
+            }
 
             if (formPEl) {
                 formData.delete('month_passing[]');
@@ -1022,7 +1051,13 @@ $(document).ready(function() {
                 });
 
                 if (saveResponse && saveResponse.status === "success" && saveResponse.application_id) {
-                    $('#application_id').val(saveResponse.application_id);
+                    const newApplId = String(saveResponse.application_id).trim();
+                    $('#application_id').val(newApplId);
+                    $('input[name="application_id"]').val(newApplId);
+                    $('.btn-fs-draft, #saveDraftBtn, button[data-id]').filter(function () {
+                        return $(this).closest('#competency_form_ws, #competency_form_p').length > 0
+                            || $(this).hasClass('btn-fs-draft');
+                    }).attr('data-id', newApplId);
                 }
 
                 return saveResponse;
@@ -2900,8 +2935,9 @@ $(document).ready(function() {
 
         $(document).off('change.fsDeclaration', '#declarationCheckbox').on('change.fsDeclaration', '#declarationCheckbox', function () {
             if ($(this).is(':checked')) {
-                $('#checkboxError').addClass('d-none');
+                $('#checkboxError').addClass('d-none').hide();
                 $('#declaration-error-renew').addClass('d-none');
+                $('#declaration-error-new-application').addClass('d-none');
             }
         });
 
@@ -3763,7 +3799,10 @@ $(document).ready(function() {
 
             if (!$('#declarationCheckbox').is(':checked')) {
                 $('#declaration-error-new-application').removeClass('d-none');
-                $('#checkboxError').removeClass('d-none');
+                $('#checkboxError')
+                    .removeClass('d-none')
+                    .css('display', '')
+                    .show();
                 if (!firstErrorField) {
                     firstErrorField = $('#declarationCheckbox').length
                         ? $('#declarationCheckbox')
@@ -3771,7 +3810,7 @@ $(document).ready(function() {
                 }
                 isValid = false;
             } else {
-                $('#checkboxError').addClass('d-none');
+                $('#checkboxError').addClass('d-none').hide();
                 $('#declaration-error-new-application').addClass('d-none');
             }
 
@@ -6030,6 +6069,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 }
                 let formData = new FormData($('#competency_form_ws')[0]);
                 formData.set('form_action', 'draft');
+                if (typeof window.appendWorkTransformerKvaToFormData === 'function') {
+                    window.appendWorkTransformerKvaToFormData(formData, $('#competency_form_ws')[0]);
+                }
                 let applicationId = $('#application_id').val();
                 let formUrl;
                 

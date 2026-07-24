@@ -868,7 +868,15 @@ class FormController extends BaseController
 
         $natureWork = $isFormS ? trim((string) ($request->work_nature_of_work[$key] ?? '')) : '';
         $voltageLevel = $isFormS ? trim((string) ($request->work_voltage_level[$key] ?? '')) : '';
-        $kvaRaw = $isFormS ? trim((string) ($request->work_transformer_kva[$key] ?? '')) : '';
+        $kvaList = $request->input('work_transformer_kva', []);
+        if (! is_array($kvaList)) {
+            $kvaList = ($kvaList !== null && $kvaList !== '') ? [(string) $kvaList] : [];
+        }
+        $kvaRaw = $isFormS ? trim((string) ($kvaList[$key] ?? '')) : '';
+        /* Up to 650V never stores kVA. */
+        if ($isFormS && strtolower($voltageLevel) === 'up_to_650v') {
+            $kvaRaw = '';
+        }
 
         $empCate = null;
         if ($isFormS && strtolower($empType) === 'electrical_contractor') {
@@ -3435,15 +3443,29 @@ class FormController extends BaseController
         DB::beginTransaction();
 
         try {
-            $form = $id
-                ? (($found = CC_Forms_Meta::findByApplicationId($id)) && strtoupper((string) ($found->appl_type ?? '')) === 'R' ? $found : null)
-                : null;
+            $form = null;
+            $applicationId = null;
+            $parentApplicationId = null;
 
-            if ($form) {
-                $applicationId = $form->application_id;
-            } else {
+            if ($id) {
+                $resolved = $this->resolveRenewalDraftFormForSubmit(
+                    (string) $id,
+                    (string) ($loginId ?? ''),
+                    $request->form_name ?? null
+                );
+                $form = $resolved['form'];
+                $applicationId = $resolved['application_id'];
+                $parentApplicationId = $resolved['parent_application_id'];
+            }
+
+            if (! $form) {
                 $request->merge(['appl_type' => $appl_type]);
-                $applicationId = $this->generateCompetencyApplicationId($request);
+                if (! $applicationId) {
+                    $applicationId = $this->generateCompetencyApplicationId($request);
+                }
+                if (! $parentApplicationId) {
+                    $parentApplicationId = $id ?: null;
+                }
             }
 
             $metaPayload = $this->buildCcFormsMetaPayload(
@@ -3453,7 +3475,7 @@ class FormController extends BaseController
                 [
                     'appl_type' => $appl_type,
                     'payment_status' => $action === 'draft' ? 'N' : 'payment',
-                    'old_application' => $form?->old_application ?? $id,
+                    'old_application' => $form?->old_application ?? $parentApplicationId ?? $id,
                 ]
             );
 
@@ -4130,6 +4152,133 @@ public function update(Request $request, $id)
         }
 
         return true;
+    }
+
+    /**
+     * Resolve the renewal draft row for draft_renewal_submit.
+     *
+     * Preview & Proceed posts the parent/issued application id (N/D) from the renew form.
+     * Only treating appl_type=R as updatable caused a NEW RSC… id on every Preview → Back cycle.
+     * Reuse an unpaid/open R draft for the same parent + login when present.
+     *
+     * @return array{form: ?CC_CompetencyMeta, application_id: ?string, parent_application_id: ?string}
+     */
+    private function resolveRenewalDraftFormForSubmit(
+        string $routeApplicationId,
+        string $loginId,
+        ?string $formName = null
+    ): array {
+        $routeApplicationId = trim($routeApplicationId);
+        $loginId = trim($loginId);
+        $empty = [
+            'form' => null,
+            'application_id' => null,
+            'parent_application_id' => null,
+        ];
+        if ($routeApplicationId === '') {
+            return $empty;
+        }
+
+        $found = CC_Forms_Meta::findByApplicationId($routeApplicationId, $formName);
+        $applType = strtoupper(trim((string) ($found->appl_type ?? '')));
+
+        if ($found && $applType === 'R') {
+            if ($loginId !== '' && (string) ($found->login_id ?? '') !== $loginId) {
+                return $empty;
+            }
+            if ($this->isCompetencyRenewalDraftOpen($found)) {
+                return [
+                    'form' => $found,
+                    'application_id' => (string) $found->application_id,
+                    'parent_application_id' => trim((string) ($found->old_application ?? '')) ?: null,
+                ];
+            }
+
+            /* Paid / closed renewal — start a new draft under the same parent. */
+            return [
+                'form' => null,
+                'application_id' => null,
+                'parent_application_id' => trim((string) ($found->old_application ?? $found->application_id)) ?: $routeApplicationId,
+            ];
+        }
+
+        $parentApplicationId = $routeApplicationId;
+        if ($found) {
+            try {
+                $master = app(FormSApplicationWorkflowService::class)->masterApplication($found);
+                $parentApplicationId = (string) ($master->application_id ?? $found->application_id);
+            } catch (\Throwable $e) {
+                $parentApplicationId = (string) $found->application_id;
+            }
+        }
+
+        $existingDraft = $this->findOpenCompetencyRenewalDraft(
+            $parentApplicationId,
+            $loginId,
+            $formName
+        );
+        if ($existingDraft) {
+            return [
+                'form' => $existingDraft,
+                'application_id' => (string) $existingDraft->application_id,
+                'parent_application_id' => $parentApplicationId,
+            ];
+        }
+
+        return [
+            'form' => null,
+            'application_id' => null,
+            'parent_application_id' => $parentApplicationId,
+        ];
+    }
+
+    private function isCompetencyRenewalDraftOpen(CC_CompetencyMeta $form): bool
+    {
+        $pay = strtoupper(trim((string) ($form->payment_status ?? '')));
+        if (in_array($pay, ['Y', 'SUCCESS', 'PAID', 'S', 'PAYMENT'], true)) {
+            return false;
+        }
+
+        $status = strtoupper(trim((string) ($form->app_status ?? '')));
+        if (in_array($status, ['A', 'APPROVED', 'C', 'CANCELLED', 'R', 'REJECTED'], true)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function findOpenCompetencyRenewalDraft(
+        string $parentApplicationId,
+        string $loginId,
+        ?string $formName = null
+    ): ?CC_CompetencyMeta {
+        $parentApplicationId = trim($parentApplicationId);
+        $loginId = trim($loginId);
+        if ($parentApplicationId === '' || $loginId === '') {
+            return null;
+        }
+
+        $metaService = app(CompetencyMetaService::class);
+        foreach ($metaService->allMetaTables() as $table) {
+            $query = DB::table($table)
+                ->where('old_application', $parentApplicationId)
+                ->whereRaw("UPPER(TRIM(COALESCE(appl_type, ''))) = 'R'")
+                ->where('login_id', $loginId)
+                ->orderByDesc('app_id');
+
+            if ($formName !== null && trim((string) $formName) !== '') {
+                $query->where('form_name', strtoupper(trim((string) $formName)));
+            }
+
+            foreach ($query->get() as $row) {
+                $model = $metaService->findModel((string) ($row->application_id ?? ''), $formName);
+                if ($model && $this->isCompetencyRenewalDraftOpen($model)) {
+                    return $model;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function generateCompetencyApplicationId(Request $request): string

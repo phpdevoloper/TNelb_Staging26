@@ -256,7 +256,7 @@
                 @endif
             </td>
 
-            <!-- License Number -->
+            <!-- Certificate Number -->
             <td>
                 @if (!empty($workflow->license_number) && $sts == 'A')
                     <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank" 
@@ -316,7 +316,7 @@
                             }
                         @endphp
                         @if ($workflow->is_under_validity_period && !($isFormW && $hasCertificateC))
-                            <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'renew_form', ['application_id' => $workflow->application_id]) }}"
+                            <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'cc_renew_form', ['application_id' => $workflow->application_id]) }}"
                                 class="text-primary">
                                 (Apply for renewal)
                             </a>

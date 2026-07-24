@@ -67,7 +67,7 @@
         border-radius: var(--wx-radius);
         box-shadow: 0 2px 8px rgba(3, 90, 179, 0.12);
         transition: box-shadow .2s, border-color .2s, opacity .18s, transform .18s;
-        overflow: hidden;
+        overflow: visible;
         animation: wxRowIn .22s ease;
     }
     .work-row:hover { box-shadow: 0 4px 14px rgba(3, 90, 179, 0.16); border-color: var(--wx-border-strong); }
@@ -555,7 +555,7 @@
         padding: 5px 9px !important;
     }
 
-    /* Duration readout — compact single cell (not full row width) */
+    /* Duration readout — bordered Years / Months / Days group */
     .work-card-field--duration {
         grid-column: span 1;
         max-width: 220px;
@@ -564,11 +564,12 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 4px;
-        padding: 4px 5px;
+        padding: 6px 7px;
         max-width: 220px;
         background: #fff;
-        border: 1px solid var(--wx-border);
-        border-radius: 5px;
+        border: 1px solid #035ab3;
+        border-radius: 6px;
+        box-sizing: border-box;
     }
     .work-card-duration-cell {
         display: flex;
@@ -592,13 +593,14 @@
         color: var(--wx-accent);
         text-align: center;
         padding: 0 1px;
-        border: 0;
+        border: 0 !important;
         background: transparent !important;
+        box-shadow: none !important;
         line-height: 1.1;
         min-height: 0;
         height: auto;
     }
-    .work-card-duration-cell .form-control:focus { box-shadow: none; }
+    .work-card-duration-cell .form-control:focus { box-shadow: none !important; }
 
     /* Inline error messages within a row */
     .work-row .error-message,
@@ -679,7 +681,7 @@
     /* Active (incomplete) row — remove stays inside the card */
     .work-row:not(.is-complete) {
         position: relative;
-        overflow: hidden;
+        overflow: visible;
     }
     .work-row:not(.is-complete) .work-row-head {
         position: relative;
@@ -728,7 +730,7 @@
     }
     .work-row.is-complete.work-row--expanded .work-row-toggle-btn { display: inline-flex; }
 
-    /* Shown only while editing a complete entry (expanded full form) */
+    /* Shown while the details card is open (edit / fill) — not hover-gated */
     .work-row-done-bar {
         display: none;
         margin: 0 16px 14px;
@@ -736,7 +738,11 @@
         border-top: 1px dashed var(--wx-border);
         text-align: right;
     }
-    .work-row.is-complete.work-row--expanded .work-row-done-bar { display: block; }
+    .work-row:not(.work-row--compact):not(.work-row--in-summary) .work-row-done-bar,
+    .work-row.work-row--expanded .work-row-done-bar,
+    .work-row.is-complete.work-row--expanded .work-row-done-bar {
+        display: block;
+    }
     .work-row.is-complete.work-row--expanded {
         overflow: visible;
     }
@@ -754,7 +760,12 @@
         cursor: pointer;
         line-height: 1.2;
     }
-    .work-row-done-btn:hover { background: #024a98; }
+    .work-row-done-btn:hover,
+    .work-row-done-btn:focus,
+    .work-row-done-btn:active {
+        background: var(--wx-accent);
+        color: #fff;
+    }
     .work-row-done-btn i { font-size: .72rem; }
     .work-row-done-hint {
         margin: 8px 0 0;
@@ -955,6 +966,35 @@
     .work-exp-wrap .work-card-field[data-field="to-date"] {
         overflow: visible;
     }
+    .work-exp-wrap .work-card-field[data-field="support-doc"],
+    .work-exp-wrap .work-card-field[data-field="relieve"] {
+        overflow: visible;
+    }
+    .work-exp-wrap .local-file-preview,
+    .work-exp-wrap .work-doc-existing,
+    .work-exp-wrap .work-relieve-existing {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: .4rem;
+        margin-top: .25rem;
+    }
+    .work-exp-wrap .local-file-preview .preview-link,
+    .work-exp-wrap .work-doc-existing a,
+    .work-exp-wrap .work-relieve-existing a {
+        color: #0056b3 !important;
+        font-size: .78rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .work-exp-wrap .local-file-preview .img-preview {
+        width: 44px;
+        height: 44px;
+        border: 1px solid #ccd5e3;
+        border-radius: 4px;
+        object-fit: cover;
+    }
     .work-exp-wrap .work-row.is-complete.work-row--expanded {
         overflow: visible;
     }
@@ -1008,9 +1048,20 @@
         font-weight: 600 !important;
         color: var(--wx-muted) !important;
     }
+    .work-exp-wrap .work-card-field--duration .work-card-duration-readout {
+        border: 1px solid #035ab3 !important;
+        border-radius: 6px !important;
+        background: #fff !important;
+        padding: 6px 7px !important;
+    }
     .work-exp-wrap .work-card-duration-cell .form-control {
         font-size: .72rem !important;
         font-weight: 700 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 1px !important;
+        color: #035ab3 !important;
     }
     .work-exp-wrap .fa,
     .work-exp-wrap i.fa,

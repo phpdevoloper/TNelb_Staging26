@@ -80,8 +80,8 @@
                     <label class="work-card-field-label">Supporting docs</label>
                     @if ($supportDoc !== '')
                         <div class="work-doc-existing mb-1 text-center">
-                            <a class="text-primary" href="{{ asset($supportDoc) }}" target="_blank" rel="noopener">
-                                <i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View
+                            <a class="text-primary" href="{{ competency_document_url($supportDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'experience_doc') }}" target="_blank" rel="noopener">
+                                <i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document
                             </a>
                             <button type="button" class="btn btn-sm btn-danger ml-1 remove-work-doc-confirm" data-doc-kind="support">Remove</button>
                         </div>

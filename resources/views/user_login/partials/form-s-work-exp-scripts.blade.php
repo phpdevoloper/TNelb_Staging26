@@ -28,6 +28,21 @@
             window.wx7bRepresentingOrgOptions = REPRESENTING_ORG_OPTIONS;
 
             /**
+             * jQuery attribute selectors break on name="foo[]" because ] ends the selector.
+             * Match by the DOM name property instead.
+             */
+            function namedInputs($scope, name) {
+                var $root = $scope && $scope.length ? $scope : $(document);
+                return $root.find('input').filter(function () {
+                    return this.name === name;
+                });
+            }
+
+            function namedInputVal($scope, name) {
+                return (namedInputs($scope, name).first().val() || '').trim();
+            }
+
+            /**
              * Ensure §7b "Representing Organisation" is a <select> everywhere
              * (covers legacy markup / cloned text inputs in #work-container-current).
              */
@@ -225,17 +240,16 @@
 
             function summaryFilePreviewUrl($input) {
                 if (!$input || !$input.length) return '';
-                var $preview = $input.closest('.form-s-file-upload-wrap').next('.local-file-preview');
+                var $preview = $input.closest('.form-s-file-upload-wrap').nextAll('.local-file-preview').first();
                 return ($preview.length && $preview.data('blobUrl')) ? $preview.data('blobUrl') : '';
             }
 
             function summaryExistingDocHref($row, kind) {
                 if (!$row || !$row.length) return '';
-                var sel = (kind === 'relieve')
-                    ? 'input[name="existing_work_relieving_document[]"]'
-                    : 'input[name="existing_work_document[]"]';
-                var path = ($row.find(sel).first().val() || '').trim();
-                return competencyStoredDocHref(path);
+                var name = (kind === 'relieve')
+                    ? 'existing_work_relieving_document[]'
+                    : 'existing_work_document[]';
+                return competencyStoredDocHref(namedInputVal($row, name));
             }
 
             function summaryAttachmentBlock(label, $input, naText, $row) {
@@ -623,6 +637,7 @@
                 setFieldLock($tr, 'work-nature', true);
                 setFieldLock($tr, 'voltage-level', true);
                 setFieldLock($tr, 'transformer-kva', true);
+                syncTransformerKvaHidden($tr);
                 $tr.find('[data-field="work-nature"] .req, [data-field="voltage-level"] .req, [data-field="transformer-kva"] .req').hide();
 
                 unlockWorkField($tr, $emp, 'organisation');
@@ -691,13 +706,17 @@
 
             /** Refresh summary and collapse expanded complete row back to order-card view. */
             function collapseToSummary($tr) {
-                updateRowStatus($tr);
                 $tr.find('.work-row-done-hint').remove();
-                if (!$tr.hasClass('is-complete')) {
+                var complete = isRowComplete($tr);
+                $tr.toggleClass('is-complete', complete);
+                $tr.data('wxWasComplete', complete);
+                if (!complete) {
+                    ensureWorkRowDoneBar($tr);
                     var $bar = $tr.find('.work-row-done-bar');
                     if ($bar.length && !$bar.find('.work-row-done-hint').length) {
                         $bar.append('<p class="work-row-done-hint" role="alert">Fill all required fields and upload documents before you can submit.</p>');
                     }
+                    applyRowLayout($tr);
                     return false;
                 }
                 if (!workContainerUsesSummaryPanel(workContainerFor($tr))) {
@@ -705,6 +724,7 @@
                     applyRowLayout($tr);
                     return true;
                 }
+                ensureWorkRowDoneBar($tr);
                 $tr.removeClass('work-row--expanded');
                 applyRowLayout($tr);
                 updateRowSummary($tr);
@@ -952,7 +972,41 @@
                 }
             }
 
-            /** Complete rows stay expanded until Submit (so the done button is visible), then collapse to summary. */
+            /** Ensure the Submit bar exists (cloned / legacy rows can lose it). */
+            function ensureWorkRowDoneBar($tr) {
+                if (!$tr || !$tr.length) return $();
+                var $bar = $tr.find('.work-row-done-bar').first();
+                if ($bar.length) {
+                    if (!$bar.find('.work-row-done-btn').length) {
+                        $bar.html(
+                            '<button type="button" class="work-row-done-btn" aria-label="Submit this entry and return to summary card">' +
+                                '<i class="fa fa-check" aria-hidden="true"></i> Submit' +
+                            '</button>'
+                        );
+                    }
+                    return $bar;
+                }
+                if (!workContainerUsesSummaryPanel(workContainerFor($tr))) return $();
+                $bar = $(
+                    '<div class="work-row-done-bar">' +
+                        '<button type="button" class="work-row-done-btn" aria-label="Submit this entry and return to summary card">' +
+                            '<i class="fa fa-check" aria-hidden="true"></i> Submit' +
+                        '</button>' +
+                    '</div>'
+                );
+                var $grid = $tr.children('.work-row-grid').first();
+                if ($grid.length) {
+                    $grid.after($bar);
+                } else {
+                    $tr.append($bar);
+                }
+                return $bar;
+            }
+
+            /**
+             * New complete rows auto-collapse into the summary grid.
+             * Expanded complete rows (Edit) stay open until Submit / chevron.
+             */
             function updateRowStatus($tr) {
                 if (isAlterationFrozenRow($tr)) {
                     $tr.addClass('is-complete work-row--compact').removeClass('work-row--expanded');
@@ -967,11 +1021,16 @@
                 var useSummary = workContainerUsesSummaryPanel(workContainerFor($tr));
                 $tr.toggleClass('is-complete', complete);
                 if (complete) {
-                    /* First time complete: keep the form open so Submit appears. Collapse only via Submit / chevron. */
-                    if (!wasComplete) {
+                    ensureWorkRowDoneBar($tr);
+                    if (!useSummary) {
+                        /* §7b-style: keep the inline form visible. */
                         $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-                    } else if (!useSummary) {
-                        $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                    } else if (!wasComplete) {
+                        /* First time complete → auto-collapse into summary table. */
+                        $tr.removeClass('work-row--expanded');
+                    } else if ($tr.hasClass('work-row--expanded')) {
+                        /* Editing a complete row — keep Submit available. */
+                        $tr.removeClass('work-row--compact work-row--in-summary');
                     }
                 } else {
                     $tr.removeClass('work-row--expanded');
@@ -986,12 +1045,12 @@
             function hasExistingWorkDoc($row, kind) {
                 if (!$row || !$row.length) return false;
                 var isRelieve = kind === 'relieve';
-                var path = ($row.find(isRelieve
-                    ? 'input[name="existing_work_relieving_document[]"]'
-                    : 'input[name="existing_work_document[]"]').first().val() || '').trim();
-                var removed = ($row.find(isRelieve
-                    ? 'input[name="removed_document_work_relieving[]"]'
-                    : 'input[name="removed_document_work[]"]').first().val() || '') === '1';
+                var path = namedInputVal($row, isRelieve
+                    ? 'existing_work_relieving_document[]'
+                    : 'existing_work_document[]');
+                var removed = namedInputVal($row, isRelieve
+                    ? 'removed_document_work_relieving[]'
+                    : 'removed_document_work[]') === '1';
                 return path !== '' && !removed;
             }
 
@@ -1003,8 +1062,12 @@
                 var el = $input[0];
                 if (el && el.files && el.files.length) return true;
                 if ($input.attr('data-has-local-file') === '1') return true;
+                var $field = $input.closest('.work-card-field');
+                if ($field.find('.local-file-preview .preview-link, .work-doc-existing a, .work-relieve-existing a').length) {
+                    return true;
+                }
                 var $wrap = $input.closest('.form-s-file-upload-wrap');
-                if ($wrap.length && $wrap.next('.local-file-preview').find('.preview-link').length) return true;
+                if ($wrap.length && $wrap.nextAll('.local-file-preview').first().find('.preview-link').length) return true;
                 return String($input.val() || '').trim() !== '';
             }
 
@@ -1013,9 +1076,9 @@
                 if (!type) return false;
                 var isBoardMember = (type === BOARD_MEMBER_TYPE);
                 var isCurrentPart = $tr.closest('.js-work-container[data-work-part="current"], #work-container-current').length > 0;
-                /* Every enabled required text/select must be filled. */
+                /* Every enabled required text/select/textarea must be filled. */
                 var ok = true;
-                $tr.find('select[required], input[type="text"][required], input[type="number"][required]').each(function() {
+                $tr.find('select[required], input[type="text"][required], input[type="number"][required], textarea[required]').each(function() {
                     if ($(this).prop('disabled')) return;
                     if (($(this).val() || '').trim() === '') { ok = false; return false; }
                 });
@@ -1025,20 +1088,27 @@
                         && !readWorkDateFromInput($tr.find('.work-date-to'))) ok = false;
                 }
                 if (!ok) return false;
+                /* Explicit field checks (required attr may be missing on some clones). */
                 if (!isBoardMember) {
+                    if (!($tr.find('.work-employer-input').val() || '').trim()) return false;
+                    if (!($tr.find('.work-org-address').val() || '').trim()) return false;
+                    if (!($tr.find('.work-designation').val() || '').trim()) return false;
+                    if (!($tr.find('.work-nature').val() || '').trim()) return false;
+                    if (!($tr.find('.work-voltage').val() || '').trim()) return false;
                     var voltage = ($tr.find('.work-voltage').val() || '').trim();
                     var $kva = $tr.find('.work-transformer-kva');
                     if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
                 } else {
                     if (!($tr.find('.work-board-meeting-details').val() || '').trim()) return false;
                     if (!readWorkDateFromInput($tr.find('.work-board-meeting-date'))) return false;
+                    if (!($tr.find('.work-employer-input').val() || '').trim()) return false;
                 }
-                var $doc = $tr.find('.work-doc-input');
-                if (!isCurrentPart && !$doc.prop('disabled') && !workInputHasFile($doc)) return false;
+                var $doc = $tr.find('.work-doc-input').first();
+                if (!isCurrentPart && !workInputHasFile($doc)) return false;
                 var till = $tr.find('.work-date-till').is(':checked');
                 if (!till && !isBoardMember && !isCurrentPart) {
-                    var $rel = $tr.find('.work-relieve-input');
-                    if (!$rel.prop('disabled') && !workInputHasFile($rel)) return false;
+                    var $rel = $tr.find('.work-relieve-input').first();
+                    if (!workInputHasFile($rel)) return false;
                 }
                 return true;
             }
@@ -1123,7 +1193,7 @@
                 if (checked) {
                     $relieve.val('').prop('disabled', true).prop('required', false).addClass('is-locked');
                     var $wrap = $relieve.closest('.form-s-file-upload-wrap');
-                    var $preview = $wrap.next('.local-file-preview');
+                    var $preview = $wrap.nextAll('.local-file-preview').first();
                     if ($preview.length) {
                         var blobUrl = $preview.data('blobUrl');
                         if (blobUrl) { try { URL.revokeObjectURL(blobUrl); } catch(e) {} }
@@ -1139,10 +1209,24 @@
                 updateRowHeader($tr);
             }
 
+            /** Keep hidden work_transformer_kva[] in sync (disabled <select> is not posted). */
+            function syncTransformerKvaHidden($tr) {
+                if (!$tr || !$tr.length) return;
+                var $kva = $tr.find('select.work-transformer-kva').first();
+                var $sync = $tr.find('.work-transformer-kva-sync').first();
+                if (!$sync.length) return;
+                if ($sync.prop('disabled')) return;
+                var locked = !!$kva.prop('disabled')
+                    || (($tr.find('.work-voltage').val() || '').trim() === VOLTAGE_DISABLES_KVA)
+                    || (($tr.find('.work-employment-type').val() || '').trim() === BOARD_MEMBER_TYPE);
+                var val = locked ? '' : (($kva.val() || '').trim());
+                $sync.val(val);
+            }
+
             /** Lock or unlock the row's Transformer-kVA input based on the voltage dropdown. */
             function applyVoltage($tr) {
                 var v = ($tr.find('.work-voltage').val() || '').trim();
-                var $kva = $tr.find('.work-transformer-kva');
+                var $kva = $tr.find('select.work-transformer-kva');
                 var locked = (v === VOLTAGE_DISABLES_KVA);
                 if (locked) {
                     $kva.val('').prop('disabled', true).prop('required', false);
@@ -1154,6 +1238,7 @@
                 }
                 setFieldLock($tr, 'transformer-kva', locked);
                 $tr.find('.work-card-field-hint[data-hint="duration-650v"]').toggle(locked);
+                syncTransformerKvaHidden($tr);
             }
 
             /** Drive every column's enable / required state from the Employment Type. */
@@ -1200,6 +1285,7 @@
                     setFieldLock($tr, 'to-date', false);
                     setFieldLock($tr, 'relieve', false);
                     toggleBoardMeetingFields($tr, false);
+                    syncTransformerKvaHidden($tr);
                     /* Clear any blob previews left over from a previous selection. */
                     $tr.find('.local-file-preview').each(function() {
                         var $p = $(this);
@@ -1259,6 +1345,7 @@
                 applyVoltage($tr);
                 /* When voltage allows kVA, make it required. */
                 if (!$kva.prop('disabled')) $kva.prop('required', true);
+                syncTransformerKvaHidden($tr);
 
                 /* Col 11.To & Col 13 — conditional on Till date. */
                 applyTillDate($tr);
@@ -1278,6 +1365,7 @@
                     ensure7bRepresentingOrgSelect($tr);
                 }
                 applyEmploymentType($tr);
+                syncTransformerKvaHidden($tr);
             }
 
             function refreshWorkSerials() {
@@ -1302,7 +1390,7 @@
             }
 
             function editRowHasSavedData($row) {
-                return !!($row.find('input[name="work_id[]"]').val() || '').trim()
+                return namedInputVal($row, 'work_id[]') !== ''
                     || (
                         !!($row.find('.work-employment-type').val() || '').trim()
                         && !!($row.find('.work-employer-input').val() || '').trim()
@@ -1311,7 +1399,7 @@
 
             /** DB-saved rows: show in summary table only (card hidden until Edit). */
             function hydrateStoredWorkRow($row) {
-                var workId = ($row.find('input[name="work_id[]"]').val() || '').trim();
+                var workId = namedInputVal($row, 'work_id[]');
                 if (!workId) return false;
                 initWorkRow($row);
                 updateTotalYears($row);
@@ -1349,6 +1437,7 @@
                         if ($row.length) ensureWorkEntryBlock($row);
                     });
                 });
+                ensureExistingWorkDocViewLinks();
                 allWorkFields().each(function() {
                     var $row = $(this);
                     initWorkRow($row);
@@ -1402,14 +1491,13 @@
                     if (!result.isConfirmed) return;
                     var $row = $workRow($btn);
                     $btn.closest('.work-doc-existing').remove();
-                    $row.find('input[name="existing_work_document[]"]').val('');
-                    $row.find('input[name="removed_document_work[]"]').val('1');
+                    namedInputs($row, 'existing_work_document[]').val('');
+                    namedInputs($row, 'removed_document_work[]').val('1');
                     var $file = $row.find('.work-doc-input');
-                    if (typeof clearLocalPreview === 'function') {
-                        clearLocalPreview($file);
-                    }
+                    clearWorkLocalFilePreview($file);
+                    $file.val('').removeAttr('data-has-local-file');
                     revealWorkUploadAfterRemove($row, 'support');
-                    updateRowSummary($row);
+                    updateRowStatus($row);
                 });
             });
 
@@ -1431,14 +1519,13 @@
                     if (!result.isConfirmed) return;
                     var $row = $workRow($btn);
                     $btn.closest('.work-relieve-existing').remove();
-                    $row.find('input[name="existing_work_relieving_document[]"]').val('');
-                    $row.find('input[name="removed_document_work_relieving[]"]').val('1');
+                    namedInputs($row, 'existing_work_relieving_document[]').val('');
+                    namedInputs($row, 'removed_document_work_relieving[]').val('1');
                     var $file = $row.find('.work-relieve-input');
-                    if (typeof clearLocalPreview === 'function') {
-                        clearLocalPreview($file);
-                    }
+                    clearWorkLocalFilePreview($file);
+                    $file.val('').removeAttr('data-has-local-file');
                     revealWorkUploadAfterRemove($row, 'relieve');
-                    updateRowSummary($row);
+                    updateRowStatus($row);
                 });
             });
 
@@ -1468,16 +1555,20 @@
             $(document).on('change', '.js-work-container .work-voltage, #work-container .work-voltage', function() {
                 var $tr = $workRow(this);
                 applyVoltage($tr);
-                if (!$tr.find('.work-transformer-kva').prop('disabled')) {
-                    $tr.find('.work-transformer-kva').prop('required', true);
+                if (!$tr.find('select.work-transformer-kva').prop('disabled')) {
+                    $tr.find('select.work-transformer-kva').prop('required', true);
                 } else {
-                    $tr.find('.work-transformer-kva').prop('required', false);
+                    $tr.find('select.work-transformer-kva').prop('required', false);
                 }
-                $tr.find('.work-transformer-kva').nextAll('.error-message').remove();
+                $tr.find('select.work-transformer-kva').nextAll('.error-message').remove();
                 $tr.find('.work-card-field[data-field="transformer-kva"] .error-message').remove();
                 updateRowHeader($tr);
                 /* Up to 650V rows are excluded from the combined experience total. */
                 updateOverallTotalYears();
+            });
+            $(document).on('change', '.js-work-container select.work-transformer-kva, #work-container select.work-transformer-kva', function() {
+                syncTransformerKvaHidden($workRow(this));
+                updateRowHeader($workRow(this));
             });
             $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
@@ -1505,12 +1596,85 @@
             $(document).on('wx:recheck-complete', '.js-work-container .work-fields, #work-container .work-fields', function() {
                 updateRowStatus($(this));
             });
-            /* File-input change also affects "Complete" pill and summary attachments. */
+            function clearWorkLocalFilePreview($input) {
+                if (!$input || !$input.length) return;
+                var $wrap = $input.closest('.form-s-file-upload-wrap');
+                var $preview = $wrap.length
+                    ? $wrap.nextAll('.local-file-preview').first()
+                    : $input.closest('.work-card-field').find('.local-file-preview').first();
+                if ($preview.length) {
+                    var blobUrl = $preview.data('blobUrl');
+                    if (blobUrl) {
+                        try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+                    }
+                    $preview.remove();
+                }
+                $input.removeAttr('data-has-local-file');
+            }
+
+            function ensureExistingWorkDocViewLinks($scope) {
+                var $rows = $scope && $scope.length
+                    ? $scope
+                    : $('.js-work-container .work-fields, #work-container .work-fields');
+                $rows.each(function () {
+                    var $row = $(this);
+                    [
+                        {
+                            existingName: 'existing_work_document[]',
+                            fieldSel: '[data-field="support-doc"]',
+                            existingClass: 'work-doc-existing',
+                            removeClass: 'remove-work-doc-confirm',
+                            docKind: 'support',
+                            label: 'View Document'
+                        },
+                        {
+                            existingName: 'existing_work_relieving_document[]',
+                            fieldSel: '[data-field="relieve"]',
+                            existingClass: 'work-relieve-existing',
+                            removeClass: 'remove-work-relieve-confirm',
+                            docKind: 'relieve',
+                            label: 'View Document'
+                        }
+                    ].forEach(function (cfg) {
+                        var path = namedInputVal($row, cfg.existingName);
+                        if (!path) return;
+                        var $field = $row.find(cfg.fieldSel).first();
+                        if (!$field.length || $field.find('.' + cfg.existingClass).length) return;
+                        var href = competencyStoredDocHref(path);
+                        if (!href) return;
+                        var $box = $('<div class="' + cfg.existingClass + ' mb-1"></div>');
+                        $box.append(
+                            $('<a class="text-primary" target="_blank" rel="noopener"></a>')
+                                .attr('href', href)
+                                .html('<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> ' + cfg.label)
+                        );
+                        $box.append(
+                            $('<button type="button" class="btn btn-sm btn-danger ml-1"></button>')
+                                .addClass(cfg.removeClass)
+                                .attr('data-doc-kind', cfg.docKind)
+                                .text('Remove')
+                        );
+                        var $wrap = $field.find('.form-s-file-upload-wrap').first();
+                        if ($wrap.length) {
+                            $wrap.before($box);
+                        } else {
+                            $field.find('.work-card-field-label').first().after($box);
+                        }
+                        if (hideUploadWhenDocExists) {
+                            $wrap.addClass('d-none work-upload-hidden-until-remove');
+                            $field.find('.work-upload-hint-hidden-until-remove, .work-card-field-hint').first().addClass('d-none');
+                        }
+                    });
+                });
+            }
+
+            /* File-input change also affects "Complete" pill and summary attachments.
+               View Document preview is owned by the page-level handler (same as edit_application). */
             $(document).on('change', '.js-work-container .work-doc-input, .js-work-container .work-relieve-input, #work-container .work-doc-input, #work-container .work-relieve-input', function() {
                 var $tr = $workRow(this);
                 clearWorkRowUploadErrors($tr);
                 updateRowStatus($tr);
-                /* Preview handlers (page-level) run after this; refresh summary once they finish. */
+                /* Preview handlers (page-level) run in parallel; refresh summary once they finish. */
                 setTimeout(function() {
                     if ($tr.hasClass('is-complete')) {
                         updateRowSummary($tr);
@@ -1596,7 +1760,7 @@
                     }
                     /* Blank the clone before appending. */
                     newRow.classList.remove('is-collapsed', 'is-complete', 'work-row--compact', 'work-row--expanded', 'work-row--in-summary');
-                    $(newRow).removeData('wxSummaryTr');
+                    $(newRow).removeData('wxSummaryTr wxWasComplete');
                     newRow.querySelectorAll('input[type="file"]').forEach(function(el) { el.value = ''; el.removeAttribute('data-has-local-file'); });
                     newRow.querySelectorAll('.local-file-preview').forEach(function(preview) {
                         var blobUrl = preview.dataset ? preview.dataset.blobUrl : '';
@@ -1618,6 +1782,8 @@
                     var tillH = newRow.querySelector('.work-date-till-hidden');
                     if (tillH) tillH.value = isCurrent ? '1' : '0';
                     newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(inp) { inp.value = ''; });
+                    var kvaSync = newRow.querySelector('.work-transformer-kva-sync');
+                    if (kvaSync) kvaSync.value = '';
                     var hTot = newRow.querySelector('.work-experience-total-hidden'); if (hTot) hTot.value = '';
                     var hLevel = newRow.querySelector('.work-level-sync'); if (hLevel) hLevel.value = '';
                     var hEx = newRow.querySelector('.experience-sync'); if (hEx) hEx.value = '';
