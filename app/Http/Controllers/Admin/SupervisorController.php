@@ -1686,313 +1686,6 @@ class SupervisorController extends Controller
         }
     }
 
-    public function approveApplicationForma_beforepopup_bk(Request $request)
-    {
-
-        // DB::table('tnelb_application_tbl')
-        //     ->where('application_id', 'WB251111111')
-        //     ->update([
-        //         'd_o_b' => '01-01-1945'
-        //     ]);
-
-        //     DB::table('tnelb_ea_applications')
-        //     ->where('application_id', 'AEA25000001')
-        //     ->update([
-        //         'payment_status' => 'paid',
-        //         'application_status' => 'P',
-
-        //     ]);
-
-        // $show = DB::table('tnelb_ea_applications')
-        //         ->where('application_id', 'AEA25000001')
-        //         ->first();
-
-        // $show = DB::table('tnelb_license')->get()->toArray();
-
-        //         $show = DB::table('tnelb_license')
-        //           ->where('application_id', 'AEA25000004')
-        //           ->delete();
-        // if ($show) {
-        //     echo "Record deleted successfully";
-        // } else {
-        //     echo "No record found";
-        // }
-
-
-
-        //  dd($show);
-        // exit;
-
-        // dd($request->all());
-        // exit;
-
-        $request->validate([
-            'application_id' => 'required|string',
-            'processed_by'   => 'required|string',
-            'forwarded_to'   => 'integer',
-            'remarks'        => 'nullable|string',
-        ]);
-
-        // Fetch the application details
-        $application = DB::table('tnelb_ea_applications')
-            ->where('application_id', $request->application_id)
-
-            ->first();
-
-        if (!$application) {
-            return response()->json(['error' => 'Application not found.'], 404);
-        }
-        $login_id = $application->login_id;
-
-
-        $formname = $application->form_name;
-
-        $licensename = $request->licensename;
-
-        // dd($licensename);
-        // exit;
-
-
-
-        // Get form type
-        // $formType = DB::table('tnelb_forms')->where('id', $application->form_id)->first();
-
-
-        // if (!in_array($formType->form_name, ['FORM S', 'FORM W'])) {
-        //     return response()->json(['error' => 'This application cannot be approved by the secretary.'], 403);
-        // }
-
-        DB::beginTransaction();
-        try {
-            // ...  earlier code to update application_status etc ...
-            $staff = Auth::user()->name;
-
-            if ($staff == "President") {
-                $processed = 'PR';
-            } else {
-                $processed = 'SE';
-            }
-
-
-
-            DB::table('tnelb_ea_applications')
-                ->where('application_id', $request->application_id)
-                ->update([
-                    'application_status'     => 'A',
-                    'processed_by' => isset($processed) ? $processed : 'PR',
-                    'updated_at' => now(),
-                ]);
-
-
-
-            $appl_type = preg_replace('/\s+/', '', $application->appl_type);
-
-            // Ensure these are defined for later use
-            $issuedAt = null;
-            $expiresAt = null;
-            $newSerial = null;
-
-
-
-            if ($appl_type == "R") {
-
-
-
-                $license_details = DB::table('tnelb_renewal_license')
-                    ->where('application_id', $request->application_id)
-                    ->first();
-
-                $now = now();
-
-                // If no renewal record OR renewal expired -> proceed to renew
-                if (!$license_details || $now->greaterThan(Carbon::parse($license_details->expires_at))) {
-
-                    $formid = DB::table('mst_licences')
-                        ->where('cert_licence_code', $licensename)
-                        ->where('status', '1')
-                        ->first();
-
-
-                    $today = Carbon::today()->toDateString();
-
-                    $licenseperiod = DB::table('mst_fees_validity')
-                        ->where('licence_id', $formid->id)
-                        ->where('form_type', $appl_type)
-                        ->where('status', 1)
-                        ->whereDate('validity_start_date', '<=', $today)
-                        ->orderBy('validity_start_date', 'desc')
-                        ->first();
-
-                    $monthsToAdd = $licenseperiod->validity ?? 0;
-                    // dd($monthsToAdd);
-                    // exit;
-                    // 🔥 Get original expiry date from tnelb_license table
-                    $oldExpiry = DB::table('tnelb_license')
-                        ->where('application_id', $request->oldapplicationId)
-                        ->value('expires_at');   // single column
-
-                    // If no expiry found, use NOW as fallback
-                    $expirySourceDate = $oldExpiry ? Carbon::parse($oldExpiry) : now();
-
-
-
-                    // 🔥 Add the validity months to old expiry
-                    $expiresAt = $expirySourceDate->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-
-                    // dd($expiresAt);
-                    //           exit;
-
-                    $issuedAt = now()->format('Y-m-d H:i:s');
-
-                    DB::table('tnelb_renewal_license')->insert([
-                        'login_id'       => $login_id,
-                        'license_number' => $application->license_number,
-                        'application_id' => $request->application_id,
-                        'issued_by'      => $request->processed_by,
-                        'issued_at'      => $issuedAt,
-                        'expires_at'     => $expiresAt,
-                        'created_at'     => now(),
-                    ]);
-
-                    $newSerial = $application->license_number;
-                } else {
-                    // existing renewal record still valid -> reuse its values
-                    $newSerial = $license_details->license_number;
-                    $issuedAt = $license_details->issued_at;
-                    $expiresAt = $license_details->expires_at;
-                }
-            } else {
-
-
-                // Fresh license (N)
-                $license_details = DB::table('tnelb_license')
-                    ->where('application_id', $request->application_id)
-                    ->first();
-
-
-
-                if ($license_details) {
-
-                    //                    dd('exist');
-                    // exit;
-                    // use existing license
-                    $newSerial = $license_details->license_number;
-                    $issuedAt = $license_details->issued_at;
-                    $expiresAt = $license_details->expires_at;
-                } else {
-                    //                                dd('new');
-                    // exit;
-                    // create new license
-                    $prefix = $application->license_name;
-                    $yearMonth = date('Ym');
-
-                    $lastSerial = DB::table('tnelb_license')
-                        ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
-                        ->orderBy('license_number', 'desc')
-                        ->value('license_number');
-
-                    if ($lastSerial) {
-                        $lastNumber = (int) substr($lastSerial, -5);
-                        $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-                    } else {
-                        $newNumber = '00001';
-                    }
-
-                    $newSerial = "L{$prefix}{$yearMonth}{$newNumber}";
-                    $issuedAt = now()->format('Y-m-d H:i:s');
-
-                    //  dd($licensename);
-                    //  exit;
-                    $formid = DB::table('mst_licences')
-                        ->where('cert_licence_code', $licensename)
-                        ->where('status', '1')
-                        ->first();
-
-                    $today = Carbon::today()->toDateString();
-
-                    // $today = '2025-12-31';
-
-                    //  dd($today);
-                    //  exit;
-
-                    $licenseperiod = DB::table('mst_fees_validity')
-                        ->where('licence_id', $formid->id)
-                        ->where('form_type', $appl_type)
-                        ->where('status', 1)
-                        ->whereDate('validity_start_date', '<=', $today)
-                        ->orderBy('validity_start_date', 'desc')
-                        ->first();
-
-
-                    // dd($formid->id);
-                    // exit;
-
-                    // dd($licenseperiod->validity);
-                    // exit;
-
-                    $monthsToAdd = $licenseperiod->validity ?? 0;
-
-                    // dd($monthsToAdd);
-                    // exit;
-
-                    // H:i:s
-                    $expiresAt = now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-
-                    // dd($licenseperiod->validity);
-                    // exit;
-
-                    //   dd([
-                    //     'issuedAt'   => $issuedAt,
-                    //     'expiresAt'  => $expiresAt,
-                    //     'newSerial'  => $newSerial,
-                    //     'app_id'     => $request->application_id,
-                    //     'processed'  => $request->processed_by,
-                    // ]);
-                    //             exit;
-                    DB::table('tnelb_license')->insert([
-                        'application_id' => $request->application_id,
-                        'license_number' => $newSerial,
-                        'issued_by'      => $request->processed_by,
-                        'issued_at'      => $issuedAt,
-                        'expires_at'     => $expiresAt,
-                    ]);
-                }
-            }
-
-            // store workflow entry etc (your existing code)
-            DB::table('tnelb_workflow_a')->insert([
-                'application_id' => $request->application_id,
-                'processed_by'   => $request->processed_by,
-                'role_id'        => Auth::user()->roles_id,
-                'appl_status'    => 'A',
-                'remarks'        => $request->remarks ?? 'No remarks provided',
-                'forwarded_to'   => $request->forwarded_to ?? null,
-                'created_at'     => now(),
-            ]);
-
-            DB::commit();
-
-            $message = ($appl_type === "R")
-                // $message = str_starts_with($request->application_id, 'R')
-                ? "Renewal Application Extended from " . date('d/m/Y', strtotime($issuedAt)) . " to " . date('d/m/Y', strtotime($expiresAt)) . " successfully!"
-                : "Fresh Application  Extended from " . date('d/m/Y', strtotime($issuedAt)) . " to " . date('d/m/Y', strtotime($expiresAt)) . " successfully!";
-
-
-
-            return response()->json([
-                'status'        => 'success',
-                'message'       => $message,
-                'license_number' => $newSerial,
-                'issued_at'     => $issuedAt,
-                'expires_at'    => $expiresAt,
-            ], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Something went wrong: ' . $e->getMessage()], 500);
-        }
-    }
-
-
     /**
      * Resolve application for secretary/president approval — CC meta first, legacy fallback.
      */
@@ -2160,8 +1853,6 @@ class SupervisorController extends Controller
             'remarks'        => 'required|string',
         ]);
 
-        // dd($request->all());
-        // exit;
         // Fetch the application details (CC meta first for S/W/WH)
         $application = $this->resolveCompetencyApplicationForApproval($request->application_id);
 
@@ -2234,30 +1925,19 @@ class SupervisorController extends Controller
                 'verify'  => (int) ($request->status[$id] ?? 0),
             ];
         }
-// dd($application->certificate_name); exit;
-        // dd(([
-        //     'login_id'        => Auth::id(),
-        //     'applicant_id'    => $request->application_id,
-        //     'cert_license_id' => $applicant->id,
-        //     // 'check_id'       => $request->check_id[array_key_first($request->check_id)],
-        //     'checklist_json'  => json_encode($checklistData),
-        //     'updated_by'      => Auth::id(),
-        // ]));
-        // exit;
+
 
         if($appl_type =='A'){
-            // dd('111'); exit;
 
             $alter_insert = DB::table('cc_forms_cert')->where('application_id', $request->application_id)->first();
 
             if(!$alter_insert){
                 $metadata = DB::table('cc_form_s_meta')->where('application_id', $request->application_id)->first();
-                // dd($metadata->old_application); exit;
+        
                 $licensedetails = DB::table('cc_forms_cert')
                 ->where('application_id', $metadata->old_application)
                 ->latest('cc_id')
                 ->first();
-                // dd($licensedetails); exit;
                 $alter_insert = DB::table('cc_forms_cert')->insert([
                     'application_id' => $request->application_id,
                     'certificate_no' => $licenseNumber,
@@ -2268,13 +1948,10 @@ class SupervisorController extends Controller
                     'created_at'     => $this->dbNow,
                 ]);
             }
-            // dd($alter_insert); exit;
-            // $licenseNumber = $alter_insert->license_number;
         } 
         
         $appService = app(CompetencyApplicationService::class);
 
-        
         $workflowService = app(CompetencyWorkflowService::class);
         $applicant = $appService->findApplicantWithPayment($request->application_id);
         if (! $applicant) {
@@ -2287,9 +1964,6 @@ class SupervisorController extends Controller
         $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
         ->where('certificate_name', $applicant->certificate_name)
         ->first();
-        // dd($licenseNumber); exit;
-
-        
 
         $meta_tbl_certIupdate = DB::table('cc_form_s_meta')
             ->where('application_id', $request->application_id)
@@ -2298,9 +1972,6 @@ class SupervisorController extends Controller
                 'updated_at' => now(),
                
             ]);
-
-            
-
 
         if($Existingcheck){
             $Existingcheck->update([
@@ -2369,109 +2040,6 @@ class SupervisorController extends Controller
                 'issued_at'      => $issuedAt,
                 'expires_at'     => $expiresAt,
             ], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Something went wrong: ' . $e->getMessage()], 500);
-        }
-    }
-
-    public function approveApplication_bk_27042026(Request $request)
-    {
-        $request->validate([
-            'application_id' => 'required|string',
-            'processed_by'   => 'required|string',
-            'forwarded_to'   => 'integer',
-            'remarks'        => 'nullable|string',
-        ]);
-
-        // dd($request->all());
-        // exit;
-        // Fetch the application details (cc_form_s_meta first for S/W/WH)
-        $application = $this->resolveCompetencyApplicationForApproval($request->application_id);
-
-
-        if (!$application) {
-            return response()->json(['error' => 'Application not found.'], 404);
-        }
-
-        $login_id = $application->login_id;
-
-
-        $licenceId = (int) ($application->form_id ?? 0);
-        if ($licenceId <= 0) {
-            return response()->json(['error' => 'Invalid form/licence mapping for this application.'], 422);
-        }
-
-        DB::beginTransaction();
-        try {
-            // Update application status to "Approved"
-            $staff = Auth::user()->name;
-
-            $processed = $staff === 'President' ? 'PR' : 'SE';
-
-            // Normalize application type once (N = New, R = Renewal)
-            $appl_type = strtoupper(preg_replace('/\s+/', '', (string) $application->appl_type));
-
-            $this->markCompetencyApplicationApproved(
-                $application,
-                $processed ?: 'PR',
-                null,
-                null
-            );
-
-
-            // Issue or renew licence and get final number + dates
-            [$licenseNumber, $issuedAt, $expiresAt] = $this->issueOrRenewLicense(
-                $application,
-                $licenceId,
-                $appl_type,
-                $request->processed_by,
-                $request->application_id,
-                $login_id
-            );
-
-            // Generate Licence PDF, encrypt it, and store its path (non-blocking)
-            try {
-                app(LicensepdfController::class)->generatePDF($request->application_id);
-            } catch (\Throwable $e) {
-                Log::warning('Failed to generate/store encrypted licence PDF after approval', [
-                    'application_id' => $request->application_id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-
-            DB::table('tnelb_workflow')->insert([
-                'application_id' => $request->application_id,
-                'processed_by'   => $request->processed_by,
-                'role_id'        => Auth::user()->roles_id, // Current user role (Secretary)
-                'appl_status'    => 'A',
-                'remarks'        => $request->remarks ?? 'No remarks provided',
-                'forwarded_to'   => $request->forwarded_to ?? null, // No forwarding since it's approved
-                'created_at'     => $this->dbNow,
-            ]);
-
-
-            DB::commit();
-
-            if ($appl_type === 'R') {
-                return response()->json([
-                    'status'        => 'success',
-                    'message'        => 'Application Renewed successfully!',
-                    'license_number' => $licenseNumber,
-                    'issued_at'      => $issuedAt,
-                    'expires_at'     => $expiresAt,
-                ], 200);
-            } else {
-
-                return response()->json([
-                    'status'        => 'success',
-                    'message'        => 'Application approved successfully!',
-                    'license_number' => $licenseNumber,
-                    'issued_at'      => $issuedAt,
-                    'expires_at'     => $expiresAt,
-                ], 200);
-            }
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Something went wrong: ' . $e->getMessage()], 500);

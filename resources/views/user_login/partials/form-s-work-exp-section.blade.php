@@ -18,6 +18,7 @@
     $useBootstrapGrid = !empty($useBootstrapGrid);
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $isAlterationMode = !empty($isAlterationMode);
+    $lockExistingRows = !empty($lockExistingRows) || $isAlterationMode;
 @endphp
 <div class="work-exp-wrap" data-work-part="{{ $workPart }}">
     @if ($showAddRow)
@@ -81,7 +82,7 @@
                     'hideBoardPanelNote' => $hideBoardPanelNote,
                     'useBootstrapGrid' => $useBootstrapGrid,
                     'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
-                    'alterationExistingRow' => $isAlterationMode && $expRow,
+                    'alterationExistingRow' => $lockExistingRows && $expRow,
                 ])
             @endforeach
         @elseif ($workMinRows > 0)

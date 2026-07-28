@@ -1059,10 +1059,18 @@
                     @endif
                     @php
                         $_issued_lic_renew = '';
-                        if (!empty($license_details) && trim((string) ($license_details->license_number ?? '')) !== '') {
-                            $_issued_lic_renew = trim((string) $license_details->license_number);
+                        if (!empty($license_details) && trim((string) ($license_details->license_number ?? $license_details->certificate_no ?? '')) !== '') {
+                            $_issued_lic_renew = trim((string) ($license_details->license_number ?? $license_details->certificate_no));
                         } elseif (!empty($application_details->license_number ?? null)) {
                             $_issued_lic_renew = trim((string) $application_details->license_number);
+                        } elseif (!empty($application_details->certificate_no ?? null)) {
+                            $_issued_lic_renew = trim((string) $application_details->certificate_no);
+                        } elseif (!empty($application_details->wcc_no ?? null)) {
+                            $_issued_lic_renew = trim((string) $application_details->wcc_no);
+                        } elseif (!empty($application_details->previously_number ?? null) && trim((string) $application_details->previously_number) !== '0') {
+                            $_issued_lic_renew = trim((string) $application_details->previously_number);
+                        } elseif (!empty($application_details->previous_scc_no ?? null) && trim((string) $application_details->previous_scc_no) !== '0') {
+                            $_issued_lic_renew = trim((string) $application_details->previous_scc_no);
                         }
                     @endphp
                     <input type="hidden" id="license_number" name="license_number" value="{{ $_issued_lic_renew }}">
@@ -1714,6 +1722,7 @@
                             <span class="fs-section-num">8</span>
                             <div>
                                 @include('user_login.partials.form-s-question-8-head')
+                            
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -1727,31 +1736,24 @@
                                     <label class="form-check-label" for="previous_license_no">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previously_number) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                               placeholder="Certificate Number" {{ !empty($application_details->previously_number) ? 'readonly':'' }} value="{{ $application_details->previously_number }}" maxlength="80">
-                                        <input type="hidden" id="l_verify" name="l_verify" value="{{ $application_details->license_verify }}">
+                                               placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="80">
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
                                         <span id="license_messagdfde" class="mt-1"></span>
-                                        <span class="mt-1 verify_status {{ $application_details->license_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                            @if (!empty($application_details->previously_number))
-                                                {!! $application_details->license_verify == 0 ? '&#128683; Invalid License.' : '&#10004; Valid License.' !!}
-                                            @endif
-                                        </span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_issue_date }}">
+                                               value="{{ $application_details->first_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1759,8 +1761,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
                                                id="previously_valid_from" name="previously_valid_from" type="date"
                                                data-error="#previouslyFromDateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_valid_from ?? '' }}">
+                                               value="{{ $application_details->scc_from_date ?? '' }}">
                                         <span id="previouslyFromDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1768,8 +1769,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
                                                id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_valid_to ?? $application_details->previously_date }}">
+                                               value="{{ $application_details->scc_to_date ?? '' }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1833,7 +1833,7 @@
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->certificate_no) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->wcc_no) ? 'block' : 'none' }};">
                                                         @php
                                                             if($application_details->form_name == 'S'){
                                                                 $cert_type = 'supervisor';
@@ -1850,16 +1850,9 @@
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
                                                                    placeholder="Certificate Number" maxlength="80"
-                                                                   value="{{ $application_details->certificate_no }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
-                                                            <input type="hidden" id="cert_verify" name="cert_verify" value="{{ $application_details->cert_verify }}">
+                                                                   value="{{ $application_details->wcc_no }}">
                                                             <span id="licenseError" class="text-danger"></span>
                                                             <span id="license_message" class="mt-1"></span>
-                                                            <span id="verify_status" class="mt-1 {{ $application_details->cert_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                                                @if (!empty($application_details->certificate_no))
-                                                                    {!! $application_details->cert_verify == 0 ? '&#128683; Invalid License.' : '&#10004; Valid License.' !!}
-                                                                @endif
-                                                            </span>
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1867,8 +1860,7 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ $application_details->certificate_issue_date }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->wcc_issue_date }}">
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1876,8 +1868,7 @@
                                                             <input class="form-control text-box single-line verify-valid-from"
                                                                    id="certificate_valid_from" name="certificate_valid_from"
                                                                    data-error="#certFromDateError" type="date"
-                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->wcc_from ?? '' }}">
                                                             <span id="certFromDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1885,11 +1876,11 @@
                                                             <input class="form-control text-box single-line verify-date"
                                                                    id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->wcc_to }}"
+                                                                   >
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-2">
+                                                        {{-- <div class="col-12 col-md-2">
                                                             <div class="fs-verify-actions">
                                                             @if (!empty($application_details->certificate_no))
                                                                 <button type="button" class="btn btn-danger remove_verify" data-type="superviser_two"><i class="fa fa-trash"></i> Delete</button>
@@ -1898,7 +1889,7 @@
                                                                 <button type="button" class="btn btn-primary verify-btn" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
                                                             @endif
                                                             </div>
-                                                        </div>
+                                                        </div> --}}
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
                         </div>{{-- /fs-section-body --}}
@@ -3056,13 +3047,16 @@
 
             var $emp = $row.find('.work-employment-type');
                 if (isYes) {
+                    // Sync field must participate when board details are shown.
+                    $emp.prop('disabled', false).prop('required', true);
                     if ($emp.val() !== BOARD_MEMBER_TYPE) {
                         $emp.val(BOARD_MEMBER_TYPE).trigger('change');
                     }
                     $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-                } else if ($emp.val() === BOARD_MEMBER_TYPE) {
-                $emp.val('').trigger('change');
-            }
+                } else {
+                    // d-none does not remove HTML5 required — disable so validators ignore it.
+                    $emp.prop('required', false).prop('disabled', true).val('');
+                }
 
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                 window.wxSyncBoardMemberRenewalFee();

@@ -11,6 +11,93 @@
         return $('.js-work-container .work-fields:not(.fs-alt-existing-work)');
     }
 
+    function existingWorkRows() {
+        return $('.js-work-container .work-fields.fs-alt-existing-work');
+    }
+
+    function serializeWorkRowForCompare($row) {
+        return [
+            ($row.find('[name="work_employer_name[]"]').val() || $row.find('.work-employer-input').val() || '').trim(),
+            ($row.find('[name="designation[]"]').val() || $row.find('.work-designation').val() || '').trim(),
+            ($row.find('[name="work_date_from[]"]').val() || $row.find('.work-date-from').val() || '').trim(),
+            ($row.find('[name="work_date_to[]"]').val() || $row.find('.work-date-to').val() || '').trim(),
+            ($row.find('[name="work_to_till_date[]"]').val() || $row.find('.work-date-till-hidden').val() || '').trim(),
+            ($row.find('.work-employment-type').val() || '').trim(),
+            ($row.find('.work-nature').val() || '').trim(),
+            ($row.find('.work-voltage').val() || '').trim(),
+            ($row.find('.work-transformer-kva-sync').val() || $row.find('.work-transformer-kva').val() || '').trim(),
+            ($row.find('[name="work_organisation_address[]"]').val() || $row.find('.work-org-address').val() || '').trim(),
+            ($row.find('.work-contractor-category-sync').val() || '').trim(),
+            ($row.find('.work-licence-number-sync').val() || '').trim()
+        ].join('|');
+    }
+
+    function existingWorkRowHasNewUpload($row) {
+        var hasUpload = false;
+        $row.find('input[type="file"]').each(function () {
+            if (this.files && this.files.length) {
+                hasUpload = true;
+                return false;
+            }
+            if ($(this).attr('data-has-local-file') === '1') {
+                hasUpload = true;
+                return false;
+            }
+        });
+        return hasUpload;
+    }
+
+    function existingWorkRowDocsRemoved($row) {
+        var removedSupport = ($row.find('[name="removed_document_work[]"]').val() || '0') === '1';
+        var removedRelieve = ($row.find('[name="removed_document_work_relieving[]"]').val() || '0') === '1';
+        return removedSupport || removedRelieve;
+    }
+
+    var existingWorkBaseline = {};
+
+    function captureExistingWorkBaseline() {
+        existingWorkBaseline = {};
+        existingWorkRows().each(function () {
+            var $row = $(this);
+            var id = ($row.find('[name="work_id[]"]').val() || $row.data('rowIndex') || Math.random()).toString();
+            existingWorkBaseline[id] = serializeWorkRowForCompare($row);
+            $row.attr('data-fs-alt-baseline-id', id);
+        });
+    }
+
+    function hasEditedExistingWorkRows() {
+        var changed = false;
+        existingWorkRows().each(function () {
+            var $row = $(this);
+            var id = ($row.attr('data-fs-alt-baseline-id') || $row.find('[name="work_id[]"]').val() || '').toString();
+            if (existingWorkRowHasNewUpload($row) || existingWorkRowDocsRemoved($row)) {
+                changed = true;
+                return false;
+            }
+            if (!id || existingWorkBaseline[id] === undefined) return;
+            if (serializeWorkRowForCompare($row) !== existingWorkBaseline[id]) {
+                changed = true;
+                return false;
+            }
+        });
+        return changed;
+    }
+
+    function setExistingWorkUnlocked(unlocked) {
+        if (typeof window.wxSetAlterationExistingWorkUnlocked === 'function') {
+            window.wxSetAlterationExistingWorkUnlocked(!!unlocked);
+            return;
+        }
+        $('#competency_form_ws').toggleClass('fs-alt-work-unlocked', !!unlocked);
+        var $rows = existingWorkRows();
+        if (unlocked) {
+            enableNewWorkRowFields($rows);
+            $rows.find('input[name="work_id[]"], input[name="fs_alt_existing_work[]"]').prop('disabled', false);
+        } else {
+            $rows.find('input, textarea, select, button').prop('disabled', true);
+        }
+    }
+
     function scrollToSection(selector) {
         var el = document.querySelector(selector);
         if (!el) return;
@@ -155,9 +242,16 @@
 
         if (optWork) {
             $('#work-exp-add-btn-previous').prop('disabled', false);
+            setExistingWorkUnlocked(true);
+            /* Baseline after unlock sync so employment-type UI wiring is not treated as an edit. */
+            if (!window.__fsAltExistingBaselineReady) {
+                captureExistingWorkBaseline();
+                window.__fsAltExistingBaselineReady = true;
+            }
         } else {
             $('#work-exp-add-btn-previous').prop('disabled', true);
             clearNewWorkRows();
+            setExistingWorkUnlocked(false);
         }
 
         syncAlterFlagsFromForm();
@@ -176,7 +270,7 @@
         if (addr === 'Not provided') addr = '';
         var alterName = optName && name !== parentName;
         var alterAddress = optAddress && addr !== parentAddress;
-        var alterWork = optWork && hasNewWorkRows();
+        var alterWork = optWork && (hasNewWorkRows() || hasEditedExistingWorkRows());
 
         $('#alter_name').val(alterName ? '1' : '0');
         $('#alter_address').val(alterAddress ? '1' : '0');
@@ -253,13 +347,13 @@
             }
         }
 
-        if (flags.optWork && !hasNewWorkRows() && !flags.alterName && !flags.alterAddress) {
-            Swal.fire('Validation', 'Add at least one new work experience entry.', 'warning');
+        if (flags.optWork && !hasNewWorkRows() && !hasEditedExistingWorkRows() && !flags.alterName && !flags.alterAddress) {
+            Swal.fire('Validation', 'Edit an existing work experience entry or add a new one.', 'warning');
             return false;
         }
 
         /* Same 650V / 2-year rule as New / Renewal / Digitization (shared work-exp scripts). */
-        if (flags.alterWork || (flags.optWork && hasNewWorkRows())) {
+        if (flags.alterWork || (flags.optWork && (hasNewWorkRows() || hasEditedExistingWorkRows()))) {
             if (typeof window.wxValidateFormSCountableExperience === 'function') {
                 var expCheck = window.wxValidateFormSCountableExperience();
                 if (!expCheck.ok) {
@@ -296,7 +390,20 @@
     }
 
     function prepareAlterationFormForSubmit() {
-        $('.fs-alt-existing-work').find('input, textarea, select').prop('disabled', true);
+        var optWork = $('#fsAltOptWork').is(':checked');
+        if (optWork) {
+            /* Keep existing rows enabled so edits and work_id[] post with the request. */
+            existingWorkRows().each(function () {
+                var $row = $(this);
+                $row.find('input, textarea, select')
+                    .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
+                    .prop('disabled', false);
+                var employer = ($row.find('[name="work_employer_name[]"]').val() || '').trim();
+                $row.find('.work-level-sync').val(employer);
+            });
+        } else {
+            existingWorkRows().find('input, textarea, select').prop('disabled', true);
+        }
         newWorkRows().each(function () {
             var $row = $(this);
             $row.find('input, textarea, select')
@@ -564,7 +671,8 @@
             return;
         }
 
-        $('#fsAltOptName, #fsAltOptAddress, #fsAltOptWork').prop('checked', true);
+        /* Start with no option selected — user must choose what to alter. */
+        $('#fsAltOptName, #fsAltOptAddress, #fsAltOptWork').prop('checked', false);
         applyAlterationOptions(null);
         updateChipStyles();
 

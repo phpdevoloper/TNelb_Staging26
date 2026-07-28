@@ -11,6 +11,7 @@
     $is7bBoardMemberPrefill = $partition['is7bBoardMemberPrefill'];
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $isAlterationMode = !empty($isAlterationMode);
+    $lockExistingRows = !empty($lockExistingRows) || $isAlterationMode;
 @endphp
 
 <div class="fs-question-part">
@@ -33,6 +34,7 @@
         'workPart' => 'previous',
         'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
         'isAlterationMode' => $isAlterationMode,
+        'lockExistingRows' => $lockExistingRows,
     ])
 </div>
 
@@ -68,6 +70,7 @@
                 'exp_details' => $currentExpDetails,
                 'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
                 'isAlterationMode' => $isAlterationMode,
+                'lockExistingRows' => $lockExistingRows,
             ])
         </div>
     </div>

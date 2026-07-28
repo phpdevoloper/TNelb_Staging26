@@ -121,7 +121,12 @@
             }
 
             function isAlterationFrozenRow($tr) {
-                return isAlterationMode && $tr.hasClass('fs-alt-existing-work');
+                /* Existing rows locked on renewal; on alteration they unlock when Work Experience is selected. */
+                if (!$tr.hasClass('fs-alt-existing-work')) return false;
+                if ($('#competency_form_ws.fs-alt-form').hasClass('fs-alt-work-unlocked')) {
+                    return false;
+                }
+                return true;
             }
 
             function applyFrozenSummaryActions($tr, $str) {
@@ -133,6 +138,54 @@
                     $inner.html('<span class="wx-sum-frozen-label">—</span>');
                 }
             }
+
+            function restoreEditableSummaryActions($str) {
+                if (!$str || !$str.length) return;
+                $str.removeClass('work-exp-summary-tr--frozen');
+                $str.find('.wx-sum-frozen-label').remove();
+                var $inner = $str.find('.wx-summary-actions-inner');
+                if ($inner.length && !$inner.find('.work-row-edit-trigger').length) {
+                    $inner.prepend(
+                        $('<button type="button" class="wx-order-edit-link work-row-edit-trigger" aria-label="Edit this work experience entry">')
+                            .html('<i class="fa fa-pencil" aria-hidden="true"></i> Edit')
+                    );
+                }
+                /* Existing master rows must not be removable on alteration. */
+                $inner.find('.work-row-remove, .remove-work').remove();
+            }
+
+            /**
+             * Alteration form: unlock/lock existing experience when Work Experience option changes.
+             */
+            window.wxSetAlterationExistingWorkUnlocked = function (unlocked) {
+                var $form = $('#competency_form_ws.fs-alt-form');
+                if (!$form.length) return;
+                $form.toggleClass('fs-alt-work-unlocked', !!unlocked);
+                $('.fs-alt-existing-work').each(function () {
+                    var $tr = $(this);
+                    if (unlocked) {
+                        $tr.find('input, textarea, select, button')
+                            .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
+                            .prop('disabled', false)
+                            .prop('readonly', false);
+                        $tr.find('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
+                            .prop('disabled', true)
+                            .prop('readonly', true);
+                        initWorkRow($tr);
+                        ensureWorkRowDoneBar($tr);
+                        var $str = getSummaryTr($tr);
+                        restoreEditableSummaryActions($str);
+                        updateRowSummary($tr);
+                    } else {
+                        $tr.find('input, textarea, select, button').prop('disabled', true);
+                        $tr.addClass('is-complete work-row--compact').removeClass('work-row--expanded');
+                        updateRowSummary($tr);
+                        applyFrozenSummaryActions($tr, getSummaryTr($tr));
+                    }
+                });
+                syncSummaryTable();
+                updateWorkAddBtn();
+            };
 
             function workContainers() {
                 var $multi = $('.js-work-container');
@@ -638,6 +691,7 @@
                 setFieldLock($tr, 'voltage-level', true);
                 setFieldLock($tr, 'transformer-kva', true);
                 syncTransformerKvaHidden($tr);
+                syncContractorFieldsHidden($tr);
                 $tr.find('[data-field="work-nature"] .req, [data-field="voltage-level"] .req, [data-field="transformer-kva"] .req').hide();
 
                 unlockWorkField($tr, $emp, 'organisation');
@@ -854,10 +908,10 @@
                 $empCell.empty();
                 $empCell.append($('<span class="wx-sum-main">').text(type ? (EMP_LABEL[type] || type) : '—'));
                 if (isContractor && cat) {
-                    $empCell.append($('<span class="wx-sum-sub">').text('Cat: ' + cat));
+                    $empCell.append($('<span class="wx-sum-sub">').text('Grade of Licence: ' + cat));
                 }
                 if (isContractor && licence) {
-                    $empCell.append($('<span class="wx-sum-sub">').text('Licence: ' + licence));
+                    $empCell.append($('<span class="wx-sum-sub">').text('Licence No: ' + licence));
                 }
 
                 /* Col 2 — Organisation & Address */
@@ -963,6 +1017,7 @@
                 syncSummaryTable();
                 $tr.find('.work-row-done-hint').remove();
                 if (shouldExpand) {
+                    ensureWorkRowDoneBar($tr);
                     applyEmploymentType($tr);
                     updateTotalYears($tr);
                     var $focus = $tr.find('.work-row-grid :input:not([type="hidden"]):not([readonly]):enabled').first();
@@ -1098,6 +1153,10 @@
                     var voltage = ($tr.find('.work-voltage').val() || '').trim();
                     var $kva = $tr.find('.work-transformer-kva');
                     if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                    if (type === CONTRACTOR_TYPE) {
+                        if (!($tr.find('.work-contractor-cat').val() || '').trim()) return false;
+                        if (!String($tr.find('.work-licence-number').val() || '').replace(/\D+/g, '')) return false;
+                    }
                 } else {
                     if (!($tr.find('.work-board-meeting-details').val() || '').trim()) return false;
                     if (!readWorkDateFromInput($tr.find('.work-board-meeting-date'))) return false;
@@ -1118,7 +1177,10 @@
                 if (!$container || !$container.length) return false;
                 var canAdd = true;
                 $container.find('.work-fields').each(function() {
-                    if (!isRowComplete($(this))) {
+                    var $row = $(this);
+                    /* Locked existing renew/alteration rows never block Add. */
+                    if (isAlterationFrozenRow($row)) return;
+                    if (!isRowComplete($row)) {
                         canAdd = false;
                         return false;
                     }
@@ -1223,6 +1285,26 @@
                 $sync.val(val);
             }
 
+            /** Keep Grade of Licence / Licence No posted for every row (disabled UI fields are omitted by FormData). */
+            function syncContractorFieldsHidden($tr) {
+                if (!$tr || !$tr.length) return;
+                var $catSync = $tr.find('.work-contractor-category-sync').first();
+                var $licSync = $tr.find('.work-licence-number-sync').first();
+                var isContractor = (($tr.find('.work-employment-type').val() || '').trim() === CONTRACTOR_TYPE);
+                var cat = '';
+                var lic = '';
+                if (isContractor) {
+                    cat = ($tr.find('.work-contractor-cat').val() || '').trim();
+                    lic = String($tr.find('.work-licence-number').val() || '').replace(/\D+/g, '');
+                }
+                if ($catSync.length && !$catSync.prop('disabled')) {
+                    $catSync.val(cat);
+                }
+                if ($licSync.length && !$licSync.prop('disabled')) {
+                    $licSync.val(lic);
+                }
+            }
+
             /** Lock or unlock the row's Transformer-kVA input based on the voltage dropdown. */
             function applyVoltage($tr) {
                 var v = ($tr.find('.work-voltage').val() || '').trim();
@@ -1286,6 +1368,7 @@
                     setFieldLock($tr, 'relieve', false);
                     toggleBoardMeetingFields($tr, false);
                     syncTransformerKvaHidden($tr);
+                    syncContractorFieldsHidden($tr);
                     /* Clear any blob previews left over from a previous selection. */
                     $tr.find('.local-file-preview').each(function() {
                         var $p = $(this);
@@ -1346,6 +1429,7 @@
                 /* When voltage allows kVA, make it required. */
                 if (!$kva.prop('disabled')) $kva.prop('required', true);
                 syncTransformerKvaHidden($tr);
+                syncContractorFieldsHidden($tr);
 
                 /* Col 11.To & Col 13 — conditional on Till date. */
                 applyTillDate($tr);
@@ -1361,11 +1445,18 @@
             }
 
             function initWorkRow($tr) {
+                if (isAlterationFrozenRow($tr)) {
+                    /* Renewal/alteration existing rows stay read-only. */
+                    syncTransformerKvaHidden($tr);
+                    syncContractorFieldsHidden($tr);
+                    return;
+                }
                 if ($tr.closest('#work-container-current, .js-work-container[data-work-part="current"]').length) {
                     ensure7bRepresentingOrgSelect($tr);
                 }
                 applyEmploymentType($tr);
                 syncTransformerKvaHidden($tr);
+                syncContractorFieldsHidden($tr);
             }
 
             function refreshWorkSerials() {
@@ -1536,6 +1627,10 @@
                 if ($el.val() !== cleaned) {
                     $el.val(cleaned);
                 }
+                syncContractorFieldsHidden($workRow(this));
+            });
+            $(document).on('change', '.js-work-container .work-contractor-cat, #work-container .work-contractor-cat', function() {
+                syncContractorFieldsHidden($workRow(this));
             });
             $(document).on('change', '.js-work-container .work-employment-type, #work-container .work-employment-type', function() {
                 applyEmploymentType($workRow(this));
@@ -1752,12 +1847,10 @@
                     }
                     if (!newRow) return;
                     var isCurrent = (container.getAttribute('data-work-part') || '') === 'current';
-                    /* Alteration: cloned rows must not inherit parent frozen/read-only state. */
-                    if (isAlterationMode) {
-                        newRow.classList.remove('fs-alt-existing-work');
-                        var altExistingFlag = newRow.querySelector('input[name="fs_alt_existing_work[]"]');
-                        if (altExistingFlag) altExistingFlag.remove();
-                    }
+                    /* Cloned rows must not inherit locked existing state (alteration / renewal). */
+                    newRow.classList.remove('fs-alt-existing-work');
+                    var altExistingFlag = newRow.querySelector('input[name="fs_alt_existing_work[]"]');
+                    if (altExistingFlag) altExistingFlag.remove();
                     /* Blank the clone before appending. */
                     newRow.classList.remove('is-collapsed', 'is-complete', 'work-row--compact', 'work-row--expanded', 'work-row--in-summary');
                     $(newRow).removeData('wxSummaryTr wxWasComplete');
@@ -1771,6 +1864,10 @@
                     newRow.querySelectorAll('input[type="text"], input[type="date"], input[type="number"]').forEach(function(inp) {
                         if (inp.classList.contains('work-date-from') || inp.classList.contains('work-date-to')) return;
                         inp.value = '';
+                    });
+                    newRow.querySelectorAll('.work-contractor-category-sync, .work-licence-number-sync, .work-transformer-kva-sync').forEach(function(inp) {
+                        inp.value = '';
+                        inp.removeAttribute('disabled');
                     });
                     newRow.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
                     newRow.querySelectorAll('textarea').forEach(function(el) { el.value = ''; });
@@ -1818,7 +1915,8 @@
                     refreshWorkSerials();
                     bindWorkRowDateDisplay(newRow);
                     initWorkRow($(newRow));
-                    if (isAlterationMode) {
+                    /* New rows added on renewal/alteration must be fully editable. */
+                    (function () {
                         var $newRow = $(newRow);
                         $newRow.removeClass('is-complete work-row--compact work-row--in-summary fs-alt-existing-work')
                             .addClass('work-row--expanded')
@@ -1828,8 +1926,10 @@
                             .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
                             .prop('disabled', false)
                             .prop('readonly', false);
+                        ensureWorkRowDoneBar($newRow);
+                        applyEmploymentType($newRow);
                         applyRowLayout($newRow);
-                    }
+                    })();
                     if (isCurrent && till && till.checked) {
                         applyTillDate($(newRow));
                     }

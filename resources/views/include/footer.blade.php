@@ -991,6 +991,34 @@ $(document).ready(function() {
         }
         window.appendWorkTransformerKvaToFormData = appendWorkTransformerKvaToFormData;
 
+        /** Rebuild contractor grade/licence arrays so every work row posts one aligned slot. */
+        function appendWorkContractorFieldsToFormData(formData, formRoot) {
+            if (!formData || !formRoot) return;
+            formData.delete('work_contractor_category[]');
+            formData.delete('work_licence_number[]');
+            $(formRoot).find('.js-work-container .work-fields, #work-container .work-fields').each(function () {
+                const $row = $(this);
+                const empType = ($row.find('.work-employment-type').val() || '').toString().trim();
+                let cat = '';
+                let lic = '';
+                if (empType === 'electrical_contractor') {
+                    const $catSync = $row.find('.work-contractor-category-sync').first();
+                    const $licSync = $row.find('.work-licence-number-sync').first();
+                    cat = ($catSync.length ? $catSync.val() : $row.find('.work-contractor-cat').val() || '').toString().trim();
+                    lic = String($licSync.length ? $licSync.val() : $row.find('.work-licence-number').val() || '').replace(/\D+/g, '');
+                    if (!cat) {
+                        cat = ($row.find('.work-contractor-cat').val() || '').toString().trim();
+                    }
+                    if (!lic) {
+                        lic = String($row.find('.work-licence-number').val() || '').replace(/\D+/g, '');
+                    }
+                }
+                formData.append('work_contractor_category[]', cat);
+                formData.append('work_licence_number[]', lic);
+            });
+        }
+        window.appendWorkContractorFieldsToFormData = appendWorkContractorFieldsToFormData;
+
         async function saveCompetencyDraftSilently() {
             const formWsEl = $('#competency_form_ws')[0];
             const formPEl = $('#competency_form_p')[0];
@@ -1002,6 +1030,7 @@ $(document).ready(function() {
 
             if (formWsEl) {
                 appendWorkTransformerKvaToFormData(formData, formWsEl);
+                appendWorkContractorFieldsToFormData(formData, formWsEl);
             }
 
             if (formPEl) {
@@ -2392,10 +2421,10 @@ $(document).ready(function() {
 
                 let empCell = '<span class="wx-sum-main">' + esc(empTxt) + '</span>';
                 if (isContractor && catTxt) {
-                    empCell += '<span class="wx-sum-sub">Cat: ' + esc(catTxt) + '</span>';
+                    empCell += '<span class="wx-sum-sub">Grade of Licence: ' + esc(catTxt) + '</span>';
                 }
                 if (isContractor && licTxt) {
-                    empCell += '<span class="wx-sum-sub">Licence: ' + esc(licTxt) + '</span>';
+                    empCell += '<span class="wx-sum-sub">Licence No: ' + esc(licTxt) + '</span>';
                 }
 
                 let orgCell = '<span class="wx-sum-main">' + esc(employer || '—') + '</span>';
@@ -6071,6 +6100,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 formData.set('form_action', 'draft');
                 if (typeof window.appendWorkTransformerKvaToFormData === 'function') {
                     window.appendWorkTransformerKvaToFormData(formData, $('#competency_form_ws')[0]);
+                }
+                if (typeof window.appendWorkContractorFieldsToFormData === 'function') {
+                    window.appendWorkContractorFieldsToFormData(formData, $('#competency_form_ws')[0]);
                 }
                 let applicationId = $('#application_id').val();
                 let formUrl;

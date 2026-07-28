@@ -55,9 +55,21 @@ class FormSDocumentVersionService
             return $this->createInitialUpload($file, $workflowApp, $moduleType, $documentType, $moduleRefId, $remarks, $stage);
         }
 
-        if ($this->getPendingVersion($workflowPk, $moduleType, $moduleRefId, $documentType)) {
-            throw new RuntimeException(
-                'A pending version already exists for this document. Approve or reject it before uploading a new version.'
+        /*
+         * Renewal/alteration drafts create PENDING versions (staff must approve later).
+         * Preview & Proceed / Save Draft can re-post the same file input; replace the
+         * existing pending row instead of blocking with "pending version already exists".
+         */
+        $pending = $this->getPendingVersion($workflowPk, $moduleType, $moduleRefId, $documentType);
+        if ($pending) {
+            return $this->replacePendingVersionFile(
+                $pending,
+                $file,
+                $workflowApp,
+                $moduleType,
+                $documentType,
+                $remarks,
+                $stage
             );
         }
 
@@ -78,6 +90,41 @@ class FormSDocumentVersionService
             $remarks,
             $stage
         );
+    }
+
+    /**
+     * Applicant re-upload while a pending version is open (common on renewal draft re-save).
+     */
+    protected function replacePendingVersionFile(
+        CC_Doc_Log $pending,
+        UploadedFile $file,
+        CC_CompetencyMeta $workflowApp,
+        string $moduleType,
+        string $documentType,
+        ?string $remarks,
+        string $workflowStage
+    ): CC_Doc_Log {
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
+        $stored = $this->storeUploadedFile(
+            $file,
+            (string) $workflowApp->application_id,
+            $workflowPk,
+            $moduleType,
+            $documentType,
+            $pending->request_type instanceof DocumentRequestType
+                ? $pending->request_type
+                : DocumentRequestType::RENEWAL,
+            $workflowStage,
+            true
+        );
+
+        $pending->update([
+            'file_name' => $stored['file_name'],
+            'file_path' => $stored['file_path'],
+            'remarks' => $remarks ?: ($pending->remarks ?: 'Document re-uploaded on draft save'),
+        ]);
+
+        return $pending->fresh();
     }
 
     public function createInitialUpload(
@@ -260,10 +307,25 @@ class FormSDocumentVersionService
         $stage = 'ALTERATION';
 
         if ($this->groupExists($workflowPk, $moduleType, $proofId, $documentType)) {
-            if ($this->getPendingVersion($workflowPk, $moduleType, $proofId, $documentType)) {
-                throw new RuntimeException(
-                    'A pending version already exists for this alteration proof. Approve or reject it before uploading a new version.'
+            $pending = $this->getPendingVersion($workflowPk, $moduleType, $proofId, $documentType);
+            if ($pending) {
+                $stored = $this->storeUploadedFile(
+                    $file,
+                    (string) $alterationWorkflow->application_id,
+                    $workflowPk,
+                    $moduleType,
+                    $documentType,
+                    DocumentRequestType::ALTERATION,
+                    $stage,
+                    true
                 );
+                $pending->update([
+                    'file_name' => $stored['file_name'],
+                    'file_path' => $stored['file_path'],
+                    'remarks' => $remarks ?: ($pending->remarks ?: 'Alteration proof re-uploaded on draft save'),
+                ]);
+
+                return $pending->fresh();
             }
 
             $nextVersion = $this->getMaxVersionNo($workflowPk, $moduleType, $proofId, $documentType) + 1;

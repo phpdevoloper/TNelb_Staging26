@@ -1702,12 +1702,15 @@
 
                 var $emp = $row.find('.work-employment-type');
                 if (isYes) {
+                    // Sync field must participate when board details are shown.
+                    $emp.prop('disabled', false).prop('required', true);
                     if ($emp.val() !== BOARD_MEMBER_TYPE) {
                         $emp.val(BOARD_MEMBER_TYPE).trigger('change');
                     }
                     $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-                } else if ($emp.val() === BOARD_MEMBER_TYPE) {
-                    $emp.val('').trigger('change');
+                } else {
+                    // d-none does not remove HTML5 required — disable so validators ignore it.
+                    $emp.prop('required', false).prop('disabled', true).val('');
                 }
             }
 

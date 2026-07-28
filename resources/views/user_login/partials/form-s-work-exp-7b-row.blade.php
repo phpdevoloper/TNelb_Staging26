@@ -27,13 +27,14 @@
 <div class="work-entry-block">
 <div class="work-fields work-row{{ $storedRowClass }}" data-row-index="{{ $rowIndex }}">
     {{-- Always board member for §7b; hidden so gate UI owns the question. --}}
-    <select class="form-control work-employment-type d-none" name="work_employment_type[]" required aria-hidden="true" tabindex="-1">
+    {{-- Sync field only; apply7bBoardToggle enables + requires it when Board = Yes. --}}
+    <select class="form-control work-employment-type d-none" name="work_employment_type[]" aria-hidden="true" tabindex="-1">
         <option value="board_member_tnelb" selected>Board member of TNELB or Ex board member of TNELB</option>
     </select>
 
     {{-- Keep parallel [] indexes for fields §7a rows post; unused in §7b UI. --}}
-    <input type="hidden" name="work_contractor_category[]" value="" @if($alterationExistingRow) disabled @endif>
-    <input type="hidden" name="work_licence_number[]" value="" @if($alterationExistingRow) disabled @endif>
+    <input type="hidden" class="work-contractor-category-sync" name="work_contractor_category[]" value="" @if($alterationExistingRow) disabled @endif>
+    <input type="hidden" class="work-licence-number-sync" name="work_licence_number[]" value="" @if($alterationExistingRow) disabled @endif>
     <input type="hidden" class="work-nature" name="work_nature_of_work[]" value="" @if($alterationExistingRow) disabled @endif>
     <input type="hidden" class="work-voltage" name="work_voltage_level[]" value="" @if($alterationExistingRow) disabled @endif>
     <input type="hidden" class="work-transformer-kva" name="work_transformer_kva[]" value="" @if($alterationExistingRow) disabled @endif>

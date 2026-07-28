@@ -111,8 +111,8 @@
             ? 'Not applicable'
             : (!kva ? '—' : (kva === 'Above 1000' ? esc(kva) : esc(kva + ' kVA')));
         var empCell = '<span class="wx-sum-main">' + esc(empTxt) + '</span>';
-        if (type === 'electrical_contractor' && cat) empCell += '<span class="wx-sum-sub">Cat: ' + esc(cat) + '</span>';
-        if (type === 'electrical_contractor' && lic) empCell += '<span class="wx-sum-sub">Licence: ' + esc(lic) + '</span>';
+        if (type === 'electrical_contractor' && cat) empCell += '<span class="wx-sum-sub">Grade of Licence: ' + esc(cat) + '</span>';
+        if (type === 'electrical_contractor' && lic) empCell += '<span class="wx-sum-sub">Licence No: ' + esc(lic) + '</span>';
         var orgCell = '<span class="wx-sum-main">' + esc(employer || '—') + '</span>';
         if (address) orgCell += '<span class="wx-sum-sub">' + esc(address) + '</span>';
         var toCell = isTill

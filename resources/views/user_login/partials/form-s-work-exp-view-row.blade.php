@@ -106,10 +106,10 @@
             <span class="wx-alter-badge ms-1">ALTER</span>
         @endif
         @if($empType === 'electrical_contractor' && $contractorCat !== '')
-            <span class="wx-sum-sub">Cat: {{ $contractorCat }}</span>
+            <span class="wx-sum-sub">Grade of Licence: {{ $contractorCat }}</span>
         @endif
         @if($empType === 'electrical_contractor' && $licenceNo !== '')
-            <span class="wx-sum-sub">Licence: {{ $licenceNo }}</span>
+            <span class="wx-sum-sub">Licence No: {{ $licenceNo }}</span>
         @endif
     </td>
     <td class="work-row-summary-org-address">

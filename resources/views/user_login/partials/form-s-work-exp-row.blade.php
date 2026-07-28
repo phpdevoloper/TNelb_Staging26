@@ -66,6 +66,7 @@
         $isTill = true;
     }
     $removeClasses = 'work-row-remove remove-work' . ($workId !== '' ? ' remove_exp' : '');
+    $alterationExistingRow = !empty($alterationExistingRow);
     $storedRowClass = $workId !== ''
         ? ($showSummaryPanel ? ' is-complete work-row--compact work-row--in-summary' : ' is-complete work-row--expanded')
         : '';
@@ -76,7 +77,6 @@
     $meetingDetailsName = $isBoardMemberRow ? 'work_board_meeting_details[]' : '';
     $meetingDateName = $isBoardMemberRow ? 'work_board_meeting_date[]' : '';
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
-    $alterationExistingRow = !empty($alterationExistingRow);
     $hideSupportUpload = $hideUploadWhenDocExists && $supportDoc !== '';
     $hideRelieveUpload = $hideUploadWhenDocExists && $relieveDoc !== '';
 @endphp
@@ -92,7 +92,7 @@
             <button type="button" class="work-row-toggle-btn" aria-expanded="false" title="Expand to edit" aria-label="Expand entry to edit">
                 <i class="fa fa-chevron-down" aria-hidden="true"></i>
             </button>
-            @unless ($hideRemoveButton)
+            @unless ($hideRemoveButton || $alterationExistingRow)
             <button type="button" class="{{ $removeClasses }}"
                 @if($workId !== '') data-exp_id="{{ $workId }}" data-url="{{ route('delete_experience') }}" @endif
                 title="Remove this entry" aria-label="Remove this work experience entry">
@@ -105,7 +105,7 @@
     <div class="work-row-grid{{ $useBootstrapGrid ? ' row g-2' : '' }}">
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field">
             <label class="work-card-field-label">Employment Type <span class="req">*</span></label>
-            <select class="form-control work-employment-type" name="work_employment_type[]" required>
+            <select class="form-control work-employment-type" name="work_employment_type[]" required @if($alterationExistingRow) disabled @endif>
                 @include('user_login.partials.form-s-work-exp-employment-options', [
                     'selectedEmpType' => $empType,
                     'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType,
@@ -114,17 +114,20 @@
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="contractor-cat">
             <label class="work-card-field-label">Grade of Licence <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <select class="form-control work-contractor-cat" name="work_contractor_category[]" disabled>
+            {{-- Select is UI-only: disabled fields are omitted from FormData and break [] index alignment. --}}
+            <select class="form-control work-contractor-cat" disabled autocomplete="off" aria-label="Grade of Licence">
                 <option value="">—</option>
                 @foreach (['ESA', 'EA', 'ESB', 'EB'] as $cat)
                     <option value="{{ $cat }}" {{ $contractorCat === $cat ? 'selected' : '' }}>{{ $cat }}</option>
                 @endforeach
             </select>
+            <input type="hidden" class="work-contractor-category-sync" name="work_contractor_category[]" value="{{ $contractorCat }}" @if($alterationExistingRow) disabled @endif>
             <span class="work-card-field-hint" data-hint="cat" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="licence-number">
             <label class="work-card-field-label">Licence No <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="text" class="form-control work-licence-number" name="work_licence_number[]" maxlength="15" inputmode="numeric" pattern="[0-9]*" autocomplete="off" disabled placeholder="e.g. 12345" value="{{ preg_replace('/\D+/', '', (string) $licenceNo) }}">
+            <input type="text" class="form-control work-licence-number" maxlength="15" inputmode="numeric" pattern="[0-9]*" autocomplete="off" disabled placeholder="e.g. 12345" value="{{ preg_replace('/\D+/', '', (string) $licenceNo) }}" aria-label="Licence number">
+            <input type="hidden" class="work-licence-number-sync" name="work_licence_number[]" value="{{ preg_replace('/\D+/', '', (string) $licenceNo) }}" @if($alterationExistingRow) disabled @endif>
             <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="organisation">

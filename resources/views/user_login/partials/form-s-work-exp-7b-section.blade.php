@@ -3,6 +3,7 @@
     $exp_details = $exp_details ?? collect();
     $hideUploadWhenDocExists = ! empty($hideUploadWhenDocExists);
     $isAlterationMode = ! empty($isAlterationMode);
+    $lockExistingRows = ! empty($lockExistingRows) || $isAlterationMode;
 @endphp
 <div class="work-exp-wrap" data-work-part="current">
     <div class="work-rows js-work-container"
@@ -16,7 +17,7 @@
                     'expRow' => $expRow,
                     'rowIndex' => $index,
                     'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
-                    'alterationExistingRow' => $isAlterationMode && $expRow,
+                    'alterationExistingRow' => $lockExistingRows && $expRow,
                 ])
             @endforeach
         @else

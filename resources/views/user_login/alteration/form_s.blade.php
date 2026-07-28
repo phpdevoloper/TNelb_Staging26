@@ -7,14 +7,18 @@
 @endphp
 
 <style>
-    .fs-alt-existing-work input,
-    .fs-alt-existing-work select,
-    .fs-alt-existing-work textarea,
-    .fs-alt-existing-work button { pointer-events: none !important; }
-    .fs-alt-existing-work { background: #f8fafc; }
+    /* Existing experience locked until Work Experience option is selected. */
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work input,
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work select,
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work textarea,
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work button { pointer-events: none !important; }
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work { background: #f8fafc; }
     .fs-alt-existing-work .remove-work { display: none !important; }
     .fs-alt-form .work-fields.fs-alt-existing-work.work-row--in-summary {
         display: none !important;
+    }
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work {
+        background: #ffffff;
     }
     .work-exp-summary-tr--frozen .work-row-edit-trigger,
     .work-exp-summary-tr--frozen .work-row-remove { display: none !important; }
@@ -1249,12 +1253,12 @@
         border-radius: 10px !important;
         box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
     }
-    #work-container-previous .work-fields.work-row.fs-alt-existing-work {
+    .fs-alt-form:not(.fs-alt-work-unlocked) #work-container-previous .work-fields.work-row.fs-alt-existing-work {
         background: #f8fafc !important;
         border-color: #d4e0f0 !important;
         box-shadow: none !important;
     }
-    #work-container-current .work-fields.work-row.fs-alt-existing-work {
+    .fs-alt-form:not(.fs-alt-work-unlocked) #work-container-current .work-fields.work-row.fs-alt-existing-work {
         background: #f8fafc !important;
         border-color: #d4e0f0 !important;
     }
@@ -1307,9 +1311,9 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for {{ $editEnglishTitle }}</h5>
+                    <h5>Application for {{ $editEnglishTitle }} - Alteration</h5>
                     @if($editTamilTitle)
-                        <h5 class="tamil-title">{{ $editTamilTitle }}</h5>
+                        <h5 class="tamil-title">{{ $editTamilTitle }} - மாற்றுதல் விண்ணப்பம்</h5>
                     @endif
                     <span class="form-badge">FORM - {{ $editFormName }} / Certificate {{ $editLicenseName }}</span>
                     @if($isAlterationMode)
@@ -1394,7 +1398,7 @@
                             <span class="fs-alt-option-card__icon"><i class="fa fa-briefcase" aria-hidden="true"></i></span>
                             <span class="fs-alt-option-card__body">
                                 <span class="fs-alt-option-card__title">Work Experience</span>
-                                <span class="fs-alt-option-card__desc">Add new experience entries only</span>
+                                <span class="fs-alt-option-card__desc">Edit existing or add new experience</span>
                             </span>
                             <span class="fs-alt-option-card__check" aria-hidden="true"><i class="fa fa-check-circle"></i></span>
                         </label>
@@ -2282,39 +2286,32 @@
                         <div class="fs-section-body">
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ !empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ !empty($application_details->previous_scc_no) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="previous_license_yes">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ empty($application_details->previous_scc_no) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="previous_license_no">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previously_number) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                               placeholder="Certificate Number" {{ !empty($application_details->previously_number) ? 'readonly':'' }} value="{{ $application_details->previously_number }}" maxlength="80">
-                                        <input type="hidden" id="l_verify" name="l_verify" value="{{ $application_details->license_verify }}">
+                                               placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="80">
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
                                         <span id="license_messagdfde" class="mt-1"></span>
-                                        <span class="mt-1 verify_status {{ $application_details->license_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                            @if (!empty($application_details->previously_number))
-                                                {!! $application_details->license_verify == 0 ? '&#128683; Invalid License.' : '&#10004; Valid License.' !!}
-                                            @endif
-                                        </span>
                                     </div>
                                     <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_issue_date }}">
+                                               value="{{ $application_details->first_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
@@ -2322,8 +2319,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
                                                id="previously_valid_from" name="previously_valid_from" type="date"
                                                data-error="#previouslyFromDateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_valid_from ?? '' }}">
+                                               value="{{ $application_details->scc_from_date ?? '' }}">
                                         <span id="previouslyFromDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
@@ -2331,11 +2327,10 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
                                                id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
-                                               {{ !empty($application_details->previously_number) ? 'readonly':'' }}
-                                               value="{{ $application_details->previously_valid_to ?? $application_details->previously_date }}">
+                                               value="{{ $application_details->scc_to_date ?? '' }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    {{-- <div class="col-12 col-md-2">
                                         <div class="fs-verify-actions">
                                             @if (!empty($application_details->previously_number))
                                                 <button type="button" class="btn btn-danger remove_verify" data-type="superviser"><i class="fa fa-trash"></i> Delete</button>
@@ -2344,7 +2339,7 @@
                                                 <button type="button" class="btn btn-primary verify-btn" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
                                             @endif
                                         </div>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
                         </div>{{-- /fs-section-body --}}
@@ -2388,15 +2383,15 @@
                         <div class="fs-section-body">
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ !empty($application_details->certificate_no) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ !empty($application_details->wcc_no) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_valid_to ?? $application_details->certificate_date) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->wcc_no) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->certificate_no) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->wcc_no) ? 'block' : 'none' }};">
                                                         @php
                                                             if($application_details->form_name == 'S'){
                                                                 $cert_type = 'certificate';
@@ -2413,16 +2408,10 @@
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
                                                                    placeholder="Certificate Number" maxlength="80"
-                                                                   value="{{ $application_details->certificate_no }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
-                                                            <input type="hidden" id="cert_verify" name="cert_verify" value="{{ $application_details->cert_verify }}">
+                                                                   value="{{ $application_details->wcc_no }}"
+                                                                   >
                                                             <span id="licenseError" class="text-danger"></span>
                                                             <span id="license_message" class="mt-1"></span>
-                                                            <span id="verify_status" class="mt-1 {{ $application_details->cert_verify == 0 ? 'text-danger' : 'text-success' }}">
-                                                                @if (!empty($application_details->certificate_no))
-                                                                    {!! $application_details->cert_verify == 0 ? '&#128683; Invalid License.' : '&#10004; Valid License.' !!}
-                                                                @endif
-                                                            </span>
                                                             <span id="certError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -2430,8 +2419,8 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ $application_details->certificate_issue_date }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->wcc_issue_date }}"
+                                                                   >
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -2439,8 +2428,8 @@
                                                             <input class="form-control text-box single-line verify-valid-from"
                                                                    id="certificate_valid_from" name="certificate_valid_from"
                                                                    data-error="#certFromDateError" type="date"
-                                                                   value="{{ $application_details->certificate_valid_from ?? '' }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->wcc_from ?? '' }}"
+                                                                   >
                                                             <span id="certFromDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -2448,11 +2437,11 @@
                                                             <input class="form-control text-box single-line verify-date"
                                                                    id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->certificate_valid_to ?? $application_details->certificate_date }}"
-                                                                   {{ !empty($application_details->certificate_no) ? 'readonly':'' }}>
+                                                                   value="{{ $application_details->wcc_to ?? '' }}"
+                                                                   >
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
-                                                        <div class="col-12 col-md-2">
+                                                        {{-- <div class="col-12 col-md-2">
                                                             <div class="fs-verify-actions">
                                                             @if (!empty($application_details->certificate_no))
                                                                 <button type="button" class="btn btn-danger remove_verify" data-type="superviser_two"><i class="fa fa-trash"></i> Delete</button>
@@ -2461,7 +2450,7 @@
                                                                 <button type="button" class="btn btn-primary verify-btn" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
                                                             @endif
                                                             </div>
-                                                        </div>
+                                                        </div> --}}
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
                         </div>{{-- /fs-section-body --}}
@@ -2728,7 +2717,6 @@
         window.dashboardUrl = "{{ route('dashboard') }}";
         window.formSAltEditableMode = @json($isAlterationEditable);
     </script>
-    <script src="{{ url('assets/js/alteration.js') }}"></script>
 
 @if (($application_details->form_name ?? '') === 'S')
 @include('user_login.partials.form-s-work-exp-scripts', [
@@ -2785,11 +2773,14 @@
 
             var $emp = $row.find('.work-employment-type');
             if (isYes) {
+                // Sync field must participate when board details are shown.
+                $emp.prop('disabled', false).prop('required', true);
                 if ($emp.val() !== BOARD_MEMBER_TYPE) {
                     $emp.val(BOARD_MEMBER_TYPE).trigger('change');
                 }
-            } else if (!isInit && $emp.val() === BOARD_MEMBER_TYPE) {
-                $emp.val('').trigger('change');
+            } else {
+                // d-none does not remove HTML5 required — disable so validators ignore it.
+                $emp.prop('required', false).prop('disabled', true).val('');
             }
         }
 
@@ -2807,6 +2798,7 @@
     })();
 </script>
 @endif
+<script src="{{ url('assets/js/alteration.js') }}"></script>
 
 <script>
     window.toggleSectionEdit = function(btn) {

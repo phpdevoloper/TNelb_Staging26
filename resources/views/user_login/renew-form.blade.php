@@ -460,8 +460,46 @@
         font-size: .8rem;
         cursor: pointer;
         transition: background .2s;
+        position: relative;
+        z-index: 6;
+        pointer-events: auto !important;
+        opacity: 1 !important;
     }
     .btn-tbl-add:hover { background: #024a98; }
+    .btn-tbl-add:disabled {
+        opacity: .55 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+    }
+
+    /* Renewal: existing education / (W) work rows are view-only; Add stays enabled */
+    #education-table .fs-renew-existing-edu input:not([type="hidden"]),
+    #education-table .fs-renew-existing-edu select,
+    #work-table .fs-renew-existing-work input:not([type="hidden"]),
+    #work-table .fs-renew-existing-work select {
+        pointer-events: none !important;
+        background-color: #f4f6fb !important;
+        color: #6b7a99 !important;
+        box-shadow: none !important;
+    }
+    #education-table .fs-renew-existing-edu select {
+        appearance: none;
+        -webkit-appearance: none;
+    }
+    #education-table .fs-renew-existing-edu .remove-education,
+    #education-table .fs-renew-existing-edu .remove-doc_edu_confirm,
+    #education-table .fs-renew-existing-edu .edu-doc-input,
+    #education-table .fs-renew-existing-edu input[type="file"],
+    #work-table .fs-renew-existing-work .remove-work,
+    #work-table .fs-renew-existing-work input[type="file"] {
+        display: none !important;
+    }
+    #education-table thead .add-more-education,
+    #work-table thead .add-more-work {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        opacity: 1 !important;
+    }
     .btn-tbl-remove {
         background: #dc3545;
         color: #fff;
@@ -939,10 +977,18 @@
                     <input type="hidden" id="old_application" name="old_application" value="{{ $_renewOldAppl }}">
                     @php
                         $_renew_issued = '';
-                        if (!empty($license_details) && trim((string) ($license_details->license_number ?? '')) !== '') {
-                            $_renew_issued = trim((string) $license_details->license_number);
+                        if (!empty($license_details) && trim((string) ($license_details->license_number ?? $license_details->certificate_no ?? '')) !== '') {
+                            $_renew_issued = trim((string) ($license_details->license_number ?? $license_details->certificate_no));
                         } elseif (!empty($application_details->license_number ?? null)) {
                             $_renew_issued = trim((string) $application_details->license_number);
+                        } elseif (!empty($application_details->certificate_no ?? null)) {
+                            $_renew_issued = trim((string) $application_details->certificate_no);
+                        } elseif (!empty($application_details->wcc_no ?? null)) {
+                            $_renew_issued = trim((string) $application_details->wcc_no);
+                        } elseif (!empty($application_details->previously_number ?? null) && trim((string) $application_details->previously_number) !== '0') {
+                            $_renew_issued = trim((string) $application_details->previously_number);
+                        } elseif (!empty($application_details->previous_scc_no ?? null) && trim((string) $application_details->previous_scc_no) !== '0') {
+                            $_renew_issued = trim((string) $application_details->previous_scc_no);
                         }
                     @endphp
                     <input type="hidden" id="license_number" name="license_number" value="{{ $_renew_issued }}">
@@ -1188,7 +1234,7 @@
                                         
                                         @if ($edu_details->isNotEmpty())
                                         @foreach ($edu_details as $eduRow)
-                                        <tr class="education-fields text-center" data-edu-index="{{ $loop->index }}">
+                                        <tr class="education-fields text-center fs-renew-existing-edu" data-edu-index="{{ $loop->index }}" data-renew-locked="1">
                                             <td class="edu-serial text-center">{{ $loop->iteration }}</td>
                                             <td>
                                                 <select class="form-control" name="educational_level[]">
@@ -1245,7 +1291,6 @@
                                                             <a class="text-primary" href="{{ competency_document_url($eduRow->upload_document, 'education', (int) ($eduRow->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
                                                                 <i class="fa fa-file-pdf-o" style="color: red"></i> View
                                                             </a>
-                                                            <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
                                                         </div>
                                                         <div class="edu-doc-input d-none">
                                                             <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
@@ -1261,9 +1306,8 @@
                                             </td>
                                             <td class="form-s-actions-cell text-center p-1">
                                                 <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn btn-danger btn-sm remove-education remove_edu py-1 px-2" data-edu_id="{{ $eduRow->id }}" data-url="{{ route('delete_education') }}" title="Remove row">
-                                                        <i class="fa fa-trash-o"></i>
-                                                    </button>
+                                                    {{-- Existing education cannot be removed on renewal --}}
+                                                    <span class="text-muted small" title="Existing qualification">—</span>
                                                 </div>
                                                 <input type="hidden" name="edu_id[]" value="{{ $eduRow->id }}">
                                                 <input type="hidden" name="existing_document[]" value="{{ $eduRow->upload_document ?? '' }}">
@@ -1368,6 +1412,7 @@
                             @include('user_login.partials.form-s-work-exp-7ab-body', [
                                 'exp_details' => $renewWorkExpList,
                                 'hideUploadWhenDocExists' => true,
+                                'lockExistingRows' => true,
                             ])
                             @else
                             <div class="table-responsive">
@@ -1399,7 +1444,7 @@
                                             $wFromIso = !empty($expRow->from_date) ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
                                             $wToIso = !empty($expRow->to_date) ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
                                         @endphp
-                                        <tr class="work-fields text-center">
+                                        <tr class="work-fields text-center fs-renew-existing-work" data-renew-locked="1">
                                             <td class="work-serial">{{ $loop->iteration }}</td>
                                             <td>
                                                 <input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $expRow->org_name ?? $expRow->company_name ?? $expRow->emp_cate ?? '' }}">
@@ -1418,9 +1463,7 @@
                                             </td>
                                             <td class="work-exp-col-actions text-center p-1">
                                                 <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn btn-danger btn-sm remove-work remove_exp py-1 px-2" data-exp_id="{{ $expRow->id }}" data-url="{{ route('delete_experience') }}" title="Remove row">
-                                                        <i class="fa fa-trash-o"></i>
-                                                    </button>
+                                                    <span class="text-muted small" title="Existing experience">—</span>
                                                 </div>
                                                 <input type="hidden" name="work_id[]" value="{{ $expRow->id ?? '' }}">
                                                 <input type="hidden" name="existing_work_document[]" value="{{ $expRow->upload_document ?? '' }}">
@@ -2149,6 +2192,9 @@
             $docInput.removeClass('d-none').show();
             $scope.find('#pancard_doc_removed').val('1');
             clearLocalPreview($fileInput);
+        });
+    });
+
     $('#d_o_b').on('change', function() {
         const dobVal = $(this).val();
         const errorEl = $('#dob-error');
@@ -2188,15 +2234,15 @@
     });
 
     // Add more education row
-    $(document).on('click', function(e) {
-        if (!e.target.closest(".add-more-education") && !e.target.closest(".remove-education")) return;
+    $(document).on('click', '.add-more-education, .remove-education', function(e) {
+        e.preventDefault();
         const refreshEducationSerials = () => {
             $('#education-container .education-fields .edu-serial').each(function(index) {
                 $(this).text(index + 1);
             });
         };
 
-        if (e.target.closest(".add-more-education")) {
+        if ($(this).closest('.add-more-education').length || $(this).hasClass('add-more-education')) {
             let container = document.getElementById("education-container");
             if (!container) return;
             let educationRows = container.querySelectorAll(".education-fields");
@@ -2272,10 +2318,15 @@
             </tr>`;
             $('#education-container').append(newRow);
             refreshEducationSerials();
+            return;
         }
 
-        if (e.target.closest(".remove-education")) {
-            e.target.closest("tr").remove();
+        if ($(this).closest('.remove-education').length || $(this).hasClass('remove-education')) {
+            var remRow = $(this).closest('tr')[0];
+            if (remRow && remRow.getAttribute('data-renew-locked') === '1') {
+                return;
+            }
+            if (remRow) remRow.remove();
             refreshEducationSerials();
         }
     });
@@ -2284,6 +2335,9 @@
     $(document).on('click', '.remove-doc_edu_confirm', function(e) {
         e.preventDefault();
         var $button = $(this);
+        if ($button.closest('tr').attr('data-renew-locked') === '1') {
+            return;
+        }
         Swal.fire({
             title: 'Do you want to remove the document?',
             icon: 'warning',
@@ -2529,7 +2583,11 @@
             }
 
             if (e.target.closest('.remove-work')) {
-                e.target.closest('tr').remove();
+                var remWork = e.target.closest('tr');
+                if (remWork && remWork.getAttribute('data-renew-locked') === '1') {
+                    return;
+                }
+                remWork.remove();
                 refreshWorkSerials();
                 updateOverallTotalYears();
             }
@@ -2620,6 +2678,7 @@
     'enableBoardMemberFeeExempt' => true,
     'enableBoardMemberRenewalFeeExempt' => true,
     'hideUploadWhenDocExists' => true,
+    'lockExistingRows' => true,
 ])
 <script>
     (function () {
@@ -2653,12 +2712,15 @@
 
             var $emp = $row.find('.work-employment-type');
             if (isYes) {
+                // Sync field must participate when board details are shown.
+                $emp.prop('disabled', false).prop('required', true);
                 if ($emp.val() !== BOARD_MEMBER_TYPE) {
                     $emp.val(BOARD_MEMBER_TYPE).trigger('change');
                 }
                 $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-            } else if ($emp.val() === BOARD_MEMBER_TYPE) {
-                $emp.val('').trigger('change');
+            } else {
+                // d-none does not remove HTML5 required — disable so validators ignore it.
+                $emp.prop('required', false).prop('disabled', true).val('');
             }
 
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {

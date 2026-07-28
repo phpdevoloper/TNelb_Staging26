@@ -24,6 +24,9 @@ class FormSAlterationService
 {
     private const FORM_S_CERT_TABLE = 'cc_forms_cert';
 
+    /** Marker stored on child experience rows that update an existing master exp_id on approval. */
+    private const ALT_SRC_EXP_PREFIX = '__ALT_SRC_EXP__:';
+
     public function __construct(
         protected FormSApplicationWorkflowService $workflowService,
         protected FormSDocumentUploadHandler $documentHandler,
@@ -582,7 +585,7 @@ class FormSAlterationService
 
         $alterName = $request->input('alter_name') === '1' || ($newName !== '' && $newName !== $parentName);
         $alterAddress = $request->input('alter_address') === '1' || ($newAddress !== '' && $newAddress !== $parentAddress);
-        $alterWork = $this->requestHasNewWorkRows($request);
+        $alterWork = $this->requestHasWorkAlteration($request);
 
         if (!$alterName && !$alterAddress && !$alterWork) {
             throw new RuntimeException('Make at least one change before submitting the alteration.');
@@ -686,7 +689,8 @@ class FormSAlterationService
 
             if ($alterWork) {
                 $this->assertFormSCountableExperienceMinimum($parent, $request);
-                $this->storeNewExperienceRows($request, $child, $loginId);
+                CC_Experience::where('application_id', $child->application_id)->delete();
+                $this->storeWorkExperienceAlterationRows($request, $child, $loginId);
             }
 
             Payment::updateOrCreate(
@@ -746,10 +750,10 @@ class FormSAlterationService
                 $this->storeAlterationProof($child, $request->file('address_alteration_proof'), 'address_proof');
             }
 
-            if ($this->requestHasNewWorkRows($request)) {
+            if ($this->requestHasWorkAlteration($request)) {
                 CC_Experience::where('application_id', $child->application_id)->delete();
                 try {
-                    $this->storeNewExperienceRows($request, $child, $loginId);
+                    $this->storeWorkExperienceAlterationRows($request, $child, $loginId);
                 } catch (RuntimeException $e) {
                     // Allow partial work rows on draft save.
                 }
@@ -848,6 +852,12 @@ class FormSAlterationService
         return $this->collectNewWorkRowIndexes($request) !== [];
     }
 
+    protected function requestHasWorkAlteration(Request $request): bool
+    {
+        return $this->collectNewWorkRowIndexes($request) !== []
+            || $this->collectChangedExistingWorkRowIndexes($request) !== [];
+    }
+
     /**
      * @return list<int|string>
      */
@@ -855,11 +865,7 @@ class FormSAlterationService
     {
         $workIds = (array) $request->input('work_id', []);
         $existingFlags = (array) $request->input('fs_alt_existing_work', []);
-        $employers = (array) $request->input('work_employer_name', []);
-        if ($employers === []) {
-            $employers = (array) $request->input('work_level', []);
-        }
-
+        $employers = $this->requestEmployers($request);
         $designations = (array) $request->input('designation', []);
         $indexes = [];
 
@@ -877,17 +883,179 @@ class FormSAlterationService
         return $indexes;
     }
 
-    protected function isExistingWorkRowIndex(array $workIds, array $existingFlags, int|string $key): bool
+    /**
+     * @return list<int|string>
+     */
+    protected function collectExistingWorkRowIndexes(Request $request): array
     {
-        if (!empty($workIds[$key])) {
-            return true;
+        $workIds = (array) $request->input('work_id', []);
+        $existingFlags = (array) $request->input('fs_alt_existing_work', []);
+        $employers = $this->requestEmployers($request);
+        $designations = (array) $request->input('designation', []);
+        $indexes = [];
+
+        foreach (array_keys($employers) as $key) {
+            if (! $this->isExistingWorkRowIndex($workIds, $existingFlags, $key)) {
+                continue;
+            }
+            $orgName = trim((string) ($employers[$key] ?? ''));
+            $designation = trim((string) ($designations[$key] ?? ''));
+            if ($orgName !== '' && $designation !== '') {
+                $indexes[] = $key;
+            }
         }
 
-        return !empty($existingFlags[$key]) && (string) $existingFlags[$key] === '1';
+        return $indexes;
     }
 
     /**
-     * Combined experience total for alteration: parent (master) rows + new request rows.
+     * Existing rows that differ from master (or include a new document upload).
+     *
+     * @return list<int|string>
+     */
+    protected function collectChangedExistingWorkRowIndexes(Request $request): array
+    {
+        $changed = [];
+        foreach ($this->collectExistingWorkRowIndexes($request) as $key) {
+            if ($this->existingWorkRowChangedFromMaster($request, $key)) {
+                $changed[] = $key;
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function requestEmployers(Request $request): array
+    {
+        $employers = (array) $request->input('work_employer_name', []);
+        if ($employers === []) {
+            $employers = (array) $request->input('work_level', []);
+        }
+
+        return $employers;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function requestOrgAddresses(Request $request): array
+    {
+        $addresses = (array) $request->input('work_org_address', []);
+        if ($addresses === []) {
+            $addresses = (array) $request->input('work_organisation_address', []);
+        }
+
+        return $addresses;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function requestNatures(Request $request): array
+    {
+        $natures = (array) $request->input('work_nature', []);
+        if ($natures === []) {
+            $natures = (array) $request->input('work_nature_of_work', []);
+        }
+
+        return $natures;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function requestVoltages(Request $request): array
+    {
+        $voltages = (array) $request->input('work_voltage_level', []);
+        if ($voltages === []) {
+            $voltages = (array) $request->input('work_voltage', []);
+        }
+
+        return $voltages;
+    }
+
+    protected function isExistingWorkRowIndex(array $workIds, array $existingFlags, int|string $key): bool
+    {
+        if (! empty($workIds[$key])) {
+            return true;
+        }
+
+        return ! empty($existingFlags[$key]) && (string) $existingFlags[$key] === '1';
+    }
+
+    protected function existingWorkRowChangedFromMaster(Request $request, int|string $key): bool
+    {
+        $workIds = (array) $request->input('work_id', []);
+        $expId = (int) ($workIds[$key] ?? 0);
+        if ($expId <= 0) {
+            return true;
+        }
+
+        $master = CC_Experience::find($expId);
+        if (! $master) {
+            return true;
+        }
+
+        if ($this->requestHasWorkDocumentUpload($request, $key)) {
+            return true;
+        }
+
+        $employers = $this->requestEmployers($request);
+        $designations = (array) $request->input('designation', []);
+        $empTypes = (array) $request->input('work_employment_type', []);
+        $orgAddresses = $this->requestOrgAddresses($request);
+        $fromDates = (array) $request->input('work_date_from', []);
+        $toDates = (array) $request->input('work_date_to', []);
+        $natures = $this->requestNatures($request);
+        $voltages = $this->requestVoltages($request);
+        $kvas = (array) $request->input('work_transformer_kva', []);
+
+        $norm = static function ($value): string {
+            return trim((string) ($value ?? ''));
+        };
+        $normDate = static function ($value): string {
+            $raw = trim((string) ($value ?? ''));
+            if ($raw === '') {
+                return '';
+            }
+            try {
+                return Carbon::parse($raw)->toDateString();
+            } catch (\Throwable $e) {
+                return $raw;
+            }
+        };
+
+        $masterFrom = $master->from_date ? Carbon::parse($master->from_date)->toDateString() : '';
+        $masterTo = $master->to_date ? Carbon::parse($master->to_date)->toDateString() : '';
+
+        return $norm($employers[$key] ?? '') !== $norm($master->org_name)
+            || $norm($designations[$key] ?? '') !== $norm($master->designation)
+            || $norm($empTypes[$key] ?? '') !== $norm($master->emp_type)
+            || $norm($orgAddresses[$key] ?? '') !== $norm($master->org_address)
+            || $normDate($fromDates[$key] ?? '') !== $masterFrom
+            || $normDate($toDates[$key] ?? '') !== $masterTo
+            || $norm($natures[$key] ?? '') !== $norm($master->nature_work)
+            || $norm($voltages[$key] ?? '') !== $norm($master->voltage_level)
+            || $norm($kvas[$key] ?? '') !== $norm($master->transformer_kva);
+    }
+
+    protected function requestHasWorkDocumentUpload(Request $request, int|string $key): bool
+    {
+        foreach (['work_document', 'work_relieving_letter'] as $field) {
+            $file = $request->file($field);
+            if (is_array($file) && isset($file[$key]) && $file[$key] instanceof UploadedFile && $file[$key]->isValid()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Combined experience total for alteration: parent (master) rows + request overrides + new rows.
      * Voltage "Up to 650V" does not count; overall countable total must be ≥ 730 inclusive days.
      */
     protected function assertFormSCountableExperienceMinimum(CC_CompetencyMeta $parent, Request $request): void
@@ -900,9 +1068,37 @@ class FormSAlterationService
         $masterId = $this->workflowService->masterApplication($parent)->application_id;
         $existing = CC_Experience::where('application_id', $masterId)->orderBy('exp_id')->get();
 
+        $workIds = (array) $request->input('work_id', []);
+        $fromDates = (array) $request->input('work_date_from', []);
+        $toDates = (array) $request->input('work_date_to', []);
+        $tillFlags = (array) $request->input('work_to_till_date', []);
+        $sections = (array) $request->input('work_exp_section', []);
+        $voltages = $this->requestVoltages($request);
+        $existingIndexes = $this->collectExistingWorkRowIndexes($request);
+        $overrideByExpId = [];
+        foreach ($existingIndexes as $key) {
+            $expId = (int) ($workIds[$key] ?? 0);
+            if ($expId > 0) {
+                $overrideByExpId[$expId] = $key;
+            }
+        }
+
         foreach ($existing as $exp) {
-            $fromRaw = trim((string) ($exp->from_date ?? ''));
-            $toRaw = trim((string) ($exp->to_date ?? ''));
+            $expId = (int) ($exp->exp_id ?? 0);
+            if (isset($overrideByExpId[$expId])) {
+                $key = $overrideByExpId[$expId];
+                if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
+                    continue;
+                }
+                $fromRaw = trim((string) ($fromDates[$key] ?? ''));
+                $toRaw = trim((string) ($toDates[$key] ?? ''));
+                $voltage = strtolower(trim((string) ($voltages[$key] ?? '')));
+            } else {
+                $fromRaw = trim((string) ($exp->from_date ?? ''));
+                $toRaw = trim((string) ($exp->to_date ?? ''));
+                $voltage = strtolower(trim((string) ($exp->voltage_level ?? '')));
+            }
+
             if ($fromRaw === '') {
                 continue;
             }
@@ -920,7 +1116,6 @@ class FormSAlterationService
                 continue;
             }
 
-            $voltage = strtolower(trim((string) ($exp->voltage_level ?? '')));
             if ($voltage === 'up_to_650v') {
                 $anyDatedExcluded650v = true;
                 continue;
@@ -931,14 +1126,6 @@ class FormSAlterationService
         }
 
         $indexes = $this->collectNewWorkRowIndexes($request);
-        $fromDates = (array) $request->input('work_date_from', []);
-        $toDates = (array) $request->input('work_date_to', []);
-        $tillFlags = (array) $request->input('work_to_till_date', []);
-        $sections = (array) $request->input('work_exp_section', []);
-        $voltages = (array) $request->input('work_voltage_level', []);
-        if ($voltages === []) {
-            $voltages = (array) $request->input('work_voltage', []);
-        }
 
         foreach ($indexes as $key) {
             if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
@@ -988,103 +1175,172 @@ class FormSAlterationService
         }
     }
 
+    protected function storeWorkExperienceAlterationRows(Request $request, CC_CompetencyMeta $child, string $loginId): void
+    {
+        $newIndexes = $this->collectNewWorkRowIndexes($request);
+        $editedIndexes = $this->collectChangedExistingWorkRowIndexes($request);
+
+        if ($newIndexes === [] && $editedIndexes === []) {
+            throw new RuntimeException('Edit an existing work experience entry or add a new one.');
+        }
+
+        $created = 0;
+        foreach ($editedIndexes as $key) {
+            if ($this->createAlterationExperienceRow($request, $child, $loginId, $key, true)) {
+                $created++;
+            }
+        }
+        foreach ($newIndexes as $key) {
+            if ($this->createAlterationExperienceRow($request, $child, $loginId, $key, false)) {
+                $created++;
+            }
+        }
+
+        if ($created === 0) {
+            throw new RuntimeException('Edit an existing work experience entry or add a new one.');
+        }
+    }
+
+    /** @deprecated Use storeWorkExperienceAlterationRows */
     protected function storeNewExperienceRows(Request $request, CC_CompetencyMeta $child, string $loginId): void
     {
-        $indexes = $this->collectNewWorkRowIndexes($request);
+        $this->storeWorkExperienceAlterationRows($request, $child, $loginId);
+    }
 
-        if ($indexes === []) {
-            throw new RuntimeException('Add at least one new work experience entry.');
-        }
-
-        $workIds = (array) $request->input('work_id', []);
-        $existingFlags = (array) $request->input('fs_alt_existing_work', []);
-        $employers = (array) $request->input('work_employer_name', []);
-        if ($employers === []) {
-            $employers = (array) $request->input('work_level', []);
-        }
-
+    protected function createAlterationExperienceRow(
+        Request $request,
+        CC_CompetencyMeta $child,
+        string $loginId,
+        int|string $key,
+        bool $isExistingEdit
+    ): bool {
+        $employers = $this->requestEmployers($request);
         $designations = (array) $request->input('designation', []);
+        $orgName = trim((string) ($employers[$key] ?? ''));
+        $designation = trim((string) ($designations[$key] ?? ''));
+        if ($orgName === '' || $designation === '') {
+            return false;
+        }
+
         $empTypes = (array) $request->input('work_employment_type', []);
-        $orgAddresses = (array) $request->input('work_org_address', []);
+        $orgAddresses = $this->requestOrgAddresses($request);
         $fromDates = (array) $request->input('work_date_from', []);
         $toDates = (array) $request->input('work_date_to', []);
         $durY = (array) $request->input('work_duration_y', []);
         $durM = (array) $request->input('work_duration_m', []);
         $durD = (array) $request->input('work_duration_d', []);
-        $natures = (array) $request->input('work_nature', []);
-        $voltages = (array) $request->input('work_voltage_level', []);
-        if ($voltages === []) {
-            $voltages = (array) $request->input('work_voltage', []);
-        }
+        $natures = $this->requestNatures($request);
+        $voltages = $this->requestVoltages($request);
         $kvas = (array) $request->input('work_transformer_kva', []);
+        $workIds = (array) $request->input('work_id', []);
+        $meetingDetails = (array) $request->input('work_board_meeting_details', []);
+        $meetingDates = (array) $request->input('work_board_meeting_date', []);
+        $contractorCats = (array) $request->input('work_contractor_category', []);
+        $licenceNos = (array) $request->input('work_licence_number', []);
 
-        $created = 0;
-        foreach ($indexes as $key) {
-            $orgName = trim((string) ($employers[$key] ?? ''));
-            $designation = trim((string) ($designations[$key] ?? ''));
-            if ($orgName === '' || $designation === '') {
-                continue;
-            }
+        $empCate = null;
+        $cat = trim((string) ($contractorCats[$key] ?? ''));
+        $licence = trim((string) ($licenceNos[$key] ?? ''));
+        if ($cat !== '' || $licence !== '') {
+            $empCate = $cat . ($licence !== '' ? '||' . $licence : '');
+        }
 
-            $created++;
+        $sourceExpId = $isExistingEdit ? (int) ($workIds[$key] ?? 0) : 0;
+        $boardDetails = trim((string) ($meetingDetails[$key] ?? ''));
+        if ($sourceExpId > 0) {
+            $boardDetails = $this->encodeAltSourceExpId($sourceExpId, $boardDetails);
+        }
 
-            $experience = CC_Experience::create([
-                'login_id' => $loginId,
-                'application_id' => $child->application_id,
-                'emp_type' => $empTypes[$key] ?? null,
-                'org_name' => $orgName,
-                'org_address' => $orgAddresses[$key] ?? null,
-                'designation' => $designation,
-                'from_date' => $fromDates[$key] ?? null,
-                'to_date' => $toDates[$key] ?? null,
-                'total_y' => (int) ($durY[$key] ?? 0),
-                'total_m' => (int) ($durM[$key] ?? 0),
-                'total_d' => (int) ($durD[$key] ?? 0),
-                'nature_work' => $natures[$key] ?? null,
-                'voltage_level' => $voltages[$key] ?? null,
-                'transformer_kva' => $kvas[$key] ?? null,
-            ]);
+        $master = $sourceExpId > 0 ? CC_Experience::find($sourceExpId) : null;
 
-            $supportFile = $request->file('work_document');
-            if (is_array($supportFile) && isset($supportFile[$key])) {
-                $supportFile = $supportFile[$key];
-            } elseif (!$supportFile instanceof UploadedFile) {
-                $supportFile = null;
-            }
-            if ($supportFile && $supportFile->isValid()) {
-                $path = $this->documentHandler->handleExperienceSupportUpload(
-                    $child,
-                    $experience,
-                    $supportFile
-                );
-                if ($path) {
-                    $experience->update(['support_document' => $path]);
-                }
-            }
+        $experience = CC_Experience::create([
+            'login_id' => $loginId,
+            'application_id' => $child->application_id,
+            'emp_type' => $empTypes[$key] ?? null,
+            'emp_cate' => $empCate,
+            'org_name' => $orgName,
+            'org_address' => $orgAddresses[$key] ?? null,
+            'designation' => $designation,
+            'from_date' => $fromDates[$key] ?? null,
+            'to_date' => $toDates[$key] ?? null,
+            'total_y' => (int) ($durY[$key] ?? 0),
+            'total_m' => (int) ($durM[$key] ?? 0),
+            'total_d' => (int) ($durD[$key] ?? 0),
+            'nature_work' => $natures[$key] ?? null,
+            'voltage_level' => $voltages[$key] ?? null,
+            'transformer_kva' => $kvas[$key] ?? null,
+            'board_meeting_details' => $boardDetails !== '' ? $boardDetails : null,
+            'board_meeting_date' => $meetingDates[$key] ?? null,
+            'support_document' => $master?->support_document,
+            'relieve_document' => $master?->relieve_document ?? $master?->releive_document,
+        ]);
 
-            $relieveFile = $request->file('work_relieving_letter');
-            if (is_array($relieveFile) && isset($relieveFile[$key])) {
-                $relieveFile = $relieveFile[$key];
-            } elseif (! $relieveFile instanceof UploadedFile) {
-                $relieveFile = null;
-            }
-            if ($relieveFile && $relieveFile->isValid()) {
-                $relievePath = $this->documentHandler->handleExperienceRelieveUpload(
-                    $child,
-                    $experience,
-                    $relieveFile
-                );
-                if ($relievePath) {
-                    $experience->update(['relieve_document' => $relievePath]);
-                }
+        $supportFile = $request->file('work_document');
+        if (is_array($supportFile) && isset($supportFile[$key])) {
+            $supportFile = $supportFile[$key];
+        } elseif (! $supportFile instanceof UploadedFile) {
+            $supportFile = null;
+        }
+        if ($supportFile && $supportFile->isValid()) {
+            $path = $this->documentHandler->handleExperienceSupportUpload(
+                $child,
+                $experience,
+                $supportFile
+            );
+            if ($path) {
+                $experience->update(['support_document' => $path]);
             }
         }
 
-        if ($created === 0) {
-            throw new RuntimeException('Add at least one new work experience entry.');
+        $relieveFile = $request->file('work_relieving_letter');
+        if (is_array($relieveFile) && isset($relieveFile[$key])) {
+            $relieveFile = $relieveFile[$key];
+        } elseif (! $relieveFile instanceof UploadedFile) {
+            $relieveFile = null;
         }
+        if ($relieveFile && $relieveFile->isValid()) {
+            $relievePath = $this->documentHandler->handleExperienceRelieveUpload(
+                $child,
+                $experience,
+                $relieveFile
+            );
+            if ($relievePath) {
+                $experience->update(['relieve_document' => $relievePath]);
+            }
+        }
+
+        return true;
     }
 
+    protected function encodeAltSourceExpId(int $expId, string $boardDetails = ''): string
+    {
+        $marker = self::ALT_SRC_EXP_PREFIX . $expId;
+        $boardDetails = trim($boardDetails);
+        if ($boardDetails !== '' && ! str_starts_with($boardDetails, self::ALT_SRC_EXP_PREFIX)) {
+            return $marker . "\n" . $boardDetails;
+        }
+
+        return $marker;
+    }
+
+    /**
+     * @return array{0: int|null, 1: string|null}
+     */
+    protected function decodeAltSourceExpId(?string $boardDetails): array
+    {
+        $raw = trim((string) $boardDetails);
+        if ($raw === '' || ! str_starts_with($raw, self::ALT_SRC_EXP_PREFIX)) {
+            return [null, $boardDetails];
+        }
+
+        $rest = substr($raw, strlen(self::ALT_SRC_EXP_PREFIX));
+        $parts = preg_split("/\r\n|\n|\r/", $rest, 2) ?: [];
+        $idPart = trim((string) ($parts[0] ?? ''));
+        $details = isset($parts[1]) ? trim((string) $parts[1]) : '';
+        $expId = ctype_digit($idPart) ? (int) $idPart : null;
+
+        return [$expId, $details !== '' ? $details : null];
+    }
     /**
      * Apply approved alteration changes to the parent application, registration profile,
      * and master work experience. Returns existing certificate details for PDF regeneration.
@@ -1271,10 +1527,12 @@ class FormSAlterationService
         $newRows = CC_Experience::where('application_id', $childApplicationId)->get();
 
         foreach ($newRows as $row) {
-            CC_Experience::create([
+            [$sourceExpId, $boardDetails] = $this->decodeAltSourceExpId($row->board_meeting_details ?? null);
+
+            $payload = [
                 'login_id' => $row->login_id ?: ($childRow->login_id ?? null),
-                'application_id' => $masterApplicationId,
                 'emp_type' => $row->emp_type,
+                'emp_cate' => $row->emp_cate,
                 'org_name' => $row->org_name,
                 'org_address' => $row->org_address,
                 'designation' => $row->designation,
@@ -1288,7 +1546,23 @@ class FormSAlterationService
                 'transformer_kva' => $row->transformer_kva,
                 'support_document' => $row->support_document,
                 'relieve_document' => $row->relieve_document ?? $row->releive_document ?? null,
-            ]);
+                'board_meeting_details' => $boardDetails,
+                'board_meeting_date' => $row->board_meeting_date,
+            ];
+
+            if ($sourceExpId) {
+                $masterRow = CC_Experience::where('application_id', $masterApplicationId)
+                    ->where('exp_id', $sourceExpId)
+                    ->first();
+                if ($masterRow) {
+                    $masterRow->update($payload);
+                    continue;
+                }
+            }
+
+            CC_Experience::create(array_merge($payload, [
+                'application_id' => $masterApplicationId,
+            ]));
         }
     }
 }

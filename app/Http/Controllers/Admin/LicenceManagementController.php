@@ -308,11 +308,11 @@ class LicenceManagementController extends BaseController
                 ], 422);
             }
 
-            // calc_fees(...) in PostgreSQL raises when renewal is requested without an issued licence number
+            // calc_fees(...) in PostgreSQL raises when renewal is requested without an issued Certificate No
             if ($appl_type === 'R' && $issued_licence === '') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Issued licence number is required for renewal.',
+                    'message' => 'Issued Certificate No is required for renewal.',
                 ], 422);
             }
 

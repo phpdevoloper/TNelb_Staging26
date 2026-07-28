@@ -1339,8 +1339,8 @@
                                             @endif
                                             @if ($applicant->form_name == 'S')
                                                 @php
-                                                    $prevValidTo = $applicant->previously_valid_to ?? $applicant->previously_date ?? null;
-                                                    $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($prevValidTo);
+                                                    $prevValidTo = $applicant->scc_to_date ?? null;
+                                                    $hasPreviousEaQual = !empty($applicant->previous_scc_no) || !empty($prevValidTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -1358,17 +1358,17 @@
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Certificate Number</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ $applicant->previously_number ?: '—' }}</span>
+                                                                    class="asp-detail-value">{{ $applicant->previous_scc_no ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->previously_issue_date) ? format_date($applicant->previously_issue_date) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($applicant->first_issue_date) ? format_date($applicant->first_issue_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">From date</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->previously_valid_from) ? format_date($applicant->previously_valid_from) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($applicant->scc_from_date) ? format_date($applicant->scc_from_date) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">To date</span>
@@ -1378,10 +1378,10 @@
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->previously_number }}"
-                                                                data-license_from_date="{{ $applicant->previously_valid_from }}"
+                                                                data-license_number="{{ $applicant->previous_scc_no }}"
+                                                                data-license_from_date="{{ $applicant->scc_from_date }}"
                                                                 data-license_date="{{ $prevValidTo }}"
-                                                                data-license_issue_date="{{ $applicant->previously_issue_date }}"
+                                                                data-license_issue_date="{{ $applicant->first_issue_date }}"
                                                                 data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
@@ -1502,7 +1502,7 @@
                                                     @if ($hasWiremanBoardCert)
                                                         <div class="asp-qa-detail">
                                                             <div class="asp-detail-cell">
-                                                                <span class="asp-detail-label">License Number</span>
+                                                                <span class="asp-detail-label">Certificate Number</span>
                                                                 <span
                                                                     class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
                                                             </div>
@@ -1869,23 +1869,14 @@
                                                         <span class="switch-chk-label label-right">No</span>
                                                     </div>
                                                 </div>
-
                                             </div>
-
-
-
                                         </div>
-
-
                                     </div>
                                 </div>
                             </div>
-
-
                         </div>
 
                     @endif
-
 
                     @if(($applicant->status ?? '') != 'A')
                         <div class="statbox widget box box-shadow mb-2">

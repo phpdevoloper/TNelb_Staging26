@@ -743,6 +743,34 @@
     .work-row.is-complete.work-row--expanded .work-row-done-bar {
         display: block;
     }
+    /* §7a previous: keep Submit visible while the details card is open (renew / alteration / digitization). */
+    #work-container-previous .work-row:not(.work-row--in-summary):not(.work-row--compact) .work-row-done-bar,
+    #work-container-previous .work-row.work-row--expanded .work-row-done-bar,
+    #work-container-previous .work-row.is-complete.work-row--expanded .work-row-done-bar {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 16px 14px !important;
+        padding: 12px 0 4px !important;
+        text-align: right !important;
+        border-top: 1px dashed #c8d8f5 !important;
+        position: relative !important;
+        z-index: 2 !important;
+        pointer-events: auto !important;
+    }
+    #work-container-previous .work-row:not(.work-row--in-summary):not(.work-row--compact) .work-row-done-btn,
+    #work-container-previous .work-row.work-row--expanded .work-row-done-btn,
+    #work-container-previous .work-row.is-complete.work-row--expanded .work-row-done-btn {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        color: #fff !important;
+        background: var(--wx-accent, #035ab3) !important;
+        border: none !important;
+    }
     .work-row.is-complete.work-row--expanded {
         overflow: visible;
     }

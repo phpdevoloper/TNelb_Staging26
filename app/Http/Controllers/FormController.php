@@ -1498,6 +1498,31 @@ class FormController extends BaseController
             return $cert;
         }
 
+        $meta = CC_Forms_Meta::findByApplicationId($applicationId, $formName);
+        if ($meta) {
+            try {
+                $masterId = (string) app(FormSApplicationWorkflowService::class)
+                    ->masterApplication($meta)
+                    ->application_id;
+                if ($masterId !== '' && $masterId !== $applicationId) {
+                    $cert = $this->competencyCertificateService()->asLicenseDetails($masterId, $formName);
+                    if ($cert) {
+                        return $cert;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // fall through
+            }
+
+            $parentId = trim((string) ($meta->old_application ?? ''));
+            if ($parentId !== '' && $parentId !== $applicationId) {
+                $cert = $this->competencyCertificateService()->asLicenseDetails($parentId, $formName);
+                if ($cert) {
+                    return $cert;
+                }
+            }
+        }
+
         return DB::table('tnelb_license')
             ->where('application_id', $applicationId)
             ->select('*')
@@ -1505,7 +1530,85 @@ class FormController extends BaseController
     }
 
     /**
-     * Populate issued licence number for renewal fee AJAX when cert row has no number yet.
+     * Issued competency Certificate No for renewal fee calc / meta.certificate_no.
+     * Not education certificate_no[].
+     */
+    private function resolveIssuedCertificateNoForRenewal(
+        ?Request $request = null,
+        ?CC_CompetencyMeta $form = null,
+        ?string $parentApplicationId = null,
+        ?string $formName = null
+    ): ?string {
+        $normalize = static function ($value): ?string {
+            $t = trim((string) ($value ?? ''));
+            if ($t === '' || $t === '0') {
+                return null;
+            }
+
+            return $t;
+        };
+
+        $candidates = [
+            $request?->input('license_number'),
+            $request?->input('previously_number'),
+            $form?->certificate_no,
+            $form?->wcc_no,
+            $form?->previous_scc_no,
+        ];
+        foreach ($candidates as $candidate) {
+            $issued = $normalize($candidate);
+            if ($issued !== null) {
+                return $issued;
+            }
+        }
+
+        $lookupIds = [];
+        $parentId = trim((string) ($parentApplicationId
+            ?? $form?->old_application
+            ?? $request?->input('old_application')
+            ?? ''));
+        if ($parentId !== '') {
+            $lookupIds[] = $parentId;
+        }
+        if ($form) {
+            try {
+                $masterId = (string) app(FormSApplicationWorkflowService::class)
+                    ->masterApplication($form)
+                    ->application_id;
+                if ($masterId !== '') {
+                    $lookupIds[] = $masterId;
+                }
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+
+        $resolvedFormName = $formName ?? $form?->form_name ?? $request?->input('form_name');
+        foreach (array_unique($lookupIds) as $lookupId) {
+            $parent = CC_Forms_Meta::findByApplicationId($lookupId, $resolvedFormName);
+            if ($parent) {
+                foreach ([$parent->certificate_no, $parent->wcc_no, $parent->previous_scc_no] as $candidate) {
+                    $issued = $normalize($candidate);
+                    if ($issued !== null) {
+                        return $issued;
+                    }
+                }
+            }
+
+            $cert = $this->competencyCertificateService()->asLicenseDetails($lookupId, $resolvedFormName);
+            if ($cert) {
+                $issued = $normalize($cert->license_number ?? $cert->certificate_no ?? null);
+                if ($issued !== null) {
+                    return $issued;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Populate issued Certificate No for renewal fee AJAX when cert row has no number yet.
      */
     private function enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details)
     {
@@ -1513,32 +1616,37 @@ class FormController extends BaseController
             return $license_details;
         }
         $issued = $license_details ? trim((string) ($license_details->license_number ?? $license_details->certificate_no ?? '')) : '';
-        if ($issued === '') {
-            $issued = trim((string) ($application_details->license_number ?? ''));
+        if ($issued === '' || $issued === '0') {
+            $issued = trim((string) ($application_details->license_number
+                ?? $application_details->certificate_no
+                ?? $application_details->wcc_no
+                ?? $application_details->previously_number
+                ?? ''));
         }
-        if ($issued === '') {
+        if ($issued === '' || $issued === '0') {
             $compRow = CC_Forms_Meta::findByApplicationId($appl_id);
-            if ($compRow) {
-                $issued = trim((string) ($compRow->wcc_no ?? ''));
-            }
-        }
-        if ($issued === '') {
-            $cert = $this->competencyCertificateService()->asLicenseDetails(
-                $appl_id,
+            $issued = (string) ($this->resolveIssuedCertificateNoForRenewal(
+                null,
+                $compRow,
+                trim((string) ($application_details->old_application ?? $compRow?->old_application ?? '')),
                 $application_details->form_name ?? null
-            );
-            if ($cert) {
-                return $cert;
-            }
+            ) ?? '');
         }
-        if ($issued === '') {
+        if ($issued === '' || $issued === '0') {
             return $license_details;
         }
         if (!$license_details) {
-            return (object) ['cert' => $issued];
+            return (object) [
+                'license_number' => $issued,
+                'certificate_no' => $issued,
+                'cert' => $issued,
+            ];
         }
         if (trim((string) ($license_details->license_number ?? '')) === '') {
             $license_details->license_number = $issued;
+        }
+        if (trim((string) ($license_details->certificate_no ?? '')) === '') {
+            $license_details->certificate_no = $issued;
         }
 
         return $license_details;
@@ -3468,15 +3576,34 @@ class FormController extends BaseController
                 }
             }
 
+            $oldApplicationId = $form?->old_application ?? $parentApplicationId ?? $id;
+            $issuedCertificateNo = $this->resolveIssuedCertificateNoForRenewal(
+                $request,
+                $form,
+                $oldApplicationId ? (string) $oldApplicationId : null,
+                $request->form_name ?? null
+            );
+
+            $metaOverrides = [
+                'appl_type' => $appl_type,
+                'payment_status' => $action === 'draft' ? 'N' : 'payment',
+                'old_application' => $oldApplicationId,
+            ];
+            if ($issuedCertificateNo !== null) {
+                $metaOverrides['certificate_no'] = $issuedCertificateNo;
+                $prevScc = trim((string) ($request->previously_number
+                    ?? $form?->previous_scc_no
+                    ?? ''));
+                if ($prevScc === '' || $prevScc === '0') {
+                    $metaOverrides['previous_scc_no'] = $issuedCertificateNo;
+                }
+            }
+
             $metaPayload = $this->buildCcFormsMetaPayload(
                 $request,
                 $applicationId,
                 $form,
-                [
-                    'appl_type' => $appl_type,
-                    'payment_status' => $action === 'draft' ? 'N' : 'payment',
-                    'old_application' => $form?->old_application ?? $parentApplicationId ?? $id,
-                ]
+                $metaOverrides
             );
 
             if ($form) {
@@ -3735,6 +3862,20 @@ public function update(Request $request, $id)
                 }
             }
 
+            $issuedCertificateNo = $this->resolveIssuedCertificateNoForRenewal(
+                $request,
+                $form,
+                trim((string) ($form?->old_application ?? $id ?? '')),
+                $request->form_name ?? null
+            );
+            $prevScc = trim((string) ($request->previously_number
+                ?? $request->previous_scc_no
+                ?? $form?->previous_scc_no
+                ?? ''));
+            if ($prevScc === '' || $prevScc === '0') {
+                $prevScc = $issuedCertificateNo ?? '0';
+            }
+
             $renewalPayload = array_merge([
                     'login_id'           => $loginId,
                     'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
@@ -3747,13 +3888,14 @@ public function update(Request $request, $id)
                     'd_o_b'              => $request->d_o_b ?? $request->dob ?? $form?->d_o_b,
                     'age'                => $request->age,
                     'app_status'         => 'P',
-                    'previous_scc_no'    => $request->previously_number ?? $request->previous_scc_no ?? 0,
+                    'previous_scc_no'    => $prevScc,
                     'first_issue_date'   => $request->previously_issue_date ?: null,
                     'scc_from_date'      => $request->previously_valid_from ?: null,
                     'scc_to_date'        => $request->previously_valid_to ?: ($request->previously_date ?: null),
                     'form_name'          => $request->form_name,
                     'form_id'            => $request->form_id,
                     'certificate_name'   => $request->license_name ?? $request->certificate_name ?? $form?->certificate_name,
+                    'certificate_no'     => $issuedCertificateNo ?? $form?->certificate_no,
                     'wcc_no'             => $request->competency_certificate_no ?? $request->wcc_no ?? null,
                     'wcc_to'             => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                     'wcc_issue_date'     => $request->certificate_issue_date ?: null,
