@@ -7,8 +7,6 @@ use App\Enums\DocumentRequestType;
 use App\Enums\DocumentStorageType;
 use App\Enums\DocumentVersionStatus;
 use App\Models\CC_Doc_Log;
-use App\Models\CC_Education;
-use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
 use App\Models\Competency\CC_CompetencyMeta;
@@ -50,8 +48,14 @@ class FormSDocumentVersionService
     ): CC_Doc_Log {
         $workflowPk = $this->workflowService->workflowPk($workflowApp);
         $stage = $workflowStage ?? $this->workflowService->workflowStage($workflowApp);
+        $isChildWorkflow = $this->requiresStaffApproval($stage);
 
-        if (!$this->groupExists($workflowPk, $moduleType, $moduleRefId, $documentType)) {
+        /*
+         * First upload on a NEW application still uses createInitialUpload.
+         * Renewal/alteration always create a follow-up version row (no silent seed
+         * of parent docs) — only when the applicant actually uploads a file.
+         */
+        if (! $this->groupExists($workflowPk, $moduleType, $moduleRefId, $documentType) && ! $isChildWorkflow) {
             return $this->createInitialUpload($file, $workflowApp, $moduleType, $documentType, $moduleRefId, $remarks, $stage);
         }
 
@@ -73,9 +77,21 @@ class FormSDocumentVersionService
             );
         }
 
-        $nextVersion = $this->getMaxVersionNo($workflowPk, $moduleType, $moduleRefId, $documentType) + 1;
-        $hasActive = (bool) $this->getActiveVersion($workflowPk, $moduleType, $moduleRefId, $documentType);
-        $requestType = $hasActive
+        $nextVersion = $this->getMaxVersionNoAcrossParentAndChild(
+            $workflowApp,
+            $moduleType,
+            $moduleRefId,
+            $documentType
+        ) + 1;
+
+        $hasActiveOnChild = (bool) $this->getActiveVersion($workflowPk, $moduleType, $moduleRefId, $documentType);
+        $hasMasterPath = (bool) $this->masterTableService->resolveFilePath(
+            $this->workflowService->masterApplication($workflowApp),
+            $moduleType,
+            $moduleRefId,
+            $documentType
+        );
+        $requestType = ($isChildWorkflow || $hasActiveOnChild || $hasMasterPath)
             ? $this->resolveFollowUpRequestType($stage)
             : DocumentRequestType::INITIAL;
 
@@ -154,145 +170,40 @@ class FormSDocumentVersionService
         );
     }
 
+    /**
+     * @deprecated No longer seeds cc_doc_log. Unchanged renewal docs stay on master tables only.
+     */
     public function seedDocumentReferencesFromParent(CC_CompetencyMeta $parent, CC_CompetencyMeta $child): void
     {
-        $applicationType = DocumentApplicationType::fromWorkflowStage(
-            $this->workflowService->workflowStage($child)
-        );
-        $childPk = $this->workflowService->workflowPk($child);
-
-        $parentEducations = CC_Education::where('application_id', $parent->application_id)->get();
-        foreach ($parentEducations as $parentEducation) {
-            $filePath = $parentEducation->upload_document;
-            if (!$filePath) {
-                continue;
-            }
-
-            $eduRefId = (int) $parentEducation->getKey();
-            if (CC_Doc_Log::forGroup($childPk, 'education', $eduRefId, 'certificate')->exists()) {
-                continue;
-            }
-
-            CC_Doc_Log::create([
-                'application_id' => $childPk,
-                'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
-                'module_type' => 'education',
-                'module_ref_id' => $eduRefId,
-                'document_type' => 'certificate',
-                'file_name' => basename($filePath),
-                'file_path' => $filePath,
-                'old_file_path' => $filePath,
-                'storage_type' => DocumentStorageType::PERMANENT,
-                'request_type' => DocumentRequestType::INITIAL,
-                'application_type' => $applicationType,
-                'version_no' => 1,
-                'status' => DocumentVersionStatus::APPROVED,
-                'is_active' => true,
-                'remarks' => 'Carried forward from parent application ' . $parent->application_id,
-            ]);
-        }
-
-        $parentExperiences = CC_Experience::where('application_id', $parent->application_id)->get();
-        foreach ($parentExperiences as $parentExperience) {
-            $filePath = $parentExperience->support_document;
-            if (!$filePath) {
-                continue;
-            }
-
-            $refId = (int) $parentExperience->getKey();
-            if (CC_Doc_Log::forGroup($childPk, 'experience', $refId, 'experience_doc')->exists()) {
-                continue;
-            }
-
-            CC_Doc_Log::create([
-                'application_id' => $childPk,
-                'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
-                'module_type' => 'experience',
-                'module_ref_id' => $refId,
-                'document_type' => 'experience_doc',
-                'file_name' => basename($filePath),
-                'file_path' => $filePath,
-                'old_file_path' => $filePath,
-                'storage_type' => DocumentStorageType::PERMANENT,
-                'request_type' => DocumentRequestType::INITIAL,
-                'application_type' => $applicationType,
-                'version_no' => 1,
-                'status' => DocumentVersionStatus::APPROVED,
-                'is_active' => true,
-                'remarks' => 'Carried forward from parent application ' . $parent->application_id,
-            ]);
-
-            $relievePath = $parentExperience->relieve_document;
-            if ($relievePath && ! CC_Doc_Log::forGroup($childPk, 'experience', $refId, 'relieving_doc')->exists()) {
-                CC_Doc_Log::create([
-                    'application_id' => $childPk,
-                    'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
-                    'module_type' => 'experience',
-                    'module_ref_id' => $refId,
-                    'document_type' => 'relieving_doc',
-                    'file_name' => basename($relievePath),
-                    'file_path' => $relievePath,
-                    'old_file_path' => $relievePath,
-                    'storage_type' => DocumentStorageType::PERMANENT,
-                    'request_type' => DocumentRequestType::INITIAL,
-                    'application_type' => $applicationType,
-                    'version_no' => 1,
-                    'status' => DocumentVersionStatus::APPROVED,
-                    'is_active' => true,
-                    'remarks' => 'Carried forward from parent application ' . $parent->application_id,
-                ]);
-            }
-        }
-
-        $parentProofs = CC_Proof_doc::where('application_id', $parent->application_id)->get();
-        foreach ($parentProofs as $parentProof) {
-            $filePath = $parentProof->proof_doc;
-            if (! $filePath) {
-                continue;
-            }
-
-            $config = FormSProofDocumentService::configFor((string) $parentProof->proof_name);
-            $refId = (int) $parentProof->getKey();
-            if (CC_Doc_Log::forGroup($childPk, $config['module_type'], $refId, $config['document_type'])->exists()) {
-                continue;
-            }
-
-            CC_Doc_Log::create([
-                'application_id' => $childPk,
-                'parent_application_id' => $this->workflowService->documentsLogParentApplicationId($child),
-                'module_type' => $config['module_type'],
-                'module_ref_id' => $refId,
-                'document_type' => $config['document_type'],
-                'file_name' => basename($filePath),
-                'file_path' => $filePath,
-                'old_file_path' => $filePath,
-                'storage_type' => DocumentStorageType::PERMANENT,
-                'request_type' => DocumentRequestType::INITIAL,
-                'application_type' => $applicationType,
-                'version_no' => 1,
-                'status' => DocumentVersionStatus::APPROVED,
-                'is_active' => true,
-                'remarks' => 'Carried forward from parent application ' . $parent->application_id,
-            ]);
-        }
+        // Intentionally empty — do not insert carried-forward rows into cc_doc_log.
     }
 
+    /**
+     * @deprecated No longer seeds cc_doc_log on renewal/alteration open.
+     */
     public function ensureCarriedForwardDocuments(CC_CompetencyMeta $workflowApp): int
     {
-        if (!$this->workflowService->isChildWorkflow($workflowApp)) {
-            return 0;
+        return 0;
+    }
+
+    /**
+     * Version numbers continue across parent (NEW) + child (RENEWAL/ALTERATION) groups.
+     */
+    protected function getMaxVersionNoAcrossParentAndChild(
+        CC_CompetencyMeta $workflowApp,
+        string $moduleType,
+        int $moduleRefId,
+        string $documentType
+    ): int {
+        $childPk = $this->workflowService->workflowPk($workflowApp);
+        $max = $this->getMaxVersionNo($childPk, $moduleType, $moduleRefId, $documentType);
+
+        $parentPk = $this->workflowService->parentApplicationPk($workflowApp);
+        if ($parentPk) {
+            $max = max($max, $this->getMaxVersionNo($parentPk, $moduleType, $moduleRefId, $documentType));
         }
 
-        $parent = $this->workflowService->masterApplication($workflowApp);
-        $workflowPk = $this->workflowService->workflowPk($workflowApp);
-        if ($this->workflowService->workflowPk($parent) === $workflowPk) {
-            return 0;
-        }
-
-        $before = CC_Doc_Log::where('application_id', $workflowPk)->count();
-        $this->seedDocumentReferencesFromParent($parent, $workflowApp);
-
-        return CC_Doc_Log::where('application_id', $workflowPk)->count() - $before;
+        return $max;
     }
 
     public function storeAlterationProofVersion(

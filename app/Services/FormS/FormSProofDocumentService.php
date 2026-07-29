@@ -465,14 +465,16 @@ class FormSProofDocumentService
             $path = $this->storeLegacyProofFile($proofName, $file);
         }
 
-        if ($path) {
+        // Only update master proof_doc when we have an approved path.
+        // Pending renewal/alteration replacements stay in cc_doc_log until approved.
+        if ($path && trim((string) $path) !== trim((string) ($proof->proof_doc ?? ''))) {
             $proof->update([
                 'proof_doc' => $path,
                 'updated_at' => now()->toDateString(),
             ]);
         }
 
-        return $path;
+        return $path ?? $proof->fresh()->proof_doc;
     }
 
     public function saveProofUploadWithoutWorkflow(

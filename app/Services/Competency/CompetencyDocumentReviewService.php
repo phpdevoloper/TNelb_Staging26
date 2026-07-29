@@ -44,10 +44,6 @@ class CompetencyDocumentReviewService
             $this->workflowService->workflowPk($master),
         ])));
 
-        if ($this->workflowService->isChildWorkflow($application)) {
-            $this->documentVersionService->ensureCarriedForwardDocuments($application);
-        }
-
         $educationalQualifications = CC_Education::where('application_id', $masterId)
             ->orderByDesc('year_of_passing')
             ->get()

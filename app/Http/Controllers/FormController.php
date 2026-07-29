@@ -218,12 +218,12 @@ class FormController extends BaseController
             'previous_scc_no'     => $request->previously_number ?? $existingForm?->previous_scc_no ?? 0,
             'first_issue_date'    => $request->previously_issue_date ?: null,
             'scc_from_date'       => $request->previously_valid_from ?: null,
-            'scc_to_date'         => $request->previously_valid_to ?: ($request->previously_date ?: null),
+            'scc_to_date'         => $request->previously_valid_to,
             'form_name'           => $request->form_name,
             'form_id'             => $request->form_id,
             'certificate_name'    => $request->license_name ?? $existingForm?->certificate_name,
             'wcc_no'              => $request->competency_certificate_no ?? $existingForm?->wcc_no,
-            'wcc_to'              => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
+            'wcc_to'              => $request->certificate_valid_to,
             'wcc_issue_date'      => $request->certificate_issue_date ?: null,
             'wcc_from'            => $request->certificate_valid_from ?: null,
             'appl_type'           => $request->appl_type ?? $existingForm?->appl_type,
@@ -358,6 +358,23 @@ class FormController extends BaseController
         }
 
         $this->formSDocumentHandler()->seedCarriedForwardIfRenewal($workflowForm);
+    }
+
+    /**
+     * Fresh drafts may prune experience rows removed from the form.
+     * Renewal/alteration must never delete master (parent) experience rows that
+     * were not posted (UI may show only a subset / max 3, etc.).
+     */
+    private function shouldPruneUnclaimedWorkExperience(
+        ?CC_CompetencyMeta $workflowForm,
+        string $workflowApplicationId,
+        string $masterApplicationId
+    ): bool {
+        if ($workflowForm && app(FormSApplicationWorkflowService::class)->isChildWorkflow($workflowForm)) {
+            return false;
+        }
+
+        return (string) $workflowApplicationId === (string) $masterApplicationId;
     }
 
     private function formErrorResponse(\Throwable $e, string $message = 'Something went wrong. Please try again!', int $status = 500)
@@ -796,7 +813,9 @@ class FormController extends BaseController
                 $experience,
                 $documents['pending_support_upload']
             );
-            if ($path !== null) {
+            if ($path !== null
+                && trim((string) $path) !== trim((string) ($experience->support_document ?? ''))
+            ) {
                 $experience->update(['support_document' => $path]);
             }
         }
@@ -809,7 +828,9 @@ class FormController extends BaseController
                 $experience,
                 $documents['pending_relieve_upload']
             );
-            if ($path !== null) {
+            if ($path !== null
+                && trim((string) $path) !== trim((string) ($experience->relieve_document ?? $experience->releive_document ?? ''))
+            ) {
                 $experience->update(['releive_document' => $path]);
             }
         }
@@ -2444,7 +2465,10 @@ class FormController extends BaseController
                             $education,
                             $pendingEduFile
                         );
-                        if ($approvedPath !== null) {
+                        // Pending renewal replacements must not overwrite the NEW master path.
+                        if ($approvedPath !== null
+                            && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
+                        ) {
                             $education->update(['upload_document' => $approvedPath]);
                         }
                     }
@@ -2832,7 +2856,9 @@ class FormController extends BaseController
                             $education,
                             $pendingEduFile
                         );
-                        if ($approvedPath !== null) {
+                        if ($approvedPath !== null
+                            && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
+                        ) {
                             $education->update(['upload_document' => $approvedPath]);
                         }
                     }
@@ -2862,7 +2888,13 @@ class FormController extends BaseController
                     );
                 }
 
-                if (! empty($claimedWorkIds)) {
+                if (! empty($claimedWorkIds)
+                    && $this->shouldPruneUnclaimedWorkExperience(
+                        $existingForm,
+                        (string) $applicationId,
+                        (string) $masterApplicationId
+                    )
+                ) {
                     $this->resolveExperienceModelClass($existingForm, $request->form_name)::where('application_id', $masterApplicationId)
                         ->whereNotIn('exp_id', $claimedWorkIds)
                         ->delete();
@@ -3317,7 +3349,9 @@ class FormController extends BaseController
                                 $education->fresh(),
                                 $pendingEduFile
                             );
-                            if ($approvedPath !== null) {
+                            if ($approvedPath !== null
+                                && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
+                            ) {
                                 $education->update(['upload_document' => $approvedPath]);
                             }
                         }
@@ -3354,7 +3388,9 @@ class FormController extends BaseController
                                 $education,
                                 $pendingEduFile
                             );
-                            if ($approvedPath !== null) {
+                            if ($approvedPath !== null
+                                && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
+                            ) {
                                 $education->update(['upload_document' => $approvedPath]);
                             }
                         }
@@ -3384,7 +3420,13 @@ class FormController extends BaseController
                     );
                 }
 
-                if (! empty($claimedWorkIds)) {
+                if (! empty($claimedWorkIds)
+                    && $this->shouldPruneUnclaimedWorkExperience(
+                        $form,
+                        (string) $applicationId,
+                        (string) $masterApplicationId
+                    )
+                ) {
                     $this->resolveExperienceModelClass($form, $request->form_name)::where('application_id', $masterApplicationId)
                         ->whereNotIn('exp_id', $claimedWorkIds)
                         ->delete();
@@ -3591,12 +3633,6 @@ class FormController extends BaseController
             ];
             if ($issuedCertificateNo !== null) {
                 $metaOverrides['certificate_no'] = $issuedCertificateNo;
-                $prevScc = trim((string) ($request->previously_number
-                    ?? $form?->previous_scc_no
-                    ?? ''));
-                if ($prevScc === '' || $prevScc === '0') {
-                    $metaOverrides['previous_scc_no'] = $issuedCertificateNo;
-                }
             }
 
             $metaPayload = $this->buildCcFormsMetaPayload(
@@ -3681,7 +3717,10 @@ class FormController extends BaseController
                             $education,
                             $pendingEduFile
                         );
-                        if ($approvedPath !== null) {
+                        // Pending renewal replacements must not overwrite the NEW master path.
+                        if ($approvedPath !== null
+                            && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
+                        ) {
                             $education->update(['upload_document' => $approvedPath]);
                         }
                     }
@@ -3872,8 +3911,8 @@ public function update(Request $request, $id)
                 ?? $request->previous_scc_no
                 ?? $form?->previous_scc_no
                 ?? ''));
-            if ($prevScc === '' || $prevScc === '0') {
-                $prevScc = $issuedCertificateNo ?? '0';
+            if ($prevScc === '') {
+                $prevScc = '0';
             }
 
             $renewalPayload = array_merge([
@@ -4007,7 +4046,9 @@ public function update(Request $request, $id)
                             $education,
                             $pendingEduFile
                         );
-                        if ($approvedPath !== null) {
+                        if ($approvedPath !== null
+                            && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
+                        ) {
                             $education->update(['upload_document' => $approvedPath]);
                         }
                     }

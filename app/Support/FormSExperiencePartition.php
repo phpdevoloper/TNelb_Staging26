@@ -5,7 +5,8 @@ namespace App\Support;
 use Illuminate\Support\Collection;
 
 /**
- * Splits Form S work experience rows into §7a (previous) and §7b (current / board member).
+ * Splits Form S work experience rows into §7a (previous experience rows) and §7b
+ * (single board-member form — not a multi-row experience type).
  */
 class FormSExperiencePartition
 {
@@ -48,41 +49,23 @@ class FormSExperiencePartition
     }
 
     /**
+     * §7a = all normal experience rows (including open-ended / Till date).
+     * §7b = at most one board-member row for the one-time board form.
+     *
      * @param  iterable<int, object>  $expDetails
      * @return array{previous: Collection, current: Collection, is7bBoardMemberPrefill: bool}
      */
     public static function partition(iterable $expDetails): array
     {
-        $previous = collect();
-        $current = collect();
-
-        foreach ($expDetails as $expRow) {
-            $empType = self::mapEmpType((string) ($expRow->emp_type ?? ''));
-
-            if ($empType === self::BOARD_MEMBER_TYPE) {
-                $current->push($expRow);
-                continue;
-            }
-
-            $fromDate = $expRow->from_date ?? null;
-            $toDate = $expRow->to_date ?? null;
-            $isOpenEnded = $fromDate && ($toDate === null || $toDate === '');
-
-            if ($isOpenEnded) {
-                $current->push($expRow);
-            } else {
-                $previous->push($expRow);
-            }
-        }
-
-        $is7bBoardMember = $current->contains(
-            fn ($row) => self::mapEmpType((string) ($row->emp_type ?? '')) === self::BOARD_MEMBER_TYPE
-        );
+        $split = self::splitBoardMember($expDetails);
+        $previous = $split['standard'];
+        // One-time form: keep only the first board-member record if several exist.
+        $current = $split['boardMember']->take(1)->values();
 
         return [
             'previous' => $previous,
             'current' => $current,
-            'is7bBoardMemberPrefill' => $is7bBoardMember,
+            'is7bBoardMemberPrefill' => $current->isNotEmpty(),
         ];
     }
 }

@@ -1,9 +1,14 @@
-{{-- Form S §7b board-member work container (separate from §7a previous-experience section). --}}
+{{-- Form S §7b: one-time board-member form (never a multi-row experience list). --}}
 @php
-    $exp_details = $exp_details ?? collect();
+    use App\Support\FormSExperiencePartition;
+
+    $exp_details = collect($exp_details ?? []);
     $hideUploadWhenDocExists = ! empty($hideUploadWhenDocExists);
     $isAlterationMode = ! empty($isAlterationMode);
     $lockExistingRows = ! empty($lockExistingRows) || $isAlterationMode;
+
+    // Prefer an explicit board-member row; never render more than one §7b form.
+    $boardRow = $exp_details->first(fn ($row) => FormSExperiencePartition::isBoardMemberRow($row));
 @endphp
 <div class="work-exp-wrap" data-work-part="current">
     <div class="work-rows js-work-container"
@@ -11,22 +16,11 @@
         data-work-part="current"
         data-min-rows="1"
         data-max-rows="1">
-        @if ($exp_details->isNotEmpty())
-            @foreach ($exp_details as $index => $expRow)
-                @include('user_login.partials.form-s-work-exp-7b-row', [
-                    'expRow' => $expRow,
-                    'rowIndex' => $index,
-                    'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
-                    'alterationExistingRow' => $lockExistingRows && $expRow,
-                ])
-            @endforeach
-        @else
-            @include('user_login.partials.form-s-work-exp-7b-row', [
-                'expRow' => null,
-                'rowIndex' => 0,
-                'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
-                'alterationExistingRow' => false,
-            ])
-        @endif
+        @include('user_login.partials.form-s-work-exp-7b-row', [
+            'expRow' => $boardRow,
+            'rowIndex' => 0,
+            'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
+            'alterationExistingRow' => $lockExistingRows && $boardRow,
+        ])
     </div>
 </div>

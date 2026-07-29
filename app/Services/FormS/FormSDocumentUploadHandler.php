@@ -167,11 +167,9 @@ class FormSDocumentUploadHandler
 
     public function seedCarriedForwardIfRenewal(CC_CompetencyMeta $workflowApp): void
     {
-        if (!$this->workflowService->isChildWorkflow($workflowApp)) {
-            return;
-        }
-
-        $this->versionService->ensureCarriedForwardDocuments($workflowApp);
+        // Intentionally no-op: cc_doc_log rows are created only when the applicant
+        // uploads a replacement document on renewal/alteration. Unchanged docs keep
+        // the parent NEW path on master tables (education/experience/proof).
     }
 
     /**
@@ -201,12 +199,9 @@ class FormSDocumentUploadHandler
 
     protected function resolveProofPathAfterUpload(CC_Doc_Log $log, CC_Proof_doc $proof): ?string
     {
+        // Pending renewal/alteration replacements must NOT overwrite master proof_doc.
+        // Keep showing the already-approved (usually NEW) document until staff approve.
         if ($log->isPending()) {
-            $pendingPath = trim((string) ($log->file_path ?? ''));
-            if ($pendingPath !== '') {
-                return $pendingPath;
-            }
-
             $proof->refresh();
 
             return $proof->proof_doc ?: null;
@@ -224,16 +219,17 @@ class FormSDocumentUploadHandler
         ?CC_Experience $experience = null,
         string $experienceField = 'support_document'
     ): ?string {
+        // Pending renewal/alteration replacements stay in cc_doc_log only.
+        // Master education/experience columns keep the previous approved path.
         if ($log->isPending()) {
-            $pendingPath = trim((string) ($log->file_path ?? ''));
-            if ($pendingPath !== '') {
-                return $pendingPath;
-            }
-
             if ($education) {
+                $education->refresh();
+
                 return $education->upload_document;
             }
             if ($experience) {
+                $experience->refresh();
+
                 return $experienceField === 'relieve_document'
                     ? $experience->relieve_document
                     : $experience->support_document;
@@ -268,11 +264,11 @@ class FormSDocumentUploadHandler
         ?string $replacementReason,
         string $initialRemarks
     ): CC_Doc_Log {
-        $workflowPk = $this->workflowService->workflowPk($workflowApp);
         $stage = $this->workflowService->workflowStage($workflowApp);
-        $groupExists = CC_Doc_Log::forGroup($workflowPk, $moduleType, $moduleRefId, $documentType)->exists();
 
-        if ($groupExists) {
+        // Renewal/alteration: always version via uploadNewVersion (creates cc_doc_log only
+        // because a real file was uploaded). New applications still use initial upload.
+        if ($this->workflowService->isChildWorkflow($workflowApp)) {
             $remarks = $this->resolveReplacementRemarks($stage, $replacementReason, $initialRemarks);
 
             return $this->versionService->uploadNewVersion(
@@ -282,6 +278,21 @@ class FormSDocumentUploadHandler
                 $documentType,
                 $moduleRefId,
                 $remarks,
+                $stage
+            );
+        }
+
+        $workflowPk = $this->workflowService->workflowPk($workflowApp);
+        $groupExists = CC_Doc_Log::forGroup($workflowPk, $moduleType, $moduleRefId, $documentType)->exists();
+
+        if ($groupExists) {
+            return $this->versionService->uploadNewVersion(
+                $file,
+                $workflowApp,
+                $moduleType,
+                $documentType,
+                $moduleRefId,
+                $this->resolveReplacementRemarks($stage, $replacementReason, $initialRemarks),
                 $stage
             );
         }
