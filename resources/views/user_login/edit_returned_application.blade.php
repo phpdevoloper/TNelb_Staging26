@@ -1353,9 +1353,6 @@
                                                         </tr>
                                                     </thead>
                                                     <tbody id="education-container">
-                                                        {{-- @php
-                                                            var_dump($edu_details->isEmpty());die;
-                                                        @endphp --}}
                                                         @if ($edu_details->isNotEmpty())
                                                         @foreach ($edu_details as $edu_details)
                                                         <tr class="education-fields text-center" data-edu-index="{{ $loop->index }}">
@@ -1650,7 +1647,12 @@
                                                                 @php
                                                                     $wFromDate = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
                                                                     $wToDate   = $expRow->to_date   ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d')   : '';
-                                                                    $wTotalExp = $expRow->total_exp ?? $expRow->experience ?? '';
+                                                                    $wTotalExp = legacy_total_exp_from_duration(
+                                                                        $expRow->total_exp ?? $expRow->experience ?? null,
+                                                                        $expRow->total_y ?? null,
+                                                                        $expRow->total_m ?? null,
+                                                                        $expRow->total_d ?? null
+                                                                    );
                                                                 @endphp
                                                                 <tr class="work-fields">
                                                                     <td class="work-serial text-center">{{ $loop->iteration }}</td>
@@ -1685,10 +1687,18 @@
                                                                     <input type="hidden" name="removed_document_work[]" value="0">
                                                                 </tr>
                                                                 @else
+                                                                @php
+                                                                    $otherTotalExp = legacy_total_exp_from_duration(
+                                                                        $expRow->experience ?? $expRow->total_exp ?? null,
+                                                                        $expRow->total_y ?? null,
+                                                                        $expRow->total_m ?? null,
+                                                                        $expRow->total_d ?? null
+                                                                    );
+                                                                @endphp
                                                                 <tr class="work-fields text-center">
                                                                     <td>{{ $loop->iteration }}</td>
                                                                     <td><input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $expRow->company_name ?? '' }}"></td>
-                                                                    <td><input autocomplete="off" class="form-control" name="experience[]" type="number" value="{{ $expRow->experience ?? '' }}"></td>
+                                                                    <td><input autocomplete="off" class="form-control" name="experience[]" type="number" value="{{ $otherTotalExp }}"></td>
                                                                     <td><input autocomplete="off" class="form-control" name="designation[]" type="text" value="{{ $expRow->designation ?? '' }}"></td>
                                                                     <td>
                                                                         <button type="button" class="btn btn-danger remove-work remove_exp" data-exp_id="{{ $expRow->id }}" data-url="{{ route('delete_experience') }}">
@@ -2675,7 +2685,12 @@
                 }
             });
 
-            $(document).ready(function() { refreshWorkSerials(); });
+            $(document).ready(function() {
+                refreshWorkSerials();
+                $('#work-container .work-fields').each(function() {
+                    updateTotalYearsW($(this));
+                });
+            });
             return;
         }
 
@@ -2695,6 +2710,15 @@
         function syncLegacyHidden($tr) {
             var emp = ($tr.find('.work-employer-input').val() || '').trim();
             var tot = ($tr.find('.work-experience-total-hidden').val() || '').trim();
+            if (!tot) {
+                var y = parseInt($tr.find('.work-duration-y').val(), 10) || 0;
+                var m = parseInt($tr.find('.work-duration-m').val(), 10) || 0;
+                var d = parseInt($tr.find('.work-duration-d').val(), 10) || 0;
+                if (y || m || d) {
+                    tot = (Math.round((y + (m / 12) + (d / 365.25)) * 10) / 10).toFixed(1);
+                    $tr.find('.work-experience-total-hidden').val(tot);
+                }
+            }
             $tr.find('.work-level-sync').val(emp);
             $tr.find('.experience-sync').val(tot);
         }
@@ -3061,16 +3085,25 @@
             }
 
             var $emp = $row.find('.work-employment-type');
+            // When Board = No, disable ALL parallel [] fields so empty experience[n] is not posted.
+            var $parallel = $row.find('input[name$="[]"], select[name$="[]"], textarea[name$="[]"]');
             if (isYes) {
-                // Sync field must participate when board details are shown.
+                $parallel.prop('disabled', false);
                 $emp.prop('disabled', false).prop('required', true);
                 if ($emp.val() !== BOARD_MEMBER_TYPE) {
                     $emp.val(BOARD_MEMBER_TYPE).trigger('change');
                 }
+                // §7b has no date duration; keep a numeric legacy total for draft_update.
+                var $tot = $row.find('.work-experience-total-hidden, .experience-sync');
+                $tot.each(function () {
+                    if (!String(this.value || '').trim()) {
+                        this.value = '0';
+                    }
+                });
                 $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
             } else {
-                // d-none does not remove HTML5 required — disable so validators ignore it.
                 $emp.prop('required', false).prop('disabled', true).val('');
+                $parallel.prop('disabled', true);
             }
 
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
@@ -3388,6 +3421,35 @@
             }
             return;
         }
+
+        // Ensure legacy experience[] is filled from dates / Y·M·D before draft_update validation.
+        $form.find('.work-fields').each(function () {
+            var $row = $(this);
+            if (typeof window.wxRecalcWorkDuration === 'function') {
+                window.wxRecalcWorkDuration($row);
+            }
+            var $ex = $row.find('.experience-sync, input[name="experience[]"]');
+            if (!$ex.length) return;
+            var current = String($ex.first().val() || '').trim();
+            if (current !== '') return;
+
+            var tot = String($row.find('.work-experience-total-hidden').val() || '').trim();
+            if (!tot) {
+                var y = parseInt($row.find('.work-duration-y').val(), 10) || 0;
+                var m = parseInt($row.find('.work-duration-m').val(), 10) || 0;
+                var d = parseInt($row.find('.work-duration-d').val(), 10) || 0;
+                if (y || m || d) {
+                    tot = (Math.round((y + (m / 12) + (d / 365.25)) * 10) / 10).toFixed(1);
+                }
+            }
+            if (!tot && String($row.find('input[name="work_exp_section[]"]').val() || '') === 'current') {
+                tot = '0';
+            }
+            if (tot) {
+                $row.find('.work-experience-total-hidden').val(tot);
+                $ex.val(tot);
+            }
+        });
 
         var formData = new FormData(form);
         var originalHtml = btn.html();

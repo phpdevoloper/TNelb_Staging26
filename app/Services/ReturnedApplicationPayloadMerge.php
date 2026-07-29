@@ -100,7 +100,16 @@ final class ReturnedApplicationPayloadMerge
                 $intimation[] = $row->intimation_date ? Carbon::parse($row->intimation_date)->format('Y-m-d') : '';
                 $from[] = $row->from_date ? Carbon::parse($row->from_date)->format('Y-m-d') : '';
                 $to[] = $row->to_date ? Carbon::parse($row->to_date)->format('Y-m-d') : '';
-                $te = $row->total_exp ?? $row->experience ?? '';
+                $te = legacy_total_exp_from_duration(
+                    $row->total_exp ?? $row->experience ?? null,
+                    $row->total_y ?? null,
+                    $row->total_m ?? null,
+                    $row->total_d ?? null
+                );
+                // Form S §7b board rows often have no dates/YMD; keep a numeric placeholder for experience[].
+                if ($te === '' && strtolower((string) ($row->emp_type ?? '')) === 'board_member_tnelb') {
+                    $te = '0';
+                }
                 $total[] = $te;
                 $designation[] = $row->designation ?? '';
                 $nature[] = $row->nature_work ?? '';
@@ -168,7 +177,12 @@ final class ReturnedApplicationPayloadMerge
                 $wl[] = $row->org_name ?? $row->company_name ?? '';
                 $from[] = $row->from_date ? Carbon::parse($row->from_date)->format('Y-m-d') : '';
                 $to[] = $row->to_date ? Carbon::parse($row->to_date)->format('Y-m-d') : '';
-                $te = $row->total_exp ?? $row->experience ?? '';
+                $te = legacy_total_exp_from_duration(
+                    $row->total_exp ?? $row->experience ?? null,
+                    $row->total_y ?? null,
+                    $row->total_m ?? null,
+                    $row->total_d ?? null
+                );
                 $total[] = $te;
                 $exp[] = $te;
                 $designation[] = $row->designation ?? '';
@@ -202,7 +216,12 @@ final class ReturnedApplicationPayloadMerge
 
         foreach ($rows as $row) {
             $wl[] = $row->org_name ?? $row->company_name ?? '';
-            $exp[] = $row->experience ?? $row->total_exp ?? '';
+            $exp[] = legacy_total_exp_from_duration(
+                $row->experience ?? $row->total_exp ?? null,
+                $row->total_y ?? null,
+                $row->total_m ?? null,
+                $row->total_d ?? null
+            );
             $designation[] = $row->designation ?? '';
             $workId[] = $row->id;
             $existingW[] = $row->support_document ?? $row->upload_document ?? '';

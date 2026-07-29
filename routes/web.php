@@ -359,20 +359,12 @@ Route::get('/expiry_date_change', [FormAController::class, 'expiry_date_change']
 // Route::get('/get-license-expiry/{license_number}', [FormAController::class, 'getLicenseExpiry']);
 
 Route::get('/get-license-expiry/{license_number}', function ($license_number) {
-    $license = DB::table('tnelb_license')
-        ->where('license_number', $license_number)
-        ->select('expires_at')
+    $license = DB::table('cc_forms_cert') ->where('certificate_no', $license_number)
+        ->select('valid_to')
         ->first();
 
-    if (! $license) {
-        $license = DB::table('tnelb_renewal_license')
-            ->where('license_number', $license_number)
-            ->select('expires_at')
-            ->first();
-    }
-
     return response()->json([
-        'expires_at' => optional($license)->expires_at,
+        'valid_to' => optional($license)->valid_to,
     ]);
 });
 
@@ -384,22 +376,13 @@ Route::post('/update-license-expiry', function (Request $request) {
     ]);
 
     // Try updating original license
-    $updated = DB::table('tnelb_license')
-        ->where('license_number', $request->license_number)
+    $updated = DB::table('cc_forms_cert')
+        ->where('certificate_no', $request->license_number)
         ->update([
-            'expires_at' => $request->expires_at,
+            'valid_to' => $request->expires_at,
             'updated_at' => now()
         ]);
 
-    // If not found, try updating renewal table
-    if (! $updated) {
-        $updated = DB::table('tnelb_renewal_license')
-            ->where('license_number', $request->license_number)
-            ->update([
-                'expires_at' => $request->expires_at,
-                'updated_at' => now()
-            ]);
-    }
 
     if ($updated) {
         return response()->json(['status' => 'success', 'message' => 'Expiry date updated successfully']);
@@ -408,47 +391,6 @@ Route::post('/update-license-expiry', function (Request $request) {
     return response()->json(['status' => 'error', 'message' => 'License not found'], 404);
 })->name('update-license-expiry');
 
-
-// Route::get('/get-license-expiry/{license_number}', function ($license_number) {
-//   $license = DB::table('tnelb_license')
-//     ->select('license_number', 'expires_at')
-//     ->where('license_number', $license_number)
-//     ->unionAll(
-//         DB::table('tnelb_renewal_license')
-//             ->select('license_number', 'expires_at')
-//             ->where('license_number', $license_number)
-//     )
-//     // ->orderBy('expires_at', 'desc')
-//     ->first();
-
-// // dd($license);
-//     if ($license) {
-//         return response()->json(['expires_at' => $license->expires_at]);
-//     }
-//     return response()->json(['expires_at' => null], 404);
-// });
-
-
-// -----------------
-
-// Route::post('/update-license-expiry', function (Illuminate\Http\Request $request) {
-//     $request->validate([
-//         'license_number' => 'required|string',
-//         'expires_at'     => 'required|date',
-//     ]);
-
-//     $updated = DB::table('tnelb_license')
-//         ->where('license_number', $request->license_number)
-//         ->update([
-//             'expires_at' => $request->expires_at,
-//             'updated_at'  => now()
-//         ]);
-
-//     if ($updated) {
-//         return response()->json(['status' => 'success', 'message' => 'Expiry date updated successfully']);
-//     }
-//     return response()->json(['status' => 'error', 'message' => 'License not found'], 404);
-// })->name('update-license-expiry');
 
 
 Route::post('/updateCurrentDate', function (Illuminate\Http\Request $request) {

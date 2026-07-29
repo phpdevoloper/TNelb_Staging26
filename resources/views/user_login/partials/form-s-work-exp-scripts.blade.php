@@ -353,6 +353,16 @@
             function syncLegacyHidden($tr) {
                 var emp = ($tr.find('.work-employer-input').val() || '').trim();
                 var tot = ($tr.find('.work-experience-total-hidden').val() || '').trim();
+                /* Prefer calculated decimal total; fall back to stored Y/M/D when total_exp was never saved. */
+                if (!tot) {
+                    var y = parseInt($tr.find('.work-duration-y').val(), 10) || 0;
+                    var m = parseInt($tr.find('.work-duration-m').val(), 10) || 0;
+                    var d = parseInt($tr.find('.work-duration-d').val(), 10) || 0;
+                    if (y || m || d) {
+                        tot = (Math.round((y + (m / 12) + (d / 365.25)) * 10) / 10).toFixed(1);
+                        $tr.find('.work-experience-total-hidden').val(tot);
+                    }
+                }
                 $tr.find('.work-level-sync').val(emp);
                 $tr.find('.experience-sync').val(tot);
             }

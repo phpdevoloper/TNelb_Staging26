@@ -155,6 +155,36 @@ if (!function_exists('format_total_exp_years')) {
     }
 }
 
+if (! function_exists('legacy_total_exp_from_duration')) {
+    /**
+     * Legacy decimal-years value for experience[] / total_exp when only Y/M/D (or nothing) is stored.
+     * Prefers an existing total_exp; otherwise builds from total_y / total_m / total_d.
+     *
+     * @param  mixed  $totalExp
+     * @param  mixed  $years
+     * @param  mixed  $months
+     * @param  mixed  $days
+     */
+    function legacy_total_exp_from_duration($totalExp, $years = null, $months = null, $days = null): string
+    {
+        $formatted = format_total_exp_years($totalExp);
+        if ($formatted !== null) {
+            return $formatted;
+        }
+
+        $y = (int) ($years ?? 0);
+        $m = (int) ($months ?? 0);
+        $d = (int) ($days ?? 0);
+        if ($y === 0 && $m === 0 && $d === 0) {
+            return '';
+        }
+
+        $yearsDec = $y + ($m / 12) + ($d / 365.25);
+
+        return number_format(round($yearsDec * 10) / 10, 1, '.', '');
+    }
+}
+
 
 if (!function_exists('db_now')) {
     function db_now() {

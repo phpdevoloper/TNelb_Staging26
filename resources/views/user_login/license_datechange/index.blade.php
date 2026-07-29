@@ -66,7 +66,7 @@
         margin-bottom: 8px;
     }
 
-    .swal2-popup li ul{
+    .swal2-popup li ul {
         margin-left: 15px;
     }
 </style>
@@ -74,7 +74,7 @@
 <section class="">
     <div class="container">
         <ul id="breadcrumb">
-            <li><a href="{{ route('dashboard')}}"><span class="fa fa-home"> </span> Dashboard</a></li>
+            <li><a href="{{ route('dashboard') }}"><span class="fa fa-home"> </span> Dashboard</a></li>
             <li><a href="#"><span class=" fa fa-info-circle"> </span> License Date Change</a></li>
 
         </ul>
@@ -92,40 +92,37 @@
                                     <h5 class="card-title_apply text-black text-left"> License Date Change </h5>
                                 </div>
 
-                              
+
 
                             </div>
 
                         </div>
                         <div class="apply-card-body">
 
-                              <form id="license_date_change" enctype="multipart/form-data">
-            @csrf
-            <div class="row align-items-center">
-                <div class="col-md-6 mb-3">
-                    <label for="license_number" class="form-label">Certificate No</label>
-                    <select class="form-control" name="license_number" id="license_number">
-                        <option value="0">Select Certificate No</option>
-                        @foreach($licensedates as $license)
-                        @php
-                            // var_dump($license);
-                            // die();
-                        @endphp
-                            <option value="{{ $license->certificate_no }}">{{ $license->certificate_no }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                            <form id="license_date_change" enctype="multipart/form-data">
+                                @csrf
+                                <div class="row align-items-center">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="license_number" class="form-label">Certificate No</label>
+                                        <select class="form-control" name="license_number" id="license_number">
+                                            <option value="0">Select Certificate No</option>
+                                            @foreach ($licensedates as $license)
+                                                <option value="{{ $license->certificate_no }}">
+                                                    {{ $license->certificate_no }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
 
-                <div class="col-md-6 mb-3">
-                    <label for="expiry" class="form-label">Valid To Date</label>
-                    <input type="date" class="form-control" name="expires_at" id="expiry">
-                </div>
-            </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="expiry" class="form-label">Valid To Date</label>
+                                        <input type="date" class="form-control" name="expires_at" id="expiry">
+                                    </div>
+                                </div>
 
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success px-4 py-2">Save Valid To Date</button>
-            </div>
-        </form>
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-success px-4 py-2">Save Valid To Date</button>
+                                </div>
+                            </form>
 
                         </div>
                     </div>
@@ -133,44 +130,45 @@
 
                 <div class="col-lg-12 col-12">
                     <div class="apply-card apply-card-info" data-select2-id="14">
-                       <div class="apply-card-header" style="background-color: #70c6ef  !important;">
-                           <div class="row">
-                               <div class="col-6 col-lg-8">
-                                   <h5 class="card-title_apply text-black text-left"> Current Date Change </h5>
+                        <div class="apply-card-header" style="background-color: #70c6ef  !important;">
+                            <div class="row">
+                                <div class="col-6 col-lg-8">
+                                    <h5 class="card-title_apply text-black text-left"> Current Date Change </h5>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="apply-card-body">
-                      <form id="current_date_change" enctype="multipart/form-data">
-                         <div class="row">
-                            <div class="col-12 col-md-12">
-                               <div class="form-group">
-                                  <div class="row align-items-center">
-                                     <div class="col-12 col-md-6">
+                        <form id="current_date_change" enctype="multipart/form-data">
+                            <div class="row">
+                                <div class="col-12 col-md-12">
+                                    <div class="form-group">
                                         <div class="row align-items-center">
-                                           <div class="col-12 col-md-3">
-                                              <label for="Name">Date </label>
-                                           </div>
-                                           <div class="col-12 col-md-8 pd-left-40">
-                                              <input type="date" class="form-control" name="current_date" id="current_date">
-                                           </div>
+                                            <div class="col-12 col-md-6">
+                                                <div class="row align-items-center">
+                                                    <div class="col-12 col-md-3">
+                                                        <label for="Name">Date </label>
+                                                    </div>
+                                                    <div class="col-12 col-md-8 pd-left-40">
+                                                        <input type="date" class="form-control" name="current_date"
+                                                            id="current_date">
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                     </div>
-                                  </div>
-                                  @csrf
-                                  <div class="row mt-5">
-                                     <div class="offset-md-5 col-12 col-md-6">
-                                        <div class="form-group">
-                                           <button type="submit" class="btn btn-success">
-                                           change Date
-                                           </button>
+                                        @csrf
+                                        <div class="row mt-5">
+                                            <div class="offset-md-5 col-12 col-md-6">
+                                                <div class="form-group">
+                                                    <button type="submit" class="btn btn-success">
+                                                        change Date
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                     </div>
-                                  </div>
-                               </div>
+                                    </div>
+                                </div>
                             </div>
-                         </div>
                         </form>
                     </div>
                 </div>
@@ -191,75 +189,74 @@
 
 <footer class="main-footer">
 
-@include('include.footer')
+    @include('include.footer')
     <script>
-$(document).ready(function () {
+        $(document).ready(function() {
 
-    // ✅ Fetch expiry date when license changes
-    $('#license_number').on('change', function () {
-        const licenseNumber = $(this).val();
+            // ✅ Fetch expiry date when license changes
+            $('#license_number').on('change', function() {
+                const licenseNumber = $(this).val();
 
-        if (licenseNumber && licenseNumber !== '0') {
-            $.get(BASE_URL + `/get-license-expiry/${licenseNumber}`, function (data) {
-                if (data.valid_to) {
-                    $('#expiry').val(data.valid_to);
+                if (licenseNumber && licenseNumber !== '0') {
+                    $.get(BASE_URL + `/get-license-expiry/${licenseNumber}`, function(data) {
+                        if (data.valid_to) {
+                            $('#expiry').val(data.valid_to);
+                        } else {
+                            $('#expiry').val('');
+                        }
+                    }).fail(function() {
+                        $('#expiry').val('');
+                    });
                 } else {
                     $('#expiry').val('');
                 }
-            }).fail(function () {
-                $('#expiry').val('');
             });
-        } else {
-            $('#expiry').val('');
-        }
-    });
 
-    // ✅ Submit form via AJAX
-    $('#license_date_change').on('submit', function (e) {
-        e.preventDefault();
+            // ✅ Submit form via AJAX
+            $('#license_date_change').on('submit', function(e) {
+                e.preventDefault();
 
-        $.ajax({
-            url: "{{ route('update-license-expiry') }}",
-            type: "POST",
-            data: $(this).serialize(),
-            success: function (response) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Updated!',
-                    text: response.message,
-                    confirmButtonColor: '#198754',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = "{{ route('dashboard') }}"; 
+                $.ajax({
+                    url: "{{ route('update-license-expiry') }}",
+                    type: "POST",
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Updated!',
+                            text: response.message,
+                            confirmButtonColor: '#198754',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = "{{ route('dashboard') }}";
+                            }
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: xhr.responseJSON?.message || 'Something went wrong!',
+                            confirmButtonColor: '#dc3545',
+                        });
                     }
                 });
-            },
-            error: function (xhr) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: xhr.responseJSON?.message || 'Something went wrong!',
-                    confirmButtonColor: '#dc3545',
+            });
+
+            $('#current_date_change').on('submit', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "{{ route('updateCurrentDate') }}",
+                    type: "POST",
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        alert(response.message);
+                    },
+                    error: function(xhr) {
+                        alert(xhr.responseJSON?.message || 'Something went wrong');
+                    }
                 });
-            }
+            });
+
         });
-    });
-
-    $('#current_date_change').on('submit', function (e) {
-        e.preventDefault();
-        $.ajax({
-            url: "{{ route('updateCurrentDate') }}",
-            type: "POST",
-            data: $(this).serialize(),
-            success: function (response) {
-                alert(response.message);
-            },
-            error: function (xhr) {
-                alert(xhr.responseJSON?.message || 'Something went wrong');
-            }
-        });
-    });
-
-});
-
-</script>
+    </script>

@@ -38,10 +38,17 @@
     $workFromDate = ($hasRow && $expRow->from_date) ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
     $workToDate = ($hasRow && $expRow->to_date) ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
     $isTill = $hasRow && $workFromDate !== '' && $workToDate === '';
-    $totalExp = $hasRow ? (string) ($expRow->total_exp ?? $expRow->experience ?? '') : '';
     $durY = $hasRow && $expRow->total_y !== null ? (string) $expRow->total_y : '';
     $durM = $hasRow && $expRow->total_m !== null ? (string) $expRow->total_m : '';
     $durD = $hasRow && $expRow->total_d !== null ? (string) $expRow->total_d : '';
+    $totalExp = $hasRow
+        ? legacy_total_exp_from_duration(
+            $expRow->total_exp ?? $expRow->experience ?? null,
+            $expRow->total_y ?? null,
+            $expRow->total_m ?? null,
+            $expRow->total_d ?? null
+        )
+        : '';
     $supportDoc = $hasRow ? (string) ($expRow->support_document ?? $expRow->upload_document ?? '') : '';
     $relieveDoc = $hasRow ? (string) ($expRow->releive_document ?? $expRow->relieve_document ?? '') : '';
     $workId = $hasRow ? (string) ($expRow->exp_id ?? $expRow->id ?? '') : '';
