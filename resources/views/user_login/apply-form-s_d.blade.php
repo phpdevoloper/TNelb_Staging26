@@ -1626,7 +1626,7 @@
                             <span class="fs-section-num">6</span>
                             <div>
                                 <div class="fs-section-title">
-                                    Applicant's Educational / Technical Qualification and pass details
+                                    Details of Technical Qualification passed by the applicant.
                                     <span class="section-req">*</span>
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>

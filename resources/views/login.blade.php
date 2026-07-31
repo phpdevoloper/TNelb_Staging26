@@ -52,10 +52,10 @@
         color: red
     }
 
-    .form-control:focus {
+    /* .form-control:focus {
         box-shadow: none;
         border: 2px solid red
-    }
+    } */
 
     .validate {
         border-radius: 20px;
@@ -80,27 +80,19 @@
                                 <h2>Applicant's Login Form</h2>
                             </div>
                         </div>
-                        <!-- <div class="bg-gray">
-                            <h2>Login</h2>
-                        </div> -->
-                        <form id="login-form">
-
-
+                        <form id="login-form" novalidate>
                             <div class="row">
                                 <div class="form-group col-md-12">
-                                    <label> Enter Mobile Number </label>
-                                    <input type="phone" id="phone" name="phone" value="" class="form-control" placeholder="Enter Mobile Number">
+                                    <label>Phone Number <span class="text-danger">*</span></label>
+                                    <input type="tel" id="phone" name="phone" value="" class="form-control"
+                                        placeholder="Enter Phone Number"
+                                        inputmode="numeric" autocomplete="tel"
+                                        maxlength="10">
                                     <span id="phoneError" class="text-danger"></span>
                                 </div>
 
                             </div>
 
-                            <!-- <div class="row">
-                                <div class="form-group col-md-12">
-                                    <input type="password" name="password" value="" placeholder="Enter Password" >
-                                </div>
-
-                            </div> -->
                             <div class="row">
 
                                 <div class="form-group col-md-12">
@@ -108,15 +100,13 @@
                                     <a href="#" id="refresh-captcha" class="align-middle" title="refresh">
                                         <span class="fas fa-redo-alt align-middle" style="margin-left: 20px; color:#035ab3;"></span></a>
                                 </div>
-
-
-
                                 <div class="form-group col-md-12">
-                                    <label> Enter Captcha Text</label>
-                                    <input type="text" name="captcha" class="form-control" placeholder="Enter CAPTCHA">
+                                    <label>CAPTCHA <span class="text-danger">*</span></label>
+                                    <input type="text" name="captcha" class="form-control" 
+                                    placeholder="Enter CAPTCHA">
+                                    <span id="captchaError" class="text-danger"></span>
                                 </div>
                             </div>
-
 
                             <button type="submit">Submit</button>
                         </form>
@@ -151,14 +141,21 @@
 <!-- Overlay Background -->
 <div id="overlay-bg" class="overlay-bg" style="display: none;"></div>
 
-
-
 <footer class="main-footer">
 
     @include('include.footer')
 
     <script>
         $(document).ready(function() {
+            $("#phone").on("input", function () {
+                this.value = this.value.replace(/\D/g, "").slice(0, 10);
+                $("#phoneError").text("");
+            });
+
+            $("input[name='captcha']").on("input", function () {
+                $("#captchaError").text("");
+            });
+
             $("#login-form").submit(function(event) {
                 event.preventDefault(); // Prevent form submission
 
@@ -166,13 +163,29 @@
                 let captcha = $("input[name='captcha']").val().trim();
                 let errors = [];
 
+                $("#phoneError").text('');
+                $("#captchaError").text('');
+
+                if (phone === '') {
+                    errors.push("Phone number is required.");
+                    $("#phoneError").text("Phone number is required.");
+                } else if (!/^[6-9]\d{9}$/.test(phone)) {
+                    errors.push("Enter a valid 10-digit phone number.");
+                    $("#phoneError").text("Enter a valid 10-digit phone number.");
+                }
 
                 if (captcha === "") {
                     errors.push("CAPTCHA is required.");
-                }
+                    $("#captchaError").text("CAPTCHA is required.");
+                } 
+                
+                // else if (!/^[A-Za-z0-9]{6}$/.test(captcha)) {
+                //     errors.push("Enter a valid CAPTCHA.");
+                //     $("#captchaError").text("Enter a valid CAPTCHA.");
+                // }
 
+                // Stop here if any client-side error exists — AJAX will not run
                 if (errors.length > 0) {
-                    alert(errors.join("\n"));
                     return;
                 }
 
@@ -192,7 +205,6 @@
                         }
                     },
                     error: function(xhr) {
-                        // alert('failed');
                         let response = JSON.parse(xhr.responseText);
                         if (response.message) {
                             $("#phone").after('<span class="text-danger">' + response.message + '</span>'); // Show error below input

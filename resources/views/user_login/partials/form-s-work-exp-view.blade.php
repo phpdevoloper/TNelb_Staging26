@@ -67,7 +67,7 @@
                 <tfoot>
                     <tr class="wx-overall-exp-row">
                         <td colspan="7" class="wx-overall-exp-label-cell text-end">
-                            <span class="wx-overall-exp-label">Overall Experience</span>
+                            <span class="wx-overall-exp-label">Total Experience</span>
                         </td>
                         <td class="work-row-summary-period">
                             <div class="wx-period-box wx-period-box--overall">

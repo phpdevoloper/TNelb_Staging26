@@ -819,8 +819,8 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Supervisor Competency Certificate</h5>
-                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
+                    <h5>Application for Supervisor Competency Certificate - Digitisation</h5>
+                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - கணினிமயமாக்கல்</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
                 <div class="instructions-link">
@@ -852,7 +852,7 @@
                                         </div>
                                     </div>
                                     <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text"
-                                        value="{{ $user['salutation'].' '.$user['applicant_name'] }}" >
+                                        value="{{ $user['salutation'].' '.$user['applicant_name'] }}" readonly>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="fs-section-header fs-section-header--in-grid">
@@ -941,7 +941,7 @@
                             <span class="fs-section-num">6</span>
                             <div>
                                 <div class="fs-section-title">
-                                    Applicant's Educational / Technical Qualification and pass details
+                                    Details of Technical Qualification passed by the applicant.
                                     <span class="section-req">*</span>
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>

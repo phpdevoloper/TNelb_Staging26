@@ -5,15 +5,30 @@
     }
     .fs-question-part-hd {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: 10px;
         margin-bottom: 12px;
     }
+    .fs-question-part-hd > .fs-section-num,
+    .fs-question-part-hd > .fs-section-num--sub,
+    .fs-question-part-hd .fs-section-num--sub {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+        line-height: 1;
+    }
     .fs-question-part-hd .fs-section-title {
         font-size: .84rem;
+        margin: 0;
+        line-height: 1.35;
+        display: flex;
+        align-items: center;
     }
     .fs-question-part-hd .fs-section-tamil {
         font-size: .76rem;
+        margin: 0;
+        line-height: 1.35;
     }
     .fs-section-num--sub {
         width: auto;

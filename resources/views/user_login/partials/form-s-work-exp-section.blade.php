@@ -56,6 +56,33 @@
                             </tr>
                         </thead>
                         <tbody id="{{ $workSummaryTbodyId }}"></tbody>
+                        <tfoot class="wx-overall-exp-tfoot" hidden>
+                            <tr class="wx-overall-exp-row">
+                                <td colspan="7" class="wx-overall-exp-label-cell text-end">
+                                    <span class="wx-overall-exp-label">Total Experience</span>
+                                </td>
+                                <td class="work-row-summary-period">
+                                    <div class="wx-period-box wx-period-box--overall">
+                                        <div class="wx-period-duration">
+                                            <div class="wx-period-dur-cell">
+                                                <span class="wx-period-dur-num wx-overall-y">0</span>
+                                                <span class="wx-period-dur-lbl">Years</span>
+                                            </div>
+                                            <div class="wx-period-dur-cell">
+                                                <span class="wx-period-dur-num wx-overall-m">0</span>
+                                                <span class="wx-period-dur-lbl">Months</span>
+                                            </div>
+                                            <div class="wx-period-dur-cell">
+                                                <span class="wx-period-dur-num wx-overall-d">0</span>
+                                                <span class="wx-period-dur-lbl">Days</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>

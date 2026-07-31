@@ -1406,6 +1406,83 @@ class FormController extends BaseController
          }
     }
 
+    /**
+     * Form S §7a — consecutive experience periods must not overlap.
+     * Each subsequent From date must be strictly after the previous row's To date.
+     */
+    private function validateFormSWorkExperienceDateSequence(Request $request, \Illuminate\Validation\Validator $validator): void
+    {
+        if (($request->form_name ?? '') !== 'S') {
+            return;
+        }
+
+        $fromDates = $request->input('work_date_from', []);
+        $toDates = $request->input('work_date_to', []);
+        $tillFlags = $request->input('work_to_till_date', []);
+        $sections = $request->input('work_exp_section', []);
+        if (! is_array($fromDates)) {
+            return;
+        }
+        if (! is_array($toDates)) {
+            $toDates = [];
+        }
+        if (! is_array($tillFlags)) {
+            $tillFlags = [];
+        }
+        if (! is_array($sections)) {
+            $sections = [];
+        }
+
+        $today = Carbon::now()->startOfDay();
+        $periods = [];
+
+        foreach (array_keys($fromDates) as $key) {
+            if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
+                continue;
+            }
+
+            $fromRaw = trim((string) ($fromDates[$key] ?? ''));
+            $toRaw = trim((string) ($toDates[$key] ?? ''));
+            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            if ($fromRaw === '') {
+                continue;
+            }
+            if ($toRaw === '' && ! $isTill) {
+                continue;
+            }
+
+            try {
+                $from = Carbon::parse($fromRaw)->startOfDay();
+                $to = ($toRaw !== '')
+                    ? Carbon::parse($toRaw)->startOfDay()
+                    : $today;
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            if ($to->lt($from)) {
+                continue;
+            }
+
+            $periods[] = [
+                'key' => $key,
+                'from' => $from,
+                'to' => $to,
+            ];
+        }
+
+        for ($i = 1, $n = count($periods); $i < $n; $i++) {
+            $prev = $periods[$i - 1];
+            $curr = $periods[$i];
+            if ($curr['from']->lte($prev['to'])) {
+                $validator->errors()->add(
+                    'work_date_from.'.$curr['key'],
+                    'From date must be after the previous row\'s To date ('.$prev['to']->format('d-M-Y').'). Experience periods must not overlap.'
+                );
+            }
+        }
+    }
+
     private function decryptPanForDisplay($applicationDetails): void
     {
         if (!$applicationDetails || !isset($applicationDetails->pancard) || $applicationDetails->pancard === null || $applicationDetails->pancard === '') {
@@ -2276,6 +2353,7 @@ class FormController extends BaseController
             }
         });
         $validator->after(function ($validator) use ($request) {
+            $this->validateFormSWorkExperienceDateSequence($request, $validator);
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
         });
         $validator->validate();
@@ -2759,6 +2837,7 @@ class FormController extends BaseController
             }
         });
         $validator->after(function ($validator) use ($request) {
+            $this->validateFormSWorkExperienceDateSequence($request, $validator);
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
         });
         $validator->validate();

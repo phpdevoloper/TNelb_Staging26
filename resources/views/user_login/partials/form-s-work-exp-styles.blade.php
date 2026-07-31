@@ -274,6 +274,35 @@
         letter-spacing: .03em;
         line-height: 1;
     }
+    .wx-summary-table .wx-overall-exp-row td {
+        background: #f4f8fc;
+        border-top: 2px solid #b8cfe8;
+        vertical-align: middle;
+        padding: 10px 8px;
+    }
+    .wx-summary-table .wx-overall-exp-label-cell {
+        padding-right: 12px;
+    }
+    .wx-summary-table .wx-overall-exp-label {
+        font-weight: 700;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: #1a3a5c;
+    }
+    .wx-period-box--overall {
+        justify-content: flex-start;
+    }
+    .wx-period-box--overall .wx-period-duration {
+        border-color: #8bb8e8;
+        background: linear-gradient(135deg, #e8f3fc 0%, #d4e8f8 100%);
+    }
+    .wx-period-box--overall .wx-period-dur-cell .wx-period-dur-num {
+        color: #035ab3;
+    }
+    .wx-period-box--overall .wx-period-dur-cell .wx-period-dur-lbl {
+        color: #3a6a9a;
+    }
     .wx-summary-table .wx-sum-doc-link {
         display: inline-flex;
         align-items: center;

@@ -3674,6 +3674,23 @@ $(document).ready(function() {
                 }
             }
 
+            // Form S §7a: experience periods must not overlap (From of next row > To of previous).
+            if (isSWorkForm && typeof window.wxValidateFormSExperienceDateSequence === 'function') {
+                var seqCheck = window.wxValidateFormSExperienceDateSequence();
+                if (!seqCheck.ok) {
+                    if (seqCheck.$row && seqCheck.$row.length) {
+                        var $seqFrom = seqCheck.$row.find('.work-date-from').first();
+                        if (!firstErrorField) {
+                            firstErrorField = $seqFrom.length ? $seqFrom : seqCheck.$row;
+                        }
+                    }
+                    if (!firstErrorField) {
+                        firstErrorField = $('#work-container-previous, #work-container').first();
+                    }
+                    isValid = false;
+                }
+            }
+
             // Max length validation for competency form (S/W/WH/P) – validate all text/number fields
             if ($('#competency_form_ws').length) {
                 $('#competency_form_ws').find('input[maxlength], textarea[maxlength]').each(function () {

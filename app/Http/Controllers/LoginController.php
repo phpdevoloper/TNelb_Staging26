@@ -444,8 +444,6 @@ class LoginController extends BaseController
 
     public function login()
     {
-        var_dump('test');
-        exit;
         return view('login');
     }
     public function check(Request $request)

@@ -688,6 +688,7 @@ class FormSAlterationService
             }
 
             if ($alterWork) {
+                $this->assertFormSExperienceDateSequence($request);
                 $this->assertFormSCountableExperienceMinimum($parent, $request);
                 CC_Experience::where('application_id', $child->application_id)->delete();
                 $this->storeWorkExperienceAlterationRows($request, $child, $loginId);
@@ -1052,6 +1053,64 @@ class FormSAlterationService
         }
 
         return false;
+    }
+
+    /**
+     * Form S §7a — consecutive experience periods in the posted previous rows must not overlap.
+     * Each subsequent From date must be strictly after the previous row's To date.
+     */
+    protected function assertFormSExperienceDateSequence(Request $request): void
+    {
+        $fromDates = (array) $request->input('work_date_from', []);
+        $toDates = (array) $request->input('work_date_to', []);
+        $tillFlags = (array) $request->input('work_to_till_date', []);
+        $sections = (array) $request->input('work_exp_section', []);
+        $today = Carbon::now()->startOfDay();
+        $periods = [];
+
+        foreach (array_keys($fromDates) as $key) {
+            if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
+                continue;
+            }
+
+            $fromRaw = trim((string) ($fromDates[$key] ?? ''));
+            $toRaw = trim((string) ($toDates[$key] ?? ''));
+            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            if ($fromRaw === '') {
+                continue;
+            }
+            if ($toRaw === '' && ! $isTill) {
+                continue;
+            }
+
+            try {
+                $from = Carbon::parse($fromRaw)->startOfDay();
+                $to = $toRaw !== ''
+                    ? Carbon::parse($toRaw)->startOfDay()
+                    : $today;
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            if ($to->lt($from)) {
+                continue;
+            }
+
+            $periods[] = [
+                'from' => $from,
+                'to' => $to,
+            ];
+        }
+
+        for ($i = 1, $n = count($periods); $i < $n; $i++) {
+            $prev = $periods[$i - 1];
+            $curr = $periods[$i];
+            if ($curr['from']->lte($prev['to'])) {
+                throw new RuntimeException(
+                    'From date must be after the previous row\'s To date ('.$prev['to']->format('d-M-Y').'). Experience periods must not overlap.'
+                );
+            }
+        }
     }
 
     /**

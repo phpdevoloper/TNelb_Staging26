@@ -47,6 +47,69 @@
                             @endforeach
                         @endif
                     </tbody>
+                    @php
+                        $overallY = 0;
+                        $overallM = 0;
+                        $overallD = 0;
+                        if (isset($exp_details) && $exp_details->isNotEmpty()) {
+                            foreach ($exp_details as $expRow) {
+                                $fromIso = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
+                                $toIso = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
+                                $isTill = $fromIso !== '' && $toIso === '';
+                                $yN = $expRow->total_y !== null ? (int) $expRow->total_y : 0;
+                                $mN = $expRow->total_m !== null ? (int) $expRow->total_m : 0;
+                                $dN = $expRow->total_d !== null ? (int) $expRow->total_d : 0;
+                                if ($yN === 0 && $mN === 0 && $dN === 0 && $fromIso !== '' && ($isTill || $toIso !== '')) {
+                                    $toEff = $isTill ? \Carbon\Carbon::today() : \Carbon\Carbon::parse($toIso);
+                                    $fromDt = \Carbon\Carbon::parse($fromIso);
+                                    if ($toEff->gte($fromDt)) {
+                                        $diff = $fromDt->diff($toEff);
+                                        $yN = (int) $diff->y;
+                                        $mN = (int) $diff->m;
+                                        $dN = (int) $diff->d;
+                                    }
+                                }
+                                $overallY += $yN;
+                                $overallM += $mN;
+                                $overallD += $dN;
+                            }
+                            $overallM += intdiv($overallD, 30);
+                            $overallD = $overallD % 30;
+                            $overallY += intdiv($overallM, 12);
+                            $overallM = $overallM % 12;
+                        }
+                    @endphp
+                    @if (isset($exp_details) && $exp_details->isNotEmpty())
+                    <tfoot class="wx-overall-exp-tfoot">
+                        <tr class="wx-overall-exp-row">
+                            <td colspan="7" class="wx-overall-exp-label-cell text-end">
+                                <span class="wx-overall-exp-label">Total Experience</span>
+                            </td>
+                            <td class="work-row-summary-period">
+                                <div class="wx-period-box wx-period-box--overall">
+                                    <div class="wx-period-duration">
+                                        <div class="wx-period-dur-cell">
+                                            <span class="wx-period-dur-num wx-overall-y">{{ $overallY }}</span>
+                                            <span class="wx-period-dur-lbl">Years</span>
+                                        </div>
+                                        <div class="wx-period-dur-cell">
+                                            <span class="wx-period-dur-num wx-overall-m">{{ $overallM }}</span>
+                                            <span class="wx-period-dur-lbl">Months</span>
+                                        </div>
+                                        <div class="wx-period-dur-cell">
+                                            <span class="wx-period-dur-num wx-overall-d">{{ $overallD }}</span>
+                                            <span class="wx-period-dur-lbl">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td></td>
+                            @if ($workExpWithActions)
+                            <td></td>
+                            @endif
+                        </tr>
+                    </tfoot>
+                    @endif
                 </table>
             </div>
         </div>

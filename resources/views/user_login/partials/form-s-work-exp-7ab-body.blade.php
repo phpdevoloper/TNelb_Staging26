@@ -17,10 +17,7 @@
 <div class="fs-question-part">
     <div class="fs-question-part-hd">
         <span class="fs-section-num fs-section-num--sub">7a</span>
-        <div>
-            <div class="fs-section-title">Previous Work Experience</div>
-            <div class="fs-section-tamil">முந்தைய பணி அனுபவ விவரங்கள்</div>
-        </div>
+        <div class="fs-section-title">Previous and Current Work experiences</div>
     </div>
     @include('user_login.partials.form-s-work-exp-section', [
         'exp_details' => $previousExpDetails,

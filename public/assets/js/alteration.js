@@ -354,6 +354,18 @@
 
         /* Same 650V / 2-year rule as New / Renewal / Digitization (shared work-exp scripts). */
         if (flags.alterWork || (flags.optWork && (hasNewWorkRows() || hasEditedExistingWorkRows()))) {
+            if (typeof window.wxValidateFormSExperienceDateSequence === 'function') {
+                var seqCheck = window.wxValidateFormSExperienceDateSequence();
+                if (!seqCheck.ok) {
+                    Swal.fire(
+                        'Validation',
+                        seqCheck.message || 'Experience periods must not overlap. Each From date must be after the previous row\'s To date.',
+                        'warning'
+                    );
+                    scrollToSection('#fsAltSectionWork');
+                    return false;
+                }
+            }
             if (typeof window.wxValidateFormSCountableExperience === 'function') {
                 var expCheck = window.wxValidateFormSCountableExperience();
                 if (!expCheck.ok) {

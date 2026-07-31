@@ -527,11 +527,13 @@
                 if (!$tr || !$tr.length) return;
                 workRowDateValidationSlot($tr).empty();
                 $tr.find('.work-exp-date-range-error').remove();
+                $tr.removeData('wxDateSequenceError');
             }
 
             function showWorkRowDateRangeError($tr, message) {
                 if (!$tr || !$tr.length || !message) return;
                 clearWorkRowDateRangeError($tr);
+                $tr.data('wxDateSequenceError', message);
                 workRowDateValidationSlot($tr).html(
                     '<span class="error-message text-danger d-block work-exp-date-range-error" role="alert">' +
                         message +
@@ -546,31 +548,199 @@
                 return $tr.is(':visible');
             }
 
-            /** Per-row From/To: date order only (2-year minimum is shown once below all rows). */
-            function validateWorkRowDateRange($tr) {
-                if (!$tr || !$tr.length) return;
-                if (!isWorkRowActiveInForm($tr)) {
-                    clearWorkRowDateRangeError($tr);
-                    return;
+            /** §7a (previous / legacy) enforces non-overlapping sequential periods. §7b does not. */
+            function isPreviousWorkPartContainer($container) {
+                if (!$container || !$container.length) return false;
+                var part = ($container.data('work-part') || 'all').toString();
+                if (part === 'current') return false;
+                return true;
+            }
+
+            function addDaysIso(iso, days) {
+                if (!iso) return '';
+                var d = new Date(iso + 'T12:00:00');
+                if (isNaN(d.getTime())) return '';
+                d.setDate(d.getDate() + days);
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+
+            function workRowPeriodBounds($tr) {
+                if (!$tr || !$tr.length) return null;
+                var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
+                var toStr = effectiveToStr($tr);
+                if (!fromStr && !toStr) return null;
+                var from = fromStr ? new Date(fromStr + 'T12:00:00') : null;
+                var to = toStr ? new Date(toStr + 'T12:00:00') : null;
+                if (from && isNaN(from.getTime())) from = null;
+                if (to && isNaN(to.getTime())) to = null;
+                return { fromStr: fromStr, toStr: toStr, from: from, to: to };
+            }
+
+            /**
+             * §7a: consecutive rows must not overlap.
+             * Next row From must be strictly after previous row To.
+             */
+            function workRowDateSequenceMessage($tr) {
+                if (!$tr || !$tr.length) return '';
+                var $container = workContainerFor($tr);
+                if (!isPreviousWorkPartContainer($container)) return '';
+
+                var bounds = workRowPeriodBounds($tr);
+                if (!bounds) return '';
+
+                if (bounds.from && bounds.to && bounds.to < bounds.from) {
+                    return 'To date must be greater than or equal to From date.';
                 }
+
+                var $rows = $container.find('.work-fields');
+                var idx = $rows.index($tr);
+                if (idx < 0) return '';
+
+                if (idx > 0 && bounds.from) {
+                    var prevBounds = workRowPeriodBounds($rows.eq(idx - 1));
+                    if (prevBounds && prevBounds.to && bounds.from <= prevBounds.to) {
+                        return 'From date must be after the previous row\'s To date (' +
+                            fmtPretty(prevBounds.toStr) + '). Experience periods must not overlap.';
+                    }
+                }
+
+                if (idx < $rows.length - 1 && bounds.to) {
+                    var nextBounds = workRowPeriodBounds($rows.eq(idx + 1));
+                    if (nextBounds && nextBounds.from && bounds.to >= nextBounds.from) {
+                        return 'To date must be before the next row\'s From date (' +
+                            fmtPretty(nextBounds.fromStr) + '). Experience periods must not overlap.';
+                    }
+                }
+
+                return '';
+            }
+
+            function workRowHasDateSequenceError($tr) {
+                return !!workRowDateSequenceMessage($tr);
+            }
+
+            /** Constrain native date pickers so overlapping dates cannot be chosen. */
+            function syncWorkDateSequenceBounds($container) {
+                if (!$container || !$container.length || !isPreviousWorkPartContainer($container)) return;
+                var $rows = $container.find('.work-fields');
+                $rows.each(function (idx) {
+                    var $tr = $(this);
+                    var $from = $tr.find('input.work-date-from:not([type="hidden"])').first();
+                    var $to = $tr.find('input.work-date-to:not([type="hidden"])').first();
+                    if ($from.length) $from.removeAttr('min');
+                    if ($to.length) {
+                        $to.removeAttr('min');
+                        $to.removeAttr('max');
+                    }
+
+                    var ownFrom = readWorkDateFromInput($tr.find('.work-date-from'));
+                    if ($to.length && ownFrom) {
+                        $to.attr('min', ownFrom);
+                    }
+
+                    if (idx > 0 && $from.length) {
+                        var prevTo = effectiveToStr($rows.eq(idx - 1));
+                        if (prevTo) {
+                            var minFrom = addDaysIso(prevTo, 1);
+                            if (minFrom) $from.attr('min', minFrom);
+                        }
+                    }
+
+                    if (idx < $rows.length - 1 && $to.length) {
+                        var nextFrom = readWorkDateFromInput($rows.eq(idx + 1).find('.work-date-from'));
+                        if (nextFrom) {
+                            var maxTo = addDaysIso(nextFrom, -1);
+                            if (maxTo) $to.attr('max', maxTo);
+                        }
+                    }
+                });
+            }
+
+            /**
+             * Per-row From/To order + §7a non-overlap against neighbouring rows.
+             * Returns true when the row has no date-sequence error.
+             */
+            function validateWorkRowDateRange($tr) {
+                if (!$tr || !$tr.length) return true;
+                var $container = workContainerFor($tr);
+                syncWorkDateSequenceBounds($container);
+
                 var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
                 var toStr = effectiveToStr($tr);
                 /* Keep the last message while the user is still entering dates (do not clear on partial input). */
-                if (!fromStr || !toStr) {
-                    return;
+                if (!fromStr && !toStr) {
+                    if (isWorkRowActiveInForm($tr)) clearWorkRowDateRangeError($tr);
+                    return true;
                 }
 
-                var from = new Date(fromStr + 'T12:00:00');
-                var to = new Date(toStr + 'T12:00:00');
-                if (isNaN(from.getTime()) || isNaN(to.getTime())) {
-                    return;
+                var msg = workRowDateSequenceMessage($tr);
+                if (msg) {
+                    if (isWorkRowActiveInForm($tr)) {
+                        showWorkRowDateRangeError($tr, msg);
+                    } else {
+                        $tr.data('wxDateSequenceError', msg);
+                    }
+                    return false;
                 }
 
-                clearWorkRowDateRangeError($tr);
-
-                if (to < from) {
-                    showWorkRowDateRangeError($tr, 'To date must be greater than or equal to From date.');
+                if (isWorkRowActiveInForm($tr)) {
+                    if (fromStr && toStr) {
+                        clearWorkRowDateRangeError($tr);
+                    }
+                } else {
+                    clearWorkRowDateRangeError($tr);
                 }
+                return true;
+            }
+
+            function expandWorkRowForDateError($tr) {
+                if (!$tr || !$tr.length) return;
+                if ($tr.hasClass('work-row--in-summary') || $tr.hasClass('work-row--compact')) {
+                    $tr.removeClass('work-row--in-summary work-row--compact').addClass('work-row--expanded');
+                    applyRowLayout($tr);
+                    ensureWorkRowDoneBar($tr);
+                    syncSummaryTable();
+                }
+                showWorkRowDateRangeError($tr, workRowDateSequenceMessage($tr) || ($tr.data('wxDateSequenceError') || ''));
+            }
+
+            /** Re-check every §7a row after a date change (neighbours can become invalid). */
+            function validateWorkContainerDateSequence($container) {
+                if (!$container || !$container.length || !isPreviousWorkPartContainer($container)) {
+                    return { ok: true };
+                }
+                syncWorkDateSequenceBounds($container);
+                var firstInvalid = null;
+                var firstMessage = '';
+                $container.find('.work-fields').each(function () {
+                    var $row = $(this);
+                    var msg = workRowDateSequenceMessage($row);
+                    if (msg) {
+                        if (isWorkRowActiveInForm($row)) {
+                            showWorkRowDateRangeError($row, msg);
+                        } else {
+                            $row.data('wxDateSequenceError', msg);
+                        }
+                        if (!firstInvalid) {
+                            firstInvalid = $row;
+                            firstMessage = msg;
+                        }
+                    } else if (isWorkRowActiveInForm($row)) {
+                        var fromStr = readWorkDateFromInput($row.find('.work-date-from'));
+                        var toStr = effectiveToStr($row);
+                        if (fromStr && toStr) clearWorkRowDateRangeError($row);
+                    } else {
+                        clearWorkRowDateRangeError($row);
+                    }
+                });
+                if (firstInvalid) {
+                    return {
+                        ok: false,
+                        $row: firstInvalid,
+                        message: firstMessage || 'Experience periods must not overlap. Each From date must be after the previous row\'s To date.'
+                    };
+                }
+                return { ok: true };
             }
 
             /** Section meter + legacy combined-message kept in sync. */
@@ -596,7 +766,68 @@
                         );
                     }
                 }
+                updateSummaryOverallExperience();
                 updateWorkAddBtn();
+            }
+
+            /** Sum Y/M/D across a container and write into the summary table footer. */
+            function normalizeOverallYMD(y, m, d) {
+                m += Math.floor(d / 30);
+                d = d % 30;
+                y += Math.floor(m / 12);
+                m = m % 12;
+                return { y: y, m: m, d: d };
+            }
+
+            function overallYmdForContainer($container) {
+                var y = 0, m = 0, d = 0;
+                $container.find('.work-fields').each(function() {
+                    var $tr = $(this);
+                    var yN = parseInt($tr.find('.work-duration-y').val(), 10) || 0;
+                    var mN = parseInt($tr.find('.work-duration-m').val(), 10) || 0;
+                    var dN = parseInt($tr.find('.work-duration-d').val(), 10) || 0;
+                    if (!yN && !mN && !dN) {
+                        var fromIso = readWorkDateFromInput($tr.find('.work-date-from'));
+                        var toIso = effectiveToStr($tr);
+                        if (fromIso && toIso) {
+                            var fromDt = new Date(fromIso + 'T12:00:00');
+                            var toDt = new Date(toIso + 'T12:00:00');
+                            var diff = calendarDiffYMD(fromDt, toDt);
+                            if (diff) {
+                                yN = diff.y;
+                                mN = diff.m;
+                                dN = diff.d;
+                            }
+                        }
+                    }
+                    y += yN;
+                    m += mN;
+                    d += dN;
+                });
+                return normalizeOverallYMD(y, m, d);
+            }
+
+            function updateSummaryOverallExperience($onlyContainer) {
+                var $containers = $onlyContainer && $onlyContainer.length
+                    ? $onlyContainer
+                    : workContainers();
+                $containers.each(function() {
+                    var $container = $(this);
+                    var $panel = summaryPanelFor($container);
+                    if (!$panel.length) return;
+                    var $tfoot = $panel.find('.wx-overall-exp-tfoot');
+                    if (!$tfoot.length) return;
+                    var hasVisible = $panel.find('.work-exp-summary-tr:visible').length > 0;
+                    if (!hasVisible) {
+                        $tfoot.attr('hidden', true);
+                        return;
+                    }
+                    var tot = overallYmdForContainer($container);
+                    $tfoot.find('.wx-overall-y').text(String(tot.y));
+                    $tfoot.find('.wx-overall-m').text(String(tot.m));
+                    $tfoot.find('.wx-overall-d').text(String(tot.d));
+                    $tfoot.removeAttr('hidden');
+                });
             }
 
             /** Row-count badge + disable state on the Add button. */
@@ -771,6 +1002,18 @@
             /** Refresh summary and collapse expanded complete row back to order-card view. */
             function collapseToSummary($tr) {
                 $tr.find('.work-row-done-hint').remove();
+                var $container = workContainerFor($tr);
+                if (isPreviousWorkPartContainer($container) && workRowHasDateSequenceError($tr)) {
+                    validateWorkContainerDateSequence($container);
+                    expandWorkRowForDateError($tr);
+                    ensureWorkRowDoneBar($tr);
+                    var $barOverlap = $tr.find('.work-row-done-bar');
+                    if ($barOverlap.length && !$barOverlap.find('.work-row-done-hint').length) {
+                        $barOverlap.append('<p class="work-row-done-hint" role="alert">Fix overlapping experience dates before submitting this entry.</p>');
+                    }
+                    applyRowLayout($tr);
+                    return false;
+                }
                 var complete = isRowComplete($tr);
                 $tr.toggleClass('is-complete', complete);
                 $tr.data('wxWasComplete', complete);
@@ -794,6 +1037,7 @@
                 updateRowSummary($tr);
                 syncSummaryTable();
                 updateWorkAddBtn();
+                syncWorkDateSequenceBounds($container);
                 return true;
             }
 
@@ -886,6 +1130,7 @@
                     if ($panel.length) {
                         $panel.toggleClass('is-visible', hasVisible);
                     }
+                    updateSummaryOverallExperience($container);
                 });
                 refreshWorkSerials();
             }
@@ -993,12 +1238,12 @@
                     $box.append($durRow);
                 }
                 $periodCell.append($box);
-                if (voltage === VOLTAGE_DISABLES_KVA) {
-                    $periodCell.append(
-                        $('<div class="text-danger small mt-1" style="font-weight:600;">')
-                            .text('Not counted toward experience (Up to 650V)')
-                    );
-                }
+                // if (voltage === VOLTAGE_DISABLES_KVA) {
+                //     $periodCell.append(
+                //         $('<div class="text-danger small mt-1" style="font-weight:600;">')
+                //             .text('Not counted toward experience (Up to 650V)')
+                //     );
+                // }
 
                 /* Col 8 — Attachments */
                 var $docInput = $tr.find('.work-doc-input');
@@ -1091,8 +1336,13 @@
                         /* §7b-style: keep the inline form visible. */
                         $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
                     } else if (!wasComplete) {
-                        /* First time complete → auto-collapse into summary table. */
-                        $tr.removeClass('work-row--expanded');
+                        /* First time complete → auto-collapse into summary table (unless dates overlap). */
+                        if (isPreviousWorkPartContainer(workContainerFor($tr)) && workRowHasDateSequenceError($tr)) {
+                            validateWorkRowDateRange($tr);
+                            $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                        } else {
+                            $tr.removeClass('work-row--expanded');
+                        }
                     } else if ($tr.hasClass('work-row--expanded')) {
                         /* Editing a complete row — keep Submit available. */
                         $tr.removeClass('work-row--compact work-row--in-summary');
@@ -1190,7 +1440,7 @@
                     var $row = $(this);
                     /* Locked existing renew/alteration rows never block Add. */
                     if (isAlterationFrozenRow($row)) return;
-                    if (!isRowComplete($row)) {
+                    if (!isRowComplete($row) || workRowHasDateSequenceError($row)) {
                         canAdd = false;
                         return false;
                     }
@@ -1208,18 +1458,20 @@
                 };
                 if (!fromStr || !toStr) {
                     clearWorkDuration($tr);
+                    validateWorkContainerDateSequence(workContainerFor($tr));
                     done();
                     return;
                 }
                 var from = new Date(fromStr + 'T12:00:00'), to = new Date(toStr + 'T12:00:00');
                 if (isNaN(from.getTime()) || isNaN(to.getTime())) {
                     clearWorkDuration($tr);
+                    validateWorkContainerDateSequence(workContainerFor($tr));
                     done();
                     return;
                 }
                 if (to < from) {
                     clearWorkDuration($tr);
-                    validateWorkRowDateRange($tr);
+                    validateWorkContainerDateSequence(workContainerFor($tr));
                     done();
                     return;
                 }
@@ -1231,7 +1483,7 @@
                 var yearsDec = ((to - from) / 86400000 + 1) / 365.25;
                 var rounded = Math.round(yearsDec * 10) / 10;
                 $tr.find('.work-experience-total-hidden').val(rounded.toFixed(1));
-                validateWorkRowDateRange($tr);
+                validateWorkContainerDateSequence(workContainerFor($tr));
                 done();
             }
 
@@ -1478,6 +1730,7 @@
                         var $str = $row.data('wxSummaryTr');
                         if ($str && $str.length) $str.find('.work-row-summary-sno').text(n);
                     });
+                    syncWorkDateSequenceBounds($(this));
                 });
                 updateWorkAddBtn();
             }
@@ -1523,6 +1776,19 @@
 
             window.wxUpdateOverallWorkYears = updateOverallTotalYears;
             window.wxValidateWorkRowDateRange = validateWorkRowDateRange;
+            window.wxValidateFormSExperienceDateSequence = function () {
+                var result = { ok: true };
+                workContainers().each(function () {
+                    var check = validateWorkContainerDateSequence($(this));
+                    if (!check.ok && result.ok) {
+                        result = check;
+                    }
+                });
+                if (!result.ok && result.$row && result.$row.length) {
+                    expandWorkRowForDateError(result.$row);
+                }
+                return result;
+            };
             window.wxRecalcWorkDuration = function($row) {
                 if ($row && $row.length) {
                     updateTotalYears($row);
@@ -1687,7 +1953,7 @@
                 clearWorkDateFieldErrors($field);
                 var $tr = $workRow(this);
                 updateTotalYears($tr);
-                validateWorkRowDateRange($tr);
+                validateWorkContainerDateSequence(workContainerFor($tr));
             });
             /* Any field change refreshes the live row header + status pill. */
             $(document).on('input change', '.js-work-container .work-employer-input, #work-container .work-employer-input', function() {
@@ -1994,6 +2260,7 @@
                         refreshWorkSerials();
                         syncSummaryTable();
                         updateOverallTotalYears();
+                        validateWorkContainerDateSequence($(container));
                         if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                             window.wxSyncBoardMemberRenewalFee();
                         }

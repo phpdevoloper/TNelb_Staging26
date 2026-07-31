@@ -545,10 +545,10 @@ i.fa.fa-question {
   background: none;
 }
 
-.register input:focus {
+/* .register input:focus {
   outline: none;
   border-bottom-color: #000;
-}
+} */
 
 .register button {
   padding: 10px;
