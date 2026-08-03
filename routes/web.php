@@ -51,6 +51,7 @@ use App\Http\Controllers\WithoutTmp\WithoutTmpController;
 
 
 use App\Http\Controllers\FormCLAlteration;
+use App\Http\Controllers\PayUPaymentController;
 
 // ------------------------ Public Pages ------------------------
 
@@ -419,10 +420,6 @@ Route::get('/noticeboardcontent/{news_id}', [LoginController::class, 'noticeboar
 
 // --------------------------------propertior-------------
 
-// Route::delete('/proprietor/delete/{id}', [PropertiorController::class, 'deleteProprietor']);
-
-// Route::post('/proprietor/update/{id}', [PropertiorController::class, 'updateProprietor'])->name('admin.proprietor.update');
-
 Route::get('/form/get-form-cost', [FormController::class, 'getFormCost'])->name('getFormCost');
 //  fees--------------
 
@@ -536,6 +533,15 @@ Route::prefix('without-tmp')->name('without-tmp.')->group(function () {
     Route::get('/storage', [WithoutTmpController::class, 'storageExplorer'])->name('storage');
     Route::get('/table-data', [WithoutTmpController::class, 'tableData'])->name('table-data');
 });
+
+
+
+
+# PayUPaymentController Routes
+Route::post('/payu/initiate', [PayUPaymentController::class, 'initiate'])->middleware('auth') // use your app's auth middleware if different
+    ->name('payu.initiate');
+Route::post('/payu/success', [PayUPaymentController::class, 'success'])->name('payu.success');
+Route::post('/payu/failure', [PayUPaymentController::class, 'failure'])->name('payu.failure');
 
 
 

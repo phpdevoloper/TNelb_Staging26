@@ -1620,7 +1620,7 @@
     @include('user_login.partials.form-s-work-exp-7ab-styles')
 </style>
 
-{{-- ░░ BREADCRUMB ░░ --}}
+{{-- BREADCRUMB --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
         <ul id="breadcrumb">
@@ -1630,7 +1630,7 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{-- PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
@@ -1648,12 +1648,12 @@
                 </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- MANDATORY NOTICE --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- FORM BODY --}}
             <div class="fs-form-body fs-form apply-card">
 
                 <form id="competency_form_ws" class="apply-form" enctype="multipart/form-data">
@@ -2556,13 +2556,8 @@
         'enableBoardMemberFeeExempt' => true,
     ])
 
-    <script>
-        window.FORM_S_CONFIG = {
-            verifyLicenseUrl: @json(route('verifylicense')),
-            formInstructionUrl: @json(route('licences.getFormInstruction')),
-        };
-    </script>
-    <script src="{{ url('assets/js/form_s.js') }}"></script>
+    {{-- COMPETENCY_FORM_CONFIG (footer) supplies env-safe AJAX URLs; form_s.js reads that first. --}}
+    <script src="{{ url('assets/js/form_s.js') }}?v={{ filemtime(public_path('assets/js/form_s.js')) }}"></script>
     <script>
         (function () {
             var BOARD_MEMBER_TYPE = 'board_member_tnelb';

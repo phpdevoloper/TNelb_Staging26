@@ -64,6 +64,12 @@ class PaymentController extends BaseController
             ], 422);
         }
 
+        $amountPaid = (int) round((float) $validated['amount']);
+        $appType = strtoupper(trim((string) ($form->appl_type ?? 'N')));
+        if ($appType === '') {
+            $appType = 'N';
+        }
+
         $payment = CC_Payments::updateOrCreate(
             [
                 'login_id'        => $validated['login_id'],
@@ -72,12 +78,14 @@ class PaymentController extends BaseController
             [
                 'transaction_id'    => $validated['transaction_id'],
                 'payment_status'    => 'success',
-                'amount_paid'            => $validated['amount'],
+                'amount_paid'       => $amountPaid,
+                'application_fee'   => $amountPaid,
+                'app_type'          => $appType,
                 'form_name'         => $form->form_name,
                 'cert_name'      => $form->certificate_name,
                 'payment_mode'      => $validated['payment_mode'],
-                'late_fee'         => $validated['lateFee'] ?? 0,
-                'late_months'       => $validated['lateMonths'] ?? 0,
+                'late_fee'         => (int) ($validated['lateFee'] ?? 0),
+                'late_months'       => (int) ($validated['lateMonths'] ?? 0),
                 'transaction_date'  => $validated['transactionDate'],
             ]
         );
@@ -143,12 +151,12 @@ class PaymentController extends BaseController
             [
                 'transaction_id'    => $validated['transaction_id'],
                 'payment_status'    => 'success',
-                'amount_paid'            => $validated['amount'],
+                'amount_paid'       => (int) round((float) $validated['amount']),
                 'form_name'         => $form->form_name,
                 'cert_name'      => $form->license_name,
                 'payment_mode'      => $validated['payment_mode'],
-                'late_fee'         => $validated['lateFee'] ?? 0,
-                'late_months'       => $validated['lateMonths'] ?? 0,
+                'late_fee'         => (int) ($validated['lateFee'] ?? 0),
+                'late_months'       => (int) ($validated['lateMonths'] ?? 0),
                 'transaction_date'  => $validated['transactionDate'] 
             ]
         );

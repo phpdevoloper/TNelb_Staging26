@@ -49,6 +49,7 @@ use App\Http\Controllers\Admin\EquipmentController;
     use App\Http\Controllers\Admin\generateLicencepdfController;
 
     use App\Http\Controllers\Admin\FilelocationController;
+use App\Http\Controllers\Admin\PaymentReports;
 
 // use App\Models\Admin;
 
@@ -100,6 +101,9 @@ use App\Http\Controllers\Admin\EquipmentController;
 
 
             Route::get('/dashboard', [LoginController::class, 'dashboard'])->name('dashboard');
+            # Payment Reports
+            Route::get('/payment_reports', [PaymentReports::class, 'index'])->name('payment_reports');
+
             Route::get('/completed_applications', [LoginController::class, 'completedApplications'])->name('completed_applications');
             Route::get('/completed_applications/data', [LoginController::class, 'completedApplicationsData'])->name('completed_applications.data');
 

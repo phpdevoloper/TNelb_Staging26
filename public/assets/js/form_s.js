@@ -1,9 +1,11 @@
 (function ($) {
     'use strict';
 
-    var cfg = window.FORM_S_CONFIG || {};
-    var verifyLicenseUrl = cfg.verifyLicenseUrl || '/verifylicense';
-    var formInstructionUrl = cfg.formInstructionUrl || '/licences/getFormInstruction';
+    // Prefer shared footer config (env-safe named routes); FORM_S_CONFIG is optional page override.
+    var shared = window.COMPETENCY_FORM_CONFIG || {};
+    var cfg = Object.assign({}, shared, window.FORM_S_CONFIG || {});
+    var verifyLicenseUrl = cfg.verifyLicenseUrl || '';
+    var formInstructionUrl = cfg.getFormInstructionUrl || cfg.formInstructionUrl || '';
 
     $(document).on('click', '.form-s-file-upload-btn:not(.form-s-file-upload-btn--table)', function (e) {
         e.preventDefault();
@@ -270,8 +272,14 @@
     });
 
     $(document).ready(async function () {
+        // Page-load declaration gate (apply-form-s). Payment flow is owned by competency_form_ws.js
+        // (showDeclarationPopup), which rebinds #proceedPayment when Pay runs.
         var modalEl = document.getElementById('competencyInstructionsModal');
         if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            return;
+        }
+        // Skip if this page already handled the intro gate, or instructions URL is missing.
+        if (modalEl.dataset.formSIntroHandled === '1' || !formInstructionUrl) {
             return;
         }
         var agreeCheckbox = modalEl.querySelector('#declaration-agree-renew');
@@ -280,6 +288,7 @@
         if (!agreeCheckbox || !errorText || !proceedBtn) {
             return;
         }
+        modalEl.dataset.formSIntroHandled = '1';
         var acceptModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
         var modalBody = modalEl.querySelector('#instructionContent');
         if (modalBody) {

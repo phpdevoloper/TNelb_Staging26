@@ -1762,6 +1762,33 @@ class FormController extends BaseController
         };
     }
 
+    /**
+     * Form save/submit must not mark N/R as paid. Paid status is set only after
+     * PayU/cc_payments success (or on fee-exempt D/A finalize).
+     */
+    private function resolveCompetencyPaymentStatusOnSave(
+        string $action,
+        ?string $applType,
+        ?string $existingPaymentStatus = null
+    ): string {
+        $existing = strtoupper(trim((string) $existingPaymentStatus));
+        if (in_array($existing, ['Y'], true)) {
+            return trim((string) $existingPaymentStatus);
+        }
+
+        if (strtolower(trim($action)) === 'draft') {
+            return 'N';
+        }
+
+        $type = strtoupper(trim((string) $applType));
+        if (in_array($type, ['D', 'A'], true)) {
+            return 'Y';
+        }
+
+        // N/R (and other paid types): stay unpaid until payment callback.
+        return 'N';
+    }
+
     /** Map cc_form_s_meta columns to legacy edit_application field names. */
     private function normalizeCcMetaRowForEdit(object $row): object
     {
@@ -2435,7 +2462,7 @@ class FormController extends BaseController
                 // 'pancard'             => $encrypted_pancard,
                 'app_status'              => 'P',
                 'appl_type'           => $appl_type,
-                'payment_status'      => ($action === 'draft') ? 'N' : 'Y',
+                'payment_status'      => $this->resolveCompetencyPaymentStatusOnSave($action, $appl_type),
                 // 'aadhaar_doc'         => $aadhaarFilename,
                 // 'pan_doc'             => $panFilename,
                 'wcc_no'      => $request->competency_certificate_no,
@@ -2843,12 +2870,11 @@ class FormController extends BaseController
         $validator->validate();
 
         $action = $request->input('form_action', 'draft');
-        $existingPaymentStatus = strtoupper(trim((string) ($existingForm->payment_status ?? '')));
-        $paymentStatus = $action === 'draft'
-            ? 'N'
-            : (in_array($existingPaymentStatus, ['Y', 'PAYMENT', 'PAID'], true)
-                ? $existingForm->payment_status
-                : 'payment');
+        $paymentStatus = $this->resolveCompetencyPaymentStatusOnSave(
+            $action,
+            $request->appl_type ?? $existingForm->appl_type ?? null,
+            $existingForm->payment_status ?? null
+        );
 
         DB::beginTransaction();
 
@@ -3351,7 +3377,11 @@ class FormController extends BaseController
                 $applicationId,
                 $form,
                 [
-                    'payment_status' => $action === 'draft' ? 'N' : 'payment',
+                    'payment_status' => $this->resolveCompetencyPaymentStatusOnSave(
+                        (string) $action,
+                        $appl_type,
+                        $form?->payment_status
+                    ),
                     'old_application' => $form?->old_application ?? $request->input('old_application'),
                 ]
             );
@@ -3707,7 +3737,11 @@ class FormController extends BaseController
 
             $metaOverrides = [
                 'appl_type' => $appl_type,
-                'payment_status' => $action === 'draft' ? 'N' : 'payment',
+                'payment_status' => $this->resolveCompetencyPaymentStatusOnSave(
+                    (string) $action,
+                    $appl_type,
+                    $form?->payment_status
+                ),
                 'old_application' => $oldApplicationId,
             ];
             if ($issuedCertificateNo !== null) {

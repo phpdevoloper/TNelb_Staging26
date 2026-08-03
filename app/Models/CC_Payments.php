@@ -17,6 +17,7 @@ class CC_Payments extends Model
         'login_id',
         'application_id',
         'transaction_id',
+        'app_type',
         'form_name',
         'cert_name',
         'late_fee',
