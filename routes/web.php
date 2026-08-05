@@ -540,6 +540,8 @@ Route::prefix('without-tmp')->name('without-tmp.')->group(function () {
 # PayUPaymentController Routes
 Route::post('/payu/initiate', [PayUPaymentController::class, 'initiate'])->middleware('auth') // use your app's auth middleware if different
     ->name('payu.initiate');
+Route::get('/payu/status', [PayUPaymentController::class, 'status'])->middleware('auth')
+    ->name('payu.status');
 Route::post('/payu/success', [PayUPaymentController::class, 'success'])->name('payu.success');
 Route::post('/payu/failure', [PayUPaymentController::class, 'failure'])->name('payu.failure');
 

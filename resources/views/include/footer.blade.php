@@ -176,6 +176,7 @@ window.COMPETENCY_FORM_CONFIG = {
     loginId: @json(auth()->check() ? (auth()->user()->login_id ?? '') : ''),
     csrfToken: @json(csrf_token()),
     payuInitiateUrl: @json(route('payu.initiate')),
+    payuStatusUrl: @json(route('payu.status')),
 };
 </script>
 <script src="{{ url('assets/js/competency_form_ws.js') }}?v={{ filemtime(public_path('assets/js/competency_form_ws.js')) }}"></script>

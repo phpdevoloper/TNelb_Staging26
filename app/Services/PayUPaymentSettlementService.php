@@ -44,6 +44,25 @@ class PayUPaymentSettlementService
                 $appType = 'N';
             }
 
+            // Prefer values saved at initiate; fall back to PayU udf2/udf3/udf4
+            $lateFee = (int) ($paymentTxn->late_fee ?? 0);
+            if ($lateFee <= 0 && isset($callback['udf2']) && is_numeric($callback['udf2'])) {
+                $lateFee = (int) round((float) $callback['udf2']);
+            }
+
+            $lateMonths = (int) ($paymentTxn->late_months ?? 0);
+            if ($lateMonths <= 0 && isset($callback['udf3']) && is_numeric($callback['udf3'])) {
+                $lateMonths = (int) $callback['udf3'];
+            }
+
+            $applicationFee = (int) ($paymentTxn->application_fee ?? 0);
+            if ($applicationFee <= 0 && isset($callback['udf4']) && is_numeric($callback['udf4'])) {
+                $applicationFee = (int) round((float) $callback['udf4']);
+            }
+            if ($applicationFee <= 0) {
+                $applicationFee = max(0, $amountPaid - $lateFee);
+            }
+
             CC_Payments::updateOrCreate(
                 [
                     'login_id' => $loginId,
@@ -52,15 +71,15 @@ class PayUPaymentSettlementService
                 [
                     'transaction_id' => $txnid,
                     'payment_status' => 'success',
-                    // cc_payments.amount_paid is bigint — never send "750.00"
+                    // cc_payments amount columns are bigint — never send "750.00"
                     'amount_paid' => $amountPaid,
-                    'application_fee' => $amountPaid,
+                    'application_fee' => $applicationFee,
                     'app_type' => $appType,
                     'form_name' => $form->form_name,
                     'cert_name' => $form->certificate_name,
                     'payment_mode' => $callback['mode'] ?? ($paymentTxn->payment_method ?: 'PayU'),
-                    'late_fee' => 0,
-                    'late_months' => 0,
+                    'late_fee' => $lateFee,
+                    'late_months' => $lateMonths,
                     'transaction_date' => now()->toDateString(),
                 ]
             );

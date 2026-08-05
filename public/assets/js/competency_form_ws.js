@@ -480,10 +480,16 @@
                             footer: '<div><span style="font-size: 13px;">Note: </span><span style="font-size: 13px;color: red;">The total amount is exclusive of payment gateway service charges.</span>',
                             preConfirm: async () => {
                                 try {
-                                        // Build a normal form POST to PayU initiate (full page redirect)
+                                        // Open PayU flow in a new window (must be from this click — avoids popup blockers)
+                                        const payuWin = window.open('', 'tnelb_payu_gateway');
+                                        if (!payuWin) {
+                                            throw new Error('Please allow pop-ups for this site to open the payment window.');
+                                        }
+
                                         const form = document.createElement('form');
                                         form.method = 'POST';
                                         form.action = cfg.payuInitiateUrl;
+                                        form.target = 'tnelb_payu_gateway';
 
                                         const fields = {
                                             _token: cfg.csrfToken || $('meta[name="csrf-token"]').attr('content'),
@@ -504,6 +510,18 @@
 
                                         document.body.appendChild(form);
                                         form.submit();
+                                        form.remove();
+
+                                        // Loader on this page; success popup when payment completes
+                                        watchPayUPaymentProgress({
+                                            applicationId: application_id,
+                                            applicantName: applicantName,
+                                            amount: amount ?? total_fees ?? 0,
+                                            formType: form_type,
+                                            licenceName: licence_name,
+                                            transactionDate: transactionDate,
+                                            payuWin: payuWin,
+                                        });
                                         return false;
 
                                 } catch (err) {
@@ -606,6 +624,155 @@
                 text: err && err.message ? err.message : 'Something went wrong. Please try again.'
             });
         }
+    }
+
+    function watchPayUPaymentProgress(opts) {
+        opts = opts || {};
+        const applicationId = opts.applicationId;
+        if (!applicationId) {
+            return;
+        }
+
+        // Stop any previous watcher
+        if (window.__tnelbPayUPollTimer) {
+            clearInterval(window.__tnelbPayUPollTimer);
+            window.__tnelbPayUPollTimer = null;
+        }
+        if (window.__tnelbPayUMessageHandler) {
+            window.removeEventListener('message', window.__tnelbPayUMessageHandler);
+            window.__tnelbPayUMessageHandler = null;
+        }
+
+        let finished = false;
+        const startedAt = Date.now();
+        const maxWaitMs = 10 * 60 * 1000; // 10 minutes
+
+        function finishSuccess(payload) {
+            if (finished) return;
+            finished = true;
+            if (window.__tnelbPayUPollTimer) {
+                clearInterval(window.__tnelbPayUPollTimer);
+                window.__tnelbPayUPollTimer = null;
+            }
+            if (window.__tnelbPayUMessageHandler) {
+                window.removeEventListener('message', window.__tnelbPayUMessageHandler);
+                window.__tnelbPayUMessageHandler = null;
+            }
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            showPaymentSuccessPopup(
+                payload.application_id || applicationId,
+                payload.txnid || '',
+                payload.transaction_date || opts.transactionDate || new Date().toLocaleDateString('en-GB'),
+                payload.applicant_name || opts.applicantName || 'N/A',
+                payload.amount != null ? payload.amount : (opts.amount || 0),
+                payload.form_type || opts.formType || 'New Application',
+                payload.licence_name || opts.licenceName || 'N/A',
+                false,
+                { feeExempt: false }
+            );
+        }
+
+        function finishFailed(message) {
+            if (finished) return;
+            finished = true;
+            if (window.__tnelbPayUPollTimer) {
+                clearInterval(window.__tnelbPayUPollTimer);
+                window.__tnelbPayUPollTimer = null;
+            }
+            if (window.__tnelbPayUMessageHandler) {
+                window.removeEventListener('message', window.__tnelbPayUMessageHandler);
+                window.__tnelbPayUMessageHandler = null;
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment not completed',
+                text: message || 'Payment failed or was cancelled. Please try again.',
+                confirmButtonText: 'OK',
+            });
+        }
+
+        Swal.fire({
+            title: 'Waiting for payment',
+            html: `
+                <div style="padding:8px 4px 0;">
+                    <div class="tnelb-payu-loader" style="width:56px;height:56px;margin:0 auto 16px;border:4px solid #dbeafe;border-top-color:#0d6efd;border-radius:50%;animation:tnelb-payu-spin .8s linear infinite;"></div>
+                    <p style="margin:0 0 6px;font-size:15px;color:#334155;">Complete payment in the <strong>new window</strong>.</p>
+                    <p style="margin:0;font-size:13px;color:#64748b;">This page will update automatically after success.</p>
+                </div>
+                <style>@keyframes tnelb-payu-spin{to{transform:rotate(360deg)}}</style>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Cancel waiting',
+            customClass: {
+                popup: 'swal2-border-radius',
+            },
+        }).then(function (result) {
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                finished = true;
+                if (window.__tnelbPayUPollTimer) {
+                    clearInterval(window.__tnelbPayUPollTimer);
+                    window.__tnelbPayUPollTimer = null;
+                }
+                if (window.__tnelbPayUMessageHandler) {
+                    window.removeEventListener('message', window.__tnelbPayUMessageHandler);
+                    window.__tnelbPayUMessageHandler = null;
+                }
+            }
+        });
+
+        window.__tnelbPayUMessageHandler = function (event) {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data || {};
+            if (data.type === 'TNELB_PAYU_SUCCESS' && data.payload) {
+                finishSuccess(data.payload);
+            }
+        };
+        window.addEventListener('message', window.__tnelbPayUMessageHandler);
+
+        async function pollOnce() {
+            if (finished) return;
+            if (Date.now() - startedAt > maxWaitMs) {
+                finishFailed('Payment is taking too long. Please check your dashboard or try again.');
+                return;
+            }
+
+            if (!cfg.payuStatusUrl) return;
+
+            try {
+                const res = await $.ajax({
+                    url: cfg.payuStatusUrl,
+                    type: 'GET',
+                    dataType: 'json',
+                    data: { application_id: applicationId },
+                    headers: {
+                        'X-CSRF-TOKEN': cfg.csrfToken || $('meta[name="csrf-token"]').attr('content'),
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (res && res.status === 'success' && res.payload) {
+                    finishSuccess(res.payload);
+                } else if (res && res.status === 'failed') {
+                    finishFailed('Payment failed or was cancelled in the payment window.');
+                }
+            } catch (e) {
+                // Keep waiting — temporary network/auth glitches should not stop polling
+            }
+        }
+
+        pollOnce();
+        window.__tnelbPayUPollTimer = setInterval(pollOnce, 3000);
     }
 
     function showPaymentSuccessPopup(loginId, transactionId, transactionDate, applicantName, amount, form_type, licence_name, isFormP, options) {

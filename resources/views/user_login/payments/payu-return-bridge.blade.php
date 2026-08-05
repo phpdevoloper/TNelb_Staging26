@@ -58,12 +58,32 @@
     <div class="wrap">
         <div class="spinner" aria-hidden="true"></div>
         <h1>Payment successful</h1>
-        <p>Please wait while we return you to your dashboard...</p>
-        <a id="continueLink" href="{{ $dashboardUrl }}">Click here if you are not redirected</a>
+        <p id="bridgeMsg">Updating your application page...</p>
+        <a id="continueLink" href="{{ $dashboardUrl }}">Click here if nothing happens</a>
     </div>
     <script>
-        // Same-site navigation keeps SameSite=Lax login cookie (HTTP redirect from PayU POST often does not).
-        window.location.replace(@json($dashboardUrl));
+        (function () {
+            var payload = @json($successPayload ?? []);
+            var dashboardUrl = @json($dashboardUrl);
+
+            // Prefer notifying the original application tab (opener), then close this popup.
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({
+                        type: 'TNELB_PAYU_SUCCESS',
+                        payload: payload
+                    }, window.location.origin);
+                    document.getElementById('bridgeMsg').textContent = 'You can close this window and continue on the application page.';
+                    setTimeout(function () {
+                        window.close();
+                    }, 600);
+                    return;
+                }
+            } catch (e) {}
+
+            // Fallback: no opener — go to dashboard (same-site navigation keeps session)
+            window.location.replace(dashboardUrl);
+        })();
     </script>
 </body>
 </html>

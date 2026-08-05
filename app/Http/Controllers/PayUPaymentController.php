@@ -10,7 +10,7 @@ use App\Models\PaymentTransactionModel;
 use App\Services\PayUPaymentSettlementService;
 use Illuminate\Support\Facades\Log;
 
-class PayUPaymentController extends Controller
+class PayUPaymentController extends BaseController
 {
     public function initiate(Request $request, PayUService $payU)
     {
@@ -18,6 +18,9 @@ class PayUPaymentController extends Controller
             $request->validate([
                 'application_id' => 'required',
                 'amount' => 'required|numeric|min:0.01',
+                'actual_fees' => 'nullable|numeric|min:0',
+                'lateFee' => 'nullable|numeric|min:0',
+                'lateMonths' => 'nullable|integer|min:0',
             ]);
 
             $applicationId = $request->application_id;
@@ -30,12 +33,21 @@ class PayUPaymentController extends Controller
 
             // Amount from Payment Details popup (getPaymentDetails → total_fees)
             $amount = (float) $request->amount;
-            // cc_payments.transaction_id is varchar(20) — keep txnid <= 20 chars
+            $lateFee = (int) round((float) ($request->input('lateFee', 0)));
+            $lateMonths = (int) ($request->input('lateMonths', 0));
+            $applicationFee = $request->filled('actual_fees')
+                ? (int) round((float) $request->input('actual_fees'))
+                : max(0, (int) round($amount) - $lateFee);
+
+            // Keep txnid within typical varchar limits used by cc_payments.transaction_id
             $txnid = 'TN' . strtoupper(Str::random(18));
             PaymentTransactionModel::create([
                 'application_id' => $applicationId,
                 'txnid' => $txnid,
                 'amount' => $amount,
+                'application_fee' => $applicationFee,
+                'late_fee' => $lateFee,
+                'late_months' => $lateMonths,
                 'gateway' => 'PAYU',
                 'status' => 'INITIATED',
             ]);
@@ -50,6 +62,10 @@ class PayUPaymentController extends Controller
                 'surl' => route('payu.success'),
                 'furl' => route('payu.failure'),
                 'udf1' => $applicationId,
+                // Backup for settlement if DB columns are missing/old rows
+                'udf2' => (string) $lateFee,
+                'udf3' => (string) $lateMonths,
+                'udf4' => (string) $applicationFee,
             ];
             $data['hash'] = $payU->generatePaymentHash($data);
             return view('user_login.payments.payu-submit', [
@@ -146,11 +162,78 @@ class PayUPaymentController extends Controller
     }
 
     /**
-     * Redirect to dashboard with query params so the existing #paymentSuccessModal opens.
+     * Poll from the original application tab while PayU runs in a popup.
+     */
+    public function status(Request $request)
+    {
+        $request->validate([
+            'application_id' => 'required|string',
+        ]);
+
+        $applicationId = trim((string) $request->application_id);
+        $form = CC_Forms_Meta::findByApplicationId($applicationId);
+        if (!$form) {
+            return response()->json(['status' => 'not_found'], 404);
+        }
+
+        $loginId = (string) (auth()->user()->login_id ?? '');
+        if ($loginId === '' || (string) ($form->login_id ?? '') !== $loginId) {
+            return response()->json(['status' => 'forbidden'], 403);
+        }
+
+        $paymentTxn = PaymentTransactionModel::where('application_id', $applicationId)
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$paymentTxn) {
+            return response()->json(['status' => 'pending']);
+        }
+
+        $gatewayStatus = strtoupper((string) $paymentTxn->status);
+        if ($gatewayStatus === 'FAILED') {
+            return response()->json([
+                'status' => 'failed',
+                'txnid' => $paymentTxn->txnid,
+            ]);
+        }
+
+        if ($gatewayStatus !== 'SUCCESS') {
+            return response()->json([
+                'status' => 'pending',
+                'txnid' => $paymentTxn->txnid,
+                'gateway_status' => $paymentTxn->status,
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'payload' => $this->buildSuccessPayload($paymentTxn, $form),
+        ]);
+    }
+
+    /**
+     * Notify opener tab (if any), else fall back to dashboard redirect.
      */
     private function redirectToPaymentSuccessPopup(PaymentTransactionModel $paymentTxn)
     {
         $form = CC_Forms_Meta::findByApplicationId((string) $paymentTxn->application_id);
+        $payload = $this->buildSuccessPayload($paymentTxn, $form);
+
+        $dashboardUrl = route('dashboard', array_merge(
+            ['payu_success' => 1],
+            $payload
+        ));
+
+        return response()
+            ->view('user_login.payments.payu-return-bridge', [
+                'dashboardUrl' => $dashboardUrl,
+                'successPayload' => $payload,
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
+    private function buildSuccessPayload(PaymentTransactionModel $paymentTxn, $form): array
+    {
         $applType = strtoupper(trim((string) ($form->appl_type ?? 'N')));
         $formType = match ($applType) {
             'D' => 'Digitization Application',
@@ -159,8 +242,7 @@ class PayUPaymentController extends Controller
             default => 'New Application',
         };
 
-        $dashboardUrl = route('dashboard', [
-            'payu_success' => 1,
+        return [
             'application_id' => $paymentTxn->application_id,
             'txnid' => $paymentTxn->txnid,
             'amount' => (int) round((float) $paymentTxn->amount),
@@ -168,13 +250,6 @@ class PayUPaymentController extends Controller
             'licence_name' => $form->certificate_name ?? ($form->form_name ?? 'N/A'),
             'form_type' => $formType,
             'transaction_date' => now()->format('d/m/Y'),
-        ]);
-
-        // Do not HTTP-redirect from the cross-site PayU POST — Chrome often omits
-        // SameSite=Lax cookies on that redirect chain. Serve a tiny same-origin page
-        // that navigates via JS so the original login cookie is sent.
-        return response()
-            ->view('user_login.payments.payu-return-bridge', compact('dashboardUrl'))
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+        ];
     }
 }

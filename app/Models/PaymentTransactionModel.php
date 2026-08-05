@@ -15,6 +15,9 @@ class PaymentTransactionModel extends Model
         'application_id',
         'txnid',
         'amount',
+        'application_fee',
+        'late_fee',
+        'late_months',
         'gateway',
         'payment_method',
         'mihpayid',
@@ -24,5 +27,8 @@ class PaymentTransactionModel extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'application_fee' => 'integer',
+        'late_fee' => 'integer',
+        'late_months' => 'integer',
     ];
 }
