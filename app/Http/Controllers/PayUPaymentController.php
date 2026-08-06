@@ -115,7 +115,7 @@ class PayUPaymentController extends BaseController
 
             if (!$isSuccess) {
                 $paymentTxn->update(['status' => 'FAILED']);
-                return view('user_login.payments.failed', ['payment' => $paymentTxn]);
+                return $this->renderPaymentFailure($paymentTxn, 'Payment was declined or cancelled at the gateway.');
             }
 
             $settlement->settleSuccess($paymentTxn, $callback);
@@ -132,16 +132,10 @@ class PayUPaymentController extends BaseController
             ]);
 
             if ($paymentTxn) {
-                return view('user_login.payments.failed', [
-                    'payment' => $paymentTxn,
-                    'errorMessage' => 'Payment received from PayU, but confirmation failed: ' . $e->getMessage(),
-                ]);
+                return $this->renderPaymentFailure($paymentTxn, 'Payment received from PayU, but confirmation failed: ' . $e->getMessage());
             }
 
-            return view('user_login.payments.failed', [
-                'payment' => null,
-                'errorMessage' => 'Payment confirmation failed. Please login and check application status.',
-            ]);
+            return $this->renderPaymentFailure(null, 'Payment confirmation failed. Please login and check application status.');
         }
     }
 
@@ -151,6 +145,7 @@ class PayUPaymentController extends BaseController
             'txnid',
             $request->txnid
         )->first();
+
         if ($payment) {
             $payment->update([
                 'mihpayid' => $request->mihpayid,
@@ -158,7 +153,13 @@ class PayUPaymentController extends BaseController
                 'gateway_response' => json_encode($request->all()),
             ]);
         }
-        return view('user_login.payments.failed', compact('payment'));
+
+        $message = trim((string) $request->input('error_Message', ''));
+        if ($message === '' || strcasecmp($message, 'No Error') === 0) {
+            $message = 'Payment failed or was cancelled at the payment gateway.';
+        }
+
+        return $this->renderPaymentFailure($payment, $message);
     }
 
     /**
@@ -251,5 +252,22 @@ class PayUPaymentController extends BaseController
             'form_type' => $formType,
             'transaction_date' => now()->format('d/m/Y'),
         ];
+    }
+
+    private function renderPaymentFailure(?PaymentTransactionModel $payment, string $errorMessage = '')
+    {
+        $failurePayload = [
+            'application_id' => $payment?->application_id,
+            'txnid' => $payment?->txnid,
+            'message' => $errorMessage !== '' ? $errorMessage : 'Payment failed or was cancelled.',
+        ];
+
+        return response()
+            ->view('user_login.payments.payu-failure-bridge', [
+                'payment' => $payment,
+                'errorMessage' => $failurePayload['message'],
+                'failurePayload' => $failurePayload,
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 }

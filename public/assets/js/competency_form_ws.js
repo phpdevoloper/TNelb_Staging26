@@ -686,10 +686,22 @@
                 clearInterval(window.__tnelbPayUPollTimer);
                 window.__tnelbPayUPollTimer = null;
             }
+            if (window.__tnelbPayUPopupTimer) {
+                clearInterval(window.__tnelbPayUPopupTimer);
+                window.__tnelbPayUPopupTimer = null;
+            }
             if (window.__tnelbPayUMessageHandler) {
                 window.removeEventListener('message', window.__tnelbPayUMessageHandler);
                 window.__tnelbPayUMessageHandler = null;
             }
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
             Swal.fire({
                 icon: 'error',
                 title: 'Payment not completed',
@@ -735,9 +747,37 @@
             const data = event.data || {};
             if (data.type === 'TNELB_PAYU_SUCCESS' && data.payload) {
                 finishSuccess(data.payload);
+            } else if (data.type === 'TNELB_PAYU_FAILED') {
+                const payload = data.payload || {};
+                finishFailed(payload.message || 'Payment failed or was cancelled in the payment window.');
             }
         };
         window.addEventListener('message', window.__tnelbPayUMessageHandler);
+
+        // If user closes the PayU popup without completing, stop waiting after a short grace period
+        if (opts.payuWin) {
+            if (window.__tnelbPayUPopupTimer) {
+                clearInterval(window.__tnelbPayUPopupTimer);
+            }
+            window.__tnelbPayUPopupTimer = setInterval(function () {
+                if (finished) {
+                    clearInterval(window.__tnelbPayUPopupTimer);
+                    window.__tnelbPayUPopupTimer = null;
+                    return;
+                }
+                try {
+                    if (opts.payuWin.closed) {
+                        clearInterval(window.__tnelbPayUPopupTimer);
+                        window.__tnelbPayUPopupTimer = null;
+                        pollOnce().then(function () {
+                            if (!finished) {
+                                finishFailed('Payment window was closed before payment completed. Please try again.');
+                            }
+                        });
+                    }
+                } catch (e) {}
+            }, 1500);
+        }
 
         async function pollOnce() {
             if (finished) return;
@@ -764,7 +804,7 @@
                 if (res && res.status === 'success' && res.payload) {
                     finishSuccess(res.payload);
                 } else if (res && res.status === 'failed') {
-                    finishFailed('Payment failed or was cancelled in the payment window.');
+                    finishFailed((res.payload && res.payload.message) || 'Payment failed or was cancelled in the payment window.');
                 }
             } catch (e) {
                 // Keep waiting — temporary network/auth glitches should not stop polling
