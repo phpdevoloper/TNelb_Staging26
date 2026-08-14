@@ -2899,6 +2899,7 @@ class FormController extends BaseController
                 'wcc_to'            => $request->certificate_valid_to ?: ($request->certificate_date ?: null),
                 'wcc_issue_date'    => $request->certificate_issue_date ?: null,
                 'wcc_from'          => $request->certificate_valid_from ?: null,
+                'app_status'        => 'D',
                 'payment_status'    => $paymentStatus,
                 'submitted_date'    => $this->dbNow,
                 'updated_at'        => $this->dbNow,
@@ -3377,6 +3378,7 @@ class FormController extends BaseController
                 $applicationId,
                 $form,
                 [
+                    'app_status' => 'D',
                     'payment_status' => $this->resolveCompetencyPaymentStatusOnSave(
                         (string) $action,
                         $appl_type,

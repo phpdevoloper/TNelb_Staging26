@@ -15,6 +15,31 @@
     $meetingDate = ($hasRow && ! empty($expRow->board_meeting_date))
         ? \Carbon\Carbon::parse($expRow->board_meeting_date)->format('Y-m-d')
         : '';
+    $boardMeetingMaster = collect($boardMeetingMaster ?? []);
+    $meetingNosForDate = $meetingDate !== ''
+        ? $boardMeetingMaster
+            ->filter(fn ($r) => (string) ($r['bm_date'] ?? '') === $meetingDate)
+            ->pluck('bm_no')
+            ->map(fn ($n) => (string) $n)
+            ->unique()
+            ->values()
+            ->all()
+        : [];
+    if ($meetingDetails !== '' && ! in_array((string) $meetingDetails, $meetingNosForDate, true)) {
+        $meetingNosForDate[] = (string) $meetingDetails;
+    }
+    /* Org options only for the selected meeting date (never the full master list). */
+    $boardRepresentingOrgs = $meetingDate !== '' && count($meetingNosForDate) > 0
+        ? $boardMeetingMaster
+            ->filter(fn ($r) => (string) ($r['bm_date'] ?? '') === $meetingDate)
+            ->pluck('bm_member')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all()
+        : [];
+    $hasValidMeetingDate = $meetingDate !== '' && count($meetingNosForDate) > 0;
     $rowIndex = $rowIndex ?? 0;
     $hideUploadWhenDocExists = ! empty($hideUploadWhenDocExists);
     $alterationExistingRow = ! empty($alterationExistingRow);
@@ -48,18 +73,25 @@
     <div class="work-row-grid row g-2">
         <div class="work-board-member-panel col-12">
             <div class="row g-2">
-                <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-details">
-                    <label class="work-card-field-label">Details of the meeting attended <span class="req">*</span></label>
-                    <select class="form-control work-board-meeting-details" name="work_board_meeting_details[]" autocomplete="off" required>
-                        <option value="">Select</option>
-                        @for ($meetingOpt = 100; $meetingOpt <= 999; $meetingOpt++)
-                            <option value="{{ $meetingOpt }}" {{ (string) $meetingDetails === (string) $meetingOpt ? 'selected' : '' }}>{{ $meetingOpt }}</option>
-                        @endfor
-                    </select>
-                </div>
                 <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-date">
                     <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
-                    <input type="date" class="form-control work-board-meeting-date" name="work_board_meeting_date[]" value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" required>
+                    <input type="date" class="form-control work-board-meeting-date" name="work_board_meeting_date[]" value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" required data-raw="{{ $meetingDate }}">
+                    @if ($meetingDate !== '' && count($meetingNosForDate) === 0)
+                        <span class="error-message text-danger d-block mt-1 work-board-meeting-date-error" role="alert">No meeting for this date</span>
+                    @endif
+                </div>
+                <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-details">
+                    <label class="work-card-field-label">Details of the meeting attended <span class="req">*</span></label>
+                    <select class="form-control work-board-meeting-details" name="work_board_meeting_details[]" autocomplete="off" required @if($meetingDate === '' || count($meetingNosForDate) === 0) disabled @endif>
+                        @if ($meetingDate === '' || count($meetingNosForDate) === 0)
+                            <option value="">Select date first</option>
+                        @else
+                            <option value="">Select</option>
+                            @foreach ($meetingNosForDate as $meetingOpt)
+                                <option value="{{ $meetingOpt }}" {{ (string) $meetingDetails === (string) $meetingOpt ? 'selected' : '' }}>{{ $meetingOpt }}</option>
+                            @endforeach
+                        @endif
+                    </select>
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation">
                     <label class="work-card-field-label">Representing Organisation<span class="req">*</span></label>
@@ -67,6 +99,8 @@
                         'orgName' => $orgName,
                         'required' => true,
                         'disabled' => $alterationExistingRow,
+                        'boardRepresentingOrgs' => $boardRepresentingOrgs,
+                        'hasValidMeetingDate' => $hasValidMeetingDate,
                     ])
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation-address">

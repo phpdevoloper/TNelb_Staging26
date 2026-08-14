@@ -77,8 +77,8 @@
     /* Payment Status — compact (Success / Pending only) */
     .table-login-compact thead th:nth-child(6),
     .table-login-compact tbody td:nth-child(6) {
-        width: 5.25rem;
-        max-width: 5.25rem;
+        width: 7.5rem;
+        max-width: 7.5rem;
         box-sizing: border-box;
         padding-left: 3px !important;
         padding-right: 3px !important;
@@ -126,9 +126,14 @@
         </tr>
     </thead>
     <tbody>
+        @php $payuCheckableApplications = $payuCheckableApplications ?? []; @endphp
         @foreach ($paginatedData as $index => $workflow)
         @php
             $sts = data_get($workflow, 'status') ?? data_get($workflow, 'application_status') ?? data_get($workflow, 'app_status');
+            $appId = $workflow->application_id ?? '';
+            $payuGatewayStatus = $payuCheckableApplications[$appId] ?? null;
+            $isEditingDraft = (($sts === 'D') || ($workflow->payment_status == 'draft')) && $payuGatewayStatus === null;
+            $showPayuCheck = $workflow->payment_status != 'payment' && $payuGatewayStatus !== null;
         @endphp
         <tr @if($sts == 'QU') class="return-row" @endif>
             <td @if($sts == 'QU') class="return-cell" @endif>
@@ -183,7 +188,7 @@
 
             <!-- Application Status -->
             <td>
-                @if ($workflow->payment_status == 'draft')
+                @if ($isEditingDraft)
                     @php
                         $isFormPRenewalDraft = strtoupper($workflow->form_name ?? '') === 'P'
                             && strtoupper($workflow->appl_type ?? '') === 'R';
@@ -199,7 +204,9 @@
                         <button class="btn btn-info btn-sm"><i class="fa fa-pencil"></i> Draft</button>
                     </a>
                 @else
-                    @if ($sts == 'P')
+                    @if ($payuGatewayStatus && $workflow->payment_status != 'payment')
+                        <span class="btn btn-sm btn-primary">Submitted</span>
+                    @elseif ($sts == 'P')
                         <span class="btn btn-sm btn-primary">Submitted</span>
                     @elseif ($sts == 'F')
                         <span class="btn btn-warning btn-sm">In Progress</span>
@@ -221,16 +228,29 @@
 
             <!-- Payment Status -->
             <td>
-                @if ($workflow->payment_status == 'payment')
-                    <p class="text-success"><strong>Success</strong></p>
+                @if ($isEditingDraft)
+                    <p class="text-muted mb-1">-</p>
+                @elseif ($workflow->payment_status == 'payment')
+                    <p class="text-success mb-1"><strong>Success</strong></p>
                 @else
-                    <p class="text-danger"><strong>Pending</strong></p>
+                    <p class="text-danger mb-1"><strong>Pending</strong></p>
+                @endif
+                @if ($showPayuCheck)
+                    <button type="button"
+                        class="btn btn-warning btn-sm btn-payu-check-status"
+                        data-application-id="{{ $appId }}"
+                        title="Verify with PayU">
+                        <i class="fa fa-refresh"></i> Status
+                    </button>
+                    @if ($payuGatewayStatus)
+                        <small class="d-block text-muted" style="font-size:10px;">PayU: {{ $payuGatewayStatus }}</small>
+                    @endif
                 @endif
             </td>
 
             <!-- Acknowledgement Download -->
             <td>
-                @if ($workflow->payment_status == 'draft')
+                @if ($isEditingDraft)
                     <p>-</p>
                 @else
                     @if ($workflow->form_name == 'P')

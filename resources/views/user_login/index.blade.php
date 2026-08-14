@@ -1542,4 +1542,67 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }, 350);
     });
+
+    $(document).on('click', '.btn-payu-check-status', function () {
+        var btn = $(this);
+        var applicationId = btn.data('application-id');
+        if (!applicationId || btn.prop('disabled')) {
+            return;
+        }
+
+        btn.prop('disabled', true);
+        var originalHtml = btn.html();
+        btn.html('<i class="fa fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: "{{ route('payu.check_status') }}",
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                application_id: applicationId,
+                _token: $('meta[name="csrf-token"]').attr('content'),
+            },
+            success: function (res) {
+                if (res && res.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Payment successful',
+                        text: res.message || 'Your payment has been confirmed.',
+                        confirmButtonText: 'OK',
+                    }).then(function () {
+                        window.location.reload();
+                    });
+                    return;
+                }
+                if (res && res.status === 'failed') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Payment not completed',
+                        text: res.message || 'Payment failed. You can pay again from your application.',
+                        confirmButtonText: 'OK',
+                    }).then(function () {
+                        window.location.reload();
+                    });
+                    return;
+                }
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Still in progress',
+                    text: (res && res.message) ? res.message : 'Payment is still processing at the bank. Try again later.',
+                    confirmButtonText: 'OK',
+                });
+            },
+            error: function (xhr) {
+                var msg = 'Unable to check payment status. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                Swal.fire({ icon: 'error', title: 'Check failed', text: msg });
+            },
+            complete: function () {
+                btn.prop('disabled', false);
+                btn.html(originalHtml);
+            },
+        });
+    });
 </script>

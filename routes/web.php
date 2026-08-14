@@ -52,6 +52,7 @@ use App\Http\Controllers\WithoutTmp\WithoutTmpController;
 
 use App\Http\Controllers\FormCLAlteration;
 use App\Http\Controllers\PayUPaymentController;
+use App\Http\Controllers\PaymentMaintenanceController;
 
 // ------------------------ Public Pages ------------------------
 
@@ -111,6 +112,13 @@ Route::get('/reload-captcha', [LoginController::class, 'reloadCaptcha']);
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/user_login', [RegisterController::class, 'user_login'])->name('user_login');
+
+    # Payment maintenance (testing only — logged-in users)
+    Route::get('/payment-maintenance', [PaymentMaintenanceController::class, 'index'])->name('payment.maintenance');
+    Route::post('/payment-maintenance/update-status', [PaymentMaintenanceController::class, 'updatePaymentStatus'])->name('payment.maintenance.update_status');
+    Route::delete('/payment-maintenance/cc-payments', [PaymentMaintenanceController::class, 'deleteCcPayments'])->name('payment.maintenance.delete_cc_payments');
+    Route::delete('/payment-maintenance/payment-transactions', [PaymentMaintenanceController::class, 'deletePaymentTransactions'])->name('payment.maintenance.delete_payment_transactions');
+
     Route::get('/apply-form-s', [RegisterController::class, 'apply_form_s'])->name('apply-form-s');
     
     Route::get('/apply-form-w', [RegisterController::class, 'apply_form_w'])->name('apply-form-w');
@@ -542,6 +550,8 @@ Route::post('/payu/initiate', [PayUPaymentController::class, 'initiate'])->middl
     ->name('payu.initiate');
 Route::get('/payu/status', [PayUPaymentController::class, 'status'])->middleware('auth')
     ->name('payu.status');
+Route::post('/payu/check-status', [PayUPaymentController::class, 'checkStatus'])->middleware('auth')
+    ->name('payu.check_status');
 Route::post('/payu/success', [PayUPaymentController::class, 'success'])->name('payu.success');
 Route::post('/payu/failure', [PayUPaymentController::class, 'failure'])->name('payu.failure');
 

@@ -31,7 +31,6 @@ class PayUPaymentController extends BaseController
                 return back()->with('error', 'Application not found');
             }
 
-            // Amount from Payment Details popup (getPaymentDetails → total_fees)
             $amount = (float) $request->amount;
             $lateFee = (int) round((float) ($request->input('lateFee', 0)));
             $lateMonths = (int) ($request->input('lateMonths', 0));
@@ -39,7 +38,6 @@ class PayUPaymentController extends BaseController
                 ? (int) round((float) $request->input('actual_fees'))
                 : max(0, (int) round($amount) - $lateFee);
 
-            // Keep txnid within typical varchar limits used by cc_payments.transaction_id
             $txnid = 'TN' . strtoupper(Str::random(18));
             PaymentTransactionModel::create([
                 'application_id' => $applicationId,
@@ -51,6 +49,12 @@ class PayUPaymentController extends BaseController
                 'gateway' => 'PAYU',
                 'status' => 'INITIATED',
             ]);
+
+            // Pay Now means the applicant has submitted; renewal draft saves may still have app_status D.
+            if (strtoupper(trim((string) ($form->app_status ?? ''))) === 'D') {
+                $form->update(['app_status' => 'P']);
+            }
+
             $data = [
                 'key' => config('payu.key'),
                 'txnid' => $txnid,
@@ -62,12 +66,12 @@ class PayUPaymentController extends BaseController
                 'surl' => route('payu.success'),
                 'furl' => route('payu.failure'),
                 'udf1' => $applicationId,
-                // Backup for settlement if DB columns are missing/old rows
                 'udf2' => (string) $lateFee,
                 'udf3' => (string) $lateMonths,
                 'udf4' => (string) $applicationFee,
             ];
             $data['hash'] = $payU->generatePaymentHash($data);
+
             return view('user_login.payments.payu-submit', [
                 'data' => $data,
                 'url' => config('payu.payment_url'),
@@ -79,92 +83,14 @@ class PayUPaymentController extends BaseController
 
     public function success(Request $request, PayUService $payU, PayUPaymentSettlementService $settlement)
     {
-        $txnid = $request->input('txnid');
-        $paymentTxn = null;
-
-        try {
-            if (!$txnid) {
-                return view('user_login.payments.failed', ['payment' => null]);
-            }
-
-            $paymentTxn = PaymentTransactionModel::where('txnid', $txnid)->firstOrFail();
-
-            // Already finalized — go to dashboard and show old success popup
-            if ($paymentTxn->status === 'SUCCESS') {
-                return $this->redirectToPaymentSuccessPopup($paymentTxn);
-            }
-
-            // Save raw PayU callback first
-            $paymentTxn->update([
-                'mihpayid' => $request->input('mihpayid'),
-                'gateway_response' => json_encode($request->all()),
-                'status' => 'PENDING_VERIFICATION',
-                'payment_method' => $request->input('mode'),
-            ]);
-
-            // Do NOT call PayU verify_payment API — server outbound to test.payu.in
-            // times out (cURL 28) and previously aborted this handler.
-            $callback = $request->all();
-            $isSuccess = strtolower((string) $request->input('status')) === 'success';
-
-            if ($isSuccess && ! $payU->isValidResponseHash($callback)) {
-                Log::warning('PayU surl status=success but reverse hash mismatch; accepting surl status', [
-                    'txnid' => $txnid,
-                ]);
-            }
-
-            if (!$isSuccess) {
-                $paymentTxn->update(['status' => 'FAILED']);
-                return $this->renderPaymentFailure($paymentTxn, 'Payment was declined or cancelled at the gateway.');
-            }
-
-            $settlement->settleSuccess($paymentTxn, $callback);
-
-            $paymentTxn->refresh();
-            // Browser follows this as a same-site GET, so session cookie is sent again.
-            return $this->redirectToPaymentSuccessPopup($paymentTxn);
-        } catch (\Throwable $e) {
-            // On handler failure keep public failed page (do not send users to auth routes).
-            Log::error('PayU success handler failed', [
-                'message' => $e->getMessage(),
-                'txnid' => $txnid,
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            if ($paymentTxn) {
-                return $this->renderPaymentFailure($paymentTxn, 'Payment received from PayU, but confirmation failed: ' . $e->getMessage());
-            }
-
-            return $this->renderPaymentFailure(null, 'Payment confirmation failed. Please login and check application status.');
-        }
+        return $this->handlePayUCallback($request, $payU, $settlement, 'surl');
     }
 
-    public function failure(Request $request)
+    public function failure(Request $request, PayUService $payU, PayUPaymentSettlementService $settlement)
     {
-        $payment = PaymentTransactionModel::where(
-            'txnid',
-            $request->txnid
-        )->first();
-
-        if ($payment) {
-            $payment->update([
-                'mihpayid' => $request->mihpayid,
-                'status' => 'FAILED',
-                'gateway_response' => json_encode($request->all()),
-            ]);
-        }
-
-        $message = trim((string) $request->input('error_Message', ''));
-        if ($message === '' || strcasecmp($message, 'No Error') === 0) {
-            $message = 'Payment failed or was cancelled at the payment gateway.';
-        }
-
-        return $this->renderPaymentFailure($payment, $message);
+        return $this->handlePayUCallback($request, $payU, $settlement, 'furl');
     }
 
-    /**
-     * Poll from the original application tab while PayU runs in a popup.
-     */
     public function status(Request $request)
     {
         $request->validate([
@@ -195,6 +121,7 @@ class PayUPaymentController extends BaseController
             return response()->json([
                 'status' => 'failed',
                 'txnid' => $paymentTxn->txnid,
+                'message' => $paymentTxn->error_message,
             ]);
         }
 
@@ -213,8 +140,196 @@ class PayUPaymentController extends BaseController
     }
 
     /**
-     * Notify opener tab (if any), else fall back to dashboard redirect.
+     * User-triggered PayU verify for pending / failed gateway rows (dashboard button).
      */
+    public function checkStatus(Request $request, PayUPaymentSettlementService $settlement)
+    {
+        $request->validate([
+            'application_id' => 'required|string',
+        ]);
+
+        $applicationId = trim((string) $request->application_id);
+        $form = CC_Forms_Meta::findByApplicationId($applicationId);
+        if (!$form) {
+            return response()->json([
+                'status' => 'not_found',
+                'message' => 'Application not found.',
+            ], 404);
+        }
+
+        $loginId = (string) (auth()->user()->login_id ?? '');
+        if ($loginId === '' || (string) ($form->login_id ?? '') !== $loginId) {
+            return response()->json(['status' => 'forbidden', 'message' => 'Access denied.'], 403);
+        }
+
+        $paymentTxn = PaymentTransactionModel::where('application_id', $applicationId)
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$paymentTxn) {
+            return response()->json([
+                'status' => 'not_found',
+                'message' => 'No payment attempt found for this application.',
+            ], 404);
+        }
+
+        if (strtoupper((string) $paymentTxn->status) === 'SUCCESS') {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment is already recorded as successful.',
+                'payload' => $this->buildSuccessPayload($paymentTxn, $form),
+            ]);
+        }
+
+        if (strtoupper((string) $paymentTxn->status) === 'FAILED') {
+            $settlement->resetApplicationForPaymentRetry($paymentTxn);
+
+            return response()->json([
+                'status' => 'failed',
+                'message' => $paymentTxn->error_message ?: 'Payment failed. You can pay again from your application.',
+                'txnid' => $paymentTxn->txnid,
+            ]);
+        }
+
+        $result = $settlement->refreshPendingFromPayU($paymentTxn);
+        $paymentTxn = $result['payment'];
+        $form = CC_Forms_Meta::findByApplicationId($applicationId);
+
+        if ($result['outcome'] === PayUService::OUTCOME_SUCCESS) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment confirmed successfully.',
+                'payload' => $this->buildSuccessPayload($paymentTxn, $form),
+            ]);
+        }
+
+        if ($result['outcome'] === PayUService::OUTCOME_FAILED) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => $result['message'] ?? 'Payment failed. You can pay again from your application.',
+                'txnid' => $paymentTxn->txnid,
+            ]);
+        }
+
+        
+        return response()->json([
+            'status' => 'pending',
+            'message' => $result['message'] ?? 'Payment is still in progress at the bank. Please try again later.',
+            'txnid' => $paymentTxn->txnid,
+        ]);
+    }
+
+    private function handlePayUCallback(
+        Request $request,
+        PayUService $payU,
+        PayUPaymentSettlementService $settlement,
+        string $source
+    ) {
+        $txnid = trim((string) $request->input('txnid', ''));
+        $paymentTxn = null;
+
+        try {
+            if ($txnid === '') {
+                return $this->renderPaymentFailure(null, 'Payment reference missing from PayU response.');
+            }
+
+            $paymentTxn = PaymentTransactionModel::where('txnid', $txnid)->first();
+            if (!$paymentTxn) {
+                return $this->renderPaymentFailure(null, 'Payment record not found.');
+            }
+
+            $terminalStatus = strtoupper((string) $paymentTxn->status);
+            if ($terminalStatus === 'SUCCESS') {
+                return $this->redirectToPaymentSuccessPopup($paymentTxn);
+            }
+            if ($terminalStatus === 'FAILED') {
+                return $this->renderPaymentFailure(
+                    $paymentTxn,
+                    $paymentTxn->error_message ?: 'Payment failed or was cancelled at the payment gateway.'
+                );
+            }
+
+            $callback = $request->all();
+
+            $validation = $payU->validateCallback($callback, $paymentTxn);
+            if (! $validation['valid']) {
+                Log::warning('PayU post-back rejected', [
+                    'txnid' => $txnid,
+                    'source' => $source,
+                    'reason' => $validation['reason'],
+                    'status' => $callback['status'] ?? null,
+                    'unmappedstatus' => $callback['unmappedstatus'] ?? null,
+                ]);
+
+                $paymentTxn->update([
+                    'gateway_response' => json_encode(array_merge($callback, [
+                        '_callback_source' => $source,
+                        '_validation_error' => $validation['reason'],
+                    ])),
+                ]);
+
+                return $this->renderPaymentFailure(
+                    $paymentTxn->fresh(),
+                    $validation['reason'] ?? 'Payment response could not be verified.'
+                );
+            }
+
+            $outcome = $payU->resolveCallbackOutcome($callback);
+            $message = $payU->outcomeUserMessage($outcome, $callback);
+
+            if ($outcome === PayUService::OUTCOME_SUCCESS) {
+                $paymentTxn->update([
+                    'mihpayid' => $callback['mihpayid'] ?? $paymentTxn->mihpayid,
+                    'payment_method' => $callback['mode'] ?? $paymentTxn->payment_method,
+                    'gateway_response' => json_encode(array_merge($callback, ['_callback_source' => $source])),
+                ]);
+                $settlement->settleSuccess($paymentTxn, $callback);
+                $paymentTxn->refresh();
+
+                return $this->redirectToPaymentSuccessPopup($paymentTxn);
+            }
+
+            if ($outcome === PayUService::OUTCOME_FAILED) {
+                $paymentTxn->update(array_merge([
+                    'status' => 'FAILED',
+                    'mihpayid' => $callback['mihpayid'] ?? $paymentTxn->mihpayid,
+                    'payment_method' => $callback['mode'] ?? $paymentTxn->payment_method,
+                    'gateway_response' => json_encode(array_merge($callback, ['_callback_source' => $source])),
+                ], $payU->extractErrorFields($callback)));
+                $settlement->resetApplicationForPaymentRetry($paymentTxn);
+
+                return $this->renderPaymentFailure($paymentTxn->fresh(), $message);
+            }
+
+            $paymentTxn->update([
+                'status' => 'PENDING',
+                'mihpayid' => $callback['mihpayid'] ?? $paymentTxn->mihpayid,
+                'payment_method' => $callback['mode'] ?? $paymentTxn->payment_method,
+                'gateway_response' => json_encode(array_merge($callback, ['_callback_source' => $source])),
+                'error_code' => null,
+                'error_message' => null,
+            ]);
+
+            return $this->renderPaymentPending($paymentTxn->fresh(), $message);
+        } catch (\Throwable $e) {
+            Log::error('PayU callback handler failed', [
+                'message' => $e->getMessage(),
+                'txnid' => $txnid,
+                'source' => $source,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            if ($paymentTxn) {
+                return $this->renderPaymentFailure(
+                    $paymentTxn,
+                    'Payment received from PayU, but confirmation failed: ' . $e->getMessage()
+                );
+            }
+
+            return $this->renderPaymentFailure(null, 'Payment confirmation failed. Please login and check application status.');
+        }
+    }
+
     private function redirectToPaymentSuccessPopup(PaymentTransactionModel $paymentTxn)
     {
         $form = CC_Forms_Meta::findByApplicationId((string) $paymentTxn->application_id);
@@ -267,6 +382,23 @@ class PayUPaymentController extends BaseController
                 'payment' => $payment,
                 'errorMessage' => $failurePayload['message'],
                 'failurePayload' => $failurePayload,
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
+    private function renderPaymentPending(?PaymentTransactionModel $payment, string $message = '')
+    {
+        $pendingPayload = [
+            'application_id' => $payment?->application_id,
+            'txnid' => $payment?->txnid,
+            'message' => $message !== '' ? $message : 'Payment is still in progress. Please check your dashboard shortly.',
+        ];
+
+        return response()
+            ->view('user_login.payments.payu-pending-bridge', [
+                'payment' => $payment,
+                'pendingMessage' => $pendingPayload['message'],
+                'pendingPayload' => $pendingPayload,
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }

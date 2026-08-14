@@ -23,6 +23,8 @@ class PaymentTransactionModel extends Model
         'mihpayid',
         'status',
         'gateway_response',
+        'error_code',
+        'error_message',
     ];
 
     protected $casts = [

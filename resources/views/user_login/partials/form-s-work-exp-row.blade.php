@@ -34,7 +34,10 @@
     if ($kva !== '' && is_numeric($kva)) {
         $kva = (string) (0 + $kva);
     }
-    $kvaOptions = ['25', '315', '400', '500', '630', '800', '1000', 'Above 1000'];
+    $kvaOptions = ['250', '315', '400', '500', '630', '800', '1000', 'Above 1000'];
+    if ($kva === '25') {
+        $kva = '250';
+    }
     $workFromDate = ($hasRow && $expRow->from_date) ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
     $workToDate = ($hasRow && $expRow->to_date) ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
     $isTill = $hasRow && $workFromDate !== '' && $workToDate === '';

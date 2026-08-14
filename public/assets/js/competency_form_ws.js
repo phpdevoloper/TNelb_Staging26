@@ -634,25 +634,19 @@
         }
 
         // Stop any previous watcher
-        if (window.__tnelbPayUPollTimer) {
-            clearInterval(window.__tnelbPayUPollTimer);
-            window.__tnelbPayUPollTimer = null;
-        }
         if (window.__tnelbPayUMessageHandler) {
             window.removeEventListener('message', window.__tnelbPayUMessageHandler);
             window.__tnelbPayUMessageHandler = null;
         }
 
         let finished = false;
-        const startedAt = Date.now();
-        const maxWaitMs = 10 * 60 * 1000; // 10 minutes
 
         function finishSuccess(payload) {
             if (finished) return;
             finished = true;
-            if (window.__tnelbPayUPollTimer) {
-                clearInterval(window.__tnelbPayUPollTimer);
-                window.__tnelbPayUPollTimer = null;
+            if (window.__tnelbPayUPopupTimer) {
+                clearInterval(window.__tnelbPayUPopupTimer);
+                window.__tnelbPayUPopupTimer = null;
             }
             if (window.__tnelbPayUMessageHandler) {
                 window.removeEventListener('message', window.__tnelbPayUMessageHandler);
@@ -679,13 +673,36 @@
             );
         }
 
+        function finishPending(message) {
+            if (finished) return;
+            finished = true;
+            if (window.__tnelbPayUPopupTimer) {
+                clearInterval(window.__tnelbPayUPopupTimer);
+                window.__tnelbPayUPopupTimer = null;
+            }
+            if (window.__tnelbPayUMessageHandler) {
+                window.removeEventListener('message', window.__tnelbPayUMessageHandler);
+                window.__tnelbPayUMessageHandler = null;
+            }
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            Swal.fire({
+                icon: 'info',
+                title: 'Payment in progress',
+                text: message || 'Payment is being processed at your bank. Open Dashboard and click the Status button to confirm when ready.',
+                confirmButtonText: 'OK',
+            });
+        }
+
         function finishFailed(message) {
             if (finished) return;
             finished = true;
-            if (window.__tnelbPayUPollTimer) {
-                clearInterval(window.__tnelbPayUPollTimer);
-                window.__tnelbPayUPollTimer = null;
-            }
             if (window.__tnelbPayUPopupTimer) {
                 clearInterval(window.__tnelbPayUPopupTimer);
                 window.__tnelbPayUPopupTimer = null;
@@ -716,7 +733,7 @@
                 <div style="padding:8px 4px 0;">
                     <div class="tnelb-payu-loader" style="width:56px;height:56px;margin:0 auto 16px;border:4px solid #dbeafe;border-top-color:#0d6efd;border-radius:50%;animation:tnelb-payu-spin .8s linear infinite;"></div>
                     <p style="margin:0 0 6px;font-size:15px;color:#334155;">Complete payment in the <strong>new window</strong>.</p>
-                    <p style="margin:0;font-size:13px;color:#64748b;">This page will update automatically after success.</p>
+                    <p style="margin:0;font-size:13px;color:#64748b;">If payment is in progress at the bank, use Dashboard → <strong>Status</strong> button to confirm later.</p>
                 </div>
                 <style>@keyframes tnelb-payu-spin{to{transform:rotate(360deg)}}</style>
             `,
@@ -731,10 +748,6 @@
         }).then(function (result) {
             if (result.dismiss === Swal.DismissReason.cancel) {
                 finished = true;
-                if (window.__tnelbPayUPollTimer) {
-                    clearInterval(window.__tnelbPayUPollTimer);
-                    window.__tnelbPayUPollTimer = null;
-                }
                 if (window.__tnelbPayUMessageHandler) {
                     window.removeEventListener('message', window.__tnelbPayUMessageHandler);
                     window.__tnelbPayUMessageHandler = null;
@@ -750,11 +763,13 @@
             } else if (data.type === 'TNELB_PAYU_FAILED') {
                 const payload = data.payload || {};
                 finishFailed(payload.message || 'Payment failed or was cancelled in the payment window.');
+            } else if (data.type === 'TNELB_PAYU_PENDING') {
+                const payload = data.payload || {};
+                finishPending(payload.message || 'Payment is in progress at your bank. Open Dashboard and click the Status button to confirm when ready.');
             }
         };
         window.addEventListener('message', window.__tnelbPayUMessageHandler);
 
-        // If user closes the PayU popup without completing, stop waiting after a short grace period
         if (opts.payuWin) {
             if (window.__tnelbPayUPopupTimer) {
                 clearInterval(window.__tnelbPayUPopupTimer);
@@ -769,50 +784,13 @@
                     if (opts.payuWin.closed) {
                         clearInterval(window.__tnelbPayUPopupTimer);
                         window.__tnelbPayUPopupTimer = null;
-                        pollOnce().then(function () {
-                            if (!finished) {
-                                finishFailed('Payment window was closed before payment completed. Please try again.');
-                            }
-                        });
+                        if (!finished) {
+                            finishPending('Payment window was closed. If payment is still processing, open Dashboard and click the Status button.');
+                        }
                     }
                 } catch (e) {}
             }, 1500);
         }
-
-        async function pollOnce() {
-            if (finished) return;
-            if (Date.now() - startedAt > maxWaitMs) {
-                finishFailed('Payment is taking too long. Please check your dashboard or try again.');
-                return;
-            }
-
-            if (!cfg.payuStatusUrl) return;
-
-            try {
-                const res = await $.ajax({
-                    url: cfg.payuStatusUrl,
-                    type: 'GET',
-                    dataType: 'json',
-                    data: { application_id: applicationId },
-                    headers: {
-                        'X-CSRF-TOKEN': cfg.csrfToken || $('meta[name="csrf-token"]').attr('content'),
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                });
-
-                if (res && res.status === 'success' && res.payload) {
-                    finishSuccess(res.payload);
-                } else if (res && res.status === 'failed') {
-                    finishFailed((res.payload && res.payload.message) || 'Payment failed or was cancelled in the payment window.');
-                }
-            } catch (e) {
-                // Keep waiting — temporary network/auth glitches should not stop polling
-            }
-        }
-
-        pollOnce();
-        window.__tnelbPayUPollTimer = setInterval(pollOnce, 3000);
     }
 
     function showPaymentSuccessPopup(loginId, transactionId, transactionDate, applicantName, amount, form_type, licence_name, isFormP, options) {

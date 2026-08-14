@@ -5,6 +5,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Crypt;
 
+if (!function_exists('calendar_date_ymd')) {
+    /**
+     * Calendar Y-m-d only (no UTC day-shift). Use for From/To experience dates.
+     */
+    function calendar_date_ymd($date): string
+    {
+        return (string) (\App\Casts\CalendarDate::ymd($date) ?? '');
+    }
+}
+
 if (!function_exists('format_date_input')) {
     function format_date_input($date)
     {

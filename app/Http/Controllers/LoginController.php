@@ -22,6 +22,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 use App\Models\CC_checklist_applicant;
+use App\Models\PaymentTransactionModel;
 
 class LoginController extends BaseController
 {
@@ -440,6 +441,26 @@ class LoginController extends BaseController
 
             return $workflow;
         });
+    }
+
+    /** @return array<string, string> application_id => gateway status */
+    private function loadPayuCheckableApplications(Collection $applicationIds): array
+    {
+        $ids = $applicationIds->filter()->unique()->values()->all();
+        if ($ids === []) {
+            return [];
+        }
+
+        return PaymentTransactionModel::query()
+            ->whereIn('application_id', $ids)
+            ->whereIn('status', ['PENDING', 'INITIATED', 'PENDING_VERIFICATION', 'FAILED'])
+            ->orderByDesc('id')
+            ->get()
+            ->unique('application_id')
+            ->mapWithKeys(fn ($row) => [
+                (string) $row->application_id => strtoupper((string) $row->status),
+            ])
+            ->all();
     }
 
     public function login()
@@ -1031,9 +1052,13 @@ class LoginController extends BaseController
             ]
         );
 
+        $payuCheckableApplications = $this->loadPayuCheckableApplications(
+            $mergedData->pluck('application_id')
+        );
+
         // Ajax
         if (request()->ajax()) {
-            return view('user_login.pagination-list', compact('paginatedData'))->render();
+            return view('user_login.pagination-list', compact('paginatedData', 'payuCheckableApplications'))->render();
         }
 
 
@@ -1060,6 +1085,7 @@ class LoginController extends BaseController
             'renewal_applications',
             'all_form_p',
             'paginatedData',
+            'payuCheckableApplications',
             'returnapplication',
             'mstLicences'
         ));
