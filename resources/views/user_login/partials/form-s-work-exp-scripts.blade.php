@@ -596,6 +596,44 @@
                 }
             }
 
+            var WORK_DATE_MAX_ISO = '9999-12-31';
+
+            /** True when ISO year is a real 4-digit year (not 0097 / 0006 from partial typing). */
+            function workDateYearIsPlausible(iso) {
+                if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+                var y = parseInt(iso.slice(0, 4), 10);
+                return y >= 1000 && y <= 9999;
+            }
+
+            /** Trim year only when it already has more than 4 digits. Do not rewrite the value while typing. */
+            function clampWorkDateYearDigits(el) {
+                if (!el || el.type === 'hidden') return false;
+                var v = String(el.value || '').trim();
+                if (!v) return false;
+                var next = v;
+                var iso = v.match(/^(\d{5,})(-(\d{0,2})(-(\d{0,2}))?)?$/);
+                if (iso) {
+                    next = iso[1].slice(0, 4);
+                    if (iso[2]) next += iso[2];
+                } else {
+                    var dmy = v.match(/^(\d{1,2})([-\/])(\d{1,2})\2(\d{5,})$/);
+                    if (dmy) {
+                        next = dmy[1] + dmy[2] + dmy[3] + dmy[2] + dmy[4].slice(0, 4);
+                    }
+                }
+                if (next === v) return false;
+                el.value = next;
+                return true;
+            }
+
+            function applyWorkDateYearCap(el) {
+                if (!el || el.type === 'hidden') return;
+                el.removeAttribute('min');
+                if (!el.getAttribute('max')) {
+                    el.setAttribute('max', WORK_DATE_MAX_ISO);
+                }
+            }
+
             /** Reset cloned work date fields to native date inputs (clone may copy type="text" from initDateDisplay). */
             function resetWorkRowDateInputs(row) {
                 if (!row) return;
@@ -603,6 +641,7 @@
                     inp.removeAttribute('data-raw');
                     inp.value = '';
                     inp.type = 'date';
+                    applyWorkDateYearCap(inp);
                 });
             }
 
@@ -702,14 +741,6 @@
                 return true;
             }
 
-            function addDaysIso(iso, days) {
-                if (!iso) return '';
-                var d = new Date(iso + 'T12:00:00');
-                if (isNaN(d.getTime())) return '';
-                d.setDate(d.getDate() + days);
-                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-            }
-
             function workRowPeriodBounds($tr) {
                 if (!$tr || !$tr.length) return null;
                 var fromStr = readWorkDateFromInput($tr.find('.work-date-from'));
@@ -733,6 +764,21 @@
 
                 var bounds = workRowPeriodBounds($tr);
                 if (!bounds) return '';
+
+                if (bounds.fromStr && !workDateYearIsPlausible(bounds.fromStr)) {
+                    var fromEl = $tr.find('input.work-date-from:not([type="hidden"])').get(0);
+                    if (fromEl && document.activeElement === fromEl) {
+                        return '';
+                    }
+                    return 'Enter a 4-digit year for From date.';
+                }
+                if (bounds.toStr && !workDateYearIsPlausible(bounds.toStr)) {
+                    var toEl = $tr.find('input.work-date-to:not([type="hidden"])').get(0);
+                    if (toEl && document.activeElement === toEl) {
+                        return '';
+                    }
+                    return 'Enter a 4-digit year for To date.';
+                }
 
                 if (bounds.from && bounds.to && bounds.to < bounds.from) {
                     return 'To date must be greater than or equal to From date.';
@@ -765,40 +811,15 @@
                 return !!workRowDateSequenceMessage($tr);
             }
 
-            /** Constrain native date pickers so overlapping dates cannot be chosen. */
+            /** Overlap is a validation message only. Do not rewrite max/min while the user is typing. */
             function syncWorkDateSequenceBounds($container) {
-                if (!$container || !$container.length || !isPreviousWorkPartContainer($container)) return;
-                var $rows = $container.find('.work-fields');
-                $rows.each(function (idx) {
+                if (!$container || !$container.length) return;
+                $container.find('.work-fields').each(function () {
                     var $tr = $(this);
                     var $from = $tr.find('input.work-date-from:not([type="hidden"])').first();
                     var $to = $tr.find('input.work-date-to:not([type="hidden"])').first();
                     if ($from.length) $from.removeAttr('min');
-                    if ($to.length) {
-                        $to.removeAttr('min');
-                        $to.removeAttr('max');
-                    }
-
-                    var ownFrom = readWorkDateFromInput($tr.find('.work-date-from'));
-                    if ($to.length && ownFrom) {
-                        $to.attr('min', ownFrom);
-                    }
-
-                    if (idx > 0 && $from.length) {
-                        var prevTo = effectiveToStr($rows.eq(idx - 1));
-                        if (prevTo) {
-                            var minFrom = addDaysIso(prevTo, 1);
-                            if (minFrom) $from.attr('min', minFrom);
-                        }
-                    }
-
-                    if (idx < $rows.length - 1 && $to.length) {
-                        var nextFrom = readWorkDateFromInput($rows.eq(idx + 1).find('.work-date-from'));
-                        if (nextFrom) {
-                            var maxTo = addDaysIso(nextFrom, -1);
-                            if (maxTo) $to.attr('max', maxTo);
-                        }
-                    }
+                    if ($to.length) $to.removeAttr('min');
                 });
             }
 
@@ -1602,7 +1623,7 @@
                     updateOverallTotalYears();
                     updateRowHeader($tr);
                 };
-                if (!fromStr || !toStr) {
+                if (!fromStr || !toStr || !workDateYearIsPlausible(fromStr) || !workDateYearIsPlausible(toStr)) {
                     clearWorkDuration($tr);
                     validateWorkContainerDateSequence(workContainerFor($tr));
                     done();
@@ -2108,12 +2129,14 @@
             });
             $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
+                clampWorkDateYearDigits($field.get(0));
                 syncWorkDateRaw($field);
                 clearWorkDateFieldErrors($field);
                 updateTotalYears($workRow(this));
             });
             $(document).on('change blur', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
+                clampWorkDateYearDigits($field.get(0));
                 syncWorkDateRaw($field);
                 clearWorkDateFieldErrors($field);
                 var $tr = $workRow(this);

@@ -8,10 +8,14 @@ use App\Http\Requests\DocumentVersion\ApproveDocumentRequest;
 use App\Http\Requests\DocumentVersion\ResetDocumentModuleRequest;
 use App\Http\Requests\DocumentVersion\RejectDocumentRequest;
 use App\Http\Requests\DocumentVersion\UploadDocumentVersionRequest;
+use App\Models\CC_Education;
+use App\Models\CC_Experience;
+use App\Models\CC_Proof_doc;
 use App\Models\DApplication;
 use App\Models\DDocument;
 use App\Models\DEducation;
 use App\Models\DExperience;
+use App\Services\Competency\CompetencyMetaService;
 use App\Services\DocumentVersion\DocumentApplicationService;
 use App\Services\DocumentVersion\DocumentApprovalService;
 use App\Services\DocumentVersion\DocumentGroupKey;
@@ -35,6 +39,42 @@ class DocumentSampleController extends Controller
         protected DocumentModuleResetService $resetService,
         protected DocumentApplicationService $applicationService
     ) {}
+
+    public function ccInspect(Request $request): View
+    {
+        $applicationId = trim((string) $request->query('application_id', $request->input('application_id', '')));
+        $metaService = app(CompetencyMetaService::class);
+
+        $meta = null;
+        $metaTable = null;
+        $educations = collect();
+        $experiences = collect();
+        $proofs = collect();
+        $notFound = false;
+
+        if ($applicationId !== '') {
+            $meta = $metaService->findModel($applicationId);
+            $metaTable = $metaService->metaTableForApplicationId($applicationId);
+            if (! $meta) {
+                $notFound = true;
+            } else {
+                $id = (string) $meta->application_id;
+                $educations = CC_Education::where('application_id', $id)->orderBy('edu_id')->get();
+                $experiences = CC_Experience::where('application_id', $id)->orderBy('exp_id')->get();
+                $proofs = CC_Proof_doc::where('application_id', $id)->orderBy('p_id')->get();
+            }
+        }
+
+        return view('document-version.sample.cc-inspect', [
+            'applicationId' => $applicationId,
+            'meta' => $meta,
+            'metaTable' => $metaTable,
+            'educations' => $educations,
+            'experiences' => $experiences,
+            'proofs' => $proofs,
+            'notFound' => $notFound,
+        ]);
+    }
 
     public function tableData(Request $request): View
     {

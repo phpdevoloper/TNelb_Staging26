@@ -24,8 +24,8 @@ class FormSAlterationService
 {
     private const FORM_S_CERT_TABLE = 'cc_forms_cert';
 
-    /** Marker stored on child experience rows that update an existing master exp_id on approval. */
-    private const ALT_SRC_EXP_PREFIX = '__ALT_SRC_EXP__:';
+    /** Marker stored on copied parent experience rows (not a newly added alteration row). */
+    public const ALT_SRC_EXP_PREFIX = '__ALT_SRC_EXP__:';
 
     public function __construct(
         protected FormSApplicationWorkflowService $workflowService,
@@ -691,7 +691,7 @@ class FormSAlterationService
                 $this->assertFormSExperienceDateSequence($request);
                 $this->assertFormSCountableExperienceMinimum($parent, $request);
                 CC_Experience::where('application_id', $child->application_id)->delete();
-                $this->storeWorkExperienceAlterationRows($request, $child, $loginId);
+                $this->storeWorkExperienceAlterationRows($request, $child, $loginId, $parent);
             }
 
             Payment::updateOrCreate(
@@ -754,7 +754,7 @@ class FormSAlterationService
             if ($this->requestHasWorkAlteration($request)) {
                 CC_Experience::where('application_id', $child->application_id)->delete();
                 try {
-                    $this->storeWorkExperienceAlterationRows($request, $child, $loginId);
+                    $this->storeWorkExperienceAlterationRows($request, $child, $loginId, $parent);
                 } catch (RuntimeException $e) {
                     // Allow partial work rows on draft save.
                 }
@@ -1234,9 +1234,18 @@ class FormSAlterationService
         }
     }
 
-    protected function storeWorkExperienceAlterationRows(Request $request, CC_CompetencyMeta $child, string $loginId): void
-    {
+    /**
+     * Persist a full experience snapshot on the alteration application:
+     * copied parent rows (path-only) plus newly added rows (upload only if a new file was chosen).
+     */
+    protected function storeWorkExperienceAlterationRows(
+        Request $request,
+        CC_CompetencyMeta $child,
+        string $loginId,
+        CC_CompetencyMeta $parent
+    ): void {
         $newIndexes = $this->collectNewWorkRowIndexes($request);
+        $existingIndexes = $this->collectExistingWorkRowIndexes($request);
         $editedIndexes = $this->collectChangedExistingWorkRowIndexes($request);
 
         if ($newIndexes === [] && $editedIndexes === []) {
@@ -1244,11 +1253,31 @@ class FormSAlterationService
         }
 
         $created = 0;
-        foreach ($editedIndexes as $key) {
+        $copiedSourceIds = [];
+
+        foreach ($existingIndexes as $key) {
             if ($this->createAlterationExperienceRow($request, $child, $loginId, $key, true)) {
                 $created++;
+                $sourceExpId = (int) (($request->input('work_id', [])[$key] ?? 0));
+                if ($sourceExpId > 0) {
+                    $copiedSourceIds[$sourceExpId] = true;
+                }
             }
         }
+
+        $masterId = (string) $this->workflowService->masterApplication($parent)->application_id;
+        $parentRows = CC_Experience::where('application_id', $masterId)->orderBy('exp_id')->get();
+        foreach ($parentRows as $parentExp) {
+            $parentExpId = (int) ($parentExp->exp_id ?? 0);
+            if ($parentExpId <= 0 || isset($copiedSourceIds[$parentExpId])) {
+                continue;
+            }
+            if ($this->copyParentExperienceRowToChild($child, $loginId, $parentExp)) {
+                $created++;
+                $copiedSourceIds[$parentExpId] = true;
+            }
+        }
+
         foreach ($newIndexes as $key) {
             if ($this->createAlterationExperienceRow($request, $child, $loginId, $key, false)) {
                 $created++;
@@ -1263,7 +1292,54 @@ class FormSAlterationService
     /** @deprecated Use storeWorkExperienceAlterationRows */
     protected function storeNewExperienceRows(Request $request, CC_CompetencyMeta $child, string $loginId): void
     {
-        $this->storeWorkExperienceAlterationRows($request, $child, $loginId);
+        $parent = CC_Forms_Meta::findByApplicationId((string) ($child->old_application ?? ''));
+        if (! $parent) {
+            throw new RuntimeException('Parent application not found for alteration.');
+        }
+        $this->storeWorkExperienceAlterationRows($request, $child, $loginId, $parent);
+    }
+
+    protected function copyParentExperienceRowToChild(
+        CC_CompetencyMeta $child,
+        string $loginId,
+        CC_Experience $parentExp
+    ): bool {
+        $orgName = trim((string) ($parentExp->org_name ?? ''));
+        $designation = trim((string) ($parentExp->designation ?? ''));
+        if ($orgName === '' || $designation === '') {
+            return false;
+        }
+
+        $sourceExpId = (int) ($parentExp->exp_id ?? 0);
+        $boardDetails = $this->encodeAltSourceExpId(
+            $sourceExpId,
+            trim((string) ($parentExp->board_meeting_details ?? ''))
+        );
+
+        CC_Experience::create([
+            'login_id' => $loginId,
+            'application_id' => $child->application_id,
+            'emp_type' => $parentExp->emp_type,
+            'emp_cate' => $parentExp->emp_cate,
+            'org_name' => $orgName,
+            'org_address' => $parentExp->org_address,
+            'designation' => $designation,
+            'from_date' => $parentExp->from_date,
+            'to_date' => $parentExp->to_date,
+            'total_y' => $parentExp->total_y,
+            'total_m' => $parentExp->total_m,
+            'total_d' => $parentExp->total_d,
+            'total_exp' => $parentExp->total_exp,
+            'nature_work' => $parentExp->nature_work,
+            'voltage_level' => $parentExp->voltage_level,
+            'transformer_kva' => $parentExp->transformer_kva,
+            'board_meeting_details' => $boardDetails !== '' ? $boardDetails : null,
+            'board_meeting_date' => $parentExp->board_meeting_date,
+            'support_document' => $parentExp->support_document,
+            'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
+        ]);
+
+        return true;
     }
 
     protected function createAlterationExperienceRow(
@@ -1271,7 +1347,7 @@ class FormSAlterationService
         CC_CompetencyMeta $child,
         string $loginId,
         int|string $key,
-        bool $isExistingEdit
+        bool $isExistingRow
     ): bool {
         $employers = $this->requestEmployers($request);
         $designations = (array) $request->input('designation', []);
@@ -1288,6 +1364,7 @@ class FormSAlterationService
         $durY = (array) $request->input('work_duration_y', []);
         $durM = (array) $request->input('work_duration_m', []);
         $durD = (array) $request->input('work_duration_d', []);
+        $totals = (array) $request->input('work_experience_total', []);
         $natures = $this->requestNatures($request);
         $voltages = $this->requestVoltages($request);
         $kvas = (array) $request->input('work_transformer_kva', []);
@@ -1304,13 +1381,20 @@ class FormSAlterationService
             $empCate = $cat . ($licence !== '' ? '||' . $licence : '');
         }
 
-        $sourceExpId = $isExistingEdit ? (int) ($workIds[$key] ?? 0) : 0;
+        $sourceExpId = $isExistingRow ? (int) ($workIds[$key] ?? 0) : 0;
         $boardDetails = trim((string) ($meetingDetails[$key] ?? ''));
         if ($sourceExpId > 0) {
             $boardDetails = $this->encodeAltSourceExpId($sourceExpId, $boardDetails);
         }
 
         $master = $sourceExpId > 0 ? CC_Experience::find($sourceExpId) : null;
+        $totalY = (int) ($durY[$key] ?? 0);
+        $totalM = (int) ($durM[$key] ?? 0);
+        $totalD = (int) ($durD[$key] ?? 0);
+        $totalExp = trim((string) ($totals[$key] ?? ''));
+        if ($totalExp === '' && $master && $master->total_exp !== null && $master->total_exp !== '') {
+            $totalExp = (string) $master->total_exp;
+        }
 
         $experience = CC_Experience::create([
             'login_id' => $loginId,
@@ -1322,9 +1406,10 @@ class FormSAlterationService
             'designation' => $designation,
             'from_date' => $fromDates[$key] ?? null,
             'to_date' => $toDates[$key] ?? null,
-            'total_y' => (int) ($durY[$key] ?? 0),
-            'total_m' => (int) ($durM[$key] ?? 0),
-            'total_d' => (int) ($durD[$key] ?? 0),
+            'total_y' => $totalY,
+            'total_m' => $totalM,
+            'total_d' => $totalD,
+            'total_exp' => ($totalExp !== '' ? $totalExp : null),
             'nature_work' => $natures[$key] ?? null,
             'voltage_level' => $voltages[$key] ?? null,
             'transformer_kva' => $kvas[$key] ?? null,
@@ -1334,13 +1419,8 @@ class FormSAlterationService
             'relieve_document' => $master?->relieve_document ?? $master?->releive_document,
         ]);
 
-        $supportFile = $request->file('work_document');
-        if (is_array($supportFile) && isset($supportFile[$key])) {
-            $supportFile = $supportFile[$key];
-        } elseif (! $supportFile instanceof UploadedFile) {
-            $supportFile = null;
-        }
-        if ($supportFile && $supportFile->isValid()) {
+        $supportFile = $this->uploadedFileAt($request, 'work_document', $key);
+        if ($supportFile) {
             $path = $this->documentHandler->handleExperienceSupportUpload(
                 $child,
                 $experience,
@@ -1351,13 +1431,8 @@ class FormSAlterationService
             }
         }
 
-        $relieveFile = $request->file('work_relieving_letter');
-        if (is_array($relieveFile) && isset($relieveFile[$key])) {
-            $relieveFile = $relieveFile[$key];
-        } elseif (! $relieveFile instanceof UploadedFile) {
-            $relieveFile = null;
-        }
-        if ($relieveFile && $relieveFile->isValid()) {
+        $relieveFile = $this->uploadedFileAt($request, 'work_relieving_letter', $key);
+        if ($relieveFile) {
             $relievePath = $this->documentHandler->handleExperienceRelieveUpload(
                 $child,
                 $experience,
@@ -1369,6 +1444,18 @@ class FormSAlterationService
         }
 
         return true;
+    }
+
+    protected function uploadedFileAt(Request $request, string $field, int|string $key): ?UploadedFile
+    {
+        $file = $request->file($field);
+        if (is_array($file) && isset($file[$key])) {
+            $file = $file[$key];
+        } elseif (! $file instanceof UploadedFile) {
+            $file = null;
+        }
+
+        return ($file instanceof UploadedFile && $file->isValid()) ? $file : null;
     }
 
     protected function encodeAltSourceExpId(int $expId, string $boardDetails = ''): string
@@ -1401,8 +1488,9 @@ class FormSAlterationService
         return [$expId, $details !== '' ? $details : null];
     }
     /**
-     * Apply approved alteration changes to the parent application, registration profile,
-     * and master work experience. Returns existing certificate details for PDF regeneration.
+     * Apply approved alteration name/address to the issued certificate application
+     * and registration profile. Experience is not copied back — the alteration
+     * application already holds the full snapshot from submit.
      *
      * @return array{
      *     parent_application_id: string,
@@ -1459,7 +1547,7 @@ class FormSAlterationService
 
         $this->syncLegacyApplicationProfile($parentId, $parentUpdates);
         $this->syncRegistrationProfile((string) ($childRow->login_id ?? ''), $childRow);
-        $this->mergeApprovedWorkExperienceToMaster($childRow, $parentId);
+        // Experience stays on the alteration application_id (full snapshot at submit).
 
         $licenseDetails = app(CompetencyCertificateService::class)->asLicenseDetails(
             $parentId,
@@ -1570,6 +1658,9 @@ class FormSAlterationService
         return [$salutation, implode(' ', $nameParts), $lastName];
     }
 
+    /**
+     * @deprecated Experience is stored on the alteration application at submit and is not merged back.
+     */
     protected function mergeApprovedWorkExperienceToMaster(object $childRow, string $parentApplicationId): void
     {
         $childApplicationId = trim((string) ($childRow->application_id ?? ''));

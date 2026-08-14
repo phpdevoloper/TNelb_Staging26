@@ -6,8 +6,8 @@
 
         if (isset($exp_details) && $exp_details->isNotEmpty()) {
             foreach ($exp_details as $expRow) {
-                $fromIso = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
-                $toIso = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
+                $fromIso = $expRow->from_date ? calendar_date_ymd($expRow->from_date) : '';
+                $toIso = $expRow->to_date ? calendar_date_ymd($expRow->to_date) : '';
                 $isTill = $fromIso !== '' && $toIso === '';
 
                 $yN = $expRow->total_y !== null ? (int) $expRow->total_y : 0;

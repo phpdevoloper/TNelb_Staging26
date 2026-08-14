@@ -2060,7 +2060,7 @@ class SupervisorController extends Controller
             $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
             $previousCertExpiry = $this->resolvePreviousCertExpiryForRenewal($application, $applicationId);
             $previousExpiryCarbon = $previousCertExpiry ? Carbon::parse($previousCertExpiry) : db_now();
-            $now = db_now();
+            $now = Carbon::parse(db_now());
 
             if (!$licenseDetails || $now->greaterThan(Carbon::parse($licenseDetails->expires_at))) {
                 $issuedAt = $previousExpiryCarbon->copy()->addDay()->format('Y-m-d');

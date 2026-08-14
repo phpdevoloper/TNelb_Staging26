@@ -1741,7 +1741,7 @@
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C12345 / CC2026041234)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
@@ -1774,7 +1774,7 @@
                                                value="{{ $application_details->scc_to_date ?? '' }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    {{-- <div class="col-12 col-md-2">
                                         <div class="fs-verify-actions">
                                             @if (!empty($application_details->previously_number))
                                                 <button type="button" class="btn btn-danger remove_verify" data-type="superviser"><i class="fa fa-trash"></i> Delete</button>
@@ -1783,7 +1783,7 @@
                                                 <button type="button" class="btn btn-primary verify-btn" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
                                             @endif
                                         </div>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
                         </div>{{-- /fs-section-body --}}
@@ -1847,7 +1847,7 @@
                                                         @endphp
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, LB2026041234 / LWH2026041234)</span></div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, CB2026041234 / CWH2026041234)</span></div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"

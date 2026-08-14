@@ -787,7 +787,7 @@
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
                                     <h4>
-                                        <strong>Applicant Id:</strong> <span>{{ $applicant->application_id }}</span>
+                                        <strong>Application Id:</strong> <span>{{ $applicant->application_id }}</span>
                                         <strong>Name:</strong> <span>{{ $applicant->applicant_name }}</span>
                                         <strong>D.O.B:</strong> <span>{{ format_date($applicant->d_o_b) }} &middot;
                                             {{ $applicant->age }} yrs</span>
@@ -990,8 +990,7 @@
                                                         <table class="table  no-border-table table-sm">
                                                             <tbody>
                                                                 <tr>
-                                                                    <td class="fw-bold " style="width: 30%;">Applicant
-                                                                        Id :</td>
+                                                                    <td class="fw-bold " style="width: 30%;">Application Id :</td>
                                                                     <td>{{ $applicant->application_id }}</td>
                                                                 </tr>
                                                                 <tr>

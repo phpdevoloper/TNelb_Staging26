@@ -10,6 +10,7 @@ use App\Models\Competency\CC_CompetencyMeta;
 use App\Models\DocumentsLog;
 use App\Services\FormS\FormSDocumentVersionService;
 use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\FormS\FormSAlterationService;
 use App\Services\FormS\FormSProofDocumentService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -134,19 +135,26 @@ class CompetencyDocumentReviewService
             ->get()
             ->map(fn (CC_Experience $row) => $enrichExperienceDocument($row, false));
 
-        $newExperience = collect();
-        if ($childId !== $masterId && $this->workflowService->isAlterationApplication($application)) {
-            $newExperience = CC_Experience::where('application_id', $childId)
+        $workExperience = $parentExperience;
+        $isChildExperienceParent = $this->workflowService->isAlterationApplication($application)
+            || $this->workflowService->isRenewalApplication($application);
+        if ($childId !== $masterId && $isChildExperienceParent) {
+            $childExperience = CC_Experience::where('application_id', $childId)
                 ->orderBy('exp_id')
-                ->get()
-                ->map(function (CC_Experience $row) use ($enrichExperienceDocument) {
-                    $row->setAttribute('is_alteration_new', true);
+                ->get();
 
-                    return $enrichExperienceDocument($row, true);
-                });
+            if ($childExperience->isNotEmpty()) {
+                $altPrefix = FormSAlterationService::ALT_SRC_EXP_PREFIX;
+                $renPrefix = FormSApplicationWorkflowService::COPIED_EXP_SRC_PREFIX;
+                $workExperience = $childExperience->map(function (CC_Experience $row) use ($enrichExperienceDocument, $altPrefix, $renPrefix) {
+                    $details = trim((string) ($row->board_meeting_details ?? ''));
+                    $isNew = ! str_starts_with($details, $altPrefix) && ! str_starts_with($details, $renPrefix);
+                    $row->setAttribute('is_alteration_new', $isNew);
+
+                    return $enrichExperienceDocument($row, $isNew);
+                })->values();
+            }
         }
-
-        $workExperience = $parentExperience->concat($newExperience)->values();
 
         $alterationProofs = collect();
         if ($this->workflowService->isAlterationApplication($application)) {

@@ -13,7 +13,7 @@
     $workId = $hasRow ? (string) ($expRow->exp_id ?? $expRow->id ?? '') : '';
     $meetingDetails = $hasRow ? (string) ($expRow->board_meeting_details ?? '') : '';
     $meetingDate = ($hasRow && ! empty($expRow->board_meeting_date))
-        ? \Carbon\Carbon::parse($expRow->board_meeting_date)->format('Y-m-d')
+        ? calendar_date_ymd($expRow->board_meeting_date)
         : '';
     $boardMeetingMaster = collect($boardMeetingMaster ?? []);
     $meetingNosForDate = $meetingDate !== ''

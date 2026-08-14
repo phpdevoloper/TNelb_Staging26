@@ -38,8 +38,8 @@
     if ($kva === '25') {
         $kva = '250';
     }
-    $workFromDate = ($hasRow && $expRow->from_date) ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
-    $workToDate = ($hasRow && $expRow->to_date) ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
+    $workFromDate = ($hasRow && $expRow->from_date) ? calendar_date_ymd($expRow->from_date) : '';
+    $workToDate = ($hasRow && $expRow->to_date) ? calendar_date_ymd($expRow->to_date) : '';
     $isTill = $hasRow && $workFromDate !== '' && $workToDate === '';
     $durY = $hasRow && $expRow->total_y !== null ? (string) $expRow->total_y : '';
     $durM = $hasRow && $expRow->total_m !== null ? (string) $expRow->total_m : '';
@@ -57,7 +57,7 @@
     $workId = $hasRow ? (string) ($expRow->exp_id ?? $expRow->id ?? '') : '';
     $meetingDetails = $hasRow ? (string) ($expRow->board_meeting_details ?? '') : '';
     $meetingDate = ($hasRow && !empty($expRow->board_meeting_date))
-        ? \Carbon\Carbon::parse($expRow->board_meeting_date)->format('Y-m-d')
+        ? calendar_date_ymd($expRow->board_meeting_date)
         : '';
     $rowIndex = $rowIndex ?? 0;
     $workPart = $workPart ?? 'all';
@@ -186,11 +186,11 @@
         @unless ($hideDates)
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="from-date">
             <label class="work-card-field-label">From date <span class="req">*</span></label>
-            <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $workFromDate }}" title="From date" aria-label="Period of experience: from date" disabled>
+            <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $workFromDate }}" max="9999-12-31" title="From date" aria-label="Period of experience: from date" disabled>
         </div>
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="to-date">
             <label class="work-card-field-label">To date <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" title="To date" aria-label="Period of experience: to date" disabled>
+            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" max="9999-12-31" title="To date" aria-label="Period of experience: to date" disabled>
             <label class="work-card-till-toggle">
                 <input type="checkbox" class="work-date-till" {{ $isTill ? 'checked' : '' }}>
                 <span>Till date (currently working)</span>

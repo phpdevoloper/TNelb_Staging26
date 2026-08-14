@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\CalendarDate;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -64,9 +65,9 @@ class CC_Experience extends Model
     ];
 
     protected $casts = [
-        'from_date' => 'date',
-        'to_date' => 'date',
-        'board_meeting_date' => 'date',
+        'from_date' => CalendarDate::class,
+        'to_date' => CalendarDate::class,
+        'board_meeting_date' => CalendarDate::class,
         'total_y' => 'integer',
         'total_m' => 'integer',
         'total_d' => 'integer',

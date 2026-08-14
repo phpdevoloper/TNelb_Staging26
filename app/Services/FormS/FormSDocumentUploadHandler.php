@@ -219,8 +219,9 @@ class FormSDocumentUploadHandler
         ?CC_Experience $experience = null,
         string $experienceField = 'support_document'
     ): ?string {
-        // Pending renewal/alteration replacements stay in cc_doc_log only.
-        // Master education/experience columns keep the previous approved path.
+        // Pending renewal/alteration replacements on the issued (master) row stay in cc_doc_log only.
+        // Child-workflow experience rows are the experience parent for that request — persist the
+        // new RENEWAL/ALTERATION path on the child row.
         if ($log->isPending()) {
             if ($education) {
                 $education->refresh();
@@ -228,6 +229,11 @@ class FormSDocumentUploadHandler
                 return $education->upload_document;
             }
             if ($experience) {
+                $pendingPath = $this->pendingPathForAlterationExperience($log, $experience);
+                if ($pendingPath !== null) {
+                    return $pendingPath;
+                }
+
                 $experience->refresh();
 
                 return $experienceField === 'relieve_document'
@@ -253,6 +259,25 @@ class FormSDocumentUploadHandler
         }
 
         return null;
+    }
+
+    /**
+     * New files on a renewal/alteration experience row belong to that application — return the
+     * pending child-workflow storage path so it can be stored on the child cc_exp row.
+     */
+    protected function pendingPathForAlterationExperience(CC_Doc_Log $log, CC_Experience $experience): ?string
+    {
+        $workflow = $this->workflowService->findWorkflowByPk((int) $log->application_id);
+        if (! $workflow || ! $this->workflowService->isChildWorkflow($workflow)) {
+            return null;
+        }
+        if ((string) $workflow->application_id !== (string) ($experience->application_id ?? '')) {
+            return null;
+        }
+
+        $path = trim((string) ($log->file_path ?? ''));
+
+        return $path !== '' ? $path : null;
     }
 
     protected function storeVersionedUpload(

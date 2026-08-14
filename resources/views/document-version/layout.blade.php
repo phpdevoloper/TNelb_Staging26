@@ -78,6 +78,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('document-version.sample.cc-inspect') ? 'active' : '' }}"
+                           href="{{ route('document-version.sample.cc-inspect') }}">
+                            <i class="fa fa-search mr-1"></i> CC Inspect
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('document-version.sample.table-data') ? 'active' : '' }}"
                            href="{{ route('document-version.sample.table-data') }}">
                             <i class="fa fa-table mr-1"></i> Table Data

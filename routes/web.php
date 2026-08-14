@@ -492,6 +492,7 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
     Route::post('/reset-module', [DocumentSampleController::class, 'resetModule'])->name('reset-module');
     Route::get('/storage', [DocumentSampleController::class, 'storageExplorer'])->name('storage');
     Route::get('/details/{application?}', [DocumentSampleController::class, 'applicationDetails'])->name('details');
+    Route::get('/cc-inspect', [DocumentSampleController::class, 'ccInspect'])->name('cc-inspect');
     Route::get('/table-data', [DocumentSampleController::class, 'tableData'])->name('table-data');
     Route::get('/upload', [DocumentSampleController::class, 'upload'])->name('upload');
     Route::post('/upload', [DocumentSampleController::class, 'storeUpload'])->name('upload.store');

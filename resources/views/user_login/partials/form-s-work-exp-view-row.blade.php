@@ -60,8 +60,8 @@
         ? 'Not applicable'
         : ($kvaRaw === '' ? '—' : ($kvaRaw === 'Above 1000' ? 'Above 1000' : ($kvaRaw . ' kVA')));
 
-    $fromIso = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
-    $toIso = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
+    $fromIso = $expRow->from_date ? calendar_date_ymd($expRow->from_date) : '';
+    $toIso = $expRow->to_date ? calendar_date_ymd($expRow->to_date) : '';
     $isTill = $fromIso !== '' && $toIso === '';
 
     $fmtPretty = function ($iso) use ($monthShort) {

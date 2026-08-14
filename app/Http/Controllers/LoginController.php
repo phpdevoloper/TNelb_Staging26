@@ -22,6 +22,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 use App\Models\CC_checklist_applicant;
+use App\Models\CC_Forms_cert;
 use App\Models\PaymentTransactionModel;
 
 class LoginController extends BaseController
@@ -370,11 +371,11 @@ class LoginController extends BaseController
 
         $ccApplicationIds = $ccWorkflows->pluck('application_id')->filter()->values()->all();
 
-        $legacyWorkflows = DB::table('tnelb_application_tbl as ta')
+        $legacyWorkflows = DB::table('cc_form_s_meta as ta')
             ->where('ta.login_id', $loginId)
             ->whereNotIn('ta.form_name', $this->competencyCcMetaFormNames())
             ->when($ccApplicationIds !== [], fn ($query) => $query->whereNotIn('ta.application_id', $ccApplicationIds))
-            ->orderByRaw($this->ccMetaReturnedFirstOrderSql('ta.status', 'ta.payment_status'))
+            ->orderByRaw($this->ccMetaReturnedFirstOrderSql('ta.app_status', 'ta.payment_status'))
             ->orderByDesc('ta.submitted_date')
             ->get()
             ->map(function ($workflow) {
@@ -388,6 +389,7 @@ class LoginController extends BaseController
 
     private function attachAlterationParentContext(Collection $workflows): Collection
     {
+    
         $alterationParentIds = $workflows
             ->filter(function ($workflow) {
                 return strtoupper((string) ($workflow->appl_type ?? '')) === 'A'
@@ -580,126 +582,132 @@ class LoginController extends BaseController
             session(['name' => $user->first_name.$user->last_name]);
         }
 
-        $tables = [
-            'EA' => 'tnelb_ea_applications',
-        ];
+        // $tables = [
+        //     'EA' => 'tnelb_ea_applications',
+        // ];
 
-        $applicationTables = array_values($tables);
+        // $applicationTables = array_values($tables);
 
         $workflows_cl = collect();
 
-        foreach ($tables as $formCode => $tableName) {
-            $records = DB::table("$tableName as ta")
-                ->where('ta.login_id', $loginId)
-                ->orderByDesc('ta.created_at')
-                ->get()
-                ->map(function ($workflow) use ($formCode, $applicationTables) {
 
-                $licenseNumber = null;
-                $expiry = null;
-                $renewalApplicationId = null;
-                $isValid = false;
+    //     foreach ($tables as $formCode => $tableName) {
+    //         $records = DB::table("$tableName as ta")
+    //             ->where('ta.login_id', $loginId)
+    //             ->orderByDesc('ta.created_at')
+    //             ->get()
+    //             ->map(function ($workflow) use ($formCode, $applicationTables) {
 
-                // 🔹 Get licence master id
-                $licenceID = MstLicence::where(
-                    'cert_licence_code',
-                    $workflow->license_name
-                )->value('id');
+    //             $licenseNumber = null;
+    //             $expiry = null;
+    //             $renewalApplicationId = null;
+    //             $isValid = false;
 
-                $appl_type = str_replace(' ', '', $workflow->appl_type);
+    //             // 🔹 Get licence master id
+    //             $licenceID = MstLicence::where(
+    //                 'cert_licence_code',
+    //                 $workflow->license_name
+    //             )->value('id');
 
-                // ------------------------------------------------
-                // NEW APPLICATION
-                // ------------------------------------------------
-                if ($appl_type === 'N') {
+    //             $appl_type = str_replace(' ', '', $workflow->appl_type);
 
-                    $license = DB::table('tnelb_license')
-                        ->where('application_id', $workflow->application_id)
-                        ->select('license_number', 'expires_at')
-                        ->first();
+    //             // ------------------------------------------------
+    //             // NEW APPLICATION
+    //             // ------------------------------------------------
 
-                    if ($license) {
+                
+    //             if ($appl_type === 'N') {
 
-                        // 🔍 Check renewal in ALL FOUR tables
-                        foreach ($applicationTables as $appTable) {
-
-                            $renewalApp = DB::table($appTable)
-                                ->where('old_application', $workflow->application_id)
-                                ->where('appl_type', 'R')
-                                ->orderBy('id', 'desc')
-                                ->first();
-
-                            if ($renewalApp) {
-                                $renewalApplicationId = $renewalApp->application_id;
-                                break;
-                            }
-                        }
-
-                        // If NO renewal exists → show license
-                        if (!$renewalApplicationId) {
-                            $licenseNumber = $license->license_number;
-                            $expiry = $license->expires_at;
-                        }
-                    }
-                }
-
-                // ------------------------------------------------
-                // RENEWAL APPLICATION
-                // ------------------------------------------------
-                elseif ($appl_type === 'R') {
-
-                    $renewal = DB::table('tnelb_renewal_license')
-                        ->where('application_id', $workflow->application_id)
-                        ->select('license_number', 'expires_at')
-                        ->first();
-
-                    if ($renewal) {
-                        $licenseNumber = $renewal->license_number;
-                        $expiry = $renewal->expires_at;
-                    }
-                }
+    //                 $license = CC_Forms_cert::where('application_id', $workflow->application_id)
+    //                     ->select('certificate_no', 'valid_to')
+    //                     ->first();
 
 
+    //                 if ($license) {
 
-                // ------------------------------------------------
-                // VALIDITY CHECK
-                // ------------------------------------------------
-                if ($expiry && $licenceID) {
+    //                     // 🔍 Check renewal in ALL FOUR tables
+    //                     foreach ($applicationTables as $appTable) { 
 
-                    $validityMonths = FeesValidity::where('licence_id', $licenceID)
-                        ->where('form_type', 'A')
-                        ->value('validity');
+    //                         $renewalApp = DB::table($appTable)
+    //                             ->where('old_application', $workflow->application_id)
+    //                             ->where('appl_type', 'R')
+    //                             ->orderBy('id', 'desc')
+    //                             ->first();
 
-                    $expiryDate = Carbon::parse($expiry);
-                    $validFromDate = $expiryDate->copy()->subMonths((int) $validityMonths);
-                    $today = Carbon::today();
-                    $oneYearAfterExpiry = $expiryDate->copy()->addYear();
+    //                         if ($renewalApp) {
+    //                             $renewalApplicationId = $renewalApp->application_id;
+    //                             break;
+    //                         }
+    //                     }
 
-                    $isValid = $today->greaterThanOrEqualTo($validFromDate)
-                            && $today->lessThanOrEqualTo($oneYearAfterExpiry);
-                }
+    //                     // If NO renewal exists → show license
+    //                     if (!$renewalApplicationId) {
+    //                         $licenseNumber = $license->license_number;
+    //                         $expiry = $license->expires_at;
+    //                     }
+    //                 }
+    //             }
 
-                // ------------------------------------------------
-                // ATTACH EXTRA DATA
-                // ------------------------------------------------
-                $workflow->form_code = $formCode;
-                $workflow->license_number = $licenseNumber;
-                $workflow->expires_at = $expiry;
-                $workflow->renewal_application_id = $renewalApplicationId;
-                $workflow->is_under_validity_period = $isValid;
+    //             // ------------------------------------------------
+    //             // RENEWAL APPLICATION
+    //             // ------------------------------------------------
+    //             elseif ($appl_type === 'R') {
 
-                // Resolve full licence name for display (try form_code e.g. EA, then form_name e.g. A)
-                $licenceRow = DB::table('mst_licences')->where('cert_licence_code', $formCode)->first()
-                    ?? DB::table('mst_licences')->where('form_code', $workflow->form_name ?? '')->first();
-                $workflow->licence_display_name = $licenceRow && !empty(trim($licenceRow->licence_name ?? ''))
-                    ? $licenceRow->licence_name
-                    : ('Form ' . $formCode);
+    //                 $renewal = DB::table('tnelb_renewal_license')
+    //                     ->where('application_id', $workflow->application_id)
+    //                     ->select('license_number', 'expires_at')
+    //                     ->first();
 
-                return $workflow;
-            });
+    //                 if ($renewal) {
+    //                     $licenseNumber = $renewal->license_number;
+    //                     $expiry = $renewal->expires_at;
+    //                 }
+    //             }
 
-        $workflows_cl = $workflows_cl->merge($records);
-    }
+
+
+    //             // ------------------------------------------------
+    //             // VALIDITY CHECK
+    //             // ------------------------------------------------
+    //             if ($expiry && $licenceID) {
+
+    //                 $validityMonths = FeesValidity::where('licence_id', $licenceID)
+    //                     ->where('form_type', 'A')
+    //                     ->value('validity');
+
+    //                 $expiryDate = Carbon::parse($expiry);
+    //                 $validFromDate = $expiryDate->copy()->subMonths((int) $validityMonths);
+    //                 $today = Carbon::today();
+    //                 $oneYearAfterExpiry = $expiryDate->copy()->addYear();
+
+    //                 $isValid = $today->greaterThanOrEqualTo($validFromDate)
+    //                         && $today->lessThanOrEqualTo($oneYearAfterExpiry);
+    //             }
+
+    //             // ------------------------------------------------
+    //             // ATTACH EXTRA DATA
+    //             // ------------------------------------------------
+    //             $workflow->form_code = $formCode;
+    //             $workflow->license_number = $licenseNumber;
+    //             $workflow->expires_at = $expiry;
+    //             $workflow->renewal_application_id = $renewalApplicationId;
+    //             $workflow->is_under_validity_period = $isValid;
+
+    //             // Resolve full licence name for display (try form_code e.g. EA, then form_name e.g. A)
+    //             $licenceRow = DB::table('mst_licences')->where('cert_licence_code', $formCode)->first()
+    //                 ?? DB::table('mst_licences')->where('form_code', $workflow->form_name ?? '')->first();
+    //             $workflow->licence_display_name = $licenceRow && !empty(trim($licenceRow->licence_name ?? ''))
+    //                 ? $licenceRow->licence_name
+    //                 : ('Form ' . $formCode);
+
+    //             return $workflow;
+    //         });
+
+    //         var_dump($records);
+    //         exit;
+
+    //     $workflows_cl = $workflows_cl->merge($records);
+    // }
 
     // ------------------------------------------------
     // FINAL SORTING

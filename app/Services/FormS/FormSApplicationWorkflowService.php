@@ -8,6 +8,9 @@ use App\Services\Competency\CompetencyMetaService;
 
 class FormSApplicationWorkflowService
 {
+    /** Marker on child experience rows copied from a parent exp_id (path-only, not a new entry). */
+    public const COPIED_EXP_SRC_PREFIX = '__SRC_EXP__:';
+
     public function isDigitisationApplication(CC_CompetencyMeta $application): bool
     {
         return strtoupper((string) ($application->appl_type ?? '')) === 'D';
