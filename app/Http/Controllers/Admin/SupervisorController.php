@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\FormS\FormSAlterationService;
 use Illuminate\Support\Facades\DB;
 use App\Models\Admin\SupervisorModel;
 use App\Models\Tnelb_CC_Digitization;
@@ -10,13 +11,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\RoleHelper;
+use App\Models\CC_Forms_cert;
 use App\Models\CC_Forms_Meta;
 use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\CompetencyWorkflowService;
-use App\Services\FormS\FormSAlterationService;
+
 use Carbon\Carbon;
 
 use function PHPUnit\Framework\isNull;
@@ -794,6 +796,7 @@ class SupervisorController extends Controller
      */
     public function view_completed_applications(Request $request)
     {
+        
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -1145,8 +1148,8 @@ class SupervisorController extends Controller
         //     'updated_by'      => Auth::id(),
         // ]));
         // exit;
-        
-      
+
+
         $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
         ->where('certificate_name', $applicant->certificate_name)
         ->first();
@@ -1214,14 +1217,14 @@ class SupervisorController extends Controller
                 ]);
         }
 
-     
+
 
          if ($role == 'assistantsecretary') {
-            
-            
+
+
             $role = 'Assistant Secretary';
             }
-            
+
             // dd($role); exit;
 
         return response()->json([
@@ -2087,7 +2090,7 @@ class SupervisorController extends Controller
         mixed $validFrom,
         mixed $validTo
     ): void {
-        
+
         $this->competencyCertificateService()->issueOrUpdate(
             (string) ($application->form_name ?? ''),
             [
@@ -2152,6 +2155,8 @@ class SupervisorController extends Controller
 
     public function approveApplication(Request $request)
     {
+
+        // dd($request->all()); exit;
 
         $request->validate([
             'application_id' => 'required|string',
@@ -2270,11 +2275,11 @@ class SupervisorController extends Controller
             }
             // dd($alter_insert); exit;
             // $licenseNumber = $alter_insert->license_number;
-        } 
-        
+        }
+
         $appService = app(CompetencyApplicationService::class);
 
-        
+
         $workflowService = app(CompetencyWorkflowService::class);
         $applicant = $appService->findApplicantWithPayment($request->application_id);
         if (! $applicant) {
@@ -2289,17 +2294,17 @@ class SupervisorController extends Controller
         ->first();
         // dd($licenseNumber); exit;
 
-        
+
 
         $meta_tbl_certIupdate = DB::table('cc_form_s_meta')
             ->where('application_id', $request->application_id)
             ->update([
                 'certificate_no' => $licenseNumber,
                 'updated_at' => now(),
-               
+
             ]);
 
-            
+
 
 
         if($Existingcheck){
@@ -2329,7 +2334,7 @@ class SupervisorController extends Controller
                 'processed_by'   => $request->processed_by,
                 'role_id'        => Auth::user()->roles_id,
                 'appl_status'    => 'A',
-                
+
                 'remarks'        => $request->remarks ?? 'No remarks provided',
                 'forwarded_to'   => $request->forwarded_to ?? null,
                 'created_at'     => $this->dbNow,
@@ -2337,6 +2342,19 @@ class SupervisorController extends Controller
                 'raised_by'      => $processed ?: 'PR',
             ]);
 
+
+// dd($licenseNumber); exit;
+            $payload = [
+                    'qc' => $request->qc,
+                    'qsc' => $request->qsc,
+                    'updated_at' => $this->dbNow,
+                ];
+
+            if (CC_Forms_cert::where('certificate_no', $licenseNumber)->exists()) {
+               $updated = CC_Forms_cert::where('certificate_no', $licenseNumber)->update($payload);
+
+                // dd($updated); exit;
+            }
 
 
 
@@ -2427,7 +2445,8 @@ class SupervisorController extends Controller
                 $appl_type,
                 $request->processed_by,
                 $request->application_id,
-                $login_id
+                $login_id,
+               
             );
 
             // Generate Licence PDF, encrypt it, and store its path (non-blocking)
@@ -2450,6 +2469,9 @@ class SupervisorController extends Controller
                 'forwarded_to'   => $request->forwarded_to ?? null, // No forwarding since it's approved
                 'created_at'     => $this->dbNow,
             ]);
+
+
+
 
 
             DB::commit();
@@ -2487,14 +2509,18 @@ class SupervisorController extends Controller
         $certService = $this->competencyCertificateService();
         $formName = (string) ($application->form_name ?? '');
 
+        
+
         // Renewal flow — one cc_*_cert row per application_id
         if ($applType === 'R') {
             $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
             $previousCertExpiry = $this->resolvePreviousCertExpiryForRenewal($application, $applicationId);
-            $previousExpiryCarbon = $previousCertExpiry ? Carbon::parse($previousCertExpiry) : db_now();
+            $previousExpiryCarbon = $previousCertExpiry
+                ? Carbon::parse($previousCertExpiry)
+                : Carbon::parse(db_now());
             $now = db_now();
 
-            if (!$licenseDetails || $now->greaterThan(Carbon::parse($licenseDetails->expires_at))) {
+            if (!$licenseDetails ||$now->greaterThan(Carbon::parse($licenseDetails->expires_at))){
                 $issuedAt = $previousExpiryCarbon->copy()->addDay()->format('Y-m-d');
                 $effectiveApplType = $applType;
 
@@ -2521,7 +2547,7 @@ class SupervisorController extends Controller
                     $expiresAt
                 );
 
-                
+
 
                 return [$licenseNumber, $issuedAt, $expiresAt];
             }
@@ -2551,6 +2577,9 @@ class SupervisorController extends Controller
         }
 
         if ($applType === 'D') {
+            
+
+            
             $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
 
             if ($licenseDetails) {

@@ -1831,6 +1831,23 @@ span.text-label {
   box-shadow: 0 0px 1px 0 rgb(235 237 239), 0 1px 5px 0 rgb(255 255 255);
 }
 
+
+/* ------------------ */
+.head_label_exp th {
+  background-color: #057f95;
+  color: #fff;
+}
+
+.head_label_exp th {
+    background-color: #057f95;
+    color: #fff;
+}
+
+.head_label_exp .btn-primary {
+  box-shadow: 0 0px 1px 0 rgb(235 237 239), 0 1px 5px 0 rgb(255 255 255);
+}
+
+
 .auto-container_a {
   width: 100%;
   padding-right: 15px;

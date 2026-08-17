@@ -2044,11 +2044,11 @@ if (!hasPurchaseFile) {
         }
     });
 
-    $(document).on("keyup change", 'input[name="model[]"]', function () {
-        if ($(this).val().trim() !== "") {
-            $(this).closest("tr").find(".model_error").text("");
-        }
-    });
+    // $(document).on("keyup change", 'input[name="model[]"]', function () {
+    //     if ($(this).val().trim() !== "") {
+    //         $(this).closest("tr").find(".model_error").text("");
+    //     }
+    // });
 
     $(document).on("change", 'input[name="date_of_test[]"]', function () {
         if ($(this).val().trim() !== "") {
@@ -5586,11 +5586,11 @@ if (!hasPurchaseFile) {
         }
     });
 
-    $(document).on("keyup change", 'input[name="model[]"]', function () {
-        if ($(this).val().trim() !== "") {
-            $(this).closest("tr").find(".model_error").text("");
-        }
-    });
+    // $(document).on("keyup change", 'input[name="model[]"]', function () {
+    //     if ($(this).val().trim() !== "") {
+    //         $(this).closest("tr").find(".model_error").text("");
+    //     }
+    // });
 
     $(document).on("change", 'input[name="date_of_test[]"]', function () {
         if ($(this).val().trim() !== "") {
@@ -6941,6 +6941,174 @@ function removeStaffqcRow(button) {
 
 function generateQCCode() {
     return $('#staffqc-container tr.staffqc-fields').length + 1;
+}
+
+// ---------------exp retrival----------------
+
+flatpickr('input[name="competency_certificate_validity_to[]"]', {
+    dateFormat: "Y-m-d",
+
+    onChange: function(selectedDates, dateStr, instance) {
+
+        console.log("Selected Date:", dateStr);
+
+        checkCompetencyCertificate();
+    }
+});
+
+
+flatpickr(
+    'input[name="previous_validity_first_issue"], input[name="previous_validity_from"], input[name="previous_validity_to"], input[name="staff_cc_first_issue[]"], input[name="staff_cc_validity_from[]"], input[name="staff_cc_validity_to[]"]',
+
+    {
+        dateFormat: "d-m-Y",
+
+    }
+);
+
+
+flatpickr('input[name="competency_certificate_first_issue[]"]', {
+    dateFormat: "Y-m-d"
+});
+
+flatpickr('input[name="competency_certificate_validity_from[]"]', {
+    dateFormat: "Y-m-d"
+});
+
+flatpickr('input[name="dob[]"]', {
+    dateFormat: "Y-m-d"
+});
+
+flatpickr('input[name="competency_certificate_validity_to[]"]', {
+    dateFormat: "Y-m-d",
+
+    onChange: function(selectedDates, dateStr) {
+
+        let certificateNo =
+            $('input[name="competency_certificate_number[]"]').first().val();
+
+        let firstIssue =
+            $('input[name="competency_certificate_first_issue[]"]').first().val();
+
+        let validFrom =
+            $('input[name="competency_certificate_validity_from[]"]').first().val();
+
+        let validTo = dateStr;
+
+        if (certificateNo && firstIssue && validFrom && validTo) {
+            checkCompetencyCertificate();
+        }
+    }
+});
+
+function checkCompetencyCertificate() {
+
+    let certificate_no = $('input[name="competency_certificate_number[]"]').first().val();
+    let dateof_issue = $('input[name="competency_certificate_first_issue[]"]').first().val();
+    let valid_from = $('input[name="competency_certificate_validity_from[]"]').first().val();
+    let valid_to = $('input[name="competency_certificate_validity_to[]"]').first().val();
+
+    if (
+        certificate_no === '' ||
+        dateof_issue === '' ||
+        valid_from === '' ||
+        valid_to === ''
+    ) {
+        return;
+    }
+
+    
+
+    $.ajax({
+        url: BASE_URL + "/check-competency-certificate",
+        type: "POST",
+
+        data: {
+              _token: $('meta[name="csrf-token"]').attr("content"),
+            certificate_no: certificate_no,
+            dateof_issue: dateof_issue,
+            valid_from: valid_from,
+            valid_to: valid_to
+        },
+
+        beforeSend: function () {
+            $('#competency_exp_result').html(
+                '<div class="text-info">Checking certificate...</div>'
+            );
+        },
+
+        success: function (response) {
+
+    if (response.status === true && response.data) {
+
+        let data = response.data;
+
+        let table = `
+            <div class="table-responsive mt-3">
+                <table class="table table-bordered table-striped head_label_exp">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Employee Type</th>
+                            <th>Licence Category</th>
+                            <th>Organisation Name</th>
+                            <th>Address</th>
+                            <th>Designation</th>
+                            <th>Nature of Work</th>
+                            <th>Voltage Level</th>
+                            <th>Transformer (kVA)</th>
+                            <th>From Date</th>
+                            <th>To Date</th>
+                            <th>Total Experience</th>
+                            
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>${data.emp_type ?? ''}</td>
+                            <td>${data.emp_type === 'emp_cate' ? data.emp_cate ?? '' : '-'}</td>
+                            
+                            <td>${data.org_name ?? ''}</td>
+                            <td>${data.org_address ?? ''}</td>
+                            <td>${data.designation ?? ''}</td>
+                            <td>${data.nature_work ?? ''}</td>
+                            <td>${data.voltage_level ?? ''}</td>
+                            <td>${data.voltage_level != 'up_to_650v' ? data.transformer_kva ?? '' : '-'}${data.transformer_kva ?? ''}</td>
+                            <td>${data.from_date ?? ''}</td>
+                            <td>${data.to_date ?? ''}</td>
+                            <td>${data.total_exp ?? ''}</td>
+                           
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        $('#competency_exp_result').html(table);
+
+    } else {
+
+        $('#competency_exp_result').html(`
+            <div class="alert alert-warning">
+                ${response.message}
+            </div>
+        `);
+    }
+},
+
+        error: function (xhr) {
+
+            console.log(xhr.responseText);
+
+            $('#competency_exp_result').html(
+                '<div class="alert alert-danger">' +
+                'Unable to check certificate.' +
+                '</div>'
+            );
+        }
+    });
 }
 
 

@@ -182,7 +182,7 @@ class LicensepdfController extends Controller
                     .lbl{
                         font-size: 12pt;
                     }
-              
+
                     .val{
                         font-size: 12pt;
                     }
@@ -262,7 +262,7 @@ class LicensepdfController extends Controller
 
             $html = '
 
-           
+
             <div class="card">
 
               <table class="header-table text-center" style="width: 100%;" >
@@ -279,10 +279,10 @@ class LicensepdfController extends Controller
                 <tr>
                      <td style="font-size:11pt; font-weight:bold;text-transform: uppercase;">' . $licence_name . '</td>
                 </tr>
-               
+
             </table>
 
-              
+
 
                 <div class="content pt-6" >
                     <table width="100%" cellspacing="0" cellpadding="0">
@@ -324,11 +324,11 @@ class LicensepdfController extends Controller
                                         <td class="colon">:</td>
                                         <td class="val text-uppercase">' . $applicant->applicants_address . '</td>
                                     </tr>
-                                    
+
                                 </table>
 
 
-                          
+
 
                             </td>
 
@@ -409,7 +409,7 @@ class LicensepdfController extends Controller
                     .lbl{
                         font-size: 12pt;
                     }
-              
+
                     .val{
                         font-size: 12pt;
                     }
@@ -489,7 +489,7 @@ class LicensepdfController extends Controller
 
             $html = '
 
-           
+
             <div class="card">
 
               <table class="header-table text-center" style="width: 100%;" >
@@ -506,10 +506,10 @@ class LicensepdfController extends Controller
                 <tr>
                      <td style="font-size:11pt; font-weight:bold; text-transform: uppercase;">' . $licence_name . '</td>
                 </tr>
-               
+
             </table>
 
-              
+
 
                 <div class="content pt-6" >
                     <table width="100%" cellspacing="0" cellpadding="0">
@@ -555,7 +555,7 @@ class LicensepdfController extends Controller
                                 </table>
 
 
-                          
+
 
                             </td>
 
@@ -622,17 +622,17 @@ class LicensepdfController extends Controller
         $pdfBinaryTa = $this->generateLicenceTamil($application_id, true);
 
         // Encrypt and store both securely
-        $encryptedPathEn = 'private_documents/license_pdfs/' . $application_id . '_en.pdf.enc';
+        $encryptedPathEn = 'private_documents/license_pdfs/' . $application_id . '.pdf';
         Storage::disk('local')->put($encryptedPathEn, Crypt::encryptString($pdfBinaryEn));
 
-        $encryptedPathTa = null;
-        if (is_string($pdfBinaryTa) && $pdfBinaryTa !== '') {
-            $encryptedPathTa = 'private_documents/license_pdfs/' . $application_id . '_ta.pdf.enc';
-            Storage::disk('local')->put($encryptedPathTa, Crypt::encryptString($pdfBinaryTa));
-        }
+        // $encryptedPathTa = null;
+        // if (is_string($pdfBinaryTa) && $pdfBinaryTa !== '') {
+        //     $encryptedPathTa = 'private_documents/license_pdfs/' . $application_id . '_ta.pdf.enc';
+        //     Storage::disk('local')->put($encryptedPathTa, Crypt::encryptString($pdfBinaryTa));
+        // }
 
         // Save paths to cc_form_*_cert (cert_pdf / license_pdf_*)
-        $this->storeEncryptedLicensePdfPath($application_id, $encryptedPathEn, $encryptedPathTa);
+        $this->storeEncryptedLicensePdfPath($application_id, $encryptedPathEn);
 
         // Stream English PDF to browser (existing behavior)
         return response($pdfBinaryEn)
@@ -714,7 +714,7 @@ class LicensepdfController extends Controller
            .lbl{
                         font-size: 12pt;
                     }
-              
+
                     .val{
                         font-size: 12pt;
                     }
@@ -796,12 +796,12 @@ class LicensepdfController extends Controller
                 <tr>
                      <td >' . $licence_name . '</td>
                 </tr>
-               
+
             </table>
-                
+
             </div>
 
-           
+
 
             <!-- BODY -->
             <div class="content">
@@ -1166,7 +1166,7 @@ class LicensepdfController extends Controller
         ];
     }
 
-    private function storeEncryptedLicensePdfPath($applicationId, string $encryptedPathEn, ?string $encryptedPathTa = null): void
+    private function storeEncryptedLicensePdfPath($applicationId, string $encryptedPathEn, ): void
     {
         try {
             $certTable = $this->competencyCertTableForApplication($applicationId);
@@ -1181,9 +1181,7 @@ class LicensepdfController extends Controller
             $payload = [];
             if (Schema::hasColumn($certTable, 'license_pdf_en')) {
                 $payload['license_pdf_en'] = $encryptedPathEn;
-                if ($encryptedPathTa && Schema::hasColumn($certTable, 'license_pdf_ta')) {
-                    $payload['license_pdf_ta'] = $encryptedPathTa;
-                }
+
             } elseif (Schema::hasColumn($certTable, 'cert_pdf')) {
                 $payload['cert_pdf'] = $encryptedPathEn;
             }
@@ -1207,7 +1205,7 @@ class LicensepdfController extends Controller
             Log::warning('Failed to store encrypted license PDF path', [
                 'application_id' => $applicationId,
                 'encryptedPathEn' => $encryptedPathEn,
-                'encryptedPathTa' => $encryptedPathTa,
+
                 'error' => $e->getMessage(),
             ]);
         }
@@ -1700,8 +1698,8 @@ class LicensepdfController extends Controller
                         எங்களை தொடர்பு கொள்ள : www.tnelb.gov.in
                     </div>
                     <div style="margin-top:4mm; text-align: justify;">
-                        இச்சான்றிதழ் பெற்றவர் மின் உற்பத்தி நிலையங்களில் (Form P திறன் சான்றிதழ்) 
-                        பணிபுரிய தகுதி பெற்றவர் என்பதையும், தமிழ்நாடு மின்அனுமதி வாரியம் 
+                        இச்சான்றிதழ் பெற்றவர் மின் உற்பத்தி நிலையங்களில் (Form P திறன் சான்றிதழ்)
+                        பணிபுரிய தகுதி பெற்றவர் என்பதையும், தமிழ்நாடு மின்அனுமதி வாரியம்
                         நிர்ணயித்த விதிமுறைகளின்படி செயல்பட வேண்டும் என்பதையும் அறிவிக்கப்படுகிறது.
                     </div>
 
@@ -1907,6 +1905,15 @@ class LicensepdfController extends Controller
         }
 
         $mpdf = new \Mpdf\Mpdf($mpdfConfig);
+
+        $logoPath = public_path('assets/admin/images/logo/logo.png');
+        $mpdf->SetWatermarkImage(
+        $logoPath,
+        0.08,
+        [120, 130],
+        'P'
+         );
+        $mpdf->showWatermarkImage = true;
 
         $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
         $mpdf->WriteHTML(str_replace(
@@ -2215,8 +2222,8 @@ class LicensepdfController extends Controller
                     <div class="bi-ta" lang="ta">திரு.வி.கா. தொழிற்சாலை, கிண்டி, சென்னை – 600032.</div>
 
                     <div class="bi-en"> ' . $licence_name->licence_name . '- <span class="bi-ta" style="color:green;">' . $appltye . ' </span></div>
-                   
-                    
+
+
                 </div>
             </div>
 
@@ -2234,7 +2241,7 @@ class LicensepdfController extends Controller
                                     <td class="colon">:</td>
                                     <td class="val">' . $applicant->license_number . '</td>
                                 </tr>
-                               
+
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of First Issue</div><div class="lbl-ta" lang="ta">வழங்கப்பட்ட தேதி</div></div></td>
                                     <td class="colon">:</td>
@@ -2247,7 +2254,7 @@ class LicensepdfController extends Controller
                                 </tr>
 
                              ' . $oldCertificateRow . '
-                               
+
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
                                     <td class="colon">:</td>
@@ -2357,6 +2364,10 @@ class LicensepdfController extends Controller
             <div class="footer">
                 <div class="bi-en">Issued by TNELB | Tamil Nadu</div>
                 <div class="bi-ta" lang="ta">TNELB வழங்கியது | தமிழ்நாடு</div>
+
+                <div style="margin-top:0px; text-align:center; font-size:8pt; color:#555;">
+                    <b>This is a computer-generated document and is valid without a physical signature.</b>
+                </div>
             </div>
 
         </div>
@@ -2406,7 +2417,7 @@ class LicensepdfController extends Controller
         $mpdf->WriteHTML('<style>
         body {  }
         p, td, th { padding: 0px; }
-        p 
+        p
         .tbl_center { text-align: center; }
         .mt-2 { margin-top: 5; }
         table { border-collapse: collapse; width: 100%; }
@@ -2499,7 +2510,7 @@ class LicensepdfController extends Controller
         // Declaration
         $html .= '
         <br>
-       
+
         <p><strong>Date:</strong> ' . date('d-m-Y', strtotime($applicant->issued_at)) . '</p>';
 
         // Write HTML to PDF
@@ -2615,7 +2626,7 @@ class LicensepdfController extends Controller
         .mt-5{margin-top:5px;}
         .mt-1{margin-top:1px;}
         .text-black{color:black;}
-        
+
     </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
         $grade_name = $applicant->license_name;
         // dd($grade_name);
@@ -2662,15 +2673,15 @@ class LicensepdfController extends Controller
 
          <!-- RIGHT QR -->
         <td width="10%" style="text-align:right; vertical-align:top; padding-top:10px;">
-            <barcode 
-                code="' . htmlspecialchars($qrData) . '" 
-                type="QR" 
+            <barcode
+                code="' . htmlspecialchars($qrData) . '"
+                type="QR"
                 size="1"
                 error="H"
             />
         </td>
 
-  
+
     </tr>
 </table>';
 
@@ -2724,7 +2735,7 @@ class LicensepdfController extends Controller
         if ($proprietors->count() > 0) {
             foreach ($proprietors as $proprietor) {
                 $html .= '
-                
+
                         ' . strtoupper($proprietor->proprietor_name) . ',
                 ';
             }
@@ -2742,14 +2753,14 @@ class LicensepdfController extends Controller
         and specimen signature </h4>  </td>
         <td> : </td>
         <td> Authorized Person Name </td>
-        
+
         </tr>
         </table>';
 
 
         $html .= '
            <br><br>
-         
+
             <table style="width:100%; border:0;" class="mt-1 mb-1">
                 <tr>
                     <td class="label font-size-14 blue font-weight" style="text-align:left;">Secretary </td>
@@ -2781,7 +2792,7 @@ class LicensepdfController extends Controller
                 $html .= '
                     <tr>
                         <td>' . $i++ . ') ' . strtoupper($staff->staff_name) . ' - ' . $staff->cc_number .  '  Valid From : <b>' . $dates['valid_from'] . '</b> Valid Upto : <b>' . $dates['valid_upto'] . '</b></td>
-                      
+
                     </tr>';
             }
         }
@@ -2869,7 +2880,7 @@ class LicensepdfController extends Controller
             <tr>
                 <td style="text-align:left;">TNELB</td>
                 <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-                
+
             </tr>
         </table>
         ');
@@ -2981,7 +2992,7 @@ class LicensepdfController extends Controller
         .mt-5{margin-top:5px;}
         .mt-1{margin-top:1px;}
         .text-black{color:black;}
-        
+
     </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
         $grade_name = $applicant->license_name;
         // dd($grade_name);
@@ -3026,7 +3037,7 @@ class LicensepdfController extends Controller
 
         </td>
 
-  
+
     </tr>
 </table>';
 
@@ -3080,7 +3091,7 @@ class LicensepdfController extends Controller
         if ($proprietors->count() > 0) {
             foreach ($proprietors as $proprietor) {
                 $html .= '
-                
+
                         ' . strtoupper($proprietor->proprietor_name) . ',
                 ';
             }
@@ -3098,14 +3109,14 @@ class LicensepdfController extends Controller
         and specimen signature </h4>  </td>
         <td> : </td>
         <td> Authorized Person Name </td>
-        
+
         </tr>
         </table>';
 
 
         $html .= '
            <br><br>
-         
+
             <table style="width:100%; border:0;" class="mt-1 mb-1">
                 <tr>
                     <td class="label font-size-14 blue font-weight" style="text-align:left;">Secretary </td>
@@ -3153,7 +3164,7 @@ class LicensepdfController extends Controller
             <tr>
                 <td style="text-align:left;">TNELB</td>
                 <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-                
+
             </tr>
         </table>
         ');
@@ -3195,7 +3206,7 @@ class LicensepdfController extends Controller
         $mpdf->WriteHTML('<style>
         body {  }
         p, td, th { padding: 0px; }
-        p 
+        p
         .tbl_center { text-align: center; }
         .mt-2 { margin-top: 5; }
         table { border-collapse: collapse; width: 100%; }
@@ -3290,7 +3301,7 @@ class LicensepdfController extends Controller
         // Declaration
         $html .= '
         <br>
-       
+
         <p><strong>Date:</strong> ' . date('d-m-Y', strtotime($applicant->issued_at)) . '</p>';
 
         // Write HTML to PDF
@@ -3334,7 +3345,7 @@ class LicensepdfController extends Controller
         $mpdf->WriteHTML('<style>
         body {  }
         p, td, th { padding: 0px; }
-        p 
+        p
         .tbl_center { text-align: center; }
         .mt-2 { margin-top: 5; }
         table { border-collapse: collapse; width: 100%; }
@@ -3427,7 +3438,7 @@ class LicensepdfController extends Controller
         // Declaration
         $html .= '
         <br>
-       
+
         <p><strong>Date:</strong> ' . date('d-m-Y', strtotime($applicant->issued_at)) . '</p>';
 
         // Write HTML to PDF
@@ -3469,7 +3480,7 @@ class LicensepdfController extends Controller
         $mpdf->WriteHTML('<style>
         body {  }
         p, td, th { padding: 0px; }
-        p 
+        p
         .tbl_center { text-align: center; }
         .mt-2 { margin-top: 5; }
         table { border-collapse: collapse; width: 100%; }
@@ -3562,7 +3573,7 @@ class LicensepdfController extends Controller
         // Declaration
         $html .= '
         <br>
-       
+
         <p><strong>Date:</strong> ' . date('d-m-Y', strtotime($applicant->issued_at)) . '</p>';
 
         // Write HTML to PDF
@@ -3737,7 +3748,7 @@ class LicensepdfController extends Controller
         .mt-5{margin-top:5px;}
         .mt-1{margin-top:1px;}
         .text-black{color:black;}
-        
+
     </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
         $grade_name = $applicant->license_name;
         // dd($grade_name);
@@ -3784,15 +3795,15 @@ class LicensepdfController extends Controller
 
                 <!-- RIGHT QR -->
                 <td width="10%" style="text-align:right; vertical-align:top; padding-top:10px;">
-                    <barcode 
-                        code="' . htmlspecialchars($qrData) . '" 
-                        type="QR" 
+                    <barcode
+                        code="' . htmlspecialchars($qrData) . '"
+                        type="QR"
                         size="1"
                         error="H"
                     />
                 </td>
 
-        
+
             </tr>
         </table>';
 
@@ -3847,7 +3858,7 @@ class LicensepdfController extends Controller
         if ($proprietors->count() > 0) {
             foreach ($proprietors as $proprietor) {
                 $html .= '
-                
+
                         ' . strtoupper($proprietor->proprietor_name) . ',
                 ';
             }
@@ -3865,14 +3876,14 @@ class LicensepdfController extends Controller
 மற்றும் மாதிரி ஒப்பம் </h4>  </td>
         <td> : </td>
         <td> Authorized Person Name </td>
-        
+
         </tr>
         </table>';
 
 
         $html .= '
            <br><br>
-         
+
             <table style="width:100%; border:0;" class="mt-1 mb-1">
                 <tr>
                     <td class="label ta_font blue font-weight" style="text-align:left;">செயலாளர் </td>
@@ -3900,7 +3911,7 @@ class LicensepdfController extends Controller
                 $html .= '
                     <tr>
                         <td>' . $i++ . ') ' . strtoupper($staff->staff_name) . ' - ' . $staff->cc_number .  '  Valid From : ' . $dates['valid_from'] . ' Valid Upto : ' . $dates['valid_upto'] . '</td>
-                      
+
                     </tr>';
             }
         }
@@ -4013,7 +4024,7 @@ class LicensepdfController extends Controller
             <tr>
                 <td style="text-align:left;">TNELB</td>
                 <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-                
+
             </tr>
         </table>
         ');

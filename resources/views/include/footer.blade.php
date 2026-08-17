@@ -213,6 +213,7 @@ $(document).ready(function() {
 
 
         const dobInput = document.getElementById('d_o_b');
+        
 
         // Only attach flatpickr + DD-MM-YYYY validation on non-native date inputs.
         // On pages using <input type="date"> we rely on the browser picker and page-specific logic.
@@ -5146,8 +5147,10 @@ $(document).on("change", "#ownership_type_select", function () {
     $(".ownershipdoc_upload_error").text("");
 
     // Hide all sections first
-    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section")
-        .hide();
+    //$("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section")
+      //  .hide();
+    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section")
+    .hide();
 
     // Reset readonly + values
     $("input[name='proprietor_name[]']")
@@ -5159,6 +5162,7 @@ $(document).on("change", "#ownership_type_select", function () {
 
         $("#partnershipdeed").slideDown();
         $("#partnersfill-section").slideDown();
+        $("#partner-section").slideDown();
 
         let rowCount = $("#partnersfill-section table tbody tr").length;
 
@@ -5181,6 +5185,7 @@ $(document).on("change", "#ownership_type_select", function () {
 
         $("#directormom").slideDown();
         $("#directorfill-section").slideDown();
+        $("#director-section").slideDown();
 
         let rowCount = $("#director-section table tbody tr").length;
 
@@ -5198,6 +5203,7 @@ $(document).on("change", "#ownership_type_select", function () {
     else if (type === 'pr') {
 
         $("#proprietor-sectionfresh").slideDown();
+        $("#proprietor-section").slideDown();
 
         @if(Auth::check())
         $("#proprietor-sectionfresh")

@@ -189,7 +189,7 @@ class DocumentUploadController extends Controller
             // --------------------------------------------------
             $dbFilePath_all = DocPathController::getPath($request);
 
-            $dbFilePath = $dbFilePath_all->filepath_temp;
+            $dbFilePath = $dbFilePath_all->filepath_pro;
 
             $dbFilePath_modulecode = $dbFilePath_all->module_code;
 
