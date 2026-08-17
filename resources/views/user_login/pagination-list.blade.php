@@ -216,7 +216,7 @@
                         <span class="btn btn-danger btn-sm">Rejected</span>
                     @elseif ($sts == 'RE')
                         <span class="btn btn-primary btn-sm">Resubmitted</span>
-                    @elseif ($sts == 'A' && !empty($workflow->license_number))
+                    @elseif ($sts == 'A' && !empty($workflow->certificate_number))
                         <span class="btn btn-sm btn-success">Completed</span>
                     @elseif ($sts == 'A')
                         <span class="btn btn-sm btn-success">Completed</span>
@@ -254,23 +254,17 @@
                     <p>-</p>
                 @else
                     @if ($workflow->form_name == 'P')
-                        <a href="{{ route('generatePDFFormP-ta.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
-                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">தமிழ்</span>
-                        </a>
+                      
                         <a href="{{ route('generateformP.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">English</span>
+                            <span style="font-size: x-small;">Download</span>
                         </a>
                     @else
-                        <a href="{{ route('generate.tamil.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
-                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">தமிழ்</span>
-                        </a>
+                     
 
                         <a href="{{ route('generate.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">English</span>
+                            <span style="font-size: x-small;">Download</span>
                         </a>
                     @endif
                 @endif
@@ -279,9 +273,10 @@
             <!-- Certificate Number -->
             <td>
                 @if (!empty($workflow->license_number) && $sts == 'A')
+             
                     <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank" 
                         data-bs-toggle="tooltip" data-bs-placement="top" title="View Licence Details">
-                        <span class="badge badge-info">{{ $workflow->license_number }}</span>
+                        <span class="badge badge-info">{{ $workflow->certificate_no }}</span>
                     </a><br>
 
                     @if ($workflow->form_name == 'P')
@@ -322,18 +317,20 @@
                             $hasCertificateC = false;
 
                             if ($isFormW && !empty($workflow->login_id)) {
-                                $hasCertificateC = DB::table('tnelb_application_tbl as ta')
-                                    ->leftJoin('tnelb_license as l', 'l.application_id', '=', 'ta.application_id')
-                                    ->leftJoin('tnelb_renewal_license as rl', 'rl.application_id', '=', 'ta.application_id')
+                                $hasCertificateC = DB::table('cc_form_s_meta as ta')
+                                    ->leftJoin('cc_forms_cert as l', 'l.application_id', '=', 'ta.application_id')
+                                    
                                     ->where('ta.login_id', $workflow->login_id)
                                     ->where('ta.form_name', 'S')
                                     ->where('ta.status', 'A')
                                     ->where(function ($query) {
-                                        $query->whereNotNull('l.license_number')
-                                            ->orWhereNotNull('rl.license_number');
+                                        $query->whereNotNull('l.certificate_no')
+                                            ->orWhereNotNull('rl.certificate_no');
                                     })
                                     ->exists();
                             }
+
+                            // var_dump($hasCertificateC); exit
                         @endphp
                         @if ($workflow->is_under_validity_period && !($isFormW && $hasCertificateC))
                             <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'cc_renew_form', ['application_id' => $workflow->application_id]) }}"

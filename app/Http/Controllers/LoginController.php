@@ -199,6 +199,7 @@ class LoginController extends BaseController
         $query = DB::table("{$certTable} as c")
             ->join("{$metaTable} as ta", 'ta.application_id', '=', 'c.application_id')
             ->where('ta.login_id', $loginId)
+            ->whereRaw("TRIM(COALESCE(ta.appl_type, '')) <> 'A'")
             ->select(
                 'c.certificate_no as license_number',
                 'c.valid_to as expires_at',
@@ -770,7 +771,7 @@ class LoginController extends BaseController
                 return $row;
             });
 
-        $legacyRenewals = DB::table('tnelb_application_tbl as ta')
+        $legacyRenewals = DB::table('cc_form_s_meta as ta')
             ->where('ta.login_id', $loginId)
             ->where('ta.appl_type', 'R')
             ->whereNotIn('ta.form_name', $this->competencyCcMetaFormNames())
@@ -778,7 +779,7 @@ class LoginController extends BaseController
             ->orderByDesc('ta.submitted_date')
             ->get()
             ->map(function ($row) use ($loginId) {
-                $renewal = DB::table('tnelb_renewal_license')
+                $renewal = DB::table('cc_forms_cert')
                     ->where('application_id', $row->application_id)
                     ->first();
 
@@ -880,7 +881,9 @@ class LoginController extends BaseController
         }, 'licenses')
             ->whereDate('licenses.expires_at', '>=', now())
             ->orderByDesc('licenses.expires_at')
-            ->get();
+            ->get()
+            ->unique('license_number')
+            ->values();
 
         $table_applied_form = collect(
             DB::table('tnelb_application_tbl')

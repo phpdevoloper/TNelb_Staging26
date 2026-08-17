@@ -4379,4 +4379,65 @@ class FormAController extends BaseController
 
         return response()->json(['status' => 'success']);
     }
+
+
+    // ---------------------------exp retrival -----------------------
+    public function checkCompetencyCertificate(Request $request)
+{
+    // dd($request->all());exit;
+    $request->validate([
+        'certificate_no' => 'required',
+        'dateof_issue'   => 'required|date',
+        'valid_from'     => 'required|date',
+        'valid_to'       => 'required|date',
+    ]);
+
+    $certificate = DB::table('cc_forms_cert')
+        ->where('certificate_no', $request->certificate_no)
+        ->whereDate('dateof_issue', $request->dateof_issue)
+        ->whereDate('valid_from', $request->valid_from)
+        ->whereDate('valid_to', $request->valid_to)
+        ->first();
+
+        // dd($certificate);exit;
+
+    if (!$certificate) {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Certificate details not found - Enter valid details.'
+        ]);
+    }
+
+  
+
+    $application_id = $certificate->application_id;
+
+   
+
+    $cc_exp = DB::table('cc_exp')
+        ->where('application_id', $application_id)
+        ->orderBy('exp_id', 'DESC')
+        ->first();
+
+    if (!$cc_exp) {
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Certificate found, but no experience data found.',
+            'application_id' => $application_id,
+            'data' => null
+        ]);
+    }
+
+    // Step 4:
+    // Return latest cc_exp row
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Certificate and experience data found.',
+        'application_id' => $application_id,
+        'data' => $cc_exp
+    ]);
+}
 }

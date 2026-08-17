@@ -263,6 +263,9 @@ Route::post('/form/draft_renewal_submit/{appl_id}', [FormController::class, 'dra
 Route::post('/form/update/{appl_id}', [FormController::class, 'update'])->name('form.update');
 Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.store');
 
+// --------exp retrieve Form A ---------------
+Route::post('/check-competency-certificate',[FormAController::class, 'checkCompetencyCertificate'])->name('check.competency.certificate');
+
 
 // -------------------ownership type-------------------------------------------------
 Route::post('/forma/save_temp', [FormAController::class, 'saveTemp'])->name('forma.save_temp');

@@ -3156,8 +3156,285 @@ class LoginController extends Controller
      * View a completed application with workflow timeline (read-only).
      * Used from the Completed Applications list.
      */
-    public function viewCompletedApplicationDetail($applicant_id)
+
+     public function viewCompletedApplicationDetail($applicant_id)
     {
+
+
+        $returnForwardUser = null;
+        $appService = app(CompetencyApplicationService::class);
+        $applicant = $appService->findApplicantWithPayment($applicant_id);
+
+        if (!$applicant) {
+            return abort(403, 'Applicant not found');
+        }
+
+
+        $alterationProofs = collect();
+        $formSWorkflowAppPk = null;
+        $formSMasterWorkflowAppPk = null;
+        $parentApplicantForAlter = null;
+        $formName = strtoupper((string) ($applicant->form_name ?? ''));
+
+        if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
+            $workflowApp = CC_Forms_Meta::findByApplicationId($applicant_id);
+            if ($workflowApp) {
+                $reviewContext = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($workflowApp);
+                $educationalQualifications = $reviewContext['educationalQualifications'];
+                $workExperience = $reviewContext['workExperience'];
+                $uploadedPhoto = $reviewContext['uploadedPhoto'];
+                $uploadedSign = $reviewContext['uploadedSign'];
+                $alterationProofs = $reviewContext['alterationProofs'];
+                $formSWorkflowAppPk = (int) $workflowApp->app_id;
+                $parentApp = $reviewContext['parentApplication'] ?? null;
+                $formSMasterWorkflowAppPk = $parentApp ? (int) $parentApp->app_id : null;
+                if ($applicant->appl_type == 'A') {
+                    $parentApplicantForAlter = $parentApp;
+                    if ($parentApplicantForAlter) {
+                        $parentApplicantForAlter->applicants_address = $parentApplicantForAlter->applicants_address
+                            ?? $parentApplicantForAlter->applicant_address
+                            ?? null;
+                        $parentApplicantForAlter->applicant_name = $parentApplicantForAlter->applicant_name
+                            ?? $parentApplicantForAlter->applicants_name
+                            ?? null;
+                    }
+                    if (!$parentApplicantForAlter && !empty($applicant->old_application)) {
+                        $parentApplicantForAlter = DB::table('tnelb_application_tbl')
+                            ->where('application_id', $applicant->old_application)
+                            ->first();
+                    }
+                }
+            } else {
+                $educationalQualifications = collect();
+                $workExperience = collect();
+                $uploadedPhoto = null;
+                $uploadedSign = null;
+            }
+        } elseif ($applicant->appl_type == "R") {
+            $educationalQualifications = DB::table('tnelb_applicants_edu')
+                ->where('application_id', $applicant_id)
+                ->get();
+
+            $workExperience = DB::table('tnelb_applicants_exp')
+                ->where('application_id', $applicant_id)
+                ->get();
+
+            $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
+                ->whereNotNull('upload_path')
+                ->orderByDesc('id')
+                ->first();
+
+            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
+                ->whereNotNull('uploaded_doc')
+                ->orderByDesc('id')
+                ->first();
+        } else {
+            $educationalQualifications = DB::table('tnelb_applicants_edu')
+                ->where('application_id', $applicant_id)
+                ->orderBy('year_of_passing', 'desc')
+                ->get();
+
+            $workExperience = DB::table('tnelb_applicants_exp')
+                ->where('application_id', $applicant_id)
+                ->get();
+
+            $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
+                ->whereNotNull('upload_path')
+                ->orderByDesc('id')
+                ->first();
+
+            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
+                ->whereNotNull('uploaded_doc')
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        // Get the current user's role ID
+        $staff = Auth::user();
+
+        // dd($staff->name);exit;
+
+        if (!$staff || !$staff->roles_id) {
+            return abort(403, 'Unauthorized');
+        }
+
+
+
+        // Fetch next role dynamically from the roles table
+        if (in_array($staff->name, ["Supervisor", "Supervisor2"])) {
+
+            // if ($applicant->status == 'RE') {
+
+
+            //     $nextForwardUser = DB::table('mst__staffs__tbls')
+            //         ->where('name', 'Secretary')
+            //         ->select('name', 'roles_id')
+            //         ->first();
+            // } else {
+            $nextForwardUser = DB::table('mst_login_users')
+                ->where('user_name', 'assistantsecretary')
+                ->select('user_name as name', 'role_id as roles_id')
+                ->first();
+            // }
+        }
+
+
+
+        // dd($applicant->status);exit;
+        if ($staff->name === "Assistant Secretary") {
+
+
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Secretary')
+                ->select('name', 'roles_id')
+                ->first();
+            $returnForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Supervisor')
+                ->select('name', 'roles_id')
+                ->first();
+        }
+        if ($staff->name === "Secretary") {
+
+            if ($applicant->form_id == 1) {
+
+                $nextForwardUser = DB::table('mst__staffs__tbls')
+                    ->where('name', 'President')
+                    ->select('name', 'roles_id')
+                    ->first();
+
+                $returnForwardUser = DB::table('mst__staffs__tbls')
+                    ->where('name', 'Supervisor')
+                    ->select('name', 'roles_id')
+                    ->first();
+            } else {
+
+                $nextForwardUser = DB::table('mst__staffs__tbls')
+                    ->where('name', 'Secretary')
+                    ->select('name', 'roles_id')
+                    ->first();
+
+                $returnForwardUser = DB::table('mst__staffs__tbls')
+                    ->where('name', 'Supervisor')
+                    ->select('name', 'roles_id')
+                    ->first();
+            }
+        }
+
+        if ($staff->name === "President") {
+
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'President')
+                ->select('roles_id', 'name')
+                ->first();
+
+            $returnForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Supervisor')
+                ->select('name', 'roles_id')
+                ->first();
+        }
+        // dd($staff->name);exit;
+
+        // dd($returnForwardUser);exit;
+        //  dd($nextForwardUser->roles_id);exit;
+        $user_entry = $appService->findApplicantWithPayment($applicant_id)
+            ?? DB::table('tnelb_application_tbl')->where('application_id', $applicant_id)->first();
+
+        $workflows = $this->queryCompetencyWorkflowsWithReturnApplicantLog(
+            $applicant_id,
+            ['app_tbl.form_name'],
+            true,
+            true
+        );
+
+        $workflows1 = DB::table('mst__roles')
+            ->select('*')
+            ->get();
+
+
+        $queries = DB::table('tnelb_query_applicable as qa')
+            ->leftJoin('tnelb_application_tbl as ta', 'qa.application_id', '=', 'ta.application_id')
+            ->where('qa.application_id', $applicant_id)
+            ->where('qa.query_status', 'P')
+            ->select('qa.*')
+            ->orderByDesc('qa.id')
+            ->get();
+
+        $cc_digitization = DB::table('tnelb_cc_digitization')
+            ->where('application_id', $applicant_id)
+            ->first();
+        $checklist = DB::table('mst_checklists as mc')
+            ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
+            ->where('ml.cert_licence_code', $applicant->license_name)
+            ->where('mc.appl_type', $applicant->appl_type)
+            ->where('mc.status', 1)
+            ->select(
+                'mc.*',
+                'ml.licence_name',
+                'ml.cert_licence_code'
+            )
+            ->get();
+
+        if (($applicant->appl_type ?? '') === 'A' && empty($parentApplicantForAlter) && !empty($applicant->old_application)) {
+            $parentApplicantForAlter = CC_Forms_Meta::findByApplicationId((string) $applicant->old_application)
+                ?? DB::table('tnelb_application_tbl')
+                ->where('application_id', $applicant->old_application)
+                ->first();
+        }
+
+        $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)
+            ->where('certificate_name', $applicant->certificate_name)
+            ->first();
+
+      $checkedList_1 = [];
+        $verifyList = [];
+
+        if ($Existingchecklist && $Existingchecklist->checklist_json) {
+
+            $json = json_decode($Existingchecklist->checklist_json, true);
+
+            foreach ($json as $row) {
+
+                $checkedList_1[$row['id']] = $row['checked'];
+                $verifyList[$row['id']]  = $row['verify'];
+            }
+
+
+        }
+
+        // dd($checkedList);exit;
+
+        // dd($verifyList);exit;
+
+        // Determine view based on user role
+        
+
+        // var_dump($nextForwardUser);exit;
+        return view('admin.completed_appl_view', compact(
+            'applicant',
+            'educationalQualifications',
+            'workExperience',
+            'uploadedPhoto',
+            'uploadedSign',
+            'nextForwardUser',
+            'returnForwardUser',
+            'workflows',
+            'queries',
+            'user_entry',
+            'staff',
+            'cc_digitization',
+            'checklist',
+            'alterationProofs',
+            'formSWorkflowAppPk',
+            'formSMasterWorkflowAppPk',
+            'parentApplicantForAlter',
+            // 'checklist',
+            'checkedList_1',
+            'verifyList'
+        ));
+    }
+    public function viewCompletedApplicationDetail_bk($applicant_id)
+    {
+        // dd($applicant_id);exit;
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');

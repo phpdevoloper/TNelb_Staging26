@@ -32,6 +32,7 @@ use App\Services\FormS\FormSDocumentUploadHandler;
 use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\SensitiveProofCryptService;
 use App\Services\Competency\CompetencyApplicationService;
@@ -77,6 +78,11 @@ class FormController extends BaseController
         return app(FormSProofDocumentService::class);
     }
 
+    private function childDocumentSnapshotService(): FormSChildDocumentSnapshotService
+    {
+        return app(FormSChildDocumentSnapshotService::class);
+    }
+
     private function loadApplicantPhotoForView(string $applicationId): ?object
     {
         return $this->proofDocumentService()->loadPhotoForView($applicationId);
@@ -96,13 +102,20 @@ class FormController extends BaseController
             return;
         }
 
-        $masterApplicationId = $this->resolveFormSMasterApplicationId($workflowForm, $formName);
+        $snapshotOnChild = $this->shouldSnapshotChildDocuments($workflowForm, $formName);
+        if ($snapshotOnChild) {
+            $this->childDocumentSnapshotService()->copyParentIdentityProofsToChild($workflowForm);
+        }
+
+        $ownerApplicationId = $snapshotOnChild
+            ? (string) $workflowForm->application_id
+            : $this->resolveFormSMasterApplicationId($workflowForm, $formName);
         $appType = (string) ($workflowForm->appl_type ?? '');
         $proofService = $this->proofDocumentService();
 
         if ($request->filled('aadhaar')) {
             $proofService->syncProofNumber(
-                $masterApplicationId,
+                $ownerApplicationId,
                 $appType,
                 FormSProofDocumentService::PROOF_AADHAAR,
                 $request->aadhaar
@@ -112,7 +125,7 @@ class FormController extends BaseController
         if ($request->hasFile('aadhaar_doc')) {
             $proofService->saveProofUpload(
                 $workflowForm,
-                $masterApplicationId,
+                $ownerApplicationId,
                 $appType,
                 FormSProofDocumentService::PROOF_AADHAAR,
                 $request->file('aadhaar_doc'),
@@ -120,12 +133,12 @@ class FormController extends BaseController
                 $formName
             );
         } elseif ($request->input('aadhaar_doc_removed') === '1') {
-            $proofService->clearProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR);
+            $proofService->clearProofDocument($ownerApplicationId, FormSProofDocumentService::PROOF_AADHAAR);
         }
 
         if ($this->isCompetencyForm($formName) && $request->filled('pancard')) {
             $proofService->syncProofNumber(
-                $masterApplicationId,
+                $ownerApplicationId,
                 $appType,
                 FormSProofDocumentService::PROOF_PAN,
                 $request->pancard
@@ -135,7 +148,7 @@ class FormController extends BaseController
         if ($this->isCompetencyForm($formName) && $request->hasFile('pancard_doc')) {
             $proofService->saveProofUpload(
                 $workflowForm,
-                $masterApplicationId,
+                $ownerApplicationId,
                 $appType,
                 FormSProofDocumentService::PROOF_PAN,
                 $request->file('pancard_doc'),
@@ -157,7 +170,7 @@ class FormController extends BaseController
 
             $proofService->saveProofUpload(
                 $workflowForm,
-                $masterApplicationId,
+                $ownerApplicationId,
                 $appType,
                 FormSProofDocumentService::PROOF_PHOTO,
                 $photoFile,
@@ -179,7 +192,7 @@ class FormController extends BaseController
 
             $proofService->saveProofUpload(
                 $workflowForm,
-                $masterApplicationId,
+                $ownerApplicationId,
                 $appType,
                 FormSProofDocumentService::PROOF_SIGN,
                 $signFile,
@@ -190,13 +203,13 @@ class FormController extends BaseController
 
         if ($request->input('aadhaar_doc_removed') !== '1') {
             $proofService->ensureProofDocumentEncryptedAtRest(
-                $masterApplicationId,
+                $ownerApplicationId,
                 FormSProofDocumentService::PROOF_AADHAAR
             );
         }
 
         $proofService->ensureProofDocumentEncryptedAtRest(
-            $masterApplicationId,
+            $ownerApplicationId,
             FormSProofDocumentService::PROOF_PAN
         );
     }
@@ -1154,13 +1167,13 @@ class FormController extends BaseController
         ?string $formName,
         ?CC_CompetencyMeta $workflowForm = null
     ): void {
-        if (! $this->hasWorkExperiencePayload($request)) {
+        if ($this->shouldSnapshotChildDocuments($workflowForm, $formName)) {
+            $this->persistChildExperienceSnapshot($request, $workflowForm, $loginId, $formName);
+
             return;
         }
 
-        if ($this->shouldSnapshotExperienceOnChild($workflowForm, $formName)) {
-            $this->persistChildExperienceSnapshot($request, $workflowForm, $loginId, $formName);
-
+        if (! $this->hasWorkExperiencePayload($request)) {
             return;
         }
 
@@ -1244,6 +1257,11 @@ class FormController extends BaseController
         }
     }
 
+    private function shouldSnapshotChildDocuments(?CC_CompetencyMeta $workflowForm, ?string $formName): bool
+    {
+        return $this->shouldSnapshotExperienceOnChild($workflowForm, $formName);
+    }
+
     private function shouldSnapshotExperienceOnChild(?CC_CompetencyMeta $workflowForm, ?string $formName): bool
     {
         if (! $workflowForm instanceof CC_CompetencyMeta || ! $this->isCompetencyForm($formName)) {
@@ -1285,9 +1303,8 @@ class FormController extends BaseController
             $parentExp = null;
             if ($workId !== '') {
                 $found = CC_Experience::find($workId);
-                if ($found && (string) $found->application_id === $parentId) {
-                    $parentExp = $found;
-                }
+                $parentExp = $this->childDocumentSnapshotService()
+                    ->resolveParentExperienceFromPostedId($found, $parentId);
             }
 
             $supportRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
@@ -1390,6 +1407,117 @@ class FormController extends BaseController
         }
 
         return $marker;
+    }
+
+    /**
+     * Renewal submit: store a full education snapshot on the renewal application_id.
+     * Copied parent rows keep the parent document path (no re-upload). Newly chosen files
+     * are stored under FORM_S/RENEWAL/…. Parent cc_edu is not updated.
+     */
+    private function persistChildEducationSnapshot(
+        Request $request,
+        CC_CompetencyMeta $child,
+        string $loginId,
+        ?string $formName
+    ): void {
+        $snapshot = $this->childDocumentSnapshotService();
+        $workflow = app(FormSApplicationWorkflowService::class);
+        $parent = $workflow->masterApplication($child);
+        $parentId = (string) $parent->application_id;
+        $childId = (string) $child->application_id;
+
+        CC_Education::where('application_id', $childId)->delete();
+
+        $copiedSourceIds = [];
+
+        foreach ($request->educational_level ?? [] as $key => $level) {
+            $levelName = trim((string) ($level ?? ''));
+            $institute = trim((string) ($request->institute_name[$key] ?? ''));
+            $monthRaw = $request->month_of_passing[$key] ?? null;
+            $year = $request->year_of_passing[$key] ?? null;
+            $certificateNo = $request->certificate_no[$key] ?? null;
+            $removed = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
+
+            $eduId = trim((string) ($request->edu_id[$key] ?? ''));
+            $postedEdu = $eduId !== '' ? CC_Education::find($eduId) : null;
+            $parentEdu = $snapshot->resolveParentEducationFromPostedId($postedEdu, $parentId, $levelName);
+
+            $monthVal = null;
+            if ($monthRaw !== null && $monthRaw !== '') {
+                $m = (int) ltrim((string) $monthRaw, '0');
+                if ($m >= 1 && $m <= 12) {
+                    $monthVal = $m;
+                }
+            }
+
+            $hasAnyData = $levelName !== '' || $institute !== '' || $monthVal !== null
+                || ($year !== null && $year !== '' && $year !== '0')
+                || ($certificateNo !== null && $certificateNo !== '')
+                || $parentEdu
+                || $removed
+                || $this->resolveEducationUploadFileFromRequest($request, $key);
+
+            if (! $hasAnyData) {
+                continue;
+            }
+
+            if ($levelName === '') {
+                continue;
+            }
+
+            $docResolution = $this->resolveEducationDocumentForSave(
+                $request,
+                $key,
+                $child,
+                $formName,
+                $parentEdu,
+                $removed
+            );
+            $filePath = $docResolution['path'];
+            $pendingEduFile = $docResolution['pending_file'];
+
+            $uploadToStore = $filePath;
+            if ($uploadToStore === null && $parentEdu && $parentEdu->upload_document && ! $removed) {
+                $uploadToStore = $parentEdu->upload_document;
+            }
+
+            $education = CC_Education::create([
+                'login_id' => $loginId,
+                'application_id' => $childId,
+                'educational_level' => $levelName,
+                'institute_name' => $institute !== '' ? $institute : $parentEdu?->institute_name,
+                'month_passing' => $monthVal ?? $parentEdu?->month_passing ?? $monthRaw,
+                'year_of_passing' => ($year !== null && $year !== '' && $year !== '0')
+                    ? $year
+                    : $parentEdu?->year_of_passing,
+                'certificate_no' => ($certificateNo !== null && $certificateNo !== '')
+                    ? $certificateNo
+                    : $parentEdu?->certificate_no,
+                'upload_document' => $uploadToStore,
+                'status' => $parentEdu?->status,
+            ]);
+
+            if ($parentEdu) {
+                $copiedSourceIds[(int) $parentEdu->edu_id] = true;
+            }
+
+            if ($pendingEduFile) {
+                $approvedPath = $this->applyPendingFormSEducationUpload(
+                    $request,
+                    $key,
+                    $child,
+                    $education->fresh(),
+                    $pendingEduFile
+                );
+                if ($approvedPath !== null
+                    && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
+                ) {
+                    $education->update(['upload_document' => $approvedPath]);
+                }
+            }
+        }
+
+        $snapshot->copyParentEducationToChild($child, $loginId, $copiedSourceIds);
     }
 
     /**
@@ -1689,16 +1817,19 @@ class FormController extends BaseController
 
         $editable = array_flip($editableSections);
         $formName = strtoupper((string) ($request->input('form_name') ?: $existingForm->form_name));
-        $masterAppId = $this->resolveFormSMasterApplicationId($existingForm, $formName);
+        $snapshot = $this->childDocumentSnapshotService();
+        $eduAppId = $snapshot->preferredEducationApplicationId($existingForm);
+        $expAppId = $snapshot->preferredExperienceApplicationId($existingForm);
+        $proofAppId = $snapshot->preferredIdentityProofApplicationId($existingForm);
         $proofCrypt = app(SensitiveProofCryptService::class);
 
         $aadhaarPlain = (string) ($proofCrypt->decryptProofNumber(
-            CC_Proof_doc::where('application_id', $masterAppId)
+            CC_Proof_doc::where('application_id', $proofAppId)
                 ->where('proof_name', FormSProofDocumentService::PROOF_AADHAAR)
                 ->value('proof_no')
         ) ?? '');
         $panPlain = $proofCrypt->decryptProofNumber(
-            CC_Proof_doc::where('application_id', $masterAppId)
+            CC_Proof_doc::where('application_id', $proofAppId)
                 ->where('proof_name', FormSProofDocumentService::PROOF_PAN)
                 ->value('proof_no')
         );
@@ -1728,12 +1859,12 @@ class FormController extends BaseController
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_EDUCATION])) {
             $request->files->remove('education_document');
-            ReturnedApplicationPayloadMerge::mergeEducationArraysIntoRequest($request, $masterAppId);
+            ReturnedApplicationPayloadMerge::mergeEducationArraysIntoRequest($request, $eduAppId);
         }
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_EXPERIENCE])) {
             $request->files->remove('work_document');
-            ReturnedApplicationPayloadMerge::mergeExperienceArraysIntoRequest($request, $masterAppId, $formName);
+            ReturnedApplicationPayloadMerge::mergeExperienceArraysIntoRequest($request, $expAppId, $formName);
         }
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_PHOTO])) {
@@ -2057,11 +2188,15 @@ class FormController extends BaseController
 
         $masterMeta = app(FormSApplicationWorkflowService::class)->masterApplication($ccMeta);
         $masterApplicationId = (string) $masterMeta->application_id;
+        $snapshot = $this->childDocumentSnapshotService();
+        $eduOwnerId = $snapshot->preferredEducationApplicationId($ccMeta);
+        $expOwnerId = $snapshot->preferredExperienceApplicationId($ccMeta);
+        $proofOwnerId = $snapshot->preferredIdentityProofApplicationId($ccMeta);
 
         $applicationDetails = $this->normalizeCcMetaRowForEdit((object) $ccMeta->toArray());
-        $applicationDetails = $this->enrichCcMetaProofFieldsForEdit($applicationDetails, $masterApplicationId);
+        $applicationDetails = $this->enrichCcMetaProofFieldsForEdit($applicationDetails, $proofOwnerId);
 
-        $eduDetails = CC_Education::where('application_id', $masterApplicationId)
+        $eduDetails = CC_Education::where('application_id', $eduOwnerId)
             ->orderByDesc('year_of_passing')
             ->get()
             ->map(function (CC_Education $edu) {
@@ -2071,7 +2206,7 @@ class FormController extends BaseController
                 return $row;
             });
 
-        $expDetails = CC_Experience::where('application_id', $masterApplicationId)
+        $expDetails = CC_Experience::where('application_id', $expOwnerId)
             ->orderBy('exp_id')
             ->get()
             ->map(function (CC_Experience $exp) {
@@ -2090,6 +2225,7 @@ class FormController extends BaseController
             'edu_details' => $eduDetails,
             'exp_details' => $expDetails,
             'master_application_id' => $masterApplicationId,
+            'proof_application_id' => $proofOwnerId,
         ];
     }
 
@@ -2121,7 +2257,7 @@ class FormController extends BaseController
             $application_details = $ccBundle['application_details'];
             $edu_details = $ccBundle['edu_details'];
             $exp_details = $ccBundle['exp_details'];
-            $proofApplicationId = $ccBundle['master_application_id'];
+            $proofApplicationId = $ccBundle['proof_application_id'] ?? $ccBundle['master_application_id'];
         } else {
             $application_details = DB::table('tnelb_application_tbl')
                 ->where('application_id', $appl_id)
@@ -2240,7 +2376,7 @@ class FormController extends BaseController
             $application_details = $ccBundle['application_details'];
             $edu_details = $ccBundle['edu_details'];
             $exp_details = $ccBundle['exp_details'];
-            $proofApplicationId = $ccBundle['master_application_id'];
+            $proofApplicationId = $ccBundle['proof_application_id'] ?? $ccBundle['master_application_id'];
         } else {
             $application_details = DB::table('tnelb_application_tbl')
                 ->where('application_id', $appl_id)
@@ -2696,7 +2832,9 @@ class FormController extends BaseController
             $certificate_details['form_type'] = $form->appl_type;
             
             // process education (upsert per level so duplicate DOM rows cannot create duplicate DB rows)
-            if ($request->has('educational_level')) {
+            if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
+                $this->persistChildEducationSnapshot($request, $form, $loginId, $request->form_name ?? null);
+            } elseif ($request->has('educational_level')) {
                 foreach ($request->educational_level as $key => $level) {
                     // skip empty/incomplete rows
                     if (
@@ -2780,15 +2918,14 @@ class FormController extends BaseController
 
             
             // process experience
-            if ($this->hasWorkExperiencePayload($request)) {
-                if ($this->shouldSnapshotExperienceOnChild($form, $request->form_name ?? null)) {
-                    $this->persistChildExperienceSnapshot(
-                        $request,
-                        $form,
-                        $loginId,
-                        $request->form_name ?? null
-                    );
-                } else {
+            if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
+                $this->persistChildExperienceSnapshot(
+                    $request,
+                    $form,
+                    $loginId,
+                    $request->form_name ?? null
+                );
+            } elseif ($this->hasWorkExperiencePayload($request)) {
                 foreach ($this->getWorkRowIndexes($request) as $key) {
                     $workRow = $this->mapWorkExperienceRow($request, $key, $request->form_name ?? null);
                     $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? '';
@@ -2826,7 +2963,6 @@ class FormController extends BaseController
                             $documents
                         );
                     }
-                }
                 }
             }
             
@@ -3115,7 +3251,9 @@ class FormController extends BaseController
 
 
 
-            if ($request->has('educational_level')) {
+            if ($this->shouldSnapshotChildDocuments($existingForm, $request->form_name ?? null)) {
+                $this->persistChildEducationSnapshot($request, $existingForm, $loginId, $request->form_name ?? null);
+            } elseif ($request->has('educational_level')) {
                 foreach ($request->educational_level as $key => $level) {
                     if (
                         empty($level) ||
@@ -3182,15 +3320,14 @@ class FormController extends BaseController
             
             
 
-            if ($this->hasWorkExperiencePayload($request)) {
-                if ($this->shouldSnapshotExperienceOnChild($existingForm, $request->form_name ?? null)) {
-                    $this->persistChildExperienceSnapshot(
-                        $request,
-                        $existingForm,
-                        $loginId,
-                        $request->form_name ?? null
-                    );
-                } else {
+            if ($this->shouldSnapshotChildDocuments($existingForm, $request->form_name ?? null)) {
+                $this->persistChildExperienceSnapshot(
+                    $request,
+                    $existingForm,
+                    $loginId,
+                    $request->form_name ?? null
+                );
+            } elseif ($this->hasWorkExperiencePayload($request)) {
                 $claimedWorkIds = [];
                 $masterApplicationId = $this->resolveFormSMasterApplicationId($existingForm, $request->form_name);
 
@@ -3219,7 +3356,6 @@ class FormController extends BaseController
                     $this->resolveExperienceModelClass($existingForm, $request->form_name)::where('application_id', $masterApplicationId)
                         ->whereNotIn('exp_id', $claimedWorkIds)
                         ->delete();
-                }
                 }
             }
 
@@ -3612,7 +3748,9 @@ class FormController extends BaseController
             }
 
 
-            if ($request->has('educational_level')) {
+            if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
+                $this->persistChildEducationSnapshot($request, $form, $loginId, $request->form_name ?? null);
+            } elseif ($request->has('educational_level')) {
                 foreach ($request->educational_level as $key => $level) {
                     if (
                         empty($level) &&
@@ -3728,15 +3866,14 @@ class FormController extends BaseController
             $this->seedFormSDocumentsIfRenewal($form->fresh(), $request->form_name);
             
 
-            if ($this->hasWorkExperiencePayload($request)) {
-                if ($this->shouldSnapshotExperienceOnChild($form, $request->form_name ?? null)) {
-                    $this->persistChildExperienceSnapshot(
-                        $request,
-                        $form,
-                        $loginId,
-                        $request->form_name ?? null
-                    );
-                } else {
+            if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
+                $this->persistChildExperienceSnapshot(
+                    $request,
+                    $form,
+                    $loginId,
+                    $request->form_name ?? null
+                );
+            } elseif ($this->hasWorkExperiencePayload($request)) {
                 $claimedWorkIds = [];
                 $masterApplicationId = $this->resolveFormSMasterApplicationId($form, $request->form_name);
 
@@ -3765,7 +3902,6 @@ class FormController extends BaseController
                     $this->resolveExperienceModelClass($form, $request->form_name)::where('application_id', $masterApplicationId)
                         ->whereNotIn('exp_id', $claimedWorkIds)
                         ->delete();
-                }
                 }
             }
 
@@ -3997,7 +4133,9 @@ class FormController extends BaseController
 
             $masterApplicationId = $this->resolveFormSMasterApplicationId($form, $request->form_name);
 
-            if ($request->has('educational_level')) {
+            if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
+                $this->persistChildEducationSnapshot($request, $form, $loginId, $request->form_name ?? null);
+            } elseif ($request->has('educational_level')) {
                 foreach ($request->educational_level as $key => $level) {
                     $levelName = $level ?? null;
                     $institute = $request->institute_name[$key] ?? null;
@@ -4319,7 +4457,9 @@ public function update(Request $request, $id)
             $masterApplicationId = $this->resolveFormSMasterApplicationId($renewal_form, $request->form_name);
 
             // Update Education Records
-            if ($request->has('educational_level')) {
+            if ($this->shouldSnapshotChildDocuments($renewal_form, $request->form_name ?? null)) {
+                $this->persistChildEducationSnapshot($request, $renewal_form, $loginId, $request->form_name ?? null);
+            } elseif ($request->has('educational_level')) {
                 $lastEdu = CC_Education::whereNotNull('edu_id')->latest('edu_id')->value('edu_id');
 
                 foreach ($request->educational_level as $key => $level) {

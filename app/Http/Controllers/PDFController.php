@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
+use App\Models\CC_Payments;
 use App\Models\CC_Proof_doc;
 use App\Models\Mst_education;
 use App\Models\Mst_experience;
@@ -15,6 +16,8 @@ use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbFormP;
 use App\Models\TnelbAppsInstitute;
 use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\FormS\FormSProofDocumentService;
+use App\Services\FormS\SensitiveProofCryptService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -25,11 +28,25 @@ use Mpdf\HTMLParserMode;
 use Mpdf\Mpdf;
 use Stichoza\GoogleTranslate\GoogleTranslate;
 
+use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyCertificateService;
+use App\Services\Competency\CompetencyMetaService;
+
+use App\Models\Tnelb_CC_Digitization;
+
+use App\Services\DocumentVersion\DocumentStorageService;
+
+
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+
 class PDFController extends Controller
 {
 
-    public function formatAddressToThreeLines($address, $maxCharsPerLine = 45) {
-       $address = preg_replace("/\r\n|\r|\n/", ' ', $address);
+    public function formatAddressToThreeLines($address, $maxCharsPerLine = 45)
+    {
+        $address = preg_replace("/\r\n|\r|\n/", ' ', $address);
         $address = preg_replace('/\s+/', ' ', $address);
         $address = trim($address);
 
@@ -71,7 +88,7 @@ class PDFController extends Controller
     }
 
     /** Map cc_form_s_meta columns to legacy PDF field names. */
-    private function normalizeCcMetaRowForPdf(object $row): object
+    private function mapFormFields(object $row): object
     {
         $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
         $row->status = $row->status ?? $row->app_status ?? null;
@@ -90,24 +107,107 @@ class PDFController extends Controller
         return $row;
     }
 
-    private function enrichCcMetaProofFieldsForPdf(object $applicationDetails, string $masterApplicationId): object
+    /** Load Aadhaar and PAN from cc_proof_doc onto the form row. */
+    private function addAadhaarPan(object $applicationDetails, string $masterApplicationId): object
     {
-        $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
-            ->whereIn('proof_type', ['aadhaar', 'pan'])
+        $applicationDetails->aadhaar = $applicationDetails->aadhaar ?? null;
+        $applicationDetails->pancard = $applicationDetails->pancard ?? null;
+
+        $ids = $this->relatedAppIds(
+            (string) ($applicationDetails->application_id ?? ''),
+            $masterApplicationId
+        );
+        if ($ids === []) {
+            return $applicationDetails;
+        }
+
+        $proofRows = CC_Proof_doc::whereIn('application_id', $ids)
+            ->where(function ($query) {
+                $query->whereIn('proof_name', [
+                    FormSProofDocumentService::PROOF_AADHAAR,
+                    FormSProofDocumentService::PROOF_PAN,
+                ])->orWhereRaw('LOWER(proof_type) IN (?, ?)', ['aadhaar', 'pan']);
+            })
+            ->orderBy('p_id')
             ->get();
 
         foreach ($proofRows as $proof) {
+            if (empty($proof->proof_no)) {
+                continue;
+            }
+
             $proofType = strtolower((string) ($proof->proof_type ?? ''));
-            if ($proofType === 'aadhaar') {
-                if (! empty($proof->proof_no)) {
-                    $applicationDetails->aadhaar = $proof->proof_no;
-                }
-            } elseif ($proofType === 'pan' && ! empty($proof->proof_no)) {
+            $proofName = strtoupper((string) ($proof->proof_name ?? ''));
+
+            if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
+                $applicationDetails->aadhaar = $proof->proof_no;
+            } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
                 $applicationDetails->pancard = $proof->proof_no;
             }
         }
 
         return $applicationDetails;
+    }
+
+    /** @return list<string> */
+    private function relatedAppIds(string $applicationId, ?string $masterApplicationId = null): array
+    {
+        $ids = [];
+        foreach ([$applicationId, $masterApplicationId ?? $this->resolveMasterApplicationIdForPdf($applicationId)] as $id) {
+            $id = trim((string) $id);
+            if ($id !== '' && ! in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    private function decryptProofNo(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return app(SensitiveProofCryptService::class)->decryptProofNumber($value);
+    }
+
+    private function getPhoto(string $applicationId): ?object
+    {
+        $proofService = app(FormSProofDocumentService::class);
+        foreach ($this->relatedAppIds($applicationId) as $id) {
+            $photo = $proofService->loadPhotoForView($id);
+            if ($photo && trim((string) ($photo->upload_path ?? '')) !== '') {
+                return $photo;
+            }
+        }
+
+        return TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+    }
+
+    private function getPayment(string $applicationId): ?object
+    {
+        $ids = $this->relatedAppIds($applicationId);
+        if ($ids === []) {
+            return null;
+        }
+
+        $cc = CC_Payments::whereIn('application_id', $ids)
+            ->orderByRaw("CASE WHEN LOWER(COALESCE(payment_status, '')) = 'success' THEN 0 ELSE 1 END")
+            ->orderByDesc('p_id')
+            ->first();
+
+        if ($cc) {
+            return (object) [
+                'payment_mode' => $cc->payment_mode,
+                'transaction_id' => $cc->transaction_id,
+                'created_at' => $cc->transaction_date ?? $cc->created_at,
+                'amount' => $cc->amount_paid ?? $cc->application_fee,
+                'payment_status' => $cc->payment_status,
+            ];
+        }
+
+        return DB::table('payments')->whereIn('application_id', $ids)->first();
     }
 
     private function resolveMasterApplicationIdForPdf(string $applicationId): string
@@ -129,30 +229,32 @@ class PDFController extends Controller
             return null;
         }
 
-        $contractorForm = DB::table('tnelb_ea_applications')
-            ->where('application_id', $applicationId)
-            ->first();
-        if ($contractorForm) {
-            return $contractorForm;
-        }
+        // $contractorForm = DB::table('tnelb_ea_applications')
+        //     ->where('application_id', $applicationId)
+        //     ->first();
+        // if ($contractorForm) {
+        //     return $contractorForm;
+        // }
 
         // Prefer CC per-form meta (S/W/WH/P) before legacy tnelb_application_tbl.
         $ccMeta = CC_Forms_Meta::findByApplicationId($applicationId);
         if ($ccMeta) {
             $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
-            $applicationDetails = $this->normalizeCcMetaRowForPdf((object) $ccMeta->toArray());
+            $applicationDetails = $this->mapFormFields((object) $ccMeta->toArray());
 
-            return $this->enrichCcMetaProofFieldsForPdf($applicationDetails, $masterApplicationId);
+            return $this->addAadhaarPan($applicationDetails, $masterApplicationId);
         }
 
-        $legacyForm = DB::table('tnelb_application_tbl')
-            ->where('application_id', $applicationId)
-            ->first();
-        if ($legacyForm) {
-            return $legacyForm;
-        }
+        // $legacyForm = DB::table('tnelb_application_tbl')
+        //     ->where('application_id', $applicationId)
+        //     ->first();
+        // if ($legacyForm) {
+        //     return $this->addAadhaarPan($legacyForm, $applicationId);
+        // }
 
-        return TnelbFormP::where('application_id', $applicationId)->first();
+        $formP = TnelbFormP::where('application_id', $applicationId)->first();
+
+        return $formP ? $this->addAadhaarPan($formP, $applicationId) : null;
     }
 
     private function resolveEducationForPdf(string $applicationId): Collection
@@ -248,7 +350,7 @@ class PDFController extends Controller
 
         $fallback = $exp->total_exp ?? $exp->experience ?? '';
 
-        return ($fallback !== '' && $fallback !== null) ? ((string) $fallback).' YRS' : '-';
+        return ($fallback !== '' && $fallback !== null) ? ((string) $fallback) . ' YRS' : '-';
     }
 
     private function formatEmploymentTypeForPdf(?string $empType): string
@@ -265,11 +367,29 @@ class PDFController extends Controller
         return match ($t) {
             'company' => 'Company',
             'contractor' => 'Contractor',
+            'electrical_contractor' => 'Contractor',
             'apprentice' => 'Apprentice',
             'electrical_inspector' => 'Government / Quasi Government / Board',
             'retired_employees' => 'Retired Employees',
             default => ucwords(str_replace('_', ' ', $t)),
         };
+    }
+
+    private function employerName(object $exp): string
+    {
+        $orgName = trim((string) ($exp->org_name ?? $exp->company_name ?? ''));
+        if ($orgName !== '') {
+            return $orgName;
+        }
+
+        return trim((string) ($exp->emp_cate ?? '')) !== '' ? (string) $exp->emp_cate : '-';
+    }
+
+    private function isContractor(object $exp): bool
+    {
+        $type = strtolower(trim((string) ($exp->emp_type ?? '')));
+
+        return in_array($type, ['contractor', 'electrical_contractor'], true);
     }
 
     public function generateFormPPDF($newApplicationId)
@@ -705,7 +825,7 @@ class PDFController extends Controller
 
         $mpdf->autoScriptToLang = true;
         $mpdf->autoLangToFont = true;
-    
+
         $mpdf->WriteHTML('
         <style>
             body { 
@@ -730,14 +850,14 @@ class PDFController extends Controller
             }
             
         </style>', HTMLParserMode::HEADER_CSS);
-    
+
         $certificateText = match ($form->form_name) {
             'S' => 'Application for Competency Certificate for Supervisor',
             'W' => 'Application for Competency Certificate for Wireman',
             'WH' => 'Application for Competency Certificate for Wireman Helper',
             default => 'மின் உற்பத்தி நிலைய செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழுக்கான விண்ணப்பம்',
         };
-    
+
         $html = '
         <h3 class="ta" style="text-align:center;">தமிழ்நாடு அரசு</h3>
         <h4 class="ta" style="text-align:center;">மின்சார உரிம வாரியம்</h4>
@@ -748,19 +868,19 @@ class PDFController extends Controller
 
         $emailDisplayPTa = trim((string) data_get($form, 'applicant_email', ''));
         $emailDisplayPTa = $emailDisplayPTa !== '' ? $emailDisplayPTa : '—';
-    
+
         $html .= '<table class="tbl-no-border" style="table-layout:fixed; width:100%;">
         <tr>
             <td class="ta label">1. விண்ணப்பதாரரின் பெயர்</td>
             <td class="value">: ' . $form->applicant_name . '</td>
             <td rowspan="5" class="photo-cell">';
-    
+
         if ($applicant_photo && file_exists(public_path($applicant_photo->upload_path))) {
             $html .= '<img src="' . public_path($applicant_photo->upload_path) . '" style="width:120px; height:150px; border:1px solid;">';
         } else {
             $html .= '<p>No Photo</p>';
         }
-     
+
         $html .= '</td></tr>
         <tr>
             <td class="ta label">2. தகப்பனார் பெயர்</td>
@@ -770,8 +890,8 @@ class PDFController extends Controller
             <td class="ta label">3. விண்ணப்பதாரர் முகவரி (தெளிவாக இருக்க வேண்டும்)</td>
             <td class="value text-wrap" >:
                 ' .
-                $this->formatAddressToThreeLines($form->applicants_address)
-                . '</td>
+            $this->formatAddressToThreeLines($form->applicants_address)
+            . '</td>
         </tr>
         <tr>
             <td class="ta label">4. பிறந்த நாள், மாதம், வருடம் மற்றும் வயது</td>
@@ -782,7 +902,7 @@ class PDFController extends Controller
             <td class="value">: ' . e($emailDisplayPTa) . '</td>
         </tr>
         </table>';
-    
+
         // Education
         $html .= '<h4 class="ta">6 . (i). விண்ணப்பதாரியின் தொழில்நுட்ப தகுதி மற்றும் தேர்ச்சி பற்றிய விவரங்கள்
         (அசல் சான்றிதழ்களை புகைப்பட நகல்களுடன் இணைத்திடுக. அசல் பார்க்கப்பட்ட பின்பு திருப்பி அளிக்கப்படும்)</h4>
@@ -804,7 +924,7 @@ class PDFController extends Controller
             </tr>';
         }
         $html .= '</table>';
-    
+
         // Experience 
         $html .= '<h4 class="ta">(ii). விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் காலம்</h4>
         <table class="tbl-bordered">
@@ -876,7 +996,7 @@ class PDFController extends Controller
 
 
         // Question 7 – previous application (heading only)
-        $html .='<h4 class="ta">7. முன்பு நீங்கள் ஏதேனும் விண்ணப்பம் சமர்ப்பித்துள்ளீர்களா? இருப்பின், அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடவும்.</h4>'; 
+        $html .= '<h4 class="ta">7. முன்பு நீங்கள் ஏதேனும் விண்ணப்பம் சமர்ப்பித்துள்ளீர்களா? இருப்பின், அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடவும்.</h4>';
 
         // Question 8 – Aadhaar Number (masked, same value as English) in row format
         $html .= '
@@ -923,30 +1043,721 @@ class PDFController extends Controller
         $html .= '<br><br>
         <p><strong class="ta">இடம்:</strong> Chennai</p>
         <p><strong class="ta">தேதி:</strong> ' . date('d-m-Y') . '</p>';
-    
+
+        $mpdf->WriteHTML($html);
+        return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
+    }
+    private function resolveLicensePdfApplicantMedia(string $applicationId): array
+    {
+        $applicationId = trim($applicationId);
+        $proofService = app(FormSProofDocumentService::class);
+        $photo = null;
+        $sign = null;
+
+        $meta = app(CompetencyMetaService::class)->findModel($applicationId);
+        if ($meta instanceof CC_CompetencyMeta) {
+            $masterId = (string) app(FormSApplicationWorkflowService::class)
+                ->masterApplication($meta)
+                ->application_id;
+
+            $photo = $proofService->loadPhotoForView($masterId) ?: $proofService->loadPhotoForView($applicationId);
+            $sign = $proofService->loadSignForView($masterId) ?: $proofService->loadSignForView($applicationId);
+
+            try {
+                $ctx = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($meta);
+                $photo = $ctx['uploadedPhoto'] ?? $photo;
+                $sign = $ctx['uploadedSign'] ?? $sign;
+            } catch (\Throwable $e) {
+                Log::warning('License PDF media resolve via review context failed', [
+                    'application_id' => $applicationId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        } else {
+            $photo = $proofService->loadPhotoForView($applicationId);
+            $sign = $proofService->loadSignForView($applicationId);
+
+            if (! $photo) {
+                $photo = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+            }
+            if (! $sign) {
+                $sign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
+            }
+        }
+
+        return [$photo, $sign];
+    }
+
+    private function licensePdfMediaPaths(?object $photo, ?object $sign): array
+    {
+        return [
+            $this->resolveMpdfImagePath($photo->upload_path ?? null),
+            $this->resolveMpdfImagePath($sign->uploaded_doc ?? null),
+        ];
+    }
+    private function materializeMpdfImageFile(string $absolutePath): ?string
+    {
+        try {
+            $raw = file_get_contents($absolutePath);
+
+            return $raw === false ? null : $this->materializeMpdfImageBytes($raw, $absolutePath);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to materialize image for licence PDF', [
+                'path' => $absolutePath,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+    private function resolveMpdfImagePath(?string $storedPath): ?string
+    {
+        $storedPath = trim(str_replace('\\', '/', (string) $storedPath));
+        if ($storedPath === '') {
+            return null;
+        }
+
+        if (preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
+            $storage = app(DocumentStorageService::class);
+            if ($storage->exists($storedPath)) {
+                $absolute = rtrim($storage->physicalRootPath(), '/\\')
+                    . DIRECTORY_SEPARATOR
+                    . str_replace('/', DIRECTORY_SEPARATOR, ltrim($storedPath, '/'));
+
+                if (is_file($absolute)) {
+                    return $this->materializeMpdfImageFile($absolute);
+                }
+
+                try {
+                    $raw = $storage->exists($storedPath)
+                        ? \Illuminate\Support\Facades\Storage::disk($storage->disk())->get($storedPath)
+                        : null;
+                    if ($raw !== null && $raw !== '') {
+                        return $this->materializeMpdfImageBytes($raw, $storedPath);
+                    }
+                } catch (\Throwable) {
+                    // fall through to alternate roots
+                }
+            }
+
+            foreach (
+                array_unique([
+                    $storage->physicalRootPath(),
+                    CompetencyDocumentSupport::storageRoot(),
+                ]) as $root
+            ) {
+                $absolute = rtrim((string) $root, '/\\')
+                    . DIRECTORY_SEPARATOR
+                    . str_replace('/', DIRECTORY_SEPARATOR, ltrim($storedPath, '/'));
+                if (is_file($absolute)) {
+                    return $this->materializeMpdfImageFile($absolute);
+                }
+            }
+
+            return null;
+        }
+
+        $candidates = [
+            public_path(ltrim($storedPath, '/')),
+            storage_path('app/' . ltrim($storedPath, '/')),
+        ];
+
+        foreach ($candidates as $absolute) {
+            if (is_file($absolute)) {
+                return $this->materializeMpdfImageFile($absolute);
+            }
+        }
+
+        return null;
+    }
+    public function generatePDF($application_id)
+    {
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
+        [$applicant_photo, $applicant_sign] = $this->resolveLicensePdfApplicantMedia($application_id);
+
+
+        $licence_name = DB::table('mst_licences')->where('cert_licence_code', $application->license_name)
+            ->where('status', 1)
+            ->first();
+        if ($application && $application->appl_type === 'D') {
+
+            $digi_details  = Tnelb_CC_Digitization::where('application_id', $application_id)->first();
+
+            // dd($digi_details); exit;
+
+        }
+
+
+        if ($application && $application->appl_type === 'R') {
+            $appltye = 'Renewal Application';
+        } else if ($application && $application->appl_type === 'N') {
+            $appltye = 'New Application';
+        } else if ($application && $application->appl_type === 'D') {
+            $appltye = 'Digitization Application';
+        } else {
+            $appltye = 'Alteration Application';
+        }
+
+
+
+        $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
+        if (!$applicant) {
+            return back()->with('error', 'Application not found.');
+        }
+        $certificateList = app(CompetencyCertificateService::class)
+            ->activeCertificatesForLogin((string) ($application->login_id ?? ''))
+            ->filter(function ($certificate) use ($applicant) {
+                return ($certificate->license_number ?? '') !== ($applicant->license_number ?? '');
+            })
+            ->sortByDesc('issued_at')
+            ->values();
+        $certificateRowsHtml = '';
+        foreach ($certificateList as $index => $certificate) {
+
+            if ($certificate->appl_type == 'N') {
+                $appltye = 'New';
+            } elseif ($certificate->appl_type == 'R') {
+                $appltye = 'Renewal';
+            } elseif ($certificate->appl_type == 'D') {
+                $appltye = 'Digitization';
+            } else {
+                $appltye = 'Alteration';
+            }
+            $isExpired = !empty($certificate->expires_at) && strtotime((string) $certificate->expires_at) < strtotime(date('Y-m-d'));
+            $statusInner = $isExpired
+                ? '<div class="st-en">Expired</div><div class="st-ta" lang="ta">காலாவதியானது</div>'
+                : '<div class="st-en">Active</div><div class="st-ta" lang="ta">செயலில்</div>';
+            $statusClass = $isExpired ? 'status-expired' : 'status-active';
+        }
+
+
+
+        $payment = DB::table('payments')->where('application_id', $application_id)->first();
+        // Tamil: prefer dejavusans Regular (OTL); avoids Bold faces missing Indic. Marutham if file exists.
+        $tamilFontFamily = 'dejavusans';
+        $mpdfConfig = [
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_top' => 10,
+            'margin_bottom' => 10,
+            'margin_left' => 10,
+            'margin_right' => 10,
+            'default_font' => 'helvetica',
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true,
+            // Pick missing glyphs from backup fonts; helps Tamil/Latin mix
+            'useSubstitutions' => true,
+            // 0 = embed full TTF (no subset) so Tamil codepoints are not stripped
+            'percentSubset' => 0,
+        ];
+        $maruthamPath = public_path('fonts/Marutham.ttf');
+        if (is_readable($maruthamPath)) {
+            $defaultConfig = (new \Mpdf\Config\ConfigVariables())->getDefaults();
+            $fontDirs = $defaultConfig['fontDir'];
+            $defaultFontConfig = (new \Mpdf\Config\FontVariables())->getDefaults();
+            $fontData = $defaultFontConfig['fontdata'];
+            $mpdfConfig['fontDir'] = array_merge($fontDirs, [
+                public_path('fonts'),
+            ]);
+            $mpdfConfig['fontdata'] = $fontData + [
+                'marutham' => [
+                    'R' => 'Marutham.ttf',
+                    'useOTL' => 0xFF,
+                ],
+            ];
+            $tamilFontFamily = 'marutham';
+        }
+
+        $mpdf = new \Mpdf\Mpdf($mpdfConfig);
+
+        // $logoPath = public_path('assets/admin/images/logo/logo.png');
+        // $mpdf->SetWatermarkImage(
+        //     $logoPath,
+        //     0.08,
+        //     [120, 130],
+        //     'P'
+        // );
+        $mpdf->showWatermarkImage = true;
+
+        $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
+        $mpdf->WriteHTML(str_replace(
+            'TAMIL_FONT_PLACEHOLDER',
+            $tamilFontFamily,
+            '<style>
+            body { font-family: helvetica; font-size: 14pt; }
+            /* Bilingual: English on top, Tamil below — same Helvetica as original */
+            .bi-en {
+                display: block;
+                font-family: helvetica;
+                font-weight: bold;
+                line-height: 1.2;
+                margin: 0;
+                padding: 0;
+            }
+            /* Tamil: always Regular weight — Bold TTFs often lack Indic glyphs (tofu).
+               !important beats bold inherited from th, .lbl, .status-pill, .summary-heading */
+            .bi-ta {
+                display: block;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-weight: normal !important;
+                line-height: 1.2;
+                margin: 0.12em 0 0 0;
+                padding: 0;
+                font-size: 100%;
+            }
+            .card {
+                border: 1px solid #000; padding: 18px; box-sizing: border-box; width: 100%;
+                min-height: 178mm;
+            }
+            .header { color: #000; text-align: center; margin-bottom: 16px;
+                border-bottom: 0.35mm solid #c5d4e6; padding-bottom: 10px; }
+            .hdr-stack { margin-bottom: 2mm; }
+            .hdr-stack:last-child { margin-bottom: 0; }
+            .header-main .bi-en { font-size: 14pt; }
+            .header-main .bi-ta { font-size: 14.5pt; margin-top: 0.12em; font-weight: 800 !important; }
+            .header-title .bi-en { font-size: 14pt; }
+            .header-title .bi-ta { font-size: 14pt; margin-top: 0.12em; font-weight: 800 !important; }
+            .header-sub .bi-en { font-size: 10.5pt; }
+            .header-sub .bi-ta { font-size: 13pt; margin-top: 0.12em; font-weight: normal !important; }
+            .content { font-size: 14pt; }
+            .lbl-bi { padding: 0; margin: 0; line-height: 1.2; }
+            .lbl-bi .lbl-en {
+                display: block;
+                font-family: helvetica;
+                font-weight: bold;
+                font-size: 11pt;
+                line-height: 1.15;
+                margin: 0;
+                padding: 0;
+            }
+            .lbl-bi .lbl-ta {
+                display: block;
+                margin: 0.1em 0 0 0;
+                padding: 0;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-weight: normal !important;
+                font-size: 9.5pt;
+                line-height: 1.15;
+            }
+            .photo-frame, .qr-box {
+                width: 38mm;
+                height: 38mm;
+                border: none;
+                box-sizing: border-box;
+                margin: 0 auto;
+                overflow: hidden;
+                padding: 0;
+                text-align: center;
+            }
+            .photo-inner {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                text-align: center;
+            }
+            .sign-frame {
+                width: 38mm;
+                min-height: 14mm;
+                height: auto;
+                border: none;
+                box-sizing: border-box;
+                margin: 0 auto;
+                text-align: center;
+            }
+            .sign-inner {
+                width: 100%;
+                min-height: 14mm;
+                overflow: hidden;
+                line-height: 1.2;
+                padding: 1mm 0;
+            }
+            .qr-box table { border-collapse: collapse; }
+            .qr-box td { padding: 0; vertical-align: middle; }
+           .info-table {
+                font-size: 11pt;
+                border-collapse: collapse;
+                width: 100%;
+                table-layout: fixed;
+            }
+            .info-table td { padding: 1.65mm 0; vertical-align: top; border-bottom: 0.22mm solid #e8edf4; }
+            .info-table td.lbl {
+                width: 50%;
+                padding-right: 1mm;
+            }
+            .info-table td.lbl,
+            .info-table td.lbl .lbl-bi {
+                font-family: helvetica;
+            }
+            /* mPDF: force Tamil face inside label cells (nested tables ignore class-only font). */
+            .info-table td.lbl .lbl-ta {
+                font-family: TAMIL_FONT_PLACEHOLDER !important;
+            }
+            .info-table .colon {
+                width: 3mm;
+                text-align: center;
+                font-weight: bold;
+                padding-top: 0.35mm;
+            }
+            .info-table .val {
+                width: 50%;
+                font-size: 11pt;
+                font-weight: normal;
+                line-height: 1.3;
+                padding-left: 1mm;
+                word-wrap: break-word;
+            }
+            .summary-card { border: 0.4mm solid #cfd8e3; margin-top: 2mm; overflow: hidden; }
+            .summary-heading {
+                background: #edf3fa;
+                font-weight: bold;
+                color: #000;
+                padding: 2mm 2.2mm 1.2mm 2.2mm;
+                border-bottom: 0.3mm solid #d8e2ef;
+                text-align: center;
+            }
+            .summary-heading .bi-en { font-size: 11.5pt; margin: 0; line-height: 1.2; }
+            .summary-heading .bi-ta { font-size: 10pt; margin-top: 0.12em; font-weight: normal !important; line-height: 1.2; }
+            .summary-table { border-collapse: collapse; font-size: 10.2pt; width: 100%; }
+            .summary-table th {
+                background: #edf3fa;
+                color: #000;
+                font-weight: bold;
+                padding: 1.6mm 1.4mm;
+                border-bottom: 0.3mm solid #d7e1ee;
+                text-transform: none;
+                font-size: 9.2pt;
+                letter-spacing: 0.2px;
+                text-align: center;
+                vertical-align: middle;
+            }
+            .summary-table .th-bi .th-en {
+                display: block;
+                font-family: helvetica;
+                font-size: 8.8pt;
+                font-weight: bold;
+                text-transform: uppercase;
+                line-height: 1.15;
+                margin: 0;
+                padding: 0;
+            }
+            .summary-table .th-bi .th-ta {
+                display: block;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-size: 8.2pt;
+                margin: 0.12em 0 0 0;
+                padding: 0;
+                font-weight: normal !important;
+                text-transform: none;
+                line-height: 1.15;
+            }
+            .summary-table td { padding: 1.6mm 1.4mm; border-bottom: 0.25mm solid #e7edf5; text-align: center; vertical-align: middle; }
+            .summary-table tr:nth-child(even) td { background: #fafcff; }
+            .status-pill {
+                display: inline-block;
+                padding: 0.6mm 1.6mm;
+                border-radius: 2mm;
+                font-size: 8.6pt;
+                font-weight: bold;
+                text-align: center;
+            }
+            .status-pill .st-en {
+                display: block;
+                font-family: helvetica;
+                line-height: 1.15;
+                margin: 0;
+            }
+            .status-pill .st-ta {
+                display: block;
+                font-family: TAMIL_FONT_PLACEHOLDER;
+                font-size: 7.8pt;
+                margin: 0.12em 0 0 0;
+                font-weight: normal !important;
+                line-height: 1.15;
+            }
+            .status-active { background: #e8f7ed; color: #196b33; border: 0.25mm solid #b7dfc2; }
+            .status-expired { background: #fdeaea; color: #9b1c1c; border: 0.25mm solid #efb8b8; }
+            .footer {
+                margin-top: 16px;
+                text-align: center;
+                font-size: 12pt;
+            }
+            .footer .bi-en { font-family: helvetica; font-weight: bold; margin: 0; line-height: 1.2; }
+            .footer .bi-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: 11pt; margin-top: 0.12em; font-weight: normal !important; line-height: 1.2; }
+            .range-sep-inline {
+                display: inline;
+                white-space: nowrap;
+                margin: 0 1.2mm;
+                font-weight: bold;
+            }
+            .range-sep-inline .rs-en { font-family: helvetica; font-size: inherit; font-weight: bold; }
+            .range-sep-inline .rs-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: inherit; font-weight: normal !important; }
+            .sign-missing { text-align: center; line-height: 1.2; color: #666; }
+            .sign-missing .bi-en { font-size: 8pt; font-weight: bold; margin: 0; }
+            .sign-missing .bi-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: 7.5pt; margin-top: 0.12em; font-weight: normal !important; }
+            .table-empty-msg { text-align: center; padding: 3mm 2mm; font-size: 14pt; line-height: 1.25; }
+            .table-empty-msg .bi-en { font-weight: bold; margin: 0; line-height: 1.2; }
+            .table-empty-msg .bi-ta { font-family: TAMIL_FONT_PLACEHOLDER; font-size: 12pt; margin-top: 0.12em; font-weight: normal !important; line-height: 1.2; }
+            </style>'
+        ), \Mpdf\HTMLParserMode::HEADER_CSS);
+
+        [$photoPath, $signPath] = $this->licensePdfMediaPaths($applicant_photo, $applicant_sign ?? null);
+
+        // var_dump($photoPath);exit;
+        $qc = [];
+
+        if ($application->qc == 1) {
+            $qc[] = 'QC';
+        }
+
+        if ($application->qsc == 1) {
+            $qc[] = 'QSC';
+        }
+
+        $qc = !empty($qc) ? implode(' and ', $qc) : '-';
+        // var_dump($photoPath);
+        // var_dump($signPath);
+        // exit;
+
+
+
+        $qrValue = 'Tnelb QR Testing';
+
+
+        $oldCertificateRow = '';
+
+        if ($application && $application->appl_type === 'D') {
+
+            $employment = $digi_details->cl_type . ' - ' .
+                $digi_details->licence_no . ' - ' .
+                $digi_details->contractor_name;
+
+
+
+            if ($digi_details->cl_type != '0') {
+                $oldCertificateRow .= '
+                        <tr>
+                            <td class="lbl">
+                                <div class="lbl-bi">
+                                    <div class="lbl-en">Details of Employment</div>
+                                    <div class="lbl-ta" lang="ta">வேலை விவரங்கள்</div>
+                                </div>
+                            </td>
+                            <td class="colon">:</td>
+                            <td class="val">' . $employment . '</td>
+                        </tr>';
+            }
+        }
+
+        if ($application && $application->appl_type === 'R') {
+            $appltye = 'Renewal Application';
+        } else if ($application && $application->appl_type === 'N') {
+            $appltye = 'New Application';
+        } else if ($application && $application->appl_type === 'D') {
+            $appltye = 'Digitization Application';
+        } else {
+            $appltye = 'Alteration Application';
+        }
+        $payment = DB::table('cc_payments')->where('application_id', $application_id)->first();
+        // dd($payment);exit;
+  if ($payment) {
+    // dd('111');
+            $paymentType   = mb_strtoupper($payment->payment_mode   ?? 'ONLINE', 'UTF-8');
+            $transactionNo = mb_strtoupper($payment->transaction_id ?? 'N/A',    'UTF-8');
+            $paymentDate   = mb_strtoupper(\Carbon\Carbon::parse($payment->created_at)->format('d-m-Y'), 'UTF-8');
+            $amountValue   = '&#8377; ' . ($payment->amount ?? 'Nil');
+            $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
+  }
+        $html = '
+        <div class="card">
+
+            <!-- HEADER -->
+            <div class="header">
+                <div class="hdr-stack header-main">
+                    <div class="bi-en">GOVERNMENT OF TAMIL NADU</div>
+                    <div class="bi-ta" lang="ta">தமிழ்நாடு அரசு</div>
+                </div>
+                <div class="hdr-stack header-title">
+                    <div class="bi-en">TAMIL NADU ELECTRICAL LICENCING BOARD</div>
+                    <div class="bi-ta" lang="ta">மின்சார உரிமையாளர்கள் வாரியம்</div>
+                </div>
+                <div class="hdr-stack header-sub">
+                    <div class="bi-en">Thiru Vi. Ka. Industrial Estate, Guindy, Chennai - 600 032.</div>
+                    <div class="bi-ta" lang="ta">திரு.வி.கா. தொழிற்சாலை, கிண்டி, சென்னை – 600032.</div>
+
+
+                     <div class="bi-en  header-title"> Acknowledgement Slip </span></div>
+
+
+
+
+                </div>
+            </div>
+
+            <!-- BODY -->
+            <div class="content">
+
+               <table width="100%" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <!-- LEFT : DETAILS -->
+                        <td width="70%" valign="top">
+
+                            <table class="info-table">
+                            
+                                <tr>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
+                                    <td class="colon">:</td>
+                                    <td class="val">' . $applicant->name . '</td>
+                                </tr>
+                                <tr>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Father / Husband Name</div><div class="lbl-ta" lang="ta">தந்தை / கணவர் பெயர்</div></div></td>
+                                    <td class="colon">:</td>
+                                    <td class="val">' . $applicant->fathers_name . '</td>
+                                </tr>
+                                <tr>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of Birth</div><div class="lbl-ta" lang="ta">பிறந்த தேதி</div></div></td>
+                                    <td class="colon">:</td>
+                                    <td class="val">' . format_date($applicant->d_o_b) . '</td>
+                                </tr>
+                                <tr>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Address</div><div class="lbl-ta" lang="ta">முகவரி</div></div></td>
+                                    <td class="colon">:</td>
+                                    <td class="val">' . $applicant->applicants_address . '</td>
+                                </tr>
+                                 <tr>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Certificate Name</div><div class="lbl-ta" lang="ta">சான்றிதழ் பெயர்</div></div></td>
+                                    <td class="colon">:</td>
+                                    <td class="val">' . $licence_name->licence_name . '</td>
+                                </tr>
+                                <tr>
+                                    <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Type of Application</div><div class="lbl-ta" lang="ta">விண்ணப்ப வகை</div></div></td>
+                                    <td class="colon">:</td>
+                                    <td class="val">' . $appltye . '</td>
+                                </tr>
+                            </table>
+
+                        </td>
+
+                        <!-- RIGHT : PHOTO -->
+                        <td width="30%" valign="top">
+                            <table width="100%" cellspacing="0" cellpadding="0">
+                                <!-- PHOTO ROW -->
+                                <tr>
+                                    <td align="center">
+                                        <div class="photo-frame">
+                                            <div class="photo-inner">
+                                            ' . ($photoPath
+            ? '<img src="' . $photoPath . '" style="width:38mm; height:38mm; object-fit:cover; display:block; margin:0 auto;">'
+            : '') . '
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- SPACE BETWEEN PHOTO & QR -->
+                                <tr>
+                                    <td height="3mm"></td>
+                                </tr>
+
+                                <!-- SIGNATURE ROW -->
+                                <tr>
+                                    <td align="center">
+                                        <div class="sign-frame">
+                                            <div class="sign-inner">
+                                            ' . ($signPath
+            ? '<img src="' . $signPath . '" style="width:34mm; height:10mm; object-fit:contain; vertical-align:middle;">'
+            : '<div class="sign-missing"><div class="bi-en">Signature not available</div><div class="bi-ta" lang="ta">கையெழுத்து இல்லை</div></div>') . '
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                            
+
+                                <!-- BOTTOM SAFE SPACE -->
+                                <tr>
+                                    <td height="4mm"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <div class="summary-card">
+                    <div class="summary-heading"><div class="bi-en">Payment Details</div></div>
+                    <table class="summary-table" width="100%" cellspacing="0" cellpadding="0">
+                    <thead>
+                          <tr>
+                            <th>PAYMENT TYPE</th>
+                            <td>' . e($paymentType)   . '</td>
+                        </tr>
+                        
+                        <tr>
+                            <th>TRANSACTION NUMBER</th>
+                            <td>' . e($transactionNo) . '</td>
+                        </tr>
+                       
+                        <tr>
+                        <th>PAYMENT TYPE</th>
+                         <td>' . e($paymentDate)   . '</td>
+                        </tr>
+                        <tr>
+                            <th>AMOUNT</th>
+                             <td>' . $amountValue      . '</td>
+                        </tr>
+                        <tr>
+                            <th>PAYMENT STATUS</th>
+                            <td>' . e($statusValue)   . '</td>
+                        </tr>
+                    </thead>
+                   
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="footer-spacer"></div>
+
+          
+
+        </div>
+        ';
+
+
+        // Inline Tamil font — mPDF often applies stylesheet fonts in header/body blocks but not in nested <td>
+        $html = preg_replace(
+            '/<(div|span) class="(bi-ta|lbl-ta|th-ta|st-ta)" lang="ta">/u',
+            '<$1 class="$2" lang="ta" style="font-family: ' . $tamilFontFamily . '; font-weight: normal;">',
+            $html
+        );
+        $html = preg_replace(
+            '/<span class="rs-ta" lang="ta">/u',
+            '<span class="rs-ta" lang="ta" style="font-family: ' . $tamilFontFamily . '; font-weight: normal;">',
+            $html
+        );
+
         $mpdf->WriteHTML($html);
         return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
     }
 
-    public function generatePDF($newApplicationId)
+    public function generatePDF_bk($newApplicationId)
     {
-        
+
         $form = $this->resolveApplicationFormForPdf($newApplicationId);
 
         // var_dump(format_date($form->previously_number));die;
         $education = $this->resolveEducationForPdf($newApplicationId);
         $experience = $this->resolveExperienceForPdf($newApplicationId);
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
-        $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
+        $applicant_photo = $this->getPhoto($newApplicationId);
+        $payment = $this->getPayment($newApplicationId);
 
         if (!$form) {
             return redirect()->back()->with('error', 'No records found!');
         }
 
-        $decryptedaadhar = $this->safeDecryptString($form->aadhaar);
+        $decryptedaadhar = $this->decryptProofNo($form->aadhaar ?? null);
         $decryptedaadhar = $decryptedaadhar ? preg_replace('/\s+/', '', $decryptedaadhar) : '';
         $masked = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
-        $decryptedPan = $this->safeDecryptString($form->pancard);
+        $decryptedPan = $this->decryptProofNo($form->pancard ?? null);
         $decryptedPan = $decryptedPan ? strtoupper(preg_replace('/[^A-Z0-9]/i', '', $decryptedPan)) : '';
         $maskedPan = strlen($decryptedPan) === 10 ? str_repeat('X', 6) . substr($decryptedPan, -4) : '';
 
@@ -1028,7 +1839,7 @@ class PDFController extends Controller
                           text-align: center; padding: 6px 8px; color: #1a1a1a; }
             .pay-tbl td { border: 1px solid #333; text-align: center; padding: 6px 8px; color: #1a1a1a; }
         </style>', HTMLParserMode::HEADER_CSS);
-    
+
         $certificateText = match ($form->form_name) {
             'S' => 'Acknowledgement Slip for Supervisor Competency Certificate',
             'W' => 'Acknowledgement Slip for Wireman Competency Certificate',
@@ -1077,10 +1888,10 @@ class PDFController extends Controller
         // ── Photo HTML ───────────────────────────────────────────────────────
         if ($applicant_photo && file_exists(public_path($applicant_photo->upload_path))) {
             $photoHtml = '<img src="' . public_path($applicant_photo->upload_path)
-                       . '" style="width:110px; height:130px; border:1px solid #555;">';
+                . '" style="width:110px; height:130px; border:1px solid #555;">';
         } else {
             $photoHtml = '<div style="width:110px; height:130px; border:1px solid #999; display:inline-block; '
-                       . 'text-align:center; vertical-align:middle; font-size:8pt; color:#777; padding-top:50px;">No Photo</div>';
+                . 'text-align:center; vertical-align:middle; font-size:8pt; color:#777; padding-top:50px;">No Photo</div>';
         }
 
         // ── Items 1-4 (+ optional email for Form W / WH only) + photo (right) ─────────
@@ -1101,35 +1912,38 @@ class PDFController extends Controller
             <td style="vertical-align:top; padding:0;">
               <table style="width:100%; border-collapse:collapse;">
                 <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">1.</td>
+                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
                   <td style="width:34%; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">NAME OF THE APPLICANT</td>
                   <td style="width:4%;  vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
                   <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . e($applicantNameUpper) . '</td>
                 </tr>
                 <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">2.</td>
+                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
                   <td style="vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">FATHER&rsquo;S NAME</td>
                   <td style="vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
                   <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . e($fatherNameUpper) . '</td>
                 </tr>
                 <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">3.</td>
+                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
                   <td style="vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">ADDRESS OF THE APPLICANT</td>
                   <td style="vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
                   <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . $formattedAddress . '</td>
                 </tr>
                 <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">4.</td>
+                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
                   <td style="vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">DATE OF BIRTH AND AGE</td>
                   <td style="vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
                   <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . e($dobDisplay) . '</td>
                 </tr>'
-                . $emailRowHtml . '
+            . $emailRowHtml . '
               </table>
             </td>
             <td style="width:125pt; vertical-align:top; text-align:center; padding-left:8px;">' . $photoHtml . '</td>
           </tr>
         </table>';
+
+
+
 
         // ── Education (section 5 for Form S, section 6 for W / WH when email row present) ──
         $html .= '
@@ -1177,9 +1991,8 @@ class PDFController extends Controller
               </tr>
             </table>
             <table class="tbl-data" style="margin-top:4px;">';
-
             $hasContractorRow = $isFormS && $experience->contains(function ($exp) {
-                return strtolower(trim((string) ($exp->emp_type ?? ''))) === 'contractor';
+                return $this->isContractor($exp);
             });
 
             if ($isFormS) {
@@ -1211,15 +2024,16 @@ class PDFController extends Controller
             }
 
             $hasExpData = $experience->contains(function ($exp) use ($isFormS) {
+                $employerName = $this->employerName($exp);
                 if ($isFormS) {
                     return trim((string) ($exp->emp_type ?? '')) !== ''
-                        || trim((string) ($exp->emp_cate ?? $exp->company_name ?? '')) !== ''
+                        || ($employerName !== '' && $employerName !== '-')
                         || trim((string) ($exp->from_date ?? '')) !== ''
                         || trim((string) ($exp->to_date ?? '')) !== ''
                         || trim((string) ($exp->total_exp ?? $exp->experience ?? '')) !== ''
                         || trim((string) ($exp->designation ?? '')) !== '';
                 }
-                return trim((string) ($exp->emp_cate ?? $exp->company_name ?? '')) !== ''
+                return ($employerName !== '' && $employerName !== '-')
                     || trim((string) ($exp->total_exp ?? $exp->experience ?? '')) !== ''
                     || trim((string) ($exp->designation ?? '')) !== '';
             });
@@ -1233,7 +2047,7 @@ class PDFController extends Controller
                 }
             } else {
                 foreach ($experience as $i => $exp) {
-                    $employerName    = $exp->emp_cate ?? $exp->company_name ?? '-';
+                    $employerName    = $this->employerName($exp);
                     $experienceYears = $exp->total_exp ?? $exp->experience ?? '-';
                     $designation     = $exp->designation ?: '-';
 
@@ -1242,11 +2056,12 @@ class PDFController extends Controller
                         $fromDate = !empty($exp->from_date) ? format_date($exp->from_date) : '-';
                         $toDate   = !empty($exp->to_date)   ? format_date($exp->to_date)   : '-';
                         $durationCell = $this->formatFormSExperienceDurationCell($exp);
-                        $isContractor   = strtolower(trim((string) $employmentType)) === 'contractor';
+                        $isContractor   = $this->isContractor($exp);
                         $intimationCell = '';
                         if ($hasContractorRow) {
+                            $intimationRaw = $exp->intimation_date ?? $exp->board_meeting_date ?? null;
                             $intimationCell = $isContractor
-                                ? '<td>' . e(!empty($exp->intimation_date) ? format_date($exp->intimation_date) : '-') . '</td>'
+                                ? '<td>' . e(!empty($intimationRaw) ? format_date($intimationRaw) : '-') . '</td>'
                                 : '<td>-</td>';
                         }
                         $html .= '<tr>
@@ -1359,7 +2174,10 @@ class PDFController extends Controller
         if ($payment) {
             $paymentType   = mb_strtoupper($payment->payment_mode   ?? 'ONLINE', 'UTF-8');
             $transactionNo = mb_strtoupper($payment->transaction_id ?? 'N/A',    'UTF-8');
-            $paymentDate   = mb_strtoupper(\Carbon\Carbon::parse($payment->created_at)->format('d-m-Y'), 'UTF-8');
+            $paymentDateRaw = $payment->created_at ?? null;
+            $paymentDate   = $paymentDateRaw
+                ? mb_strtoupper(\Carbon\Carbon::parse($paymentDateRaw)->format('d-m-Y'), 'UTF-8')
+                : 'N/A';
             $amountValue   = '&#8377; ' . ($payment->amount ?? 'N/A');
             $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
 
@@ -1632,17 +2450,17 @@ class PDFController extends Controller
         $form = $this->resolveApplicationFormForPdf($newApplicationId);
         $education = $this->resolveEducationForPdf($newApplicationId);
         $experience = $this->resolveExperienceForPdf($newApplicationId);
-        $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
-        $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
+        $applicant_photo = $this->getPhoto($newApplicationId);
+        $payment = $this->getPayment($newApplicationId);
 
         if (!$form) {
             return redirect()->back()->with('error', 'பதிவுகள் கிடைக்கவில்லை!');
         }
 
-        $decryptedaadhar = $this->safeDecryptString($form->aadhaar);
+        $decryptedaadhar = $this->decryptProofNo($form->aadhaar ?? null);
         $decryptedaadhar = $decryptedaadhar ? preg_replace('/\s+/', '', $decryptedaadhar) : '';
         $masked = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
-        $decryptedPan = $this->safeDecryptString($form->pancard);
+        $decryptedPan = $this->decryptProofNo($form->pancard ?? null);
         $decryptedPan = $decryptedPan ? strtoupper(preg_replace('/[^A-Z0-9]/i', '', $decryptedPan)) : '';
         $maskedPan = strlen($decryptedPan) === 10 ? str_repeat('X', 6) . substr($decryptedPan, -4) : '';
 
@@ -1745,10 +2563,10 @@ class PDFController extends Controller
         // ── Photo HTML ──────────────────────────────────────────────────────
         if ($applicant_photo && file_exists(public_path($applicant_photo->upload_path))) {
             $photoHtml = '<img src="' . public_path($applicant_photo->upload_path)
-                       . '" style="width:110px; height:130px; border:1px solid #555;">';
+                . '" style="width:110px; height:130px; border:1px solid #555;">';
         } else {
             $photoHtml = '<div style="width:110px; height:130px; border:1px solid #999; display:inline-block; '
-                       . 'text-align:center; vertical-align:middle; font-size:8pt; color:#777; padding-top:50px;">No Photo</div>';
+                . 'text-align:center; vertical-align:middle; font-size:8pt; color:#777; padding-top:50px;">No Photo</div>';
         }
 
         // ── Items 1–4 + optional email (Form W / WH only) + photo — matches generatePDF ─────────
@@ -1792,7 +2610,7 @@ class PDFController extends Controller
                   <td style="vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
                   <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;"><span class="eng">' . e($dobDisplay) . '</span></td>
                 </tr>'
-                . $emailRowHtmlTa . '
+            . $emailRowHtmlTa . '
               </table>
             </td>
             <td style="width:125pt; vertical-align:top; text-align:center; padding-left:8px;">' . $photoHtml . '</td>
@@ -1863,7 +2681,7 @@ class PDFController extends Controller
                 <th rowspan="2">நிறுவனம் / அமைப்பு</th>
                 <th colspan="3">அனுபவம்</th>
                 <th rowspan="2">பதவி</th>'
-                . ($hasContractorRowTa ? '<th rowspan="2">அறிவிப்பு தேதி</th>' : '') . '
+                    . ($hasContractorRowTa ? '<th rowspan="2">அறிவிப்பு தேதி</th>' : '') . '
             </tr>
             <tr>
                 <th>தேதி முதல்</th>
@@ -1975,7 +2793,7 @@ class PDFController extends Controller
         $colStyleTa  = 'style="width:3%;  vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;"';
         $ansStyleTa  = 'style="vertical-align:top; padding:4px 0; color:#1a1a1a;"';
 
-        $qRow = function(string $num, string $text, string $ans) use ($numStyleTa, $textStyleTa, $colStyleTa, $ansStyleTa) {
+        $qRow = function (string $num, string $text, string $ans) use ($numStyleTa, $textStyleTa, $colStyleTa, $ansStyleTa) {
             return '
             <tr>
               <td ' . $numStyleTa  . '>' . $num . '.</td>
@@ -1984,7 +2802,7 @@ class PDFController extends Controller
               <td ' . $ansStyleTa  . '>' . $ans . '</td>
             </tr>';
         };
-        $certSubRowTa = function(string $refNo, string $issueDate, string $validityDate) use ($numStyleTa) {
+        $certSubRowTa = function (string $refNo, string $issueDate, string $validityDate) use ($numStyleTa) {
             return '
             <tr>
               <td ' . $numStyleTa . '></td>
@@ -2053,7 +2871,7 @@ class PDFController extends Controller
               </tr>
             </table>';
         }
-        
+
 
         // Place and Date at very bottom
         $html .= '<br><br>
@@ -2079,16 +2897,16 @@ class PDFController extends Controller
 
     public function downloadPaymentReceipt($newApplicationId)
     {
-      // dd($newApplicationId);
-      // exit;
+        // dd($newApplicationId);
+        // exit;
         $form = DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
-                ?? $this->resolveApplicationFormForPdf($newApplicationId);
+            ?? $this->resolveApplicationFormForPdf($newApplicationId);
 
         if (! $form) {
             return redirect()->back()->with('error', 'Application not found!');
         }
 
-        $license_name= DB::table('mst_licences')->where('form_code', $form->form_name)->first();
+        $license_name = DB::table('mst_licences')->where('form_code', $form->form_name)->first();
 
         $education = $this->resolveEducationForPdf($newApplicationId);
         $experience = $this->resolveExperienceForPdf($newApplicationId);
@@ -2107,10 +2925,10 @@ class PDFController extends Controller
 
         $mpdf->SetTitle('TNELB Payment Receipt ' . $newApplicationId);
 
-           $applType = strtoupper(trim($form->appl_type));
+        $applType = strtoupper(trim($form->appl_type));
         $typeOfForm = ($applType === 'N') ? 'New Application' : 'Renewal Application';
         // $mpdf->SetTitle('TNELB Application License '. $form->license_name .' Form ' . $form->form_name);
-       $html = '
+        $html = '
             <style>
                 .no_space {
                     margin: 3px;
@@ -2130,9 +2948,9 @@ class PDFController extends Controller
                 <h4 class="no_space" style="font-size:16px;">THE ELECTRICAL LICENSING BOARD</h4>
                 <p class="no_space" style="font-size:14px;">Thiru.Vi.Ka. Industrial Estate, Guindy, Chennai – 600 032.</p>
                 <h4 class="no_space" style="font-weight:500;">
-                    FORM <span style="font-weight:bold;">"'. $form->form_name .'"</span>
+                    FORM <span style="font-weight:bold;">"' . $form->form_name . '"</span>
                 </h4>
-                <p class="no_space" style="font-size:16px; font-weight:500;"> Application For "'. $license_name->licence_name .'"</p>
+                <p class="no_space" style="font-size:16px; font-weight:500;"> Application For "' . $license_name->licence_name . '"</p>
             </div>
 
             <hr style="margin:10px 0; border:0; border-top:1px solid #000;">
@@ -2141,17 +2959,17 @@ class PDFController extends Controller
 
                 <tr>
                     <th>Application ID</th>
-                    <td>: '. $newApplicationId .'</td>
+                    <td>: ' . $newApplicationId . '</td>
                 </tr>
 
                 <tr>
                     <th>Applicant Name </th>
-                    <td>: '. $form->applicant_name .'</td>
+                    <td>: ' . $form->applicant_name . '</td>
                 </tr>
 
                   <tr>
                     <th>Type of Form</th>
-                    <td>: '. $typeOfForm .'</td>
+                    <td>: ' . $typeOfForm . '</td>
                 </tr>
 
                 <tr>
@@ -2183,113 +3001,113 @@ class PDFController extends Controller
             ->header('Content-Disposition', 'inline; filename="payment_receipt.pdf"');
     }
 
-//     public function downloadPaymentReceipt($newApplicationId)
-//     {
-//       // dd($newApplicationId);
-//       // exit;
-//         $form= DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
-//                 ?? DB::table('tnelb_esa_applications')->where('application_id', $newApplicationId)->first()
-//                 ?? DB::table('tnelb_esb_applications')->where('application_id', $newApplicationId)->first()
-//                 ?? DB::table('tnelb_eb_applications')->where('application_id', $newApplicationId)->first()
-//                 ?? Mst_Form_s_w::where('application_id', $newApplicationId)->first();
+    //     public function downloadPaymentReceipt($newApplicationId)
+    //     {
+    //       // dd($newApplicationId);
+    //       // exit;
+    //         $form= DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
+    //                 ?? DB::table('tnelb_esa_applications')->where('application_id', $newApplicationId)->first()
+    //                 ?? DB::table('tnelb_esb_applications')->where('application_id', $newApplicationId)->first()
+    //                 ?? DB::table('tnelb_eb_applications')->where('application_id', $newApplicationId)->first()
+    //                 ?? Mst_Form_s_w::where('application_id', $newApplicationId)->first();
 
-//         $license_name= DB::table('mst_licences')->where('form_code', $form->form_name)->first();
-//         // $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
-// //  dd($license_name);
-// //       exit;
+    //         $license_name= DB::table('mst_licences')->where('form_code', $form->form_name)->first();
+    //         // $form = Mst_Form_s_w::where('application_id', $newApplicationId)->first();
+    // //  dd($license_name);
+    // //       exit;
 
-//         $education = Mst_education::where('application_id', $newApplicationId)->get();
-//         $experience = Mst_experience::where('application_id', $newApplicationId)->get();
-//         $documents = Mst_documents::where('application_id', $newApplicationId)->first();
-//         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
+    //         $education = Mst_education::where('application_id', $newApplicationId)->get();
+    //         $experience = Mst_experience::where('application_id', $newApplicationId)->get();
+    //         $documents = Mst_documents::where('application_id', $newApplicationId)->first();
+    //         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
 
 
-//         if (!$payment) {
-//             // dd('111');
-//             // exit;
-//             return redirect()->back()->with('error', 'Payment not found!');
-//         }
+    //         if (!$payment) {
+    //             // dd('111');
+    //             // exit;
+    //             return redirect()->back()->with('error', 'Payment not found!');
+    //         }
 
-//         $mpdf = new Mpdf(['default_font_size' => 10]);
-//         $mpdf->SetFont('arial', '', 10);
+    //         $mpdf = new Mpdf(['default_font_size' => 10]);
+    //         $mpdf->SetFont('arial', '', 10);
 
-//         $mpdf->SetTitle('TNELB Payment Receipt ' . $newApplicationId);
+    //         $mpdf->SetTitle('TNELB Payment Receipt ' . $newApplicationId);
 
-//            $applType = strtoupper(trim($form->appl_type));
-// $typeOfForm = ($applType === 'N') ? 'New Application' : 'Renewal Application';
-//         // $mpdf->SetTitle('TNELB Application License '. $form->license_name .' Form ' . $form->form_name);
-//        $html = '
-//             <style>
-//                 .no_space {
-//                     margin: 3px;
-//                     line-height: 1.3;
-//                 }
-//                 .table-border td, 
-//                 .table-border th {
-                    
-//                     padding: 6px;
-//                     font-size: 14px;
-//                     text-align:left;
-//                 }
-//             </style>
+    //            $applType = strtoupper(trim($form->appl_type));
+    // $typeOfForm = ($applType === 'N') ? 'New Application' : 'Renewal Application';
+    //         // $mpdf->SetTitle('TNELB Application License '. $form->license_name .' Form ' . $form->form_name);
+    //        $html = '
+    //             <style>
+    //                 .no_space {
+    //                     margin: 3px;
+    //                     line-height: 1.3;
+    //                 }
+    //                 .table-border td, 
+    //                 .table-border th {
 
-//             <div style="text-align:center;">
-//                 <h3 class="no_space" style="font-size:18px;">GOVERNMENT OF TAMIL NADU</h3>
-//                 <h4 class="no_space" style="font-size:16px;">THE ELECTRICAL LICENSING BOARD</h4>
-//                 <p class="no_space" style="font-size:14px;">Thiru.Vi.Ka. Industrial Estate, Guindy, Chennai – 600 032.</p>
-//                 <h4 class="no_space" style="font-weight:500;">
-//                     FORM <span style="font-weight:bold;">"'. $form->form_name .'"</span>
-//                 </h4>
-//                 <p class="no_space" style="font-size:16px; font-weight:500;"> Application For "'. $license_name->licence_name .'"</p>
-//             </div>
+    //                     padding: 6px;
+    //                     font-size: 14px;
+    //                     text-align:left;
+    //                 }
+    //             </style>
 
-//             <hr style="margin:10px 0; border:0; border-top:1px solid #000;">
-//             <p class="section-title" style="font-size:15px; font-weight:bold; margin-top:5px; text-align:center;">Payment Details</p>
-//             <table class="table-border" style="border-collapse: collapse; width:100%; margin-top:10px;">
+    //             <div style="text-align:center;">
+    //                 <h3 class="no_space" style="font-size:18px;">GOVERNMENT OF TAMIL NADU</h3>
+    //                 <h4 class="no_space" style="font-size:16px;">THE ELECTRICAL LICENSING BOARD</h4>
+    //                 <p class="no_space" style="font-size:14px;">Thiru.Vi.Ka. Industrial Estate, Guindy, Chennai – 600 032.</p>
+    //                 <h4 class="no_space" style="font-weight:500;">
+    //                     FORM <span style="font-weight:bold;">"'. $form->form_name .'"</span>
+    //                 </h4>
+    //                 <p class="no_space" style="font-size:16px; font-weight:500;"> Application For "'. $license_name->licence_name .'"</p>
+    //             </div>
 
-//                 <tr>
-//                     <th>Application ID</th>
-//                     <td>: '. $newApplicationId .'</td>
-//                 </tr>
+    //             <hr style="margin:10px 0; border:0; border-top:1px solid #000;">
+    //             <p class="section-title" style="font-size:15px; font-weight:bold; margin-top:5px; text-align:center;">Payment Details</p>
+    //             <table class="table-border" style="border-collapse: collapse; width:100%; margin-top:10px;">
 
-//                 <tr>
-//                     <th>Applicant Name </th>
-//                     <td>: '. $form->applicant_name .'</td>
-//                 </tr>
+    //                 <tr>
+    //                     <th>Application ID</th>
+    //                     <td>: '. $newApplicationId .'</td>
+    //                 </tr>
 
-//                   <tr>
-//                     <th>Type of Form</th>
-//                     <td>: '. $typeOfForm .'</td>
-//                 </tr>
+    //                 <tr>
+    //                     <th>Applicant Name </th>
+    //                     <td>: '. $form->applicant_name .'</td>
+    //                 </tr>
 
-//                 <tr>
-//                     <th>Bank Name</th>
-//                     <td>: State Bank of India</td>
-//                 </tr>
-//                 <tr>
-//                     <th>Mode of Payment</th>
-//                     <td>: UPI</td>
-//                 </tr>
-//                 <tr>
-//                     <th>Payment Date</th>
-//                   <td> : ' . \Carbon\Carbon::parse($payment->created_at)->format('d-m-Y') . '</td>
+    //                   <tr>
+    //                     <th>Type of Form</th>
+    //                     <td>: '. $typeOfForm .'</td>
+    //                 </tr>
 
-//                 </tr>
-//                 <tr>
-//                     <th>Transaction ID</th>
-//                     <td> : ' . ($payment->transaction_id ?? "N/A") . '</td>
-//                 </tr>
-//                 <tr>
-//                     <th>Total Amount</th>
-//                     <td>: ₹ ' . ($payment->amount ?? "N/A") . '</td>
-//                 </tr>
-//             </table>';
+    //                 <tr>
+    //                     <th>Bank Name</th>
+    //                     <td>: State Bank of India</td>
+    //                 </tr>
+    //                 <tr>
+    //                     <th>Mode of Payment</th>
+    //                     <td>: UPI</td>
+    //                 </tr>
+    //                 <tr>
+    //                     <th>Payment Date</th>
+    //                   <td> : ' . \Carbon\Carbon::parse($payment->created_at)->format('d-m-Y') . '</td>
 
-//         $mpdf->WriteHTML($html);
-//         return response($mpdf->Output('', 'S'), 200)
-//             ->header('Content-Type', 'application/pdf')
-//             ->header('Content-Disposition', 'inline; filename="payment_receipt.pdf"');
-//     }
+    //                 </tr>
+    //                 <tr>
+    //                     <th>Transaction ID</th>
+    //                     <td> : ' . ($payment->transaction_id ?? "N/A") . '</td>
+    //                 </tr>
+    //                 <tr>
+    //                     <th>Total Amount</th>
+    //                     <td>: ₹ ' . ($payment->amount ?? "N/A") . '</td>
+    //                 </tr>
+    //             </table>';
+
+    //         $mpdf->WriteHTML($html);
+    //         return response($mpdf->Output('', 'S'), 200)
+    //             ->header('Content-Type', 'application/pdf')
+    //             ->header('Content-Disposition', 'inline; filename="payment_receipt.pdf"');
+    //     }
     public function generateLicensePDF($newApplicationId)
     {
         $form = $this->resolveApplicationFormForPdf($newApplicationId);
@@ -2307,7 +3125,7 @@ class PDFController extends Controller
 
         if ($form->appl_type == 'R') {
             $license_details = DB::table('tnelb_renewal_license')->where('application_id', $newApplicationId)->first();
-        }else{
+        } else {
             $license_details = DB::table('tnelb_license')->where('application_id', $newApplicationId)->first();
         }
 
@@ -2320,7 +3138,7 @@ class PDFController extends Controller
             'default_font' => 'helvetica',
             'margin_bottom' => 30
         ]);
-    
+
         $mpdf->WriteHTML('
         <style>
             body { font-family: helvetica, sans-serif; font-size: 10pt; line-height: 1.4; }
@@ -2333,16 +3151,16 @@ class PDFController extends Controller
             .tbl-no-border td { border: none; padding-bottom: 12px; }
             .photo-cell { text-align:center; }
         </style>', HTMLParserMode::HEADER_CSS);
-    
+
         $certificateText = match ($form->form_name) {
             'S' => 'Application for Competency Certificate for Supervisor',
             'W' => 'Application for Competency Certificate for Wireman',
             'WH' => 'Application for Competency Certificate for Wireman Helper',
             default => 'Application for Competency Certificate',
         };
-        
 
-                  
+
+
         $html  = '<div class="photo-cell">
         <img src="' . public_path($applicant_photo->upload_path) . '" width="120" height="150" style="border:1px solid #000;">
       </div>';
@@ -2351,13 +3169,13 @@ class PDFController extends Controller
         $html .= '<h4 style="text-align:center;">License No: <strong>' . $license_details->license_number . '</strong></h4>';
 
         $html .= '<table class="tbl-no-border" style="margin: 0 auto; width: 70%;">';
-        $html .= '  <tr><td class="label">Date of Issue :</td><td class="value">'. format_date($license_details->issued_at) .'</td></tr>';
-        $html .= '  <tr><td class="label">Name :</td><td class="value">'. $form->applicant_name .'</td></tr>';
-        $html .= '  <tr><td class="label">Father\'s Name :</td><td class="value">'. $form->fathers_name .'</td></tr>';
-        $html .= '  <tr><td class="label">Address :</td><td class="value">'. $form->applicants_address .'</td></tr>';
-        $html .= '  <tr><td class="label">Date of Birth :</td><td class="value">'. $form->d_o_b .'</td></tr>';
+        $html .= '  <tr><td class="label">Date of Issue :</td><td class="value">' . format_date($license_details->issued_at) . '</td></tr>';
+        $html .= '  <tr><td class="label">Name :</td><td class="value">' . $form->applicant_name . '</td></tr>';
+        $html .= '  <tr><td class="label">Father\'s Name :</td><td class="value">' . $form->fathers_name . '</td></tr>';
+        $html .= '  <tr><td class="label">Address :</td><td class="value">' . $form->applicants_address . '</td></tr>';
+        $html .= '  <tr><td class="label">Date of Birth :</td><td class="value">' . $form->d_o_b . '</td></tr>';
         $emailLic = trim((string) ($form->applicant_email ?? ''));
-        $html .= '  <tr><td class="label">Email ID :</td><td class="value">'. e($emailLic !== '' ? $emailLic : '—') .'</td></tr>';
+        $html .= '  <tr><td class="label">Email ID :</td><td class="value">' . e($emailLic !== '' ? $emailLic : '—') . '</td></tr>';
         $html .= '  <tr><td class="label">Qualification :</td><td class="value"></td></tr>';
         $html .= '</table>';
 
@@ -2367,12 +3185,12 @@ class PDFController extends Controller
         $html .= '
         <table style="width:100%; border:0;">
             <tr>
-                <td class="label" style="text-align:left;">Form:'. format_date($license_details->issued_at) . '</td>
-                <td class="label" style="text-align:right;">To:' . format_date($license_details->expires_at) .'</td>
+                <td class="label" style="text-align:left;">Form:' . format_date($license_details->issued_at) . '</td>
+                <td class="label" style="text-align:right;">To:' . format_date($license_details->expires_at) . '</td>
             </tr>
         </table>
         <div style="margin-top: 50px;"><span>Employment Details: </span></div>';
-        
+
 
         $mpdf->WriteHTML($html);
 
@@ -2387,6 +3205,5 @@ class PDFController extends Controller
         return response($mpdf->Output('', 'S'), 200)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="license.pdf"');
-
     }
 }

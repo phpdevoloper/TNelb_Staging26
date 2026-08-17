@@ -33,7 +33,7 @@ class RegisterController extends BaseController
     protected $today;
     public function __construct()
     {
-        parent::__construct();   
+        parent::__construct();
         $this->middleware('web');
         $this->today = Carbon::today()->toDateString();
     }
@@ -49,7 +49,7 @@ class RegisterController extends BaseController
 
 
 
-   public function store(Request $request)
+    public function store(Request $request)
     {
         // var_dump($request->Address);die;
 
@@ -189,7 +189,6 @@ class RegisterController extends BaseController
         if (! $appl_id) {
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
-
         $application = CC_Forms_Meta::findByApplicationId((string) $appl_id);
         if (! $application) {
             return redirect()->route('dashboard')->with('error', 'Application not found.');
@@ -404,10 +403,10 @@ class RegisterController extends BaseController
         $user = [
             'user_id' => $authUser->login_id,
             'salutation' => $authUser->salutation,
-            'applicant_name' => $authUser->first_name.' '.$authUser->last_name,
+            'applicant_name' => $authUser->first_name . ' ' . $authUser->last_name,
         ];
         // var_dump($user);die;
-        
+
         // $check_applications = Mst_Form_s_w::where('login_id', $user_id)
         //         ->where('form_name', 'S')
         //         ->exists();
@@ -432,7 +431,7 @@ class RegisterController extends BaseController
         $user = [
             'user_id' => $authUser->login_id,
             'salutation' => $authUser->salutation,
-            'applicant_name' => $authUser->first_name.' '.$authUser->last_name,
+            'applicant_name' => $authUser->first_name . ' ' . $authUser->last_name,
         ];
 
         // $user_id = Auth::user()->login_id;
@@ -460,7 +459,7 @@ class RegisterController extends BaseController
         $user = [
             'user_id' => $authUser->login_id,
             'salutation' => $authUser->salutation,
-            'applicant_name' => $authUser->first_name.' '.$authUser->last_name,
+            'applicant_name' => $authUser->first_name . ' ' . $authUser->last_name,
         ];
 
         // $user_id = Auth::user()->login_id;
@@ -479,6 +478,10 @@ class RegisterController extends BaseController
     public function apply_form_a()
     {
 
+        // dd(Auth::user()); exit;
+
+        // dd(Auth::user()->login_id); exit;
+
         if (!Auth::check()) {
             return redirect()->route('logout');
         }
@@ -486,15 +489,64 @@ class RegisterController extends BaseController
         $cert_licence_code = 'EA';
 
         $equiplist = Mst_equipment_tbl::where('equip_licence_name', 8)
-          ->where('status', 1)
-          ->orderBy('id')
-          ->get();
+            ->where('status', 1)
+            ->orderBy('id')
+            ->get();
 
 
-           $form_code = MstLicence::where('cert_licence_code', $cert_licence_code)
-          ->where('status', 1)
-          ->orderBy('id')
-          ->first();
+        $form_code = MstLicence::where('cert_licence_code', $cert_licence_code)
+            ->where('status', 1)
+            ->orderBy('id')
+            ->first();
+        // $cert_licence_code = $form_code ? $form_code->cert_licence_code : null;
+
+   
+
+        $loginId = Auth::user()->login_id;
+
+
+    
+
+        $applicationIds = EA_Application_model::where('login_id', $loginId)
+            ->pluck('application_id');
+
+
+    
+
+        $today = Carbon::today();
+
+        $activeLicense = DB::table('tnelb_license')
+            ->whereIn('application_id', $applicationIds)
+            ->whereDate('issued_at', '<=', $today)
+            ->whereDate('expires_at', '>=', $today)
+            ->orderByDesc('expires_at')
+            ->first();
+
+
+   
+
+        $previousLicenceNo = '';
+        $previousValidityFirstIssue = '';
+        $previousValidityFrom = '';
+        $previousValidityTo = '';
+
+
+    
+
+        if ($activeLicense) {
+
+            $previousLicenceNo = $activeLicense->license_number;
+
+            $previousValidityFirstIssue = $activeLicense->issued_at;
+
+            $previousValidityFrom = $activeLicense->issued_at;
+
+            $previousValidityTo = $activeLicense->expires_at;
+        }
+
+// dd($previousLicenceNo); exit;
+
+
 
         // $equipmentlist = DB::table('equipmentforma_tbls')
         //     ->where('login_id', Auth::user()->login_id)
@@ -511,7 +563,11 @@ class RegisterController extends BaseController
         // }
 
 
-        return view('user_login.apply-form-a', compact('equiplist', 'form_code'));
+        return view('user_login.apply-form-a', compact('equiplist', 'form_code',
+            'previousLicenceNo',
+            'previousValidityFirstIssue',
+            'previousValidityFrom',
+            'previousValidityTo'));
     }
 
     public function loginpage()
@@ -525,7 +581,7 @@ class RegisterController extends BaseController
             return redirect()->route('logout');
         }
 
-        
+
         $application = CC_Forms_Meta::findByApplicationId((string) $application_id)
             ?? DB::table('tnelb_application_tbl')->where('application_id', $application_id)->first();
 
@@ -539,8 +595,4 @@ class RegisterController extends BaseController
         // Return the dynamic view
         return view($viewName, compact('application', 'form_name'));
     }
-
-
-
-    
 }
