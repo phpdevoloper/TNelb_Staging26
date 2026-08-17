@@ -147,6 +147,11 @@ class FormSDocumentMasterTableService
         return $this->workflowService->masterApplication($workflowApp);
     }
 
+    /**
+     * Persist an approved file path onto the document owner row.
+     * For renewal/alteration, resolveMasterApplicationForDocument returns the child
+     * when module_ref_id lives on the child — parent SC… rows are not overwritten.
+     */
     protected function updateMasterFilePath(
         CC_CompetencyMeta $masterApplication,
         string $moduleType,

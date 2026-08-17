@@ -2,7 +2,6 @@
 
 namespace App\Models\Competency;
 
-use App\Casts\CalendarDate;
 use Illuminate\Database\Eloquent\Model;
 
 abstract class CC_CompetencyMeta extends Model
@@ -58,12 +57,12 @@ abstract class CC_CompetencyMeta extends Model
     }
 
     protected $casts = [
-        'd_o_b' => CalendarDate::class,
-        'first_issue_date' => CalendarDate::class,
-        'scc_from_date' => CalendarDate::class,
-        'scc_to_date' => CalendarDate::class,
-        'wcc_issue_date' => CalendarDate::class,
-        'wcc_from' => CalendarDate::class,
-        'wcc_to' => CalendarDate::class,
+        'd_o_b' => 'date:Y-m-d',
+        'first_issue_date' => 'date:Y-m-d',
+        'scc_from_date' => 'date:Y-m-d',
+        'scc_to_date' => 'date:Y-m-d',
+        'wcc_issue_date' => 'date:Y-m-d',
+        'wcc_from' => 'date:Y-m-d',
+        'wcc_to' => 'date:Y-m-d',
     ];
 }

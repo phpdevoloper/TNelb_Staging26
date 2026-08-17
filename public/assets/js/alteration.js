@@ -1,5 +1,5 @@
 /**
- * Form S alteration — verify popup + top option bar on form page.
+ * Form S alteration — verify popup + section Edit badges on form page.
  */
 (function ($) {
     'use strict';
@@ -90,12 +90,8 @@
         }
         $('#competency_form_ws').toggleClass('fs-alt-work-unlocked', !!unlocked);
         var $rows = existingWorkRows();
-        if (unlocked) {
-            enableNewWorkRowFields($rows);
-            $rows.find('input[name="work_id[]"], input[name="fs_alt_existing_work[]"]').prop('disabled', false);
-        } else {
-            $rows.find('input, textarea, select, button').prop('disabled', true);
-        }
+        $rows.find('input, textarea, select, button').not('input[type="hidden"]').prop('disabled', true);
+        $rows.find('input[name="work_id[]"], input[name="fs_alt_existing_work[]"]').prop('disabled', false);
     }
 
     function scrollToSection(selector) {
@@ -105,10 +101,18 @@
         window.scrollTo({ top: top, behavior: 'smooth' });
     }
 
-    function updateChipStyles() {
-        $('#fsAltOptName').closest('.fs-alt-option-card').toggleClass('is-active', $('#fsAltOptName').is(':checked'));
-        $('#fsAltOptAddress').closest('.fs-alt-option-card').toggleClass('is-active', $('#fsAltOptAddress').is(':checked'));
-        $('#fsAltOptWork').closest('.fs-alt-option-card').toggleClass('is-active', $('#fsAltOptWork').is(':checked'));
+    function setAltBadgeState($badge, active, idleTitle, cancelTitle) {
+        if (!$badge.length) return;
+        $badge.toggleClass('is-active', active).attr('aria-pressed', active ? 'true' : 'false');
+        $badge.attr('title', active ? cancelTitle : idleTitle);
+        $badge.find('i').attr('class', active ? 'fa fa-times' : 'fa fa-pencil');
+        $badge.find('.fs-alt-edit-badge__label').text(active ? 'Cancel' : 'Edit');
+    }
+
+    function updateBadgeStyles() {
+        setAltBadgeState($('#fsAltBadgeName'), $('#fsAltOptName').is(':checked'), 'Edit applicant name', 'Cancel name change');
+        setAltBadgeState($('#fsAltBadgeAddress'), $('#fsAltOptAddress').is(':checked'), 'Edit applicant address', 'Cancel address change');
+        setAltBadgeState($('#fsAltBadgeWork'), $('#fsAltOptWork').is(':checked'), 'Edit work experience', 'Cancel work experience change');
     }
 
     function revokeProofBlob($compact) {
@@ -220,7 +224,7 @@
         var optWork = $('#fsAltOptWork').is(':checked');
 
         $('#fsAltOptionsError').text('');
-        updateChipStyles();
+        updateBadgeStyles();
 
         if (optName) {
             $('#Applicant_Name').prop('readonly', false);
@@ -270,7 +274,7 @@
         if (addr === 'Not provided') addr = '';
         var alterName = optName && name !== parentName;
         var alterAddress = optAddress && addr !== parentAddress;
-        var alterWork = optWork && (hasNewWorkRows() || hasEditedExistingWorkRows());
+        var alterWork = optWork && hasNewWorkRows();
 
         $('#alter_name').val(alterName ? '1' : '0');
         $('#alter_address').val(alterAddress ? '1' : '0');
@@ -300,7 +304,8 @@
             .each(function () {
                 var $el = $(this);
                 if ($el.attr('type') === 'hidden') return;
-                if ($el.closest('#fsAltNameProofPanel, #fsAltAddressProofPanel, #fsAltOptionsBar').length) return;
+                if ($el.closest('#fsAltNameProofPanel, #fsAltAddressProofPanel').length) return;
+                if ($el.hasClass('fs-alt-edit-badge')) return;
                 if ($el.attr('id') === 'submitPaymentBtn' || $el.attr('id') === 'saveDraftBtn' || $el.attr('id') === 'fsAltCancelBtn' || $el.attr('id') === 'declarationCheckbox') return;
                 if ($el.is('select, input[type="file"], input[type="radio"], input[type="checkbox"]')) {
                     $el.prop('disabled', true);
@@ -318,8 +323,8 @@
         var flags = syncAlterFlagsFromForm();
 
         if (!flags.optName && !flags.optAddress && !flags.optWork) {
-            $('#fsAltOptionsError').text('Select at least one alteration option above.');
-            Swal.fire('Validation', 'Select at least one alteration option at the top of the form.', 'warning');
+            $('#fsAltOptionsError').text('Click Edit on the section you want to change.');
+            Swal.fire('Validation', 'Click Edit on Applicant Name, Applicant Address, or Work Experience to make a change.', 'warning');
             return false;
         }
 
@@ -347,13 +352,13 @@
             }
         }
 
-        if (flags.optWork && !hasNewWorkRows() && !hasEditedExistingWorkRows() && !flags.alterName && !flags.alterAddress) {
-            Swal.fire('Validation', 'Edit an existing work experience entry or add a new one.', 'warning');
+        if (flags.optWork && !hasNewWorkRows() && !flags.alterName && !flags.alterAddress) {
+            Swal.fire('Validation', 'Add a new work experience entry. Existing records cannot be edited.', 'warning');
             return false;
         }
 
         /* Same 650V / 2-year rule as New / Renewal / Digitization (shared work-exp scripts). */
-        if (flags.alterWork || (flags.optWork && (hasNewWorkRows() || hasEditedExistingWorkRows()))) {
+        if (flags.alterWork || (flags.optWork && hasNewWorkRows())) {
             if (typeof window.wxValidateFormSExperienceDateSequence === 'function') {
                 var seqCheck = window.wxValidateFormSExperienceDateSequence();
                 if (!seqCheck.ok) {
@@ -683,10 +688,10 @@
             return;
         }
 
-        /* Start with no option selected — user must choose what to alter. */
+        /* Start with no section unlocked — user must click Edit on the section to alter. */
         $('#fsAltOptName, #fsAltOptAddress, #fsAltOptWork').prop('checked', false);
         applyAlterationOptions(null);
-        updateChipStyles();
+        updateBadgeStyles();
 
         var root = document.getElementById('fsAltFormRoot');
         if (root) {
@@ -704,16 +709,15 @@
 
         clearNewWorkRows();
         initProofCompact();
-        updateChipStyles();
+        updateBadgeStyles();
 
-        $('#fsAltOptName').on('change', function () {
-            applyAlterationOptions($(this).is(':checked') ? 'name' : null);
-        });
-        $('#fsAltOptAddress').on('change', function () {
-            applyAlterationOptions($(this).is(':checked') ? 'address' : null);
-        });
-        $('#fsAltOptWork').on('change', function () {
-            applyAlterationOptions($(this).is(':checked') ? 'work' : null);
+        $(document).on('click.formSAltBadge', '.fs-alt-edit-badge', function () {
+            var key = $(this).data('altOpt');
+            var map = { name: '#fsAltOptName', address: '#fsAltOptAddress', work: '#fsAltOptWork' };
+            var $cb = $(map[key]);
+            if (!$cb.length) return;
+            $cb.prop('checked', !$cb.is(':checked'));
+            applyAlterationOptions($cb.is(':checked') ? key : null);
         });
 
         initAlterationEditableMode();
@@ -725,12 +729,12 @@
             }
         });
         $(document).on('change.formSAltWork input.formSAltWork', '.js-work-container input, .js-work-container textarea, .js-work-container select', syncAlterFlagsFromForm);
-        $(document).on('click.formSAltWork', '#work-exp-add-btn-previous', function () {
-            if (!$('#fsAltOptWork').is(':checked')) return false;
-        });
-
-        $(document).on('click.formSAltWork', '.work-exp-add-btn.add-more-work', function () {
-            if (!$('#fsAltOptWork').is(':checked')) return false;
+        $(document).on('click.formSAltWork', '.add-more-work', function (e) {
+            if (!$('#fsAltOptWork').is(':checked')) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return false;
+            }
         });
 
         $(document).off('click.formSAltCancel', '#fsAltCancelBtn').on('click.formSAltCancel', '#fsAltCancelBtn', async function (e) {

@@ -168,28 +168,37 @@ class FormSDocumentUploadHandler
     public function seedCarriedForwardIfRenewal(CC_CompetencyMeta $workflowApp): void
     {
         // Intentionally no-op: cc_doc_log rows are created only when the applicant
-        // uploads a replacement document on renewal/alteration. Unchanged docs keep
-        // the parent NEW path on master tables (education/experience/proof).
+        // uploads a replacement document. Unchanged docs copy the parent path onto
+        // the child cc_edu / cc_exp / cc_proof_doc row (no re-upload).
     }
 
     /**
-     * Resolve master education row for a form row (renewal uses parent APP rows).
+     * Resolve the education row to copy a path from (parent, or already-snapshotted child).
      */
     public function resolveMasterEducation(
         CC_CompetencyMeta $workflowApp,
         ?int $eduId,
         ?string $level = null
     ): ?CC_Education {
-        $masterApp = $this->workflowService->masterApplication($workflowApp);
-
         if ($eduId) {
-            return CC_Education::where('application_id', $masterApp->application_id)
-                ->whereKey($eduId)
-                ->first();
+            $found = CC_Education::whereKey($eduId)->first();
+            if ($found) {
+                return $found;
+            }
         }
 
+        $childId = (string) $workflowApp->application_id;
+        $masterId = (string) $this->workflowService->masterApplication($workflowApp)->application_id;
+
         if ($level) {
-            return CC_Education::where('application_id', $masterApp->application_id)
+            $onChild = CC_Education::where('application_id', $childId)
+                ->where('educational_level', $level)
+                ->first();
+            if ($onChild) {
+                return $onChild;
+            }
+
+            return CC_Education::where('application_id', $masterId)
                 ->where('educational_level', $level)
                 ->first();
         }
@@ -199,9 +208,12 @@ class FormSDocumentUploadHandler
 
     protected function resolveProofPathAfterUpload(CC_Doc_Log $log, CC_Proof_doc $proof): ?string
     {
-        // Pending renewal/alteration replacements must NOT overwrite master proof_doc.
-        // Keep showing the already-approved (usually NEW) document until staff approve.
         if ($log->isPending()) {
+            $pendingPath = $this->pendingPathForChildOwnedProof($log, $proof);
+            if ($pendingPath !== null) {
+                return $pendingPath;
+            }
+
             $proof->refresh();
 
             return $proof->proof_doc ?: null;
@@ -220,10 +232,14 @@ class FormSDocumentUploadHandler
         string $experienceField = 'support_document'
     ): ?string {
         // Pending renewal/alteration replacements on the issued (master) row stay in cc_doc_log only.
-        // Child-workflow experience rows are the experience parent for that request — persist the
-        // new RENEWAL/ALTERATION path on the child row.
+        // Child-owned education/experience/proof rows persist the new RENEWAL/ALTERATION path.
         if ($log->isPending()) {
             if ($education) {
+                $pendingPath = $this->pendingPathForChildOwnedEducation($log, $education);
+                if ($pendingPath !== null) {
+                    return $pendingPath;
+                }
+
                 $education->refresh();
 
                 return $education->upload_document;
@@ -267,11 +283,26 @@ class FormSDocumentUploadHandler
      */
     protected function pendingPathForAlterationExperience(CC_Doc_Log $log, CC_Experience $experience): ?string
     {
+        return $this->pendingPathForChildOwnedRow($log, (string) ($experience->application_id ?? ''));
+    }
+
+    protected function pendingPathForChildOwnedEducation(CC_Doc_Log $log, CC_Education $education): ?string
+    {
+        return $this->pendingPathForChildOwnedRow($log, (string) ($education->application_id ?? ''));
+    }
+
+    protected function pendingPathForChildOwnedProof(CC_Doc_Log $log, CC_Proof_doc $proof): ?string
+    {
+        return $this->pendingPathForChildOwnedRow($log, (string) ($proof->application_id ?? ''));
+    }
+
+    protected function pendingPathForChildOwnedRow(CC_Doc_Log $log, string $rowApplicationId): ?string
+    {
         $workflow = $this->workflowService->findWorkflowByPk((int) $log->application_id);
         if (! $workflow || ! $this->workflowService->isChildWorkflow($workflow)) {
             return null;
         }
-        if ((string) $workflow->application_id !== (string) ($experience->application_id ?? '')) {
+        if ((string) $workflow->application_id !== $rowApplicationId) {
             return null;
         }
 

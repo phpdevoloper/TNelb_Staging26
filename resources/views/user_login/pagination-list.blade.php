@@ -134,6 +134,7 @@
             $payuGatewayStatus = $payuCheckableApplications[$appId] ?? null;
             $isEditingDraft = (($sts === 'D') || ($workflow->payment_status == 'draft')) && $payuGatewayStatus === null;
             $showPayuCheck = $workflow->payment_status != 'payment' && $payuGatewayStatus !== null;
+            $isAlteration = strtoupper(trim((string) ($workflow->appl_type ?? ''))) === 'A';
         @endphp
         <tr @if($sts == 'QU') class="return-row" @endif>
             <td @if($sts == 'QU') class="return-cell" @endif>
@@ -272,7 +273,7 @@
 
             <!-- Certificate Number -->
             <td>
-                @if (!empty($workflow->license_number) && $sts == 'A')
+                @if (!$isAlteration && !empty($workflow->license_number) && $sts == 'A')
              
                     <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank" 
                         data-bs-toggle="tooltip" data-bs-placement="top" title="View Licence Details">

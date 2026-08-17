@@ -5,6 +5,7 @@ namespace App\Casts;
 use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use Illuminate\Contracts\Database\Eloquent\SerializesCastableAttributes;
 
 /**
  * Store and read a calendar date (Y-m-d) without UTC shifting it back one day
@@ -12,7 +13,7 @@ use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
  *
  * Signatures match Laravel 9 CastsAttributes (untyped $model/$value, no return type).
  */
-class CalendarDate implements CastsAttributes
+class CalendarDate implements CastsAttributes, SerializesCastableAttributes
 {
     /**
      * @param  \Illuminate\Database\Eloquent\Model  $model
@@ -37,6 +38,20 @@ class CalendarDate implements CastsAttributes
      * @return string|null
      */
     public function set($model, string $key, $value, array $attributes)
+    {
+        return self::ymd($value);
+    }
+
+    /**
+     * Keep Y-m-d when the model is converted with toArray() / toJson().
+     * Without this, Laravel serializes the Carbon value as UTC ISO-8601
+     * (2019-08-17 00:00 IST → 2019-08-16T18:30:00.000000Z).
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  mixed  $value
+     * @param  array<string, mixed>  $attributes
+     */
+    public function serialize($model, string $key, $value, array $attributes)
     {
         return self::ymd($value);
     }

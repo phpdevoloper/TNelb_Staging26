@@ -9,6 +9,7 @@ use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\CC_Payments;
 use App\Models\CC_Proof_doc;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Models\Mst_education;
 use App\Models\Mst_experience;
 use App\Models\Mst_documents;
@@ -33,7 +34,8 @@ use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 
 use App\Models\Tnelb_CC_Digitization;
-
+use App\Services\Competency\CompetencyDocumentReviewService;
+use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\DocumentVersion\DocumentStorageService;
 
 
@@ -268,12 +270,12 @@ class PDFController extends Controller
             return $ccRows;
         }
 
-        $legacyRows = Mst_education::where('application_id', $applicationId)->get();
+        $legacyRows = CC_Education::where('application_id', $applicationId)->get();
         if ($legacyRows->isNotEmpty()) {
             return $legacyRows;
         }
 
-        return Mst_education::where('application_id', $masterApplicationId)->get();
+        return CC_Education::where('application_id', $masterApplicationId)->get();
     }
 
     private function resolveExperienceForPdf(string $applicationId): Collection
@@ -287,12 +289,12 @@ class PDFController extends Controller
             return $ccRows;
         }
 
-        $legacyRows = Mst_experience::where('application_id', $applicationId)->get();
+        $legacyRows = CC_Experience::where('application_id', $applicationId)->get();
         if ($legacyRows->isNotEmpty()) {
             return $legacyRows;
         }
 
-        return Mst_experience::where('application_id', $masterApplicationId)->get();
+        return CC_Experience::where('application_id', $masterApplicationId)->get();
     }
 
     /**
@@ -395,9 +397,9 @@ class PDFController extends Controller
     public function generateFormPPDF($newApplicationId)
     {
         $form = TnelbFormP::where('application_id', $newApplicationId)->first();
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
-        $institutes = TnelbAppsInstitute::where('application_id', $newApplicationId)->get();
+        $education = CC_Education::where('application_id', $newApplicationId)->get();
+        $experience = CC_Experience::where('application_id', $newApplicationId)->get();
+        $institutes = CC_Proof_doc::where('application_id', $newApplicationId)->get();
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
 
@@ -789,9 +791,9 @@ class PDFController extends Controller
         $form = TnelbFormP::where('application_id', $newApplicationId)->first();
 
         // var_dump(format_date($form->previously_number));die;
-        $education = Mst_education::where('application_id', $newApplicationId)->get();
-        $experience = Mst_experience::where('application_id', $newApplicationId)->get();
-        $institutes = TnelbAppsInstitute::where('application_id', $newApplicationId)->get();
+        $education = CC_Education::where('application_id', $newApplicationId)->get();
+        $experience = CC_Experience::where('application_id', $newApplicationId)->get();
+        $institutes = CC_Proof_doc::where('application_id', $newApplicationId)->get();
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
         $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
 
@@ -1078,10 +1080,10 @@ class PDFController extends Controller
             $sign = $proofService->loadSignForView($applicationId);
 
             if (! $photo) {
-                $photo = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+                $photo = CC_Proof_doc::where('application_id', $applicationId)->first();
             }
             if (! $sign) {
-                $sign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
+                $sign = CC_Proof_doc::where('application_id', $applicationId)->first();
             }
         }
 
@@ -1232,7 +1234,6 @@ class PDFController extends Controller
 
 
 
-        $payment = DB::table('payments')->where('application_id', $application_id)->first();
         // Tamil: prefer dejavusans Regular (OTL); avoids Bold faces missing Indic. Marutham if file exists.
         $tamilFontFamily = 'dejavusans';
         $mpdfConfig = [
@@ -1558,16 +1559,22 @@ class PDFController extends Controller
         } else {
             $appltye = 'Alteration Application';
         }
-        $payment = DB::table('cc_payments')->where('application_id', $application_id)->first();
-        // dd($payment);exit;
-  if ($payment) {
-    // dd('111');
+        $payment = $this->getPayment((string) $application_id);
+        $paymentType   = 'N/A';
+        $transactionNo = 'N/A';
+        $paymentDate   = 'N/A';
+        $amountValue   = '&#8377; Nil';
+        $statusValue   = 'N/A';
+        if ($payment) {
             $paymentType   = mb_strtoupper($payment->payment_mode   ?? 'ONLINE', 'UTF-8');
             $transactionNo = mb_strtoupper($payment->transaction_id ?? 'N/A',    'UTF-8');
-            $paymentDate   = mb_strtoupper(\Carbon\Carbon::parse($payment->created_at)->format('d-m-Y'), 'UTF-8');
+            $paymentDateRaw = $payment->created_at ?? null;
+            $paymentDate   = $paymentDateRaw
+                ? mb_strtoupper(\Carbon\Carbon::parse($paymentDateRaw)->format('d-m-Y'), 'UTF-8')
+                : 'N/A';
             $amountValue   = '&#8377; ' . ($payment->amount ?? 'Nil');
             $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
-  }
+        }
         $html = '
         <div class="card">
 
@@ -1697,7 +1704,7 @@ class PDFController extends Controller
                         </tr>
                        
                         <tr>
-                        <th>PAYMENT TYPE</th>
+                        <th>PAYMENT DATE</th>
                          <td>' . e($paymentDate)   . '</td>
                         </tr>
                         <tr>

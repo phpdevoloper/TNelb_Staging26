@@ -267,12 +267,8 @@
             }
 
             function isAlterationFrozenRow($tr) {
-                /* Existing rows locked on renewal; on alteration they unlock when Work Experience is selected. */
-                if (!$tr.hasClass('fs-alt-existing-work')) return false;
-                if ($('#competency_form_ws.fs-alt-form').hasClass('fs-alt-work-unlocked')) {
-                    return false;
-                }
-                return true;
+                /* Existing master rows stay read-only on alteration; only new rows can be added. */
+                return $tr.hasClass('fs-alt-existing-work');
             }
 
             function applyFrozenSummaryActions($tr, $str) {
@@ -301,7 +297,7 @@
             }
 
             /**
-             * Alteration form: unlock/lock existing experience when Work Experience option changes.
+             * Alteration form: unlock only Add row. Existing records stay frozen.
              */
             window.wxSetAlterationExistingWorkUnlocked = function (unlocked) {
                 var $form = $('#competency_form_ws.fs-alt-form');
@@ -309,25 +305,13 @@
                 $form.toggleClass('fs-alt-work-unlocked', !!unlocked);
                 $('.fs-alt-existing-work').each(function () {
                     var $tr = $(this);
-                    if (unlocked) {
-                        $tr.find('input, textarea, select, button')
-                            .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
-                            .prop('disabled', false)
-                            .prop('readonly', false);
-                        $tr.find('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
-                            .prop('disabled', true)
-                            .prop('readonly', true);
-                        initWorkRow($tr);
-                        ensureWorkRowDoneBar($tr);
-                        var $str = getSummaryTr($tr);
-                        restoreEditableSummaryActions($str);
-                        updateRowSummary($tr);
-                    } else {
-                        $tr.find('input, textarea, select, button').prop('disabled', true);
-                        $tr.addClass('is-complete work-row--compact').removeClass('work-row--expanded');
-                        updateRowSummary($tr);
-                        applyFrozenSummaryActions($tr, getSummaryTr($tr));
-                    }
+                    $tr.find('input, textarea, select, button')
+                        .not('input[type="hidden"]')
+                        .prop('disabled', true);
+                    $tr.find('input[name="work_id[]"], input[name="fs_alt_existing_work[]"]').prop('disabled', false);
+                    $tr.addClass('is-complete work-row--compact work-row--in-summary').removeClass('work-row--expanded');
+                    updateRowSummary($tr);
+                    applyFrozenSummaryActions($tr, getSummaryTr($tr));
                 });
                 syncSummaryTable();
                 updateWorkAddBtn();
@@ -997,8 +981,15 @@
                 });
             }
 
+            function isAlterationWorkAddLocked() {
+                var $form = $('#competency_form_ws.fs-alt-form');
+                if (!$form.length) return false;
+                return !$form.hasClass('fs-alt-work-unlocked');
+            }
+
             /** Row-count badge + disable state on the Add button. */
             function updateWorkAddBtn() {
+                var altLocked = isAlterationWorkAddLocked();
                 $('.add-more-work').each(function() {
                     var $btn = $(this);
                     var containerId = $btn.data('work-container');
@@ -1014,12 +1005,12 @@
                     var rowsReady = typeof workContainerCanAddRow === 'function'
                         ? workContainerCanAddRow($container)
                         : true;
-                    $btn.prop('disabled', atMax || !rowsReady);
+                    $btn.prop('disabled', altLocked || atMax || !rowsReady);
                 });
                 if (!$('.add-more-work').length) {
                     var rows = allWorkFields().length;
                     $('#work-exp-row-count').text('(' + rows + '/' + MAX_WORK_ROWS + ')');
-                    $('#work-exp-add-btn').prop('disabled', rows >= MAX_WORK_ROWS);
+                    $('#work-exp-add-btn').prop('disabled', altLocked || rows >= MAX_WORK_ROWS);
                 }
             }
 
@@ -2283,6 +2274,9 @@
                 var addBtn = e.target.closest('.add-more-work');
                 if (addBtn) {
                     e.preventDefault();
+                    if (isAlterationWorkAddLocked()) {
+                        return;
+                    }
                     var containerId = addBtn.getAttribute('data-work-container');
                     var container = containerId ? document.getElementById(containerId) : document.getElementById('work-container');
                     if (!container) return;
@@ -2313,6 +2307,9 @@
                     var isCurrent = (container.getAttribute('data-work-part') || '') === 'current';
                     /* Cloned rows must not inherit locked existing state (alteration / renewal). */
                     newRow.classList.remove('fs-alt-existing-work');
+                    if (newRoot && newRoot.classList) {
+                        newRoot.classList.remove('fs-alt-existing-block');
+                    }
                     var altExistingFlag = newRow.querySelector('input[name="fs_alt_existing_work[]"]');
                     if (altExistingFlag) altExistingFlag.remove();
                     /* Blank the clone before appending. */

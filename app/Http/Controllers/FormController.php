@@ -1332,10 +1332,6 @@ class FormController extends BaseController
 
             $sourceExpId = $parentExp ? (int) $parentExp->exp_id : 0;
             if ($sourceExpId > 0) {
-                $workRow['board_meeting_details'] = $this->encodeCopiedExperienceSource(
-                    $sourceExpId,
-                    (string) ($workRow['board_meeting_details'] ?? '')
-                );
                 $copiedSourceIds[$sourceExpId] = true;
             }
 
@@ -1387,26 +1383,12 @@ class FormController extends BaseController
                 'nature_work' => $parentExp->nature_work,
                 'voltage_level' => $parentExp->voltage_level,
                 'transformer_kva' => $parentExp->transformer_kva,
-                'board_meeting_details' => $this->encodeCopiedExperienceSource(
-                    $parentExpId,
-                    (string) ($parentExp->board_meeting_details ?? '')
-                ),
+                'board_meeting_details' => $parentExp->board_meeting_details,
                 'board_meeting_date' => $parentExp->board_meeting_date,
                 'support_document' => $parentExp->support_document,
                 'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
             ]);
         }
-    }
-
-    private function encodeCopiedExperienceSource(int $expId, string $boardDetails = ''): string
-    {
-        $marker = FormSApplicationWorkflowService::COPIED_EXP_SRC_PREFIX . $expId;
-        $boardDetails = trim($boardDetails);
-        if ($boardDetails !== '' && ! str_starts_with($boardDetails, FormSApplicationWorkflowService::COPIED_EXP_SRC_PREFIX)) {
-            return $marker . "\n" . $boardDetails;
-        }
-
-        return $marker;
     }
 
     /**
@@ -4347,6 +4329,11 @@ public function update(Request $request, $id)
         ]);
 
         $action = $request->form_action;
+        $applTypeForStatus = strtoupper(trim((string) ($request->appl_type ?? $existingForm?->appl_type ?? '')));
+        // This endpoint is the final submit for fee-exempt D/A (no PayU callback to mark paid).
+        if (in_array($applTypeForStatus, ['D', 'A'], true)) {
+            $action = 'submit';
+        }
         if ($action !== 'draft') {
             $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
             if ($boardMemberErr !== null) {

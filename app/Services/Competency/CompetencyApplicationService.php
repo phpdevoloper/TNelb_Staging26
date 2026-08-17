@@ -12,7 +12,7 @@ use App\Models\CC_Proof_doc;
 
 use App\Models\Competency\CC_CompetencyMeta;
 
-use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\FormS\FormSChildDocumentSnapshotService;
 
 use Illuminate\Support\Facades\DB;
 
@@ -144,14 +144,15 @@ class CompetencyApplicationService
 
                 $meta = $this->findMeta($applicationId);
 
-
+                $proofOwnerId = (string) $applicationId;
+                if ($meta) {
+                    $proofOwnerId = app(FormSChildDocumentSnapshotService::class)
+                        ->preferredIdentityProofApplicationId($meta);
+                }
 
                 return $this->enrichCcMetaProofFields(
-
                     $this->normalizeMetaRowForAdmin($row, $metaTable, $applicationId),
-
-                    (string) app(FormSApplicationWorkflowService::class)->masterApplication($meta)->application_id
-
+                    $proofOwnerId
                 );
 
             }

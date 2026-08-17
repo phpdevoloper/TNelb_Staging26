@@ -30,7 +30,8 @@ class FormSAlterationService
     public function __construct(
         protected FormSApplicationWorkflowService $workflowService,
         protected FormSDocumentUploadHandler $documentHandler,
-        protected FormSDocumentVersionService $documentVersionService
+        protected FormSDocumentVersionService $documentVersionService,
+        protected FormSChildDocumentSnapshotService $childDocumentSnapshot
     ) {}
 
     /**
@@ -312,7 +313,10 @@ class FormSAlterationService
             $applicationDetails->applicants_address = $address;
         }
 
-        $applicationDetails = $this->enrichApplicationProofFields($applicationDetails, $masterApplicationId);
+        $applicationDetails = $this->enrichApplicationProofFields(
+            $applicationDetails,
+            $context['proofApplicationId'] ?? $masterApplicationId
+        );
 
         return [
             'applicationid' => $parent->application_id,
@@ -455,7 +459,23 @@ class FormSAlterationService
     {
         $masterId = $this->workflowService->masterApplication($parent)->application_id;
 
-        $eduDetails = CC_Education::where('application_id', $masterId)
+        $alterationDraft = CC_Forms_Meta::where('old_application', $parent->application_id)
+            ->where('appl_type', 'A')
+            ->where('login_id', $parent->login_id)
+            ->where('payment_status', 'draft')
+            ->latest('app_id')
+            ->first();
+
+        $eduOwnerId = $masterId;
+        $expOwnerId = $masterId;
+        $proofOwnerId = $masterId;
+        if ($alterationDraft) {
+            $eduOwnerId = $this->childDocumentSnapshot->preferredEducationApplicationId($alterationDraft);
+            $expOwnerId = $this->childDocumentSnapshot->preferredExperienceApplicationId($alterationDraft);
+            $proofOwnerId = $this->childDocumentSnapshot->preferredIdentityProofApplicationId($alterationDraft);
+        }
+
+        $eduDetails = CC_Education::where('application_id', $eduOwnerId)
             ->orderByDesc('year_of_passing')
             ->get()
             ->map(function (CC_Education $edu) {
@@ -465,7 +485,7 @@ class FormSAlterationService
                 return $row;
             });
 
-        $expDetails = CC_Experience::where('application_id', $masterId)
+        $expDetails = CC_Experience::where('application_id', $expOwnerId)
             ->orderBy('exp_id')
             ->get()
             ->map(function (CC_Experience $exp) {
@@ -481,17 +501,19 @@ class FormSAlterationService
             (string) $parent->application_id
         );
 
-        $alterationDraft = CC_Forms_Meta::where('old_application', $parent->application_id)
-            ->where('appl_type', 'A')
-            ->where('login_id', $parent->login_id)
-            ->where('payment_status', 'draft')
-            ->latest('app_id')
-            ->first();
+        $photoSource = $alterationDraft ?: $parent;
+        $applicantPhoto = $this->resolveApplicantPhoto($photoSource);
+        $proofDoc = $this->resolveApplicantSign($photoSource);
 
-        $applicantPhoto = $this->resolveApplicantPhoto($parent);
-        $proofDoc = $this->resolveApplicantSign($parent);
-
-        return compact('eduDetails', 'expDetails', 'licenseDetails', 'alterationDraft', 'applicantPhoto', 'proofDoc');
+        return [
+            'eduDetails' => $eduDetails,
+            'expDetails' => $expDetails,
+            'licenseDetails' => $licenseDetails,
+            'alterationDraft' => $alterationDraft,
+            'applicantPhoto' => $applicantPhoto,
+            'proofDoc' => $proofDoc,
+            'proofApplicationId' => $proofOwnerId,
+        ];
     }
 
     /**
@@ -671,6 +693,8 @@ class FormSAlterationService
                 ]));
             }
 
+            $this->snapshotUnchangedParentDocumentsOntoChild($child, $loginId);
+
             if ($alterName) {
                 if ($request->hasFile('name_alteration_proof')) {
                     $this->storeAlterationProof($child, $request->file('name_alteration_proof'), 'name_proof');
@@ -692,6 +716,9 @@ class FormSAlterationService
                 $this->assertFormSCountableExperienceMinimum($parent, $request);
                 CC_Experience::where('application_id', $child->application_id)->delete();
                 $this->storeWorkExperienceAlterationRows($request, $child, $loginId, $parent);
+            } else {
+                CC_Experience::where('application_id', $child->application_id)->delete();
+                $this->childDocumentSnapshot->copyParentExperienceToChild($child, $loginId);
             }
 
             Payment::updateOrCreate(
@@ -743,6 +770,8 @@ class FormSAlterationService
                 'updated_at' => now(),
             ]);
 
+            $this->snapshotUnchangedParentDocumentsOntoChild($child, $loginId);
+
             if ($request->hasFile('name_alteration_proof')) {
                 $this->storeAlterationProof($child, $request->file('name_alteration_proof'), 'name_proof');
             }
@@ -758,10 +787,23 @@ class FormSAlterationService
                 } catch (RuntimeException $e) {
                     // Allow partial work rows on draft save.
                 }
+            } elseif (! CC_Experience::where('application_id', $child->application_id)->exists()) {
+                $this->childDocumentSnapshot->copyParentExperienceToChild($child, $loginId);
             }
 
             return $child->fresh();
         });
+    }
+
+    /**
+     * Copy parent education and identity proofs onto the alteration application.
+     * Unchanged files keep the parent path; parent rows are not updated.
+     */
+    protected function snapshotUnchangedParentDocumentsOntoChild(CC_CompetencyMeta $child, string $loginId): void
+    {
+        CC_Education::where('application_id', $child->application_id)->delete();
+        $this->childDocumentSnapshot->copyParentEducationToChild($child, $loginId);
+        $this->childDocumentSnapshot->copyParentIdentityProofsToChild($child);
     }
 
     protected function findOrCreateAlterationDraftChild(CC_CompetencyMeta $parent, string $loginId): CC_CompetencyMeta
@@ -1254,18 +1296,20 @@ class FormSAlterationService
 
         $created = 0;
         $copiedSourceIds = [];
+        $masterId = (string) $this->workflowService->masterApplication($parent)->application_id;
 
         foreach ($existingIndexes as $key) {
             if ($this->createAlterationExperienceRow($request, $child, $loginId, $key, true)) {
                 $created++;
-                $sourceExpId = (int) (($request->input('work_id', [])[$key] ?? 0));
-                if ($sourceExpId > 0) {
-                    $copiedSourceIds[$sourceExpId] = true;
+                $postedId = (int) (($request->input('work_id', [])[$key] ?? 0));
+                $found = $postedId > 0 ? CC_Experience::find($postedId) : null;
+                $parentExp = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($found, $masterId);
+                if ($parentExp) {
+                    $copiedSourceIds[(int) $parentExp->exp_id] = true;
                 }
             }
         }
 
-        $masterId = (string) $this->workflowService->masterApplication($parent)->application_id;
         $parentRows = CC_Experience::where('application_id', $masterId)->orderBy('exp_id')->get();
         foreach ($parentRows as $parentExp) {
             $parentExpId = (int) ($parentExp->exp_id ?? 0);
@@ -1310,12 +1354,6 @@ class FormSAlterationService
             return false;
         }
 
-        $sourceExpId = (int) ($parentExp->exp_id ?? 0);
-        $boardDetails = $this->encodeAltSourceExpId(
-            $sourceExpId,
-            trim((string) ($parentExp->board_meeting_details ?? ''))
-        );
-
         CC_Experience::create([
             'login_id' => $loginId,
             'application_id' => $child->application_id,
@@ -1333,7 +1371,7 @@ class FormSAlterationService
             'nature_work' => $parentExp->nature_work,
             'voltage_level' => $parentExp->voltage_level,
             'transformer_kva' => $parentExp->transformer_kva,
-            'board_meeting_details' => $boardDetails !== '' ? $boardDetails : null,
+            'board_meeting_details' => $parentExp->board_meeting_details,
             'board_meeting_date' => $parentExp->board_meeting_date,
             'support_document' => $parentExp->support_document,
             'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
@@ -1381,13 +1419,11 @@ class FormSAlterationService
             $empCate = $cat . ($licence !== '' ? '||' . $licence : '');
         }
 
-        $sourceExpId = $isExistingRow ? (int) ($workIds[$key] ?? 0) : 0;
+        $postedExpId = $isExistingRow ? (int) ($workIds[$key] ?? 0) : 0;
+        $postedExp = $postedExpId > 0 ? CC_Experience::find($postedExpId) : null;
+        $parentId = (string) $this->workflowService->masterApplication($child)->application_id;
+        $master = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($postedExp, $parentId);
         $boardDetails = trim((string) ($meetingDetails[$key] ?? ''));
-        if ($sourceExpId > 0) {
-            $boardDetails = $this->encodeAltSourceExpId($sourceExpId, $boardDetails);
-        }
-
-        $master = $sourceExpId > 0 ? CC_Experience::find($sourceExpId) : null;
         $totalY = (int) ($durY[$key] ?? 0);
         $totalM = (int) ($durM[$key] ?? 0);
         $totalD = (int) ($durD[$key] ?? 0);
@@ -1456,17 +1492,6 @@ class FormSAlterationService
         }
 
         return ($file instanceof UploadedFile && $file->isValid()) ? $file : null;
-    }
-
-    protected function encodeAltSourceExpId(int $expId, string $boardDetails = ''): string
-    {
-        $marker = self::ALT_SRC_EXP_PREFIX . $expId;
-        $boardDetails = trim($boardDetails);
-        if ($boardDetails !== '' && ! str_starts_with($boardDetails, self::ALT_SRC_EXP_PREFIX)) {
-            return $marker . "\n" . $boardDetails;
-        }
-
-        return $marker;
     }
 
     /**
@@ -1547,7 +1572,7 @@ class FormSAlterationService
 
         $this->syncLegacyApplicationProfile($parentId, $parentUpdates);
         $this->syncRegistrationProfile((string) ($childRow->login_id ?? ''), $childRow);
-        // Experience stays on the alteration application_id (full snapshot at submit).
+        // Experience/education/proofs stay on the alteration application_id (full snapshot at submit).
 
         $licenseDetails = app(CompetencyCertificateService::class)->asLicenseDetails(
             $parentId,

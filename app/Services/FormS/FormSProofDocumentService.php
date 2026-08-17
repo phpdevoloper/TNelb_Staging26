@@ -465,8 +465,9 @@ class FormSProofDocumentService
             $path = $this->storeLegacyProofFile($proofName, $file);
         }
 
-        // Only update master proof_doc when we have an approved path.
-        // Pending renewal/alteration replacements stay in cc_doc_log until approved.
+        // Update the owner row when the returned path is new. Child renewal/alteration
+        // rows store the new RENEWAL/ALTERATION path; pending replacements on the
+        // issued parent stay on the existing proof_doc until approved.
         if ($path && trim((string) $path) !== trim((string) ($proof->proof_doc ?? ''))) {
             $proof->update([
                 'proof_doc' => $path,
@@ -500,12 +501,19 @@ class FormSProofDocumentService
      */
     public function loadPhotoForView(string $applicationId): ?object
     {
-        $path = $this->resolveProofPath($applicationId, self::PROOF_PHOTO);
-        if ($path) {
-            return (object) ['upload_path' => $path];
+        foreach ($this->applicationIdsWalkingParent($applicationId) as $id) {
+            $path = $this->resolveProofPath($id, self::PROOF_PHOTO);
+            if ($path) {
+                return (object) ['upload_path' => $path];
+            }
+
+            $legacy = TnelbApplicantPhoto::where('application_id', $id)->first();
+            if ($legacy && trim((string) ($legacy->upload_path ?? '')) !== '') {
+                return $legacy;
+            }
         }
 
-        return TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+        return null;
     }
 
     /**
@@ -513,12 +521,38 @@ class FormSProofDocumentService
      */
     public function loadSignForView(string $applicationId): ?object
     {
-        $path = $this->resolveProofPath($applicationId, self::PROOF_SIGN);
-        if ($path) {
-            return (object) ['uploaded_doc' => $path];
+        foreach ($this->applicationIdsWalkingParent($applicationId) as $id) {
+            $path = $this->resolveProofPath($id, self::PROOF_SIGN);
+            if ($path) {
+                return (object) ['uploaded_doc' => $path];
+            }
+
+            $legacy = TnelbApplicantsSign::where('application_id', $id)->first();
+            if ($legacy && trim((string) ($legacy->uploaded_doc ?? '')) !== '') {
+                return $legacy;
+            }
         }
 
-        return TnelbApplicantsSign::where('application_id', $applicationId)->first();
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function applicationIdsWalkingParent(string $applicationId): array
+    {
+        $ids = [];
+        $seen = [];
+        $currentId = trim($applicationId);
+
+        while ($currentId !== '' && ! isset($seen[$currentId])) {
+            $ids[] = $currentId;
+            $seen[$currentId] = true;
+            $oldId = trim((string) (CC_Forms_Meta::where('application_id', $currentId)->value('old_application') ?? ''));
+            $currentId = $oldId;
+        }
+
+        return $ids;
     }
 
     protected function storeLegacyProofFile(string $proofName, UploadedFile $file): string

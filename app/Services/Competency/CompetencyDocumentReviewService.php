@@ -10,7 +10,7 @@ use App\Models\Competency\CC_CompetencyMeta;
 use App\Models\DocumentsLog;
 use App\Services\FormS\FormSDocumentVersionService;
 use App\Services\FormS\FormSApplicationWorkflowService;
-use App\Services\FormS\FormSAlterationService;
+use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -40,12 +40,14 @@ class CompetencyDocumentReviewService
         $master = $this->workflowService->masterApplication($application);
         $masterId = (string) $master->application_id;
         $childId = (string) $application->application_id;
+        $snapshot = app(FormSChildDocumentSnapshotService::class);
+        $eduOwnerId = $snapshot->preferredEducationApplicationId($application);
         $workflowAppPks = array_values(array_unique(array_filter([
             $this->workflowService->workflowPk($application),
             $this->workflowService->workflowPk($master),
         ])));
 
-        $educationalQualifications = CC_Education::where('application_id', $masterId)
+        $educationalQualifications = CC_Education::where('application_id', $eduOwnerId)
             ->orderByDesc('year_of_passing')
             ->get()
             ->map(function ($row) use ($workflowAppPks) {
@@ -144,11 +146,19 @@ class CompetencyDocumentReviewService
                 ->get();
 
             if ($childExperience->isNotEmpty()) {
-                $altPrefix = FormSAlterationService::ALT_SRC_EXP_PREFIX;
-                $renPrefix = FormSApplicationWorkflowService::COPIED_EXP_SRC_PREFIX;
-                $workExperience = $childExperience->map(function (CC_Experience $row) use ($enrichExperienceDocument, $altPrefix, $renPrefix) {
-                    $details = trim((string) ($row->board_meeting_details ?? ''));
-                    $isNew = ! str_starts_with($details, $altPrefix) && ! str_starts_with($details, $renPrefix);
+                $parentKeys = $parentExperience->map(function (CC_Experience $row) {
+                    return strtolower(trim((string) ($row->org_name ?? '')) . '|'
+                        . trim((string) ($row->designation ?? '')) . '|'
+                        . trim((string) ($row->from_date ?? '')) . '|'
+                        . trim((string) ($row->to_date ?? '')));
+                })->flip();
+
+                $workExperience = $childExperience->map(function (CC_Experience $row) use ($enrichExperienceDocument, $parentKeys) {
+                    $key = strtolower(trim((string) ($row->org_name ?? '')) . '|'
+                        . trim((string) ($row->designation ?? '')) . '|'
+                        . trim((string) ($row->from_date ?? '')) . '|'
+                        . trim((string) ($row->to_date ?? '')));
+                    $isNew = $key === '|||' || ! $parentKeys->has($key);
                     $row->setAttribute('is_alteration_new', $isNew);
 
                     return $enrichExperienceDocument($row, $isNew);

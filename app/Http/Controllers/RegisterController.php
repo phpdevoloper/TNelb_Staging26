@@ -182,6 +182,7 @@ class RegisterController extends BaseController
 
     public function cc_renew_form($appl_id)
     {
+        
         if (! Auth::check()) {
             return redirect()->route('logout');
         }

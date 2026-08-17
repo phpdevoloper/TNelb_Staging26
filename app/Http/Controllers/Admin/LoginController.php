@@ -333,7 +333,7 @@ class LoginController extends Controller
                         ->select('application_id', DB::raw('MAX(id) as max_id'))
                         ->groupBy('application_id');
 
-                    $pendingCounts = DB::table('tnelb_application_tbl as ta')
+                    $pendingCounts = DB::table('cc_form_s_meta as ta')
                         ->leftJoinSub($twLastSub, 'tw_last', function ($join) {
                             $join->on('ta.application_id', '=', 'tw_last.application_id');
                         })
@@ -342,7 +342,7 @@ class LoginController extends Controller
                                 ->on('tw.id', '=', 'tw_last.max_id');
                         })
                         ->whereIn('ta.form_id', $legacyFormIds)
-                        ->whereIn('ta.status', ['P', 'RE'])
+                        ->whereIn('ta.app_status', ['P', 'RE'])
                         ->whereIn('ta.payment_status', ['payment', 'paid'])
                         ->whereNotExists(function ($q) {
                             $q->select(DB::raw(1))->from('tnelb_workflow_a as twa')->whereRaw('twa.application_id = ta.application_id');
@@ -3455,7 +3455,7 @@ class LoginController extends Controller
             $user_entry = $applicant;
             $workflows = $this->queryCompetencyWorkflowsWithReturnApplicantLog(
                 $applicant_id,
-                ['mst_roles.role_name'],
+                ['mr.role_name'],
                 false,
                 true
             );
@@ -3467,6 +3467,7 @@ class LoginController extends Controller
                 if (!Schema::hasTable($tbl)) {
                     continue;
                 }
+                
                 $row = DB::table($tbl)->where('application_id', $applicant_id)->where('application_status', 'A')->first();
                 if ($row) {
                     $applicant = (object) array_merge((array) $row, [

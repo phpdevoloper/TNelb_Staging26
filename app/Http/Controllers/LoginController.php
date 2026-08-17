@@ -223,6 +223,8 @@ class LoginController extends BaseController
 
         $licenceID = MstLicence::where('cert_licence_code', $workflow->license_name)->value('id');
 
+        /* Alteration does not issue a certificate. Hide View Certificate on the
+         * alteration row and on the superseded parent once alteration is completed. */
         if (in_array($workflow->appl_type, ['N', 'D', 'R'], true)) {
             $license = $this->competencyCertificateService()->asWorkflowLicense(
                 (string) $workflow->application_id,
@@ -248,6 +250,11 @@ class LoginController extends BaseController
                     $expiry = $license->expires_at;
                 }
             }
+
+            if ($this->findCompletedFormPAlteration((string) $workflow->application_id)) {
+                $licenseNumber = null;
+                $expiry = null;
+            }
         }
 
         if ($expiry) {
@@ -265,7 +272,7 @@ class LoginController extends BaseController
                 && $today->lessThanOrEqualTo($oneYearAfterExpiry);
         }
 
-        $workflow->license_number = $licenseNumber;
+        $workflow->license_number = ($workflow->appl_type === 'A') ? null : $licenseNumber;
         $workflow->expires_at = $expiry;
         $workflow->renewal_application_id = $renewalApplicationId;
         $workflow->is_under_validity_period = $isValid;
@@ -294,6 +301,60 @@ class LoginController extends BaseController
             ->first();
     }
 
+    private function findCompletedCompetencyAlteration(string $parentApplicationId): ?object
+    {
+        $parentApplicationId = trim($parentApplicationId);
+        if ($parentApplicationId === '') {
+            return null;
+        }
+
+        foreach ($this->competencyMetaService()->allMetaTables() as $metaTable) {
+            $alteration = DB::table($metaTable)
+                ->where('old_application', $parentApplicationId)
+                ->whereRaw("TRIM(COALESCE(appl_type, '')) = 'A'")
+                ->whereRaw("TRIM(COALESCE(app_status, '')) = 'A'")
+                ->orderByDesc('app_id')
+                ->first();
+
+            if ($alteration) {
+                return $alteration;
+            }
+        }
+
+        return DB::table('tnelb_application_tbl')
+            ->where('old_application', $parentApplicationId)
+            ->whereRaw("TRIM(COALESCE(appl_type, '')) = 'A'")
+            ->whereRaw("TRIM(COALESCE(status, '')) = 'A'")
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    private function findCompletedFormPAlteration(string $parentApplicationId): ?object
+    {
+        $parentApplicationId = trim($parentApplicationId);
+        if ($parentApplicationId === '') {
+            return null;
+        }
+
+        $alteration = DB::table('cc_form_p_meta')
+            ->where('old_application', $parentApplicationId)
+            ->whereRaw("TRIM(COALESCE(appl_type, '')) = 'A'")
+            ->whereRaw("TRIM(COALESCE(app_status, '')) = 'A'")
+            ->orderByDesc('app_id')
+            ->first();
+
+        if ($alteration) {
+            return $alteration;
+        }
+
+        return DB::table('tnelb_form_p')
+            ->where('old_application', $parentApplicationId)
+            ->whereRaw("TRIM(COALESCE(appl_type, '')) = 'A'")
+            ->whereRaw("TRIM(COALESCE(app_status, '')) = 'A'")
+            ->orderByDesc('id')
+            ->first();
+    }
+
     private function enrichCompetencyWorkflowRow(object $workflow): object
     {
         $licenseNumber = null;
@@ -303,6 +364,8 @@ class LoginController extends BaseController
 
         $licenceID = MstLicence::where('cert_licence_code', $workflow->license_name)->value('id');
 
+        /* Alteration does not issue a certificate. Hide View Certificate on the
+         * alteration row and on the superseded parent once alteration is completed. */
         if (in_array($workflow->appl_type, ['N', 'D', 'R'], true)) {
             $license = $this->loadCompetencyIssuedCertificate($workflow);
 
@@ -323,6 +386,11 @@ class LoginController extends BaseController
                     $expiry = $license->expires_at;
                 }
             }
+
+            if ($this->findCompletedCompetencyAlteration((string) $workflow->application_id)) {
+                $licenseNumber = null;
+                $expiry = null;
+            }
         }
 
         if ($expiry) {
@@ -340,7 +408,7 @@ class LoginController extends BaseController
                 && $today->lessThanOrEqualTo($oneYearAfterExpiry);
         }
 
-        $workflow->license_number = $licenseNumber;
+        $workflow->license_number = ($workflow->appl_type === 'A') ? null : $licenseNumber;
         $workflow->expires_at = $expiry;
         $workflow->renewal_application_id = $renewalApplicationId;
         $workflow->is_under_validity_period = $isValid;

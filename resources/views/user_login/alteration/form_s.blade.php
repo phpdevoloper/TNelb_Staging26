@@ -7,18 +7,21 @@
 @endphp
 
 <style>
-    /* Existing experience locked until Work Experience option is selected. */
-    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work input,
-    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work select,
-    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work textarea,
-    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work button { pointer-events: none !important; }
-    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work { background: #f8fafc; }
+    /* Existing experience stays read-only; only new rows can be added. */
+    .fs-alt-form .fs-alt-existing-work input,
+    .fs-alt-form .fs-alt-existing-work select,
+    .fs-alt-form .fs-alt-existing-work textarea,
+    .fs-alt-form .fs-alt-existing-work button { pointer-events: none !important; }
+    .fs-alt-form .fs-alt-existing-work { background: #f8fafc; }
     .fs-alt-existing-work .remove-work { display: none !important; }
-    .fs-alt-form .work-fields.fs-alt-existing-work.work-row--in-summary {
+    .fs-alt-form .work-fields.fs-alt-existing-work,
+    .fs-alt-form .work-entry-block:has(.fs-alt-existing-work) {
         display: none !important;
     }
-    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work {
-        background: #ffffff;
+    .fs-alt-form:not(.fs-alt-work-unlocked) .add-more-work {
+        pointer-events: none !important;
+        opacity: .45;
+        cursor: not-allowed;
     }
     .work-exp-summary-tr--frozen .work-row-edit-trigger,
     .work-exp-summary-tr--frozen .work-row-remove { display: none !important; }
@@ -213,128 +216,45 @@
         -webkit-appearance: none;
     }
     .fs-alt-form .fs-mandatory-bar { display: none; }
-    .fs-alt-form--editable .fs-alt-options-bar__hint {
-        color: #035ab3;
-    }
     .fs-alt-form--editable #fsAltSectionApplicant .fs-view-block input,
     .fs-alt-form--editable #fsAltSectionApplicant .fs-view-block textarea {
         background: #fff;
     }
-    .fs-alt-options-bar {
-        margin: 0;
-        padding: 16px 18px 14px;
-        background: linear-gradient(180deg, #f7faff 0%, #fff 100%);
-        /* border-bottom: 1px solid #e3e8f0; */
-    }
-    .fs-alt-options-head {
-        margin-bottom: 12px;
-    }
-    .fs-alt-options-bar__title {
-        font-size: .8rem;
-        font-weight: 700;
-        color: #1a3a6b;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        margin-bottom: 4px;
-    }
-    .fs-alt-options-bar__hint {
-        font-size: .78rem;
-        color: #6c7a89;
-        margin: 0;
-        max-width: 36rem;
-    }
-    .fs-alt-option-cards {
-        margin-left: -6px;
-        margin-right: -6px;
-    }
-    .fs-alt-option-cards > [class*="col-"] {
-        padding-left: 6px;
-        padding-right: 6px;
-        margin-bottom: 10px;
-    }
-    .fs-alt-option-card {
-        position: relative;
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 10px 10px 10px 12px;
-        border: 1px solid #d4e0f0;
-        border-radius: 10px;
-        background: #fff;
-        cursor: pointer;
-        user-select: none;
-        transition: border-color .15s, box-shadow .15s, background .15s;
-        box-shadow: 0 1px 3px rgba(3, 90, 179, .06);
-    }
-    .fs-alt-option-card:hover {
-        border-color: #035ab3;
-        box-shadow: 0 2px 8px rgba(3, 90, 179, .12);
-    }
-    .fs-alt-option-card input {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-        pointer-events: none;
-    }
-    .fs-alt-option-card__icon {
-        flex-shrink: 0;
-        width: 30px;
-        height: 30px;
-        border-radius: 7px;
-        background: #eef4fc;
-        color: #035ab3;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: .88rem;
-    }
-    .fs-alt-option-card__body {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-    .fs-alt-option-card__title {
-        font-size: .8rem;
-        font-weight: 700;
-        color: #1a3a6b;
-        line-height: 1.25;
-    }
-    .fs-alt-option-card__desc {
-        font-size: .7rem;
-        color: #6c7a89;
-        line-height: 1.3;
-    }
-    .fs-alt-option-card__check {
-        flex-shrink: 0;
-        font-size: 1rem;
-        color: #c5d5ea;
-        line-height: 1;
-        transition: color .15s;
-    }
-    .fs-alt-option-card.is-active {
-        border-color: #035ab3;
-        background: #f0f6ff;
-        box-shadow: 0 0 0 1px rgba(3, 90, 179, .15);
-    }
-    .fs-alt-option-card.is-active .fs-alt-option-card__icon {
-        background: #035ab3;
-        color: #fff;
-    }
-    .fs-alt-option-card.is-active .fs-alt-option-card__check {
-        color: #035ab3;
-    }
+    .fs-alt-form:not(.fs-alt-form--editable) .fs-alt-edit-badge { display: none !important; }
     .fs-alt-options-error {
         display: block;
-        margin-top: 10px;
+        margin: 8px 18px 0;
         font-size: .78rem;
         color: #d9363e;
     }
+    .fs-alt-options-error:empty { display: none; }
+    .fs-alt-edit-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        vertical-align: middle;
+        margin-left: 8px;
+        font-size: .68rem;
+        font-weight: 600;
+        letter-spacing: .02em;
+        padding: 3px 7px;
+        border: 0;
+        border-radius: 4px;
+        line-height: 1;
+        cursor: pointer;
+        color: #fff;
+    }
+    .fs-alt-edit-badge .fa { font-size: .65rem; }
+    .fs-alt-edit-badge:hover,
+    .fs-alt-edit-badge:focus {
+        color: #fff;
+        opacity: .92;
+        outline: none;
+    }
+    .fs-alt-edit-badge.is-active {
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, .28);
+    }
+    .fs-section-title .fs-alt-edit-badge { margin-left: 10px; }
     /* ── Reset helpers ────────────────────────────────── */
     .fs-form hr {
         margin: 0;
@@ -1253,12 +1173,12 @@
         border-radius: 10px !important;
         box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
     }
-    .fs-alt-form:not(.fs-alt-work-unlocked) #work-container-previous .work-fields.work-row.fs-alt-existing-work {
+    .fs-alt-form #work-container-previous .work-fields.work-row.fs-alt-existing-work {
         background: #f8fafc !important;
         border-color: #d4e0f0 !important;
         box-shadow: none !important;
     }
-    .fs-alt-form:not(.fs-alt-work-unlocked) #work-container-current .work-fields.work-row.fs-alt-existing-work {
+    .fs-alt-form #work-container-current .work-fields.work-row.fs-alt-existing-work {
         background: #f8fafc !important;
         border-color: #d4e0f0 !important;
     }
@@ -1362,51 +1282,7 @@
             <div class="fs-form-body fs-form apply-card" id="fsAltFormRoot">
 
                 @if($isAlterationMode)
-                <div class="fs-alt-options-bar" id="fsAltOptionsBar">
-                    <div class="fs-alt-options-head">
-                        <div class="fs-alt-options-bar__title">Alteration options</div>
-                        <p class="fs-alt-options-bar__hint">Select what you want to change — the matching section below will unlock for editing.</p>
-                    </div>
-                    <fieldset class="fs-alt-option-cards-fieldset border-0 p-0 m-0">
-                        <legend class="sr-only">Select alteration options</legend>
-                    <div class="row fs-alt-option-cards">
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <label class="fs-alt-option-card" for="fsAltOptName">
-                            <input type="checkbox" id="fsAltOptName" value="1" autocomplete="off">
-                            <span class="fs-alt-option-card__icon"><i class="fa fa-user" aria-hidden="true"></i></span>
-                            <span class="fs-alt-option-card__body">
-                                <span class="fs-alt-option-card__title">Applicant Name</span>
-                                <span class="fs-alt-option-card__desc">Change name with supporting proof</span>
-                            </span>
-                            <span class="fs-alt-option-card__check" aria-hidden="true"><i class="fa fa-check-circle"></i></span>
-                        </label>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <label class="fs-alt-option-card" for="fsAltOptAddress">
-                            <input type="checkbox" id="fsAltOptAddress" value="1" autocomplete="off">
-                            <span class="fs-alt-option-card__icon"><i class="fa fa-map-marker" aria-hidden="true"></i></span>
-                            <span class="fs-alt-option-card__body">
-                                <span class="fs-alt-option-card__title">Applicant Address</span>
-                                <span class="fs-alt-option-card__desc">Change address with supporting proof</span>
-                            </span>
-                            <span class="fs-alt-option-card__check" aria-hidden="true"><i class="fa fa-check-circle"></i></span>
-                        </label>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <label class="fs-alt-option-card" for="fsAltOptWork">
-                            <input type="checkbox" id="fsAltOptWork" value="1" autocomplete="off">
-                            <span class="fs-alt-option-card__icon"><i class="fa fa-briefcase" aria-hidden="true"></i></span>
-                            <span class="fs-alt-option-card__body">
-                                <span class="fs-alt-option-card__title">Work Experience</span>
-                                <span class="fs-alt-option-card__desc">Edit existing or add new experience</span>
-                            </span>
-                            <span class="fs-alt-option-card__check" aria-hidden="true"><i class="fa fa-check-circle"></i></span>
-                        </label>
-                        </div>
-                    </div>
-                    </fieldset>
-                    <span class="fs-alt-options-error" id="fsAltOptionsError" role="alert" aria-live="polite"></span>
-                </div>
+                <span class="fs-alt-options-error" id="fsAltOptionsError" role="alert" aria-live="polite"></span>
                 @endif
 
                 <form id="competency_form_ws" enctype="multipart/form-data" class="{{ $isAlterationMode ? 'fs-alt-form' : '' }}{{ $isAlterationEditable ? ' fs-alt-form--editable' : '' }}">
@@ -1420,6 +1296,11 @@
                     <input type="hidden" id="alter_name" name="alter_name" value="0">
                     <input type="hidden" id="alter_address" name="alter_address" value="0">
                     <input type="hidden" id="alter_workexp" name="alter_workexp" value="0">
+                    @if($isAlterationMode)
+                    <input type="checkbox" id="fsAltOptName" class="sr-only" value="1" autocomplete="off" tabindex="-1" aria-hidden="true">
+                    <input type="checkbox" id="fsAltOptAddress" class="sr-only" value="1" autocomplete="off" tabindex="-1" aria-hidden="true">
+                    <input type="checkbox" id="fsAltOptWork" class="sr-only" value="1" autocomplete="off" tabindex="-1" aria-hidden="true">
+                    @endif
                     @php
                         $_issued_lic_renew = '';
                         if (!empty($license_details) && trim((string) ($license_details->license_number ?? '')) !== '') {
@@ -1458,7 +1339,13 @@
                                         <div class="fs-field-head">
                                             <span class="fs-field-num">1</span>
                                             <div class="fs-field-head-text">
-                                                <div class="fs-field-label">Applicant's Name</div>
+                                                <div class="fs-field-label">Applicant's Name
+                                                    @if($isAlterationMode)
+                                                    <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeName" data-alt-opt="name" aria-pressed="false" title="Edit applicant name">
+                                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit</span>
+                                                    </button>
+                                                    @endif
+                                                </div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் பெயர்</div>
                                             </div>
                                         </div>
@@ -1505,7 +1392,13 @@
                                         <div class="fs-field-head">
                                             <span class="fs-field-num">{{ $formName === 'S' ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
-                                                <div class="fs-field-label">Applicant Address</div>
+                                                <div class="fs-field-label">Applicant Address
+                                                    @if($isAlterationMode)
+                                                    <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeAddress" data-alt-opt="address" aria-pressed="false" title="Edit applicant address">
+                                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit</span>
+                                                    </button>
+                                                    @endif
+                                                </div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
                                             </div>
                                         </div>
@@ -1679,9 +1572,6 @@
                                                         </tr>
                                                     </thead>
                                                     <tbody id="education-container">
-                                                        {{-- @php
-                                                            var_dump($edu_details->isEmpty());die;
-                                                        @endphp --}}
                                                         @if ($edu_details->isNotEmpty())
                                                         @foreach ($edu_details as $edu_details)
                                                         <tr class="education-fields text-center" data-edu-index="{{ $loop->index }}">
@@ -1770,9 +1660,9 @@
                                                                     @if (!empty($edu_details->upload_document))
                                                                         <div class="edu-doc-container d-flex align-items-center justify-content-center">
                                                                             <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document ?? null, 'education', (int) ($edu_details->id ?? 0), 'certificate') ?? '#' }}" target="_blank">
-                                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View
+                                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View Document
                                                                             </a>
-                                                                            <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
+                                                                            {{-- <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button> --}}
                                                                         </div>
                                                                         <div class="edu-doc-input d-none">
                                                                             <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
@@ -1921,6 +1811,11 @@
                                         <span class="section-req">*</span>
                                     @endif
                                     <span class="section-hint">(Upload the documents)</span>
+                                    @if($isAlterationMode)
+                                    <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeWork" data-alt-opt="work" aria-pressed="false" title="Edit work experience">
+                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit</span>
+                                    </button>
+                                    @endif
                                 </div>
                                 <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
                                     @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
@@ -2544,9 +2439,9 @@
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
                                                     </a>
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
+                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button> --}}
                                                 </div>
                                             @endif
                                             <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
@@ -2578,9 +2473,9 @@
                                             @if (!empty($existingPanDoc))
                                                 <div class="pan-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
                                                     </a>
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
+                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button> --}}
                                                 </div>
                                             @endif
                                             <div class="pan-doc-input {{ !empty($existingPanDoc) ? 'd-none' : '' }}">
@@ -2685,13 +2580,13 @@
                             <i class="fa fa-times"></i> Cancel
                         </button>
                         @endif
-                        <button type="button" class="btn-fs-draft" id="saveDraftBtn"
+                        {{-- <button type="button" class="btn-fs-draft" id="saveDraftBtn"
                             @unless($isAlterationMode)
                             data-url="{{ route('form.draft_submit') }}"
                             data-id="{{ $application_details->application_id ?? '' }}"
                             @endunless>
                             <i class="fa fa-floppy-o"></i> Save As Draft
-                        </button>
+                        </button> --}}
                         <button type="button" class="btn-fs-submit" id="submitPaymentBtn">
                             <i class="fa fa-eye"></i>
                             @if($isAlterationMode)

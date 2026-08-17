@@ -222,7 +222,8 @@
                     window.normalizeIsoDateInputs('#competency_form_ws');
                 }
                 let formData = new FormData($('#competency_form_ws')[0]);
-                formData.set('form_action', 'draft');
+                // Digitisation / alteration: this is the final submit (no PayU). N/R stay draft until payment.
+                formData.set('form_action', noPaymentApplType ? 'submit' : 'draft');
                 if (typeof window.appendWorkTransformerKvaToFormData === 'function') {
                     window.appendWorkTransformerKvaToFormData(formData, $('#competency_form_ws')[0]);
                 }

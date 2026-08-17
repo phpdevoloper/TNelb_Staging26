@@ -140,7 +140,6 @@ class FormSChildDocumentSnapshotService
 
         $parent = $this->workflowService->masterApplication($child);
         $childId = (string) $child->application_id;
-        $isAlteration = $this->workflowService->isAlterationApplication($child);
 
         foreach (CC_Experience::where('application_id', $parent->application_id)->orderBy('exp_id')->get() as $parentExp) {
             $parentExpId = (int) ($parentExp->exp_id ?? 0);
@@ -171,11 +170,7 @@ class FormSChildDocumentSnapshotService
                 'nature_work' => $parentExp->nature_work,
                 'voltage_level' => $parentExp->voltage_level,
                 'transformer_kva' => $parentExp->transformer_kva,
-                'board_meeting_details' => $this->encodeCopiedExperienceSource(
-                    $parentExpId,
-                    (string) ($parentExp->board_meeting_details ?? ''),
-                    $isAlteration
-                ),
+                'board_meeting_details' => $parentExp->board_meeting_details,
                 'board_meeting_date' => $parentExp->board_meeting_date,
                 'support_document' => $parentExp->support_document,
                 'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
@@ -231,13 +226,19 @@ class FormSChildDocumentSnapshotService
         }
 
         $sourceId = $this->decodeCopiedExperienceSourceId((string) ($found->board_meeting_details ?? ''));
-        if ($sourceId <= 0) {
-            return null;
+        if ($sourceId > 0) {
+            $parentExp = CC_Experience::find($sourceId);
+            if ($parentExp && (string) $parentExp->application_id === $parentId) {
+                return $parentExp;
+            }
         }
 
-        $parentExp = CC_Experience::find($sourceId);
-
-        return $parentExp && (string) $parentExp->application_id === $parentId ? $parentExp : null;
+        return CC_Experience::where('application_id', $parentId)
+            ->where('org_name', $found->org_name)
+            ->where('designation', $found->designation)
+            ->where('from_date', $found->from_date)
+            ->where('to_date', $found->to_date)
+            ->first();
     }
 
     public function resolveParentEducationFromPostedId(?CC_Education $found, string $parentId, string $level): ?CC_Education
@@ -271,8 +272,8 @@ class FormSChildDocumentSnapshotService
     {
         $details = trim($boardDetails);
         $prefixes = [
-            FormSAlterationService::ALT_SRC_EXP_PREFIX,
-            FormSApplicationWorkflowService::COPIED_EXP_SRC_PREFIX,
+            '__ALT_SRC_EXP__:',
+            '__SRC_EXP__:',
         ];
 
         foreach ($prefixes as $prefix) {
@@ -285,19 +286,5 @@ class FormSChildDocumentSnapshotService
         }
 
         return 0;
-    }
-
-    public function encodeCopiedExperienceSource(int $expId, string $boardDetails, bool $alteration): string
-    {
-        $prefix = $alteration
-            ? FormSAlterationService::ALT_SRC_EXP_PREFIX
-            : FormSApplicationWorkflowService::COPIED_EXP_SRC_PREFIX;
-        $marker = $prefix . $expId;
-        $boardDetails = trim($boardDetails);
-        if ($boardDetails !== '' && ! str_starts_with($boardDetails, $prefix)) {
-            return $marker . "\n" . $boardDetails;
-        }
-
-        return $marker;
     }
 }
