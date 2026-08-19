@@ -6642,307 +6642,6 @@ function fillProprietorForm(data) {
     $section[0].scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-
-// qcstaff-----------
-function addStaffqcRow() {
-
-    
-
-    let staffCount = $('#staffqc-container tr.staffqc-fields').length;
-
-    // Check last row before adding
-    let lastRow = $('#staffqc-container tr.staffqc-fields').last();
-    let name = $.trim(lastRow.find('input[name="staffqc_name[]"]').val());
-
-    let category = $.trim(
-        lastRow.find('input[name="staffqc_category[]"]').val() ||
-        lastRow.find('select[name="staffqc_category[]"]').val()
-    );
-
-    let ccNumber = $.trim(
-        lastRow.find('input[name="cc_qc_number[]"]').val()
-    );
-
-    let ccValidity = $.trim(
-        lastRow.find('input[name="cc_qc_validity[]"]').val()
-    );
-
-    let uploadRow = lastRow.next('.qc-upload-row');
-
-
-    uploadRow.find('.upload-error').text('');
-
-    let fileUploaded = uploadRow.find('.file-link a').length > 0;
-
-   lastRow.find('.error').text('');
-
-  
-
-    // Validation
-    if (!name || !category || !ccNumber || !ccValidity) {
-
-        Swal.fire({
-            icon: 'warning',
-            width: 500,
-            title: 'Incomplete Row',
-            text: 'Please fill Name, Certificate Number and Validity before adding a new row.',
-            confirmButtonText: 'OK'
-        });
-
-        
-    }
-    
-
-    let hasError = false;
-
-    if (!name) {
-        lastRow.find('input[name="staffqc_name[]"]')
-            .next('.error')
-            .text('Please enter Name');
-        hasError = true;
-    }
-
-    if (!category) {
-        lastRow.find('input[name="staffqc_category[]"], select[name="staffqc_category[]"]')
-            .next('.error')
-            .text('Please enter Category');
-        hasError = true;
-    }
-
-    if (!ccNumber) {
-        lastRow.find('input[name="cc_qc_number[]"]')
-            .next('.error')
-            .text('Please enter Certificate Number');
-        hasError = true;
-    }
-
-    if (!ccValidity) {
-        lastRow.find('input[name="cc_qc_validity[]"]')
-            .next('.error')
-            .text('Please select Validity Date');
-        hasError = true;
-    }
-
-    if (!fileUploaded) {
-        uploadRow.find('.upload-error')
-            .text('Please upload QC certificate document.');
-
-        hasError = true;
-        }
-
-    if (hasError) {
-        return;
-    }
-
-    
-
-    // Maximum rows limit
-    if (staffCount >= 5) {
-
-        Swal.fire({
-            icon: 'warning',
-            width: 500,
-            title: 'Maximum Limit Reached',
-            text: 'You can add only 5 QC staff members.',
-            confirmButtonText: 'OK'
-        });
-
-        return;
-    }
-
-    // Remove previous Add buttons
-    $('#staffqc-container .btn-addqc-staff').remove();
-let qcCode = generateQCCode();
-const formCode = "{{ $form_code->id }}";
-   let newRows = `
-
-<tr class="staffqc-fields">
-
-    <td>${Math.floor(staffCount / 2) + 1}</td>
-
-    <td>
-        <input type="text"
-            name="staffqc_name[]"
-            maxlength="30"
-            class="form-control"
-            placeholder="Name of the Person"
-            oninput="this.value=this.value.replace(/[^a-zA-Z\\s]/g,'')">
-
-        <span class="error text-danger"></span>
-    </td>
-
-    <td>
-        <input type="text"
-            class="form-control"
-            name="staffqc_category[]"
-            value="QC"
-            readonly>
-
-        <span class="error text-danger"></span>
-    </td>
-
-    <td>
-       <input type="text"
-       class="form-control cc_qc_number"
-       name="cc_qc_number[]"
-       oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()"
-       maxlength="15"
-       placeholder="Certificate No"
-       oninput="this.value=this.value.toUpperCase()">
-
-        <span class="error text-danger"></span>
-
-        <span class="text-danger small">
-            At present, we evaluate only C Certificate only
-        </span>
-
-        <div class="competency_verify_result text-danger small mt-1"></div>
-    </td>
-
-    <td>
-        <input type="date"
-            class="form-control cc_qc_validity"
-            name="cc_qc_validity[]">
-
-        <span class="error text-danger"></span>
-    </td>
-
-    <td>
-
-        <button type="button"
-            class="btn btn-primary verifyBtn"
-            onclick="validateqcstaffcertificate(event,this)">
-            Verify
-        </button>
-
-        <input type="hidden"
-            name="staff_qccc_verify[]"
-            class="staff_qccc_verify"
-            value="">
-
-        <button type="button"
-            class="btn btn-danger mt-1"
-            onclick="removeStaffqcRow(this)">
-            Remove
-        </button>
-
-    </td>
-
-</tr>
-
-<tr class="qc-upload-row">
-
-    <td colspan="5">
-
-        <div class="row">
-
-            <div class="col-md-6 col-lg-5">
-
-                <div class="text-center fw-bold">
-                    QC Certificates Upload
-                </div>
-
-               <div class="text-center ">
-                    QC Certificates One, QC Certificates Two, QC Certificates Three
-                      <br>
-                    <span class="file-limit">(Merge All the Documents into One file and upload it)</span>
-                </div>
-
-                 <input type="hidden"
-       name="qc_code[]"
-       class="qc_code"
-       value="${qcCode}">
-
-            </div>
-
-            <div class="col-md-6 col-lg-3">
-
-                <input type="file"
-                    class="form-control"
-                    name="qc_one[]"
-                    accept="application/pdf">
-
-                <span class="file-limit">
-                    PDF only (Max 250 KB)
-                </span>
-
-                <br>
-
-                <span class="text-danger qc_doc_upload_error"></span>
-
-            </div>
-
-            <div class="col-12 col-md-2">
-               <button type="button"
-    class="btn btn-info upload-btn"
-    data-login_id="{{ Auth::user()->login_id }}"
-    data-module="QC DOCUMENT"
-    data-document_category="qc_doc"
-    data-document_sub_category="QD"
-    data-ownership_type=""
-    data-form_code="8"
-    data-qc_code="${qcCode}">
-    <i class="fa fa-upload"></i> Upload
-</button>
-               
-            </div>
-
-            <div class="col-md-6 mt-3 col-lg-2 file-link">
-                                                    
-            </div>
-
-        </div>
-
-    </td>
-
-    <td>
-
-        <button type="button"
-            class="btn btn-success btn-addqc-staff"
-            onclick="addStaffqcRow()">
-            + Add
-        </button>
-
-    </td>
-
-</tr>
-
-`;
-
-    $('#staffqc-container').append(newRows);
-}
-
-function removeStaffqcRow(button) {
-
-    let currentRow = $(button).closest('tr');
-    let uploadRow = currentRow.next('.qc-upload-row');
-
-    currentRow.remove();
-    uploadRow.remove();
-
-    // Re-number staff rows
-    let sno = 1;
-
-    $('#staffqc-container tr.staffqc-fields').each(function () {
-        $(this).find('td:first').text(sno++);
-    });
-
-    // Keep Add button only on last upload row
-    $('.btn-addqc-staff').remove();
-
-    $('#staffqc-container tr.qc-upload-row:last td:last').append(`
-        <button type="button"
-            class="btn btn-success btn-addqc-staff"
-            onclick="addStaffqcRow()">
-            + Add
-        </button>
-    `);
-}
-
-function generateQCCode() {
-    return $('#staffqc-container tr.staffqc-fields').length + 1;
-}
-
 // ---------------exp retrival----------------
 
 flatpickr('input[name="competency_certificate_validity_to[]"]', {
@@ -7000,6 +6699,376 @@ flatpickr('input[name="competency_certificate_validity_to[]"]', {
         }
     }
 });
+// qcstaff-----------
+function addStaffqcRow() {
+
+    let $container = $("#staffqc-container");
+
+    // ----------------------------------------------------
+    // GET LAST STAFF ROW
+    // ----------------------------------------------------
+
+    let $lastStaffRow = $container
+        .find(".staffqc-fields")
+        .last();
+
+    // Upload row belonging to last staff row
+    let $lastUploadRow = $lastStaffRow
+        .next(".qc-upload-row");
+
+    // Fee row is always the LAST TR
+    let $feeRow = $container
+        .find("tr")
+        .last();
+
+
+    // ----------------------------------------------------
+    // CLEAR PREVIOUS ERRORS
+    // ----------------------------------------------------
+
+    $lastStaffRow.find(".text-danger").text("");
+    $lastUploadRow.find(".text-danger").text("");
+
+
+    let hasError = false;
+
+
+    // ====================================================
+    // 1. CATEGORY VALIDATION
+    // ====================================================
+
+    let category = $lastStaffRow
+        .find(".staff_category")
+        .val();
+
+    if (!category) {
+
+        $lastStaffRow
+            .find(".staff-category-error")
+            .text("Please select category.");
+
+        hasError = true;
+    }
+
+
+    // ====================================================
+    // 2. CC NUMBER VALIDATION
+    // ====================================================
+
+    let ccNo = $lastStaffRow
+        .find('input[name="staff_cc_no[]"]')
+        .val()
+        .trim();
+
+    if (!ccNo) {
+
+        $lastStaffRow
+            .find(".staff-cc-error")
+            .text("Please enter CC Number.");
+
+        hasError = true;
+    }
+
+
+    // ====================================================
+    // 3. FIRST ISSUE VALIDATION
+    // ====================================================
+
+    let firstIssue = $lastStaffRow
+        .find('input[name="staff_cc_first_issue[]"]')
+        .val()
+        .trim();
+
+    if (!firstIssue) {
+
+        $lastStaffRow
+            .find(".staff-first-issue-error")
+            .text("Please enter CC First Issue.");
+
+        hasError = true;
+    }
+
+
+    // ====================================================
+    // 4. VALIDITY FROM VALIDATION
+    // ====================================================
+
+    let validityFrom = $lastStaffRow
+        .find('input[name="staff_cc_validity_from[]"]')
+        .val()
+        .trim();
+
+    if (!validityFrom) {
+
+        $lastStaffRow
+            .find(".staff-validity-from-error")
+            .text("Please enter Validity From.");
+
+        hasError = true;
+    }
+
+
+    // ====================================================
+    // 5. VALIDITY TO VALIDATION
+    // ====================================================
+
+    let validityTo = $lastStaffRow
+        .find('input[name="staff_cc_validity_to[]"]')
+        .val()
+        .trim();
+
+    if (!validityTo) {
+
+        $lastStaffRow
+            .find(".staff-validity-to-error")
+            .text("Please enter Validity To.");
+
+        hasError = true;
+    }
+
+
+    // ====================================================
+    // 6. APPOINTMENT DOCUMENT VALIDATION
+    // ====================================================
+
+    let appointmentDoc = $lastUploadRow
+        .find('input[name="app_doc[]"]')
+        .val();
+
+    // if (!appointmentDoc) {
+
+    //     $lastUploadRow
+    //         .find(".app_doc_upload_error")
+    //         .text("Please upload Appointment Letter.");
+
+    //     hasError = true;
+    // }
+
+
+    // ====================================================
+    // 7. CONSENT DOCUMENT VALIDATION
+    // ====================================================
+
+    let consentDoc = $lastUploadRow
+        .find('input[name="cons_doc[]"]')
+        .val();
+
+    // if (!consentDoc) {
+
+    //     $lastUploadRow
+    //         .find(".cons_doc_upload_error")
+    //         .text("Please upload Consent Letter.");
+
+    //     hasError = true;
+    // }
+
+
+    // ====================================================
+    // STOP IF VALIDATION FAILED
+    // ====================================================
+
+    if (hasError) {
+        return false;
+    }
+
+
+    // ====================================================
+    // CLONE STAFF ROW
+    // ====================================================
+
+    let $newStaffRow = $lastStaffRow.clone(false, false);
+
+
+    // ----------------------------------------------------
+    // Remove Flatpickr state from cloned inputs
+    // ----------------------------------------------------
+
+    $newStaffRow.find("input").each(function () {
+
+        $(this)
+            .removeClass("flatpickr-input")
+            .removeAttr("readonly")
+            .removeAttr("data-input");
+
+        // Remove possible Flatpickr generated attributes
+        $(this).removeAttr("aria-label");
+    });
+
+
+    // ----------------------------------------------------
+    // Clear values
+    // ----------------------------------------------------
+
+    $newStaffRow
+        .find("input")
+        .val("");
+
+    $newStaffRow
+        .find("select")
+        .val("");
+
+
+    // Clear validation messages
+    $newStaffRow
+        .find(".text-danger")
+        .text("");
+
+
+    // ====================================================
+    // CLONE UPLOAD ROW
+    // ====================================================
+
+    let $newUploadRow = $lastUploadRow.clone(false, false);
+
+
+    // Clear file input
+    $newUploadRow
+        .find('input[type="file"]')
+        .val("");
+
+
+    // Clear hidden upload values
+    $newUploadRow
+        .find('input[name="app_doc[]"]')
+        .val("");
+
+    $newUploadRow
+        .find('input[name="cons_doc[]"]')
+        .val("");
+
+
+    // Clear staff ID
+    $newUploadRow
+        .find('input[name="staffqc_id[]"]')
+        .val("");
+
+
+    // Clear upload errors
+    $newUploadRow
+        .find(".text-danger")
+        .text("");
+
+
+    // ====================================================
+    // NEW SERIAL NUMBER
+    // ====================================================
+
+    let newNumber =
+        $container.find(".staffqc-fields").length + 1;
+
+    $newStaffRow
+        .find("td:first")
+        .text(newNumber);
+
+
+    // ====================================================
+    // ADD BUTTON TO NEW LAST STAFF ROW
+    // ====================================================
+
+    $newStaffRow
+        .find("td:last")
+        .html(`
+            <button type="button"
+                    class="btn btn-success btn-addqc-staff"
+                    onclick="addStaffqcRow()">
+                + Add
+            </button>
+        `);
+
+
+    // Remove Add button from previous row
+    $lastStaffRow
+        .find("td:last")
+        .empty();
+
+
+    // ====================================================
+    // INSERT NEW ROWS BEFORE FEE ROW
+    // ====================================================
+
+    $newStaffRow.insertBefore($feeRow);
+
+    $newUploadRow.insertBefore($feeRow);
+
+
+    // ====================================================
+    // INITIALIZE FLATPICKR FOR NEW ROW
+    // ====================================================
+
+    initStaffQCDates($newStaffRow[0]);
+
+
+    // ====================================================
+    // UPDATE FEE
+    // ====================================================
+
+    updateStaffQCFee();
+
+
+    return true;
+}
+
+function initStaffQCDates(scope = document) {
+
+    const dateInputs = scope.querySelectorAll(
+        'input[name="staff_cc_first_issue[]"],' +
+        'input[name="staff_cc_validity_from[]"],' +
+        'input[name="staff_cc_validity_to[]"]'
+    );
+
+    dateInputs.forEach(function (input) {
+
+        // Prevent initializing the same input twice
+        if (input._flatpickr) {
+            return;
+        }
+
+        flatpickr(input, {
+            dateFormat: "d-m-Y",
+            allowInput: true
+        });
+
+    });
+}
+
+$(document).on("change", ".staff_category", function () {
+    updateStaffQCFee();
+});
+function updateStaffQCFee() {
+
+    let total = 0;
+
+    $("#staffqc-container .staffqc-fields").each(function () {
+
+        let category = $(this)
+            .find(".staff_category")
+            .val();
+
+
+        if (category === "QC") {
+
+            total += 15000;
+
+        } else if (category === "QSC") {
+
+            total += 25000;
+
+        }
+
+    });
+
+
+    // Bottom fee button
+    $("#staffqc-container .staffqc-fee")
+        .text("₹ " + total.toLocaleString("en-IN"));
+}
+// ------------------------
+
+function generateQCCode() {
+    return $('#staffqc-container tr.staffqc-fields').length + 1;
+}
+
+
 
 function checkCompetencyCertificate() {
 

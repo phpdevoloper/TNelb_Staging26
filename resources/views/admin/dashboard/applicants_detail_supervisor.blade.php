@@ -1954,7 +1954,7 @@
                                                 <button class="btn btn-success" id="forwardbtn">
                                                     Forward to {{ $workflow[$role] }}
                                                 </button>
-                                                <button class="btn btn-warning">On Hold</button>
+                                              
                                             </div>
                                         </div>
                                     </div>

@@ -225,7 +225,7 @@ class LoginController extends BaseController
 
         /* Alteration does not issue a certificate. Hide View Certificate on the
          * alteration row and on the superseded parent once alteration is completed. */
-        if (in_array($workflow->appl_type, ['N', 'D', 'R'], true)) {
+        if (in_array($workflow->appl_type, ['N', 'D', 'R', 'A'], true)) {
             $license = $this->competencyCertificateService()->asWorkflowLicense(
                 (string) $workflow->application_id,
                 'P'
@@ -366,7 +366,7 @@ class LoginController extends BaseController
 
         /* Alteration does not issue a certificate. Hide View Certificate on the
          * alteration row and on the superseded parent once alteration is completed. */
-        if (in_array($workflow->appl_type, ['N', 'D', 'R'], true)) {
+        if (in_array($workflow->appl_type, ['N', 'D', 'R', 'A'], true)) {
             $license = $this->loadCompetencyIssuedCertificate($workflow);
 
             if ($license) {

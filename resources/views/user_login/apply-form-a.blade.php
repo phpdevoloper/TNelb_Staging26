@@ -2335,7 +2335,7 @@ exit; -->
                         <div class="col-md-12">
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label>6A. Details of QC Staff appointed on full time basis: <span style="color: red;">*</span></label>
+                                    <label>5A. Details of QC/QSC Staff appointed on full time basis: <span style="color: red;">*</span></label>
 
                                 </div>
 
@@ -2347,13 +2347,13 @@ exit; -->
                                     <thead>
                                         <tr>
                                             <th>S.NO</th>
+                                            <th>Category <span class="text-red">*</span></th>
                                             <th>Competency Certificate Number <span class="text-red">*</span></th>
                                             <!-- <th>Qualification <span class="text-red">*</span> </th> -->
-                                            <th>Category <span class="text-red">*</span></th>
                                             <th >Certificate First Issue <span class="text-red">*</span></th>
                                             <th >Certificate Validity From <span class="text-red">*</span></th>
                                             <th >Certificate Validity To <span class="text-red">*</span></th>
-                                            <th>Verify License </th>
+                                            <th>Action </th>
 
                                             <!-- <th>Action</th> -->
                                         </tr>
@@ -2365,18 +2365,7 @@ exit; -->
                                         @for ($i = 0; $i < $staff_qccount; $i++)
                                             <tr class="staffqc-fields">
                                             <td>{{ $i + 1 }}</td>
-                                             {{-- value="{{ old('staffqc_name.' . $i) }}" --}}
-                                            <td>
-                                                <input type="text" name="staff_cc_no[]" maxlength="20" 
-                                                    class="form-control"
-                                                   
-                                                    placeholder="CC Number" >
-                                                <span class="error text-danger small">{{ $errors->first('staff_cc_no.' . $i) }}</span>
-                                            </td>   
-                                         
-
-                                          
-                                            <td>
+                                              <td>
                                                
                                                 
                                                 <select class="form-control staff_category"
@@ -2384,100 +2373,43 @@ exit; -->
 
                                                         <option value="">Select Category</option>
 
-                                                        <option value="Existing QC">Existing QC </option>
-                                                        <option value="Eligible QC">Eligible QC </option>
-                                                        <option value="C">C </option>
-
-                                                      
-
+                                                        <option value="QC">QCᴱ</option>
+                                                        <option value="QSC">QSCᴱ</option>
+                                                        
                                                     </select>
                                                
-                                                <span class="error text-danger small">{{ $errors->first('staffqc_category.' . $i) }}</span>
+                                                <span class="text-danger small staff-category-error"></span>
                                             </td>
+                                             {{-- value="{{ old('staffqc_name.' . $i) }}" --}}
+                                            <td>
+                                                <input type="text" name="staff_cc_no[]" maxlength="20" 
+                                                    class="form-control"
+                                                   
+                                                    placeholder="CC Number" >
+                                              <span class="text-danger small staff-cc-error"></span>
+                                            </td>   
+                                         
+
+                                          
+                                          
 
                                             <td>
                                                   <input type="text" name="staff_cc_first_issue[]" class="form-control" placeholder="CC First Issue" >
-                                                <span class="error text-danger small">{{ $errors->first('staff_cc_first_issue.' . $i) }}</span>
+                                                <span class="text-danger small staff-first-issue-error"></span>
 
                                             </td>
 
                                              <td>
                                                   <input type="text" name="staff_cc_validity_from[]" class="form-control" placeholder="CC Validity From" >
-                                                <span class="error text-danger small">{{ $errors->first('staff_cc_validity_from.' . $i) }}</span>
+                                                <span class="text-danger small staff-validity-from-error"></span>
 
                                             </td>
 
                                              <td>
                                                   <input type="text" name="staff_cc_validity_to[]" class="form-control" placeholder="CC Validity To" >
-                                                <span class="error text-danger small">{{ $errors->first('staff_cc_validity_to.' . $i) }}</span>
+                                                <span class="text-danger small staff-validity-to-error"></span>
 
                                             </td>
-
-                                             
-                                            
-                                            <td>
-                                                <button type="button"
-                                                    class="btn btn-primary verify-btn"
-                                                    onclick="validateqcstaffcertificate(event,this)">
-                                                    Verify
-                                                </button>
-                                                <input type="hidden" name="staff_qccc_verify[]" class="staff_qccc_verify" value="">
-
-
-                                               
-                                            </td>
-
-
-                                            </tr>
-                                            <tr class="qc-upload-row">
-                                                <td colspan="5">
-                                                    <div class="row">
-                                                        <div class="col-md-6 col-lg-5">
-                                                            <div class="text-center fw-bold">
-                                                                QC Certificates Upload
-                                                            </div>
-                                                            <div class="text-center ">
-                                                                QC Certificates One, QC Certificates Two, QC Certificates Three
-
-                                                                <br>
-                                                                <span class="file-limit">(Merge All the Documents into One file and upload it)</span>
-                                                            </div>
-
-
-                                                        </div>
-
-                                                        <div class="col-md-6 col-lg-3">
-                                                            <input type="file" class="form-control"
-                                                            name="qc_one" id="qc_one"
-                                                            accept="application/pdf">
-                                                            <span class="file-limit">PDF only (Max 250 KB)</span>
-                                                            <br>
-                                                            <span class="text-danger qc_doc_upload_error"></span>
-                                                            <span class="text-danger upload-error d-block"></span>
-
-                                                        </div>
-                                                        <div class="col-12 col-md-2">
-                                                            <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="QC DOCUMENT" data-document_category="qc_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}" data-qc_code="1">
-                                                                <i class="fa fa-upload"></i> Upload
-                                                            </button>
-
-                                                        <input type="hidden"
-                                                        name="qc_code[]"
-                                                        class="qc_code"
-                                                        value="1">
-
-                                                        <input type="hidden"
-                                                        name="staffqc_id[]"
-                                                        value="{{ $staff->id ?? '' }}">
-                                                        </div>
-
-                                                        <div class="col-md-6 mt-3 col-lg-2 file-link">
-                                                    
-                                                        </div>
-                                                        
-                                                    
-                                                    </div>
-                                                </td>
                                                 <td>
                                                     @if ($i === $staff_qccount - 1)
                                                                 
@@ -2485,7 +2417,123 @@ exit; -->
                                                                 @endif
 
                                                 </td>
-                                              
+
+                                             
+                                            
+                                     
+
+
+                                            </tr>
+                                            <tr class="qc-upload-row">
+                                                <td colspan="7">
+                                                    <div class="row">
+                                                        {{-- ------appointment letter---------- --}}
+                                                       <div class="col-md-6 col-lg-2">
+                                                            <div class="text-center fw-bold">
+                                                                Appointment Letter Upload
+                                                            </div>
+                                                            <div class="text-center ">
+                                                                
+
+                                                               
+                                                            </div>
+
+
+                                                        </div>
+
+                                                        <div class="col-md-6 col-lg-2">
+                                                            <input type="file" class="form-control"
+                                                            name="app_doc" id="app_doc"
+                                                            accept="application/pdf">
+                                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                            <br>
+                                                            <span class="text-danger app_doc_upload_error"></span>
+                                                            <span class="text-danger upload-error d-block"></span>
+
+                                                        </div>
+                                                        <div class="col-12 col-md-2 file-link">
+                                                            <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="APPOINTMENT DOCUMENT" data-document_category="app_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}" data-app_doc="1">
+                                                                <i class="fa fa-upload"></i> Upload
+                                                            </button>
+
+                                                        <input type="hidden"
+                                                        name="app_doc[]"
+                                                        class="app_doc"
+                                                        value="1">
+
+                                                        <input type="hidden"
+                                                        name="staffqc_id[]"
+                                                        value="{{ $staff->id ?? '' }}">
+                                                        </div>
+
+                                                        {{-- <div class="col-md-6 mt-3 col-lg-1 file-link">
+                                                    
+                                                        </div> --}}
+
+                                                    {{-- ---------consent letter--------------- --}}
+                                                        <div class="col-md-6 col-lg-2">
+                                                            <div class="text-center fw-bold">
+                                                                Consent Letter Upload
+                                                            </div>
+                                                            <div class="text-center ">
+                                                                
+
+                                                               
+                                                            </div>
+
+
+                                                        </div>
+
+                                                        <div class="col-md-6 col-lg-2 file-link">
+                                                            <input type="file" class="form-control"
+                                                            name="app_doc" id="app_doc"
+                                                            accept="application/pdf">
+                                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                            <br>
+                                                            <span class="text-danger cons_doc_upload_error"></span>
+                                                            <span class="text-danger upload-error d-block"></span>
+
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="APPOINTMENT DOCUMENT" data-document_category="cons_doc" data-document_sub_category="QD" data-ownership_type="" data-form_code="{{$form_code->id}}" data-cons_doc="1">
+                                                                <i class="fa fa-upload"></i> Upload
+                                                            </button>
+
+                                                        <input type="hidden"
+                                                        name="cons_doc[]"
+                                                        class="cons_doc"
+                                                        value="1">
+
+                                                        <input type="hidden"
+                                                        name="staffqc_id[]"
+                                                        value="{{ $staff->id ?? '' }}">
+                                                        </div>
+
+                                                        {{-- <div class="col-md-6 mt-3 col-lg-1 file-link">
+                                                    
+                                                        </div> --}}
+                                                        
+                                                    
+                                                    </div>
+
+
+
+
+                                                </td>
+
+                                                {{-- --------Add---------------- --}}
+                                                
+                                            </tr>
+                                            <tr>
+                                                  <td colspan="5">
+                                                    <p class="float-right fw-bold"> QC/QSC Staff Fees</p>
+                                                </td>
+                                                <td colspan="2">
+                                                    <span class="btn btn-warning  fw-600 staffqc-fee">
+                                                        ₹ 0
+                                                    </span>
+                                                </td>
+
                                             </tr>
                                             @endfor
                                     </tbody>
@@ -2877,7 +2925,7 @@ exit; -->
                         <div class="col-md-12">
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label>6B. Details of Staff appointed on full time basis: <span style="color: red;">*</span></label>
+                                    <label>5B. Details of Staff appointed on full time basis: <span style="color: red;">*</span></label>
 
                                 </div>
 
@@ -3159,7 +3207,7 @@ exit; -->
                         <div class="col-md-12  ">
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label>7. Bank Solvency Certificate Details <span style="color: red;">*</span> </label>
+                                    <label>6. Bank Solvency Certificate Details <span style="color: red;">*</span> </label>
 
                                 </div>
 
@@ -3277,7 +3325,7 @@ exit; -->
                                 <div class="col-md-12">
                                     <div class="row align-items-center head_label">
                                         <div class="col-12 col-md-12 title_bar">
-                                            <label> [ 8 to 11 ] Attachments Points</label>
+                                            <label> 7 and 8 Attachments Points</label>
 
                                         </div>
 
@@ -3286,7 +3334,7 @@ exit; -->
 
                                     <div class="row align-items-center">
                                         <div class="col-12 col-md-7">
-                                            <label for="Name">8. Has the applicant or any of his/her
+                                            <label for="Name">7. Has the applicant or any of his/her
                                                 staff referred to under item 6, been at
                                                 any time convicted in any court of law
                                                 or punished by any other authority for
@@ -3360,83 +3408,13 @@ exit; -->
                     
 
                             <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <div class="row align-items-center border-right-12">
-                                        <div class="col-12 col-md-7">
-                                            <label for="Name">9. (i) Whether specimen signature of
-                                                the Proprietor or of the authorised
-                                                signatory (in case of limited
-                                                company in triplicate is enclosed) <span style="color: red;">*</span>
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-2 ">
-                                            @php
-                                            $specimen_signature_enclose = strtolower(old('specimen_signature_enclose', $application->specimen_signature_enclose ?? 'no'));
-                                            @endphp
-                                            <input style="display: none;" class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="yes" {{ $specimen_signature_enclose == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="specimen_signature">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="no" {{ $specimen_signature_enclose == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="specimen_signature">No</label>
-                                            </div>
-
-                                        </div>
-                                        <span class="error text-danger" id="specimen_signature_enclose_error"></span>
-
-                                        <div class="col-12 col-md-3 file_upload specimen_signature_enclosefile" style="{{ $specimen_signature_enclose == 'yes' ? '' : 'display:none;' }}">
-                                            <div class="row">
-                                                <div class="col-12 col-md-8">
-                                                    <input type="file" class="form-control"
-                                                        name="other_doc" id="specimen_signature"
-                                                        accept="application/pdf">
-                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
-                                                    <br>
-                                                    <span class="text-danger Doc_upload_error"></span>
-
-                                                </div>
-                                                <div class="col-12 col-md-4">
-                                                    <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="OTHER DOCUMENT" data-document_category="other_doc" data-document_sub_category="OHD" data-ownership_type="specimensignature" data-form_code="{{$form_code->id}}">
-                                                        <i class="fa fa-upload"></i> Upload
-                                                    </button>
-                                                </div>
-
-                                            </div>
-
-
-                                            <span class="error text-danger" id="specimen_signature_error"></span>
-
-
-
-                                            @php
-                                            $specimensignatureDoc = isset($attachment_doc)
-                                            ? $attachment_doc->where('type', 'specimensignature')->first()
-                                            : null;
-                                            @endphp
-
-                                            @if($specimensignatureDoc && !empty($specimensignatureDoc->file_doc))
-                                            <div class="col-md-12 mt-1 col-12 file-link">
-                                                <a href="{{ asset($specimensignatureDoc->file_doc) }}"
-                                                    target="_blank"
-                                                    class="text-primary fw-bold">
-                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                                                </a>
-                                            </div>
-                                            @endif
-                                        </div>
-
-
-
-                                    </div>
-                                </div>
+                                
 
                                 <div class="col-md-12">
                                     <div class="row border-right-12">
                                         <div class="col-12">
                                             <label for="Name">
-                                                (ii) The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern
+                                                8. The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern
                                             </label>
                                         </div>
 
@@ -3603,7 +3581,7 @@ exit; -->
 
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label> 12) Address Proof : GST/ Rental Aggrement/Others </label>
+                                    <label> 9. Address Proof : GST/ Rental Aggrement/Others </label>
 
                                 </div>
 

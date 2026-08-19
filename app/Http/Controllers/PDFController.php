@@ -1559,6 +1559,7 @@ class PDFController extends Controller
         } else {
             $appltye = 'Alteration Application';
         }
+<<<<<<< Updated upstream
         $payment = $this->getPayment((string) $application_id);
         $paymentType   = 'N/A';
         $transactionNo = 'N/A';
@@ -1575,6 +1576,11 @@ class PDFController extends Controller
             $amountValue   = '&#8377; ' . ($payment->amount ?? 'Nil');
             $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
         }
+=======
+        $payment = DB::table('cc_payments')->where('application_id', $application_id)->first();
+        // dd($payment);exit;
+
+>>>>>>> Stashed changes
         $html = '
         <div class="card">
 
@@ -1689,7 +1695,18 @@ class PDFController extends Controller
                         </td>
                     </tr>
                 </table>
-                <div class="summary-card">
+            
+        ';
+
+        if ($payment) {
+            // dd('111');
+            $paymentType   = mb_strtoupper($payment->payment_mode   ?? 'ONLINE', 'UTF-8');
+            $transactionNo = mb_strtoupper($payment->transaction_id ?? 'N/A',    'UTF-8');
+            $paymentDate   = mb_strtoupper(\Carbon\Carbon::parse($payment->created_at)->format('d-m-Y'), 'UTF-8');
+            $amountValue   = '&#8377; ' . ($payment->amount ?? 'Nil');
+            $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
+
+            $html ='    <div class="summary-card">
                     <div class="summary-heading"><div class="bi-en">Payment Details</div></div>
                     <table class="summary-table" width="100%" cellspacing="0" cellpadding="0">
                     <thead>
@@ -1726,8 +1743,8 @@ class PDFController extends Controller
 
           
 
-        </div>
-        ';
+        </div>';
+        }
 
 
         // Inline Tamil font — mPDF often applies stylesheet fonts in header/body blocks but not in nested <td>
