@@ -2335,7 +2335,7 @@ exit; -->
                         <div class="col-md-12">
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label>6A. Details of QC/QSC Staff appointed on full time basis: <span style="color: red;">*</span></label>
+                                    <label>5A. Details of QC/QSC Staff appointed on full time basis: <span style="color: red;">*</span></label>
 
                                 </div>
 
@@ -2525,10 +2525,13 @@ exit; -->
                                                 
                                             </tr>
                                             <tr>
-                                                <td colspan="7">
-                                                    <button type="button" class="btn btn-warning float-right fw-600 staffqc-fee">
+                                                  <td colspan="5">
+                                                    <p class="float-right fw-bold"> QC/QSC Staff Fees</p>
+                                                </td>
+                                                <td colspan="2">
+                                                    <span class="btn btn-warning  fw-600 staffqc-fee">
                                                         ₹ 0
-                                                    </button>
+                                                    </span>
                                                 </td>
 
                                             </tr>
@@ -2922,7 +2925,7 @@ exit; -->
                         <div class="col-md-12">
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label>6B. Details of Staff appointed on full time basis: <span style="color: red;">*</span></label>
+                                    <label>5B. Details of Staff appointed on full time basis: <span style="color: red;">*</span></label>
 
                                 </div>
 
@@ -3204,7 +3207,7 @@ exit; -->
                         <div class="col-md-12  ">
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label>7. Bank Solvency Certificate Details <span style="color: red;">*</span> </label>
+                                    <label>6. Bank Solvency Certificate Details <span style="color: red;">*</span> </label>
 
                                 </div>
 
@@ -3322,7 +3325,7 @@ exit; -->
                                 <div class="col-md-12">
                                     <div class="row align-items-center head_label">
                                         <div class="col-12 col-md-12 title_bar">
-                                            <label> [ 8 to 11 ] Attachments Points</label>
+                                            <label> 7 and 8 Attachments Points</label>
 
                                         </div>
 
@@ -3331,7 +3334,7 @@ exit; -->
 
                                     <div class="row align-items-center">
                                         <div class="col-12 col-md-7">
-                                            <label for="Name">8. Has the applicant or any of his/her
+                                            <label for="Name">7. Has the applicant or any of his/her
                                                 staff referred to under item 6, been at
                                                 any time convicted in any court of law
                                                 or punished by any other authority for
@@ -3405,83 +3408,13 @@ exit; -->
                     
 
                             <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <div class="row align-items-center border-right-12">
-                                        <div class="col-12 col-md-7">
-                                            <label for="Name">9. (i) Whether specimen signature of
-                                                the Proprietor or of the authorised
-                                                signatory (in case of limited
-                                                company in triplicate is enclosed) <span style="color: red;">*</span>
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-2 ">
-                                            @php
-                                            $specimen_signature_enclose = strtolower(old('specimen_signature_enclose', $application->specimen_signature_enclose ?? 'no'));
-                                            @endphp
-                                            <input style="display: none;" class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="yes" {{ $specimen_signature_enclose == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="specimen_signature">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="no" {{ $specimen_signature_enclose == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="specimen_signature">No</label>
-                                            </div>
-
-                                        </div>
-                                        <span class="error text-danger" id="specimen_signature_enclose_error"></span>
-
-                                        <div class="col-12 col-md-3 file_upload specimen_signature_enclosefile" style="{{ $specimen_signature_enclose == 'yes' ? '' : 'display:none;' }}">
-                                            <div class="row">
-                                                <div class="col-12 col-md-8">
-                                                    <input type="file" class="form-control"
-                                                        name="other_doc" id="specimen_signature"
-                                                        accept="application/pdf">
-                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
-                                                    <br>
-                                                    <span class="text-danger Doc_upload_error"></span>
-
-                                                </div>
-                                                <div class="col-12 col-md-4">
-                                                    <button type="button" class="btn btn-info upload-btn" data-login_id="{{ Auth::user()->login_id }}" data-module="OTHER DOCUMENT" data-document_category="other_doc" data-document_sub_category="OHD" data-ownership_type="specimensignature" data-form_code="{{$form_code->id}}">
-                                                        <i class="fa fa-upload"></i> Upload
-                                                    </button>
-                                                </div>
-
-                                            </div>
-
-
-                                            <span class="error text-danger" id="specimen_signature_error"></span>
-
-
-
-                                            @php
-                                            $specimensignatureDoc = isset($attachment_doc)
-                                            ? $attachment_doc->where('type', 'specimensignature')->first()
-                                            : null;
-                                            @endphp
-
-                                            @if($specimensignatureDoc && !empty($specimensignatureDoc->file_doc))
-                                            <div class="col-md-12 mt-1 col-12 file-link">
-                                                <a href="{{ asset($specimensignatureDoc->file_doc) }}"
-                                                    target="_blank"
-                                                    class="text-primary fw-bold">
-                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                                                </a>
-                                            </div>
-                                            @endif
-                                        </div>
-
-
-
-                                    </div>
-                                </div>
+                                
 
                                 <div class="col-md-12">
                                     <div class="row border-right-12">
                                         <div class="col-12">
                                             <label for="Name">
-                                                (ii) The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern
+                                                8. The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern
                                             </label>
                                         </div>
 
@@ -3648,7 +3581,7 @@ exit; -->
 
                             <div class="row align-items-center head_label">
                                 <div class="col-12 col-md-12 title_bar">
-                                    <label> 12) Address Proof : GST/ Rental Aggrement/Others </label>
+                                    <label> 9. Address Proof : GST/ Rental Aggrement/Others </label>
 
                                 </div>
 
