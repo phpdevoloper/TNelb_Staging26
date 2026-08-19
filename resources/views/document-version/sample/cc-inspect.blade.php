@@ -17,6 +17,7 @@
 <p class="text-muted mb-3">
     Enter a competency <code>application_id</code> (NEW <code>SC26…</code> or alteration <code>ASC26…</code>)
     to view <code>cc_form_*_meta</code>, <code>cc_edu</code>, <code>cc_exp</code>, and <code>cc_proof_doc</code>.
+    Delete removes this ID, descendant renewal/alteration IDs, and related table rows.
 </p>
 
 <div class="card shadow-sm mb-3">
@@ -38,16 +39,70 @@
         in <code>cc_form_s_meta</code> / <code>cc_form_w_meta</code> / <code>cc_form_wh_meta</code> / <code>cc_form_p_meta</code>.
     </div>
 @elseif($meta)
-    <div class="mb-3">
-        <span class="badge badge-primary">{{ $metaTable }}</span>
-        <span class="badge badge-light text-dark">appl_type {{ $meta->appl_type ?: '—' }}</span>
+    @php
+        $relatedApplicationIds = $relatedApplicationIds ?? [ (string) $meta->application_id ];
+        $childApplicationIds = $childApplicationIds ?? [];
+        $deleteIdsLabel = implode(', ', $relatedApplicationIds);
+    @endphp
+    <div class="mb-3 d-flex flex-wrap align-items-center">
+        <span class="badge badge-primary mr-1 mb-1">{{ $metaTable }}</span>
+        <span class="badge badge-light text-dark mr-1 mb-1">appl_type {{ $meta->appl_type ?: '—' }}</span>
         @if(!empty($meta->old_application))
-            <span class="badge badge-info">old_application {{ $meta->old_application }}</span>
-            <a class="btn btn-outline-secondary btn-sm ml-1"
+            <span class="badge badge-info mr-1 mb-1">old_application {{ $meta->old_application }}</span>
+            <a class="btn btn-outline-secondary btn-sm mr-1 mb-1"
                href="{{ route('document-version.sample.cc-inspect', ['application_id' => $meta->old_application]) }}">
                 Inspect parent
             </a>
         @endif
+        @foreach($childApplicationIds as $childId)
+            <a class="badge badge-warning text-dark mr-1 mb-1"
+               href="{{ route('document-version.sample.cc-inspect', ['application_id' => $childId]) }}">
+                child {{ $childId }}
+            </a>
+        @endforeach
+        <button type="button" class="btn btn-danger btn-sm mb-1 ml-auto" data-toggle="modal" data-target="#ccInspectDeleteModal">
+            <i class="fa fa-trash mr-1"></i> Delete application &amp; related details
+        </button>
+    </div>
+
+    <div class="modal fade" id="ccInspectDeleteModal" tabindex="-1" role="dialog" aria-labelledby="ccInspectDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <form method="POST" action="{{ route('document-version.sample.cc-inspect.delete') }}">
+                @csrf
+                <input type="hidden" name="application_id" value="{{ $meta->application_id }}">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="ccInspectDeleteModalLabel">Delete competency application</h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2">This permanently deletes these application ID(s) and related rows:</p>
+                        <p class="font-weight-bold mb-2">{{ $deleteIdsLabel }}</p>
+                        <ul class="small mb-3">
+                            <li><code>cc_form_*_meta</code> (this form and descendant IDs)</li>
+                            <li><code>cc_edu</code>, <code>cc_exp</code>, <code>cc_proof_doc</code></li>
+                            <li><code>cc_payments</code>, <code>cc_doc_log</code>, workflow, certificate</li>
+                            <li>photo / sign / checklist / payment_transactions when present</li>
+                        </ul>
+                        <p class="small text-muted mb-2">The parent application is not deleted. Inspect the parent and delete from there if you need the whole chain.</p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="confirm_check" id="ccInspectConfirmCheck" value="1" required>
+                            <label class="form-check-label" for="ccInspectConfirmCheck">
+                                I understand this cannot be undone.
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fa fa-trash mr-1"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <ul class="nav nav-tabs mb-3" id="ccInspectTabs" role="tablist">

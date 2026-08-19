@@ -1117,7 +1117,8 @@ class FormSAlterationService
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
             if ($fromRaw === '') {
                 continue;
             }
@@ -1127,9 +1128,10 @@ class FormSAlterationService
 
             try {
                 $from = Carbon::parse($fromRaw)->startOfDay();
-                $to = $toRaw !== ''
-                    ? Carbon::parse($toRaw)->startOfDay()
-                    : $today;
+                $toEff = $toRaw !== ''
+                    ? $toRaw
+                    : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+                $to = Carbon::parse($toEff)->startOfDay();
             } catch (\Throwable $e) {
                 continue;
             }
@@ -1235,7 +1237,8 @@ class FormSAlterationService
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
             if ($fromRaw === '') {
                 continue;
             }
@@ -1245,9 +1248,10 @@ class FormSAlterationService
 
             try {
                 $from = Carbon::parse($fromRaw)->startOfDay();
-                $to = $toRaw !== ''
-                    ? Carbon::parse($toRaw)->startOfDay()
-                    : $today;
+                $toEff = $toRaw !== ''
+                    ? $toRaw
+                    : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+                $to = Carbon::parse($toEff)->startOfDay();
             } catch (\Throwable $e) {
                 continue;
             }
@@ -1399,6 +1403,7 @@ class FormSAlterationService
         $orgAddresses = $this->requestOrgAddresses($request);
         $fromDates = (array) $request->input('work_date_from', []);
         $toDates = (array) $request->input('work_date_to', []);
+        $tillFlags = (array) $request->input('work_to_till_date', []);
         $durY = (array) $request->input('work_duration_y', []);
         $durM = (array) $request->input('work_duration_m', []);
         $durD = (array) $request->input('work_duration_d', []);
@@ -1432,6 +1437,12 @@ class FormSAlterationService
             $totalExp = (string) $master->total_exp;
         }
 
+        $toDate = trim((string) ($toDates[$key] ?? ''));
+        $tillDate = FormSWorkTillDate::toDateString($tillFlags[$key] ?? '0', Carbon::today()->toDateString());
+        if ($tillDate !== null) {
+            $toDate = $tillDate;
+        }
+
         $experience = CC_Experience::create([
             'login_id' => $loginId,
             'application_id' => $child->application_id,
@@ -1441,7 +1452,7 @@ class FormSAlterationService
             'org_address' => $orgAddresses[$key] ?? null,
             'designation' => $designation,
             'from_date' => $fromDates[$key] ?? null,
-            'to_date' => $toDates[$key] ?? null,
+            'to_date' => ($toDate !== '' ? $toDate : null),
             'total_y' => $totalY,
             'total_m' => $totalM,
             'total_d' => $totalD,

@@ -75,6 +75,9 @@
     if (!$hasRow && $defaultTillDate) {
         $isTill = true;
     }
+    $tillPostedValue = $isTill
+        ? ($workToDate !== '' ? $workToDate : now()->toDateString())
+        : '0';
     $removeClasses = 'work-row-remove remove-work' . ($workId !== '' ? ' remove_exp' : '');
     $alterationExistingRow = !empty($alterationExistingRow);
     $storedRowClass = $workId !== ''
@@ -195,7 +198,7 @@
                 <input type="checkbox" class="work-date-till" {{ $isTill ? 'checked' : '' }}>
                 <span>Till date (currently working)</span>
             </label>
-            <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="{{ $isTill ? '1' : '0' }}">
+            <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="{{ $tillPostedValue }}">
         </div>
         @else
         <input type="hidden" class="work-date-from" name="work_date_from[]" value="" @if($alterationExistingRow) disabled @endif>

@@ -34,6 +34,7 @@ use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
+use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyWorkflowService;
@@ -949,9 +950,9 @@ class FormController extends BaseController
 
         if ($isFormS) {
             $tillFlags = $request->work_to_till_date ?? [];
-            $isTill = isset($tillFlags[$key]) && (string) $tillFlags[$key] === '1';
-            if ($isTill) {
-                $toDate = '';
+            $tillDate = FormSWorkTillDate::toDateString($tillFlags[$key] ?? '0', $this->today);
+            if ($tillDate !== null) {
+                $toDate = $tillDate;
             }
             $intimationDate = '';
         } elseif (strtolower($empType) !== 'contractor') {
@@ -1590,8 +1591,8 @@ class FormController extends BaseController
      * Rows with Voltage Level "Up to 650V" are excluded from this total (New / Renewal / Digitization / Alteration).
      * (Per-row check was replaced with a combined-total check so that multiple short stints can add up.)
      *
-     * "Till date" rows (work_to_till_date[$key] === '1') are evaluated against today's date when
-     * the explicit To-date is blank, mirroring the front-end behaviour.
+     * "Till date" rows (work_to_till_date[$key] is Y-m-d, or legacy "1") are evaluated against
+     * that date (or today) when the explicit To-date is blank, mirroring the front-end behaviour.
      */
     private function validateFormSWorkExperienceMinimumYears(Request $request, \Illuminate\Validation\Validator $validator): void
     {
@@ -1631,7 +1632,8 @@ class FormController extends BaseController
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
 
             $isUpTo650v = strtolower(trim((string) ($voltages[$key] ?? ''))) === 'up_to_650v';
 
@@ -1644,9 +1646,10 @@ class FormController extends BaseController
             }
 
             $from = $this->calendarDateStartOfDay($fromRaw);
-            $to = ($toRaw !== '')
-                ? $this->calendarDateStartOfDay($toRaw)
-                : $today;
+            $toEff = $toRaw !== ''
+                ? $toRaw
+                : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+            $to = $this->calendarDateStartOfDay($toEff);
             if ($from === null || $to === null) {
                 continue;
             }
@@ -1729,7 +1732,8 @@ class FormController extends BaseController
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
             if ($fromRaw === '') {
                 continue;
             }
@@ -1738,9 +1742,10 @@ class FormController extends BaseController
             }
 
             $from = $this->calendarDateStartOfDay($fromRaw);
-            $to = ($toRaw !== '')
-                ? $this->calendarDateStartOfDay($toRaw)
-                : $today;
+            $toEff = $toRaw !== ''
+                ? $toRaw
+                : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+            $to = $this->calendarDateStartOfDay($toEff);
             if ($from === null || $to === null) {
                 continue;
             }

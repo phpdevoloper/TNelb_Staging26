@@ -45,6 +45,7 @@ use App\Http\Controllers\FormWDigitizationController;
 use App\Http\Controllers\FormWHDigitizationController;
 use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
+use App\Http\Controllers\DocumentVersion\CcInspectController;
 use App\Http\Controllers\DocumentVersion\DocumentSampleController;
 use App\Http\Controllers\FormS\FormSDocumentController;
 use App\Http\Controllers\WithoutTmp\WithoutTmpController;
@@ -495,7 +496,8 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
     Route::post('/reset-module', [DocumentSampleController::class, 'resetModule'])->name('reset-module');
     Route::get('/storage', [DocumentSampleController::class, 'storageExplorer'])->name('storage');
     Route::get('/details/{application?}', [DocumentSampleController::class, 'applicationDetails'])->name('details');
-    Route::get('/cc-inspect', [DocumentSampleController::class, 'ccInspect'])->name('cc-inspect');
+    Route::get('/cc-inspect', [CcInspectController::class, 'index'])->name('cc-inspect');
+    Route::post('/cc-inspect/delete', [CcInspectController::class, 'destroy'])->name('cc-inspect.delete');
     Route::get('/table-data', [DocumentSampleController::class, 'tableData'])->name('table-data');
     Route::get('/upload', [DocumentSampleController::class, 'upload'])->name('upload');
     Route::post('/upload', [DocumentSampleController::class, 'storeUpload'])->name('upload.store');

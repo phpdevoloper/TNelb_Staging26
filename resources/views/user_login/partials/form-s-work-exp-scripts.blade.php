@@ -1649,7 +1649,7 @@
             function applyTillDate($tr) {
                 var $till = $tr.find('.work-date-till');
                 var checked = $till.is(':checked');
-                $tr.find('.work-date-till-hidden').val(checked ? '1' : '0');
+                $tr.find('.work-date-till-hidden').val(checked ? todayIso() : '0');
 
                 var $toDate = $tr.find('.work-date-to');
                 if (checked) {
@@ -2338,7 +2338,7 @@
                     var till = newRow.querySelector('.work-date-till');
                     if (till) till.checked = isCurrent;
                     var tillH = newRow.querySelector('.work-date-till-hidden');
-                    if (tillH) tillH.value = isCurrent ? '1' : '0';
+                    if (tillH) tillH.value = isCurrent ? todayIso() : '0';
                     newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(inp) { inp.value = ''; });
                     var kvaSync = newRow.querySelector('.work-transformer-kva-sync');
                     if (kvaSync) kvaSync.value = '';
