@@ -6,13 +6,11 @@ namespace App\Services\Competency;
 
 
 
-use App\Models\CC_Payments;
-
 use App\Models\CC_Proof_doc;
 
 use App\Models\Competency\CC_CompetencyMeta;
 
-use App\Services\FormS\FormSChildDocumentSnapshotService;
+use App\Services\FormS\FormSApplicationWorkflowService;
 
 use Illuminate\Support\Facades\DB;
 
@@ -144,15 +142,14 @@ class CompetencyApplicationService
 
                 $meta = $this->findMeta($applicationId);
 
-                $proofOwnerId = (string) $applicationId;
-                if ($meta) {
-                    $proofOwnerId = app(FormSChildDocumentSnapshotService::class)
-                        ->preferredIdentityProofApplicationId($meta);
-                }
+
 
                 return $this->enrichCcMetaProofFields(
+
                     $this->normalizeMetaRowForAdmin($row, $metaTable, $applicationId),
-                    $proofOwnerId
+
+                    (string) app(FormSApplicationWorkflowService::class)->masterApplication($meta)->application_id
+
                 );
 
             }
@@ -201,11 +198,9 @@ class CompetencyApplicationService
 
     {
 
-        $paymentsTable = (new CC_Payments)->getTable();
-
         $query = DB::table($table)
 
-            ->leftJoin("{$paymentsTable} as p", 'p.application_id', '=', 'ta.application_id')
+            ->leftJoin('payments as p', 'p.application_id', '=', 'ta.application_id')
 
             ->where('ta.application_id', $applicationId);
 
@@ -227,7 +222,7 @@ class CompetencyApplicationService
 
             'p.payment_status as gateway_payment_status',
 
-            'p.amount_paid as amount',
+            'p.amount',
 
             'p.payment_mode',
 

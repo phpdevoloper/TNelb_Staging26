@@ -1764,7 +1764,7 @@ class SupervisorController extends Controller
         if ($qsc !== null) {
             $update['qsc'] = $qsc;
         }
-        DB::table('tnelb_application_tbl')
+        DB::table('cc_form_s_meta')
             ->where('application_id', $application->application_id)
             ->update($update);
     }

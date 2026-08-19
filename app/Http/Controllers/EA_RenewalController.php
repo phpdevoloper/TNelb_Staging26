@@ -36,6 +36,7 @@ class EA_RenewalController extends BaseController
 // ------------form A draft and renew-------------
       public function renew_form($appl_id)
     {
+
         if (!Auth::check()) {
             return redirect()->route('logout');
         }

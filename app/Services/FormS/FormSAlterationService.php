@@ -308,9 +308,9 @@ class FormSAlterationService
         if ($context['alterationDraft']) {
             $draft = $this->normalizeParentForDisplay($context['alterationDraft']);
             $applicationDetails->applicant_name = $draft->applicant_name;
-            $address = trim((string) ($draft->applicant_address ?? $draft->applicants_address ?? ''));
+            $address = trim((string) ($draft->applicant_address ?? $draft->applicant_address ?? ''));
             $applicationDetails->applicant_address = $address;
-            $applicationDetails->applicants_address = $address;
+            $applicationDetails->applicant_address = $address;
         }
 
         $applicationDetails = $this->enrichApplicationProofFields(
@@ -341,9 +341,9 @@ class FormSAlterationService
     public function normalizeParentForDisplay(CC_CompetencyMeta $application): CC_CompetencyMeta
     {
         $normalized = clone $application;
-        $address = trim((string) ($normalized->applicant_address ?? $normalized->applicants_address ?? ''));
+        $address = trim((string) ($normalized->applicant_address ?? $normalized->applicant_address ?? ''));
         $normalized->applicant_address = $address;
-        $normalized->applicants_address = $address;
+        $normalized->applicant_address = $address;
 
         return $normalized;
     }
@@ -357,7 +357,7 @@ class FormSAlterationService
         $row = clone $row;
 
         $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
-        $row->applicants_address = $row->applicants_address ?? $row->applicant_address ?? null;
+        $row->applicant_address = $row->applicant_address ?? $row->applicant_address ?? null;
         $row->previously_number = $row->previously_number ?? $row->previous_scc_no ?? null;
         $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
         $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
@@ -601,9 +601,9 @@ class FormSAlterationService
         /** @var CC_CompetencyMeta $parent */
         $parent = $verify['application'];
         $parentName = trim((string) $parent->applicant_name);
-        $parentAddress = trim((string) ($parent->applicant_address ?? $parent->applicants_address ?? ''));
+        $parentAddress = trim((string) ($parent->applicant_address ?? $parent->applicant_address ?? ''));
         $newName = trim((string) $request->input('applicant_name', ''));
-        $newAddress = trim((string) $request->input('applicants_address', $request->input('applicant_address', '')));
+        $newAddress = trim((string) $request->input('applicant_address', $request->input('applicant_address', '')));
 
         $alterName = $request->input('alter_name') === '1' || ($newName !== '' && $newName !== $parentName);
         $alterAddress = $request->input('alter_address') === '1' || ($newAddress !== '' && $newAddress !== $parentAddress);
@@ -755,9 +755,9 @@ class FormSAlterationService
 
         /** @var CC_CompetencyMeta $parent */
         $parent = $verify['application'];
-        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicants_address ?? '');
+        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicant_address ?? '');
         $newName = trim((string) $request->input('applicant_name', $parent->applicant_name));
-        $newAddress = trim((string) $request->input('applicants_address', $request->input('applicant_address', $parentAddress)));
+        $newAddress = trim((string) $request->input('applicant_address', $request->input('applicant_address', $parentAddress)));
 
         return DB::transaction(function () use ($request, $parent, $loginId, $newName, $newAddress, $parentAddress) {
             $child = $this->findOrCreateAlterationDraftChild($parent, $loginId);
@@ -821,7 +821,7 @@ class FormSAlterationService
 
         $formName = (string) ($parent->form_name ?? 'S');
         $certName = (string) ($parent->certificate_name ?? $parent->license_name ?? '');
-        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicants_address ?? '');
+        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicant_address ?? '');
 
         $lastApplication = app(CompetencyMetaService::class)->latestApplicationId();
         $lastNumber = $lastApplication ? (int) substr($lastApplication, -7) : 1111110;
@@ -1559,11 +1559,11 @@ class FormSAlterationService
             $parentUpdates['applicant_name'] = $childName;
         }
 
-        $childAddress = trim((string) ($childRow->applicant_address ?? $childRow->applicants_address ?? ''));
-        $parentAddress = trim((string) ($parentRow->applicant_address ?? $parentRow->applicants_address ?? ''));
+        $childAddress = trim((string) ($childRow->applicant_address ?? $childRow->applicant_address ?? ''));
+        $parentAddress = trim((string) ($parentRow->applicant_address ?? $parentRow->applicant_address ?? ''));
         if ($childAddress !== '' && $childAddress !== $parentAddress) {
             $parentUpdates['applicant_address'] = $childAddress;
-            $parentUpdates['applicants_address'] = $childAddress;
+            $parentUpdates['applicant_address'] = $childAddress;
         }
 
         if (count($parentUpdates) > 1) {
@@ -1593,7 +1593,7 @@ class FormSAlterationService
 
     protected function syncLegacyApplicationProfile(string $parentApplicationId, array $parentUpdates): void
     {
-        if (! DB::getSchemaBuilder()->hasTable('tnelb_application_tbl')) {
+        if (! DB::getSchemaBuilder()->hasTable('cc_form_s_meta')) {
             return;
         }
 
@@ -1606,7 +1606,7 @@ class FormSAlterationService
             return;
         }
 
-        DB::table('tnelb_application_tbl')
+        DB::table('cc_form_s_meta')
             ->where('application_id', $parentApplicationId)
             ->update($legacyUpdate);
     }
@@ -1639,7 +1639,7 @@ class FormSAlterationService
             }
         }
 
-        $address = trim((string) ($childRow->applicant_address ?? $childRow->applicants_address ?? ''));
+        $address = trim((string) ($childRow->applicant_address ?? $childRow->applicant_address ?? ''));
         if ($address !== '') {
             $update['address'] = $address;
         }

@@ -1985,6 +1985,722 @@ $(document).on("change", "#ownership_type_select", function () {
 
     }
 
+function getPaymentsService(licence_code,issued_licence,appl_type, options){
+        const silent = !!(options && typeof options === 'object' && options.silent);
+        
+        return new Promise((resolve, reject) => {
+
+
+                $.ajax({
+                url: "{{ route('licences.getPaymentDetails') }}",
+                type: "POST",
+                data: {
+                    licence_code: licence_code,
+                    issued_licence: issued_licence,
+                    appl_type:appl_type,
+                    _token: $('meta[name="csrf-token"]').attr(
+                        'content')
+                },
+                success: function(response) {
+                    
+                    if (response.status == 'success') {
+                        resolve(response.fees_details);
+                    } else {
+                        if (!silent) {
+                            Swal.fire("Error", response.message, "error");
+                        }
+                        reject(response);
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        let messages = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                        if (!silent) {
+                            Swal.fire("Error", messages, "error");
+                        }
+                    } else {
+                        if (!silent) {
+                            Swal.fire("Error", window.getAjaxErrorMessage(xhr), "error");
+                        }
+                    }
+                    reject(xhr);
+                }
+            });
+        });
+        
+    }
+
+
+    async function showDeclarationPopup(licence_code, directProceed = false) {   
+        
+        try {
+            
+            let total_fees,renewl_fees,lateFee,lateMonths,form_cost, form_name, licence, renewalAmoutStartson, latefee_amount, latefee_starts,form_instruct,fees_date;
+            
+            const appl_type = $('#appl_type').val();
+            const issued_licence = $('#license_number').val();
+            const isDigitization = String(appl_type || '').trim().toUpperCase() === 'D';
+            const noPaymentApplType = isNoPaymentApplType();
+
+            const formResponse = await $.ajax({
+                url: "{{ route('licences.getFormInstruction') }}",
+                type: "POST",
+                data: {
+                    appl_type,
+                    licence_code,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
+            if (formResponse.status == 200) {
+                form_instruct = formResponse.data;
+            } else {
+                Swal.fire("Error", "Instruction not available", "error");
+                return;
+            }
+
+            let data = null;
+            if (!noPaymentApplType) {
+                data = await getPaymentsService(licence_code, issued_licence, appl_type);
+            }
+
+            if (!noPaymentApplType && !data) {
+                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
+                return;
+            }
+
+            if (noPaymentApplType) {
+                $('#amount').val('0');
+            }
+
+            const boardMemberFeeExempt = !noPaymentApplType
+                && ($('#form_name').val() || '').trim().toUpperCase() === 'S'
+                && ['N', 'R'].includes(String(appl_type || '').trim().toUpperCase())
+                && typeof window.wxHasBoardMemberWorkRow === 'function'
+                && window.wxHasBoardMemberWorkRow();
+
+            if (boardMemberFeeExempt) {
+                $('#amount').val('0');
+                $('#board_member_fee_exempt').val('1');
+            } else if ($('#board_member_fee_exempt').length) {
+                $('#board_member_fee_exempt').val('0');
+            }
+
+            const feeWaived = noPaymentApplType || boardMemberFeeExempt;
+
+            if (feeWaived) {
+                actual_fees = 0;
+                total_fees = 0;
+                lateFee = 0;
+                lateMonths = 0;
+            } else if (data.lateFees < 0) {
+                actual_fees = data.basic_fees;
+                total_fees = data.total_fees;
+                lateMonths = data.late_months;
+            } else {
+                actual_fees = data.basic_fees;
+                lateMonths = data.late_months;
+                total_fees = data.total_fees;
+                lateFee = data.lateFees;
+            }
+
+            fees_date = data ? data.fees_start_date : '';
+            certificate_name = data ? data.certificate_name : '';
+
+            const modalEl = document.getElementById('competencyInstructionsModal');
+            if (!modalEl) {
+                Swal.fire("Error", "Payment instructions modal is not available. Please refresh the page.", "error");
+                return;
+            }
+
+            const agreeCheckbox = modalEl.querySelector('#declaration-agree-renew');
+            const errorText = modalEl.querySelector('#declaration-error-renew');
+            const proceedBtn = modalEl.querySelector('#proceedPayment');
+
+            if (!agreeCheckbox || !errorText || !proceedBtn) {
+                Swal.fire("Error", "Payment form controls are missing. Please refresh the page.", "error");
+                return;
+            }
+
+            const certNameEl = document.getElementById('certificate_name');
+            if (certNameEl) {
+                certNameEl.textContent = certificate_name || '';
+            }
+            const feesStartEl = document.getElementById('fees_starts_from');
+            if (feesStartEl) {
+                feesStartEl.textContent = fees_date || '';
+            }
+            const formFeesEl = document.getElementById('form_fees');
+            if (formFeesEl) {
+                const applUpper = String(appl_type || '').trim().toUpperCase();
+                formFeesEl.textContent = noPaymentApplType
+                    ? (applUpper === 'A' ? 'No fee (Alteration)' : 'No fee (Digitization)')
+                    : (boardMemberFeeExempt
+                        ? 'No fee (Board Member — fee not applicable)'
+                        : ('Rs.' + actual_fees + '/-'));
+            }
+            
+            // Reset state
+            agreeCheckbox.checked = false;
+            errorText.classList.add('d-none');
+            
+            // Show modal
+            const modalBody = modalEl.querySelector('#instructionContent');
+            
+
+            const delta = JSON.parse(form_instruct);
+            
+            const converter = new QuillDeltaToHtmlConverter(delta.ops, {
+                inlineStyles: true,
+                multiLineParagraph: false,
+                listItemTag: "li",
+                paragraphTag: "p"
+            });
+
+            let html = converter.convert();
+            /* Stray "@" before (ii) / list markers when Quill split merge-tag text */
+            html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
+            html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
+            modalBody.innerHTML = html;
+            const el = document.querySelector("#instructionContent");
+            
+
+            // return false;
+
+            const modal = new bootstrap.Modal(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            if (!directProceed) {
+                modal.show();
+            }
+            
+            // Remove old listeners
+            proceedBtn.replaceWith(proceedBtn.cloneNode(true));
+            
+            // Re-assign click listener
+            modalEl.querySelector('#proceedPayment').addEventListener('click', async function() {
+                window._competencyPaymentProceedActive = true;
+                if (!agreeCheckbox.checked) {
+                    errorText.classList.remove('d-none');
+                    window._competencyPaymentProceedActive = false;
+                    return;
+                }
+                
+                modal.hide();
+                
+                if (typeof window.normalizeIsoDateInputs === 'function') {
+                    window.normalizeIsoDateInputs('#competency_form_ws');
+                }
+                let formData = new FormData($('#competency_form_ws')[0]);
+                formData.set('form_action', 'draft');
+                let applicationId = $('#application_id').val();
+                let formUrl;
+                
+                if (applicationId) {
+                    if (appl_type === 'R') {
+                        formUrl = "{{ route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}"
+                        .replace('__APPL_ID__', applicationId);
+                    } else {
+                        formUrl = "{{ route('form.update', ['appl_id' => '__APPL_ID__']) }}"
+                        .replace('__APPL_ID__', applicationId);
+                    }
+                } else {
+                    formUrl = "{{ route('form.store') }}";
+                }
+
+                // ---- Date helpers (avoid RangeError: Invalid time value) ----
+                const safeIsoDateOnly = (value) => {
+                    if (value === null || value === undefined) return null;
+                    const raw = String(value).trim();
+                    if (!raw) return null;
+
+                    // Already ISO date-only
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+                    // Common DB datetime "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss"
+                    const dbMatch = raw.match(/^(\d{4}-\d{2}-\d{2})[ T]/);
+                    if (dbMatch) return dbMatch[1];
+
+                    // "DD-MM-YYYY"
+                    const dmy = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+                    if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+
+                    // Last resort: Date.parse; never call toISOString on invalid date
+                    const d = new Date(raw);
+                    if (Number.isNaN(d.getTime())) return null;
+                    return d.toISOString().slice(0, 10);
+                };
+
+                const formatDateDDMMYYYY = (isoDateOnly) => {
+                    if (!isoDateOnly) return '';
+                    const m = String(isoDateOnly).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (!m) return String(isoDateOnly);
+                    return `${m[3]}-${m[2]}-${m[1]}`;
+                };
+                try {
+                    // 🔹 Submit form
+                    let saveResponse = await $.ajax({
+                        url: formUrl,
+                        type: "POST",
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        error: function (xhr) {
+                            console.error("Uncaught AJAX Error:", xhr);
+                        }
+                    });
+                    
+                    if (saveResponse.status === "success") {
+
+                        
+                        let form_type = isDigitization
+                            ? 'Digitization Application'
+                            : (String(appl_type || '').trim().toUpperCase() === 'A'
+                                ? 'Alteration Application'
+                                : (appl_type === 'R' ? 'Renewal Application' : 'New Application'));
+
+                        const login_id = window.login_id || "{{ auth()->user()->login_id ?? '' }}";
+                        const application_id = saveResponse.application_id;
+
+                        const transactionDateIso = safeIsoDateOnly(saveResponse.date_apps) || safeIsoDateOnly(new Date());
+                        const transactionDate = formatDateDDMMYYYY(transactionDateIso) || new Date().toLocaleDateString('en-GB');
+                        // Backward-compatible alias (some pages/scripts expect this name)
+                        const formatted_transaction_date = transactionDate;
+                        const applicantName = saveResponse.applicantName || 'N/A';
+                        const type_apps = saveResponse.type_of_apps || 'N/A';
+                        const form_name = saveResponse.form_name || 'N/A';
+                        const amount = total_fees;
+                        const licence_name = saveResponse.licence_name || 'N/A';
+                        const feeExemptSubmit = noPaymentApplType || boardMemberFeeExempt;
+
+                        //console.log(transactionDate);
+                        
+                        // const serviceCharge = 10;
+                        // let lateFee = typeof lateFee !== "undefined" ? lateFee : 0;
+                        // let total_charge = Number(amount) + Number(serviceCharge);
+                        let lateFeeRow = "";
+                        if(lateFee > 0){
+                             lateFeeRow = `
+                                <tr>
+                                    <th style="text-align: left; padding: 6px 10px; color: #555;">Late Fees (${lateMonths} Months)</th>
+                                    <td style="text-align: right; padding: 6px 10px; font-weight: 500;">Rs. ${lateFee} </td>
+                                </tr>
+                            `;
+                        }
+                        
+                       
+                        const payment_mode = 'UPI';
+
+                        const runCompetencyPayment = async function () {
+                            const txnId = 'TRX' + Math.floor(100000 + Math.random() * 900000);
+                            let paymentResponse;
+                            try {
+                                paymentResponse = await $.ajax({
+                                    url: "{{ route('payment.updatePayment') }}",
+                                    type: "POST",
+                                    dataType: "json",
+                                    data: {
+                                        login_id,
+                                        application_id,
+                                        applicantName,
+                                        transaction_id: txnId,
+                                        transactionDate: transactionDateIso || transactionDate,
+                                        amount,
+                                        payment_mode,
+                                        form_name,
+                                        form_type,
+                                        lateFee: lateFee ?? 0,
+                                        lateMonths: lateMonths ?? 0,
+                                        board_member_fee_exempt: $('#board_member_fee_exempt').val() || '0',
+                                        _token: $('meta[name="csrf-token"]').attr('content')
+                                    },
+                                    headers: {
+                                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                    }
+                                });
+                            } catch (xhr) {
+                                const msg = (xhr && xhr.responseJSON && xhr.responseJSON.message)
+                                    ? xhr.responseJSON.message
+                                    : (xhr && xhr.responseJSON && xhr.responseJSON.errors
+                                        ? Object.values(xhr.responseJSON.errors).flat().join(' ')
+                                        : window.getAjaxErrorMessage(xhr));
+                                throw new Error(msg || 'Payment could not be completed. Please try again.');
+                            }
+
+                            if (paymentResponse.status !== 200) {
+                                throw new Error(paymentResponse.message || 'Payment could not be completed. Please try again.');
+                            }
+
+                            return {
+                                transactionId: txnId,
+                                application_id,
+                                transactionDate,
+                                applicantName,
+                                amount,
+                                form_type,
+                                licence_name,
+                            };
+                        };
+
+                        // Zero-fee paths — submit directly (no payment gateway UI)
+                        if (feeExemptSubmit) {
+                            try {
+                                // Digitisation / Alteration: form save already finalises; do not create payment records.
+                                if (noPaymentApplType) {
+                                    showPaymentSuccessPopup(
+                                        application_id,
+                                        '',
+                                        transactionDate,
+                                        applicantName,
+                                        0,
+                                        form_type,
+                                        licence_name,
+                                        false,
+                                        { feeExempt: true }
+                                    );
+                                    return;
+                                }
+
+                                // Board-member fee exemption (N/R Form S) still records a zero-amount payment.
+                                const paid = await runCompetencyPayment();
+                                showPaymentSuccessPopup(
+                                    paid.application_id,
+                                    paid.transactionId,
+                                    paid.transactionDate,
+                                    paid.applicantName,
+                                    paid.amount,
+                                    paid.form_type,
+                                    paid.licence_name,
+                                    false,
+                                    { feeExempt: true }
+                                );
+                            } catch (err) {
+                                Swal.fire({
+                                    title: noPaymentApplType ? 'Submission Failed' : 'Payment Failed',
+                                    text: err.message || 'Something went wrong. Please try again.',
+                                    icon: 'error'
+                                });
+                            }
+                            return;
+                        }
+
+                        // Paid applications — confirm fees before gateway (Pay Now can be retried on failure)
+                        Swal.fire({
+                            title: "<span style='color:#0d6efd;'>₹ Payment Details</span>",
+                            html: `
+                            <div class="text-start" style="font-size: 14px; padding: 10px 0;">
+                                <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                                    <tbody>
+                                            <tr>
+                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Application ID</th>
+                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${application_id}</td>
+                                            </tr>
+                                            <tr>
+                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Applicant Name</th>
+                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${applicantName}</td>
+                                            </tr>
+                                            <tr>
+                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Type of Application</th>
+                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${licence_name}</td>
+                                            </tr>
+                                            <tr>
+                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Type of Form</th>
+                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${form_type}</td>
+                                            </tr>
+                                            <tr>
+                                                <th style="text-align: left; padding: 6px 10px; color: #555;">Date</th>
+                                                <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${formatted_transaction_date}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th style="text-align: left; padding: 10px; color: #333;">Application Fees</th>
+                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${actual_fees} </td>
+                                                    </tr>
+                                                            ${lateFeeRow}
+                                                                <tr>
+                                                                    <th style="text-align: left; padding: 6px 10px; color: #555;">Total</th>
+                                                                    <td style="text-align: right; padding: 6px 10px; font-weight: 500;">Rs. ${amount}</td>
+                                                                    </tr>
+                                                                    </tbody>
+                                                                    </table>
+                                                                    </div>
+                                                                    `,
+                            width: '515px',
+                            showCancelButton: true,
+                            confirmButtonText: '<span class="btn btn-primary px-4 pr-4 payment">Pay Now</span>',
+                            cancelButtonText: '<span class="btn btn-danger px-4">Cancel</span>',
+                            showCloseButton: false,
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showLoaderOnConfirm: true,
+                            customClass: {
+                                popup: 'swal2-border-radius',
+                                actions: 'd-flex justify-content-around mt-3',
+                            },
+                            buttonsStyling: false,
+                            footer: '<div><span style="font-size: 13px;">Note: </span><span style="font-size: 13px;color: red;">The total amount is exclusive of payment gateway service charges.</span>',
+                            preConfirm: async () => {
+                                try {
+                                    return await runCompetencyPayment();
+                                } catch (err) {
+                                    Swal.showValidationMessage(
+                                        err.message || 'Payment failed. You can click Pay Now to try again.'
+                                    );
+                                    return false;
+                                }
+                            }
+
+                        }).then((result) => {
+                            if (result.isConfirmed && result.value) {
+                                const paid = result.value;
+                                showPaymentSuccessPopup(
+                                    paid.application_id,
+                                    paid.transactionId,
+                                    paid.transactionDate,
+                                    paid.applicantName,
+                                    paid.amount,
+                                    paid.form_type,
+                                    paid.licence_name,
+                                    false,
+                                    { feeExempt: noPaymentApplType }
+                                );
+                                return;
+                            }
+                            if (result.dismiss === Swal.DismissReason.cancel) {
+                                Swal.fire({
+                                    title: "Payment Failed!",
+                                    text: "Application Saved as Draft",
+                                    icon: "error",
+                                    timer: 3000,
+                                    timerProgressBar: true
+                                }).then(() => {
+                                    window.location.href = BASE_URL+"/dashboard";
+                                });
+                            }
+                        });
+                    } else {
+                        Swal.fire("Form Submission Failed", "Application not submitted", "error");
+                    }   
+                } catch (xhr) {
+                    console.error("❌ Form Submit Error:", xhr);
+
+                    // Handle date parsing/formatting issues gracefully
+                    if (xhr instanceof RangeError && String(xhr.message || '').toLowerCase().includes('invalid time value')) {
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Invalid Date",
+                            text: "Please check all date fields and try again."
+                        });
+                        return;
+                    }
+
+                    if (xhr.status === 422 && xhr.responseJSON?.errors) {
+                        const errors = xhr.responseJSON.errors;
+
+                        // Remove any old error labels
+                        $('.server-error').remove();
+                        $('.is-invalid').removeClass('is-invalid');
+
+                        $.each(errors, function (field, messages) {
+                            // Find input by name (supports array names)
+                            const input = $('[name="' + field + '"]');
+                            if (input.length) {
+                                input.addClass('is-invalid');
+                                input.after('<span class="text-danger server-error">' + messages[0] + '</span>');
+                            }
+                        });
+
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Validation Error",
+                            text: "Please correct the highlighted fields."
+                        });
+                        return;
+                    }
+
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: window.getAjaxErrorMessage(xhr)
+                    });
+                } finally {
+                    window._competencyPaymentProceedActive = false;
+                }
+                
+            });
+
+            if (directProceed) {
+                agreeCheckbox.checked = true;
+                modalEl.querySelector('#proceedPayment').click();
+                return;
+            }
+        } catch (err) {
+            console.error('showDeclarationPopup failed:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Unable to proceed to payment',
+                text: err && err.message ? err.message : 'Something went wrong. Please try again.'
+            });
+        }
+    }
+                                            
+    function showPaymentSuccessPopup(loginId, transactionId, transactionDate, applicantName, amount, form_type, licence_name, isFormP, options) {
+        isFormP = (typeof isFormP !== 'undefined' && isFormP === true);
+        options = options || {};
+        window.paymentIsFormP = isFormP;
+
+        const isFeeExemptSubmit = (typeof isFeeExemptCompetencySuccess === 'function')
+            ? isFeeExemptCompetencySuccess(loginId, form_type, options.feeExempt === true)
+            : (options.feeExempt === true);
+        const $modal = $("#paymentSuccessModal");
+
+        $("#ps_applicantName_competency").text(applicantName);
+        $("#ps_applicationId_competency").text(loginId);
+        $("#ps_licenceName_competency").text(licence_name);
+        $("#ps_transactionDate_competency").text(transactionDate);
+
+        // Digitisation (D) / Alteration (A) / board-member waiver: never show or retain payment details.
+        if (isFeeExemptSubmit) {
+            $("#ps_transactionId_competency").text('');
+            $("#ps_amount_competency").text('');
+            $modal.find("#ps_success_modal_title").text("Application Submitted Successfully!");
+            $modal.find(".ps-payment-only").addClass("d-none");
+            $modal.find(".ps-transaction-date-label").text("Submission Date:");
+            $modal.find(".ps-app-pdf-heading").removeClass("mt-3");
+        } else {
+            $("#ps_transactionId_competency").text(transactionId);
+            $("#ps_amount_competency").text(amount);
+            $modal.find("#ps_success_modal_title").text("Payment Successful!");
+            $modal.find(".ps-payment-only").removeClass("d-none");
+            $modal.find(".ps-transaction-date-label").text("Transaction Date:");
+            $modal.find(".ps-app-pdf-heading").addClass("mt-3");
+        }
+
+        // store ID globally for download actions
+        window.paymentAppId = loginId;
+        window.paymentFormType = form_type;
+        $modal.modal({
+            backdrop: 'static',   
+            keyboard: false     
+        });
+
+        // Show bootstrap modal
+        $modal.modal("show");
+       
+       
+        // Swal.fire({
+        //     title: `<h3 style="color:#198754; font-size:1.5rem;">Payment Successful!</h3>`,
+        //     html: `
+        //     <div style="font-size: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;">
+        //         <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 90%; margin: 0 auto;">
+        //             <div style="
+        //             display: grid;
+        //             grid-template-columns: auto 1fr;
+        //             gap: 7px 50px;
+        //             font-size: 14px;
+        //             max-width: 350px;
+        //             border-right:2px solid #0d6efd;
+        //             padding: 0px 15px;
+        //             ">
+        //             <div style="font-weight: bold;">Applicant Name:</div>
+        //             <div>${applicantName}</div>
+        //             <div style="font-weight: bold;">Application ID:</div>
+        //             <div style="word-break: break-word;">${loginId}</div>
+
+        //             <div style="font-weight: bold;">Type of Application:</div>
+        //             <div style="word-break: break-word;">${licence_name}</div>
+                    
+        //             <div style="font-weight: bold;">Transaction ID:</div>
+        //             <div style="word-break: break-word;">${transactionId}</div>
+                    
+        //             <div style="font-weight: bold;">Transaction Date:</div>
+        //             <div>${transactionDate}</div>
+                    
+                    
+        //             <div style="font-weight: bold;">Amount Paid:</div>
+        //             <div>${amount}</div>
+        //             </div>
+        //             <div style="min-width: 200px; text-align: center;">
+        //                 <p><strong>Download Your Payment Receipt:</strong></p>
+        //                 <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt('${loginId}')">
+        //                     <i class="fa fa-file-pdf-o text-danger"></i> 
+        //                     <i class="fa fa-download text-danger"></i>
+        //                     Download Receipt
+        //                     </button>
+        //                     <p class="mt-2"><strong>Download Your Application PDF:</strong></p>
+        //                     <button class="btn btn-primary btn-sm me-1" onclick="downloadPDF('english', '${loginId}')"><i class="fa fa-file-pdf-o text-danger"></i> 
+        //                         English</button>
+        //                         <button class="btn btn-success btn-sm" onclick="downloadPDF('tamil', '${loginId}')"><i class="fa fa-file-pdf-o text-danger"></i> 
+        //                             Tamil</button>
+        //                             </div>
+        //                             </div>
+        //                             </div>
+        //                             `,
+        //     // 🧹 removed: icon: "success",
+        //     width: '50%',
+        //     customClass: {
+        //         popup: 'swal2-border-radius p-3'
+        //     },
+        //     confirmButtonText: "Go to Dashboard",
+        //     confirmButtonColor: "#0d6efd",
+        //     allowOutsideClick: false,
+        //     allowEscapeKey: false,
+        //     showCloseButton: false,
+        //     didOpen: () => {
+        //         const iconEl = document.querySelector('.swal2-icon');
+        //         if (iconEl) {
+        //             iconEl.style.display = 'none'; // hide icon if still rendered
+        //         }
+                
+        //         const popup = document.querySelector('.swal2-popup');
+        //         if (popup) {
+        //             popup.style.marginTop = '10px';
+        //             popup.style.padding = '10px 20px';
+        //         }
+                
+        //         const container = document.querySelector('.swal2-container');
+        //         if (container) {
+        //             container.style.alignItems = 'flex-start';
+        //             container.style.paddingTop = '20px';
+        //         }
+        //     },
+        //     willClose: () => {
+        //         window.location.href = BASE_URL + '/dashboard';
+        //     }
+        // });
+        
+    }
+                                                                        
+                                                                        
+                                                                    
+    // Open Payment Receipt in New Tab
+    //  function paymentreceipt(loginId) {
+    //     window.open(`/payment-receipt/${loginId}`, '_blank');
+    // }
+
+    function downloadPDF(language) {
+        if (!window.paymentAppId) {
+            alert("Application ID not found!");
+            return;
+        }
+        let url;
+        if (window.paymentIsFormP) {
+            // Form P (Competency) application PDF routes
+            url = (language === 'tamil')
+                ? `${BASE_URL}/generatePDFFormPTA/${window.paymentAppId}`
+                : `${BASE_URL}/generate-pdf-p/${window.paymentAppId}`;
+        } else {
+            url = (language === 'tamil')
+                ? `${BASE_URL}/generateTamilPDF/${window.paymentAppId}`
+                : `${BASE_URL}/generate-pdf/${window.paymentAppId}`;
+        }
+        window.open(url, '_blank');
+    }
+
+
 
     // **Close PDF Popup and Redirect**
     function restrictToLetters(inputSelector) {

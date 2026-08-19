@@ -223,6 +223,7 @@ class LoginController extends Controller
      */
     public function dashboard()
     {
+        
         $staff = Auth::user();
 
 
@@ -1182,7 +1183,7 @@ class LoginController extends Controller
         $returnForwardUser = null;
         // Fetch applicant details
         $applicant = DB::table('tnelb_application_tbl')
-            ->join('payments', 'tnelb_application_tbl.application_id', '=', 'payments.application_id')
+            ->join('cc_payments', 'tnelb_application_tbl.application_id', '=', 'payments.application_id')
             ->where('tnelb_application_tbl.application_id', $applicant_id)
             ->select('tnelb_application_tbl.*', 'payments.*')
             ->first();

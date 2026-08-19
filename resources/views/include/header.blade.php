@@ -2405,12 +2405,10 @@ use Illuminate\Support\Facades\Auth;
                             <p class="fw-bold ps-app-pdf-heading mt-3">Download Your Application PDF:</p>
 
                             <button class="btn btn-primary btn-sm me-2" onclick="downloadPDF('english')">
-                                <i class="fa fa-file-pdf-o text-danger"></i> English
+                                <i class="fa fa-file-pdf-o text-danger"></i> Download
                             </button>
 
-                            <button class="btn btn-success btn-sm" onclick="downloadPDF('tamil')">
-                                <i class="fa fa-file-pdf-o text-danger"></i> Tamil
-                            </button>
+                           
 
                         </div>
                     </div>

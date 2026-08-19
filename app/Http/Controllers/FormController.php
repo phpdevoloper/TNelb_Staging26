@@ -2954,6 +2954,45 @@ class FormController extends BaseController
 
             DB::commit();
 
+            if ($appl_type == 'D') {
+                $digization_number = DB::table('tnelb_cc_digitization')->where('application_id', $applicationId )->first();
+
+                $ccnumber = $digization_number->cc_number;
+                $fissue = $digization_number->fissue;
+                $from_date = $digization_number->from_date;
+                $to_date = $digization_number->to_date;
+
+                return response()->json([
+                     'status' => 'success',
+                'message' => 'Form submitted successfully!',
+                'application_id' => $applicationId,
+                'applicantName' => $form->applicant_name,
+                'form_name'    => $form->form_name,
+                'licence_name' => $certificate_details['licence_name'],
+                'type_of_apps' => $certificate_details['category_name'],
+                'form_type'    => $certificate_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y'),
+                    
+                    'ccnumber'   => $ccnumber,
+                    'fissue'    => Carbon::parse($fissue)->format('d-m-Y'),
+                    'from_date'    => Carbon::parse($from_date)->format('d-m-Y'),
+                    'to_date'    => Carbon::parse($to_date)->format('d-m-Y'),
+
+                ]);
+             } else {
+                  return response()->json([
+                     'status' => 'success',
+                'message' => 'Form submitted successfully!',
+                'application_id' => $applicationId,
+                'applicantName' => $form->applicant_name,
+                'form_name'    => $form->form_name,
+                'licence_name' => $certificate_details['licence_name'],
+                'type_of_apps' => $certificate_details['category_name'],
+                'form_type'    => $certificate_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y')
+                ]);
+             }
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Form submitted successfully!',
@@ -3903,6 +3942,11 @@ class FormController extends BaseController
                 );
             }
 
+            // $digization_number = DB::table('tnelb_cc_digitization')->where('application_id', $applicationId )->first();
+            // dd($digization_number); exit;
+
+            
+
             return response()->json([
                 'status' => 'success',
                 'message' => $action === 'draft' ? 'Draft saved successfully!' : 'Form submitted successfully!',
@@ -4541,17 +4585,49 @@ public function update(Request $request, $id)
             // Process Payment for update
             DB::commit();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Form submitted successfully!',
-                'application_id' => $applicationId,
-                'applicantName' => $renewal_form->applicant_name,
-                'form_name'    => $renewal_form->form_name,
-                'licence_name' => $licence_details['licence_name'],
-                'type_of_apps' => $licence_details['category_name'],
-                'form_type'    => $licence_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
-                'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y')
-            ]);
+            
+            // dd($digization_number); exit;
+
+             if ($appl_type == 'D') {
+
+
+//                 $digization_number = DB::table('tnelb_cc_digitization')->where('application_id', $applicationId )->first();
+// // dd($digization_number); exit;
+//                 $ccnumber = $digization_number->cc_number;
+//                 $fissue = $digization_number->fissue;
+//                 $from_date = $digization_number->from_date;
+//                 $to_date = $digization_number->to_date;
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Form submitted successfully!',
+                    'application_id' => $applicationId,
+                    'applicantName' => $renewal_form->applicant_name,
+                    'form_name'    => $renewal_form->form_name,
+                    'licence_name' => $licence_details['licence_name'],
+                    'type_of_apps' => $licence_details['category_name'],
+                    'form_type'    => $licence_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                    'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y'),
+                    
+                    // 'ccnumber'   => $ccnumber,
+                    // 'fissue'    => Carbon::parse($fissue)->format('d-m-Y'),
+                    // 'from_date'    => Carbon::parse($from_date)->format('d-m-Y'),
+                    // 'to_date'    => Carbon::parse($to_date)->format('d-m-Y'),
+
+                ]);
+             } else {
+                  return response()->json([
+                    'status' => 'success',
+                    'message' => 'Form submitted successfully!',
+                    'application_id' => $applicationId,
+                    'applicantName' => $renewal_form->applicant_name,
+                    'form_name'    => $renewal_form->form_name,
+                    'licence_name' => $licence_details['licence_name'],
+                    'type_of_apps' => $licence_details['category_name'],
+                    'form_type'    => $licence_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                    'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y')
+                ]);
+             }
         } catch (\Exception $e) {
             DB::rollBack();
 
