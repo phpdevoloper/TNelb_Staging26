@@ -6700,367 +6700,314 @@ flatpickr('input[name="competency_certificate_validity_to[]"]', {
     }
 });
 // qcstaff-----------
-function addStaffqcRow() {
+$(document).on("click", "#add_qc_staff", function () {
 
-    let $container = $("#staffqc-container");
+    $("#staffqc_datasection").slideDown();
 
-    // ----------------------------------------------------
-    // GET LAST STAFF ROW
-    // ----------------------------------------------------
+    // Scroll to form
+    $("html, body").animate({
+        scrollTop: $("#staffqc_datasection").offset().top - 100
+    }, 500);
 
-    let $lastStaffRow = $container
-        .find(".staffqc-fields")
-        .last();
+});
 
-    // Upload row belonging to last staff row
-    let $lastUploadRow = $lastStaffRow
-        .next(".qc-upload-row");
+$(document).on("click", "#save_qc", function () {
 
-    // Fee row is always the LAST TR
-    let $feeRow = $container
-        .find("tr")
-        .last();
+    let $section = $("#staffqc_datasection");
 
-
-    // ----------------------------------------------------
-    // CLEAR PREVIOUS ERRORS
-    // ----------------------------------------------------
-
-    $lastStaffRow.find(".text-danger").text("");
-    $lastUploadRow.find(".text-danger").text("");
-
+    // Clear previous errors
+    $section.find(".text-danger").text("");
 
     let hasError = false;
 
+    // -----------------------------
+    // CATEGORY
+    // -----------------------------
 
-    // ====================================================
-    // 1. CATEGORY VALIDATION
-    // ====================================================
-
-    let category = $lastStaffRow
-        .find(".staff_category")
-        .val();
+    let category = $section.find(".staff_category").val();
 
     if (!category) {
 
-        $lastStaffRow
-            .find(".staff-category-error")
-            .text("Please select category.");
+        $section.find(".staff-category-error")
+            .text("Please select staff category.");
 
         hasError = true;
     }
 
 
-    // ====================================================
-    // 2. CC NUMBER VALIDATION
-    // ====================================================
+    // -----------------------------
+    // CC NUMBER
+    // -----------------------------
 
-    let ccNo = $lastStaffRow
+    let ccNo = $section
         .find('input[name="staff_cc_no[]"]')
         .val()
         .trim();
 
     if (!ccNo) {
 
-        $lastStaffRow
-            .find(".staff-cc-error")
-            .text("Please enter CC Number.");
+        $section.find(".staff-cc-error")
+            .text("Please enter Certificate Number.");
 
         hasError = true;
     }
 
 
-    // ====================================================
-    // 3. FIRST ISSUE VALIDATION
-    // ====================================================
+    // -----------------------------
+    // FIRST ISSUE
+    // -----------------------------
 
-    let firstIssue = $lastStaffRow
+    let firstIssue = $section
         .find('input[name="staff_cc_first_issue[]"]')
         .val()
         .trim();
 
     if (!firstIssue) {
 
-        $lastStaffRow
-            .find(".staff-first-issue-error")
-            .text("Please enter CC First Issue.");
+        $section.find(".staff-first-issue-error")
+            .text("Please enter Certificate First Issue.");
 
         hasError = true;
     }
 
 
-    // ====================================================
-    // 4. VALIDITY FROM VALIDATION
-    // ====================================================
+    // -----------------------------
+    // VALIDITY FROM
+    // -----------------------------
 
-    let validityFrom = $lastStaffRow
+    let validityFrom = $section
         .find('input[name="staff_cc_validity_from[]"]')
         .val()
         .trim();
 
     if (!validityFrom) {
 
-        $lastStaffRow
-            .find(".staff-validity-from-error")
-            .text("Please enter Validity From.");
+        $section.find(".staff-validity-from-error")
+            .text("Please enter Validity From Date.");
 
         hasError = true;
     }
 
 
-    // ====================================================
-    // 5. VALIDITY TO VALIDATION
-    // ====================================================
+    // -----------------------------
+    // VALIDITY TO
+    // -----------------------------
 
-    let validityTo = $lastStaffRow
+    let validityTo = $section
         .find('input[name="staff_cc_validity_to[]"]')
         .val()
         .trim();
 
     if (!validityTo) {
 
-        $lastStaffRow
-            .find(".staff-validity-to-error")
-            .text("Please enter Validity To.");
+        $section.find(".staff-validity-to-error")
+            .text("Please enter Validity To Date.");
 
         hasError = true;
     }
 
 
-    // ====================================================
-    // 6. APPOINTMENT DOCUMENT VALIDATION
-    // ====================================================
+    // -----------------------------
+    // APPOINTMENT DOCUMENT
+    // -----------------------------
 
-    let appointmentDoc = $lastUploadRow
-        .find('input[name="app_doc[]"]')
+    let appDoc = $section
+        .find(".app_doc")
         .val();
 
-    // if (!appointmentDoc) {
+    if (!appDoc) {
 
-    //     $lastUploadRow
-    //         .find(".app_doc_upload_error")
-    //         .text("Please upload Appointment Letter.");
+        $section.find(".app_doc_upload_error")
+            .text("Please upload Appointment Letter.");
 
-    //     hasError = true;
-    // }
-
-
-    // ====================================================
-    // 7. CONSENT DOCUMENT VALIDATION
-    // ====================================================
-
-    let consentDoc = $lastUploadRow
-        .find('input[name="cons_doc[]"]')
-        .val();
-
-    // if (!consentDoc) {
-
-    //     $lastUploadRow
-    //         .find(".cons_doc_upload_error")
-    //         .text("Please upload Consent Letter.");
-
-    //     hasError = true;
-    // }
-
-
-    // ====================================================
-    // STOP IF VALIDATION FAILED
-    // ====================================================
-
-    if (hasError) {
-        return false;
+        hasError = true;
     }
 
 
-    // ====================================================
-    // CLONE STAFF ROW
-    // ====================================================
+    // -----------------------------
+    // CONSENT DOCUMENT
+    // -----------------------------
 
-    let $newStaffRow = $lastStaffRow.clone(false, false);
+    let consDoc = $section
+        .find(".cons_doc")
+        .val();
 
+    if (!consDoc) {
 
-    // ----------------------------------------------------
-    // Remove Flatpickr state from cloned inputs
-    // ----------------------------------------------------
+        $section.find(".cons_doc_upload_error")
+            .text("Please upload Consent Letter.");
 
-    $newStaffRow.find("input").each(function () {
-
-        $(this)
-            .removeClass("flatpickr-input")
-            .removeAttr("readonly")
-            .removeAttr("data-input");
-
-        // Remove possible Flatpickr generated attributes
-        $(this).removeAttr("aria-label");
-    });
+        hasError = true;
+    }
 
 
-    // ----------------------------------------------------
-    // Clear values
-    // ----------------------------------------------------
+    // -----------------------------
+    // STOP IF ERROR
+    // -----------------------------
 
-    $newStaffRow
-        .find("input")
-        .val("");
-
-    $newStaffRow
-        .find("select")
-        .val("");
+    if (hasError) {
+        return;
+    }
 
 
-    // Clear validation messages
-    $newStaffRow
-        .find(".text-danger")
-        .text("");
+    // -----------------------------
+    // CALCULATE FEE
+    // -----------------------------
+
+    let fee = category === "QC"
+        ? 15000
+        : 25000;
 
 
-    // ====================================================
-    // CLONE UPLOAD ROW
-    // ====================================================
+    // -----------------------------
+    // ADD RECORD TO TABLE
+    // -----------------------------
 
-    let $newUploadRow = $lastUploadRow.clone(false, false);
-
-
-    // Clear file input
-    $newUploadRow
-        .find('input[type="file"]')
-        .val("");
-
-
-    // Clear hidden upload values
-    $newUploadRow
-        .find('input[name="app_doc[]"]')
-        .val("");
-
-    $newUploadRow
-        .find('input[name="cons_doc[]"]')
-        .val("");
-
-
-    // Clear staff ID
-    $newUploadRow
-        .find('input[name="staffqc_id[]"]')
-        .val("");
-
-
-    // Clear upload errors
-    $newUploadRow
-        .find(".text-danger")
-        .text("");
-
-
-    // ====================================================
-    // NEW SERIAL NUMBER
-    // ====================================================
-
-    let newNumber =
-        $container.find(".staffqc-fields").length + 1;
-
-    $newStaffRow
-        .find("td:first")
-        .text(newNumber);
-
-
-    // ====================================================
-    // ADD BUTTON TO NEW LAST STAFF ROW
-    // ====================================================
-
-    $newStaffRow
-        .find("td:last")
-        .html(`
-            <button type="button"
-                    class="btn btn-success btn-addqc-staff"
-                    onclick="addStaffqcRow()">
-                + Add
-            </button>
-        `);
-
-
-    // Remove Add button from previous row
-    $lastStaffRow
-        .find("td:last")
-        .empty();
-
-
-    // ====================================================
-    // INSERT NEW ROWS BEFORE FEE ROW
-    // ====================================================
-
-    $newStaffRow.insertBefore($feeRow);
-
-    $newUploadRow.insertBefore($feeRow);
-
-
-    // ====================================================
-    // INITIALIZE FLATPICKR FOR NEW ROW
-    // ====================================================
-
-    initStaffQCDates($newStaffRow[0]);
-
-
-    // ====================================================
-    // UPDATE FEE
-    // ====================================================
-
-    updateStaffQCFee();
-
-
-    return true;
-}
-
-function initStaffQCDates(scope = document) {
-
-    const dateInputs = scope.querySelectorAll(
-        'input[name="staff_cc_first_issue[]"],' +
-        'input[name="staff_cc_validity_from[]"],' +
-        'input[name="staff_cc_validity_to[]"]'
+    addQCStaffRecord(
+        category,
+        ccNo,
+        firstIssue,
+        validityFrom,
+        validityTo,
+        fee
     );
 
-    dateInputs.forEach(function (input) {
 
-        // Prevent initializing the same input twice
-        if (input._flatpickr) {
-            return;
-        }
+    // -----------------------------
+    // HIDE FORM
+    // -----------------------------
 
-        flatpickr(input, {
-            dateFormat: "d-m-Y",
-            allowInput: true
-        });
+    $section.slideUp();
 
-    });
+    // Reset form
+    resetQCStaffForm();
+
+});
+
+function addQCStaffRecord(
+    category,
+    ccNo,
+    firstIssue,
+    validityFrom,
+    validityTo,
+    fee
+) {
+
+    let rowCount = $("#staffqc-records tr").length + 1;
+
+    let categoryText = category === "QC"
+        ? "QC"
+        : "QSC";
+
+    let row = `
+        <tr class="staffqc-record">
+
+            <td>${rowCount}.</td>
+
+            <td>${categoryText}</td>
+
+            <td>${ccNo}</td>
+
+            <td>${firstIssue}</td>
+
+            <td>${validityFrom}</td>
+
+            <td>${validityTo}</td>
+
+            <td>
+                <i class="fa fa-file-pdf-o"
+                   style="color:red;"></i>
+                <a href="#" class="app-doc-link">
+                    Appointment letter
+                </a>
+
+                <br>
+
+                <i class="fa fa-file-pdf-o"
+                   style="color:red;"></i>
+                <a href="#" class="cons-doc-link">
+                    Consent letter
+                </a>
+            </td>
+
+            <td>
+                <button type="button"
+                        class="btn btn-danger remove-qc-staff">
+                    &#128465; Remove
+                </button>
+            </td>
+
+        </tr>
+    `;
+
+    $("#staffqc-records").append(row);
+
+    updateQCStaffTotalFee();
 }
 
-$(document).on("change", ".staff_category", function () {
-    updateStaffQCFee();
-});
-function updateStaffQCFee() {
+function updateQCStaffTotalFee() {
 
     let total = 0;
 
-    $("#staffqc-container .staffqc-fields").each(function () {
+    $("#staffqc-records .staffqc-record").each(function () {
 
         let category = $(this)
-            .find(".staff_category")
-            .val();
-
+            .find("td:eq(1)")
+            .text()
+            .trim();
 
         if (category === "QC") {
-
             total += 15000;
+        }
 
-        } else if (category === "QSC") {
-
+        if (category === "QSC") {
             total += 25000;
-
         }
 
     });
 
 
-    // Bottom fee button
-    $("#staffqc-container .staffqc-fee")
-        .text("₹ " + total.toLocaleString("en-IN"));
+    $(".staffqc-fee").text(
+        "₹ " + total.toLocaleString("en-IN")
+    );
+}
+$(document).on("click", ".remove-qc-staff", function () {
+
+    $(this)
+        .closest(".staffqc-record")
+        .remove();
+
+    // Re-number
+    $("#staffqc-records .staffqc-record").each(function (index) {
+
+        $(this)
+            .find("td:first")
+            .text((index + 1) + ".");
+
+    });
+
+    // Recalculate fee
+    updateQCStaffTotalFee();
+});
+
+function resetQCStaffForm() {
+
+    let $section = $("#staffqc_datasection");
+
+    $section.find("input[type='text']").val("");
+
+    $section.find("select").val("");
+
+    // Reset upload values
+    $section.find(".app_doc").val("");
+    $section.find(".cons_doc").val("");
+
+    // Clear errors
+    $section.find(".text-danger").text("");
+
+    // Reset file inputs
+    $section.find('input[type="file"]').val("");
+
 }
 // ------------------------
 

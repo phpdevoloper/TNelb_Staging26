@@ -247,6 +247,8 @@ class PayUService
             $txnid . '|' .
             $this->salt;
         $hash = strtolower(hash('sha512', $hashString));
+
+        // dd($this->key, $command, $txnid, $hash );
         $response = Http::asForm()->timeout(5)->connectTimeout(3)->post(
             config('payu.verify_url'),
             [

@@ -560,7 +560,15 @@ Route::post('/payu/success', [PayUPaymentController::class, 'success'])->name('p
 Route::post('/payu/failure', [PayUPaymentController::class, 'failure'])->name('payu.failure');
 
 
-
+Route::get('/payu/hash-generate', function () {
+$hashString =
+            config('payu.key') . '|' .
+            'verify_payment' . '|' .
+            'TNYZGHJWREIR6Q5RB2WB' . '|' .
+            config('payu.salt');
+        $hash = strtolower(hash('sha512', $hashString));
+        return response()->json(['hash' => $hash]);
+})->name('payu.hash.generate');
 
 
 
