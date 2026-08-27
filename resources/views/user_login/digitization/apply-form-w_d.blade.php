@@ -277,6 +277,12 @@
     .prv-btn-confirm:not(:disabled):hover { opacity:.9; }
 </style>
 
+{{-- Form W serial-7 work-experience engine styles (shared with Form S; voltage/nature/transformer hidden) --}}
+<style>
+@include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'W'])
+@include('user_login.partials.form-s-work-exp-7ab-styles')
+</style>
+
 {{-- ░░ BREADCRUMB ░░ --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
@@ -498,7 +504,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Work Experience ═══ --}}
+                    {{-- ═══ SECTION 7 — Work Experience (card UI, mirrors Form S but without Voltage / Nature / Transformer) ═══ --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">7</span>
@@ -508,61 +514,11 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
-                            <div class="fs-table-wrap">
-                                <table class="table table-bordered table-sm work-exp-table" id="work-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="work-exp-col-sno text-center">S.No</th>
-                                            <th class="work-exp-col-company">Company Name / Contractor</th>
-                                            <th class="work-exp-col-years work-exp-years-head" scope="col">
-                                                <div class="work-exp-years-title">Year of Experience</div>
-                                                <div class="work-exp-inline work-exp-inline--head">
-                                                    <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">From (date)</span></div>
-                                                    <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">To (date)</span></div>
-                                                    <div class="work-exp-total-inline"><span class="work-exp-label-fromto d-block">Total yrs</span></div>
-                                                </div>
-                                            </th>
-                                            <th class="work-exp-col-designation">Designation</th>
-                                            <th class="work-exp-col-actions text-center p-1">
-                                                <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn-tbl-add add-more-work py-1 px-2" title="Add row"><i class="fa fa-plus"></i></button>
-                                                </div>
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="work-container">
-                                        <tr class="work-fields">
-                                            <td class="work-serial text-center">1</td>
-                                            <td class="work-exp-col-company">
-                                                <input autocomplete="off" class="form-control form-control-sm" name="work_level[]" type="text" maxlength="80">
-                                            </td>
-                                            <td class="work-exp-col-years">
-                                                <div class="work-exp-inline">
-                                                    <div class="work-exp-date-group">
-                                                        <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" title="From date" aria-label="Year of experience from date">
-                                                    </div>
-                                                    <div class="work-exp-date-group">
-                                                        <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" title="To date" aria-label="Year of experience to date">
-                                                    </div>
-                                                    <div class="work-exp-total-inline">
-                                                        <input type="text" class="form-control form-control-sm work-year-total-display" readonly placeholder="—" tabindex="-1">
-                                                        <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
-                                                    </div>
-                                                </div>
-                                                <input type="hidden" name="experience[]" class="experience-sync" value="" tabindex="-1" aria-hidden="true">
-                                            </td>
-                                            <td class="work-exp-col-designation">
-                                                <input autocomplete="off" class="form-control form-control-sm" name="designation[]" type="text" maxlength="80">
-                                            </td>
-                                            <td class="work-exp-col-actions text-center p-1">
-                                                <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn-tbl-remove remove-work py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            @include('user_login.partials.form-w-work-exp-7ab-body', [
+                                'exp_details' => $exp_details ?? collect(),
+                                'showContractorNotice' => false,
+                                'contractorDetails' => null,
+                            ])
                         </div>
                     </div>
 
@@ -748,7 +704,7 @@
                     <input type="hidden" id="form_name" name="form_name" value="W">
                     <input type="hidden" id="license_name" name="license_name" value="B">
                     <input type="hidden" id="form_id" name="form_id" value="2">
-                    <input type="hidden" id="appl_type" name="appl_type" value="N">
+                    <input type="hidden" id="appl_type" name="appl_type" value="D">
                     <input type="hidden" id="application_id" name="application_id" value="{{ $application_details->application_id ?? $application->application_id ?? '' }}">
                     <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id" value="{{ $cc_digitization_temp_id ?? '' }}">
                     @csrf
@@ -832,12 +788,49 @@
                 </div>
             </div>
             <div class="prv-section">
-                <div class="prv-section-hd"><span class="prv-section-num">7</span><span class="prv-section-title">Work Experience Details</span></div>
+                <div class="prv-section-hd"><span class="prv-section-num prv-section-num--sub">7a</span><span class="prv-section-title">Previous and Current Work Experience</span></div>
                 <div class="prv-section-body p-0">
                     <div style="overflow-x:auto;">
-                        <table class="prv-table">
-                            <thead><tr><th>S.No</th><th>Company Name / Contractor</th><th>From Date</th><th>To Date</th><th>Total Yrs</th><th>Designation</th></tr></thead>
-                            <tbody id="prv_work_body"><tr><td colspan="6" class="text-center text-muted py-3">—</td></tr></tbody>
+                        <table class="prv-table" id="prv_work_table_previous">
+                            <thead><tr>
+                                <th>S.No</th>
+                                <th>Employment Type</th>
+                                <th>Contractor Cat.</th>
+                                <th>Licence No.</th>
+                                <th>Name of Contractor / Organisation / Board</th>
+                                <th>Organisation Address</th>
+                                <th>Designation</th>
+                                <th>From Date</th>
+                                <th>To Date</th>
+                                <th>Period (Y/M/D)</th>
+                                <th>Supporting Doc.</th>
+                                <th>Relieving Letter</th>
+                            </tr></thead>
+                            <tbody id="prv_work_body_previous"><tr><td colspan="12" class="text-center text-muted py-3">—</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="prv-section">
+                <div class="prv-section-hd"><span class="prv-section-num prv-section-num--sub">7b</span><span class="prv-section-title">Current Work Experience</span></div>
+                <div class="prv-section-body p-0">
+                    <div style="overflow-x:auto;">
+                        <table class="prv-table" id="prv_work_table_current">
+                            <thead><tr>
+                                <th>S.No</th>
+                                <th>Employment Type</th>
+                                <th>Contractor Cat.</th>
+                                <th>Licence No.</th>
+                                <th>Name of Contractor / Organisation / Board</th>
+                                <th>Organisation Address</th>
+                                <th>Designation</th>
+                                <th>From Date</th>
+                                <th>To Date</th>
+                                <th>Period (Y/M/D)</th>
+                                <th>Supporting Doc.</th>
+                                <th>Relieving Letter</th>
+                            </tr></thead>
+                            <tbody id="prv_work_body_current"><tr><td colspan="12" class="text-center text-muted py-3">—</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -882,7 +875,73 @@
 
 <footer class="main-footer">
     @include('include.footer')
-    <script src="{{ url('assets/js/digitization.js') }}"></script>
+    <script src="{{ url('assets/js/digitization_w.js') }}?v={{ filemtime(public_path('assets/js/digitization_w.js')) }}"></script>
+
+    {{-- Form W serial-7 work-experience engine (shared with Form S; voltage/nature/transformer hidden) --}}
+    @include('user_login.partials.form-s-work-exp-scripts', [
+        'editFormName' => 'W',
+        'hideVoltageFields' => true,
+        'showBoardMemberEmploymentType' => false,
+    ])
+    <script>
+        (function () {
+            var BOARD_MEMBER_TYPE = 'board_member_tnelb';
+
+            function get7bWorkRow() {
+                return $('#work-container-current .work-fields').first();
+            }
+
+            function sync7bSegmentedActive($input) {
+                var $toggle = $('.fs-7b-board-toggle');
+                $toggle.find('.fs-segmented-opt').removeClass('is-active');
+                $input.closest('.fs-segmented-opt').addClass('is-active');
+            }
+
+            function apply7bBoardToggle(mode, isInit) {
+                var $root = $('#fs-7b-root');
+                var $row = get7bWorkRow();
+                if (!$root.length) return;
+
+                var isYes = mode === 'yes';
+                $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
+                $('#fs-7b-board-details').toggleClass('d-none', !isYes);
+
+                if (!$row.length) return;
+
+                var $emp = $row.find('.work-employment-type');
+                if (isYes) {
+                    $emp.prop('disabled', false).prop('required', true);
+                    if ($emp.val() !== BOARD_MEMBER_TYPE) {
+                        $emp.val(BOARD_MEMBER_TYPE).trigger('change');
+                    }
+                    $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                } else {
+                    $emp.prop('required', false).prop('disabled', true).val('');
+                }
+            }
+
+            $(document).on('input change', '#work-container-current .work-fields :input', function () {
+                if (($('input[name="current_work_board_member"]:checked').val() || 'no') !== 'yes') return;
+                var $row = $(this).closest('.work-fields');
+                if ($row.length) {
+                    $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                }
+            });
+
+            $(document).ready(function () {
+                $('input[name="current_work_board_member"]').on('change', function () {
+                    sync7bSegmentedActive($(this));
+                    apply7bBoardToggle($(this).val(), false);
+                });
+
+                var $checked = $('input[name="current_work_board_member"]:checked');
+                if ($checked.length) {
+                    sync7bSegmentedActive($checked);
+                    apply7bBoardToggle($checked.val(), true);
+                }
+            });
+        })();
+    </script>
     
     <script>
         function closeDraftModal() {
@@ -977,86 +1036,92 @@
     </script>
 
     <script>
-        function $workRowW(el) { return $(el).closest('tr.work-fields'); }
-
-        function syncExpHiddenW($tr) {
-            var tot = ($tr.find('.work-experience-total-hidden').val() || '').trim();
-            $tr.find('.experience-sync').val(tot);
-        }
-
-        function updateTotalYearsW($tr) {
-            var fromStr = ($tr.find('.work-date-from').val() || '').trim();
-            var toStr   = ($tr.find('.work-date-to').val() || '').trim();
-            if (!fromStr || !toStr) {
-                $tr.find('.work-year-total-display').val('');
-                $tr.find('.work-experience-total-hidden').val('');
-                syncExpHiddenW($tr); return;
-            }
-            var from = new Date(fromStr + 'T12:00:00'), to = new Date(toStr + 'T12:00:00');
-            if (isNaN(from.getTime()) || isNaN(to.getTime())) {
-                $tr.find('.work-year-total-display').val('');
-                $tr.find('.work-experience-total-hidden').val('');
-                syncExpHiddenW($tr); return;
-            }
-            var display, hidden;
-            if (to < from) { display = 'Invalid range'; hidden = ''; }
-            else {
-                var years = (to - from) / 86400000 / 365.25;
-                var rounded = Math.round(years * 10) / 10;
-                hidden = rounded.toFixed(1); display = rounded.toFixed(1);
-            }
-            $tr.find('.work-year-total-display').val(display);
-            $tr.find('.work-experience-total-hidden').val(hidden);
-            syncExpHiddenW($tr);
-        }
-
-        function refreshWorkSerialsW() {
-            $('#work-container .work-fields .work-serial').each(function(idx) { $(this).text(String(idx + 1)); });
-        }
-
-        $(document).on('change', '.work-date-from, .work-date-to', function() { updateTotalYearsW($workRowW(this)); });
-
-        document.addEventListener('click', function(e) {
-            var container = document.getElementById('work-container');
-            if (!container) return;
-            var workRows = container.querySelectorAll('.work-fields');
-
-            if (e.target.closest('.add-more-work')) {
-                if (workRows.length >= 3) {
-                    $('#work-table').next('.work-error').remove();
-                    $('<div class="text-danger mt-2 work-error">You can add a maximum of 3 work experience entries.</div>').insertAfter('#work-table');
-                    setTimeout(function() { $('.work-error').fadeOut(); }, 7000);
-                    return;
-                }
-                var first = container.querySelector('.work-fields');
-                var newRow = first.cloneNode(true);
-                newRow.querySelectorAll('.work-date-from, .work-date-to').forEach(function(inp) { inp.value = ''; });
-                var wtd = newRow.querySelector('.work-year-total-display'); if (wtd) wtd.value = '';
-                var hTot = newRow.querySelector('.work-experience-total-hidden'); if (hTot) hTot.value = '';
-                var hEx = newRow.querySelector('.experience-sync'); if (hEx) hEx.value = '';
-                var compIn = newRow.querySelector('input[name="work_level[]"]'); if (compIn) compIn.value = '';
-                var desIn = newRow.querySelector('input[name="designation[]"]'); if (desIn) desIn.value = '';
-                container.appendChild(newRow);
-                refreshWorkSerialsW(); return;
-            }
-
-            if (e.target.closest('.remove-work')) {
-                if (workRows.length <= 1) {
-                    $('#work-table').next('.work-error').remove();
-                    $('<div class="text-danger mt-2 work-error">At least one work experience entry is required.</div>').insertAfter('#work-table');
-                    setTimeout(function() { $('.work-error').fadeOut(); }, 7000);
-                    return;
-                }
-                e.target.closest('tr').remove(); refreshWorkSerialsW();
-            }
-        });
-    </script>
-    <script>
     // ── Preview Modal ──────────────────────────────────────────────────────
     var MONTH_MAP_W = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
     function fmtDateW(v){if(!v)return'—';var p=v.split('-');return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:v;}
     function setValW(id,v){var el=document.getElementById(id);if(!el)return;var t=(v||'').toString().trim();el.textContent=t||'—';el.classList.toggle('prv-empty',!t);}
     function fileLabelW(inp){return inp&&inp.files&&inp.files[0]?inp.files[0].name:'—';}
+
+    var EMP_LABEL_MAP_W = {
+        contractor: 'Contractor',
+        electrical_supervisor: 'Electrical Supervisor',
+        self_employed: 'Self Employed',
+        retired_employee: 'Retired Employee',
+        govt_organisation: 'Govt organisation',
+        apprenticeship: 'Apprenticeship',
+        board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
+    };
+
+    function fillWorkPreviewTableW(bodyId, containerSelector){
+        var workBody = document.getElementById(bodyId);
+        if (!workBody) return;
+        workBody.innerHTML = '';
+        var workRows = document.querySelectorAll(containerSelector + ' .work-fields');
+        if (!workRows.length) {
+            workBody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">No work entries</td></tr>';
+            return;
+        }
+        var fileLink = function (doc) {
+            return (doc && doc.files && doc.files[0])
+                ? '<a href="' + URL.createObjectURL(doc.files[0]) + '" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>'
+                : '<span class="text-muted">—</span>';
+        };
+        var val = function (el) { return el ? ((el.value || '').trim() || '—') : '—'; };
+        workRows.forEach(function (row, i) {
+            var empType = row.querySelector('.work-employment-type');
+            var cat = row.querySelector('.work-contractor-cat');
+            var lic = row.querySelector('.work-licence-number');
+            var employer = row.querySelector('.work-employer-input');
+            var address = row.querySelector('.work-org-address');
+            var desig = row.querySelector('[name="designation[]"]');
+            var fromInp = row.querySelector('.work-date-from');
+            var toInp = row.querySelector('.work-date-to');
+            var tillChk = row.querySelector('.work-date-till');
+            var yPart = row.querySelector('.work-duration-y');
+            var mPart = row.querySelector('.work-duration-m');
+            var dPart = row.querySelector('.work-duration-d');
+            var doc = row.querySelector('[name="work_document[]"]');
+            var rel = row.querySelector('[name="work_relieving_letter[]"]');
+
+            var yv = yPart ? (yPart.value || '').trim() : '';
+            var mv = mPart ? (mPart.value || '').trim() : '';
+            var dv = dPart ? (dPart.value || '').trim() : '';
+            var totalTxt = (yv === '' && mv === '' && dv === '') ? '—' : (yv + 'y ' + mv + 'm ' + dv + 'd');
+
+            var empTxt = empType ? (EMP_LABEL_MAP_W[empType.value] || empType.value || '—') : '—';
+            var isBoardMember = empType && empType.value === 'board_member_tnelb';
+            var fromDate = fromInp ? fmtDateW(fromInp.getAttribute('data-raw') || fromInp.value) : '—';
+            var toDate = (tillChk && tillChk.checked)
+                ? '<span class="prv-badge-yes">Till date</span>'
+                : (toInp ? fmtDateW(toInp.getAttribute('data-raw') || toInp.value) : '—');
+
+            workBody.innerHTML +=
+                '<tr><td class="text-center">' + (i + 1) + '</td>' +
+                '<td>' + empTxt + '</td>' +
+                '<td class="text-center">' + (isBoardMember ? 'N/A' : val(cat)) + '</td>' +
+                '<td>' + (isBoardMember ? 'N/A' : val(lic)) + '</td>' +
+                '<td>' + val(employer) + '</td>' +
+                '<td>' + val(address) + '</td>' +
+                '<td>' + val(desig) + '</td>' +
+                '<td class="text-center">' + fromDate + '</td>' +
+                '<td class="text-center">' + toDate + '</td>' +
+                '<td class="text-center">' + totalTxt + '</td>' +
+                '<td class="text-center">' + fileLink(doc) + '</td>' +
+                '<td class="text-center">' + (tillChk && tillChk.checked ? '<span class="text-muted">N/A</span>' : (isBoardMember ? '<span class="text-muted">N/A</span>' : fileLink(rel))) + '</td>' +
+                '</tr>';
+            if (isBoardMember) {
+                var meetingDetails = row.querySelector('.work-board-meeting-details');
+                var meetingDateInp = row.querySelector('.work-board-meeting-date');
+                var detailsTxt = meetingDetails ? (meetingDetails.value || '').trim() : '';
+                var meetingDateTxt = meetingDateInp ? fmtDateW(meetingDateInp.getAttribute('data-raw') || meetingDateInp.value) : '—';
+                workBody.innerHTML +=
+                    '<tr><td></td><td colspan="11" style="font-size:.78rem;background:#f4f8fd;">' +
+                    '<strong>Board meeting:</strong> ' + (detailsTxt || '—') +
+                    ' &nbsp;|&nbsp; <strong>Date:</strong> ' + meetingDateTxt +
+                    '</td></tr>';
+            }
+        });
+    }
 
     function populatePreview(){
         setValW('prv_name',(document.getElementById('Applicant_Name')||{}).value||'');
@@ -1076,17 +1141,15 @@
             var docLink=(doc&&doc.files&&doc.files[0])?'<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>':'<span class="text-muted">—</span>';
             eduBody.innerHTML+='<tr><td class="text-center">'+(i+1)+'</td><td>'+(lv?lv.value||'—':'—')+'</td><td>'+(inst?inst.value||'—':'—')+'</td><td class="text-center">'+(mon?(MONTH_MAP_W[mon.value]||mon.value||'—'):'—')+'</td><td class="text-center">'+(yr?(yr.value==='0'||!yr.value?'—':yr.value):'—')+'</td><td>'+(cert?cert.value||'—':'—')+'</td><td class="text-center">'+docLink+'</td></tr>';
         });}
-        // Work
-        var wBody=document.getElementById('prv_work_body');wBody.innerHTML='';
-        var wRows=document.querySelectorAll('#work-container .work-fields');
-        if(!wRows.length){wBody.innerHTML='<tr><td colspan="6" class="text-center text-muted py-3">No work entries</td></tr>';}
-        else{wRows.forEach(function(row,i){
-            var co=row.querySelector('[name="work_level[]"]');
-            var fd=row.querySelector('[name="work_date_from[]"]'),td=row.querySelector('[name="work_date_to[]"]');
-            var tot=row.querySelector('.work-experience-total-hidden');
-            var de=row.querySelector('[name="designation[]"]');
-            wBody.innerHTML+='<tr><td class="text-center">'+(i+1)+'</td><td>'+(co?co.value||'—':'—')+'</td><td class="text-center">'+(fd?fmtDateW(fd.value)||'—':'—')+'</td><td class="text-center">'+(td?fmtDateW(td.value)||'—':'—')+'</td><td class="text-center">'+(tot&&tot.value?tot.value+' yrs':'—')+'</td><td>'+(de?de.value||'—':'—')+'</td></tr>';
-        });}
+        // Work Experience (7a / 7b) — mirrors Form S engine, minus Nature/Voltage/Transformer
+        fillWorkPreviewTableW('prv_work_body_previous', '#work-container-previous');
+        var is7bYesW = document.getElementById('current_work_board_member_yes') && document.getElementById('current_work_board_member_yes').checked;
+        if (is7bYesW) {
+            fillWorkPreviewTableW('prv_work_body_current', '#work-container-current');
+        } else {
+            var wBodyCur = document.getElementById('prv_work_body_current');
+            if (wBodyCur) { wBodyCur.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">—</td></tr>'; }
+        }
         // Section 7 — Previous Certificate
         var certYes=document.getElementById('wireman_license_yes'),isY=certYes&&certYes.checked;
         var yn=document.getElementById('prv_cert_yn');if(yn)yn.innerHTML=isY?'<span class="prv-badge-yes">Yes</span>':'<span class="prv-badge-no">No</span>';

@@ -1416,8 +1416,8 @@ use Illuminate\Support\Facades\Auth;
                                         $cert_name = 'C';
                                         $form_name = 'S';
                                         } elseif (Request::is('apply-form-w_d')) {
-                                        $cert_name = 'D';
-                                        $form_name = 'P';
+                                        $cert_name = 'B';
+                                        $form_name = 'W';
                                         } elseif (Request::is('apply-form-wh_d')) {
                                         $cert_name = 'H';
                                         $form_name = 'WH';
@@ -1508,7 +1508,7 @@ use Illuminate\Support\Facades\Auth;
                             <section class="digi-section" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }} aria-label="Qualified Supervisor for EA/ESA Contractor License">
                                 <div class="digi-qc-gate">
                                     <p class="digi-qc-question">
-                                        Is Supervisory Competency Certificate recognized in EA/ESA Contractor License as a Qualified Supervisor?
+                                        Is the Supervisory Competency Certificate currently recognized as a qualification for a Qualified Supervisor under an EA/ESA Contractor Licence?
                                     </p>
                                     <div class="digi-qc-toggle" role="radiogroup" aria-label="Qualified Supervisor recognition">
                                         <label>
@@ -1550,7 +1550,7 @@ use Illuminate\Support\Facades\Auth;
                                     </div>
 
                                     <div class="digi-field">
-                                        <label class="digi-field-label" for="digi_contractor_name">Name of Contractor <span class="fill">*</span></label>
+                                        <label class="digi-field-label" for="digi_contractor_name">Name of the Organisation <span class="fill">*</span></label>
                                         <div class="digi-field-control">
                                             <input type="text" class="form-control" id="digi_contractor_name" name="contractor_name">
                                             <span class="error text-danger" id="contractor_error"></span>

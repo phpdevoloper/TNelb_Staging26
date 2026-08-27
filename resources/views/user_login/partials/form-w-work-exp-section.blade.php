@@ -1,3 +1,4 @@
+{{-- Form W work-experience section. Mirrors Form S but the summary table omits Nature of Work, Voltage Level and Transformer (kVA). --}}
 @php
     $exp_details = $exp_details ?? collect();
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
@@ -47,9 +48,6 @@
                                 <th>Employment Type</th>
                                 <th class="wx-summary-th-org"><span class="wx-th-stack-line">Organisation &amp;</span><span class="wx-th-stack-line">Address</span></th>
                                 <th>Designation</th>
-                                <th>Nature of Work</th>
-                                <th>Voltage Level</th>
-                                <th class="wx-summary-th-kva">Transformer(kVA)</th>
                                 <th class="wx-summary-th-total-exp">Total<br>Experience</th>
                                 <th>Attachment</th>
                                 <th class="wx-summary-th-actions">Actions</th>
@@ -58,7 +56,7 @@
                         <tbody id="{{ $workSummaryTbodyId }}"></tbody>
                         <tfoot class="wx-overall-exp-tfoot" hidden>
                             <tr class="wx-overall-exp-row">
-                                <td colspan="7" class="wx-overall-exp-label-cell text-end">
+                                <td colspan="4" class="wx-overall-exp-label-cell text-end">
                                     <span class="wx-overall-exp-label">Total Experience</span>
                                 </td>
                                 <td class="work-row-summary-period">
@@ -96,7 +94,7 @@
         data-max-rows="{{ $workMaxRows }}">
         @if ($exp_details->isNotEmpty())
             @foreach ($exp_details as $index => $expRow)
-                @include('user_login.partials.form-s-work-exp-row', [
+                @include('user_login.partials.form-w-work-exp-row', [
                     'expRow' => $expRow,
                     'rowIndex' => $index,
                     'workPart' => $workPart,
@@ -116,7 +114,7 @@
             @endforeach
         @elseif ($workMinRows > 0)
             @for ($index = 0; $index < $workMinRows; $index++)
-                @include('user_login.partials.form-s-work-exp-row', [
+                @include('user_login.partials.form-w-work-exp-row', [
                     'expRow' => null,
                     'rowIndex' => $index,
                     'workPart' => $workPart,

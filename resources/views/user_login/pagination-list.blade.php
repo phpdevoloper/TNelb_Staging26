@@ -229,8 +229,10 @@
 
             <!-- Payment Status -->
             <td>
-                @if ($isEditingDraft)
+                @if($isEditingDraft)
                     <p class="text-muted mb-1">-</p>
+                @elseif ($isEditingDraft  && $isPayuFailed)
+                    <p class="text-danger mb-1"><strong>Failed</strong></p>
                 @elseif ($workflow->payment_status == 'payment')
                     <p class="text-success mb-1"><strong>Success</strong></p>
                 @else
@@ -243,9 +245,9 @@
                         title="Verify with PayU">
                         <i class="fa fa-refresh"></i> Status
                     </button>
-                    @if ($payuGatewayStatus)
+                    {{-- @if ($payuGatewayStatus)
                         <small class="d-block text-muted" style="font-size:10px;">PayU: {{ $payuGatewayStatus }}</small>
-                    @endif
+                    @endif --}}
                 @endif
             </td>
 
@@ -318,20 +320,15 @@
                             $hasCertificateC = false;
 
                             if ($isFormW && !empty($workflow->login_id)) {
-                                $hasCertificateC = DB::table('cc_form_s_meta as ta')
-                                    ->leftJoin('cc_forms_cert as l', 'l.application_id', '=', 'ta.application_id')
+                                $hasCertificateC = DB::table('cc_form_w_meta as ta')
+                                    ->leftJoin('cc_form_w_cert as l', 'l.application_id', '=', 'ta.application_id')
                                     
                                     ->where('ta.login_id', $workflow->login_id)
-                                    ->where('ta.form_name', 'S')
-                                    ->where('ta.status', 'A')
-                                    ->where(function ($query) {
-                                        $query->whereNotNull('l.certificate_no')
-                                            ->orWhereNotNull('rl.certificate_no');
-                                    })
+                                    ->where('ta.form_name', 'W')
+                                    ->where('ta.app_status', 'A')
+                                    ->whereNotNull('l.certificate_no')
                                     ->exists();
                             }
-
-                            // var_dump($hasCertificateC); exit
                         @endphp
                         @if ($workflow->is_under_validity_period && !($isFormW && $hasCertificateC))
                             <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'cc_renew_form', ['application_id' => $workflow->application_id]) }}"

@@ -77,6 +77,7 @@ class CompetencyCertificateService
     public function findByApplicationId(string $applicationId, ?string $formName = null): ?Model
     {
         $applicationId = trim($applicationId);
+        
         if ($applicationId === '') {
             return null;
         }
@@ -197,16 +198,7 @@ class CompetencyCertificateService
         if ($applicationId === '' || $certificateNo === '') {
             throw new \InvalidArgumentException('application_id and certificate_no are required to issue a certificate.');
         }
-        // dd('qqqq'); exit;
-
-        // dd([
-        //     'issuedBy'        => $issuedBy ?? null,
-        //     'roles_id'        => Auth::user()->roles_id,
-        //     'user_id'         => Auth::id(),
-        //     'dateof_issue'    => $data['dateof_issue'],
-        //     'valid_from'      => $data['valid_from'],
-        //     'valid_to'        => $data['valid_to'],
-        // ]);exit;
+    
         $now = now();
         $payload = [
             'application_id' => $applicationId,
@@ -221,6 +213,7 @@ class CompetencyCertificateService
         ];
 
         /** @var Model|null $existing */
+        
         $existing = $modelClass::where('application_id', $applicationId)->first();
         if ($existing) {
             $existing->update($payload);
@@ -434,6 +427,6 @@ class CompetencyCertificateService
     {
         $formName = strtoupper(trim((string) $formName));
 
-        return $formName === 'H' ? 'WH' : $formName;
+        return $formName === 'W' ? 'W' : $formName;
     }
 }

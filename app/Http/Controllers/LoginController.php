@@ -321,11 +321,11 @@ class LoginController extends BaseController
             }
         }
 
-        return DB::table('tnelb_application_tbl')
+        return DB::table('cc_form_s_meta')
             ->where('old_application', $parentApplicationId)
             ->whereRaw("TRIM(COALESCE(appl_type, '')) = 'A'")
-            ->whereRaw("TRIM(COALESCE(status, '')) = 'A'")
-            ->orderByDesc('id')
+            ->whereRaw("TRIM(COALESCE(app_status, '')) = 'A'")
+            ->orderByDesc('app_id')
             ->first();
     }
 
@@ -524,7 +524,7 @@ class LoginController extends BaseController
 
         return PaymentTransactionModel::query()
             ->whereIn('application_id', $ids)
-            ->whereIn('status', ['PENDING', 'INITIATED', 'PENDING_VERIFICATION', 'FAILED'])
+            ->whereIn('status', ['INITIATED','PENDING', 'PENDING_VERIFICATION'])
             ->orderByDesc('id')
             ->get()
             ->unique('application_id')

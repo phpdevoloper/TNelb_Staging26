@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tnelb_CC_Digitization;
+use App\Services\FileUploadService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ class FormSDigitizationController extends BaseController
 
     protected $today, $dbNow;
 
-    public function __construct()
+    public function __construct(protected FileUploadService $fileUpload)
     {
         parent::__construct(); // Call BaseController constructor
 
@@ -25,7 +26,7 @@ class FormSDigitizationController extends BaseController
         )->db_now;
     }
 
-    public function index()
+    public function index(Request $request)
     {
 
         if (!Auth::check()) {
@@ -33,15 +34,63 @@ class FormSDigitizationController extends BaseController
         }
         $authUser = Auth::user();
 
+        $request->validate([
+            'form' => 'required|in:S,W,H,P',
+        ]);
+
+        $form = $request->form;
+
         $user = [
             'user_id' => $authUser->login_id,
             'salutation' => $authUser->salutation,
             'applicant_name' => $authUser->first_name . ' ' . $authUser->last_name,
         ];
-        return view('user_login.digitization.apply-form-s_d', compact('user'));
+        $contractorDetails = $this->getContractorDetails($authUser->login_id);
+
+        return view('user_login.digitization.apply-form-s_d', compact('user', 'form', 'contractorDetails'));
     }
 
+    public function getContractorDetails($loginId, $tempAppId = null, $applicationId = null)
+    {
+        $query = Tnelb_CC_Digitization::where('login_id', $loginId);
 
+        if (!empty($applicationId)) {
+            $query->where('application_id', $applicationId);
+        } elseif (!empty($tempAppId)) {
+            $query->where('temp_app_id', $tempAppId);
+        } else {
+            $query->where('form_name', 'S');
+        }
+
+        $row = $query->orderByDesc('id')->first();
+
+        if (!$row || $row->licence_no === null || $row->licence_no === '') {
+            return null;
+        }
+
+        return [
+            'cl_type' => $row->cl_type,
+            'licence_no' => $row->licence_no,
+            'contractor_name' => $row->contractor_name,
+        ];
+    }
+
+    public function fetchContractorDetails(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json(['contractorDetails' => null], 401);
+        }
+
+        $contractorDetails = $this->getContractorDetails(
+            Auth::user()->login_id,
+            $request->query('temp_app_id'),
+            $request->query('application_id')
+        );
+
+        return response()->json([
+            'contractorDetails' => $contractorDetails,
+        ]);
+    }
 
     public function storeDigitization(Request $request)
     {
@@ -51,7 +100,8 @@ class FormSDigitizationController extends BaseController
             'from_date'  => 'required|date|after_or_equal:fissue',
             'to_date'    => 'required|date|after_or_equal:from_date',
             'qc_det'         => 'required',
-            'cc_doc'     => 'required|mimes:pdf|max:250'
+            'cc_doc'     => 'required|mimes:pdf|max:250',
+            'form_name'       => 'required|in:S,W,H,P',
         ], [
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
         ]);
@@ -64,7 +114,7 @@ class FormSDigitizationController extends BaseController
             return response()->json([
                 'errors' => [
                     'to_date' => [
-                        'Apply New Application Validity Period including Renewal exceeds limits'
+                        'To date must be less than or equal to 1 year from today.'
                     ]
                 ]
             ], 422);
@@ -82,52 +132,12 @@ class FormSDigitizationController extends BaseController
             ]);
         }
 
-        $certificate = DB::table('wcert')
-            ->select('certcode', 'appname', 'add1', 'add2', 'add3')
-            ->where('certno', $request->ccnumber)
-            ->whereDate('issuedt', $request->fissue)
-            ->whereDate('fromdate', $request->from_date)
-            ->whereDate('vdate', $request->to_date)
-            ->first();
-
-        if (!$certificate) {
-            $certificate = DB::table('whcert')
-                ->select('certcode', 'appname', 'add1', 'add2', 'add3')
-                ->where('certno', $request->ccnumber)
-                ->whereDate('issuedt', $request->fissue)
-                ->whereDate('fromdate', $request->from_date)
-                ->whereDate('vdate', $request->to_date)
-                ->first();
-        }
-
-        if (!$certificate) {
-            $certificate = DB::table('scert')
-                ->select('certcode', 'appname', 'add1', 'add2', 'add3')
-                ->where('certno', $request->ccnumber)
-                ->whereDate('issuedt', $request->fissue)
-                ->whereDate('fromdate', $request->from_date)
-                ->whereDate('vdate', $request->to_date)
-                ->first();
-        }
-
         // -----------------------------------
         // Existing Save Logic
         // -----------------------------------
 
-        $qc_det = $request->qc_det === 'yes' ? 1 : 0;
-
-        $qc = 0;
-        $qsc = 0;
-
-        if (!empty($request->cl_type)) {
-
-            if ($request->cl_type == 'EA') {
-                $qc = 1;
-            } elseif ($request->cl_type == 'ESA') {
-                $qsc = 1;
-            }
-        }
-
+        
+        
         $now = db_now();
         $original_name = null;
         $fileName = 'pending';
@@ -137,13 +147,28 @@ class FormSDigitizationController extends BaseController
         $record = DB::transaction(function () use (
             $request,
             $now,
-            $qc_det,
-            $qc,
             &$original_name,
             &$fileName,
             &$qcFileName,
             &$qcOriginalName
         ) {
+
+            $qc = 0;
+            $qsc = 0;
+            $qc_det = 0;
+
+            $qc_det = $request->qc_det === 'yes' ? 1 : 0;
+
+            if (!empty($request->cl_type)) {
+
+                if($request->cl_type == 'EA') {
+                    $qc = 1;
+                } elseif ($request->cl_type == 'ESA') {
+                    $qsc = 1;
+                }
+            }
+
+        
             $row = Tnelb_CC_Digitization::create([
                 'login_id'         => Auth::user()->login_id,
                 'temp_app_id'      => 'TEMP' . date('Ymd') . '0000',
@@ -153,14 +178,15 @@ class FormSDigitizationController extends BaseController
                 'fissue'           => $request->fissue,
                 'from_date'        => $request->from_date,
                 'to_date'          => $request->to_date,
-                'qc_det'           => $qc_det,
                 'qc'               => $qc,
+                'qsc'              => $qsc,
                 'cl_type'          => $request->cl_type ?? null,
                 'licence_no'       => $request->licence_no ?? null,
                 'contractor_name'  => $request->contractor_name ?? null,
                 'cc_doc'           => 'pending',
                 'created_at'       => $now,
                 'updated_at'       => $now,
+                'qc_det'           => $qc_det ?? 0,
             ]);
 
             $temp_app_id = 'TEMP' . date('Ymd') . str_pad($row->id, 4, '0', STR_PAD_LEFT);
@@ -170,7 +196,7 @@ class FormSDigitizationController extends BaseController
                 $original_name = $file->getClientOriginalName();
                 $extension = $file->getClientOriginalExtension();
                 $fileName = $temp_app_id . '_' . time() . '_' . $request->cert_name . '.' . $extension;
-                $file->move(public_path('uploads/digitization/scc/'), $fileName);
+                $fileName = $this->fileUpload->upload($file, 'uploads/digitization/scc', $fileName);
             }
 
             if ($request->hasFile('qc_doc')) {
@@ -178,7 +204,7 @@ class FormSDigitizationController extends BaseController
                 $qcOriginalName = $qcFile->getClientOriginalName();
                 $extension = $qcFile->getClientOriginalExtension();
                 $qcFileName = $temp_app_id . '_QC_' . time() . '.' . $extension;
-                $qcFile->move(public_path('uploads/digitization/qc/'), $qcFileName);
+                $qcFileName = $this->fileUpload->upload($qcFile, 'uploads/digitization/qc/', $qcFileName);
             }
 
             $row->update([
@@ -193,21 +219,21 @@ class FormSDigitizationController extends BaseController
             return $row->fresh();
         });
 
+        $contractorDetails = null;
+        if (!empty($record->licence_no)) {
+            $contractorDetails = [
+                'cl_type' => $record->cl_type,
+                'licence_no' => $record->licence_no,
+                'contractor_name' => $record->contractor_name,
+            ];
+        }
+
         return response()->json([
-            'status'          => 200,
-            'message'         => 'Digitization details saved successfully.',
-            'temp_app_id'     => $record->temp_app_id,
-            'digitization_id' => $record->id,
-            'appname'         => $certificate->appname ?? '',
-            'address'         => $certificate
-                ? implode(' ', array_filter([
-                    $certificate->add1 ?? '',
-                    $certificate->add2 ?? '',
-                    $certificate->add3 ?? '',
-                ]))
-                : '',
-            'certcode'        => $certificate->certcode ?? '',
-            'is_matched'      => $certificate ? 1 : 0,
+            'status'            => 200,
+            'message'           => 'Digitization details saved successfully.',
+            'temp_app_id'       => $record->temp_app_id,
+            'digitization_id'   => $record->id,
+            'contractorDetails' => $contractorDetails,
         ]);
     }
 }

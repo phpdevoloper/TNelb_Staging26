@@ -80,6 +80,7 @@ class CcDigitizationLinkService
      */
     public function assertValidForNewSave(?string $tempAppId, string $loginId): bool
     {
+        
         $tempAppId = trim((string) $tempAppId);
         if ($tempAppId === '') {
             return false;

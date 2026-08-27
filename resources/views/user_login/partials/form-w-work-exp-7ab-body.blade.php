@@ -34,7 +34,7 @@
         </ul>
     </div>
     @endif
-    @include('user_login.partials.form-s-work-exp-section', [
+    @include('user_login.partials.form-w-work-exp-section', [
         'exp_details' => $previousExpDetails,
         'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType7a,
         'workContainerId' => 'work-container-previous',
@@ -78,7 +78,7 @@
 
     <div id="fs-7b-board-details" class="fs-7b-board-details{{ $is7bBoardMemberPrefill ? '' : ' d-none' }}">
         <div id="fs-7b-work-wrap" class="fs-7b-work-wrap">
-            @include('user_login.partials.form-s-work-exp-7b-section', [
+            @include('user_login.partials.form-w-work-exp-7b-section', [
                 'exp_details' => $currentExpDetails,
                 'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
                 'isAlterationMode' => $isAlterationMode,

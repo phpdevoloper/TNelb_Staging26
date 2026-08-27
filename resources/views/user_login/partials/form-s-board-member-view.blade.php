@@ -24,7 +24,12 @@
                     : ($supportDoc !== '' ? competency_document_url($supportDoc, 'experience', (int) ($expRow->exp_id ?? 0), 'experience_doc') : null);
                 $fromIso = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
                 $toIso = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
-                $isTill = $fromIso !== '' && $toIso === '';
+                // Previous: till was inferred when from_date was set and to_date was empty.
+                // $isTill = $fromIso !== '' && $toIso === '';
+                $isTill = (int) ($expRow->work_to_till_date ?? 0) === 1;
+                if (!$isTill && $fromIso !== '' && $toIso === '') {
+                    $isTill = true;
+                }
                 $periodText = '';
                 if ($fromIso !== '') {
                     $periodText = 'From ' . format_date($fromIso);

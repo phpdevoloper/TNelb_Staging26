@@ -804,7 +804,7 @@
                                 @if($applicant->appl_type == 'D')
 
                                     <div class="col-xl-6 col-md-6 col-sm-12 col-12">
-                                        <h3 class="digi_title">Digitization Old Certificate Details </h3>
+                                        <h3 class="digi_title">Digitisation Old Certificate Details </h3>
                                         <div class="table-responsive digi_data">
                                             <table class="table table-bordered table-sm">
                                                 <tbody>
@@ -814,7 +814,7 @@
                                                     </tr>
                                                     <tr>
                                                         <th>Date of First Issue</th>
-                                                        <td>{{ $cc_digitization->fissue }}</td>
+                                                        <td>{{ (\Carbon\Carbon::parse($cc_digitization->fissue))->format('d-m-Y') }}</td>
                                                     </tr>
                                                     <tr>
                                                         <th>Validity From</th>
@@ -882,10 +882,6 @@
                                 @endif
                             </div>
                         </div>
-
-
-
-
                     </div>
                 </div>
 
@@ -1303,37 +1299,9 @@
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
                                                 @else
-                                                    <div class="applicant-detail-table-wrap">
-                                                        <table
-                                                            class="table table-sm table-bordered applicant-detail-compact-table work-exp-table">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Company</th>
-                                                                    <th>Designation</th>
-                                                                    <th>Exp.</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @forelse ($workExperience as $experience)
-                                                                    <tr>
-                                                                        <td class="col-wrap">
-                                                                            {{ $experience->emp_cate ?? $experience->company_name ?? '' }}
-                                                                        </td>
-                                                                        <td class="col-wrap">{{ $experience->designation }}</td>
-                                                                        <td class="col-wrap">
-                                                                            {{ $experience->total_exp ?? $experience->experience ?? 0 }}
-                                                                            yrs
-                                                                        </td>
-                                                                    </tr>
-                                                                @empty
-                                                                    <tr>
-                                                                        <td colspan="3" class="text-center">No work experience
-                                                                            available.</td>
-                                                                    </tr>
-                                                                @endforelse
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
+                                                    {{-- Form W: same rich readonly view as Form S, without
+                                                         Nature of Work / Voltage Level / Transformer kVA columns. --}}
+                                                    @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect(), 'hideVoltageFields' => true])
                                                 @endif
                                             @endif
                                             @if ($applicant->form_name == 'S')

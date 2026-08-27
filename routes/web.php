@@ -132,9 +132,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/apply-form-s_d', [FormSDigitizationController::class, 'index'])->name('apply-form-s_d');
     Route::post('/digitization/storeDigitization', [FormSDigitizationController::class, 'storeDigitization'])->name('digitization.storeDigitization');
+    Route::get('/digitization/getContractorDetails', [FormSDigitizationController::class, 'fetchContractorDetails'])->name('digitization.getContractorDetails');
 
     Route::get('/apply-form-w_d', [FormWDigitizationController::class, 'index'])->name('apply-form-w_d');
-    
+    Route::post('/digitization/w/storeDigitization', [FormWDigitizationController::class, 'storeDigitization'])->name('digitization.w.storeDigitization');
+    Route::get('/digitization/w/getContractorDetails', [FormWDigitizationController::class, 'fetchContractorDetails'])->name('digitization.w.getContractorDetails');
+
     Route::get('/apply-form-wh_d', [FormWHDigitizationController::class, 'index'])->name('apply-form-wh_d');
     Route::get('/apply_form_p_d', [FormpDigitizationController::class, 'index'])->name('apply_form_p_d');
 
@@ -562,13 +565,93 @@ Route::post('/payu/success', [PayUPaymentController::class, 'success'])->name('p
 Route::post('/payu/failure', [PayUPaymentController::class, 'failure'])->name('payu.failure');
 
 
+Route::match(['get', 'post'], '/payu/hash-generate', function (Request $request) {
+    $var1 = trim((string) $request->input('var1', ''));
+    $hash = null;
+
+    if ($request->isMethod('post') && $var1 !== '') {
+        $hashString =
+            config('payu.key') . '|' .
+            'verify_payment' . '|' .
+            $var1 . '|' .
+            config('payu.salt');
+        $hash = strtolower(hash('sha512', $hashString));
+    }
+
+    return view('user_login.payments.hash-generate', compact('var1', 'hash'));
+})->name('payu.hash.generate');
+
+
+Route::get('/payu/verify-payment', function () {
+$url = config('payu.verify_url');
+
+$postData = array(
+    'key' => config('payu.key'),
+    'command' => 'verify_payment',
+    'var1' => 'TNFWRVYDMSO8OKXIYYUF',
+    'hash' => '8e4d006201e7541b7dfd3916afc15d3ea2133164d725ae71f8e7307d42bd3acb313523bcf2631aeab6d9ec725764c205e0a8601c5e2996869f8329f568959bbe'
+);
+
+$ch = curl_init();
+
+curl_setopt_array($ch, array(
+    CURLOPT_URL => $url,
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POSTFIELDS => http_build_query($postData),
+    CURLOPT_HTTPHEADER => array(
+        'Content-Type: application/x-www-form-urlencoded'
+    )
+));
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+if (curl_error($ch)) {
+    echo 'Error: ' . curl_error($ch) . "\n";
+} else {
+    echo "Status Code: " . $httpCode . "\n";
+    echo "Response: " . $response . "\n";
+}
+
+curl_close($ch);
+
+})->name('payu.verify_payment');
 
 
 
+Route::match(['get', 'post'], '/payu/hash/generate_init', function (Request $request) {
+    $key = config('payu.key');
+    $txnid = trim((string) $request->input('txnid', ''));
+    $amount = trim((string) $request->input('amount', ''));
+    $productinfo = trim((string) $request->input('productinfo', ''));
+    $firstname = trim((string) $request->input('firstname', ''));
+    $email = trim((string) $request->input('email', ''));
+    $phone = trim((string) $request->input('phone', ''));
+    $hash = null;
 
+    if ($request->isMethod('post') && $txnid !== '' && $amount !== '' && $productinfo !== '' && $firstname !== '' && $email !== '') {
+        $hash = app(\App\Services\PayUService::class)->generatePaymentHash([
+            'key' => "JPM7Fg",
+            'txnid' => $txnid,
+            'amount' => $amount,
+            'email' => $email,
+            'phone' => $phone,
+            'productinfo' => $productinfo,
+            'firstname' => $firstname,
+        ]);
+    }
 
-
-
+    return view('user_login.payments.hash-generate_init', compact(
+        'txnid',
+        'amount',
+        'productinfo',
+        'firstname',
+        'email',
+        'phone',
+        'hash'
+    ));
+})->name('payu.hash.generate_init');
 
 
 

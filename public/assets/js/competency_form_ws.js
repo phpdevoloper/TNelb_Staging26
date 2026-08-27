@@ -293,6 +293,14 @@
 
                     if (saveResponse.status === "success") {
 
+                        // Digitisation certificate is now consumed/linked to this application.
+                        // Clear the stored temp id so a stale (already-linked) id can't be
+                        // re-submitted, which would trip the "Complete digitization certificate
+                        // details first." guard on FormController@store.
+                        if (isDigitization) {
+                            try { sessionStorage.removeItem('cc_digitization_temp_id'); } catch (e) {}
+                            $('#cc_digitization_temp_id').val('');
+                        }
 
                         let form_type = isDigitization
                             ? 'Digitization Application'
@@ -3151,7 +3159,14 @@
                     const workBody = document.getElementById('prvSwWorkBody');
                     buildSwWorkThead(formCode, 'prvSwWorkThead');
                     if (workBody) {
-                        const workRows = document.querySelectorAll('#work-container .work-fields');
+                        // Form W now renders work rows through the shared engine partials
+                        // (7a → #work-container-previous, 7b → #work-container-current), not the
+                        // legacy flat #work-container. Read the engine containers first and fall
+                        // back to the legacy container only if the engine ones are absent.
+                        let workRows = document.querySelectorAll('#work-container-previous .work-fields, #work-container-current .work-fields');
+                        if (!workRows.length) {
+                            workRows = document.querySelectorAll('#work-container .work-fields');
+                        }
                         workBody.innerHTML = '';
                         let printed = 0;
                         const colSpan = 8;
@@ -3168,7 +3183,14 @@
                             const days = row.querySelector('.work-duration-d');
                             const totHidden = row.querySelector('[name="work_experience_total[]"]');
                             const des = row.querySelector('[name="designation[]"]');
-                            if (!typeSel && !emp && !fr && !to && !des) return;
+                            // Engine rows always contain the field elements, so test actual
+                            // values — otherwise an empty 7b (board-member) row prints as dashes.
+                            const hasData = (typeSel && (typeSel.value || '').trim())
+                                || (emp && (emp.value || '').trim())
+                                || (fr && readRowDateIso(fr))
+                                || (to && readRowDateIso(to))
+                                || (des && (des.value || '').trim());
+                            if (!hasData) return;
 
                             printed++;
                             const typeText = typeSel ? (selectedText(typeSel) || typeSel.value || '—') : '—';
@@ -3193,7 +3215,12 @@
                                 + '<td>' + esc(fmtRowDate(to)) + '</td>'
                                 + '<td>' + esc(durText || '—') + '</td>'
                                 + '<td class="prv-sw-td-left">' + esc(des ? des.value || '—' : '—') + '</td>'
-                                + '<td>' + docCellFromRow(row, '[name="work_document[]"]', '[name="existing_work_document[]"]') + '</td>'
+                                + '<td class="prv-sw-td-left">'
+                                    + '<div class="wx-sum-attach-stack">'
+                                        + swAttachBlockHtml('Supporting', row, '[name="work_document[]"]', '[name="existing_work_document[]"]', null)
+                                        + swAttachBlockHtml('Relieving', row, '[name="work_relieving_letter[]"]', '[name="existing_work_relieving_document[]"]', ((row.querySelector('.work-date-till') && row.querySelector('.work-date-till').checked) ? 'Not required (Till date)' : null))
+                                    + '</div>'
+                                + '</td>'
                                 + '</tr>';
                         });
 
@@ -3482,6 +3509,57 @@
             }
         }
 
+        function getContractorDetailsFromPage() {
+            if (window.contractorDetails && (window.contractorDetails.licence_no || window.contractorDetails.cl_type)) {
+                return window.contractorDetails;
+            }
+            var cl = ($('#contractor-cl-type').text() || '').trim();
+            var no = ($('#contractor-licence-no').text() || '').trim();
+            var name = ($('#contractor-name').text() || '').trim();
+            if (!cl && !no && !name) {
+                return null;
+            }
+            return {
+                cl_type: cl,
+                licence_no: no,
+                contractor_name: name
+            };
+        }
+
+        function hasContractorExperienceRow() {
+            var found = false;
+            $('#work-container-previous .work-fields').each(function () {
+                var emp = ($(this).find('.work-employment-type').val() || '').trim().toLowerCase();
+                if (emp === 'electrical_contractor') {
+                    found = true;
+                    return false;
+                }
+            });
+            return found;
+        }
+
+        function hasMatchingContractorExperience(details) {
+            var wantCat = String(details.cl_type || '').trim().toUpperCase();
+            var wantLic = String(details.licence_no || '').replace(/\D/g, '');
+            var wantOrg = String(details.contractor_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            var matched = false;
+            $('#work-container-previous .work-fields').each(function () {
+                var $row = $(this);
+                var emp = ($row.find('.work-employment-type').val() || '').trim().toLowerCase();
+                if (emp !== 'electrical_contractor') {
+                    return;
+                }
+                var cat = ($row.find('.work-contractor-category-sync').val() || $row.find('.work-contractor-cat').val() || '').trim().toUpperCase();
+                var lic = String($row.find('.work-licence-number-sync').val() || $row.find('.work-licence-number').val() || '').replace(/\D/g, '');
+                var org = ($row.find('.work-employer-input').val() || '').trim().toLowerCase().replace(/\s+/g, ' ');
+                if (cat === wantCat && lic === wantLic && org === wantOrg) {
+                    matched = true;
+                    return false;
+                }
+            });
+            return matched;
+        }
+
         $(document).off('change.fsDeclaration', '#declarationCheckbox').on('change.fsDeclaration', '#declarationCheckbox', function () {
             if ($(this).is(':checked')) {
                 $('#checkboxError').addClass('d-none').hide();
@@ -3735,6 +3813,8 @@
             const formName = (($('#form_name').val() || '').trim() || '').toUpperCase();
             const workOptional = (formName === 'W' || formName === 'WH' || formName === 'P');
             const isSWorkForm = (formName === 'S');
+            /* §7a non-overlap rule applies to both SCC (S) and Wireman (W) work experience. */
+            const usesWorkExpSequenceRule = (formName === 'S' || formName === 'W');
 
             /** True when a work file input has a new selection, local preview, or marked upload (Form S card layout). */
             function workFileInputHasSelection($input) {
@@ -4188,8 +4268,9 @@
                 }
             }
 
-            // Form S §7a: experience periods must not overlap (From of next row > To of previous).
-            if (isSWorkForm && typeof window.wxValidateFormSExperienceDateSequence === 'function') {
+            // Form S & Form W §7a: experience periods must not overlap. Rows may be entered
+            // in any order; every period is checked against every other (not just neighbours).
+            if (usesWorkExpSequenceRule && typeof window.wxValidateFormSExperienceDateSequence === 'function') {
                 var seqCheck = window.wxValidateFormSExperienceDateSequence();
                 if (!seqCheck.ok) {
                     if (seqCheck.$row && seqCheck.$row.length) {
@@ -4202,6 +4283,31 @@
                         firstErrorField = $('#work-container-previous, #work-container').first();
                     }
                     isValid = false;
+                }
+            }
+
+            $('.contractor-exp-error').remove();
+            if (isSWorkForm && ($('#appl_type').val() || '').toString().toUpperCase() === 'D') {
+                var contractorDetails = getContractorDetailsFromPage();
+                if (contractorDetails) {
+                    var contractorMsg = '';
+                    if (!hasContractorExperienceRow()) {
+                        contractorMsg = 'Please add a work experience with the contractor details already provided (Grade of Licence, Licence Number, and Name of Contractor).';
+                    } else if (!hasMatchingContractorExperience(contractorDetails)) {
+                        contractorMsg = 'The Grade of Licence, Licence Number, or Name of Contractor does not match the details already provided. Please correct the experience.';
+                    }
+                    if (contractorMsg) {
+                        var $contractorNotice = $('#contractor-details-notice');
+                        var $contractorErr = $('<div class="error-message text-danger d-block mt-2 contractor-exp-error" role="alert">' + contractorMsg + '</div>');
+                        if ($contractorNotice.length) {
+                            $contractorNotice.after($contractorErr);
+                            if (!firstErrorField) firstErrorField = $contractorNotice;
+                        } else {
+                            $('#work-container-previous').before($contractorErr);
+                            if (!firstErrorField) firstErrorField = $('#work-container-previous');
+                        }
+                        isValid = false;
+                    }
                 }
             }
 

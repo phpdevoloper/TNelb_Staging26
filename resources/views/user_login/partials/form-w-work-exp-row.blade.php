@@ -1,3 +1,4 @@
+{{-- Form W §7 work-experience row. Mirrors Form S but WITHOUT Voltage Level, Nature of Work and Transformer (kVA). --}}
 @php
     $legacyEmpMap = [
         'company' => 'private_organisation',
@@ -28,20 +29,8 @@
     }
     $orgAddress = $hasRow ? (string) ($expRow->org_address ?? '') : '';
     $designation = $hasRow ? (string) ($expRow->designation ?? '') : '';
-    $nature = $hasRow ? (string) ($expRow->nature_work ?? '') : '';
-    $voltage = $hasRow ? (string) ($expRow->voltage_level ?? '') : '';
-    $kva = $hasRow && $expRow->transformer_kva !== null && $expRow->transformer_kva !== '' ? (string) $expRow->transformer_kva : '';
-    if ($kva !== '' && is_numeric($kva)) {
-        $kva = (string) (0 + $kva);
-    }
-    $kvaOptions = ['250', '315', '400', '500', '630', '800', '1000', 'Above 1000'];
-    if ($kva === '25') {
-        $kva = '250';
-    }
     $workFromDate = ($hasRow && $expRow->from_date) ? calendar_date_ymd($expRow->from_date) : '';
     $workToDate = ($hasRow && $expRow->to_date) ? calendar_date_ymd($expRow->to_date) : '';
-    // Previous: till was inferred when from_date was set and to_date was empty.
-    // $isTill = $hasRow && $workFromDate !== '' && $workToDate === '';
     $isTill = $hasRow && (int) ($expRow->work_to_till_date ?? 0) === 1;
     if (!$isTill && $hasRow && $workFromDate !== '' && $workToDate === '') {
         $isTill = true;
@@ -81,8 +70,6 @@
     if (!$hasRow && $defaultTillDate) {
         $isTill = true;
     }
-    // Previous: posted Y-m-d when checked.
-    // $tillPostedValue = $isTill ? ($workToDate !== '' ? $workToDate : now()->toDateString()) : '0';
     $tillPostedValue = $isTill ? '1' : '0';
     $removeClasses = 'work-row-remove remove-work' . ($workId !== '' ? ' remove_exp' : '');
     $alterationExistingRow = !empty($alterationExistingRow);
@@ -93,7 +80,6 @@
     if ($isTill) {
         $storedRowClass .= ' fs-till-date-work';
     }
-    /* Renewal: only Till date rows stay editable. Alteration keeps them frozen until Work Edit. */
     if ($alterationExistingRow && $isTill && ! $isAlterationMode) {
         $alterationExistingRow = false;
     }
@@ -169,37 +155,6 @@
             <label class="work-card-field-label">Designation <span class="req">*</span></label>
             <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" disabled placeholder="e.g. Site Engineer" value="{{ $designation }}">
         </div>
-        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="work-nature">
-            <label class="work-card-field-label">Work Nature <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <select class="form-control work-nature" name="work_nature_of_work[]" disabled>
-                <option value="">—</option>
-                <option value="erection" {{ $nature === 'erection' ? 'selected' : '' }}>Erection</option>
-                <option value="maintenance" {{ $nature === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                <option value="erection_maintenance" {{ $nature === 'erection_maintenance' ? 'selected' : '' }}>Erection &amp; Maintenance</option>
-            </select>
-        </div>
-        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="voltage-level">
-            <label class="work-card-field-label">Voltage Level <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <select class="form-control work-voltage" name="work_voltage_level[]" disabled>
-                <option value="">—</option>
-                <option value="up_to_650v" {{ $voltage === 'up_to_650v' ? 'selected' : '' }}>Up to 650V</option>
-                <option value="650v_to_33kv" {{ $voltage === '650v_to_33kv' ? 'selected' : '' }}>Above 650V to 33KV</option>
-                <option value="above_33kv" {{ $voltage === 'above_33kv' ? 'selected' : '' }}>Above 33KV</option>
-            </select>
-        </div>
-        <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="transformer-kva">
-            <label class="work-card-field-label">Transformer (kVA) <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            {{-- Select is UI-only: disabled fields are omitted from FormData and break [] index alignment.
-                 Hidden sync always posts one slot per work row (same pattern as work_to_till_date[]). --}}
-            <select class="form-control work-transformer-kva" disabled autocomplete="off" aria-label="Transformer kVA">
-                <option value="">Select</option>
-                @foreach ($kvaOptions as $kvaOpt)
-                    <option value="{{ $kvaOpt }}" {{ (string) $kva === (string) $kvaOpt ? 'selected' : '' }}>{{ $kvaOpt }}</option>
-                @endforeach
-            </select>
-            <input type="hidden" class="work-transformer-kva-sync" name="work_transformer_kva[]" value="{{ $kva }}" @if($alterationExistingRow) disabled @endif>
-            <span class="work-card-field-hint" data-hint="kva" style="display:none;"><i class="fa fa-info-circle"></i> Not applicable for voltage up to 650V</span>
-        </div>
         @unless ($hideDates)
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="from-date">
             <label class="work-card-field-label">From date <span class="req">*</span></label>
@@ -236,14 +191,13 @@
                     <input type="text" class="form-control work-duration-d" readonly inputmode="none" tabindex="-1" placeholder="0" value="{{ $durD }}" aria-label="Days in this period">
                 </div>
             </div>
-            <span class="work-card-field-hint" data-hint="duration-650v" style="display:none;"><i class="fa fa-info-circle"></i> Not counted toward experience total (voltage up to 650V)</span>
         </div>
         @else
         <input type="hidden" class="work-duration-y" value="{{ $durY }}">
         <input type="hidden" class="work-duration-m" value="{{ $durM }}">
         <input type="hidden" class="work-duration-d" value="{{ $durD }}">
         @endunless
-        {{-- Board-meeting UI for non-§7b layouts only; §7b uses form-s-work-exp-7b-row. --}}
+        {{-- Board-meeting UI for non-§7b layouts only; §7b uses form-w-work-exp-7b-row. --}}
         <div class="work-board-member-panel work-row-grid-span" style="{{ $isBoardMemberRow ? '' : 'display:none;' }}">
             <div class="work-board-member-panel-hd">
                 <span class="work-board-member-panel-badge">Board Member</span>

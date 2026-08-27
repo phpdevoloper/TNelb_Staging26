@@ -1046,6 +1046,8 @@
                         <div class="fs-section-body">
                             @include('user_login.partials.form-s-work-exp-7ab-body', [
                                 'exp_details' => $exp_details ?? collect(),
+                                'showContractorNotice' => true,
+                                'contractorDetails' => $contractorDetails ?? null,
                             ])
                         </div>
                     </div>
@@ -1669,7 +1671,48 @@
 <footer class="main-footer">
     @include('include.footer')
 
-    <script src="{{ url('assets/js/digitization.js') }}"></script>
+    <script src="{{ url('assets/js/digitization.js') }}?v={{ filemtime(public_path('assets/js/digitization.js')) }}"></script>
+    <script>
+        window.showContractorDetails = window.showContractorDetails || function (details) {
+            var notice = document.getElementById("contractor-details-notice");
+            if (!notice) {
+                return;
+            }
+            var hasDetails = details && (details.licence_no || details.cl_type || details.contractor_name);
+            if (hasDetails) {
+                var cl = document.getElementById("contractor-cl-type");
+                var no = document.getElementById("contractor-licence-no");
+                var name = document.getElementById("contractor-name");
+                if (cl) cl.textContent = details.cl_type || "";
+                if (no) no.textContent = details.licence_no || "";
+                if (name) name.textContent = details.contractor_name || "";
+                notice.classList.remove("d-none");
+                notice.style.setProperty("display", "block", "important");
+                window.contractorDetails = details;
+            } else {
+                notice.classList.add("d-none");
+                notice.style.setProperty("display", "none", "important");
+                window.contractorDetails = null;
+            }
+        };
+        @if (!empty($contractorDetails) && is_array($contractorDetails))
+        window.showContractorDetails(@json($contractorDetails));
+        @endif
+        $(document).ajaxSuccess(function (event, xhr, settings) {
+            var url = (settings && settings.url) ? String(settings.url) : "";
+            if (url.indexOf("storeDigitization") === -1 && url.indexOf("getContractorDetails") === -1) {
+                return;
+            }
+            try {
+                var response = typeof xhr.responseJSON === "object" && xhr.responseJSON
+                    ? xhr.responseJSON
+                    : JSON.parse(xhr.responseText || "{}");
+                if (response && response.contractorDetails) {
+                    window.showContractorDetails(response.contractorDetails);
+                }
+            } catch (e) {}
+        });
+    </script>
 
     @include('user_login.partials.form-s-work-exp-scripts', [
         'editFormName' => 'S',

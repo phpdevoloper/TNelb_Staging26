@@ -7,6 +7,7 @@ use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Proof_doc;
 use App\Models\Competency\CC_CompetencyMeta;
+use App\Services\Competency\CompetencyMetaService;
 
 class FormSDocumentMasterTableService
 {
@@ -97,6 +98,19 @@ class FormSDocumentMasterTableService
 
     protected function resolveMasterApplicationForDocument(CC_Doc_Log $document): ?CC_CompetencyMeta
     {
+        // cc_doc_log.application_id holds only the meta PK (app_id), which is NOT unique
+        // across the per-form meta tables (cc_form_s_meta / cc_form_w_meta / cc_form_wh_meta
+        // / cc_form_p_meta all keep independent app_id sequences). Resolving by PK alone
+        // matches the wrong form (Form S is checked first). Prefer the document owner row's
+        // application_id (a globally-unique string) so S/W/WH/P all resolve correctly.
+        $ownerApplicationId = $this->ownerApplicationIdForDocument($document);
+        if ($ownerApplicationId !== null && $ownerApplicationId !== '') {
+            $byOwner = app(CompetencyMetaService::class)->findModel($ownerApplicationId);
+            if ($byOwner) {
+                return $byOwner;
+            }
+        }
+
         $workflowApp = $this->workflowService->findWorkflowByPk((int) $document->application_id);
         if (!$workflowApp) {
             return null;
@@ -145,6 +159,27 @@ class FormSDocumentMasterTableService
         }
 
         return $this->workflowService->masterApplication($workflowApp);
+    }
+
+    /**
+     * The globally-unique string application_id of the row a document belongs to,
+     * read straight from the owning master row (cc_edu / cc_exp / cc_proof_doc).
+     */
+    protected function ownerApplicationIdForDocument(CC_Doc_Log $document): ?string
+    {
+        $refId = (int) $document->module_ref_id;
+        if ($refId <= 0) {
+            return null;
+        }
+
+        $value = match ($document->module_type) {
+            'education' => CC_Education::whereKey($refId)->value('application_id'),
+            'experience' => CC_Experience::whereKey($refId)->value('application_id'),
+            'photo', 'signature', 'aadhaar', 'pan', 'alteration' => CC_Proof_doc::whereKey($refId)->value('application_id'),
+            default => null,
+        };
+
+        return $value !== null ? (string) $value : null;
     }
 
     /**

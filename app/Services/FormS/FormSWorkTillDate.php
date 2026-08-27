@@ -3,8 +3,10 @@
 namespace App\Services\FormS;
 
 /**
- * Posted work_to_till_date[]: Y-m-d when "Till date" is checked, otherwise "0".
- * Legacy posts used "1".
+ * Posted work_to_till_date[]: "1" when Till date is checked, otherwise "0".
+ *
+ * Previous: Y-m-d was posted when checked (legacy "1" was also accepted).
+ * isChecked() still accepts both "1" and a Y-m-d value.
  */
 final class FormSWorkTillDate
 {

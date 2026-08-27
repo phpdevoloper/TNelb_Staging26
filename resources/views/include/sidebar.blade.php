@@ -482,7 +482,7 @@
                                     </li>
                                     <li>
                                         <a class="sb-nav__child-link {{ request()->routeIs('apply-form-w_d') ? 'is-active' : '' }}"
-                                            href="{{ route('apply-form-w_d') }}">
+                                            href="{{ route('apply-form-w_d', ['form' => 'W']) }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Digitisation</span>
                                         </a>
@@ -563,7 +563,8 @@
                                     </li>
                                     <li>
                                         <a class="sb-nav__child-link {{ request()->routeIs('apply-form-s_d') ? 'is-active' : '' }}"
-                                            href="{{ route('apply-form-s_d') }}">
+                                            href="{{ route('apply-form-s_d', ['form' => 'S']) }}"
+                                            data-form="S">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Digitisation</span>
                                         </a>

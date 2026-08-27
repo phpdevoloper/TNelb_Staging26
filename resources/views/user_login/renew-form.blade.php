@@ -819,13 +819,13 @@
     $exp_details = isset($exp_details) ? collect($exp_details) : collect();
 @endphp
 
-@if ($renewFormName === 'S')
+@if (in_array($renewFormName, ['S', 'W'], true))
 <style>
-    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'S'])
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $renewFormName])
 </style>
 <style>
     @include('user_login.partials.form-s-work-exp-7ab-styles')
-    /* Renew Form S — Section 7a card chrome (7b stays flat) */
+    /* Renew Form S / W — Section 7a card chrome (7b stays flat) */
     .fs-section:has(.work-exp-wrap) {
         overflow: visible;
     }
@@ -1016,9 +1016,9 @@
                         $ageVal = isset($application_details) ? $application_details->age : '';
                     @endphp
                     <div class="fs-section" data-mode="view">
-                        <button type="button" class="fs-section-edit-toggle" onclick="toggleSectionEdit(this)" title="Edit" style="position:absolute;top:10px;right:10px;">
+                        {{-- <button type="button" class="fs-section-edit-toggle" onclick="toggleSectionEdit(this)" title="Edit" style="position:absolute;top:10px;right:10px;">
                             <i class="fa fa-pencil"></i>
-                        </button>
+                        </button> --}}
                         <div class="fs-section-body">
                             <div class="fs-view-block">
                                 <div class="row">
@@ -1416,6 +1416,17 @@
                                 'hideUploadWhenDocExists' => true,
                                 'lockExistingRows' => true,
                             ])
+                            @elseif($isRenewW)
+                            @php
+                                $renewWorkExpList = isset($exp_details) ? $exp_details : collect();
+                            @endphp
+                            @include('user_login.partials.form-w-work-exp-7ab-body', [
+                                'exp_details' => $renewWorkExpList,
+                                'hideUploadWhenDocExists' => true,
+                                'lockExistingRows' => true,
+                                'showContractorNotice' => false,
+                                'contractorDetails' => null,
+                            ])
                             @else
                             <div class="table-responsive">
                                 <table class="table table-bordered table-striped" id="work-table">
@@ -1770,7 +1781,7 @@
                                             <div class="fs-field-tamil">ஆதார் எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}">
+                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}" readonly>
                                             <span id="aadhaar-error" class="text-danger"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -1781,9 +1792,9 @@
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
                                                     </a>
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
+                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button> --}}
                                                 </div>
                                             @endif
                                             <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
@@ -1804,7 +1815,7 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}" readonly>
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -1815,9 +1826,9 @@
                                             @if (!empty($existingPanDoc))
                                                 <div class="pan-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
                                                     </a>
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
+                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button> --}}
                                                 </div>
                                             @endif
                                             <div class="pan-doc-input {{ !empty($existingPanDoc) ? 'd-none' : '' }}">
@@ -1848,9 +1859,7 @@
                                                     </div>
                                                     @if ($hasSign)
                                                         <div class="fs-upload-uploaded" id="sign-uploaded-state">
-                                                            <button type="button" class="btn-fs-change" onclick="toggleSignInput()">
-                                                                <i class="fa fa-pencil"></i> Change Signature
-                                                            </button>
+                                                            <span class="text-muted small">Signature on file</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -2364,10 +2373,12 @@
         });
     });
 
-    // Add/Remove work row (Form W renewal — Form S uses form-s-work-exp-scripts partial)
+    // Add/Remove work row (legacy table). Form S and Form W now use the
+    // form-s-work-exp-scripts partial engine, so this only applies to other forms.
     (function() {
         var isRenewS = @json($isRenewS);
-        if (isRenewS) return;
+        var isRenewW = @json($isRenewW);
+        if (isRenewS || isRenewW) return;
 
         function refreshWorkSerials() {
             $('#work-container .work-fields .work-serial').each(function(index) {
@@ -2673,14 +2684,15 @@
     document.querySelectorAll('#competency_form_ws .work-date-from, #competency_form_ws .work-date-to').forEach(initDateDisplay);
 </script>
 
-@if ($renewFormName === 'S')
+@if ($isRenewS || $isRenewW)
 @include('user_login.partials.form-s-work-exp-scripts', [
-    'editFormName' => 'S',
+    'editFormName' => $renewFormName,
     'showBoardMemberEmploymentType' => false,
     'enableBoardMemberFeeExempt' => true,
     'enableBoardMemberRenewalFeeExempt' => true,
     'hideUploadWhenDocExists' => true,
     'lockExistingRows' => true,
+    'hideVoltageFields' => $isRenewW,
 ])
 <script>
     (function () {

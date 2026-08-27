@@ -3,6 +3,25 @@
         padding-top: 18px;
         border-top: 1px dashed #d5deed;
     }
+    .contractor-details-notice {
+        display: block;
+        background: #eef6ff;
+        border: 1px solid #8bb8e8;
+        border-left: 4px solid #0d6efd;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 0 0 14px;
+        font-size: .9rem;
+        color: #1a3a5c;
+        line-height: 1.45;
+    }
+    .contractor-details-notice.d-none {
+        display: none !important;
+    }
+    .contractor-details-notice ul {
+        margin: 0;
+        padding-left: 1.15rem;
+    }
     .fs-question-part-hd {
         display: flex;
         align-items: center;

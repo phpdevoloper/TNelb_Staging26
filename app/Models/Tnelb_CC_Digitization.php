@@ -20,18 +20,31 @@ class Tnelb_CC_Digitization extends Model
         'fissue',
         'from_date',
         'to_date',
-        'qc_det',
         'qc',
+        'qsc',
         'cl_type',
         'licence_no',
         'contractor_name',
         'qc_doc',
-
         'cc_doc',
-        'flag',
         'other1',
         'other2',
         'original_name',
-        'qc_original_name'
+        'qc_original_name',
+        'qc_det',
+        'new_cc_no'
     ];
+
+
+    # Update New CC No
+    # @param string $application_id
+    # @param string $licenseNumber
+    # @return bool
+    public static function UpdateNewCCNo(string $application_id, string $licenseNumber): bool
+    {
+        return self::where('application_id', $application_id)->update([
+            'new_cc_no' => $licenseNumber,
+            'updated_at' => now()
+        ]);
+    }
 }

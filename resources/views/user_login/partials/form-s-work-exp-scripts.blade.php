@@ -1,8 +1,10 @@
-@if (($editFormName ?? ($application_details->form_name ?? '')) === 'S')
+@if ((($editFormName ?? '') === 'W') || (($editFormName ?? ($application_details->form_name ?? '')) === 'S'))
 @php
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $isAlterationMode = !empty($isAlterationMode);
+    // Form W serial-7 has no Voltage Level / Nature of Work / Transformer (kVA) fields.
+    $hideVoltageFields = !empty($hideVoltageFields);
 @endphp
 <script>
         (function() {
@@ -13,6 +15,8 @@
             var TWO_YEARS_MS = 730 * 86400000;
             var hideUploadWhenDocExists = @json($hideUploadWhenDocExists);
             var isAlterationMode = @json($isAlterationMode);
+            /* Form W: Voltage / Nature of Work / Transformer (kVA) fields are absent. */
+            var WX_HIDE_VOLTAGE_FIELDS = @json($hideVoltageFields);
             var DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
             var DOCUMENT_PUBLIC_BASE_URL = @json(rtrim(trim((string) (config('document_versioning.public_base_url') ?: '')), '/'));
             /* 7b Representing Organisation options are filled per selected meeting date. */
@@ -266,9 +270,20 @@
                 });
             }
 
+            function isTillDateWorkRow($tr) {
+                return $tr.hasClass('fs-till-date-work')
+                    || $tr.find('.work-date-till').is(':checked')
+                    || String($tr.find('.work-date-till-hidden').val() || '') === '1';
+            }
+
             function isAlterationFrozenRow($tr) {
-                /* Existing master rows stay read-only on alteration; only new rows can be added. */
-                return $tr.hasClass('fs-alt-existing-work');
+                /* Non-till existing rows stay read-only. Till date rows can be edited on renewal,
+                   and on alteration after Work Experience Edit is clicked. */
+                if (!$tr.hasClass('fs-alt-existing-work')) return false;
+                if (isTillDateWorkRow($tr) && $('#competency_form_ws.fs-alt-form').hasClass('fs-alt-work-unlocked')) {
+                    return false;
+                }
+                return true;
             }
 
             function applyFrozenSummaryActions($tr, $str) {
@@ -297,7 +312,7 @@
             }
 
             /**
-             * Alteration form: unlock only Add row. Existing records stay frozen.
+             * Alteration form: unlock Add row and Till date existing rows only.
              */
             window.wxSetAlterationExistingWorkUnlocked = function (unlocked) {
                 var $form = $('#competency_form_ws.fs-alt-form');
@@ -305,6 +320,16 @@
                 $form.toggleClass('fs-alt-work-unlocked', !!unlocked);
                 $('.fs-alt-existing-work').each(function () {
                     var $tr = $(this);
+                    var canEditTillDate = !!unlocked && isTillDateWorkRow($tr);
+                    if (canEditTillDate) {
+                        $tr.find('input, textarea, select, button').prop('disabled', false);
+                        $tr.find('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
+                            .prop('disabled', true)
+                            .prop('readonly', true);
+                        initWorkRow($tr);
+                        restoreEditableSummaryActions(getSummaryTr($tr));
+                        return;
+                    }
                     $tr.find('input, textarea, select, button')
                         .not('input[type="hidden"]')
                         .prop('disabled', true);
@@ -738,8 +763,10 @@
             }
 
             /**
-             * §7a: consecutive rows must not overlap.
-             * Next row From must be strictly after previous row To.
+             * §7a: no experience period may overlap ANY other §7a period.
+             * Rows may be entered in any order (oldest→newest, newest→oldest, random).
+             * Two periods clash when they intersect, and touching endpoints count as a
+             * clash (a new From must be strictly after every other row's To).
              */
             function workRowDateSequenceMessage($tr) {
                 if (!$tr || !$tr.length) return '';
@@ -768,24 +795,37 @@
                     return 'To date must be greater than or equal to From date.';
                 }
 
-                var $rows = $container.find('.work-fields');
-                var idx = $rows.index($tr);
-                if (idx < 0) return '';
-
-                if (idx > 0 && bounds.from) {
-                    var prevBounds = workRowPeriodBounds($rows.eq(idx - 1));
-                    if (prevBounds && prevBounds.to && bounds.from <= prevBounds.to) {
-                        return 'From date must be after the previous row\'s To date (' +
-                            fmtPretty(prevBounds.toStr) + '). Experience periods must not overlap.';
-                    }
-                }
-
-                if (idx < $rows.length - 1 && bounds.to) {
-                    var nextBounds = workRowPeriodBounds($rows.eq(idx + 1));
-                    if (nextBounds && nextBounds.from && bounds.to >= nextBounds.from) {
-                        return 'To date must be before the next row\'s From date (' +
-                            fmtPretty(nextBounds.fromStr) + '). Experience periods must not overlap.';
-                    }
+                // Order-independent overlap check: compare this row against EVERY other
+                // §7a row (not just the immediate previous/next). Only rows that have a
+                // complete, valid period participate; incomplete/invalid rows report their
+                // own errors and are skipped here.
+                if (bounds.from && bounds.to) {
+                    var $rows = $container.find('.work-fields');
+                    var selfEl = $tr.get(0);
+                    var overlapMsg = '';
+                    $rows.each(function () {
+                        if (overlapMsg) return;
+                        if (this === selfEl) return;
+                        var other = workRowPeriodBounds($(this));
+                        if (!other || !other.from || !other.to) return;
+                        if (other.fromStr && !workDateYearIsPlausible(other.fromStr)) return;
+                        if (other.toStr && !workDateYearIsPlausible(other.toStr)) return;
+                        if (other.to < other.from) return;
+                        // Inclusive intersection: [from,to] ∩ [other.from,other.to] ≠ ∅.
+                        // Shared endpoints count as an overlap, so a From equal to another
+                        // row's To is rejected (next From must be strictly after that To).
+                        if (bounds.from <= other.to && other.from <= bounds.to) {
+                            var selfToLabel = $tr.find('.work-date-till').is(':checked')
+                                ? 'Till date' : fmtPretty(bounds.toStr);
+                            var otherToLabel = $(this).find('.work-date-till').is(':checked')
+                                ? 'Till date' : fmtPretty(other.toStr);
+                            overlapMsg = 'Experience periods must not overlap. This period (' +
+                                fmtPretty(bounds.fromStr) + ' \u2013 ' + selfToLabel +
+                                ') clashes with another row (' +
+                                fmtPretty(other.fromStr) + ' \u2013 ' + otherToLabel + ').';
+                        }
+                    });
+                    if (overlapMsg) return overlapMsg;
                 }
 
                 return '';
@@ -888,7 +928,7 @@
                     return {
                         ok: false,
                         $row: firstInvalid,
-                        message: firstMessage || 'Experience periods must not overlap. Each From date must be after the previous row\'s To date.'
+                        message: firstMessage || 'Experience periods must not overlap. Each From date must be strictly after every other period\'s To date.'
                     };
                 }
                 return { ok: true };
@@ -1105,8 +1145,8 @@
                     unlockWorkField($tr, $yFrom, 'from-date');
                     $yFrom.prop('required', true);
                     $till.prop('disabled', false);
-                    applyTillDate($tr);
-                    if (!$yTo.prop('disabled')) {
+                    applyTillDate($tr, true);
+                    if (!$yTo.prop('disabled') && !$yTo.prop('readonly')) {
                         $yTo.prop('required', true);
                     }
                 } else {
@@ -1230,14 +1270,20 @@
                         return $existing;
                     }
                 }
-                $str = $('<tr class="work-exp-summary-tr">').attr('data-work-row-index', rowIdx || '').append(
+                var $summaryCells = [
                     $('<td class="work-row-summary-sno">'),
                     $('<td class="work-row-summary-employment">'),
                     $('<td class="work-row-summary-org-address">'),
-                    $('<td class="work-row-summary-designation">'),
-                    $('<td class="work-row-summary-nature">'),
-                    $('<td class="work-row-summary-voltage">'),
-                    $('<td class="work-row-summary-kva">'),
+                    $('<td class="work-row-summary-designation">')
+                ];
+                if (!WX_HIDE_VOLTAGE_FIELDS) {
+                    $summaryCells.push(
+                        $('<td class="work-row-summary-nature">'),
+                        $('<td class="work-row-summary-voltage">'),
+                        $('<td class="work-row-summary-kva">')
+                    );
+                }
+                $summaryCells.push(
                     $('<td class="work-row-summary-period">'),
                     $('<td class="work-row-summary-attachments">'),
                     $('<td class="work-row-summary-actions">').append(
@@ -1249,6 +1295,7 @@
                         )
                     )
                 );
+                $str = $('<tr class="work-exp-summary-tr">').attr('data-work-row-index', rowIdx || '').append($summaryCells);
                 $tr.data('wxSummaryTr', $str);
                 $tbody.append($str);
                 applyFrozenSummaryActions($tr, $str);
@@ -1566,11 +1613,13 @@
                     if (!($tr.find('.work-employer-input').val() || '').trim()) return false;
                     if (!($tr.find('.work-org-address').val() || '').trim()) return false;
                     if (!($tr.find('.work-designation').val() || '').trim()) return false;
-                    if (!($tr.find('.work-nature').val() || '').trim()) return false;
-                    if (!($tr.find('.work-voltage').val() || '').trim()) return false;
-                    var voltage = ($tr.find('.work-voltage').val() || '').trim();
-                    var $kva = $tr.find('.work-transformer-kva');
-                    if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                    if (!WX_HIDE_VOLTAGE_FIELDS) {
+                        if (!($tr.find('.work-nature').val() || '').trim()) return false;
+                        if (!($tr.find('.work-voltage').val() || '').trim()) return false;
+                        var voltage = ($tr.find('.work-voltage').val() || '').trim();
+                        var $kva = $tr.find('.work-transformer-kva');
+                        if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && ($kva.val() || '').trim() === '') return false;
+                    }
                     if (type === CONTRACTOR_TYPE) {
                         if (!($tr.find('.work-contractor-cat').val() || '').trim()) return false;
                         if (!String($tr.find('.work-licence-number').val() || '').replace(/\D+/g, '')) return false;
@@ -1645,28 +1694,37 @@
                 done();
             }
 
-            /** Lock To-date / relieving when "Till date" is checked; show today's date in To. */
-            function applyTillDate($tr) {
+            /**
+             * Lock To-date / relieving when "Till date" is checked.
+             * keepSavedToDate: on edit load, keep the stored To date; on user check, fill today.
+             */
+            function applyTillDate($tr, keepSavedToDate) {
                 var $till = $tr.find('.work-date-till');
                 var checked = $till.is(':checked');
-                $tr.find('.work-date-till-hidden').val(checked ? todayIso() : '0');
+                // Previous: posted today's date (Y-m-d) in the hidden field.
+                // $tr.find('.work-date-till-hidden').val(checked ? todayIso() : '0');
+                $tr.find('.work-date-till-hidden').val(checked ? '1' : '0');
 
                 var $toDate = $tr.find('.work-date-to');
                 if (checked) {
-                    var today = todayIso();
-                    var node = $toDate.get(0);
-                    if (node) {
-                        node.setAttribute('data-raw', today);
-                        if (node.type === 'date') {
-                            $toDate.val(today);
-                        } else {
-                            var parts = today.split('-');
-                            $toDate.val(parts[2] + '-' + parts[1] + '-' + parts[0]);
+                    var hasSavedToDate = !!keepSavedToDate && (($toDate.val() || '').trim() !== '');
+                    if (!hasSavedToDate) {
+                        var today = todayIso();
+                        var node = $toDate.get(0);
+                        if (node) {
+                            node.setAttribute('data-raw', today);
+                            if (node.type === 'date') {
+                                $toDate.val(today);
+                            } else {
+                                var parts = today.split('-');
+                                $toDate.val(parts[2] + '-' + parts[1] + '-' + parts[0]);
+                            }
                         }
                     }
-                    $toDate.prop('disabled', true).prop('required', false);
+                    /* readonly so the value is still posted (disabled inputs are omitted). */
+                    $toDate.prop('readonly', true).prop('disabled', false).prop('required', false);
                 } else {
-                    $toDate.prop('disabled', false);
+                    $toDate.prop('readonly', false).prop('disabled', false);
                     // Required-state for $toDate is re-evaluated by applyEmploymentType.
                 }
                 setFieldLock($tr, 'to-date', checked);
@@ -1852,8 +1910,8 @@
                 syncContractorFieldsHidden($tr);
 
                 /* Col 11.To & Col 13 — conditional on Till date. */
-                applyTillDate($tr);
-                if (!$yTo.prop('disabled')) $yTo.prop('required', true);
+                applyTillDate($tr, true);
+                if (!$yTo.prop('disabled') && !$yTo.prop('readonly')) $yTo.prop('required', true);
                 if (!$rel.prop('disabled')) $rel.prop('required', false);
                 /* Note: supporting doc (col 12) AND relieving letter (col 13) are validated
                    at submit-time (file OR existing path); we don't mark them HTML5-required
@@ -2338,7 +2396,8 @@
                     var till = newRow.querySelector('.work-date-till');
                     if (till) till.checked = isCurrent;
                     var tillH = newRow.querySelector('.work-date-till-hidden');
-                    if (tillH) tillH.value = isCurrent ? todayIso() : '0';
+                    // Previous: if (tillH) tillH.value = isCurrent ? todayIso() : '0';
+                    if (tillH) tillH.value = isCurrent ? '1' : '0';
                     newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(inp) { inp.value = ''; });
                     var kvaSync = newRow.querySelector('.work-transformer-kva-sync');
                     if (kvaSync) kvaSync.value = '';

@@ -528,7 +528,7 @@ class FormSProofDocumentService
         }
 
         $prefix = match ($proofName) {
-            self::PROOF_PHOTO => 'user_',
+            self::   => 'user_',
             self::PROOF_SIGN => 'sign_',
             self::PROOF_AADHAAR => 'aadhaar_',
             self::PROOF_PAN => 'pan_',

@@ -1,4 +1,4 @@
-﻿@if (($editFormName ?? ($application_details->form_name ?? '')) === 'S')
+﻿@if ((($editFormName ?? '') === 'W') || (($editFormName ?? ($application_details->form_name ?? '')) === 'S'))
     /* ── Work Experience: row-grid layout (restructured) ──── */
     .work-exp-wrap {
         --wx-accent: #035ab3;
@@ -543,12 +543,16 @@
         display: inline !important;
     }
     .work-card-field.is-locked .form-control:disabled,
-    .work-card-field.is-locked select.form-control:disabled {
+    .work-card-field.is-locked select.form-control:disabled,
+    .work-card-field.is-locked .work-date-to[readonly] {
         background: #eef1f6 !important;
         color: #9aa5b8 !important;
         border-color: #dce3ef !important;
         cursor: not-allowed;
         opacity: 1;
+    }
+    .work-card-field.is-locked .work-date-to[readonly] {
+        pointer-events: none;
     }
 
     /* Till-date toggle sits just below the To-date input inside its field cell */

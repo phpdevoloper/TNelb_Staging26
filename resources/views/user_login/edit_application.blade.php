@@ -4,6 +4,7 @@
     $editFormName = $application_details->form_name ?? '';
     $editLicenseName = $application_details->license_name ?? '';
     $editShowBoardMember = ($editFormName === 'S');
+    $editApplTypeCode = strtoupper(trim((string) ($application_details->appl_type ?? 'N')));
 @endphp
 
 <style>
@@ -903,15 +904,16 @@
         display: inline-block;
     }
 
-    @if ($editFormName === 'S')
-    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'S'])
+    @if (in_array($editFormName, ['S', 'W'], true))
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
     @endif
 </style>
 
-@if ($editFormName === 'S')
+@if (in_array($editFormName, ['S', 'W'], true))
 <style>
     @include('user_login.partials.form-s-work-exp-7ab-styles')
-    /* Edit Form S — Section 7a card chrome (7b stays flat) */
+    @if ($editApplTypeCode === 'D')
+    /* Digitization Form S — Section 7a card chrome (7b stays flat) */
     .fs-section:has(.work-exp-wrap) {
         overflow: visible;
     }
@@ -949,6 +951,14 @@
     #work-container-previous .work-row-remove.remove-work .fa {
         color: #c1272d !important;
     }
+    /* Ensure 7a Submit is visible once the row is complete and still being edited */
+    #work-container-previous .work-row.is-complete.work-row--expanded {
+        overflow: visible !important;
+    }
+    #work-container-previous .work-row.is-complete.work-row--expanded .work-row-done-bar {
+        display: block !important;
+    }
+    @endif
 </style>
 @endif
 
@@ -1562,9 +1572,18 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
+                           
                             @if ($editFormName === 'S')
                             @include('user_login.partials.form-s-work-exp-7ab-body', [
-                                'exp_details' => $exp_details,
+                                'showContractorNotice' => true,
+                                'hideUploadWhenDocExists' => true,
+                                'contractorDetails' => $get_contractor_details,
+                            ])
+                            @elseif ($editFormName === 'W')
+                            @include('user_login.partials.form-w-work-exp-7ab-body', [
+                                'exp_details' => $exp_details ?? collect(),
+                                'showContractorNotice' => false,
+                                'contractorDetails' => null,
                                 'hideUploadWhenDocExists' => true,
                             ])
                             @else
@@ -2563,7 +2582,7 @@
         var isSForm = "{{ $editFormName }}" === 'S';
         var isWForm = "{{ $editFormName }}" === 'W';
 
-        if (isSForm) {
+        if (isSForm || isWForm) {
             return;
         }
 
@@ -3009,13 +3028,14 @@
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
 
 </script>
-@if ($editFormName === 'S')
+@if (in_array($editFormName, ['S', 'W'], true))
 @include('user_login.partials.form-s-work-exp-scripts', [
-    'editFormName' => 'S',
+    'editFormName' => $editFormName,
     'showBoardMemberEmploymentType' => false,
     'enableBoardMemberFeeExempt' => $editShowBoardMember,
     'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
     'hideUploadWhenDocExists' => true,
+    'hideVoltageFields' => ($editFormName === 'W'),
 ])
 <script>
     (function () {

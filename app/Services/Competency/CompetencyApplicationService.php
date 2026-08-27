@@ -197,10 +197,11 @@ class CompetencyApplicationService
     private function findApplicantRowWithPayment(string $table, string $applicationId, ?callable $extraFilter = null): ?object
 
     {
+ 
 
         $query = DB::table($table)
 
-            ->leftJoin('payments as p', 'p.application_id', '=', 'ta.application_id')
+            ->leftJoin('cc_payments as p', 'p.application_id', '=', 'ta.application_id')
 
             ->where('ta.application_id', $applicationId);
 
@@ -222,7 +223,7 @@ class CompetencyApplicationService
 
             'p.payment_status as gateway_payment_status',
 
-            'p.amount',
+            'p.amount_paid as amount',
 
             'p.payment_mode',
 
