@@ -1687,7 +1687,7 @@
                 if (no) no.textContent = details.licence_no || "";
                 if (name) name.textContent = details.contractor_name || "";
                 notice.classList.remove("d-none");
-                notice.style.setProperty("display", "block", "important");
+                notice.style.removeProperty("display");
                 window.contractorDetails = details;
             } else {
                 notice.classList.add("d-none");

@@ -255,7 +255,7 @@ class RegisterController extends BaseController
             : (! empty($application_details->competency_certificate_no) ? 1 : 0);
 
         $proofCrypt = app(SensitiveProofCryptService::class);
-        $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
+        $proofRows = CC_Proof_doc::where('application_id', $appl_id)
             ->whereIn('proof_name', [
                 FormSProofDocumentService::PROOF_AADHAAR,
                 FormSProofDocumentService::PROOF_PAN,
@@ -301,7 +301,7 @@ class RegisterController extends BaseController
             ->orderByDesc('start_date')
             ->first();
 
-        $edu_details = CC_Education::where('application_id', $masterApplicationId)
+        $edu_details = CC_Education::where('application_id', $appl_id)
             ->orderByDesc('year_of_passing')
             ->get()
             ->map(function (CC_Education $edu) {
@@ -312,7 +312,7 @@ class RegisterController extends BaseController
                 return $row;
             });
 
-        $exp_details = CC_Experience::where('application_id', $masterApplicationId)
+        $exp_details = CC_Experience::where('application_id', $appl_id)
             ->orderBy('exp_id')
             ->get()
             ->map(function (CC_Experience $exp) {
@@ -327,10 +327,10 @@ class RegisterController extends BaseController
                 return $row;
             });
 
-        $apps_doc = CC_Proof_doc::where('application_id', $masterApplicationId)->get();
+        $apps_doc = CC_Proof_doc::where('application_id', $appl_id)->get();
 
         $certService = app(CompetencyCertificateService::class);
-        $license_details = $certService->asLicenseDetails($masterApplicationId, $formName)
+        $license_details = $certService->asLicenseDetails($appl_id, $formName)
             ?? $certService->asLicenseDetails((string) $application->application_id, $formName);
 
         $issuedForRenew = $license_details
@@ -372,9 +372,9 @@ class RegisterController extends BaseController
         }
 
         $proofService = app(FormSProofDocumentService::class);
-        $applicant_photo = $proofService->loadPhotoForView($masterApplicationId)
+        $applicant_photo = $proofService->loadPhotoForView($appl_id)
             ?? (object) ['upload_path' => ''];
-        $proof_doc = $proofService->loadSignForView($masterApplicationId)
+        $proof_doc = $proofService->loadSignForView($appl_id)
             ?? (object) ['uploaded_doc' => ''];
 
         $applicationid = $appl_id;

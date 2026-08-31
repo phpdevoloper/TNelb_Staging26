@@ -260,6 +260,7 @@
                     if (
                         txt.indexOf('supporting document is required') !== -1 ||
                         txt.indexOf('relieving letter is required') !== -1 ||
+                        txt.indexOf('relieving letter / self-relieving is required') !== -1 ||
                         txt.indexOf('highest transformer capacity') !== -1 ||
                         txt.indexOf('only pdf') !== -1 ||
                         txt.indexOf('only pdf, jpg or png') !== -1 ||
@@ -1219,7 +1220,14 @@
                     ensureWorkRowDoneBar($tr);
                     var $bar = $tr.find('.work-row-done-bar');
                     if ($bar.length && !$bar.find('.work-row-done-hint').length) {
-                        $bar.append('<p class="work-row-done-hint" role="alert">Fill all required fields and upload documents before you can submit.</p>');
+                        var missingRelieve = workRowMustUploadRelieving($tr)
+                            && !workInputHasFile($tr.find('.work-relieve-input').first());
+                        if (missingRelieve) {
+                            showWorkRelieveRequiredError($tr);
+                            $bar.append('<p class="work-row-done-hint" role="alert">Upload Relieving Letter / Self-Relieving before you can submit this entry.</p>');
+                        } else {
+                            $bar.append('<p class="work-row-done-hint" role="alert">Fill all required fields and upload documents before you can submit.</p>');
+                        }
                     }
                     applyRowLayout($tr);
                     return false;
@@ -1552,8 +1560,12 @@
                         /* Editing a complete row — keep Submit available. */
                         $tr.removeClass('work-row--compact work-row--in-summary');
                     }
-                } else {
-                    $tr.removeClass('work-row--expanded');
+                } else if ($tr.hasClass('work-row--expanded')) {
+                    /* Keep an in-progress edit open. Unchecking Till date makes
+                       Relieving required, so the row is briefly incomplete —
+                       collapsing would hide the card (alteration existing rows
+                       are CSS-hidden unless they stay expanded). */
+                    $tr.removeClass('work-row--compact work-row--in-summary');
                 }
                 $tr.data('wxWasComplete', complete);
                 applyRowLayout($tr);
@@ -1574,6 +1586,61 @@
                 return path !== '' && !removed;
             }
 
+            function workRowIs7a($tr) {
+                return !$tr.closest('#work-container-current, .js-work-container[data-work-part="current"]').length;
+            }
+
+            function workRowMustUploadRelieving($tr) {
+                if (!$tr || !$tr.length) return false;
+                if (!workRowIs7a($tr)) return false;
+                if (isAlterationFrozenRow($tr)) return false;
+                var type = ($tr.find('.work-employment-type').val() || '').trim();
+                if (!type || type === BOARD_MEMBER_TYPE) return false;
+                if ($tr.find('.work-date-till').is(':checked')) return false;
+                return $tr.find('.work-relieve-input').length > 0;
+            }
+
+            function clearWorkRelieveRequiredError($tr) {
+                if (!$tr || !$tr.length) return;
+                $tr.find('.work-relieve-required-error').remove();
+            }
+
+            function showWorkRelieveRequiredError($tr) {
+                if (!$tr || !$tr.length) return;
+                var $rel = $tr.find('.work-relieve-input').first();
+                var $field = $tr.find('[data-field="relieve"]').first();
+                if (!$rel.length && !$field.length) return;
+                clearWorkRelieveRequiredError($tr);
+                var $wrap = $rel.closest('.form-s-file-upload-wrap');
+                var $target = $wrap.length ? $wrap : ($field.length ? $field : $rel);
+                $target.after(
+                    '<span class="error-message text-danger d-block mt-1 work-relieve-required-error" role="alert">' +
+                        'Relieving Letter / Self-Relieving is required.' +
+                    '</span>'
+                );
+            }
+
+            function syncWorkRelieveRequirement($tr) {
+                if (!$tr || !$tr.length) return;
+                var $rel = $tr.find('.work-relieve-input');
+                var $field = $tr.find('[data-field="relieve"]');
+                if (!$rel.length || !$field.length) return;
+                var mustUpload = workRowMustUploadRelieving($tr);
+                $field.removeClass('d-none');
+                $field.find('.work-card-field-label .req').toggle(mustUpload);
+                $field.find('.form-s-file-upload-wrap').removeClass('d-none');
+                if (!mustUpload) {
+                    clearWorkRelieveRequiredError($tr);
+                    return;
+                }
+                unlockWorkField($tr, $rel, 'relieve');
+                $rel.prop('disabled', false).removeClass('is-locked');
+                if (!workInputHasFile($rel)) {
+                    showWorkRelieveRequiredError($tr);
+                } else {
+                    clearWorkRelieveRequiredError($tr);
+                }
+            }
             function workInputHasFile($input) {
                 if (!$input || !$input.length) return false;
                 var $row = $input.closest('.work-fields');
@@ -1724,8 +1791,7 @@
                     /* readonly so the value is still posted (disabled inputs are omitted). */
                     $toDate.prop('readonly', true).prop('disabled', false).prop('required', false);
                 } else {
-                    $toDate.prop('readonly', false).prop('disabled', false);
-                    // Required-state for $toDate is re-evaluated by applyEmploymentType.
+                    $toDate.prop('readonly', false).prop('disabled', false).prop('required', true);
                 }
                 setFieldLock($tr, 'to-date', checked);
 
@@ -1740,11 +1806,12 @@
                         $preview.remove();
                     }
                     $relieve.removeAttr('data-has-local-file');
+                    clearWorkRelieveRequiredError($tr);
                 } else {
                     $relieve.prop('disabled', false).removeClass('is-locked');
-                    // Required-state for $relieve is re-evaluated by applyEmploymentType.
                 }
                 setFieldLock($tr, 'relieve', checked);
+                syncWorkRelieveRequirement($tr);
                 updateTotalYears($tr);
                 updateRowHeader($tr);
             }
@@ -2005,6 +2072,33 @@
                 }
                 return result;
             };
+            window.wxValidateWorkRelievingRequired = function () {
+                var firstInvalid = null;
+                $('#work-container-previous .work-fields, #work-container .work-fields').each(function () {
+                    var $tr = $(this);
+                    if (!workRowMustUploadRelieving($tr)) return;
+                    if (workInputHasFile($tr.find('.work-relieve-input').first())) {
+                        clearWorkRelieveRequiredError($tr);
+                        return;
+                    }
+                    showWorkRelieveRequiredError($tr);
+                    if (!firstInvalid) firstInvalid = $tr;
+                });
+                if (firstInvalid) {
+                    if (!firstInvalid.hasClass('work-row--expanded')) {
+                        firstInvalid.removeClass('work-row--compact work-row--in-summary').addClass('work-row--expanded');
+                        applyRowLayout(firstInvalid);
+                        ensureWorkRowDoneBar(firstInvalid);
+                        syncSummaryTable();
+                    }
+                    return {
+                        ok: false,
+                        $row: firstInvalid,
+                        message: 'Relieving Letter / Self-Relieving is required when Till date is not selected.'
+                    };
+                }
+                return { ok: true };
+            };
             window.wxRecalcWorkDuration = function($row) {
                 if ($row && $row.length) {
                     updateTotalYears($row);
@@ -2156,6 +2250,7 @@
                     unlockWorkField($tr, $tr.find('.work-relieve-input'), 'relieve');
                     $tr.find('.work-relieve-input').prop('required', false);
                     $tr.find('[data-field="relieve"] .work-card-field-label .req').hide();
+                    clearWorkRelieveRequiredError($tr);
                 }
             });
             $(document).on('change', '.js-work-container .work-voltage, #work-container .work-voltage', function() {
@@ -2281,6 +2376,10 @@
             $(document).on('change', '.js-work-container .work-doc-input, .js-work-container .work-relieve-input, #work-container .work-doc-input, #work-container .work-relieve-input', function() {
                 var $tr = $workRow(this);
                 clearWorkRowUploadErrors($tr);
+                clearWorkRelieveRequiredError($tr);
+                if ($(this).hasClass('work-relieve-input')) {
+                    syncWorkRelieveRequirement($tr);
+                }
                 updateRowStatus($tr);
                 /* Preview handlers (page-level) run in parallel; refresh summary once they finish. */
                 setTimeout(function() {

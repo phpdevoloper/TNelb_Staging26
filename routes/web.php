@@ -221,6 +221,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/successpage', [RegisterController::class, 'successpage'])->name('successpage');
 
     Route::get('/editApplication/{application_id}', [FormController::class, 'editApplication'])->name('edit-application');
+    Route::get('/application-preview/{application_id}', [FormController::class, 'previewApplication'])->name('dashboard.application.preview');
+    Route::get('/application-timeline/{application_id}', [FormController::class, 'previewApplicationTimeline'])->name('dashboard.application.timeline');
 
     Route::get('/edit_application/{application_id}', [FormController::class, 'edit_application'])->name('edit_application');
     Route::get('/edit_returned_application/{application_id}', [FormController::class, 'editReturnedApplication'])->name('edit_returned_application');
@@ -518,7 +520,7 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
 $competencyUrlPrefix = trim((string) config('document_versioning.public_url_prefix', 'competency'), '/');
 if ($competencyUrlPrefix !== '' && config('document_versioning.serve_via_laravel', true)) {
     Route::get('/'.$competencyUrlPrefix.'/{filePath}', [FormSDocumentController::class, 'viewByPath'])
-        ->where('filePath', 'FORM_[A-Z]+/.+')
+        ->where('filePath', '(FORM_[A-Z]+|uploads/digitization)/.+')
         ->name('competency.file');
 }
 

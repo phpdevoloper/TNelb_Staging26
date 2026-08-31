@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\CC_Digitisation_Map;
 use App\Models\Tnelb_CC_Digitization;
 use App\Services\FileUploadService;
 use Carbon\Carbon;
@@ -102,6 +103,7 @@ class FormSDigitizationController extends BaseController
             'qc_det'         => 'required',
             'cc_doc'     => 'required|mimes:pdf|max:250',
             'form_name'       => 'required|in:S,W,H,P',
+            'cert_name'       => 'required|in:C,B,H,P',
         ], [
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
         ]);
@@ -131,11 +133,6 @@ class FormSDigitizationController extends BaseController
                 'licence_no.digits_between' => 'Licence Number must contain numbers only (1 to 5 digits).',
             ]);
         }
-
-        // -----------------------------------
-        // Existing Save Logic
-        // -----------------------------------
-
         
         
         $now = db_now();
@@ -187,6 +184,7 @@ class FormSDigitizationController extends BaseController
                 'created_at'       => $now,
                 'updated_at'       => $now,
                 'qc_det'           => $qc_det ?? 0,
+                'cc_type'          => $request->cert_name,
             ]);
 
             $temp_app_id = 'TEMP' . date('Ymd') . str_pad($row->id, 4, '0', STR_PAD_LEFT);
@@ -207,12 +205,19 @@ class FormSDigitizationController extends BaseController
                 $qcFileName = $this->fileUpload->upload($qcFile, 'uploads/digitization/qc/', $qcFileName);
             }
 
+            CC_Digitisation_Map::create([
+                'application_id' => $request->application_id,
+                'old_cc_no' => $request->ccnumber,
+                'created_at' => $now,
+                'temp_id' => $temp_app_id,
+                'cc_type' => $request->cert_name,
+            ]);
+
             $row->update([
                 'temp_app_id'      => $temp_app_id,
                 'cc_doc'           => $fileName,
                 'original_name'    => $original_name,
                 'qc_doc'           => $qcFileName,
-                'qc_original_name' => $qcOriginalName,
                 'updated_at'       => $now,
             ]);
 

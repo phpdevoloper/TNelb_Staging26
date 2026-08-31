@@ -75,7 +75,7 @@ function showContractorDetails(details) {
         $("#contractor-licence-no").text(details.licence_no || "");
         $("#contractor-name").text(details.contractor_name || "");
         $notice.removeClass("d-none");
-        $notice[0].style.setProperty("display", "block", "important");
+        $notice[0].style.removeProperty("display");
         window.contractorDetails = details;
     } else {
         $notice.addClass("d-none");

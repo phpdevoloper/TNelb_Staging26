@@ -3541,7 +3541,7 @@
         function hasMatchingContractorExperience(details) {
             var wantCat = String(details.cl_type || '').trim().toUpperCase();
             var wantLic = String(details.licence_no || '').replace(/\D/g, '');
-            var wantOrg = String(details.contractor_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            // var wantOrg = String(details.contractor_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
             var matched = false;
             $('#work-container-previous .work-fields').each(function () {
                 var $row = $(this);
@@ -3551,8 +3551,8 @@
                 }
                 var cat = ($row.find('.work-contractor-category-sync').val() || $row.find('.work-contractor-cat').val() || '').trim().toUpperCase();
                 var lic = String($row.find('.work-licence-number-sync').val() || $row.find('.work-licence-number').val() || '').replace(/\D/g, '');
-                var org = ($row.find('.work-employer-input').val() || '').trim().toLowerCase().replace(/\s+/g, ' ');
-                if (cat === wantCat && lic === wantLic && org === wantOrg) {
+                // var org = ($row.find('.work-employer-input').val() || '').trim().toLowerCase().replace(/\s+/g, ' ');
+                if (cat === wantCat && lic === wantLic) {
                     matched = true;
                     return false;
                 }
@@ -3867,7 +3867,7 @@
             }
 
             $('.js-work-container .work-fields, #work-container .work-fields').each(function () {
-                if (isSWorkForm) {
+                if (isSWorkForm || formName === 'W') {
                     /* Form S (13-column SCC layout):
                        Required per row:
                          • Employment Type (col 2)
@@ -3973,24 +3973,24 @@
                         }
                     }
 
-                    /* Column 8 — Nature of Work */
-                    if (!isBoardMember && !natureOfWork.prop('disabled') && natureOfWork.length && (natureOfWork.val() || '').trim() === '') {
+                    /* Column 8 — Nature of Work (Form S only) */
+                    if (isSWorkForm && !isBoardMember && !natureOfWork.prop('disabled') && natureOfWork.length && (natureOfWork.val() || '').trim() === '') {
                         natureOfWork.after('<span class="error-message text-danger d-block mt-1">Nature of Work Experience is required.</span>');
                         if (!firstErrorField) firstErrorField = natureOfWork;
                         isValid = false;
                     }
 
-                    /* Column 9 — Voltage Level */
+                    /* Column 9 — Voltage Level (Form S only) */
                     const voltageVal = (voltageLevel.val() || '').trim();
-                    if (!isBoardMember && !voltageLevel.prop('disabled') && voltageLevel.length && voltageVal === '') {
+                    if (isSWorkForm && !isBoardMember && !voltageLevel.prop('disabled') && voltageLevel.length && voltageVal === '') {
                         voltageLevel.after('<span class="error-message text-danger d-block mt-1">Voltage level is required.</span>');
                         if (!firstErrorField) firstErrorField = voltageLevel;
                         isValid = false;
                     }
 
-                    /* Column 10 — Transformer kVA (required unless Voltage = Up to 650V) */
+                    /* Column 10 — Transformer kVA (Form S only; required unless Voltage = Up to 650V) */
                     const kvaIsLocked = isBoardMember || (voltageVal === 'up_to_650v') || transformerKva.prop('disabled');
-                    if (!kvaIsLocked && transformerKva.length && (transformerKva.val() || '').trim() === '') {
+                    if (isSWorkForm && !kvaIsLocked && transformerKva.length && (transformerKva.val() || '').trim() === '') {
                         transformerKva.after('<span class="error-message text-danger d-block mt-1">Highest Transformer capacity (kVA) is required.</span>');
                         if (!firstErrorField) firstErrorField = transformerKva;
                         isValid = false;
@@ -4064,7 +4064,7 @@
                     }
 
                     /* Column 13 — Relieving Letter (required unless Till date or Board Member) */
-                    if (!isTillDate && !isBoardMember && relieveInput.length) {
+                    if (!isFormS7bCurrentWorkRow($row) && !isTillDate && !isBoardMember && relieveInput.length) {
                         if (!hasRelieveFile) {
                             $relieveErrorTarget.after('<span class="error-message text-danger d-block mt-1">Relieving letter is required.</span>');
                             if (!firstErrorField) firstErrorField = relieveInput;
@@ -4087,10 +4087,6 @@
                             }
                         }
                     }
-                    return;
-                }
-
-                if (formName === 'W') {
                     return;
                 }
 
@@ -4292,9 +4288,9 @@
                 if (contractorDetails) {
                     var contractorMsg = '';
                     if (!hasContractorExperienceRow()) {
-                        contractorMsg = 'Please add a work experience with the contractor details already provided (Grade of Licence, Licence Number, and Name of Contractor).';
+                        contractorMsg = 'Please add a work experience with the contractor details already provided.';
                     } else if (!hasMatchingContractorExperience(contractorDetails)) {
-                        contractorMsg = 'The Grade of Licence, Licence Number, or Name of Contractor does not match the details already provided. Please correct the experience.';
+                        contractorMsg = 'The Given Licence Number of Contractor must exist in the experience details.';
                     }
                     if (contractorMsg) {
                         var $contractorNotice = $('#contractor-details-notice');

@@ -364,6 +364,18 @@
 
         /* Same 650V / 2-year rule as New / Renewal / Digitization (shared work-exp scripts). */
         if (flags.alterWork || (flags.optWork && (hasNewWorkRows() || hasEditedExistingWorkRows()))) {
+            if (typeof window.wxValidateWorkRelievingRequired === 'function') {
+                var relieveCheck = window.wxValidateWorkRelievingRequired();
+                if (!relieveCheck.ok) {
+                    Swal.fire(
+                        'Validation',
+                        relieveCheck.message || 'Relieving Letter / Self-Relieving is required when Till date is not selected.',
+                        'warning'
+                    );
+                    scrollToSection('#fsAltSectionWork');
+                    return false;
+                }
+            }
             if (typeof window.wxValidateFormSExperienceDateSequence === 'function') {
                 var seqCheck = window.wxValidateFormSExperienceDateSequence();
                 if (!seqCheck.ok) {

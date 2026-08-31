@@ -24,6 +24,8 @@
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work button {
         pointer-events: auto !important;
     }
+    /* Keep the expanded till-date card visible after Till date is unchecked
+       (row is still fs-till-date-work; Relieving / To date must stay editable). */
     .fs-alt-form.fs-alt-work-unlocked .work-fields.fs-alt-existing-work.fs-till-date-work.work-row--expanded,
     .fs-alt-form.fs-alt-work-unlocked .work-entry-block:has(.fs-alt-existing-work.fs-till-date-work.work-row--expanded) {
         display: block !important;

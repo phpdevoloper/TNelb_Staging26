@@ -25,9 +25,17 @@
         <div class="fs-section-title">Previous and Current Work experiences</div>
     </div>
     @if ($showContractorNotice)
-    <div id="contractor-details-notice" class="contractor-details-notice{{ $hasContractorDetails ? '' : ' d-none' }}" role="status" @if($hasContractorDetails) style="display:block;" @else style="display:none;" @endif>
-        <p class="mb-2"><strong>You have already provided the contractor details, so you must add the experience with the following details:</strong></p>
-        <ul class="mb-0">
+    <div id="contractor-details-notice" class="contractor-details-notice{{ $hasContractorDetails ? '' : ' d-none' }}" role="status">
+        <p class="contractor-details-notice__title">
+            <span class="contractor-details-notice__icon" aria-hidden="true">
+                <i class="fa fa-exclamation-circle"></i>
+            </span>
+            <span class="contractor-details-notice__text">
+                <span class="sr-only">Information: </span>
+                You have already provided the contractor details, so you must add the experience with the following details:
+            </span>
+        </p>
+        <ul class="contractor-details-notice__list">
             <li>Grade of Licence: <strong id="contractor-cl-type">{{ $contractorDetails['cl_type'] ?? '' }}</strong></li>
             <li>Licence Number: <strong id="contractor-licence-no">{{ $contractorDetails['licence_no'] ?? '' }}</strong></li>
             <li>Name of Contractor: <strong id="contractor-name">{{ $contractorDetails['contractor_name'] ?? '' }}</strong></li>

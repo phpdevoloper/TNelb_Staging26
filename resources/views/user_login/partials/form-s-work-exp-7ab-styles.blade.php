@@ -4,23 +4,51 @@
         border-top: 1px dashed #d5deed;
     }
     .contractor-details-notice {
+        --notice-bg: #eef6ff;
+        --notice-border: #8bb8e8;
+        --notice-accent: #0d6efd;
+        --notice-text: #1a3a5c;
+        --notice-icon: #0d6efd;
         display: block;
-        background: #eef6ff;
-        border: 1px solid #8bb8e8;
-        border-left: 4px solid #0d6efd;
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin: 0 0 14px;
-        font-size: .9rem;
-        color: #1a3a5c;
+        background: var(--notice-bg);
+        border: 1px solid var(--notice-border);
+        border-left: 0.25rem solid var(--notice-accent);
+        border-radius: var(--radius-md, 0.5rem);
+        padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+        margin: 0 0 0.875rem;
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--notice-text);
         line-height: 1.45;
     }
     .contractor-details-notice.d-none {
         display: none !important;
     }
-    .contractor-details-notice ul {
+    .contractor-details-notice__title {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-2, 0.5rem);
+        margin: 0 0 var(--space-2, 0.5rem);
+        font-weight: 700;
+    }
+    .contractor-details-notice__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 1.5rem;
+        height: 1.5rem;
+        margin-top: 0.1rem;
+        color: var(--notice-icon);
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+    .contractor-details-notice__text {
+        min-width: 0;
+        flex: 1;
+    }
+    .contractor-details-notice__list {
         margin: 0;
-        padding-left: 1.15rem;
+        padding-left: 2.15rem;
     }
     .fs-question-part-hd {
         display: flex;

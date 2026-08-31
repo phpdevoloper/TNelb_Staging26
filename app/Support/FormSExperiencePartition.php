@@ -59,6 +59,14 @@ class FormSExperiencePartition
     {
         $split = self::splitBoardMember($expDetails);
         $previous = $split['standard'];
+
+        $previous = $previous->sortBy(function ($row) {
+            $from = $row->from_date ?? '';
+            if ($from === '' || $from === null) {
+                return '9999-12-31';
+            }
+            return substr((string) $from, 0, 10);
+        })->values();
         // One-time form: keep only the first board-member record if several exist.
         $current = $split['boardMember']->take(1)->values();
 

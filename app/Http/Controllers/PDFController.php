@@ -1559,7 +1559,6 @@ class PDFController extends Controller
         } else {
             $appltye = 'Alteration Application';
         }
-<<<<<<< Updated upstream
         $payment = $this->getPayment((string) $application_id);
         $paymentType   = 'N/A';
         $transactionNo = 'N/A';
@@ -1576,11 +1575,6 @@ class PDFController extends Controller
             $amountValue   = '&#8377; ' . ($payment->amount ?? 'Nil');
             $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
         }
-=======
-        $payment = DB::table('cc_payments')->where('application_id', $application_id)->first();
-        // dd($payment);exit;
-
->>>>>>> Stashed changes
         $html = '
         <div class="card">
 
