@@ -2,10 +2,9 @@
     $digi = $getdetails_digitisation ?? null;
     $oldCertNo = '';
     $appId = trim((string) ($timeline['application_id'] ?? ''));
-    $qcEligible = false;
+    $qcExists = false;
     $isQc = false;
     $isQsc = false;
-    $eligKind = null;
     $ccDocUrl = null;
     $qcDocUrl = null;
     $firstIssue = '';
@@ -68,9 +67,9 @@
         $hasDigi = true;
         $oldCertNo = trim((string) ($digi->ccnumber ?? $digi->application_id ?? ''));
         $appId = trim((string) ($digi->application_id ?? $appId));
-        $qcEligible = (string) ($digi->qc_det ?? '') === '1';
-        $isQc = $qcEligible && (string) ($digi->qc ?? '') === '1';
-        $isQsc = $qcEligible && ! $isQc;
+        $qcExists = (string) ($digi->qc_det ?? '') === '1';
+        $isQc = $qcExists && (string) ($digi->qc ?? '') === '1';
+        $isQsc = $qcExists && (string) ($digi->qsc ?? '') === '1';
         $eligKind = $isQc ? 'QC' : ($isQsc ? 'QSC' : null);
         $ccDocUrl = $docUrl($digi->cc_doc ?? null, 'scc');
         $qcDocUrl = $docUrl($digi->qc_doc ?? null, 'qc');
@@ -468,49 +467,7 @@
                     </div>
                 </article>
             </li>
-            @if ($get_digitisation_mapping)
-                <li class="dash-tl-step">
-                    <div class="dash-tl-step-rail" aria-hidden="true">
-                        <span class="dash-tl-step-num">2</span>
-                    </div>
-                    <article class="dash-tl-step-card">
-                        <header class="dash-tl-step-hd">
-                            <div>
-                                <h4 class="dash-tl-step-title">Digitisation mapping</h4>
-                                <p class="dash-tl-step-copy">Check the details of digitisation mapping of old certificate to new certificate.</p>
-                            </div>
-                            <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Captured</span>
-                            @if(!empty($get_digitisation_mapping->new_cc_no)) 
-                            <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Digitised</span> @else 
-                            <span class="dash-tl-pill dash-tl-pill-no"><i class="fa fa-times"></i> Not Digitised</span> 
-                            @endif
-                        </header>
-                        <div class="dash-tl-step-body">
-                            <div class="dash-tl-result is-yes">
-                                <span class="dash-tl-result-icon" aria-hidden="true">
-                                    <i class="fa fa-check"></i>
-                                </span>
-                                <div>
-                                    <p class="dash-tl-result-text">
-                                        The old certificate has been digitised and mapped to the new certificate.
-                                    </p>
-
-                                <div class="dash-tl-meta">
-                                    <div class="dash-tl-meta-item">
-                                        <span class="dash-tl-meta-label">Old certificate number</span>
-                                        <div class="dash-tl-meta-value">{{ $get_digitisation_mapping->old_cc_no }}</div>
-                                    </div>
-                                    <div class="dash-tl-meta-item">
-                                        <span class="dash-tl-meta-label">New certificate number</span>
-                                        <div class="dash-tl-meta-value">{{ $get_digitisation_mapping->new_cc_no }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </article>
-                </li>
-            @endif
-            <li class="dash-tl-step {{ $qcEligible ? 'is-yes' : 'is-no' }}">
+            {{-- <li class="dash-tl-step {{ $qcEligible ? 'is-yes' : 'is-no' }}">
                 <div class="dash-tl-step-rail" aria-hidden="true">
                     <span class="dash-tl-step-num">2</span>
                 </div>
@@ -591,10 +548,10 @@
                         @endif
                     </div>
                 </article>
-            </li>
-            <li class="dash-tl-step">
+            </li> --}}
+            <li class="dash-tl-step {{ $qcExists ? 'is-yes' : 'is-no' }}">
                 <div class="dash-tl-step-rail" aria-hidden="true">
-                    <span class="dash-tl-step-num">3</span>
+                    <span class="dash-tl-step-num">2</span>
                 </div>
                 <article class="dash-tl-step-card">
                     <header class="dash-tl-step-hd">
@@ -603,9 +560,84 @@
                             <p class="dash-tl-step-copy">Check the details of existing QC based on the current work experience with till date validation.</p>
                         </div>
                         @if ($isQc)
-                            <span class="dash-tl-pill dash-tl-pill-ok">QC</span>
+                            <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Yes</span>
+                        @elseif ($isQsc)
+                            <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Yes</span>
                         @else
-                            <span class="dash-tl-pill dash-tl-pill-ok">QSC</span>
+                            <span class="dash-tl-pill dash-tl-pill-no"><i class="fa fa-times"></i> No</span>
+                        @endif
+                    </header>
+                    <div class="dash-tl-step-body">
+                        <div class="dash-tl-result {{ $qcExists ? 'is-yes' : 'is-no' }}">
+                            <span class="dash-tl-result-icon" aria-hidden="true">
+                                <i class="fa fa-check"></i>
+                            </span>
+                            <div>
+                                <p class="dash-tl-result-text">
+                                    @if ($isQc)
+                                        Supervisory competency is recognised as Qualified Contractor (QC).
+                                        <div class="dash-tl-meta">
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Grade of licence</span>
+                                                <div class="dash-tl-meta-value">{{ $clType }}</div>
+                                            </div>
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Licence number</span>
+                                                <div class="dash-tl-meta-value">{{ $licenceNo }}</div>
+                                            </div>
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Name of contractor</span>
+                                                <div class="dash-tl-meta-value">{{ $contractorName }}</div>
+                                            </div>
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Document</span>
+                                                <div class="dash-tl-meta-value"><a href="{{ $qcDocUrl }}" target="_blank" rel="noopener noreferrer"><i class="fa fa-file-pdf-o"></i> View document</a></div>
+                                            </div>
+                                        </div>
+                                    @elseif ($isQsc)
+                                        Supervisory competency is recognised as Qualified Supervisor Certificate (QSC).
+                                        <div class="dash-tl-meta">
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Grade of licence</span>
+                                                <div class="dash-tl-meta-value">{{ $clType }}</div>
+                                            </div>
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Licence number</span>
+                                                <div class="dash-tl-meta-value">{{ $licenceNo }}</div>
+                                            </div>
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Name of contractor</span>
+                                                <div class="dash-tl-meta-value">{{ $contractorName }}</div>
+                                            </div>
+                                            <div class="dash-tl-meta-item">
+                                                <span class="dash-tl-meta-label">Document</span>
+                                                <div class="dash-tl-meta-value"><a href="{{ $qscDocUrl }}" target="_blank" rel="noopener noreferrer"><i class="fa fa-file-pdf-o" style="color: #bb1a1a; font-size: 1.2rem;"></i> View document</a></div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        No existing QC / QSC is found.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </li>
+            @if ($get_digitisation_mapping)
+            <li class="dash-tl-step">
+                <div class="dash-tl-step-rail" aria-hidden="true">
+                    <span class="dash-tl-step-num">3</span>
+                </div>
+                <article class="dash-tl-step-card">
+                    <header class="dash-tl-step-hd">
+                        <div>
+                            <h4 class="dash-tl-step-title">Digitisation mapping</h4>
+                            <p class="dash-tl-step-copy">Check the details of digitisation mapping of old certificate to new certificate.</p>
+                        </div>
+                        <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Captured</span>
+                        @if(!empty($get_digitisation_mapping->new_cc_no)) 
+                        <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Digitised</span> @else 
+                        <span class="dash-tl-pill dash-tl-pill-no"><i class="fa fa-times"></i> Not Digitised</span> 
                         @endif
                     </header>
                     <div class="dash-tl-step-body">
@@ -614,21 +646,29 @@
                                 <i class="fa fa-check"></i>
                             </span>
                             <div>
-                                <p class="dash-tl-result-title">
-                                    {{ $eligKind }} is eligible
-                                </p>
                                 <p class="dash-tl-result-text">
-                                    @if ($isQc)
-                                        Supervisory competency is recognised as Qualified Contractor (QC).
-                                    @else
-                                        Supervisory competency is recognised as Qualified Supervisor Certificate (QSC).
-                                    @endif
+                                    The old certificate has been digitised and mapped to the new certificate.
                                 </p>
+
+                            <div class="dash-tl-meta">
+                                <div class="dash-tl-meta-item">
+                                    <span class="dash-tl-meta-label">Old certificate number</span>
+                                    <div class="dash-tl-meta-value">{{ $get_digitisation_mapping->old_cc_no }}</div>
+                                </div>
                             </div>
-                        </div>
+
+                            @if(!empty($get_digitisation_mapping->new_cc_no))
+                            <div class="dash-tl-meta">
+                                <div class="dash-tl-meta-item">
+                                    <span class="dash-tl-meta-label">On Approval (New Certificate number)</span>
+                                    <div class="dash-tl-meta-value">{{ $get_digitisation_mapping->new_cc_no }}</div>
+                                </div>
+                            </div>
+                            @endif
                     </div>
-                </article>
-            </li>
-        </ol>
-    @endif
-</section>
+                    </article>
+                </li>
+            @endif
+            </ol>
+        @endif
+    </section>
