@@ -55,7 +55,12 @@
                             foreach ($exp_details as $expRow) {
                                 $fromIso = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
                                 $toIso = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
-                                $isTill = $fromIso !== '' && $toIso === '';
+                                // Previous: till was inferred when from_date was set and to_date was empty.
+                                // $isTill = $fromIso !== '' && $toIso === '';
+                                $isTill = (int) ($expRow->work_to_till_date ?? 0) === 1;
+                                if (!$isTill && $fromIso !== '' && $toIso === '') {
+                                    $isTill = true;
+                                }
                                 $yN = $expRow->total_y !== null ? (int) $expRow->total_y : 0;
                                 $mN = $expRow->total_m !== null ? (int) $expRow->total_m : 0;
                                 $dN = $expRow->total_d !== null ? (int) $expRow->total_d : 0;

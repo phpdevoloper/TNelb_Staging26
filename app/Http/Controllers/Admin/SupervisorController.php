@@ -19,17 +19,19 @@ use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\CompetencyWorkflowService;
 
+
 use Carbon\Carbon;
 
 use function PHPUnit\Framework\isNull;
 
 class SupervisorController extends Controller
 {
-    protected $today, $dbNow;
+    protected $today, $dbNow, $digitisationModel;
     public function __construct()
     {
         $this->today = Carbon::today()->toDateString();
         $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
+        $this->digitisationModel = new Tnelb_CC_Digitization();
     }
 
     public function index()
@@ -1737,19 +1739,21 @@ class SupervisorController extends Controller
 
     private function markCompetencyApplicationApproved(object $application, string $processedBy, ?string $qc = null, ?string $qsc = null): void
     {
+        
         $update = [
             'processed_by' => $processedBy,
             'updated_at' => now(),
         ];
 
         $metaTable = (string) ($application->_approval_source ?? '');
+
         if (in_array($metaTable, app(CompetencyMetaService::class)->allMetaTables(), true)) {
             $update['app_status'] = 'A';
             if ($qc !== null) {
-                $update['qc'] = $qc;
+                $update['qc'] = $qc ?? 0;
             }
             if ($qsc !== null) {
-                $update['qsc'] = $qsc;
+                $update['qsc'] = $qsc ?? 0;
             }
             DB::table($metaTable)->where('application_id', $application->application_id)->update($update);
 
@@ -1764,7 +1768,7 @@ class SupervisorController extends Controller
         if ($qsc !== null) {
             $update['qsc'] = $qsc;
         }
-        DB::table('cc_form_s_meta')
+        DB::table($metaTable)
             ->where('application_id', $application->application_id)
             ->update($update);
     }
@@ -1853,13 +1857,15 @@ class SupervisorController extends Controller
 
         $request->validate([
             'application_id' => 'required|string',
-            'processed_by'   => 'required|string',
-            'forwarded_to'   => 'integer',
-            'remarks'        => 'required|string',
+            'processed_by' => 'required|string',
+            'forwarded_to' => 'integer',
+            'remarks' => 'required|string',
         ]);
 
         // Fetch the application details (CC meta first for S/W/WH)
         $application = $this->resolveCompetencyApplicationForApproval($request->application_id);
+
+
 
 
         if (!$application) {
@@ -1875,6 +1881,7 @@ class SupervisorController extends Controller
         }
 
         DB::beginTransaction();
+
         try {
             // Update application status to "Approved"
             $staff = Auth::user()->name;
@@ -1891,6 +1898,7 @@ class SupervisorController extends Controller
                 $request->input('qsc')
             );
 
+
             // Issue or renew licence and get final number + dates
             [$licenseNumber, $issuedAt, $expiresAt] = $this->issueOrRenewLicense(
                 $application,
@@ -1901,7 +1909,7 @@ class SupervisorController extends Controller
                 $login_id
             );
 
-            // dd('success'); exit;
+
 
             // Regenerate licence PDF on the issued certificate application (parent for alterations).
             $pdfApplicationId = $appl_type === 'A'
@@ -1917,113 +1925,127 @@ class SupervisorController extends Controller
                     'error' => $e->getMessage(),
                 ]);
             }
-            //    dd($this->dbNow); exit;
+
+
+            /* -------------------- DIGITIZATION -------------------- */
+            $message = '';
+            if ($appl_type == 'D') {
+                $digitization = $this->digitisationModel->UpdateNewCCNo($request->application_id, $licenseNumber);
+                if ($digitization) {
+                    $message = 'New CC No updated successfully!';
+                } else {
+                    $message = 'Failed to update new CC No!';
+                }
+
+            }
+
+
+
             $chklistStatus = $request->input('chklist_status', []);
 
-             $checklistData = [];
+            $checklistData = [];
 
-        foreach ($request->check_id as $id => $checkId) {
+            foreach ($request->check_id as $id => $checkId) {
 
-            $checklistData[] = [
-                'id'      => $checkId,
-                'checked' => (int) ($request->checklists[$id] ?? 0),
-                'verify'  => (int) ($request->status[$id] ?? 0),
-            ];
-        }
+                $checklistData[] = [
+                    'id' => $checkId,
+                    'checked' => (int) ($request->checklists[$id] ?? 0),
+                    'verify' => (int) ($request->status[$id] ?? 0),
+                ];
+            }
 
 
-        if($appl_type =='A'){
+            if ($appl_type == 'A') {
 
-            $alter_insert = DB::table('cc_forms_cert')->where('application_id', $request->application_id)->first();
+                $alter_insert = DB::table('cc_forms_cert')->where('application_id', $request->application_id)->first();
 
-            if(!$alter_insert){
-                $metadata = DB::table('cc_form_s_meta')->where('application_id', $request->application_id)->first();
-        
-                $licensedetails = DB::table('cc_forms_cert')
-                ->where('application_id', $metadata->old_application)
-                ->latest('cc_id')
+                if (!$alter_insert) {
+                    $metadata = DB::table('cc_form_s_meta')->where('application_id', $request->application_id)->first();
+
+                    $licensedetails = DB::table('cc_forms_cert')
+                        ->where('application_id', $metadata->old_application)
+                        ->latest('cc_id')
+                        ->first();
+                    $alter_insert = DB::table('cc_forms_cert')->insert([
+                        'application_id' => $request->application_id,
+                        'certificate_no' => $licenseNumber,
+                        'dateof_issue' => $licensedetails->dateof_issue,
+                        'valid_from' => $licensedetails->valid_from,
+                        'valid_to' => $licensedetails->valid_to,
+                        'cert_status' => 'A',
+                        'created_at' => $this->dbNow,
+                    ]);
+                }
+            }
+
+            $appService = app(CompetencyApplicationService::class);
+
+            $workflowService = app(CompetencyWorkflowService::class);
+            $applicant = $appService->findApplicantWithPayment($request->application_id);
+            if (!$applicant) {
+                return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
+            }
+
+            $applicantStatus = $appService->applicationStatus($applicant);
+            $isReturnedApplication = $applicantStatus === 'RE';
+
+            $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
+                ->where('certificate_name', $applicant->certificate_name)
                 ->first();
-                $alter_insert = DB::table('cc_forms_cert')->insert([
-                    'application_id' => $request->application_id,
+
+
+            $meta_tbl_certIupdate = DB::table('cc_form_s_meta')
+                ->where('application_id', $request->application_id)
+                ->update([
                     'certificate_no' => $licenseNumber,
-                    'dateof_issue'   => $licensedetails->dateof_issue,
-                    'valid_from'     => $licensedetails->valid_from,
-                    'valid_to'       => $licensedetails->valid_to,
-                    'cert_status'    => 'A',
-                    'created_at'     => $this->dbNow,
+                    'updated_at' => now(),
+
+                ]);
+
+            if ($Existingcheck) {
+                $Existingcheck->update([
+
+                    // 'certificate_name'       => $request->certificate_name,
+                    'checklist_json' => json_encode($checklistData),
+                    'updated_by' => Auth::id(),
+                ]);
+            } else {
+
+                CC_Checklist_applicant::create([
+                    'login_id' => Auth::id(),
+                    'applicant_id' => $request->application_id,
+                    'cert_license_id' => $applicant->id,
+                    'certificate_name' => $applicant->certificate_name,
+                    'checklist_json' => json_encode($checklistData),
+                    'updated_by' => Auth::id(),
                 ]);
             }
-        }
-
-        $appService = app(CompetencyApplicationService::class);
-
-        $workflowService = app(CompetencyWorkflowService::class);
-        $applicant = $appService->findApplicantWithPayment($request->application_id);
-        if (! $applicant) {
-                    return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
-        }
-
-        $applicantStatus = $appService->applicationStatus($applicant);
-        $isReturnedApplication = $applicantStatus === 'RE';
-
-        $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
-        ->where('certificate_name', $applicant->certificate_name)
-        ->first();
-
-
-        $meta_tbl_certIupdate = DB::table('cc_form_s_meta')
-            ->where('application_id', $request->application_id)
-            ->update([
-                'certificate_no' => $licenseNumber,
-                'updated_at' => now(),
-
-            ]);
-
-        if($Existingcheck){
-            $Existingcheck->update([
-
-                // 'certificate_name'       => $request->certificate_name,
-                'checklist_json'  => json_encode($checklistData),
-                'updated_by'      => Auth::id(),
-            ]);
-        } else {
-
-            CC_Checklist_applicant::create([
-                'login_id'        => Auth::id(),
-                'applicant_id'    => $request->application_id,
-                'cert_license_id' => $applicant->id,
-                'certificate_name'       => $applicant->certificate_name,
-                'checklist_json'  => json_encode($checklistData),
-                'updated_by'      => Auth::id(),
-            ]);
-        }
 
 
             $workflowTable = app(CompetencyApplicationService::class)
                 ->resolveWorkflowTable($request->application_id, $application);
             app(CompetencyWorkflowService::class)->record($workflowTable, [
                 'application_id' => $request->application_id,
-                'processed_by'   => $request->processed_by,
-                'role_id'        => Auth::user()->roles_id,
-                'appl_status'    => 'A',
+                'processed_by' => $request->processed_by,
+                'role_id' => Auth::user()->roles_id,
+                'appl_status' => 'A',
 
-                'remarks'        => $request->remarks ?? 'No remarks provided',
-                'forwarded_to'   => $request->forwarded_to ?? null,
-                'created_at'     => $this->dbNow,
-                'login_id'       => Auth::id(),
-                'raised_by'      => $processed ?: 'PR',
+                'remarks' => $request->remarks ?? 'No remarks provided',
+                'forwarded_to' => $request->forwarded_to ?? null,
+                'created_at' => $this->dbNow,
+                'login_id' => Auth::id(),
+                'raised_by' => $processed ?: 'PR',
             ]);
 
 
-// dd($licenseNumber); exit;
             $payload = [
-                    'qc' => $request->qc,
-                    'qsc' => $request->qsc,
-                    'updated_at' => $this->dbNow,
-                ];
+                'qc' => $request->qc,
+                'qsc' => $request->qsc,
+                'updated_at' => $this->dbNow,
+            ];
 
             if (CC_Forms_cert::where('certificate_no', $licenseNumber)->exists()) {
-               $updated = CC_Forms_cert::where('certificate_no', $licenseNumber)->update($payload);
+                $updated = CC_Forms_cert::where('certificate_no', $licenseNumber)->update($payload);
 
                 // dd($updated); exit;
             }
@@ -2034,30 +2056,30 @@ class SupervisorController extends Controller
 
             if ($appl_type === 'R') {
                 return response()->json([
-                    'status'        => 'success',
-                    'message'        => 'Application Renewed successfully!',
+                    'status' => 'success',
+                    'message' => 'Application Renewed successfully!',
                     'license_number' => $licenseNumber,
-                    'issued_at'      => $issuedAt,
-                    'expires_at'     => $expiresAt,
+                    'issued_at' => $issuedAt,
+                    'expires_at' => $expiresAt,
                 ], 200);
             }
 
             if ($appl_type === 'A') {
                 return response()->json([
-                    'status'        => 'success',
-                    'message'        => 'Alteration approved successfully! Certificate has been regenerated.',
+                    'status' => 'success',
+                    'message' => 'Alteration approved successfully! Certificate has been regenerated.',
                     'license_number' => $licenseNumber,
-                    'issued_at'      => $issuedAt,
-                    'expires_at'     => $expiresAt,
+                    'issued_at' => $issuedAt,
+                    'expires_at' => $expiresAt,
                 ], 200);
             }
 
             return response()->json([
-                'status'        => 'success',
-                'message'        => 'Application approved successfully!',
+                'status' => 'success',
+                'message' => 'Application approved successfully! <br>' . $message,
                 'license_number' => $licenseNumber,
-                'issued_at'      => $issuedAt,
-                'expires_at'     => $expiresAt,
+                'issued_at' => $issuedAt,
+                'expires_at' => $expiresAt,
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -2143,9 +2165,8 @@ class SupervisorController extends Controller
 
         if ($applType === 'D') {
             
-
-            
             $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
+
 
             if ($licenseDetails) {
                 return [

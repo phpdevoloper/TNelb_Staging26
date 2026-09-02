@@ -163,6 +163,7 @@ class FormSChildDocumentSnapshotService
                 'designation' => $designation,
                 'from_date' => $parentExp->from_date,
                 'to_date' => $parentExp->to_date,
+                'work_to_till_date' => (int) ($parentExp->work_to_till_date ?? 0),
                 'total_y' => $parentExp->total_y,
                 'total_m' => $parentExp->total_m,
                 'total_d' => $parentExp->total_d,

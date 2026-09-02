@@ -62,7 +62,12 @@
 
     $fromIso = $expRow->from_date ? calendar_date_ymd($expRow->from_date) : '';
     $toIso = $expRow->to_date ? calendar_date_ymd($expRow->to_date) : '';
-    $isTill = $fromIso !== '' && $toIso === '';
+    // Previous: till was inferred when from_date was set and to_date was empty.
+    // $isTill = $fromIso !== '' && $toIso === '';
+    $isTill = (int) ($expRow->work_to_till_date ?? 0) === 1;
+    if (!$isTill && $fromIso !== '' && $toIso === '') {
+        $isTill = true;
+    }
 
     $fmtPretty = function ($iso) use ($monthShort) {
         if ($iso === '') return '—';
@@ -97,6 +102,7 @@
     $sno = isset($sno) ? $sno : 1;
     $rowIndex = $rowIndex ?? ($sno - 1);
     $withActions = !empty($withActions);
+    $hideVoltageFields = !empty($hideVoltageFields);
 @endphp
 <tr class="work-exp-summary-tr{{ $isAlterationNew ? ' wx-alteration-alter-row' : '' }}" data-work-row-index="{{ $rowIndex }}">
     <td class="work-row-summary-sno text-center">{{ $sno }}</td>
@@ -119,9 +125,11 @@
         @endif
     </td>
     <td class="work-row-summary-designation">{{ $designation !== '' ? $designation : '—' }}</td>
+    @unless($hideVoltageFields)
     <td class="work-row-summary-nature">{{ $natureTxt }}</td>
     <td class="work-row-summary-voltage">{{ $voltTxt }}</td>
     <td class="work-row-summary-kva text-center">{{ $kvaTxt }}</td>
+    @endunless
     <td class="work-row-summary-period">
         <div class="wx-period-box">
             <div class="wx-period-dates">
@@ -133,6 +141,7 @@
                     <span class="wx-period-label">To</span>
                     <span class="wx-period-val">
                         @if($isTill)
+                            {{ $toIso !== '' ? $fmtPretty($toIso) : '' }}
                             <span class="prv-sw-badge-till" style="display:inline-block;background:#e8f4fd;color:#035ab3;border:1px solid #b8d4f0;border-radius:4px;padding:1px 6px;font-size:.68rem;font-weight:600;">Till date</span>
                         @else
                             {{ $fmtPretty($toIso) }}

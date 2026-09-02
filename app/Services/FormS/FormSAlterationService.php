@@ -34,6 +34,9 @@ class FormSAlterationService
         protected FormSChildDocumentSnapshotService $childDocumentSnapshot
     ) {}
 
+    /** Competency CC forms this alteration flow currently supports. */
+    private const SUPPORTED_FORM_NAMES = ['S', 'W'];
+
     /**
      * @return array{ok: bool, message?: string, application?: CC_CompetencyMeta}
      */
@@ -48,7 +51,7 @@ class FormSAlterationService
 
         $parent = CC_Forms_Meta::where('application_id', $parentApplicationId)
             ->where('login_id', $loginId)
-            ->where('form_name', 'S')
+            ->whereIn('form_name', self::SUPPORTED_FORM_NAMES)
             ->whereIn('appl_type', ['N', 'R', 'D'])
             ->where(function ($q) use ($paidStatuses) {
                 $q->whereIn('payment_status', $paidStatuses)
@@ -59,7 +62,7 @@ class FormSAlterationService
         if (!$parent) {
             $parent = CC_Forms_Meta::where('certificate_no', $parentApplicationId)
                 ->where('login_id', $loginId)
-                ->where('form_name', 'S')
+                ->whereIn('form_name', self::SUPPORTED_FORM_NAMES)
                 ->whereIn('appl_type', ['N', 'R', 'D'])
                 ->where(function ($q) use ($paidStatuses) {
                     $q->whereIn('payment_status', $paidStatuses)
@@ -69,7 +72,7 @@ class FormSAlterationService
         }
 
         if (!$parent) {
-            return ['ok' => false, 'message' => 'No valid issued Form S application found for your account.'];
+            return ['ok' => false, 'message' => 'No valid issued competency certificate application found for your account.'];
         }
 
         $pendingAlteration = CC_Forms_Meta::where('old_application', $parent->application_id)
@@ -219,8 +222,11 @@ class FormSAlterationService
             return ['ok' => false, 'message' => 'Certificate number and validity dates are required.'];
         }
 
+        $certTable = app(CompetencyCertificateService::class)->certTableForForm($formName)
+            ?? self::FORM_S_CERT_TABLE;
+
         $cert = app(CompetencyCertificateService::class)->findCertByDetailsInTable(
-            self::FORM_S_CERT_TABLE,
+            $certTable,
             $certificateNo,
             $dateOfIssue,
             $validFrom,
@@ -496,8 +502,10 @@ class FormSAlterationService
                 return $row;
             });
 
+        $parentCertTable = app(CompetencyCertificateService::class)->certTableForForm($parent->form_name ?? 'S')
+            ?? self::FORM_S_CERT_TABLE;
         $licenseDetails = app(CompetencyCertificateService::class)->licenseDetailsFromCertTable(
-            self::FORM_S_CERT_TABLE,
+            $parentCertTable,
             (string) $parent->application_id
         );
 
@@ -960,12 +968,33 @@ class FormSAlterationService
     {
         $changed = [];
         foreach ($this->collectExistingWorkRowIndexes($request) as $key) {
+            if (! $this->existingWorkRowIsTillDate($request, $key)) {
+                continue;
+            }
             if ($this->existingWorkRowChangedFromMaster($request, $key)) {
                 $changed[] = $key;
             }
         }
 
         return $changed;
+    }
+
+    protected function existingWorkRowIsTillDate(Request $request, int|string $key): bool
+    {
+        $workIds = (array) $request->input('work_id', []);
+        $expId = (int) ($workIds[$key] ?? 0);
+        $master = $expId > 0 ? CC_Experience::find($expId) : null;
+        if ($master) {
+            if ((int) ($master->work_to_till_date ?? 0) === 1) {
+                return true;
+            }
+
+            return ! empty($master->from_date) && empty($master->to_date);
+        }
+
+        $tillFlags = (array) $request->input('work_to_till_date', []);
+
+        return FormSWorkTillDate::isChecked($tillFlags[$key] ?? '0');
     }
 
     /**
@@ -1117,7 +1146,8 @@ class FormSAlterationService
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
             if ($fromRaw === '') {
                 continue;
             }
@@ -1127,9 +1157,10 @@ class FormSAlterationService
 
             try {
                 $from = Carbon::parse($fromRaw)->startOfDay();
-                $to = $toRaw !== ''
-                    ? Carbon::parse($toRaw)->startOfDay()
-                    : $today;
+                $toEff = $toRaw !== ''
+                    ? $toRaw
+                    : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+                $to = Carbon::parse($toEff)->startOfDay();
             } catch (\Throwable $e) {
                 continue;
             }
@@ -1235,7 +1266,8 @@ class FormSAlterationService
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
             if ($fromRaw === '') {
                 continue;
             }
@@ -1245,9 +1277,10 @@ class FormSAlterationService
 
             try {
                 $from = Carbon::parse($fromRaw)->startOfDay();
-                $to = $toRaw !== ''
-                    ? Carbon::parse($toRaw)->startOfDay()
-                    : $today;
+                $toEff = $toRaw !== ''
+                    ? $toRaw
+                    : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+                $to = Carbon::parse($toEff)->startOfDay();
             } catch (\Throwable $e) {
                 continue;
             }
@@ -1299,11 +1332,18 @@ class FormSAlterationService
         $masterId = (string) $this->workflowService->masterApplication($parent)->application_id;
 
         foreach ($existingIndexes as $key) {
+            $postedId = (int) (($request->input('work_id', [])[$key] ?? 0));
+            $found = $postedId > 0 ? CC_Experience::find($postedId) : null;
+            $parentExp = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($found, $masterId);
+            $isTillDateRow = $parentExp && (
+                (int) ($parentExp->work_to_till_date ?? 0) === 1
+                || (! empty($parentExp->from_date) && empty($parentExp->to_date))
+            );
+            if ($parentExp && ! $isTillDateRow) {
+                continue;
+            }
             if ($this->createAlterationExperienceRow($request, $child, $loginId, $key, true)) {
                 $created++;
-                $postedId = (int) (($request->input('work_id', [])[$key] ?? 0));
-                $found = $postedId > 0 ? CC_Experience::find($postedId) : null;
-                $parentExp = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($found, $masterId);
                 if ($parentExp) {
                     $copiedSourceIds[(int) $parentExp->exp_id] = true;
                 }
@@ -1364,6 +1404,7 @@ class FormSAlterationService
             'designation' => $designation,
             'from_date' => $parentExp->from_date,
             'to_date' => $parentExp->to_date,
+            'work_to_till_date' => (int) ($parentExp->work_to_till_date ?? 0),
             'total_y' => $parentExp->total_y,
             'total_m' => $parentExp->total_m,
             'total_d' => $parentExp->total_d,
@@ -1399,6 +1440,7 @@ class FormSAlterationService
         $orgAddresses = $this->requestOrgAddresses($request);
         $fromDates = (array) $request->input('work_date_from', []);
         $toDates = (array) $request->input('work_date_to', []);
+        $tillFlags = (array) $request->input('work_to_till_date', []);
         $durY = (array) $request->input('work_duration_y', []);
         $durM = (array) $request->input('work_duration_m', []);
         $durD = (array) $request->input('work_duration_d', []);
@@ -1432,6 +1474,18 @@ class FormSAlterationService
             $totalExp = (string) $master->total_exp;
         }
 
+        $toDate = trim((string) ($toDates[$key] ?? ''));
+        $tillRaw = $tillFlags[$key] ?? '0';
+        // Previous: posted Y-m-d (or legacy "1") was converted to today's date and written only to to_date.
+        // $tillDate = FormSWorkTillDate::toDateString($tillRaw, Carbon::today()->toDateString());
+        // if ($tillDate !== null) {
+        //     $toDate = $tillDate;
+        // }
+        $workToTillDate = FormSWorkTillDate::isChecked($tillRaw) ? 1 : 0;
+        if ($workToTillDate === 1) {
+            $toDate = Carbon::today()->toDateString();
+        }
+
         $experience = CC_Experience::create([
             'login_id' => $loginId,
             'application_id' => $child->application_id,
@@ -1441,7 +1495,8 @@ class FormSAlterationService
             'org_address' => $orgAddresses[$key] ?? null,
             'designation' => $designation,
             'from_date' => $fromDates[$key] ?? null,
-            'to_date' => $toDates[$key] ?? null,
+            'to_date' => ($toDate !== '' ? $toDate : null),
+            'work_to_till_date' => $workToTillDate,
             'total_y' => $totalY,
             'total_m' => $totalM,
             'total_d' => $totalD,
@@ -1713,6 +1768,7 @@ class FormSAlterationService
                 'designation' => $row->designation,
                 'from_date' => $row->from_date,
                 'to_date' => $row->to_date,
+                'work_to_till_date' => (int) ($row->work_to_till_date ?? 0),
                 'total_y' => $row->total_y,
                 'total_m' => $row->total_m,
                 'total_d' => $row->total_d,

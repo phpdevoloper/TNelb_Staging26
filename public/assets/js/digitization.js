@@ -74,7 +74,57 @@ $(document).ready(function () {
             $('input[name="qc_doc"]').val("");
         }
     });
+
+    loadContractorDetails();
 });
+
+function showContractorDetails(details) {
+    var $notice = $("#contractor-details-notice");
+    if (!$notice.length) {
+        return;
+    }
+    var hasDetails = details && (details.licence_no || details.cl_type || details.contractor_name);
+    if (hasDetails) {
+        $("#contractor-cl-type").text(details.cl_type || "");
+        $("#contractor-licence-no").text(details.licence_no || "");
+        $("#contractor-name").text(details.contractor_name || "");
+        $notice.removeClass("d-none");
+        $notice[0].style.removeProperty("display");
+        window.contractorDetails = details;
+    } else {
+        $notice.addClass("d-none");
+        $notice[0].style.setProperty("display", "none", "important");
+        window.contractorDetails = null;
+    }
+}
+
+function loadContractorDetails() {
+    if (!$("#contractor-details-notice").length) {
+        return;
+    }
+    var tempAppId = ($("#cc_digitization_temp_id").val() || "").trim();
+    var applicationId = ($("#application_id").val() || "").trim();
+    if (!tempAppId && !applicationId) {
+        return;
+    }
+    var data = {};
+    if (tempAppId) {
+        data.temp_app_id = tempAppId;
+    }
+    if (applicationId) {
+        data.application_id = applicationId;
+    }
+    $.ajax({
+        url: BASE_URL + "/digitization/getContractorDetails",
+        type: "GET",
+        data: data,
+        success: function (response) {
+            if (response && response.contractorDetails) {
+                showContractorDetails(response.contractorDetails);
+            }
+        },
+    });
+}
 
 function initDigitizationDateFields() {
     $("#digitizationForm .digi-date-input").each(function () {
@@ -251,8 +301,10 @@ $(document).on("click", "#digitizationSubmit", function () {
     let to_date = $('input[name="to_date"]').val();
     let qc = $('input[name="qc_det"]:checked').val();
     let file = $('input[name="cc_doc"]')[0].files[0];
-
     let fileqc = $('input[name="qc_doc"]')[0].files[0];
+
+
+    
 
     if (ccnumber === "") {
         $("#ccnumber_error").html("Certificate Number is required");
@@ -418,6 +470,8 @@ $(document).on("click", "#digitizationSubmit", function () {
                 $("#declaration-agree-renew").prop("checked", false);
 
                 $("#declaration-error-renew").addClass("d-none");
+
+                showContractorDetails(response.contractorDetails);
 
                 // Digitisation has no payment step — continue on the form after certificate details are saved.
             }

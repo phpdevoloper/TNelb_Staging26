@@ -246,6 +246,99 @@
         padding: 0.375rem 0.72rem;
     }
 
+    .dash-tl-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10050;
+        background: rgba(10, 24, 48, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0.85rem;
+        backdrop-filter: blur(2px);
+    }
+    .dash-tl-overlay.is-open {
+        display: flex;
+    }
+    .dash-tl-panel {
+        background: #eef3f9;
+        width: min(52rem, 96vw);
+        max-height: min(90vh, 46rem);
+        display: flex;
+        flex-direction: column;
+        border-radius: 0.85rem;
+        overflow: hidden;
+        box-shadow: 0 1.1rem 2.8rem rgba(3, 90, 179, 0.22);
+    }
+    .dash-tl-header {
+        background: linear-gradient(135deg, #035ab3 0%, #0472d9 100%);
+        padding: 0.8rem 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .dash-tl-title {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.3;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+    .dash-tl-subtitle {
+        margin: 0.15rem 0 0;
+        font-size: 0.76rem;
+        color: rgba(255, 255, 255, 0.88);
+        word-break: break-word;
+    }
+    .dash-tl-close {
+        background: rgba(255, 255, 255, 0.14);
+        border: none;
+        color: #fff;
+        width: 2.15rem;
+        height: 2.15rem;
+        border-radius: 50%;
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .dash-tl-close:hover,
+    .dash-tl-close:focus-visible {
+        background: rgba(255, 255, 255, 0.28);
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+    .dash-tl-body {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 1rem 1.1rem 1.2rem;
+        background: #eef3f9;
+    }
+    .dash-tl-loading {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-height: 10rem;
+        color: #035ab3;
+        font-weight: 600;
+        font-size: 0.88rem;
+    }
+    .dash-tl-loading.is-visible {
+        display: flex;
+    }
+    body.dash-tl-open {
+        overflow: hidden;
+    }
+
     /* ------------------------------------------------------------------
        Active / Present License Details — modern card-grid UI
        Split into Competency Certificates and Contractor Licenses.
@@ -1241,7 +1334,26 @@
     </div>
 </section>
 
-
+<div id="dashAppTimelineModal" class="dash-tl-overlay" role="dialog" aria-modal="true" aria-labelledby="dashAppTimelineTitle" aria-hidden="true">
+    <div class="dash-tl-panel" role="document">
+        <header class="dash-tl-header">
+            <div>
+                <h2 id="dashAppTimelineTitle" class="dash-tl-title">
+                    Information of Digitisation Dependency 
+                </h2>
+                <p class="dash-tl-subtitle" id="dashAppTimelineSubtitle"></p>
+            </div>
+            <button type="button" class="dash-tl-close" id="dashAppTimelineClose" aria-label="Close application timeline">&times;</button>
+        </header>
+        <div class="dash-tl-body">
+            <div class="dash-tl-loading" id="dashAppTimelineLoading" aria-live="polite">
+                <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+                <span>Loading digitisation details…</span>
+            </div>
+            <div id="dashAppTimelineContent"></div>
+        </div>
+    </div>
+</div>
 
 <footer class="main-footer">
     @include('include.footer')
@@ -1542,6 +1654,103 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }, 350);
     });
+
+    (function bindDashboardApplicationTimeline() {
+        var modal = document.getElementById('dashAppTimelineModal');
+        var content = document.getElementById('dashAppTimelineContent');
+        var loading = document.getElementById('dashAppTimelineLoading');
+        var subtitle = document.getElementById('dashAppTimelineSubtitle');
+        var closeBtn = document.getElementById('dashAppTimelineClose');
+        var lastTrigger = null;
+        var timelineRequest = null;
+
+        if (!modal || !content || !loading || !subtitle || !closeBtn) {
+            return;
+        }
+
+        function setLoading(isLoading) {
+            loading.classList.toggle('is-visible', isLoading);
+        }
+
+        function closeTimeline() {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('dash-tl-open');
+            if (timelineRequest && timelineRequest.readyState !== 4) {
+                timelineRequest.abort();
+            }
+            timelineRequest = null;
+            content.innerHTML = '';
+            setLoading(false);
+            if (lastTrigger && typeof lastTrigger.focus === 'function') {
+                lastTrigger.focus();
+            }
+            lastTrigger = null;
+        }
+
+        function openTimeline(trigger) {
+            var url = trigger.getAttribute('data-timeline-url');
+            var appId = trigger.getAttribute('data-application-id') || '';
+            if (!url) {
+                return;
+            }
+            lastTrigger = trigger;
+            subtitle.textContent = appId ? ('Application ID: ' + appId) : '';
+            content.innerHTML = '';
+            setLoading(true);
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('dash-tl-open');
+            closeBtn.focus();
+
+            timelineRequest = $.ajax({
+                url: url,
+                type: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                success: function (html) {
+                    content.innerHTML = html;
+                    setLoading(false);
+                },
+                error: function (xhr) {
+                    if (xhr.statusText === 'abort') {
+                        return;
+                    }
+                    var msg = 'Unable to load application timeline.';
+                    if (xhr.status === 401) {
+                        msg = 'Please sign in to view this application.';
+                    } else if (xhr.status === 403) {
+                        msg = 'You can only view your own application.';
+                    } else if (xhr.status === 404) {
+                        msg = 'Application not found.';
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    content.innerHTML = '<p class="text-danger text-center py-4 mb-0">' + msg + '</p>';
+                    setLoading(false);
+                }
+            });
+        }
+
+        $(document).on('click', '#applicationsTable .js-app-timeline-btn', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openTimeline(this);
+        });
+
+        closeBtn.addEventListener('click', closeTimeline);
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                closeTimeline();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+                closeTimeline();
+            }
+        });
+    })();
 
     $(document).on('click', '.btn-payu-check-status', function () {
         var btn = $(this);

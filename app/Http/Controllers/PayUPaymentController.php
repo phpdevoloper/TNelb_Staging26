@@ -72,6 +72,7 @@ class PayUPaymentController extends BaseController
             ];
             $data['hash'] = $payU->generatePaymentHash($data);
 
+
             return view('user_login.payments.payu-submit', [
                 'data' => $data,
                 'url' => config('payu.payment_url'),

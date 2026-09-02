@@ -1,5 +1,6 @@
 <div class="work-exp-view-wrap" id="work-exp-view-wrap">
     @php
+        $hideVoltageFields = !empty($hideVoltageFields);
         $overallY = 0;
         $overallM = 0;
         $overallD = 0;
@@ -8,7 +9,12 @@
             foreach ($exp_details as $expRow) {
                 $fromIso = $expRow->from_date ? calendar_date_ymd($expRow->from_date) : '';
                 $toIso = $expRow->to_date ? calendar_date_ymd($expRow->to_date) : '';
-                $isTill = $fromIso !== '' && $toIso === '';
+                // Previous: till was inferred when from_date was set and to_date was empty.
+                // $isTill = $fromIso !== '' && $toIso === '';
+                $isTill = (int) ($expRow->work_to_till_date ?? 0) === 1;
+                if (!$isTill && $fromIso !== '' && $toIso === '') {
+                    $isTill = true;
+                }
 
                 $yN = $expRow->total_y !== null ? (int) $expRow->total_y : 0;
                 $mN = $expRow->total_m !== null ? (int) $expRow->total_m : 0;
@@ -45,9 +51,11 @@
                         <th>Employment Type</th>
                         <th class="wx-summary-th-org"><span class="wx-th-org-line">Organisation &amp;</span><span class="wx-th-org-line">Address</span></th>
                         <th>Designation</th>
+                        @unless($hideVoltageFields)
                         <th>Nature of Work</th>
                         <th>Voltage Level</th>
                         <th>Transformer kVA</th>
+                        @endunless
                         <th>Total Experience</th>
                         <th>Attachment</th>
                     </tr>
@@ -55,18 +63,18 @@
                 <tbody id="work-exp-view-tbody">
                     @if(isset($exp_details) && $exp_details->isNotEmpty())
                         @foreach($exp_details as $index => $expRow)
-                            @include('user_login.partials.form-s-work-exp-view-row', ['expRow' => $expRow, 'sno' => $loop->iteration])
+                            @include('user_login.partials.form-s-work-exp-view-row', ['expRow' => $expRow, 'sno' => $loop->iteration, 'hideVoltageFields' => $hideVoltageFields])
                         @endforeach
                     @else
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-3">No work experience entries</td>
+                            <td colspan="{{ $hideVoltageFields ? 6 : 9 }}" class="text-center text-muted py-3">No work experience entries</td>
                         </tr>
                     @endif
                 </tbody>
                 @if(isset($exp_details) && $exp_details->isNotEmpty())
                 <tfoot>
                     <tr class="wx-overall-exp-row">
-                        <td colspan="7" class="wx-overall-exp-label-cell text-end">
+                        <td colspan="{{ $hideVoltageFields ? 4 : 7 }}" class="wx-overall-exp-label-cell text-end">
                             <span class="wx-overall-exp-label">Total Experience</span>
                         </td>
                         <td class="work-row-summary-period">

@@ -452,16 +452,67 @@ class DocumentStorageService
 
     protected function certificateFolder(string $applicationNo): string
     {
-        $uppercase = strtoupper($applicationNo);
+        $uppercase = strtoupper(trim($applicationNo));
         $configured = config('document_versioning.certificate_folders', []);
+        $default = config('document_versioning.default_certificate_folder', 'FORM_S');
 
+        // 1) Explicit "FORM_S" style token already present in the number (legacy paths).
         foreach (array_keys($configured) as $folder) {
             if (str_contains($uppercase, (string) $folder)) {
-                return $folder;
+                return (string) $folder;
             }
         }
 
-        return config('document_versioning.default_certificate_folder', 'FORM_S');
+        // 2) Derive the form code from the application number.
+        // Format: {applType? R|D}{formCode}{licenceCode}{yy}{sequence}, e.g. DWB261111226 → W.
+        $formCode = $this->formCodeFromApplicationNo($uppercase, array_keys($configured));
+        if ($formCode !== '') {
+            $key = 'FORM_' . $formCode;
+
+            return (string) ($configured[$key] ?? $configured[$formCode] ?? $default);
+        }
+
+        return (string) $default;
+    }
+
+    /**
+     * Extract the competency form code (S, W, WH, P, …) from an application number.
+     * Codes come from the configured certificate folders, so new forms are supported
+     * automatically once their FORM_* folder is registered in config.
+     *
+     * @param  list<string>  $configuredFolderKeys
+     */
+    protected function formCodeFromApplicationNo(string $applicationNo, array $configuredFolderKeys): string
+    {
+        $s = strtoupper(trim($applicationNo));
+        if ($s === '') {
+            return '';
+        }
+
+        // Strip a single leading application-type prefix (R = Renewal, D = Digitisation).
+        // No form code starts with R or D, so this is safe.
+        if ($s !== '' && ($s[0] === 'R' || $s[0] === 'D')) {
+            $s = substr($s, 1);
+        }
+
+        // Build candidate codes from the configured folder keys (FORM_WH → WH, FORM_S → S).
+        $codes = [];
+        foreach ($configuredFolderKeys as $key) {
+            $key = strtoupper((string) $key);
+            $codes[] = str_starts_with($key, 'FORM_') ? substr($key, 5) : $key;
+        }
+        $codes = array_values(array_filter(array_unique($codes), static fn ($c) => $c !== ''));
+
+        // Longest first so "WH" is matched before "W".
+        usort($codes, static fn ($a, $b) => strlen($b) <=> strlen($a));
+
+        foreach ($codes as $code) {
+            if (str_starts_with($s, $code)) {
+                return $code;
+            }
+        }
+
+        return '';
     }
 
     protected function requestFolder(DocumentRequestType $requestType, ?string $workflowStage = null): string

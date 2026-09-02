@@ -43,6 +43,7 @@ use App\Models\Admin\Mst_Logins;
 use Illuminate\Support\Facades\Storage;
 
 use App\Models\CC_Checklist_applicant;
+use App\Models\Tnelb_CC_Digitization;
 
 class LoginController extends Controller
 {
@@ -1372,17 +1373,19 @@ class LoginController extends Controller
     }
 
 
+    // showApplicantDetails
     public function showApplicantDetails($applicant_id)
     {
-
-
+        
         $returnForwardUser = null;
         $appService = app(CompetencyApplicationService::class);
         $applicant = $appService->findApplicantWithPayment($applicant_id);
+        
 
         if (!$applicant) {
             return abort(403, 'Applicant not found');
         }
+
 
 
         $alterationProofs = collect();
@@ -1391,7 +1394,9 @@ class LoginController extends Controller
         $parentApplicantForAlter = null;
         $formName = strtoupper((string) ($applicant->form_name ?? ''));
 
+
         if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
+            
             $workflowApp = CC_Forms_Meta::findByApplicationId($applicant_id);
             if ($workflowApp) {
                 $reviewContext = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($workflowApp);
@@ -1425,43 +1430,6 @@ class LoginController extends Controller
                 $uploadedPhoto = null;
                 $uploadedSign = null;
             }
-        } elseif ($applicant->appl_type == "R") {
-            $educationalQualifications = DB::table('tnelb_applicants_edu')
-                ->where('application_id', $applicant_id)
-                ->get();
-
-            $workExperience = DB::table('tnelb_applicants_exp')
-                ->where('application_id', $applicant_id)
-                ->get();
-
-            $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
-                ->whereNotNull('upload_path')
-                ->orderByDesc('id')
-                ->first();
-
-            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
-                ->whereNotNull('uploaded_doc')
-                ->orderByDesc('id')
-                ->first();
-        } else {
-            $educationalQualifications = DB::table('tnelb_applicants_edu')
-                ->where('application_id', $applicant_id)
-                ->orderBy('year_of_passing', 'desc')
-                ->get();
-
-            $workExperience = DB::table('tnelb_applicants_exp')
-                ->where('application_id', $applicant_id)
-                ->get();
-
-            $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
-                ->whereNotNull('upload_path')
-                ->orderByDesc('id')
-                ->first();
-
-            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
-                ->whereNotNull('uploaded_doc')
-                ->orderByDesc('id')
-                ->first();
         }
 
         // Get the current user's role ID
@@ -1478,26 +1446,14 @@ class LoginController extends Controller
         // Fetch next role dynamically from the roles table
         if (in_array($staff->name, ["Supervisor", "Supervisor2"])) {
 
-            // if ($applicant->status == 'RE') {
-
-
-            //     $nextForwardUser = DB::table('mst__staffs__tbls')
-            //         ->where('name', 'Secretary')
-            //         ->select('name', 'roles_id')
-            //         ->first();
-            // } else {
             $nextForwardUser = DB::table('mst_login_users')
                 ->where('user_name', 'assistantsecretary')
                 ->select('user_name as name', 'role_id as roles_id')
                 ->first();
-            // }
         }
 
 
-
-        // dd($applicant->status);exit;
         if ($staff->name === "Assistant Secretary") {
-
 
             $nextForwardUser = DB::table('mst__staffs__tbls')
                 ->where('name', 'Secretary')
@@ -1547,10 +1503,7 @@ class LoginController extends Controller
                 ->select('name', 'roles_id')
                 ->first();
         }
-        // dd($staff->name);exit;
 
-        // dd($returnForwardUser);exit;
-        //  dd($nextForwardUser->roles_id);exit;
         $user_entry = $appService->findApplicantWithPayment($applicant_id)
             ?? DB::table('tnelb_application_tbl')->where('application_id', $applicant_id)->first();
 
@@ -1574,9 +1527,10 @@ class LoginController extends Controller
             ->orderByDesc('qa.id')
             ->get();
 
-        $cc_digitization = DB::table('tnelb_cc_digitization')
-            ->where('application_id', $applicant_id)
+        $cc_digitization = Tnelb_CC_Digitization::where('application_id', $applicant_id)
+            ->orderByDesc('id')
             ->first();
+
         $checklist = DB::table('mst_checklists as mc')
             ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
             ->where('ml.cert_licence_code', $applicant->license_name)
@@ -1616,25 +1570,17 @@ class LoginController extends Controller
 
         }
 
-        // dd($checkedList);exit;
-
-        // dd($verifyList);exit;
-
         // Determine view based on user role
         $view = match ($staff->name) {
             'President'  => 'admin.dashboard.applicants_detail_supervisor',
-            // 'President'  => 'admin.dashboard.applicants_detail_president',
-            // 'Secretary'  => 'admin.dashboard.applicants_detail',
             'Secretary'  => 'admin.dashboard.applicants_detail_supervisor',
             'Supervisor' => 'admin.dashboard.applicants_detail_supervisor',
             'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
             'Assistant Secretary' => 'admin.dashboard.applicants_detail_supervisor',
-            // 'Assistant Secretary'    => 'admin.dashboard.applicants_detail_auditor',
 
             default      => abort(403, 'Unauthorized'),
         };
 
-        // var_dump($nextForwardUser);exit;
         return view($view, compact(
             'applicant',
             'educationalQualifications',
@@ -1653,7 +1599,7 @@ class LoginController extends Controller
             'formSWorkflowAppPk',
             'formSMasterWorkflowAppPk',
             'parentApplicantForAlter',
-            // 'checklist',
+            // 'checklist', 
             'checkedList_1',
             'verifyList'
         ));

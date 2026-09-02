@@ -12,6 +12,11 @@
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $isAlterationMode = !empty($isAlterationMode);
     $lockExistingRows = !empty($lockExistingRows) || $isAlterationMode;
+    $showContractorNotice = !empty($showContractorNotice);
+    $contractorDetails = $contractorDetails ?? null;
+    $hasContractorDetails = $showContractorNotice
+        && is_array($contractorDetails)
+        && !empty($contractorDetails['licence_no']);
 @endphp
 
 <div class="fs-question-part">
@@ -19,6 +24,24 @@
         <span class="fs-section-num fs-section-num--sub">7a</span>
         <div class="fs-section-title">Previous and Current Work experiences</div>
     </div>
+    @if ($showContractorNotice)
+    <div id="contractor-details-notice" class="contractor-details-notice{{ $hasContractorDetails ? '' : ' d-none' }}" role="status">
+        <p class="contractor-details-notice__title">
+            <span class="contractor-details-notice__icon" aria-hidden="true">
+                <i class="fa fa-exclamation-circle"></i>
+            </span>
+            <span class="contractor-details-notice__text">
+                <span class="sr-only">Information: </span>
+                You have already provided the contractor details, so you must add the experience with the following details:
+            </span>
+        </p>
+        <ul class="contractor-details-notice__list">
+            <li>Grade of Licence: <strong id="contractor-cl-type">{{ $contractorDetails['cl_type'] ?? '' }}</strong></li>
+            <li>Licence Number: <strong id="contractor-licence-no">{{ $contractorDetails['licence_no'] ?? '' }}</strong></li>
+            <li>Name of Contractor: <strong id="contractor-name">{{ $contractorDetails['contractor_name'] ?? '' }}</strong></li>
+        </ul>
+    </div>
+    @endif
     @include('user_login.partials.form-s-work-exp-section', [
         'exp_details' => $previousExpDetails,
         'showBoardMemberEmploymentType' => $showBoardMemberEmploymentType7a,

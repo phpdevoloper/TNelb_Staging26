@@ -18,6 +18,18 @@
     .fs-alt-form .work-entry-block:has(.fs-alt-existing-work) {
         display: none !important;
     }
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work input,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work select,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work textarea,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work button {
+        pointer-events: auto !important;
+    }
+    /* Keep the expanded till-date card visible after Till date is unchecked
+       (row is still fs-till-date-work; Relieving / To date must stay editable). */
+    .fs-alt-form.fs-alt-work-unlocked .work-fields.fs-alt-existing-work.fs-till-date-work.work-row--expanded,
+    .fs-alt-form.fs-alt-work-unlocked .work-entry-block:has(.fs-alt-existing-work.fs-till-date-work.work-row--expanded) {
+        display: block !important;
+    }
     .fs-alt-form:not(.fs-alt-work-unlocked) .add-more-work {
         pointer-events: none !important;
         opacity: .45;
@@ -1157,9 +1169,9 @@
     }
 </style>
 
-@if (($application_details->form_name ?? '') === 'S')
+@if (in_array($application_details->form_name ?? '', ['S', 'W'], true))
 <style>
-    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'S'])
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $application_details->form_name ?? ''])
 </style>
 <style>
     @include('user_login.partials.form-s-work-exp-7ab-styles')
@@ -1292,7 +1304,7 @@
                         value="{{ $alteration_draft->application_id ?? '' }}">
                     <input type="hidden" id="parent_application_id" name="parent_application_id" value="{{ $parentApplicationId }}">
                     <input type="hidden" id="fs_alt_parent_name" value="{{ $parent_application_details->applicant_name ?? '' }}">
-                    <input type="hidden" id="fs_alt_parent_address" value="{{ $parent_application_details->applicants_address ?? '' }}">
+                    <input type="hidden" id="fs_alt_parent_address" value="{{ $parent_application_details->applicant_address ?? $parent_application_details->applicants_address ?? '' }}">
                     <input type="hidden" id="alter_name" name="alter_name" value="0">
                     <input type="hidden" id="alter_address" name="alter_address" value="0">
                     <input type="hidden" id="alter_workexp" name="alter_workexp" value="0">
@@ -1321,7 +1333,13 @@
                                 ? $application_details->applicant_email
                                 : (Auth::user()->email ?? ''))
                             : '';
+<<<<<<< HEAD
                         $addressVal = isset($application_details) ? $application_details->applicant_address : Auth::user()->address;
+=======
+                        $addressVal = isset($application_details)
+                            ? ($application_details->applicant_address ?? $application_details->applicants_address ?? '')
+                            : Auth::user()->address;
+>>>>>>> 67de25e028c7d20f2b7d6711abba51e94ef6eddc
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1831,6 +1849,14 @@
                                     'exp_details' => $exp_details ?? collect(),
                                     'hideUploadWhenDocExists' => true,
                                     'isAlterationMode' => $isAlterationMode,
+                                ])
+                            @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
+                                @include('user_login.partials.form-w-work-exp-7ab-body', [
+                                    'exp_details' => $exp_details ?? collect(),
+                                    'hideUploadWhenDocExists' => true,
+                                    'isAlterationMode' => $isAlterationMode,
+                                    'showContractorNotice' => false,
+                                    'contractorDetails' => null,
                                 ])
                             @else
                             <div class="fs-table-wrap">
@@ -2614,12 +2640,13 @@
         window.formSAltEditableMode = @json($isAlterationEditable);
     </script>
 
-@if (($application_details->form_name ?? '') === 'S')
+@if (in_array($application_details->form_name ?? '', ['S', 'W'], true))
 @include('user_login.partials.form-s-work-exp-scripts', [
-    'editFormName' => 'S',
+    'editFormName' => $application_details->form_name ?? '',
     'showBoardMemberEmploymentType' => false,
     'hideUploadWhenDocExists' => true,
     'isAlterationMode' => $isAlterationMode,
+    'hideVoltageFields' => (($application_details->form_name ?? '') === 'W'),
 ])
 <script>
     (function () {

@@ -110,6 +110,53 @@
         margin: 0 1px;
         white-space: nowrap;
     }
+    .table-login-compact .js-app-preview-link {
+        color: #035ab3;
+        font-weight: 700;
+        text-decoration: none;
+        border-bottom: 1px dotted #035ab3;
+        cursor: pointer;
+        word-break: break-all;
+    }
+    .table-login-compact .js-app-preview-link:hover {
+        color: #024a93;
+        border-bottom-style: solid;
+    }
+    .table-login-compact .js-app-preview-link:focus-visible {
+        color: #024a93;
+        border-bottom-style: solid;
+        outline: 2px solid #035ab3;
+        outline-offset: 2px;
+    }
+    /* .table-login-compact .dash-app-id-wrap {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.4rem;
+    } */
+    .table-login-compact .js-app-timeline-btn {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.35rem;
+        height: 1.35rem;
+        margin-top: 0.05rem;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #035ab3;
+        font-size: 0.95rem;
+        line-height: 1;
+        cursor: pointer;
+        border-radius: 50%;
+    }
+    .table-login-compact .js-app-timeline-btn:hover,
+    .table-login-compact .js-app-timeline-btn:focus-visible {
+        color: #024a93;
+        background: #e8f1fb;
+        outline: 2px solid #035ab3;
+        outline-offset: 1px;
+    }
 </style>
 <table class="table-login table-login-compact">
     <thead>
@@ -170,7 +217,30 @@
                 {!! $applTypeLabel !!}
             </td>
             <td>
-                {{ $workflow->application_id ?? 'NA' }}
+                @if (!empty($workflow->application_id))
+                    @php
+                        $previewUrl = route('dashboard.application.preview', ['application_id' => $workflow->application_id]);
+                    @endphp
+                    <div class="dash-app-id-wrap">
+                        <a href="{{ $previewUrl }}"
+                           class="js-app-preview-link"
+                           title="View application preview">
+                            {{ $workflow->application_id }}
+                        </a>
+                        @if (strtoupper((string) ($workflow->appl_type ?? '')) === 'D')
+                        <button type="button"
+                                class="js-app-timeline-btn"
+                                data-timeline-url="{{ route('dashboard.application.timeline', ['application_id' => $workflow->application_id]) }}"
+                                data-application-id="{{ $workflow->application_id }}"
+                                title="View application timeline (testing)">
+                            <i class="fa fa-info-circle" aria-hidden="true"></i>
+                            <span class="sr-only">Application timeline</span>
+                        </button>
+                        @endif
+                    </div>
+                @else
+                    NA
+                @endif
                 @if (strtoupper((string) ($workflow->appl_type ?? '')) === 'A' && !empty($workflow->old_application))
                     @php
                         $parentTypeLabel = match (strtoupper((string) ($workflow->parent_appl_type ?? ''))) {
@@ -229,8 +299,10 @@
 
             <!-- Payment Status -->
             <td>
-                @if ($isEditingDraft)
+                @if($isEditingDraft)
                     <p class="text-muted mb-1">-</p>
+                @elseif ($isEditingDraft  && $isPayuFailed)
+                    <p class="text-danger mb-1"><strong>Failed</strong></p>
                 @elseif ($workflow->payment_status == 'payment')
                     <p class="text-success mb-1"><strong>Success</strong></p>
                 @else
@@ -243,9 +315,9 @@
                         title="Verify with PayU">
                         <i class="fa fa-refresh"></i> Status
                     </button>
-                    @if ($payuGatewayStatus)
+                    {{-- @if ($payuGatewayStatus)
                         <small class="d-block text-muted" style="font-size:10px;">PayU: {{ $payuGatewayStatus }}</small>
-                    @endif
+                    @endif --}}
                 @endif
             </td>
 
@@ -273,25 +345,29 @@
 
             <!-- Certificate Number -->
             <td>
-                @if (!$isAlteration && !empty($workflow->license_number) && $sts == 'A')
-             
-                    <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank" 
+                @php
+                    $certPdfAppId = trim((string) ($workflow->certificate_pdf_application_id ?? ''));
+                    if ($certPdfAppId === '') {
+                        $certPdfAppId = $isAlteration && !empty($workflow->old_application)
+                            ? $workflow->old_application
+                            : $workflow->application_id;
+                    }
+                    $issuedCertNo = trim((string) ($workflow->license_number ?? $workflow->certificate_no ?? ''));
+                @endphp
+                @if (!empty($workflow->license_number) && $sts == 'A')
+                    <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $certPdfAppId]) }}" target="_blank" 
                         data-bs-toggle="tooltip" data-bs-placement="top" title="View Licence Details">
-                        <span class="badge badge-info">{{ $workflow->certificate_no }}</span>
+                        <span class="badge badge-info">{{ $issuedCertNo }}</span>
                     </a><br>
 
                     @if ($workflow->form_name == 'P')
                         {{-- Form P: single encrypted PDF (English + Tamil) --}}
-                        <a href="{{ route('admin.formp.licence.en', ['application_id' => $workflow->application_id]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (English & Tamil)">
+                        <a href="{{ route('admin.formp.licence.en', ['application_id' => $certPdfAppId]) }}" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top" title="Download Form P Licence (English & Tamil)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
                             <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
                     @else
-                        {{-- <a href="{{ route('admin.competency-certificate-tamil.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (Tamil)">
-                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span class="badge outline-badge-info" style="font-size:10px;">தமிழ்</span>
-                        </a> --}}
-                        <a href="{{ route('admin.generateLicensePDF', ['application_id' => $workflow->application_id]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (English)">
+                        <a href="{{ route('admin.generateLicensePDF', ['application_id' => $certPdfAppId]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (English)">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
                             <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
@@ -318,27 +394,23 @@
                             $hasCertificateC = false;
 
                             if ($isFormW && !empty($workflow->login_id)) {
-                                $hasCertificateC = DB::table('cc_form_s_meta as ta')
-                                    ->leftJoin('cc_forms_cert as l', 'l.application_id', '=', 'ta.application_id')
+                                $hasCertificateC = DB::table('cc_form_w_meta as ta')
+                                    ->leftJoin('cc_form_w_cert as l', 'l.application_id', '=', 'ta.application_id')
                                     
                                     ->where('ta.login_id', $workflow->login_id)
-                                    ->where('ta.form_name', 'S')
-                                    ->where('ta.status', 'A')
-                                    ->where(function ($query) {
-                                        $query->whereNotNull('l.certificate_no')
-                                            ->orWhereNotNull('rl.certificate_no');
-                                    })
+                                    ->where('ta.form_name', 'W')
+                                    ->where('ta.app_status', 'A')
+                                    ->whereNotNull('l.certificate_no')
                                     ->exists();
                             }
-
-                            // var_dump($hasCertificateC); exit
+                            $showRenewalLink = !empty($workflow->can_apply_renewal);
                         @endphp
-                        @if ($workflow->is_under_validity_period && !($isFormW && $hasCertificateC))
+                        @if ($showRenewalLink && !($isFormW && $hasCertificateC))
                             <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'cc_renew_form', ['application_id' => $workflow->application_id]) }}"
                                 class="text-primary">
                                 (Apply for renewal)
                             </a>
-                        @elseif ($workflow->is_under_validity_period && $isFormW && $hasCertificateC)
+                        @elseif ($showRenewalLink && $isFormW && $hasCertificateC)
                             <span class="text-danger" style="font-size: 12px;">(Renewal not allowed: Certificate C already issued)</span>
                         @endif
                     @endif

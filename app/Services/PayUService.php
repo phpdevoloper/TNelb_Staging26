@@ -248,8 +248,15 @@ class PayUService
             $this->salt;
         $hash = strtolower(hash('sha512', $hashString));
 
+<<<<<<< HEAD
         // dd($this->key, $command, $txnid, $hash );
         $response = Http::asForm()->timeout(5)->connectTimeout(3)->post(
+=======
+        $response = Http::asForm()
+            ->timeout((int) config('payu.timeout', 30))
+            ->connectTimeout((int) config('payu.connect_timeout', 15))
+            ->post(
+>>>>>>> 67de25e028c7d20f2b7d6711abba51e94ef6eddc
             config('payu.verify_url'),
             [
                 'key' => $this->key,

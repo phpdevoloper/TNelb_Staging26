@@ -222,14 +222,19 @@ class LoginController extends BaseController
         $isValid = false;
 
         $licenceID = MstLicence::where('cert_licence_code', $workflow->license_name)->value('id');
+        $certificatePdfApplicationId = $this->issuedCertificateApplicationId($workflow);
 
-        /* Alteration does not issue a certificate. Hide View Certificate on the
-         * alteration row and on the superseded parent once alteration is completed. */
         if (in_array($workflow->appl_type, ['N', 'D', 'R', 'A'], true)) {
             $license = $this->competencyCertificateService()->asWorkflowLicense(
-                (string) $workflow->application_id,
+                $certificatePdfApplicationId !== '' ? $certificatePdfApplicationId : (string) $workflow->application_id,
                 'P'
             );
+            if (! $license && $certificatePdfApplicationId !== (string) $workflow->application_id) {
+                $license = $this->competencyCertificateService()->asWorkflowLicense(
+                    (string) $workflow->application_id,
+                    'P'
+                );
+            }
 
             if ($license) {
                 if ($workflow->appl_type === 'N') {
@@ -251,7 +256,7 @@ class LoginController extends BaseController
                 }
             }
 
-            if ($this->findCompletedFormPAlteration((string) $workflow->application_id)) {
+            if ($workflow->appl_type === 'A' && $workflow->status !== 'A') {
                 $licenseNumber = null;
                 $expiry = null;
             }
@@ -272,10 +277,24 @@ class LoginController extends BaseController
                 && $today->lessThanOrEqualTo($oneYearAfterExpiry);
         }
 
-        $workflow->license_number = ($workflow->appl_type === 'A') ? null : $licenseNumber;
+        [$canApplyRenewal, $renewalApplicationId] = $this->resolveAlterationRenewalLinkState(
+            $workflow,
+            $isValid,
+            $renewalApplicationId,
+            true
+        );
+
+        $workflow->license_number = $licenseNumber;
+        if ($licenseNumber && trim((string) ($workflow->certificate_no ?? '')) === '') {
+            $workflow->certificate_no = $licenseNumber;
+        }
+        $workflow->certificate_pdf_application_id = $certificatePdfApplicationId !== ''
+            ? $certificatePdfApplicationId
+            : (string) $workflow->application_id;
         $workflow->expires_at = $expiry;
         $workflow->renewal_application_id = $renewalApplicationId;
         $workflow->is_under_validity_period = $isValid;
+        $workflow->can_apply_renewal = $canApplyRenewal;
 
         return $workflow;
     }
@@ -295,6 +314,187 @@ class LoginController extends BaseController
         }
 
         return DB::table('tnelb_application_tbl')
+            ->where('old_application', $parentApplicationId)
+            ->where('appl_type', 'R')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Alteration reuses the parent certificate; licence PDF is stored against that parent id.
+     */
+    private function issuedCertificateApplicationId(object $workflow): string
+    {
+        if (strtoupper(trim((string) ($workflow->appl_type ?? ''))) === 'A') {
+            $parentId = trim((string) ($workflow->old_application ?? ''));
+            if ($parentId !== '') {
+                return $parentId;
+            }
+        }
+
+        return trim((string) ($workflow->application_id ?? ''));
+    }
+
+    private function enrichCompetencyWorkflowRow(object $workflow): object
+    {
+        $licenseNumber = null;
+        $expiry = null;
+        $renewalApplicationId = null;
+        $isValid = false;
+
+        $licenceID = MstLicence::where('cert_licence_code', $workflow->license_name)->value('id');
+        $certificatePdfApplicationId = $this->issuedCertificateApplicationId($workflow);
+
+        if (in_array($workflow->appl_type, ['N', 'D', 'R', 'A'], true)) {
+            $licenseLookup = $workflow;
+            if ($certificatePdfApplicationId !== '' && $certificatePdfApplicationId !== (string) $workflow->application_id) {
+                $licenseLookup = clone $workflow;
+                $licenseLookup->application_id = $certificatePdfApplicationId;
+            }
+
+            $license = $this->loadCompetencyIssuedCertificate($licenseLookup);
+            if (! $license && $licenseLookup !== $workflow) {
+                $license = $this->loadCompetencyIssuedCertificate($workflow);
+            }
+
+            if ($license) {
+                if ($workflow->appl_type === 'N') {
+                    $renewalApp = $this->findCompetencyRenewalApplication((string) $workflow->application_id);
+
+                    if ($renewalApp) {
+                        $renewalApplicationId = $renewalApp->application_id;
+                        $licenseNumber = null;
+                        $expiry = null;
+                    } else {
+                        $licenseNumber = $license->license_number;
+                        $expiry = $license->expires_at;
+                    }
+                } else {
+                    $licenseNumber = $license->license_number;
+                    $expiry = $license->expires_at;
+                }
+            }
+
+            if ($workflow->appl_type === 'A' && $workflow->status !== 'A') {
+                $licenseNumber = null;
+                $expiry = null;
+            }
+        }
+
+        if ($expiry) {
+            $validityMonths = FeesValidity::where('licence_id', $licenceID)
+                ->where('form_type', 'A')
+                ->where('validity_start_date', '<=', $this->today)
+                ->value('validity');
+
+            $expiryDate = Carbon::parse($expiry);
+            $validFromDate = $expiryDate->copy()->subMonths((int) $validityMonths);
+            $today = Carbon::today();
+            $oneYearAfterExpiry = $expiryDate->copy()->addYear();
+
+            $isValid = $today->greaterThanOrEqualTo($validFromDate)
+                && $today->lessThanOrEqualTo($oneYearAfterExpiry);
+        }
+
+        [$canApplyRenewal, $renewalApplicationId] = $this->resolveAlterationRenewalLinkState(
+            $workflow,
+            $isValid,
+            $renewalApplicationId,
+            false
+        );
+
+        $workflow->license_number = $licenseNumber;
+        if ($licenseNumber && trim((string) ($workflow->certificate_no ?? '')) === '') {
+            $workflow->certificate_no = $licenseNumber;
+        }
+        $workflow->certificate_pdf_application_id = $certificatePdfApplicationId !== ''
+            ? $certificatePdfApplicationId
+            : (string) $workflow->application_id;
+        $workflow->expires_at = $expiry;
+        $workflow->renewal_application_id = $renewalApplicationId;
+        $workflow->is_under_validity_period = $isValid;
+        $workflow->can_apply_renewal = $canApplyRenewal;
+
+        return $workflow;
+    }
+
+    /**
+     * After an alteration is issued, renewal belongs on that alteration row (alteration application id),
+     * not on the parent Digitisation / New / Renewal row.
+     *
+     * @return array{0: bool, 1: ?string} [can_apply_renewal, renewal_application_id]
+     */
+    private function resolveAlterationRenewalLinkState(
+        object $workflow,
+        bool $isValid,
+        ?string $existingRenewalApplicationId,
+        bool $isFormP
+    ): array {
+        $applType = strtoupper(trim((string) ($workflow->appl_type ?? '')));
+        $status = strtoupper(trim((string) ($workflow->status ?? $workflow->application_status ?? '')));
+        $applicationId = trim((string) ($workflow->application_id ?? ''));
+        $renewalApplicationId = $existingRenewalApplicationId;
+
+        if ($applType === 'A') {
+            if ($status !== 'A' || ! $isValid || $applicationId === '') {
+                return [false, $renewalApplicationId];
+            }
+
+            $parentId = trim((string) ($workflow->old_application ?? ''));
+            $latestIssued = $parentId !== ''
+                ? ($isFormP
+                    ? $this->findCompletedFormPAlteration($parentId)
+                    : $this->findCompletedCompetencyAlteration($parentId))
+                : null;
+            $isLatestIssued = $latestIssued
+                && trim((string) ($latestIssued->application_id ?? '')) === $applicationId;
+
+            if (! $isLatestIssued) {
+                return [false, $renewalApplicationId];
+            }
+
+            $renewalOfThis = $isFormP
+                ? $this->findFormPRenewalApplication($applicationId)
+                : $this->findCompetencyRenewalApplication($applicationId);
+
+            if ($renewalOfThis) {
+                return [false, (string) $renewalOfThis->application_id];
+            }
+
+            return [true, $renewalApplicationId];
+        }
+
+        $completedAlteration = $applicationId !== ''
+            ? ($isFormP
+                ? $this->findCompletedFormPAlteration($applicationId)
+                : $this->findCompletedCompetencyAlteration($applicationId))
+            : null;
+
+        if ($completedAlteration) {
+            return [false, $renewalApplicationId];
+        }
+
+        return [$isValid && empty($renewalApplicationId), $renewalApplicationId];
+    }
+
+    private function findFormPRenewalApplication(string $parentApplicationId): ?object
+    {
+        $parentApplicationId = trim($parentApplicationId);
+        if ($parentApplicationId === '') {
+            return null;
+        }
+
+        $renewal = DB::table('cc_form_p_meta')
+            ->where('old_application', $parentApplicationId)
+            ->whereRaw("TRIM(COALESCE(appl_type, '')) = 'R'")
+            ->orderByDesc('app_id')
+            ->first();
+
+        if ($renewal) {
+            return $renewal;
+        }
+
+        return DB::table('tnelb_form_p')
             ->where('old_application', $parentApplicationId)
             ->where('appl_type', 'R')
             ->orderByDesc('id')
@@ -321,11 +521,11 @@ class LoginController extends BaseController
             }
         }
 
-        return DB::table('tnelb_application_tbl')
+        return DB::table('cc_form_s_meta')
             ->where('old_application', $parentApplicationId)
             ->whereRaw("TRIM(COALESCE(appl_type, '')) = 'A'")
-            ->whereRaw("TRIM(COALESCE(status, '')) = 'A'")
-            ->orderByDesc('id')
+            ->whereRaw("TRIM(COALESCE(app_status, '')) = 'A'")
+            ->orderByDesc('app_id')
             ->first();
     }
 
@@ -353,67 +553,6 @@ class LoginController extends BaseController
             ->whereRaw("TRIM(COALESCE(app_status, '')) = 'A'")
             ->orderByDesc('id')
             ->first();
-    }
-
-    private function enrichCompetencyWorkflowRow(object $workflow): object
-    {
-        $licenseNumber = null;
-        $expiry = null;
-        $renewalApplicationId = null;
-        $isValid = false;
-
-        $licenceID = MstLicence::where('cert_licence_code', $workflow->license_name)->value('id');
-
-        /* Alteration does not issue a certificate. Hide View Certificate on the
-         * alteration row and on the superseded parent once alteration is completed. */
-        if (in_array($workflow->appl_type, ['N', 'D', 'R', 'A'], true)) {
-            $license = $this->loadCompetencyIssuedCertificate($workflow);
-
-            if ($license) {
-                if ($workflow->appl_type === 'N') {
-                    $renewalApp = $this->findCompetencyRenewalApplication((string) $workflow->application_id);
-
-                    if ($renewalApp) {
-                        $renewalApplicationId = $renewalApp->application_id;
-                        $licenseNumber = null;
-                        $expiry = null;
-                    } else {
-                        $licenseNumber = $license->license_number;
-                        $expiry = $license->expires_at;
-                    }
-                } else {
-                    $licenseNumber = $license->license_number;
-                    $expiry = $license->expires_at;
-                }
-            }
-
-            if ($this->findCompletedCompetencyAlteration((string) $workflow->application_id)) {
-                $licenseNumber = null;
-                $expiry = null;
-            }
-        }
-
-        if ($expiry) {
-            $validityMonths = FeesValidity::where('licence_id', $licenceID)
-                ->where('form_type', 'A')
-                ->where('validity_start_date', '<=', $this->today)
-                ->value('validity');
-
-            $expiryDate = Carbon::parse($expiry);
-            $validFromDate = $expiryDate->copy()->subMonths((int) $validityMonths);
-            $today = Carbon::today();
-            $oneYearAfterExpiry = $expiryDate->copy()->addYear();
-
-            $isValid = $today->greaterThanOrEqualTo($validFromDate)
-                && $today->lessThanOrEqualTo($oneYearAfterExpiry);
-        }
-
-        $workflow->license_number = ($workflow->appl_type === 'A') ? null : $licenseNumber;
-        $workflow->expires_at = $expiry;
-        $workflow->renewal_application_id = $renewalApplicationId;
-        $workflow->is_under_validity_period = $isValid;
-
-        return $workflow;
     }
 
     private function loadCompetencyWorkflowsPresent(int|string $loginId): Collection
@@ -524,7 +663,7 @@ class LoginController extends BaseController
 
         return PaymentTransactionModel::query()
             ->whereIn('application_id', $ids)
-            ->whereIn('status', ['PENDING', 'INITIATED', 'PENDING_VERIFICATION', 'FAILED'])
+            ->whereIn('status', ['INITIATED','PENDING', 'PENDING_VERIFICATION'])
             ->orderByDesc('id')
             ->get()
             ->unique('application_id')

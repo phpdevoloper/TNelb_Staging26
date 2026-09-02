@@ -47,7 +47,12 @@
     }
     $workFromDate = ($hasRow && $expRow->from_date) ? calendar_date_ymd($expRow->from_date) : '';
     $workToDate = ($hasRow && $expRow->to_date) ? calendar_date_ymd($expRow->to_date) : '';
-    $isTill = $hasRow && $workFromDate !== '' && $workToDate === '';
+    // Previous: till was inferred when from_date was set and to_date was empty.
+    // $isTill = $hasRow && $workFromDate !== '' && $workToDate === '';
+    $isTill = $hasRow && (int) ($expRow->work_to_till_date ?? 0) === 1;
+    if (!$isTill && $hasRow && $workFromDate !== '' && $workToDate === '') {
+        $isTill = true;
+    }
     $durY = $hasRow && $expRow->total_y !== null ? (string) $expRow->total_y : '';
     $durM = $hasRow && $expRow->total_m !== null ? (string) $expRow->total_m : '';
     $durD = $hasRow && $expRow->total_d !== null ? (string) $expRow->total_d : '';
@@ -73,6 +78,7 @@
     $hideDuration = !empty($hideDuration);
     $hideDates = !empty($hideDates) || $workPart === 'current';
     $hideRemoveButton = !empty($hideRemoveButton);
+    $lockExistingRows = !empty($lockExistingRows) || !empty($isAlterationMode);
     $hideBoardPanelNote = !empty($hideBoardPanelNote);
     $useBootstrapGrid = !empty($useBootstrapGrid);
     $showSummaryPanel = !isset($showSummaryPanel) || (bool) $showSummaryPanel;
@@ -82,11 +88,22 @@
     if (!$hasRow && $defaultTillDate) {
         $isTill = true;
     }
+    // Previous: posted Y-m-d when checked.
+    // $tillPostedValue = $isTill ? ($workToDate !== '' ? $workToDate : now()->toDateString()) : '0';
+    $tillPostedValue = $isTill ? '1' : '0';
     $removeClasses = 'work-row-remove remove-work' . ($workId !== '' ? ' remove_exp' : '');
     $alterationExistingRow = !empty($alterationExistingRow);
+    $isAlterationMode = !empty($isAlterationMode);
     $storedRowClass = $workId !== ''
         ? ($showSummaryPanel ? ' is-complete work-row--compact work-row--in-summary' : ' is-complete work-row--expanded')
         : '';
+    if ($isTill) {
+        $storedRowClass .= ' fs-till-date-work';
+    }
+    /* Renewal: only Till date rows stay editable. Alteration keeps them frozen until Work Edit. */
+    if ($alterationExistingRow && $isTill && ! $isAlterationMode) {
+        $alterationExistingRow = false;
+    }
     if ($alterationExistingRow) {
         $storedRowClass .= ' fs-alt-existing-work';
     }
@@ -109,7 +126,7 @@
             <button type="button" class="work-row-toggle-btn" aria-expanded="false" title="Expand to edit" aria-label="Expand entry to edit">
                 <i class="fa fa-chevron-down" aria-hidden="true"></i>
             </button>
-            @unless ($hideRemoveButton || $alterationExistingRow)
+            @unless ($hideRemoveButton || $alterationExistingRow || ($lockExistingRows && $workId !== ''))
             <button type="button" class="{{ $removeClasses }}"
                 @if($workId !== '') data-exp_id="{{ $workId }}" data-url="{{ route('delete_experience') }}" @endif
                 title="Remove this entry" aria-label="Remove this work experience entry">
@@ -197,12 +214,12 @@
         </div>
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="to-date">
             <label class="work-card-field-label">To date <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" max="9999-12-31" title="To date" aria-label="Period of experience: to date" disabled>
+            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" max="9999-12-31" title="To date" aria-label="Period of experience: to date" @if($isTill) readonly @endif disabled>
             <label class="work-card-till-toggle">
                 <input type="checkbox" class="work-date-till" {{ $isTill ? 'checked' : '' }}>
                 <span>Till date (currently working)</span>
             </label>
-            <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="{{ $isTill ? '1' : '0' }}">
+            <input type="hidden" class="work-date-till-hidden" name="work_to_till_date[]" value="{{ $tillPostedValue }}">
         </div>
         @else
         <input type="hidden" class="work-date-from" name="work_date_from[]" value="" @if($alterationExistingRow) disabled @endif>
@@ -278,7 +295,7 @@
         </div>
         @if (($workPart ?? 'all') !== 'current')
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="relieve">
-            <label class="work-card-field-label">Relieving Letter <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
+            <label class="work-card-field-label">Relieving Letter / Self-Relieving <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
             @if ($relieveDoc !== '')
                 <div class="work-relieve-existing mb-1 text-center">
                     <a class="text-primary" href="{{ competency_document_url($relieveDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'relieving_doc') }}" target="_blank" rel="noopener">

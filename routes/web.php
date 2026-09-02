@@ -45,6 +45,7 @@ use App\Http\Controllers\FormWDigitizationController;
 use App\Http\Controllers\FormWHDigitizationController;
 use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
+use App\Http\Controllers\DocumentVersion\CcInspectController;
 use App\Http\Controllers\DocumentVersion\DocumentSampleController;
 use App\Http\Controllers\FormS\FormSDocumentController;
 use App\Http\Controllers\WithoutTmp\WithoutTmpController;
@@ -131,9 +132,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/apply-form-s_d', [FormSDigitizationController::class, 'index'])->name('apply-form-s_d');
     Route::post('/digitization/storeDigitization', [FormSDigitizationController::class, 'storeDigitization'])->name('digitization.storeDigitization');
+    Route::get('/digitization/getContractorDetails', [FormSDigitizationController::class, 'fetchContractorDetails'])->name('digitization.getContractorDetails');
 
     Route::get('/apply-form-w_d', [FormWDigitizationController::class, 'index'])->name('apply-form-w_d');
-    
+    Route::post('/digitization/w/storeDigitization', [FormWDigitizationController::class, 'storeDigitization'])->name('digitization.w.storeDigitization');
+    Route::get('/digitization/w/getContractorDetails', [FormWDigitizationController::class, 'fetchContractorDetails'])->name('digitization.w.getContractorDetails');
+
     Route::get('/apply-form-wh_d', [FormWHDigitizationController::class, 'index'])->name('apply-form-wh_d');
     Route::get('/apply_form_p_d', [FormpDigitizationController::class, 'index'])->name('apply_form_p_d');
 
@@ -223,6 +227,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/successpage', [RegisterController::class, 'successpage'])->name('successpage');
 
     Route::get('/editApplication/{application_id}', [FormController::class, 'editApplication'])->name('edit-application');
+    Route::get('/application-preview/{application_id}', [FormController::class, 'previewApplication'])->name('dashboard.application.preview');
+    Route::get('/application-timeline/{application_id}', [FormController::class, 'previewApplicationTimeline'])->name('dashboard.application.timeline');
 
     Route::get('/edit_application/{application_id}', [FormController::class, 'edit_application'])->name('edit_application');
     Route::get('/edit_returned_application/{application_id}', [FormController::class, 'editReturnedApplication'])->name('edit_returned_application');
@@ -505,7 +511,8 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
     Route::post('/reset-module', [DocumentSampleController::class, 'resetModule'])->name('reset-module');
     Route::get('/storage', [DocumentSampleController::class, 'storageExplorer'])->name('storage');
     Route::get('/details/{application?}', [DocumentSampleController::class, 'applicationDetails'])->name('details');
-    Route::get('/cc-inspect', [DocumentSampleController::class, 'ccInspect'])->name('cc-inspect');
+    Route::get('/cc-inspect', [CcInspectController::class, 'index'])->name('cc-inspect');
+    Route::post('/cc-inspect/delete', [CcInspectController::class, 'destroy'])->name('cc-inspect.delete');
     Route::get('/table-data', [DocumentSampleController::class, 'tableData'])->name('table-data');
     Route::get('/upload', [DocumentSampleController::class, 'upload'])->name('upload');
     Route::post('/upload', [DocumentSampleController::class, 'storeUpload'])->name('upload.store');
@@ -523,7 +530,7 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
 $competencyUrlPrefix = trim((string) config('document_versioning.public_url_prefix', 'competency'), '/');
 if ($competencyUrlPrefix !== '' && config('document_versioning.serve_via_laravel', true)) {
     Route::get('/'.$competencyUrlPrefix.'/{filePath}', [FormSDocumentController::class, 'viewByPath'])
-        ->where('filePath', 'FORM_[A-Z]+/.+')
+        ->where('filePath', '(FORM_[A-Z]+|uploads/digitization)/.+')
         ->name('competency.file');
 }
 
@@ -570,6 +577,7 @@ Route::post('/payu/success', [PayUPaymentController::class, 'success'])->name('p
 Route::post('/payu/failure', [PayUPaymentController::class, 'failure'])->name('payu.failure');
 
 
+
 Route::get('/payu/hash-generate', function () {
 $hashString =
             config('payu.key') . '|' .
@@ -580,11 +588,94 @@ $hashString =
         return response()->json(['hash' => $hash]);
 })->name('payu.hash.generate');
 
+Route::match(['get', 'post'], '/payu/hash-generate', function (Request $request) {
+    $var1 = trim((string) $request->input('var1', ''));
+    $hash = null;
+
+    if ($request->isMethod('post') && $var1 !== '') {
+        $hashString =
+            config('payu.key') . '|' .
+            'verify_payment' . '|' .
+            $var1 . '|' .
+            config('payu.salt');
+        $hash = strtolower(hash('sha512', $hashString));
+    }
+
+    return view('user_login.payments.hash-generate', compact('var1', 'hash'));
+})->name('payu.hash.generate');
+
+
+Route::get('/payu/verify-payment', function () {
+$url = config('payu.verify_url');
+
+$postData = array(
+    'key' => config('payu.key'),
+    'command' => 'verify_payment',
+    'var1' => 'TNFWRVYDMSO8OKXIYYUF',
+    'hash' => '8e4d006201e7541b7dfd3916afc15d3ea2133164d725ae71f8e7307d42bd3acb313523bcf2631aeab6d9ec725764c205e0a8601c5e2996869f8329f568959bbe'
+);
+
+$ch = curl_init();
+
+curl_setopt_array($ch, array(
+    CURLOPT_URL => $url,
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POSTFIELDS => http_build_query($postData),
+    CURLOPT_HTTPHEADER => array(
+        'Content-Type: application/x-www-form-urlencoded'
+    )
+));
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+if (curl_error($ch)) {
+    echo 'Error: ' . curl_error($ch) . "\n";
+} else {
+    echo "Status Code: " . $httpCode . "\n";
+    echo "Response: " . $response . "\n";
+}
+
+curl_close($ch);
+
+})->name('payu.verify_payment');
 
 
 
 
+Route::match(['get', 'post'], '/payu/hash/generate_init', function (Request $request) {
+    $key = config('payu.key');
+    $txnid = trim((string) $request->input('txnid', ''));
+    $amount = trim((string) $request->input('amount', ''));
+    $productinfo = trim((string) $request->input('productinfo', ''));
+    $firstname = trim((string) $request->input('firstname', ''));
+    $email = trim((string) $request->input('email', ''));
+    $phone = trim((string) $request->input('phone', ''));
+    $hash = null;
 
+    if ($request->isMethod('post') && $txnid !== '' && $amount !== '' && $productinfo !== '' && $firstname !== '' && $email !== '') {
+        $hash = app(\App\Services\PayUService::class)->generatePaymentHash([
+            'key' => "JPM7Fg",
+            'txnid' => $txnid,
+            'amount' => $amount,
+            'email' => $email,
+            'phone' => $phone,
+            'productinfo' => $productinfo,
+            'firstname' => $firstname,
+        ]);
+    }
+
+    return view('user_login.payments.hash-generate_init', compact(
+        'txnid',
+        'amount',
+        'productinfo',
+        'firstname',
+        'email',
+        'phone',
+        'hash'
+    ));
+})->name('payu.hash.generate_init');
 
 
 

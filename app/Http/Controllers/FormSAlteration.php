@@ -156,7 +156,7 @@ class FormSAlteration extends BaseController
     {
         $formCode = $this->resolveFormCode($request);
 
-        if ($formCode !== 'S') {
+        if (!in_array($formCode, ['S', 'W'], true)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Alteration for this certificate type is not available yet.',

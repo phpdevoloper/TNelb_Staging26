@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $releive_document
  * @property string|null $support_document
  * @property string|null $total_exp
+ * @property int|null $work_to_till_date  1 = Till date checked, 0 = not checked
  */
 class CC_Experience extends Model
 {
@@ -60,6 +61,7 @@ class CC_Experience extends Model
         'total_exp',
         'board_meeting_details',
         'board_meeting_date',
+        'work_to_till_date',
         
     ];
 
@@ -71,6 +73,7 @@ class CC_Experience extends Model
         'total_m' => 'integer',
         'total_d' => 'integer',
         'total_exp' => 'decimal:2',
+        'work_to_till_date' => 'integer',
     ];
 
     /** @deprecated Legacy typo alias for relieve_document */

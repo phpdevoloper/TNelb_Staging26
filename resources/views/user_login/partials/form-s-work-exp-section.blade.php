@@ -113,6 +113,8 @@
                     'hideBoardPanelNote' => $hideBoardPanelNote,
                     'useBootstrapGrid' => $useBootstrapGrid,
                     'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
+                    'isAlterationMode' => $isAlterationMode,
+                    'lockExistingRows' => $lockExistingRows,
                     'alterationExistingRow' => $lockExistingRows && $expRow,
                 ])
             @endforeach
@@ -131,6 +133,7 @@
                     'hideBoardPanelNote' => $hideBoardPanelNote,
                     'useBootstrapGrid' => $useBootstrapGrid,
                     'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
+                    'isAlterationMode' => $isAlterationMode,
                     'alterationExistingRow' => false,
                 ])
             @endfor

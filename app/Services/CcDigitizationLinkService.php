@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CC_Digitisation_Map;
 use App\Models\Tnelb_CC_Digitization;
 
 class CcDigitizationLinkService
@@ -28,6 +29,11 @@ class CcDigitizationLinkService
             ->update([
                 'application_id' => $applicationId,
                 'flag' => 1,
+                'updated_at' => db_now(),
+            ]);
+
+            CC_Digitisation_Map::where('temp_id', $tempAppId)->update([
+                'application_id' => $applicationId,
                 'updated_at' => db_now(),
             ]);
 
@@ -80,6 +86,7 @@ class CcDigitizationLinkService
      */
     public function assertValidForNewSave(?string $tempAppId, string $loginId): bool
     {
+        
         $tempAppId = trim((string) $tempAppId);
         if ($tempAppId === '') {
             return false;

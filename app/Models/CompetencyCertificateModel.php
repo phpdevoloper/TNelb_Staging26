@@ -24,5 +24,7 @@ abstract class CompetencyCertificateModel extends Model
         'issued_by',
         'created_at',
         'updated_at',
+        'qc',
+        'qsc',
     ];
 }

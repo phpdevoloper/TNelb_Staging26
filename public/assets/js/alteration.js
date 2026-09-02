@@ -69,6 +69,11 @@
         var changed = false;
         existingWorkRows().each(function () {
             var $row = $(this);
+            if (!$row.hasClass('fs-till-date-work')
+                && !$row.find('.work-date-till').is(':checked')
+                && String($row.find('.work-date-till-hidden').val() || '') !== '1') {
+                return;
+            }
             var id = ($row.attr('data-fs-alt-baseline-id') || $row.find('[name="work_id[]"]').val() || '').toString();
             if (existingWorkRowHasNewUpload($row) || existingWorkRowDocsRemoved($row)) {
                 changed = true;
@@ -274,7 +279,7 @@
         if (addr === 'Not provided') addr = '';
         var alterName = optName && name !== parentName;
         var alterAddress = optAddress && addr !== parentAddress;
-        var alterWork = optWork && hasNewWorkRows();
+        var alterWork = optWork && (hasNewWorkRows() || hasEditedExistingWorkRows());
 
         $('#alter_name').val(alterName ? '1' : '0');
         $('#alter_address').val(alterAddress ? '1' : '0');
@@ -352,19 +357,31 @@
             }
         }
 
-        if (flags.optWork && !hasNewWorkRows() && !flags.alterName && !flags.alterAddress) {
-            Swal.fire('Validation', 'Add a new work experience entry. Existing records cannot be edited.', 'warning');
+        if (flags.optWork && !hasNewWorkRows() && !hasEditedExistingWorkRows() && !flags.alterName && !flags.alterAddress) {
+            Swal.fire('Validation', 'Edit a Till date work experience row or add a new work experience entry.', 'warning');
             return false;
         }
 
         /* Same 650V / 2-year rule as New / Renewal / Digitization (shared work-exp scripts). */
-        if (flags.alterWork || (flags.optWork && hasNewWorkRows())) {
+        if (flags.alterWork || (flags.optWork && (hasNewWorkRows() || hasEditedExistingWorkRows()))) {
+            if (typeof window.wxValidateWorkRelievingRequired === 'function') {
+                var relieveCheck = window.wxValidateWorkRelievingRequired();
+                if (!relieveCheck.ok) {
+                    Swal.fire(
+                        'Validation',
+                        relieveCheck.message || 'Relieving Letter / Self-Relieving is required when Till date is not selected.',
+                        'warning'
+                    );
+                    scrollToSection('#fsAltSectionWork');
+                    return false;
+                }
+            }
             if (typeof window.wxValidateFormSExperienceDateSequence === 'function') {
                 var seqCheck = window.wxValidateFormSExperienceDateSequence();
                 if (!seqCheck.ok) {
                     Swal.fire(
                         'Validation',
-                        seqCheck.message || 'Experience periods must not overlap. Each From date must be after the previous row\'s To date.',
+                        seqCheck.message || 'Experience periods must not overlap. Each From date must be strictly after every other period\'s To date.',
                         'warning'
                     );
                     scrollToSection('#fsAltSectionWork');
@@ -625,7 +642,7 @@
                 return;
             }
 
-            if (certCode !== 'S') {
+            if (certCode !== 'S' && certCode !== 'W') {
                 Swal.fire('Not available', 'Alteration for this certificate type is not available yet.', 'info');
                 return;
             }
@@ -704,8 +721,8 @@
     function initAlterationFormPage() {
         if (!$('.fs-alt-form').length) return;
 
-        parentName = ($('#fs_alt_parent_name').val() || '').trim();
-        parentAddress = ($('#fs_alt_parent_address').val() || '').trim();
+        parentName = ($('#fs_alt_parent_name').val() || $('#Applicant_Name').val() || '').trim();
+        parentAddress = ($('#fs_alt_parent_address').val() || $('#applicants_address').val() || '').trim();
 
         clearNewWorkRows();
         initProofCompact();

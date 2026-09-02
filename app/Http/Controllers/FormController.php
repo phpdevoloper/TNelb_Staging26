@@ -34,9 +34,15 @@ use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
+use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyWorkflowService;
+use App\Models\Tnelb_CC_Digitization;
+use App\Models\TnelbAppsInstitute;
+use App\Models\TnelbFormP;
+use App\Support\DashboardApplicationTimeline;
+use App\Support\FormSExperiencePartition;
 use Illuminate\Http\UploadedFile;
 
 class FormController extends BaseController
@@ -473,6 +479,98 @@ class FormController extends BaseController
         return null;
     }
 
+    private function rejectIfFormSSubmitInvalid(Request $request, $action)
+    {
+        
+        if ((string) $action === 'draft') {
+            return null;
+        }
+
+        $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
+        
+        if ($boardMemberErr !== null) {
+            return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
+        }
+
+        $contractorErr = $this->checkContractorExperience($request);
+        
+        if ($contractorErr !== null) {
+            return response()->json(['status' => 'error', 'message' => $contractorErr], 422);
+        }
+
+        return null;
+    }
+
+    private function checkContractorExperience(Request $request): ?string
+    {
+        
+        if (strtoupper((string) ($request->appl_type ?? '')) !== 'D') {
+            return null;
+        }
+        if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+            return null;
+        }
+
+        $loginId = Auth::user()->login_id ?? $request->login_id;
+        $tempAppId = trim((string) $request->input('cc_digitization_temp_id', ''));
+        $applicationId = trim((string) $request->input('application_id', ''));
+
+
+        $query = Tnelb_CC_Digitization::where('login_id', $loginId);
+        if ($applicationId !== '') {
+            $query->where('application_id', $applicationId);
+        } elseif ($tempAppId !== '') {
+            $query->where('temp_app_id', $tempAppId);
+        } else {
+            $query->where('form_name', 'S');
+        }
+
+        $row = $query->orderByDesc('id')->first();
+        if (! $row || $row->licence_no === null || trim((string) $row->licence_no) === '') {
+            return null;
+        }
+        
+        $wantCat = strtoupper(trim((string) $row->cl_type));
+        $wantLic = preg_replace('/\D+/', '', (string) $row->licence_no);
+        $wantOrg = strtolower(trim(preg_replace('/\s+/', ' ', (string) $row->contractor_name)));
+
+        $sections = $request->input('work_exp_section', []);
+        $types = $request->input('work_employment_type', []);
+        $cats = $request->input('work_contractor_category', []);
+        $lics = $request->input('work_licence_number', []);
+        $orgs = $request->input('work_employer_name', []);
+
+        $hasContractorRow = false;
+        foreach ($this->getWorkRowIndexes($request) as $key) {
+            if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
+                continue;
+            }
+            if (strtolower(trim((string) ($types[$key] ?? ''))) !== 'electrical_contractor') {
+                continue;
+            }
+
+            $hasContractorRow = true;
+
+            $cat = strtoupper(trim((string) ($cats[$key] ?? '')));
+            $lic = preg_replace('/\D+/', '', (string) ($lics[$key] ?? ''));
+            $org = strtolower(trim(preg_replace('/\s+/', ' ', (string) ($orgs[$key] ?? ''))));
+
+            
+            if ($cat === $wantCat && $lic === $wantLic && $org === $wantOrg) {
+                return null;
+            } else {
+                return 'The Given Licence Number of Contractor must exist in the experience details.';
+            }
+        }
+
+
+        if (! $hasContractorRow) {
+            return 'Please add a work experience as Electrical Contractor with details already provided.';
+        }
+
+        return '';
+    }
+
     private function hasWorkExperiencePayload(Request $request): bool
     {
         return $request->has('work_level')
@@ -710,6 +808,7 @@ class FormController extends BaseController
             'org_address' => $workRow['org_address'] ?? null,
             'from_date' => $workRow['from_date'] ?? null,
             'to_date' => $workRow['to_date'] ?? null,
+            'work_to_till_date' => (int) ($workRow['work_to_till_date'] ?? 0),
             'designation' => ($workRow['designation'] ?? '') !== '' ? $workRow['designation'] : null,
             'nature_work' => $workRow['nature_work'] ?? null,
             'voltage_level' => $workRow['voltage_level'] ?? null,
@@ -947,11 +1046,18 @@ class FormController extends BaseController
             $empCate = $orgName;
         }
 
+        $workToTillDate = 0;
         if ($isFormS) {
             $tillFlags = $request->work_to_till_date ?? [];
-            $isTill = isset($tillFlags[$key]) && (string) $tillFlags[$key] === '1';
-            if ($isTill) {
-                $toDate = '';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            // Previous: posted Y-m-d (or legacy "1") was converted to today's date and written only to to_date.
+            // $tillDate = FormSWorkTillDate::toDateString($tillRaw, $this->today);
+            // if ($tillDate !== null) {
+            //     $toDate = $tillDate;
+            // }
+            $workToTillDate = FormSWorkTillDate::isChecked($tillRaw) ? 1 : 0;
+            if ($workToTillDate === 1) {
+                $toDate = $this->today;
             }
             $intimationDate = '';
         } elseif (strtolower($empType) !== 'contractor') {
@@ -978,6 +1084,7 @@ class FormController extends BaseController
             'transformer_kva' => ($kvaRaw !== '' ? $kvaRaw : null),
             'from_date' => ($fromDate !== '' ? CalendarDate::ymd($fromDate) : null),
             'to_date' => ($toDate !== '' ? CalendarDate::ymd($toDate) : null),
+            'work_to_till_date' => $workToTillDate,
             'intimation_date' => ($intimationDate !== '' ? CalendarDate::ymd($intimationDate) : null),
             'board_meeting_details' => ($boardMeetingDetails !== '' ? $boardMeetingDetails : null),
             'board_meeting_date' => ($boardMeetingDate !== '' ? CalendarDate::ymd($boardMeetingDate) : null),
@@ -1307,6 +1414,38 @@ class FormController extends BaseController
                     ->resolveParentExperienceFromPostedId($found, $parentId);
             }
 
+            if ($parentExp) {
+                $isTillDateRow = (int) ($parentExp->work_to_till_date ?? 0) === 1
+                    || (! empty($parentExp->from_date) && empty($parentExp->to_date));
+                if (! $isTillDateRow) {
+                    $copiedSourceIds[(int) $parentExp->exp_id] = true;
+                    CC_Experience::create([
+                        'login_id' => $loginId,
+                        'application_id' => $childId,
+                        'emp_type' => $parentExp->emp_type,
+                        'emp_cate' => $parentExp->emp_cate,
+                        'org_name' => $parentExp->org_name,
+                        'org_address' => $parentExp->org_address,
+                        'designation' => $parentExp->designation,
+                        'from_date' => $parentExp->from_date,
+                        'to_date' => $parentExp->to_date,
+                        'work_to_till_date' => (int) ($parentExp->work_to_till_date ?? 0),
+                        'total_y' => $parentExp->total_y,
+                        'total_m' => $parentExp->total_m,
+                        'total_d' => $parentExp->total_d,
+                        'total_exp' => $parentExp->total_exp,
+                        'nature_work' => $parentExp->nature_work,
+                        'voltage_level' => $parentExp->voltage_level,
+                        'transformer_kva' => $parentExp->transformer_kva,
+                        'board_meeting_details' => $parentExp->board_meeting_details,
+                        'board_meeting_date' => $parentExp->board_meeting_date,
+                        'support_document' => $parentExp->support_document,
+                        'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
+                    ]);
+                    continue;
+                }
+            }
+
             $supportRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
             $relieveRemoved = isset($request->removed_document_work_relieving[$key])
                 && $request->removed_document_work_relieving[$key] == '1';
@@ -1376,6 +1515,7 @@ class FormController extends BaseController
                 'designation' => $designation,
                 'from_date' => $parentExp->from_date,
                 'to_date' => $parentExp->to_date,
+                'work_to_till_date' => (int) ($parentExp->work_to_till_date ?? 0),
                 'total_y' => $parentExp->total_y,
                 'total_m' => $parentExp->total_m,
                 'total_d' => $parentExp->total_d,
@@ -1590,8 +1730,8 @@ class FormController extends BaseController
      * Rows with Voltage Level "Up to 650V" are excluded from this total (New / Renewal / Digitization / Alteration).
      * (Per-row check was replaced with a combined-total check so that multiple short stints can add up.)
      *
-     * "Till date" rows (work_to_till_date[$key] === '1') are evaluated against today's date when
-     * the explicit To-date is blank, mirroring the front-end behaviour.
+     * "Till date" rows (work_to_till_date[$key] is "1") use today when To-date is blank.
+     * Previous: work_to_till_date[$key] was Y-m-d (or legacy "1") and that date was used as To.
      */
     private function validateFormSWorkExperienceMinimumYears(Request $request, \Illuminate\Validation\Validator $validator): void
     {
@@ -1631,7 +1771,8 @@ class FormController extends BaseController
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
 
             $isUpTo650v = strtolower(trim((string) ($voltages[$key] ?? ''))) === 'up_to_650v';
 
@@ -1644,9 +1785,10 @@ class FormController extends BaseController
             }
 
             $from = $this->calendarDateStartOfDay($fromRaw);
-            $to = ($toRaw !== '')
-                ? $this->calendarDateStartOfDay($toRaw)
-                : $today;
+            $toEff = $toRaw !== ''
+                ? $toRaw
+                : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+            $to = $this->calendarDateStartOfDay($toEff);
             if ($from === null || $to === null) {
                 continue;
             }
@@ -1729,7 +1871,8 @@ class FormController extends BaseController
 
             $fromRaw = trim((string) ($fromDates[$key] ?? ''));
             $toRaw = trim((string) ($toDates[$key] ?? ''));
-            $isTill = ((string) ($tillFlags[$key] ?? '0')) === '1';
+            $tillRaw = $tillFlags[$key] ?? '0';
+            $isTill = FormSWorkTillDate::isChecked($tillRaw);
             if ($fromRaw === '') {
                 continue;
             }
@@ -1738,9 +1881,10 @@ class FormController extends BaseController
             }
 
             $from = $this->calendarDateStartOfDay($fromRaw);
-            $to = ($toRaw !== '')
-                ? $this->calendarDateStartOfDay($toRaw)
-                : $today;
+            $toEff = $toRaw !== ''
+                ? $toRaw
+                : (FormSWorkTillDate::toDateString($tillRaw, $today->toDateString()) ?? $today->toDateString());
+            $to = $this->calendarDateStartOfDay($toEff);
             if ($from === null || $to === null) {
                 continue;
             }
@@ -2053,6 +2197,7 @@ class FormController extends BaseController
         ?string $existingPaymentStatus = null
     ): string {
         $existing = strtoupper(trim((string) $existingPaymentStatus));
+
         if (in_array($existing, ['Y'], true)) {
             return trim((string) $existingPaymentStatus);
         }
@@ -2164,7 +2309,7 @@ class FormController extends BaseController
     private function loadCompetencyEditBundle(string $applicationId): ?array
     {
         $ccMeta = CC_Forms_Meta::findByApplicationId($applicationId);
-        if (! $ccMeta || ! in_array($ccMeta->form_name, ['S', 'W', 'WH'], true)) {
+        if (! $ccMeta || ! in_array($ccMeta->form_name, ['S', 'W', 'WH', 'P'], true)) {
             return null;
         }
 
@@ -2234,33 +2379,13 @@ class FormController extends BaseController
 
         $proofApplicationId = $appl_id;
         $ccBundle = $this->loadCompetencyEditBundle($appl_id);
+        $get_contractor_details = app(FormSDigitizationController::class)->getContractorDetails(Auth::user()->login_id, null, $appl_id);
 
         if ($ccBundle) {
             $application_details = $ccBundle['application_details'];
             $edu_details = $ccBundle['edu_details'];
             $exp_details = $ccBundle['exp_details'];
             $proofApplicationId = $ccBundle['proof_application_id'] ?? $ccBundle['master_application_id'];
-        } else {
-            $application_details = DB::table('tnelb_application_tbl')
-                ->where('application_id', $appl_id)
-                ->select('*')
-                ->first();
-
-            if (! $application_details) {
-                return redirect()->route('dashboard')->with('error', 'Application not found.');
-            }
-
-            $edu_details = DB::table('tnelb_applicants_edu')
-                ->where('application_id', $appl_id)
-                ->select('*')
-                ->orderBy('year_of_passing', 'desc')
-                ->get();
-
-            $exp_details = DB::table('tnelb_applicants_exp')
-                ->where('application_id', $appl_id)
-                ->select('*')
-                ->orderBy('exp_id', 'asc')
-                ->get();
         }
 
         if ($redirect = $this->assertApplicantOwnsApplication($application_details)) {
@@ -2328,7 +2453,8 @@ class FormController extends BaseController
             'form_details',
             'licence_name',
             'queries',
-            'cc_digitization_temp_id'
+            'cc_digitization_temp_id',
+            'get_contractor_details'
         ));
 
     }
@@ -2336,6 +2462,157 @@ class FormController extends BaseController
     public function edit_application($application_id)
     {
         return $this->editApplication($application_id);
+    }
+
+    /**
+     * Dashboard Application ID click: HTML preview of the full application (no payment).
+     */
+    public function previewApplication(string $application_id)
+    {
+        if (! Auth::check()) {
+            if (request()->ajax()) {
+                return response()->json(['message' => 'Please sign in to view this application.'], 401);
+            }
+
+            return redirect()->route('logout');
+        }
+
+        $application_id = trim($application_id);
+        if ($application_id === '') {
+            if (request()->ajax()) {
+                return response()->json(['message' => 'Application ID is required.'], 422);
+            }
+
+            return redirect()->route('dashboard')->with('error', 'Application ID is required.');
+        }
+
+        $proofApplicationId = $application_id;
+        $edu_details = collect();
+        $exp_details = collect();
+        $application_details = null;
+        $institutes = collect();
+
+        $ccBundle = $this->loadCompetencyEditBundle($application_id);
+        if ($ccBundle) {
+            $application_details = $ccBundle['application_details'];
+            $edu_details = $ccBundle['edu_details'];
+            $exp_details = $ccBundle['exp_details'];
+            $proofApplicationId = $ccBundle['proof_application_id'] ?? $ccBundle['master_application_id'];
+        } else {
+            $formP = TnelbFormP::where('application_id', $application_id)->first();
+            if ($formP) {
+                $application_details = $formP;
+                $edu_details = CC_Education::where('application_id', $application_id)
+                    ->orderByDesc('year_of_passing')
+                    ->get();
+             
+                $exp_details = CC_Experience::where('application_id', $application_id)
+                    ->orderBy('exp_id')
+                    ->get();
+            
+            }
+        }
+
+        if (! $application_details) {
+            if (request()->ajax()) {
+                return response()->json(['message' => 'Application not found.'], 404);
+            }
+
+            return redirect()->route('dashboard')->with('error', 'Application not found.');
+        }
+
+        $loginId = Auth::user()->login_id ?? session('login_id');
+        if (! $loginId || (string) ($application_details->login_id ?? '') !== (string) $loginId) {
+            if (request()->ajax()) {
+                return response()->json(['message' => 'You can only view your own application.'], 403);
+            }
+
+            return redirect()->route('dashboard')->with('error', 'You can only view your own application.');
+        }
+
+        $this->decryptPanForDisplay($application_details);
+
+        $formCode = strtoupper((string) ($application_details->form_name ?? ''));
+        if ($formCode === 'P') {
+            $legacyP = $application_details instanceof TnelbFormP
+                ? $application_details
+                : TnelbFormP::where('application_id', $application_id)->first();
+            if ($legacyP) {
+                $application_details->employer_detail = $application_details->employer_detail ?? $legacyP->employer_detail;
+                $application_details->previously_number = $application_details->previously_number ?? $legacyP->previously_number;
+                $application_details->previously_date = $application_details->previously_date ?? $legacyP->previously_date;
+                $application_details->previously_valid_to = $application_details->previously_valid_to
+                    ?? $legacyP->previously_valid_to
+                    ?? $legacyP->previously_date;
+            }
+            if (Schema::hasTable('tnelb_applicant_institute')) {
+                $institutes = TnelbAppsInstitute::where('application_id', $application_id)
+                    ->where(function ($q) {
+                        $q->where('institute_status', 1)->orWhereNull('institute_status');
+                    })
+                    ->get();
+            }
+        }
+
+        $licence_name = DB::table('mst_licences')->where('form_code', $formCode)->first();
+        $applicant_photo = $this->loadApplicantPhotoForView((string) $proofApplicationId);
+        $proof_doc = $this->loadApplicantSignForView((string) $proofApplicationId);
+        $expPartition = FormSExperiencePartition::partition($exp_details);
+
+        $viewData = [
+            'application_details' => $application_details,
+            'edu_details' => $edu_details,
+            'exp_details' => $exp_details,
+            'exp_previous' => $expPartition['previous'],
+            'exp_board' => $expPartition['current'],
+            'institutes' => $institutes,
+            'licence_name' => $licence_name,
+            'applicant_photo' => $applicant_photo,
+            'proof_doc' => $proof_doc,
+            'formCode' => $formCode,
+        ];
+
+        return view('user_login.application-preview', $viewData);
+    }
+
+    /**
+     * Testing: full application process timeline from first create in this system.
+     */
+    public function previewApplicationTimeline(string $application_id)
+    {
+        $validate = Validator::make(['application_id' => $application_id], [
+            'application_id' => 'required|string|max:20',
+        ]);
+        if ($validate->fails()) {
+            return response()->json(['message' => $validate->errors()->first()], 422);
+        }
+        
+        if (! Auth::check()) {
+            return response()->json(['message' => 'Please sign in to view this application.'], 401);
+        }
+
+        $application_id = trim($application_id);
+
+        if ($application_id === '') {
+            return response()->json(['message' => 'Application ID is required.'], 422);
+        }
+
+        $application = DB::table('cc_form_s_meta')->where('application_id', $application_id)->first();
+        $getdetails_digitisation = DB::table('tnelb_cc_digitization')->where('application_id', $application_id)->first();
+        $get_digitisation_mapping = DB::table('cc_digitisation_map')->where('application_id', $application_id)->first();
+        
+        if (! $application) {
+            return response()->json(['message' => 'Application not found.'], 404);
+        }
+
+        $loginId = Auth::user()->login_id ?? session('login_id');
+        if (! $loginId || (string) ($application->login_id ?? '') !== (string) $loginId) {
+            return response()->json(['message' => 'You can only view your own application.'], 403);
+        }
+
+        $timeline = app(DashboardApplicationTimeline::class)->build($application_id, $application);
+
+        return view('user_login.partials.dashboard-application-timeline', compact('timeline', 'getdetails_digitisation', 'get_digitisation_mapping'));
     }
 
     /**
@@ -2701,12 +2978,9 @@ class FormController extends BaseController
         $validator->validate();
 
         $action = $request->input('form_action', 'draft');
-        if ($action !== 'draft') {
-            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
-            if ($boardMemberErr !== null) {
-                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
-            }
-        }
+        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
+        //     return $reject;
+        // }
         
         // Safety fallback: if client doesn't send form_action, keep first save as draft.
         $loginId = $request->login_id;
@@ -2718,11 +2992,6 @@ class FormController extends BaseController
             return $this->draft_update($request, $existingApplicationId);
         }
 
-        if ($guard = $this->assertDigitizationCanSave($request)) {
-            return $guard;
-        }
-        
-        
         DB::beginTransaction();
         
         $encrypted_aadhaar = Crypt::encryptString($request->aadhaar);
@@ -2774,13 +3043,9 @@ class FormController extends BaseController
                 'form_name'           => $request->form_name,
                 'form_id'             => $request->form_id,
                 'certificate_name'        => $request->license_name,
-                // 'aadhaar'             => $encrypted_aadhaar,
-                // 'pancard'             => $encrypted_pancard,
                 'app_status'              => 'P',
                 'appl_type'           => $appl_type,
                 'payment_status'      => $this->resolveCompetencyPaymentStatusOnSave($action, $appl_type),
-                // 'aadhaar_doc'         => $aadhaarFilename,
-                // 'pan_doc'             => $panFilename,
                 'wcc_no'      => $request->competency_certificate_no,
                 'wcc_to' => $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
                 'wcc_issue_date' => $this->calendarDateYmd($request->certificate_issue_date),
@@ -2957,10 +3222,10 @@ class FormController extends BaseController
             if ($appl_type == 'D') {
                 $digization_number = DB::table('tnelb_cc_digitization')->where('application_id', $applicationId )->first();
 
-                $ccnumber = $digization_number->cc_number;
-                $fissue = $digization_number->fissue;
-                $from_date = $digization_number->from_date;
-                $to_date = $digization_number->to_date;
+                $ccnumber  = $digization_number->ccnumber ?? null;
+                $fissue    = $digization_number->fissue ?? null;
+                $from_date = $digization_number->from_date ?? null;
+                $to_date   = $digization_number->to_date ?? null;
 
                 return response()->json([
                      'status' => 'success',
@@ -2974,9 +3239,9 @@ class FormController extends BaseController
                 'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y'),
                     
                     'ccnumber'   => $ccnumber,
-                    'fissue'    => Carbon::parse($fissue)->format('d-m-Y'),
-                    'from_date'    => Carbon::parse($from_date)->format('d-m-Y'),
-                    'to_date'    => Carbon::parse($to_date)->format('d-m-Y'),
+                    'fissue'    => $fissue ? Carbon::parse($fissue)->format('d-m-Y') : null,
+                    'from_date'    => $from_date ? Carbon::parse($from_date)->format('d-m-Y') : null,
+                    'to_date'    => $to_date ? Carbon::parse($to_date)->format('d-m-Y') : null,
 
                 ]);
              } else {
@@ -3037,10 +3302,6 @@ class FormController extends BaseController
 
         if (!$existingForm) {
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
-        }
-
-        if ($guard = $this->assertDigitizationCanSave($request, $applicationId)) {
-            return $guard;
         }
 
         $uploadPhotoRule = (! $existingPhoto || empty($existingPhoto->upload_path))
@@ -3234,6 +3495,9 @@ class FormController extends BaseController
         $validator->validate();
 
         $action = $request->input('form_action', 'draft');
+        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
+        //     return $reject;
+        // }
         $paymentStatus = $this->resolveCompetencyPaymentStatusOnSave(
             $action,
             $request->appl_type ?? $existingForm->appl_type ?? null,
@@ -3631,10 +3895,6 @@ class FormController extends BaseController
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
         }
 
-        if ($guard = $this->assertDigitizationCanSave($request, $applicationId)) {
-            return $guard;
-        }
-
         $uploadPhotoRule = (! $existingPhoto || empty($existingPhoto->upload_path))
             ? 'image|mimes:jpg,jpeg,png|max:50'
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
@@ -3726,12 +3986,9 @@ class FormController extends BaseController
         ]);
 
         $action = $request->form_action; // "draft" or "submit"
-        if ($action !== 'draft') {
-            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
-            if ($boardMemberErr !== null) {
-                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
-            }
-        }
+        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
+        //     return $reject;
+        // }
         $loginId = $this->resolveDigitizationLoginId($request, $request->login_id);
         $appl_type = $request->appl_type ?? '';
 
@@ -4078,12 +4335,9 @@ class FormController extends BaseController
         ]);
 
         $action    = $request->form_action; // "draft" or "submit"
-        if ($action !== 'draft') {
-            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
-            if ($boardMemberErr !== null) {
-                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
-            }
-        }
+        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
+        //     return $reject;
+        // }
         $loginId   = $request->login_id;
         $appl_type = $request->appl_type ?? 'R'; // ensure renewal
         $nowTs     = $this->dbNow;
@@ -4294,10 +4548,6 @@ public function update(Request $request, $id)
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
         }
 
-        if ($guard = $this->assertDigitizationCanSave($request, $applicationId)) {
-            return $guard;
-        }
-
         $uploadPhotoRule = (! $existingPhoto || empty($existingPhoto->upload_path))
             ? 'image|mimes:jpg,jpeg,png|max:50'
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
@@ -4378,12 +4628,10 @@ public function update(Request $request, $id)
         if (in_array($applTypeForStatus, ['D', 'A'], true)) {
             $action = 'submit';
         }
-        if ($action !== 'draft') {
-            $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
-            if ($boardMemberErr !== null) {
-                return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
-            }
-        }
+        
+        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
+        //     return $reject;
+        // }
         $loginId = $request->login_id;
 
         DB::beginTransaction();
@@ -4408,7 +4656,7 @@ public function update(Request $request, $id)
                 } else {
                     $applicationId = $appl_type . $request->form_name . $request->license_name . date('y') . '1111111';
                 }
-            }
+                }
 
             $issuedCertificateNo = $this->resolveIssuedCertificateNoForRenewal(
                 $request,
@@ -4423,7 +4671,6 @@ public function update(Request $request, $id)
             if ($prevScc === '') {
                 $prevScc = '0';
             }
-
             $renewalPayload = array_merge([
                     'login_id'           => $loginId,
                     'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
@@ -4458,6 +4705,7 @@ public function update(Request $request, $id)
                     'updated_at'         => $this->dbNow,
             ]);
 
+            
             $renewal_form = CC_Forms_Meta::updateOrCreateByApplicationId(
                 $applicationId,
                 $renewalPayload,
@@ -5127,34 +5375,6 @@ public function update(Request $request, $id)
         $user = Auth::user();
 
         return $user ? (string) $user->login_id : '';
-    }
-
-    private function assertDigitizationCanSave(Request $request, ?string $applicationId = null): ?\Illuminate\Http\JsonResponse
-    {
-        if (($request->appl_type ?? '') !== 'D') {
-            return null;
-        }
-
-        $loginId = (string) $request->input('login_id', '');
-        $existingId = trim((string) ($applicationId ?? $request->input('application_id', '')));
-
-        // Draft resubmit / edit — application already exists; do not force the cert modal again.
-        if ($existingId !== '' && CC_Forms_Meta::existsByApplicationId($existingId)) {
-            return null;
-        }
-
-        $linker = app(CcDigitizationLinkService::class);
-
-        $ok = $linker->assertValidForNewSave($request->input('cc_digitization_temp_id'), $loginId);
-
-        if (!$ok) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Complete digitization certificate details first.',
-            ], 422);
-        }
-
-        return null;
     }
 
       public function getFormCost(Request $request)
