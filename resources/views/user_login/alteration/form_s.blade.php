@@ -2703,6 +2703,9 @@
         }
 
         $(document).on('change', 'input[name="current_work_board_member"]', function () {
+            if ($(this).prop('disabled') || $(this).closest('.fs-7b-board-toggle').hasClass('is-locked')) {
+                return;
+            }
             sync7bSegmentedActive($(this));
             apply7bBoardToggle($(this).val(), false);
         });

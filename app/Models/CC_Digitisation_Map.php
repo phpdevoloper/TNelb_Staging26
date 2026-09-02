@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 
 class CC_Digitisation_Map extends Model
 {
@@ -47,5 +48,18 @@ class CC_Digitisation_Map extends Model
         }
 
         return self::query()->where('application_id', $applicationId)->first();
+    }
+
+    # Update New CC No
+    # @param string $application_id
+    # @param string $licenseNumber
+    # @return bool
+    public static function UpdateNewCCNo(string $application_id, string $licenseNumber): bool
+    {
+        return self::where('application_id', $application_id)->update([
+            'new_cc_no' => $licenseNumber,
+            'updated_by' => Auth::user()->roles_id ?? 0,
+            'updated_at' => db_now()
+        ]);
     }
 }

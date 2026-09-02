@@ -70,16 +70,19 @@
                     </div>
                     <div class="fs-section-tamil">நீங்கள் மின்சார உரிமையாளர்கள் வாரியத்தின் குழு உறுப்பினரா / முன்னாள் குழு உறுப்பினரா?</div>
                 </div>
-                <div class="fs-segmented-toggle fs-7b-board-toggle" role="radiogroup" aria-label="Board member of TNELB or Ex board member">
+                <div class="fs-segmented-toggle fs-7b-board-toggle{{ $isAlterationMode ? ' is-locked' : '' }}" role="radiogroup" aria-label="Board member of TNELB or Ex board member"{{ $isAlterationMode ? ' aria-disabled="true"' : '' }}>
                     <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? '' : ' is-active' }}">
-                        <input type="radio" name="current_work_board_member" id="current_work_board_member_no" value="no"{{ $is7bBoardMemberPrefill ? '' : ' checked' }}>
+                        <input type="radio" name="current_work_board_member" id="current_work_board_member_no" value="no"{{ $is7bBoardMemberPrefill ? '' : ' checked' }}{{ $isAlterationMode ? ' disabled' : '' }}>
                         <span>No</span>
                     </label>
                     <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? ' is-active' : '' }}">
-                        <input type="radio" name="current_work_board_member" id="current_work_board_member_yes" value="yes"{{ $is7bBoardMemberPrefill ? ' checked' : '' }}>
+                        <input type="radio" name="current_work_board_member" id="current_work_board_member_yes" value="yes"{{ $is7bBoardMemberPrefill ? ' checked' : '' }}{{ $isAlterationMode ? ' disabled' : '' }}>
                         <span>Yes</span>
                     </label>
                 </div>
+                @if ($isAlterationMode)
+                    <input type="hidden" name="current_work_board_member" value="{{ $is7bBoardMemberPrefill ? 'yes' : 'no' }}">
+                @endif
             </div>
         </div>
     </div>

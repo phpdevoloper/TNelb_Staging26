@@ -105,7 +105,7 @@
     $meetingDateName = $isBoardMemberRow ? 'work_board_meeting_date[]' : '';
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $hideSupportUpload = $hideUploadWhenDocExists && $supportDoc !== '';
-    $hideRelieveUpload = $hideUploadWhenDocExists && $relieveDoc !== '';
+    $hideRelieveUpload = $relieveDoc !== '';
 @endphp
 <div class="work-entry-block">
 <div class="work-fields work-row{{ $storedRowClass }}" data-row-index="{{ $rowIndex }}">
@@ -153,7 +153,7 @@
         </div>
         <div class="{{ $bxCol('col-12 d-none') }} work-card-field" data-field="licence-number">
             <label class="work-card-field-label">Licence No <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="text" class="form-control work-licence-number" maxlength="15" inputmode="numeric" pattern="[0-9]*" autocomplete="off" disabled placeholder="e.g. 12345" value="{{ preg_replace('/\D+/', '', (string) $licenceNo) }}" aria-label="Licence number">
+            <input type="text" class="form-control work-licence-number" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="off" disabled placeholder="e.g. 12345" value="{{ preg_replace('/\D+/', '', (string) $licenceNo) }}" aria-label="Licence number">
             <input type="hidden" class="work-licence-number-sync" name="work_licence_number[]" value="{{ preg_replace('/\D+/', '', (string) $licenceNo) }}" @if($alterationExistingRow) disabled @endif>
             <span class="work-card-field-hint" data-hint="licence" style="display:none;"><i class="fa fa-info-circle"></i> Only for Electrical contractor</span>
         </div>
@@ -243,7 +243,7 @@
         <input type="hidden" class="work-duration-m" value="{{ $durM }}">
         <input type="hidden" class="work-duration-d" value="{{ $durD }}">
         @endunless
-        {{-- Board-meeting UI for non-§7b layouts only; §7b uses form-s-work-exp-7b-row. --}}
+        {{-- Board-meeting UI for non-7b layouts only; 7b uses form-s-work-exp-7b-row. --}}
         <div class="work-board-member-panel work-row-grid-span" style="{{ $isBoardMemberRow ? '' : 'display:none;' }}">
             <div class="work-board-member-panel-hd">
                 <span class="work-board-member-panel-badge">Board Member</span>
@@ -302,7 +302,7 @@
             </div>
             <span class="work-card-field-hint" data-hint="relieve" style="display:none;"><i class="fa fa-info-circle"></i> Not required when "Till date" is selected</span>
             <span class="work-card-field-hint" data-hint="relieve-board" style="display:none;"><i class="fa fa-info-circle"></i> Optional for Board Member / Ex. Board Member of TNELB</span>
-            <span class="work-card-field-hint" data-hint="relieve-default"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
+            <span class="work-card-field-hint{{ $hideRelieveUpload ? ' d-none work-upload-hint-hidden-until-remove' : '' }}" data-hint="relieve-default"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
         </div>
         @endif
     </div>

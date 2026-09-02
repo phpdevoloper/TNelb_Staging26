@@ -940,8 +940,10 @@
                 var t = totalDurationAcrossRows();
                 /* Legacy banner under the cards (kept for backward compatibility with footer.blade.php). */
                 var $msg = workExpTotalMsgEl();
+
                 if ($msg.length) {
                     var needsTwoYears = t.hasAny || t.hasExcluded650vOnly;
+
                     if (!needsTwoYears || t.ms >= TWO_YEARS_MS) {
                         $msg.empty();
                     } else if (t.hasExcluded650vOnly) {
@@ -1218,20 +1220,27 @@
                 $tr.data('wxWasComplete', complete);
                 if (!complete) {
                     ensureWorkRowDoneBar($tr);
+                    var $firstInvalid = validateWorkRowRequiredFields($tr);
                     var $bar = $tr.find('.work-row-done-bar');
                     if ($bar.length && !$bar.find('.work-row-done-hint').length) {
                         var missingRelieve = workRowMustUploadRelieving($tr)
                             && !workInputHasFile($tr.find('.work-relieve-input').first());
                         if (missingRelieve) {
-                            showWorkRelieveRequiredError($tr);
                             $bar.append('<p class="work-row-done-hint" role="alert">Upload Relieving Letter / Self-Relieving before you can submit this entry.</p>');
                         } else {
-                            $bar.append('<p class="work-row-done-hint" role="alert">Fill all required fields and upload documents before you can submit.</p>');
+                            $bar.append('<p class="work-row-done-hint" role="alert">Fill the highlighted required fields before you can submit.</p>');
                         }
                     }
                     applyRowLayout($tr);
+                    if ($firstInvalid && $firstInvalid.length) {
+                        try {
+                            $firstInvalid[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        } catch (err) {}
+                        $firstInvalid.trigger('focus');
+                    }
                     return false;
                 }
+                clearAllWorkRowRequiredErrors($tr);
                 if (!workContainerUsesSummaryPanel(workContainerFor($tr))) {
                     $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
                     applyRowLayout($tr);
@@ -1600,24 +1609,66 @@
                 return $tr.find('.work-relieve-input').length > 0;
             }
 
+            function workRowRequiredErrorHtml(message, extraClass) {
+                return '<span class="error-message text-danger d-block mt-1 work-row-required-error'
+                    + (extraClass ? ' ' + extraClass : '')
+                    + '" role="alert">' + message + '</span>';
+            }
+
+            function clearWorkRowRequiredError($el) {
+                if (!$el || !$el.length) return;
+                var $field = $el.closest('.work-card-field');
+                if ($field.length) {
+                    $field.find('.work-row-required-error, .work-relieve-required-error').remove();
+                    $field.removeClass('has-error');
+                    $field.find('.is-invalid').removeClass('is-invalid').removeAttr('aria-invalid');
+                    return;
+                }
+                $el.nextAll('.work-row-required-error').remove();
+                $el.removeClass('is-invalid').removeAttr('aria-invalid');
+            }
+
+            function clearAllWorkRowRequiredErrors($tr) {
+                if (!$tr || !$tr.length) return;
+                $tr.find('.work-row-required-error, .work-relieve-required-error').remove();
+                $tr.find('.work-card-field.has-error').removeClass('has-error');
+                $tr.find('.is-invalid').removeClass('is-invalid').removeAttr('aria-invalid');
+            }
+
+            function showWorkRowRequiredError($el, message, extraClass) {
+                if (!$el || !$el.length) return $el;
+                var $field = $el.closest('.work-card-field');
+                var $input = $el.is(':input') ? $el : $field.find(':input.form-control').first();
+                if ($field.length) {
+                    $field.find('.work-row-required-error, .work-relieve-required-error').remove();
+                    $field.addClass('has-error');
+                    if ($input.length) $input.addClass('is-invalid').attr('aria-invalid', 'true');
+                    var $wrap = $el.closest('.form-s-file-upload-wrap');
+                    var $after = $wrap.length ? $wrap : ($input.length ? $input : $field.children().last());
+                    $after.after(workRowRequiredErrorHtml(message, extraClass));
+                } else {
+                    $el.nextAll('.work-row-required-error').remove();
+                    $el.addClass('is-invalid').attr('aria-invalid', 'true');
+                    $el.after(workRowRequiredErrorHtml(message, extraClass));
+                }
+                return $el;
+            }
+
             function clearWorkRelieveRequiredError($tr) {
                 if (!$tr || !$tr.length) return;
                 $tr.find('.work-relieve-required-error').remove();
+                var $field = $tr.find('[data-field="relieve"]');
+                $field.removeClass('has-error');
+                $field.find('.is-invalid').removeClass('is-invalid').removeAttr('aria-invalid');
+                $field.find('.work-row-required-error').remove();
             }
 
             function showWorkRelieveRequiredError($tr) {
                 if (!$tr || !$tr.length) return;
                 var $rel = $tr.find('.work-relieve-input').first();
-                var $field = $tr.find('[data-field="relieve"]').first();
-                if (!$rel.length && !$field.length) return;
-                clearWorkRelieveRequiredError($tr);
-                var $wrap = $rel.closest('.form-s-file-upload-wrap');
-                var $target = $wrap.length ? $wrap : ($field.length ? $field : $rel);
-                $target.after(
-                    '<span class="error-message text-danger d-block mt-1 work-relieve-required-error" role="alert">' +
-                        'Relieving Letter / Self-Relieving is required.' +
-                    '</span>'
-                );
+                if (!$rel.length) $rel = $tr.find('[data-field="relieve"]').first();
+                if (!$rel.length) return;
+                showWorkRowRequiredError($rel, 'Relieving Letter / Self-Relieving is required.', 'work-relieve-required-error');
             }
 
             function syncWorkRelieveRequirement($tr) {
@@ -1626,31 +1677,73 @@
                 var $field = $tr.find('[data-field="relieve"]');
                 if (!$rel.length || !$field.length) return;
                 var mustUpload = workRowMustUploadRelieving($tr);
+                var tillChecked = $tr.find('.work-date-till').is(':checked');
+                var forceNew = !!$tr.data('wxRelieveNeedsNewUpload') && !tillChecked;
+                var hasExisting = !forceNew && $tr.find('.work-relieve-existing').length > 0
+                    && hasExistingWorkDoc($tr, 'relieve');
+                var $wrap = $field.find('.form-s-file-upload-wrap');
+                var $removeBtn = $field.find('.remove-work-relieve-confirm');
                 $field.removeClass('d-none');
+                $field.toggleClass('is-force-new-upload', forceNew);
                 $field.find('.work-card-field-label .req').toggle(mustUpload);
-                $field.find('.form-s-file-upload-wrap').removeClass('d-none');
-                if (!mustUpload) {
+
+                if (tillChecked) {
+                    clearWorkRelieveRequiredError($tr);
+                    $rel.prop('disabled', true).prop('required', false).addClass('is-locked');
+                    $removeBtn.prop('disabled', true);
+                    $wrap.addClass('d-none');
+                    $field.find('.work-relieve-existing').addClass('d-none');
+                    setFieldLock($tr, 'relieve', true);
+                    return;
+                }
+
+                $removeBtn.prop('disabled', false);
+                setFieldLock($tr, 'relieve', false);
+
+                /* Unchecking Till date: hide View/Remove and show a fresh file input (field is mandatory). */
+                if (forceNew) {
+                    $field.find('.work-relieve-existing').addClass('d-none');
+                    $wrap.removeClass('d-none work-upload-hidden-until-remove');
+                    $field.find('.work-card-field-hint[data-hint="relieve-default"]')
+                        .removeClass('d-none work-upload-hint-hidden-until-remove');
+                    unlockWorkField($tr, $rel, 'relieve');
+                    $rel.prop('disabled', false).removeClass('is-locked');
+                    if (workInputHasFile($rel)) {
+                        clearWorkRelieveRequiredError($tr);
+                    }
+                    return;
+                }
+
+                $field.find('.work-relieve-existing').removeClass('d-none');
+                var showFileInput = !hasExisting;
+                $wrap.toggleClass('d-none', !showFileInput);
+                $field.find('.work-card-field-hint[data-hint="relieve-default"]').toggleClass('d-none', !showFileInput);
+                if (hasExisting) {
+                    $rel.prop('disabled', true).prop('required', false);
                     clearWorkRelieveRequiredError($tr);
                     return;
                 }
                 unlockWorkField($tr, $rel, 'relieve');
                 $rel.prop('disabled', false).removeClass('is-locked');
-                if (!workInputHasFile($rel)) {
-                    showWorkRelieveRequiredError($tr);
-                } else {
+                if (workInputHasFile($rel)) {
                     clearWorkRelieveRequiredError($tr);
                 }
             }
             function workInputHasFile($input) {
                 if (!$input || !$input.length) return false;
                 var $row = $input.closest('.work-fields');
+                var forceNewRelieve = $input.hasClass('work-relieve-input') && !!$row.data('wxRelieveNeedsNewUpload');
                 if ($input.hasClass('work-doc-input') && hasExistingWorkDoc($row, 'support')) return true;
-                if ($input.hasClass('work-relieve-input') && hasExistingWorkDoc($row, 'relieve')) return true;
+                if ($input.hasClass('work-relieve-input') && !forceNewRelieve && hasExistingWorkDoc($row, 'relieve')) return true;
                 var el = $input[0];
                 if (el && el.files && el.files.length) return true;
                 if ($input.attr('data-has-local-file') === '1') return true;
                 var $field = $input.closest('.work-card-field');
-                if ($field.find('.local-file-preview .preview-link, .work-doc-existing a, .work-relieve-existing a').length) {
+                var $docs = $field.find('.local-file-preview .preview-link, .work-doc-existing a');
+                if (!forceNewRelieve) {
+                    $docs = $docs.add($field.find('.work-relieve-existing a'));
+                }
+                if ($docs.length) {
                     return true;
                 }
                 var $wrap = $input.closest('.form-s-file-upload-wrap');
@@ -1704,6 +1797,89 @@
                     if (!workInputHasFile($rel)) return false;
                 }
                 return true;
+            }
+
+            /** Paint per-field required errors; return the first invalid control (or null). */
+            function validateWorkRowRequiredFields($tr) {
+                clearAllWorkRowRequiredErrors($tr);
+                if (!$tr || !$tr.length) return null;
+                var first = null;
+                function fail($el, message, extraClass) {
+                    if (!$el || !$el.length) return;
+                    showWorkRowRequiredError($el, message, extraClass);
+                    if (!first) first = $el;
+                }
+                var $type = $tr.find('.work-employment-type').first();
+                var type = ($type.val() || '').trim();
+                if (!type) {
+                    fail($type, 'Please select employment type.');
+                    return first;
+                }
+                var isBoardMember = (type === BOARD_MEMBER_TYPE);
+                var isContractor = (type === CONTRACTOR_TYPE);
+                var isCurrentPart = $tr.closest('#work-container-current, .js-work-container[data-work-part="current"]').length > 0;
+
+                if (isContractor) {
+                    var $cat = $tr.find('.work-contractor-cat').first();
+                    if (!$cat.prop('disabled') && !($cat.val() || '').trim()) {
+                        fail($cat, 'Grade of Licence is required.');
+                    }
+                    var $lic = $tr.find('.work-licence-number').first();
+                    if (!$lic.prop('disabled') && !String($lic.val() || '').replace(/\D+/g, '')) {
+                        fail($lic, 'Licence No is required.');
+                    }
+                }
+
+                if (!isBoardMember) {
+                    var $emp = $tr.find('.work-employer-input').first();
+                    if (!($emp.val() || '').trim()) fail($emp, 'Organisation is required.');
+                    var $addr = $tr.find('.work-org-address').first();
+                    if (!($addr.val() || '').trim()) fail($addr, 'Address is required.');
+                    var $des = $tr.find('.work-designation').first();
+                    if (!($des.val() || '').trim()) fail($des, 'Designation is required.');
+                    if (!WX_HIDE_VOLTAGE_FIELDS) {
+                        var $nat = $tr.find('.work-nature').first();
+                        if (!$nat.prop('disabled') && !($nat.val() || '').trim()) {
+                            fail($nat, 'Work Nature is required.');
+                        }
+                        var $volt = $tr.find('.work-voltage').first();
+                        if (!$volt.prop('disabled') && !($volt.val() || '').trim()) {
+                            fail($volt, 'Voltage Level is required.');
+                        }
+                        var $kva = $tr.find('select.work-transformer-kva').first();
+                        var voltage = ($volt.val() || '').trim();
+                        if (!$kva.prop('disabled') && voltage !== VOLTAGE_DISABLES_KVA && !($kva.val() || '').trim()) {
+                            fail($kva, 'Transformer (kVA) is required.');
+                        }
+                    }
+                } else {
+                    var $meet = $tr.find('.work-board-meeting-details').first();
+                    if (!($meet.val() || '').trim()) fail($meet, 'Details of the meeting is required.');
+                    var $meetDate = $tr.find('.work-board-meeting-date').first();
+                    if (!readWorkDateFromInput($meetDate)) fail($meetDate, 'Date of Meeting is required.');
+                    var $empBoard = $tr.find('.work-employer-input').first();
+                    if (!($empBoard.val() || '').trim()) fail($empBoard, 'Organisation is required.');
+                }
+
+                if (!isCurrentPart) {
+                    var $from = $tr.find('.work-date-from').first();
+                    if (!readWorkDateFromInput($from)) fail($from, 'From date is required.');
+                    if (!$tr.find('.work-date-till').is(':checked') && !$tr.find('.work-date-to').prop('disabled')) {
+                        var $to = $tr.find('.work-date-to').first();
+                        if (!readWorkDateFromInput($to)) {
+                            fail($to, 'To date is required (or tick "Till date").');
+                        }
+                    }
+                    var $doc = $tr.find('.work-doc-input').first();
+                    if (!workInputHasFile($doc)) fail($doc, 'Supporting document is required.');
+                    if (!$tr.find('.work-date-till').is(':checked') && !isBoardMember) {
+                        var $rel = $tr.find('.work-relieve-input').first();
+                        if (!workInputHasFile($rel)) {
+                            fail($rel, 'Relieving Letter / Self-Relieving is required.', 'work-relieve-required-error');
+                        }
+                    }
+                }
+                return first;
             }
 
             /** True when every row in the container is filled — required before adding another. */
@@ -1870,6 +2046,7 @@
 
             /** Drive every column's enable / required state from the Employment Type. */
             function applyEmploymentType($tr) {
+                clearAllWorkRowRequiredErrors($tr);
                 var t = ($tr.find('.work-employment-type').val() || '').trim();
                 var hasType = t !== '';
                 var isContractor = (t === CONTRACTOR_TYPE);
@@ -2160,9 +2337,20 @@
             });
 
             function revealWorkUploadAfterRemove($row, kind) {
-                if (!hideUploadWhenDocExists) return;
                 var selector = kind === 'relieve' ? '.work-relieve-input' : '.work-doc-input';
                 var $file = $row.find(selector);
+                if (kind === 'relieve') {
+                    if ($row.find('.work-date-till').is(':checked')) {
+                        return;
+                    }
+                    $file.closest('.form-s-file-upload-wrap').removeClass('d-none work-upload-hidden-until-remove');
+                    $file.prop('disabled', false);
+                    $file.closest('.work-card-field').find('.work-card-field-hint[data-hint="relieve-default"]')
+                        .removeClass('d-none work-upload-hint-hidden-until-remove');
+                    syncWorkRelieveRequirement($row);
+                    return;
+                }
+                if (!hideUploadWhenDocExists) return;
                 $file.closest('.form-s-file-upload-wrap').removeClass('d-none work-upload-hidden-until-remove');
                 $file.prop('disabled', false);
                 var $field = $file.closest('.work-card-field');
@@ -2245,6 +2433,29 @@
             });
             $(document).on('change', '.js-work-container .work-date-till, #work-container .work-date-till', function() {
                 var $tr = $workRow(this);
+                var $existingRel = namedInputs($tr, 'existing_work_relieving_document[]');
+                if ($(this).is(':checked')) {
+                    $tr.removeData('wxRelieveNeedsNewUpload');
+                    var stash = $tr.data('wxRelieveExistingStash');
+                    if (stash !== undefined) {
+                        $existingRel.val(stash);
+                        $tr.removeData('wxRelieveExistingStash');
+                    }
+                    namedInputs($tr, 'removed_document_work_relieving[]').val('0');
+                } else {
+                    $tr.data('wxRelieveNeedsNewUpload', true);
+                    if ($tr.data('wxRelieveExistingStash') === undefined) {
+                        $tr.data('wxRelieveExistingStash', $existingRel.val() || '');
+                    }
+                    $existingRel.val('');
+                    namedInputs($tr, 'removed_document_work_relieving[]').val('1');
+                    $tr.find('.work-relieve-input').val('').removeAttr('data-has-local-file');
+                    clearWorkLocalFilePreview($tr.find('.work-relieve-input'));
+                }
+                if ($(this).is(':checked')) {
+                    clearWorkRowRequiredError($tr.find('.work-date-to'));
+                    clearWorkRelieveRequiredError($tr);
+                }
                 applyTillDate($tr);
                 if (($tr.find('.work-employment-type').val() || '').trim() === BOARD_MEMBER_TYPE && !$tr.find('.work-date-till').is(':checked')) {
                     unlockWorkField($tr, $tr.find('.work-relieve-input'), 'relieve');
@@ -2294,6 +2505,10 @@
             });
             $(document).on('input change', '.js-work-container .work-fields :input, #work-container .work-fields :input', function() {
                 var $tr = $workRow(this);
+                clearWorkRowRequiredError($(this));
+                if (!$tr.find('.work-row-required-error, .work-relieve-required-error').length) {
+                    $tr.find('.work-row-done-hint').remove();
+                }
                 updateRowStatus($tr);
             });
             $(document).on('wx:recheck-complete', '.js-work-container .work-fields, #work-container .work-fields', function() {

@@ -539,6 +539,10 @@ class FormController extends BaseController
         $cats = $request->input('work_contractor_category', []);
         $lics = $request->input('work_licence_number', []);
         $orgs = $request->input('work_employer_name', []);
+        $tillFlags = $request->input('work_to_till_date', []);
+        if (! is_array($tillFlags)) {
+            $tillFlags = [];
+        }
 
         $hasContractorRow = false;
         foreach ($this->getWorkRowIndexes($request) as $key) {
@@ -555,12 +559,15 @@ class FormController extends BaseController
             $lic = preg_replace('/\D+/', '', (string) ($lics[$key] ?? ''));
             $org = strtolower(trim(preg_replace('/\s+/', ' ', (string) ($orgs[$key] ?? ''))));
 
-            
             if ($cat === $wantCat && $lic === $wantLic && $org === $wantOrg) {
+                if (! FormSWorkTillDate::isChecked($tillFlags[$key] ?? '0')) {
+                    return 'The given licence number must be a Till date (currently working) experience row.';
+                }
+
                 return null;
-            } else {
-                return 'The Given Licence Number of Contractor must exist in the experience details.';
             }
+
+            return 'The Given Licence Number of Contractor must exist in the experience details.';
         }
 
 

@@ -554,6 +554,16 @@
     .work-card-field.is-locked .work-date-to[readonly] {
         pointer-events: none;
     }
+    .work-card-field[data-field="relieve"].is-locked .work-relieve-existing,
+    .work-card-field[data-field="relieve"].is-force-new-upload .work-relieve-existing {
+        display: none !important;
+    }
+    .work-card-field[data-field="relieve"].is-locked .work-relieve-existing .remove-work-relieve-confirm,
+    .work-card-field[data-field="relieve"].is-locked .form-s-file-upload-wrap {
+        pointer-events: none !important;
+        opacity: .55;
+        cursor: not-allowed;
+    }
 
     /* Till-date toggle sits just below the To-date input inside its field cell */
     .work-card-till-toggle {
@@ -642,6 +652,11 @@
         color: var(--wx-red);
         line-height: 1.2;
         display: block;
+    }
+    .work-card-field.has-error .form-control,
+    .work-card-field .form-control.is-invalid {
+        border-color: var(--wx-red) !important;
+        box-shadow: 0 0 0 0.12rem rgba(193, 39, 45, 0.18);
     }
 
     @media (max-width: 767.98px) {
@@ -1080,6 +1095,12 @@
     .work-exp-wrap .work-card-field:not(.is-locked) select.form-control:not(:disabled) {
         background: #fff !important;
         color: #1a2a4a !important;
+    }
+    .work-exp-wrap .work-card-field.has-error .form-control,
+    .work-exp-wrap .work-card-field.has-error select.form-control,
+    .work-exp-wrap .work-card-field .form-control.is-invalid {
+        border-color: var(--wx-red) !important;
+        box-shadow: 0 0 0 0.12rem rgba(193, 39, 45, 0.18) !important;
     }
     .work-exp-wrap .work-card-field .form-control:disabled,
     .work-exp-wrap .work-card-field select.form-control:disabled {

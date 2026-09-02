@@ -131,6 +131,14 @@
         cursor: pointer;
         user-select: none;
     }
+    .fs-7b-board-toggle.is-locked {
+        pointer-events: none;
+        opacity: 0.72;
+        cursor: not-allowed;
+    }
+    .fs-7b-board-toggle.is-locked .fs-segmented-opt {
+        cursor: not-allowed;
+    }
     .fs-7b-board-toggle .fs-segmented-opt span {
         display: flex;
         align-items: center;

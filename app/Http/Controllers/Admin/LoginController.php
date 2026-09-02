@@ -43,7 +43,10 @@ use App\Models\Admin\Mst_Logins;
 use Illuminate\Support\Facades\Storage;
 
 use App\Models\CC_Checklist_applicant;
+use App\Models\CC_Experience;
+use App\Models\CC_Forms_cert;
 use App\Models\Tnelb_CC_Digitization;
+use App\Support\DashboardApplicationTimeline;
 
 class LoginController extends Controller
 {
@@ -805,7 +808,7 @@ class LoginController extends Controller
      */
     public function completedApplications()
     {
-
+        
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -1131,6 +1134,53 @@ class LoginController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    /**
+     * Digitisation dependency panel for completed applications (admin).
+     */
+    public function applicationTimeline(string $application_id)
+    {
+        $validate = Validator::make(['application_id' => $application_id], [
+            'application_id' => 'required|string|max:20',
+        ]);
+        if ($validate->fails()) {
+            return response()->json(['message' => $validate->errors()->first()], 422);
+        }
+
+        $application_id = trim($application_id);
+        if ($application_id === '') {
+            return response()->json(['message' => 'Application ID is required.'], 422);
+        }
+
+        $application = DB::table('cc_form_s_meta')->where('application_id', $application_id)->first();
+        if (! $application) {
+            $metaTable = app(CompetencyMetaService::class)->metaTableForApplicationId($application_id);
+            if ($metaTable) {
+                $application = DB::table($metaTable)->where('application_id', $application_id)->first();
+            }
+        }
+
+        $getdetails_digitisation = DB::table('tnelb_cc_digitization')->where('application_id', $application_id)->first();
+        $get_digitisation_mapping = DB::table('cc_digitisation_map')->where('application_id', $application_id)->first();
+        $get_till_date_exp = CC_Experience::where('application_id', $application_id)
+        ->where('work_to_till_date', 1)
+        ->first();
+        $get_issued_certificate = CC_Forms_cert::where('application_id', $application_id)->first();
+
+        if (! $application) {
+            return response()->json(['message' => 'Application not found.'], 404);
+        }
+
+        $timeline = app(DashboardApplicationTimeline::class)->build($application_id, $application);
+
+        return view('user_login.partials.dashboard-application-timeline', compact(
+            'application',
+            'timeline',
+            'getdetails_digitisation',
+            'get_digitisation_mapping',
+            'get_till_date_exp',
+            'get_issued_certificate'
+        ));
+    }
 
     public function getForms($form_id)
     {

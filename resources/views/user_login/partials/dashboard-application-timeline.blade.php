@@ -611,7 +611,7 @@
                                             </div>
                                             <div class="dash-tl-meta-item">
                                                 <span class="dash-tl-meta-label">Document</span>
-                                                <div class="dash-tl-meta-value"><a href="{{ $qscDocUrl }}" target="_blank" rel="noopener noreferrer"><i class="fa fa-file-pdf-o" style="color: #bb1a1a; font-size: 1.2rem;"></i> View document</a></div>
+                                                <div class="dash-tl-meta-value"><a href="{{ $qcDocUrl }}" target="_blank" rel="noopener noreferrer"><i class="fa fa-file-pdf-o" style="color: #bb1a1a; font-size: 1.2rem;"></i> View document</a></div>
                                             </div>
                                         </div>
                                     @else
@@ -623,10 +623,97 @@
                     </div>
                 </article>
             </li>
-            @if ($get_digitisation_mapping)
-            <li class="dash-tl-step">
+            <li class="dash-tl-step {{ !empty($get_till_date_exp) ? 'is-yes' : 'is-no' }}">
                 <div class="dash-tl-step-rail" aria-hidden="true">
                     <span class="dash-tl-step-num">3</span>
+                </div>
+                <article class="dash-tl-step-card">
+                    <header class="dash-tl-step-hd">
+                        <div>
+                            <h4 class="dash-tl-step-title">Check till date validation</h4>
+                            <p class="dash-tl-step-copy">Experience must be validated till date. as current work experience with till date validation.</p>
+                        </div>
+                        <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Captured</span>
+                    </header>
+                    <div class="dash-tl-step-body">
+                        <div class="dash-tl-result is-yes">
+                            <span class="dash-tl-result-icon" aria-hidden="true">
+                                <i class="fa fa-check"></i>
+                            </span>
+                            <div>
+                                <p class="dash-tl-result-text">
+                                    Experience must be validated till date. as current work experience with till date validation.
+                                </p>
+                                <div class="dash-tl-meta">
+                                    <div class="dash-tl-meta-item">
+                                        <span class="dash-tl-meta-label">Employee type</span>
+                                        <div class="dash-tl-meta-value">{{ $get_till_date_exp->emp_type === 'electrical_contractor' ? 'Electrical Contractor' : '' }}</div>
+                                    </div>
+                                    <div class="dash-tl-meta-item">
+                                        <span class="dash-tl-meta-label">ContractorLicence & No</span>
+                                        @php
+                                            $licence_no = str_replace('||', ',', (string) ($get_till_date_exp->emp_cate ?? ''));
+                                        @endphp
+                                        <div class="dash-tl-meta-value">{{ $licence_no }}</div>
+                                    </div>
+                                    <div class="dash-tl-meta-item">
+                                        <span class="dash-tl-meta-label">from_date</span>
+                                        <div class="dash-tl-meta-value">{{ format_date($get_till_date_exp->from_date) }}</div>
+                                    </div>
+                                    <div class="dash-tl-meta-item">
+                                        <span class="dash-tl-meta-label">to_date (till date)</span>
+                                        <div class="dash-tl-meta-value">{{ format_date($get_till_date_exp->to_date) }} @if($get_till_date_exp->work_to_till_date == 1) (<span class="text-danger">till date</span>) @endif</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </li>
+            @php
+                $app_status = trim((string) ($application->app_status ?? ''));
+            @endphp
+            @if($app_status === 'A')
+            <li class="dash-tl-step is-yes">
+                <div class="dash-tl-step-rail" aria-hidden="true">
+                    <span class="dash-tl-step-num">4</span>
+                </div>
+                <article class="dash-tl-step-card">
+                    <header class="dash-tl-step-hd">
+                        <div>
+                            <h4 class="dash-tl-step-title">Issued Certificate</h4>
+                            <p class="dash-tl-step-copy">Check the issued certificate details.</p>
+                        </div>
+                        <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Issued(Digitised)</span>
+                    </header>
+                    <div class="dash-tl-step-body">
+                        <div class="dash-tl-result is-yes">
+                            
+                                <div class="dash-tl-meta-item">
+                                    <span class="dash-tl-meta-label">Certificate number</span>
+                                    <div class="dash-tl-meta-value">{{ $get_issued_certificate->certificate_no }}</div>
+                                </div>
+                                <div class="dash-tl-meta-item">
+                                    <span class="dash-tl-meta-label">Date of First issue</span>
+                                    <div class="dash-tl-meta-value">{{ format_date($get_issued_certificate->dateof_issue) }}</div>
+                                </div>
+                                <div class="dash-tl-meta-item">
+                                    <span class="dash-tl-meta-label">Validity from</span>
+                                    <div class="dash-tl-meta-value">{{ format_date($get_issued_certificate->valid_from) }}</div>
+                                </div>
+                                <div class="dash-tl-meta-item">
+                                    <span class="dash-tl-meta-label">Validity to</span>
+                                    <div class="dash-tl-meta-value">{{ format_date($get_issued_certificate->valid_to) }}</div>
+                                </div>
+                        </div>
+                    </div>
+                </article>
+            </li>
+            @endif
+            @if ($get_digitisation_mapping)
+            <li class="dash-tl-step {{ !empty($get_digitisation_mapping->new_cc_no) ? 'is-yes' : 'is-no' }}">
+                <div class="dash-tl-step-rail" aria-hidden="true">
+                    <span class="dash-tl-step-num">5</span>
                 </div>
                 <article class="dash-tl-step-card">
                     <header class="dash-tl-step-hd">
@@ -646,25 +733,21 @@
                                 <i class="fa fa-check"></i>
                             </span>
                             <div>
-                                <p class="dash-tl-result-text">
-                                    The old certificate has been digitised and mapped to the new certificate.
-                                </p>
-
+                            <p class="dash-tl-result-text">
+                                The old certificate has been digitised and mapped to the new certificate.
+                            </p>
                             <div class="dash-tl-meta">
                                 <div class="dash-tl-meta-item">
                                     <span class="dash-tl-meta-label">Old certificate number</span>
                                     <div class="dash-tl-meta-value">{{ $get_digitisation_mapping->old_cc_no }}</div>
                                 </div>
+                                @if(!empty($get_digitisation_mapping->new_cc_no))
+                                    <div class="dash-tl-meta-item">
+                                        <span class="dash-tl-meta-label">On Approval (New Certificate number)</span>
+                                        <div class="dash-tl-meta-value">{{ $get_digitisation_mapping->new_cc_no }}</div>
+                                    </div>
+                                @endif
                             </div>
-
-                            @if(!empty($get_digitisation_mapping->new_cc_no))
-                            <div class="dash-tl-meta">
-                                <div class="dash-tl-meta-item">
-                                    <span class="dash-tl-meta-label">On Approval (New Certificate number)</span>
-                                    <div class="dash-tl-meta-value">{{ $get_digitisation_mapping->new_cc_no }}</div>
-                                </div>
-                            </div>
-                            @endif
                     </div>
                     </article>
                 </li>

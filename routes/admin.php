@@ -106,6 +106,7 @@ use App\Http\Controllers\Admin\PaymentReports;
 
             Route::get('/completed_applications', [LoginController::class, 'completedApplications'])->name('completed_applications');
             Route::get('/completed_applications/data', [LoginController::class, 'completedApplicationsData'])->name('completed_applications.data');
+            Route::get('/completed_applications/timeline/{application_id}', [LoginController::class, 'applicationTimeline'])->name('application.timeline');
 
         // Applicant Details
             Route::get('/get-applicant-details', [LoginController::class, 'getApplicantDetails'])->name('get.applicant.details');

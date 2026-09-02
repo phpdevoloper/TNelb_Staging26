@@ -3538,7 +3538,12 @@
             return found;
         }
 
-        function hasMatchingContractorExperience(details) {
+        function isContractorTillDateRow($row) {
+            return $row.find('.work-date-till').is(':checked')
+                || String($row.find('.work-date-till-hidden').val() || '') === '1';
+        }
+
+        function hasMatchingContractorExperience(details, requireTillDate) {
             var wantCat = String(details.cl_type || '').trim().toUpperCase();
             var wantLic = String(details.licence_no || '').replace(/\D/g, '');
             // var wantOrg = String(details.contractor_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -3553,6 +3558,9 @@
                 var lic = String($row.find('.work-licence-number-sync').val() || $row.find('.work-licence-number').val() || '').replace(/\D/g, '');
                 // var org = ($row.find('.work-employer-input').val() || '').trim().toLowerCase().replace(/\s+/g, ' ');
                 if (cat === wantCat && lic === wantLic) {
+                    if (requireTillDate && !isContractorTillDateRow($row)) {
+                        return;
+                    }
                     matched = true;
                     return false;
                 }
@@ -4291,6 +4299,8 @@
                         contractorMsg = 'Please add a work experience with the contractor details already provided.';
                     } else if (!hasMatchingContractorExperience(contractorDetails)) {
                         contractorMsg = 'The Given Licence Number of Contractor must exist in the experience details.';
+                    } else if (!hasMatchingContractorExperience(contractorDetails, true)) {
+                        contractorMsg = 'The given licence number must be a Till date (currently working) experience row.';
                     }
                     if (contractorMsg) {
                         var $contractorNotice = $('#contractor-details-notice');

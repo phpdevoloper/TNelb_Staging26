@@ -6,6 +6,7 @@ use App\Services\FormS\FormSAlterationService;
 use Illuminate\Support\Facades\DB;
 use App\Models\Admin\SupervisorModel;
 use App\Models\Tnelb_CC_Digitization;
+use App\Models\CC_Digitisation_Map;
 use App\Models\CC_Checklist_applicant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +32,7 @@ class SupervisorController extends Controller
     {
         $this->today = Carbon::today()->toDateString();
         $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
-        $this->digitisationModel = new Tnelb_CC_Digitization();
+        $this->digitisationModel = new CC_Digitisation_Map();
     }
 
     public function index()

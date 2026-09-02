@@ -558,6 +558,7 @@ class LoginController extends BaseController
     private function loadCompetencyWorkflowsPresent(int|string $loginId): Collection
     {
         $ccSelect = $this->ccMetaSelectColumns();
+        
         $ccWorkflows = collect();
 
         foreach ($this->competencySwMetaTables() as $metaTable) {
@@ -928,7 +929,7 @@ class LoginController extends BaseController
             $this->loadCompetencyWorkflowsPresent($loginId)
         );
 
-
+        
 
 
         $ccRenewalApplicationIds = collect();
@@ -1125,7 +1126,10 @@ class LoginController extends BaseController
         if (! in_array($perPage, $allowedPerPage, true)) {
             $perPage = 5;
         }
+        
         $mergedData = $workflows_present->merge($all_form_p);
+
+        
         $mergedData = $mergedData
             ->sort(function ($a, $b) {
                 $pa = $this->isReturnedQueryRow($a);
@@ -1258,7 +1262,6 @@ class LoginController extends BaseController
         $currentPageItems = $mergedData->slice(($page - 1) * $perPage, $perPage)->values();
 
 
-
         $paginatedData = new LengthAwarePaginator(
             $currentPageItems,
             $mergedData->count(),
@@ -1269,6 +1272,8 @@ class LoginController extends BaseController
                 'query' => request()->query(),
             ]
         );
+
+        
 
         $payuCheckableApplications = $this->loadPayuCheckableApplications(
             $mergedData->pluck('application_id')

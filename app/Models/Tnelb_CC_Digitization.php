@@ -35,16 +35,4 @@ class Tnelb_CC_Digitization extends Model
         'new_cc_no'
     ];
 
-
-    # Update New CC No
-    # @param string $application_id
-    # @param string $licenseNumber
-    # @return bool
-    public static function UpdateNewCCNo(string $application_id, string $licenseNumber): bool
-    {
-        return self::where('application_id', $application_id)->update([
-            'new_cc_no' => $licenseNumber,
-            'updated_at' => now()
-        ]);
-    }
 }

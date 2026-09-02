@@ -227,16 +227,6 @@
                            title="View application preview">
                             {{ $workflow->application_id }}
                         </a>
-                        @if (strtoupper((string) ($workflow->appl_type ?? '')) === 'D')
-                        <button type="button"
-                                class="js-app-timeline-btn"
-                                data-timeline-url="{{ route('dashboard.application.timeline', ['application_id' => $workflow->application_id]) }}"
-                                data-application-id="{{ $workflow->application_id }}"
-                                title="View application timeline (testing)">
-                            <i class="fa fa-info-circle" aria-hidden="true"></i>
-                            <span class="sr-only">Application timeline</span>
-                        </button>
-                        @endif
                     </div>
                 @else
                     NA
@@ -404,6 +394,9 @@
                                     ->exists();
                             }
                             $showRenewalLink = !empty($workflow->can_apply_renewal);
+                            var_dump($workflow->can_apply_renewal);
+                            var_dump($hasCertificateC);
+                            die();
                         @endphp
                         @if ($showRenewalLink && !($isFormW && $hasCertificateC))
                             <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'cc_renew_form', ['application_id' => $workflow->application_id]) }}"

@@ -755,6 +755,108 @@
         border-color: #4361ee !important;
     }
 
+    .dash-tl-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10050;
+        background: rgba(10, 24, 48, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0.85rem;
+        backdrop-filter: blur(2px);
+    }
+    .dash-tl-overlay.is-open {
+        display: flex;
+    }
+    .dash-tl-panel {
+        background: #eef3f9;
+        width: min(52rem, 96vw);
+        max-height: min(90vh, 46rem);
+        display: flex;
+        flex-direction: column;
+        border-radius: 0.85rem;
+        overflow: hidden;
+        box-shadow: 0 1.1rem 2.8rem rgba(3, 90, 179, 0.22);
+    }
+    .dash-tl-header {
+        background: linear-gradient(135deg, #035ab3 0%, #0472d9 100%);
+        padding: 0.8rem 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .dash-tl-title {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.3;
+    }
+    .dash-tl-subtitle {
+        margin: 0.15rem 0 0;
+        font-size: 0.76rem;
+        color: rgba(255, 255, 255, 0.88);
+        word-break: break-word;
+    }
+    .dash-tl-close {
+        background: rgba(255, 255, 255, 0.14);
+        border: none;
+        color: #fff;
+        width: 2.15rem;
+        height: 2.15rem;
+        border-radius: 50%;
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .dash-tl-close:hover,
+    .dash-tl-close:focus-visible {
+        background: rgba(255, 255, 255, 0.28);
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+    .dash-tl-body {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 1rem 1.1rem 1.2rem;
+        background: #eef3f9;
+    }
+    .dash-tl-loading {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-height: 10rem;
+        color: #035ab3;
+        font-weight: 600;
+        font-size: 0.88rem;
+    }
+    .dash-tl-loading.is-visible {
+        display: flex;
+    }
+    .dash-tl-footer {
+        display: none;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0.75rem 1.1rem;
+        background: #fff;
+        border-top: 1px solid #d7e2f0;
+        flex-shrink: 0;
+    }
+    .dash-tl-overlay.is-approve .dash-tl-footer {
+        display: flex;
+    }
+    body.dash-tl-open {
+        overflow: hidden;
+    }
+
 
     @php $editFormName = 'S'; @endphp
     @include('user_login.partials.form-s-work-exp-styles')
@@ -802,71 +904,34 @@
                                     </h4>
                                 </div>
                                 @if($applicant->appl_type == 'D')
-
-                                    <div class="col-xl-6 col-md-6 col-sm-12 col-12">
-                                        <h3 class="digi_title">Digitisation Old Certificate Details </h3>
-                                        <div class="table-responsive digi_data">
-                                            <table class="table table-bordered table-sm">
-                                                <tbody>
-                                                    <tr>
-                                                        <th width="30%">Certificate Number</th>
-                                                        <td>{{ $cc_digitization->ccnumber }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Date of First Issue</th>
-                                                        <td>{{ (\Carbon\Carbon::parse($cc_digitization->fissue))->format('d-m-Y') }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Validity From</th>
-                                                        <td>{{ \Carbon\Carbon::parse($cc_digitization->from_date)->format('d-m-Y') }}
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Validity To</th>
-                                                        <td>{{ \Carbon\Carbon::parse($cc_digitization->to_date)->format('d-m-Y') }}
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Certificate Document</th>
-                                                        <td>
-                                                            <a href="{{ asset('uploads/digitization/scc/' . $cc_digitization->cc_doc) }}"
-                                                                target="_blank">
-                                                                <i class="fa fa-file-pdf-o text-danger"></i>
-                                                                View Document
-                                                            </a>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-
-
-                                    @if($cc_digitization->qc_det == '1')
-
+                                    @if(!empty($cc_digitization))
                                         <div class="col-xl-6 col-md-6 col-sm-12 col-12">
-                                            <h3 class="digi_title">Is Supervisory Competency Certificate recognized as a
-                                                Qualified </h3>
+                                            <h3 class="digi_title">Digitisation Old Certificate Details </h3>
                                             <div class="table-responsive digi_data">
                                                 <table class="table table-bordered table-sm">
                                                     <tbody>
                                                         <tr>
-                                                            <th width="30%">Grade of Licence</th>
-                                                            <td>{{ $cc_digitization->cl_type}}</td>
+                                                            <th width="30%">Certificate Number</th>
+                                                            <td>{{ $cc_digitization->ccnumber }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Licence Number</th>
-                                                            <td>{{ $cc_digitization->licence_no}}</td>
+                                                            <th>Date of First Issue</th>
+                                                            <td>{{ (\Carbon\Carbon::parse($cc_digitization->fissue))->format('d-m-Y') }}</td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Name of Contractor</th>
-                                                            <td>{{ $cc_digitization->contractor_name}}</td>
+                                                            <th>Validity From</th>
+                                                            <td>{{ \Carbon\Carbon::parse($cc_digitization->from_date)->format('d-m-Y') }}
+                                                            </td>
                                                         </tr>
-
                                                         <tr>
-                                                            <th> Document</th>
+                                                            <th>Validity To</th>
+                                                            <td>{{ \Carbon\Carbon::parse($cc_digitization->to_date)->format('d-m-Y') }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Certificate Document</th>
                                                             <td>
-                                                                <a href="{{ asset('uploads/digitization/qc/' . $cc_digitization->qc_doc) }}"
+                                                                <a href="{{ asset('uploads/digitization/scc/' . $cc_digitization->cc_doc) }}"
                                                                     target="_blank">
                                                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                                                     View Document
@@ -877,8 +942,45 @@
                                                 </table>
                                             </div>
                                         </div>
-                                    @endif
 
+
+                                        @if($cc_digitization->qc_det == '1')
+
+                                            <div class="col-xl-6 col-md-6 col-sm-12 col-12">
+                                                <h3 class="digi_title">Is Supervisory Competency Certificate recognized as a
+                                                    Qualified </h3>
+                                                <div class="table-responsive digi_data">
+                                                    <table class="table table-bordered table-sm">
+                                                        <tbody>
+                                                            <tr>
+                                                                <th width="30%">Grade of Licence</th>
+                                                                <td>{{ $cc_digitization->cl_type}}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Licence Number</th>
+                                                                <td>{{ $cc_digitization->licence_no}}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Name of Contractor</th>
+                                                                <td>{{ $cc_digitization->contractor_name}}</td>
+                                                            </tr>
+
+                                                            <tr>
+                                                                <th> Document</th>
+                                                                <td>
+                                                                    <a href="{{ asset('uploads/digitization/qc/' . $cc_digitization->qc_doc) }}"
+                                                                        target="_blank">
+                                                                        <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                        View Document
+                                                                    </a>
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endif
                                 @endif
                             </div>
                         </div>
@@ -2288,10 +2390,132 @@
             // var_dump($nextForwardUser);die;
         @endphp
 
+        <div id="dashAppTimelineModal" class="dash-tl-overlay" role="dialog" aria-modal="true" aria-labelledby="dashAppTimelineTitle" aria-hidden="true">
+            <div class="dash-tl-panel" role="document">
+                <header class="dash-tl-header">
+                    <div>
+                        <h2 id="dashAppTimelineTitle" class="dash-tl-title">
+                            Information of Digitisation Dependency
+                        </h2>
+                        <p class="dash-tl-subtitle" id="dashAppTimelineSubtitle"></p>
+                    </div>
+                    <button type="button" class="dash-tl-close" id="dashAppTimelineClose" aria-label="Close application timeline">&times;</button>
+                </header>
+                <div class="dash-tl-body">
+                    <div class="dash-tl-loading" id="dashAppTimelineLoading" aria-live="polite">
+                        <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+                        <span>Loading digitisation details…</span>
+                    </div>
+                    <div id="dashAppTimelineContent"></div>
+                </div>
+                <footer class="dash-tl-footer">
+                    <button type="button" class="btn btn-light" id="dashAppTimelineCancel">Cancel</button>
+                    <button type="button" class="btn btn-success" id="dashAppTimelineProceed">Proceed to approve</button>
+                </footer>
+            </div>
+        </div>
 
         @include('admin.include.footer')
 
         <script>
+            var timelineUrlTemplate = "{{ route('admin.application.timeline', ['application_id' => '__APP__']) }}";
+            var pendingApprovalSubmit = null;
+
+            (function bindDashboardApplicationTimeline() {
+                var modal = document.getElementById('dashAppTimelineModal');
+                var content = document.getElementById('dashAppTimelineContent');
+                var loading = document.getElementById('dashAppTimelineLoading');
+                var subtitle = document.getElementById('dashAppTimelineSubtitle');
+                var closeBtn = document.getElementById('dashAppTimelineClose');
+                var cancelBtn = document.getElementById('dashAppTimelineCancel');
+                var proceedBtn = document.getElementById('dashAppTimelineProceed');
+                var timelineRequest = null;
+
+                if (!modal || !content || !loading || !subtitle || !closeBtn) {
+                    window.openTimeline = function () {};
+                    return;
+                }
+
+                function setLoading(isLoading) {
+                    loading.classList.toggle('is-visible', isLoading);
+                }
+
+                function closeTimeline() {
+                    modal.classList.remove('is-open', 'is-approve');
+                    modal.setAttribute('aria-hidden', 'true');
+                    document.body.classList.remove('dash-tl-open');
+                    if (timelineRequest && timelineRequest.readyState !== 4) {
+                        timelineRequest.abort();
+                    }
+                    timelineRequest = null;
+                    content.innerHTML = '';
+                    pendingApprovalSubmit = null;
+                    setLoading(false);
+                }
+
+                window.openTimeline = function (trigger) {
+                    var url = trigger && trigger.getAttribute ? trigger.getAttribute('data-timeline-url') : '';
+                    var appId = trigger && trigger.getAttribute ? (trigger.getAttribute('data-application-id') || '') : '';
+                    if (!url) {
+                        return;
+                    }
+                    subtitle.textContent = appId ? ('Application ID: ' + appId) : '';
+                    content.innerHTML = '';
+                    setLoading(true);
+                    modal.classList.add('is-open');
+                    if (typeof pendingApprovalSubmit === 'function') {
+                        modal.classList.add('is-approve');
+                    }
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.body.classList.add('dash-tl-open');
+
+                    timelineRequest = $.ajax({
+                        url: url,
+                        type: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        success: function (html) {
+                            content.innerHTML = html;
+                            setLoading(false);
+                        },
+                        error: function (xhr) {
+                            if (xhr.statusText === 'abort') {
+                                return;
+                            }
+                            var msg = 'Unable to load application timeline.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                msg = xhr.responseJSON.message;
+                            }
+                            content.innerHTML = '<p class="text-danger text-center py-4 mb-0">' + msg + '</p>';
+                            setLoading(false);
+                        }
+                    });
+                };
+
+                closeBtn.addEventListener('click', closeTimeline);
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', closeTimeline);
+                }
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) {
+                        closeTimeline();
+                    }
+                });
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+                        closeTimeline();
+                    }
+                });
+                if (proceedBtn) {
+                    proceedBtn.addEventListener('click', function () {
+                        var submit = pendingApprovalSubmit;
+                        pendingApprovalSubmit = null;
+                        closeTimeline();
+                        if (typeof submit === 'function') {
+                            submit();
+                        }
+                    });
+                }
+            })();
 
             var switch_status = document.getElementById('Queryswitch');
             var queryDropdown = document.getElementById('queryType');
@@ -2419,7 +2643,13 @@
                         cancelButtonText: "Cancel",
                         focusConfirm: false,
                     }).then((result) => {
-                        if (result.isConfirmed) {
+                        if (!result.isConfirmed) {
+                            return;
+                        }
+
+                        var isDigitisation = @json(strtoupper((string) ($applicant->appl_type ?? '')) == 'D' || strtoupper((string) ($applicant->appl_type ?? '')) == 'A');
+
+                        function submitApproval() {
                             $.ajax({
                                 url: '{{ route('admin.approveApplication') }}',
                                 type: 'POST',
@@ -2432,13 +2662,11 @@
                                     remarks: remarks || "No remarks provided",
                                     qc: qc,
                                     qsc: qsc,
-                                     checklists: checklists,
+                                    checklists: checklists,
                                     status: status,
                                     check_id: check_id
-
                                 },
                                 success: function (response) {
-
                                     if (response.status == "success") {
                                         Swal.fire({
                                             icon: "success",
@@ -2453,7 +2681,6 @@
                                             window.location.href = "{{ url('admin/dashboard') }}";
                                         });
                                     }
-                                    // $('#licenseExpiry').text(response.license_expiry);
                                 },
                                 error: function (xhr) {
                                     let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
@@ -2462,6 +2689,24 @@
                                 }
                             });
                         }
+
+                        if (isDigitisation) {
+                            pendingApprovalSubmit = submitApproval;
+                            openTimeline({
+                                getAttribute: function (name) {
+                                    if (name === 'data-timeline-url') {
+                                        return timelineUrlTemplate.replace('__APP__', applicationId);
+                                    }
+                                    if (name === 'data-application-id') {
+                                        return applicationId;
+                                    }
+                                    return '';
+                                }
+                            });
+                            return;
+                        }
+
+                        submitApproval();
                     });
 
                 });
