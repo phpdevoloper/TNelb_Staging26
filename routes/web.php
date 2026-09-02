@@ -140,6 +140,12 @@ Route::middleware(['auth'])->group(function () {
     // CL digitization----------------
      Route::get('/apply-form-a_d', [FormADigitizationController::class, 'index'])->name('apply-form-a_d');
 
+    Route::post('/digitization_cl/storedigitization_cl', [FormADigitizationController::class, 'storedigitization_cl'])
+    ->name('storedigitization_cl');
+
+
+
+
     // CC Alteration-----------------------------
     Route::get('form_s_alt', [FormSAlteration::class, 'index'])->name('form_s_alt');
     Route::get('form_s_alt/certificates', [FormSAlteration::class, 'listCertificates'])->name('form_s_alt.certificates');
@@ -262,6 +268,10 @@ Route::post('/form/draft_renewal_submit/{appl_id}', [FormController::class, 'dra
 
 Route::post('/form/update/{appl_id}', [FormController::class, 'update'])->name('form.update');
 Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.store');
+
+
+// formA QC Check------------------------
+Route::post('/check-qc-certificate',[FormAController::class, 'checkQCCertificate'])->name('check-qc-certificate');
 
 // --------exp retrieve Form A ---------------
 Route::post('/check-competency-certificate',[FormAController::class, 'checkCompetencyCertificate'])->name('check.competency.certificate');

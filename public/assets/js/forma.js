@@ -1,234 +1,644 @@
 $(document).on("click", ".upload-btn", function () {
-    let btn = $(this); // current button
+
+    let btn = $(this);
     let row = btn.closest(".row");
 
-    // $(this).attr('data-row-index', index);
+    // Get document category
+    let documentCategory = btn.data("document_category");
 
-    let fileInput = btn.closest(".row, td").find("input[type='file']")[0];
-    let errorBox = btn.closest(".row, td").find(".Doc_upload_error");
+  
+    let fileInput;
+
+    if (documentCategory === "app_doc") {
+
+        fileInput = row.find(".app-doc-file")[0];
+
+    } else if (documentCategory === "cons_doc") {
+
+        fileInput = row.find(".cons-doc-file")[0];
+
+    } else {
+
+        fileInput = btn
+            .closest(".row, td")
+            .find("input[type='file']")[0];
+    }
 
 
-    errorBox.text(""); // clear old error
+    // --------------------------------------------------
+    // GET ERROR BOX ONLY FOR CLICKED DOCUMENT
+    // --------------------------------------------------
 
-    if (!fileInput.files.length) {
+    let errorBox;
+
+    if (documentCategory === "app_doc") {
+
+        errorBox = row.find(".app_doc_upload_error");
+
+    } else if (documentCategory === "cons_doc") {
+
+        errorBox = row.find(".cons_doc_upload_error");
+
+    } else {
+
+        errorBox = btn
+            .closest(".row, td")
+            .find(".Doc_upload_error");
+    }
+
+
+    errorBox.text("");
+
+
+    // -----------------------------
+    // FILE VALIDATION
+    // -----------------------------
+
+    if (!fileInput || !fileInput.files.length) {
+
         errorBox.text("Please select a file");
         return;
     }
 
+
     let file = fileInput.files[0];
+
 
     // 250 KB = 250 * 1024 bytes
     if (file.size > 250 * 1024) {
+
         errorBox.text("File size must be less than 250 KB");
-        fileInput.value = ""; // reset input
+
+        fileInput.value = "";
+
         return;
     }
 
-    let fileLink = row.find(".file-link");
+
+    // --------------------------------------------------
+    // Find ONLY current document's file-link
+    // --------------------------------------------------
+
+    let fileLink;
+
+    if (documentCategory === "app_doc") {
+
+        fileLink = row
+            .find(".app-doc-file")
+            .siblings(".file-link");
+
+    } else if (documentCategory === "cons_doc") {
+
+        fileLink = row
+            .find(".cons-doc-file")
+            .siblings(".file-link");
+
+    } else {
+
+        fileLink = row.find(".file-link");
+    }
+
+
+    // --------------------------------------------------
+    // FORM DATA
+    // --------------------------------------------------
+
     let formData = new FormData();
-    formData.append(fileInput.name, fileInput.files[0]);
 
-    let staffRow = btn.closest('tr.qc-upload-row').prev('tr.staffqc-fields');
-    // let qcCode = btn.closest('.row').find('.qc_code').val();
+    formData.append(
+        fileInput.name,
+        fileInput.files[0]
+    );
+
+
+    // --------------------------------------------------
+    // QC CODE
+    // --------------------------------------------------
+
+    let staffRow = btn
+        .closest('tr.qc-upload-row')
+        .prev('tr.staffqc-fields');
+
     let qcCode = btn.attr('data-qc_code');
-
-    // alert(qcCode);
 
     formData.append("qc_code", qcCode);
 
-    // ✅ Get values from button data attributes
-    formData.append("login_id", btn.data("login_id"));
 
-    // formData.append("record_id", btn.data("record_id"));
+    // --------------------------------------------------
+    // LOGIN ID
+    // --------------------------------------------------
 
-     formData.append("record_id", $("input[name='record_id']").val());
+    formData.append(
+        "login_id",
+        btn.data("login_id")
+    );
 
-    // alert($("input[name='record_id']").val());
-    formData.append("module", btn.data("module"));
-    formData.append("equip_code", btn.data("equip_code"));
-    
-    formData.append("ownership_type", btn.data("ownership_type"));
-    formData.append("document_category", btn.data("document_category"));
-    formData.append("document_sub_category", btn.data("document_sub_category"));
-    formData.append("form_code", btn.data("form_code"));
 
-    formData.append("row_index", btn.attr("data-row-index"));
-    // alert(btn.attr("data-row-index"));
+    // --------------------------------------------------
+    // RECORD ID
+    // --------------------------------------------------
 
-    // Static values
-    formData.append("appl_type", "N");
-    formData.append("form_name", "A");
-    formData.append("license_name", "EA");
+    formData.append(
+        "record_id",
+        $("input[name='record_id']").val()
+    );
+
+
+    // --------------------------------------------------
+    // OTHER DATA
+    // --------------------------------------------------
+
+    formData.append(
+        "module",
+        btn.data("module")
+    );
+
+    formData.append(
+        "equip_code",
+        btn.data("equip_code")
+    );
+
+    formData.append(
+        "ownership_type",
+        btn.data("ownership_type")
+    );
+
+    formData.append(
+        "document_category",
+        documentCategory
+    );
+
+    formData.append(
+        "document_sub_category",
+        btn.data("document_sub_category")
+    );
+
+    formData.append(
+        "form_code",
+        btn.data("form_code")
+    );
+
+
+    // --------------------------------------------------
+    // ROW INDEX
+    // --------------------------------------------------
+    // Existing document types continue using
+    // data-row-index.
+    //
+    // QC/QSC:
+    // Appointment Letter = 1
+    // Consent Letter     = 2
+    // --------------------------------------------------
+
+    let rowIndex = btn.attr("data-row-index");
+
+    if (documentCategory === "app_doc") {
+
+        rowIndex = 1;
+
+    } else if (documentCategory === "cons_doc") {
+
+        rowIndex = 2;
+    }
+
+    formData.append(
+        "row_index",
+        rowIndex
+    );
+
+
+    // --------------------------------------------------
+    // STATIC VALUES
+    // --------------------------------------------------
+
+    formData.append(
+        "appl_type",
+        "N"
+    );
+
+    formData.append(
+        "form_name",
+        "A"
+    );
+
+    formData.append(
+        "license_name",
+        "EA"
+    );
+
+
+    // --------------------------------------------------
+    // AJAX UPLOAD
+    // --------------------------------------------------
 
     $.ajax({
+
         url: BASE_URL + "/uploadownershipdeed",
+
         type: "POST",
+
         data: formData,
+
         processData: false,
+
         contentType: false,
+
         headers: {
-            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+            "X-CSRF-TOKEN":
+                $('meta[name="csrf-token"]').attr("content"),
         },
 
+
+        // --------------------------------------------------
+        // SUCCESS
+        // --------------------------------------------------
+
         success: function (res) {
+
             if (res.status !== "success") {
+
                 errorBox.text("Upload failed");
+
                 return;
             }
 
+
             let file = res.files[0];
-            let subCategory = btn.data("document_sub_category");
+
+            let subCategory =
+                btn.data("document_sub_category");
 
 
-            // alert(subCategory);
+            // --------------------------------------------------
+            // EXISTING EQUIPMENT LOGIC
+            // --------------------------------------------------
 
-            // EQUIPMENT (TD based)
-          if (btn.closest("td").length) {
+            if (btn.closest("td").length) {
 
                 let cell = btn.closest("td");
 
-                // 🔥 REMOVE ALL OLD LINKS (IMPORTANT)
-                cell.find(".file-link, .uploaded-file").remove();
+                cell.find(
+                    ".file-link, .uploaded-file"
+                ).remove();
+
 
                 let container = cell.find(".row");
-                if (!container.length) container = cell;
+
+                if (!container.length) {
+
+                    container = cell;
+                }
+
 
                 container.append(`
                     <div class="file-link mt-2">
-                        <a href="${file.file_url}" target="_blank" class="text-primary fw-bold">
-                            <i class="fa fa-file-pdf-o text-danger"></i> View Document
+
+                        <a href="${file.file_url}"
+                           target="_blank"
+                           class="text-primary fw-bold">
+
+                            <i class="fa fa-file-pdf-o text-danger"></i>
+                            View Document
+
                         </a>
+
                     </div>
                 `);
 
-                // Clear error
-                let subCategory = btn.data("document_sub_category");
-                row.find(`.${subCategory}_error`).text("");
+
+                let subCategory =
+                    btn.data("document_sub_category");
+
+
+                row.find(
+                    `.${subCategory}_error`
+                ).text("");
             }
 
-            // ✅ QUALIFICATION PROOF (OED)
+
+            // --------------------------------------------------
+            // QUALIFICATION PROOF
+            // --------------------------------------------------
+
             else if (subCategory === "OED") {
+
                 let $section = btn.closest(
-                    "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section",
+                    "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
                 );
+
 
                 let container = btn
                     .closest(".col-md-7")
                     .parent()
                     .find(".file-link");
 
-                container.removeClass("d-none").html(`
-                    <a href="${file.file_url}" target="_blank" class="text-primary fw-bold">
-                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                    </a>
-                `);
 
-                // 🔥 STORE uploaded file in form state
-                $section.attr("data-existing-file", file.file_url);
+                container
+                    .removeClass("d-none")
+                    .html(`
+                        <a href="${file.file_url}"
+                           target="_blank"
+                           class="text-primary fw-bold">
 
-                // 🔥 STORE globally (for save logic)
-                window.uploadedFilePath = file.file_url;
-            }
+                            <i class="fa fa-file-pdf-o"
+                               style="color:red;"></i>
 
-            else if (subCategory === "AP") {
+                            View Document
 
-                    let $section = btn.closest(
-                        "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
-                    );
-
-                    let container = btn
-                        .closest(".col-md-7")
-                        .parent()
-                        .find(".age-file-link");
-
-                    container.removeClass("d-none").html(`
-                        <a href="${file.file_url}" target="_blank" class="text-primary fw-bold">
-                            <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
                         </a>
                     `);
 
-                    // Clear error
-                    $section.find(".age_proof_error").text("");
 
-                    // Store uploaded AGE proof
-                    $section.attr("data-existing-age-file", file.file_url);
+                $section.attr(
+                    "data-existing-file",
+                    file.file_url
+                );
 
-                    window.uploadedAgeFilePath = file.file_url;
-                }
 
-            // ✅ OWNERSHIP (Partnership / Director)
+                window.uploadedFilePath =
+                    file.file_url;
+            }
+
+
+            // --------------------------------------------------
+            // AGE PROOF
+            // --------------------------------------------------
+
+            else if (subCategory === "AP") {
+
+                let $section = btn.closest(
+                    "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
+                );
+
+
+                let container = btn
+                    .closest(".col-md-7")
+                    .parent()
+                    .find(".age-file-link");
+
+
+                container
+                    .removeClass("d-none")
+                    .html(`
+                        <a href="${file.file_url}"
+                           target="_blank"
+                           class="text-primary fw-bold">
+
+                            <i class="fa fa-file-pdf-o"
+                               style="color:red;"></i>
+
+                            View Document
+
+                        </a>
+                    `);
+
+
+                $section
+                    .find(".age_proof_error")
+                    .text("");
+
+
+                $section.attr(
+                    "data-existing-age-file",
+                    file.file_url
+                );
+
+
+                window.uploadedAgeFilePath =
+                    file.file_url;
+            }
+
+
+            // --------------------------------------------------
+            // OWNERSHIP
+            // --------------------------------------------------
+
             else if (subCategory === "OD") {
+
                 let container = btn
                     .closest(".row")
                     .parent()
                     .parent()
                     .find(".file-link");
 
-                container.removeClass("d-none").html(`
-                        <a href="${file.file_url}" target="_blank" class="text-primary fw-bold">
-                            <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+
+                container
+                    .removeClass("d-none")
+                    .html(`
+                        <a href="${file.file_url}"
+                           target="_blank"
+                           class="text-primary fw-bold">
+
+                            <i class="fa fa-file-pdf-o"
+                               style="color:red;"></i>
+
+                            View Document
+
                         </a>
                     `);
-            } else if (subCategory === "BSD" || subCategory === "APD") {
-                let container = btn
-                            .closest(".row")
-                            .parent()
-                            .find(".file-link");
-
-                        // If not exist → create
-                        if (!container.length) {
-                            btn.closest(".row").parent().append(`<div class="file-link mt-2"></div>`);
-                            container = btn.closest(".row").parent().find(".file-link");
-                        }
-
-                        container.removeClass("d-none").html(`
-                            <a href="${file.file_url}" target="_blank" class="text-primary fw-bold">
-                                <i class="fa fa-file-pdf-o text-danger"></i> View Document
-                            </a>
-                        `);
             }
-          
+
+
+            // --------------------------------------------------
+            // BSD / APD
+            // --------------------------------------------------
+
+            else if (
+                subCategory === "BSD" ||
+                subCategory === "APD"
+            ) {
+
+                let container = btn
+                    .closest(".row")
+                    .parent()
+                    .find(".file-link");
+
+
+                if (!container.length) {
+
+                    btn.closest(".row")
+                        .parent()
+                        .append(
+                            `<div class="file-link mt-2"></div>`
+                        );
+
+
+                    container = btn
+                        .closest(".row")
+                        .parent()
+                        .find(".file-link");
+                }
+
+
+                container
+                    .removeClass("d-none")
+                    .html(`
+                        <a href="${file.file_url}"
+                           target="_blank"
+                           class="text-primary fw-bold">
+
+                            <i class="fa fa-file-pdf-o text-danger"></i>
+
+                            View Document
+
+                        </a>
+                    `);
+            }
+
+
+            // --------------------------------------------------
+            // QC / QSC APPOINTMENT & CONSENT
+            // --------------------------------------------------
+
             else {
+
                 errorBox.text("");
 
+
+                // IMPORTANT:
+                // Find only current document's file-link
+
                 if (!fileLink.length) {
-                    row.append(`<div class="file-link mt-2"></div>`);
-                    fileLink = row.find(".file-link");
+
+                    if (documentCategory === "app_doc") {
+
+                        row.find(".app-doc-file")
+                            .parent()
+                            .append(
+                                `<div class="file-link mt-2"></div>`
+                            );
+
+
+                        fileLink = row
+                            .find(".app-doc-file")
+                            .siblings(".file-link");
+
+
+                    } else if (
+                        documentCategory === "cons_doc"
+                    ) {
+
+                        row.find(".cons-doc-file")
+                            .parent()
+                            .append(
+                                `<div class="file-link mt-2"></div>`
+                            );
+
+
+                        fileLink = row
+                            .find(".cons-doc-file")
+                            .siblings(".file-link");
+                    }
                 }
-                // ${file.file_name}
-                fileLink.removeClass("d-none").html(`
-                                <div>
-                                    <a href="${file.file_url}" target="_blank" class="text-primary fw-bold">
-                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                                    </a>
-                                </div>
-                            `);
+
+
+                fileLink
+                    .removeClass("d-none")
+                    .html(`
+                        <div>
+
+                            <a href="${file.file_url}"
+                               target="_blank"
+                               class="text-primary fw-bold">
+
+                                <i class="fa fa-file-pdf-o"
+                                   style="color:red;"></i>
+
+                                View Document
+
+                            </a>
+
+                        </div>
+                    `);
             }
 
+
+            // --------------------------------------------------
+            // CLEAR FILE INPUT
+            // --------------------------------------------------
+
             fileInput.value = "";
+
+
+            // --------------------------------------------------
+            // SAVE UPLOADED PATH
+            // --------------------------------------------------
+
+            if (documentCategory === "app_doc") {
+
+                row.find("input.app_doc")
+                    .val(file.file_url);
+            }
+
+
+            if (documentCategory === "cons_doc") {
+
+                row.find("input.cons_doc")
+                    .val(file.file_url);
+            }
+
         },
 
+
+        // --------------------------------------------------
+        // ERROR
+        // --------------------------------------------------
+
         error: function (xhr) {
+
             let container = btn.closest("td").length
                 ? btn.closest("td")
                 : btn.closest(".row");
 
-            let errorBox = container.find(".Doc_upload_error");
+
+            let errorBox = container.find(
+                ".Doc_upload_error"
+            );
+
+
+            // QC/QSC Appointment
+            if (documentCategory === "app_doc") {
+
+                errorBox = row
+                    .find(".app_doc_upload_error");
+            }
+
+
+            // QC/QSC Consent
+            if (documentCategory === "cons_doc") {
+
+                errorBox = row
+                    .find(".cons_doc_upload_error");
+            }
+
 
             let msg = "Upload failed";
 
-            // If file too large (Laravel max validation OR server limit)
+
             if (xhr.status === 413) {
-                msg = "File size must be less than 250 KB";
+
+                msg =
+                    "File size must be less than 250 KB";
+
             } else if (xhr.responseJSON?.errors) {
-                msg = Object.values(xhr.responseJSON.errors)[0][0];
+
+                msg =
+                    Object.values(
+                        xhr.responseJSON.errors
+                    )[0][0];
+
             } else if (xhr.responseJSON?.message) {
-                msg = xhr.responseJSON.message;
+
+                msg =
+                    xhr.responseJSON.message;
             }
 
+
             errorBox.text(msg);
-        },
+        }
+
     });
+
 });
 // $(document).on("click", ".upload-btn", function () {
 
@@ -319,11 +729,11 @@ $(document).on("click", ".upload-btn", function () {
 
 $("#competency_form_a").on("submit", function (e) {
     e.preventDefault();
-console.log($('input[name="staff_name[]"]').length);
-console.log($('input[name="cc_number[]"]').length);
-//     console.log($('input[name="staff_name[]"]').length);
-// console.log($('input[name="cc_number[]"]').length);
-// console.log($('input[name="cc_validity[]"]').length);
+    console.log($('input[name="staff_name[]"]').length);
+    console.log($('input[name="cc_number[]"]').length);
+    //     console.log($('input[name="staff_name[]"]').length);
+    // console.log($('input[name="cc_number[]"]').length);
+    // console.log($('input[name="cc_validity[]"]').length);
 
     let formData = new FormData(this);
     let submitter = e.originalEvent?.submitter;
@@ -618,9 +1028,9 @@ console.log($('input[name="cc_number[]"]').length);
         directors.push({
             id: id,
             proprietor_name: $tds.eq(0).attr("data-name") || "",
-    
-             managing_director:
-              $tds.eq(0).attr("data-managing_director") || "no",
+
+            managing_director:
+                $tds.eq(0).attr("data-managing_director") || "no",
             fathers_name: $tds.eq(1).text().trim(),
 
             dob: $tds.eq(2).attr("data-dob"),
@@ -1940,7 +2350,7 @@ console.log($('input[name="cc_number[]"]').length);
         }
     });
 
-   
+
 
     // let bankValidity = $("input[name='bank_validity']").val().trim();
     if (!checkBankValidity(bankValidity)) {
@@ -1967,7 +2377,7 @@ console.log($('input[name="cc_number[]"]').length);
         return false;
     }
 
-   
+
 
     // --------------------equipment data--------------------
     let equipmentValid = true;
@@ -2012,27 +2422,27 @@ console.log($('input[name="cc_number[]"]').length);
         }
 
         // Check if link exists below input
-   // TEST
-let testCell = row.find('input[name^="instrument_test_report"]').closest("td");
-let hasTestFile = testFile.files.length > 0 || testCell.find(".uploaded-file, .file-link").length > 0;
+        // TEST
+        let testCell = row.find('input[name^="instrument_test_report"]').closest("td");
+        let hasTestFile = testFile.files.length > 0 || testCell.find(".uploaded-file, .file-link").length > 0;
 
-// PURCHASE
-let purchaseCell = row.find('input[name^="instrument_purchase_report"]').closest("td");
-let hasPurchaseFile = purchaseFile.files.length > 0 || purchaseCell.find(".uploaded-file, .file-link").length > 0;
+        // PURCHASE
+        let purchaseCell = row.find('input[name^="instrument_purchase_report"]').closest("td");
+        let hasPurchaseFile = purchaseFile.files.length > 0 || purchaseCell.find(".uploaded-file, .file-link").length > 0;
 
-if (!hasTestFile) {
-    row.find(".instrument_test_report_error").text("Upload Test Report");
-    equipmentValid = false;
-} else {
-    row.find(".instrument_test_report_error").text("");
-}
+        if (!hasTestFile) {
+            row.find(".instrument_test_report_error").text("Upload Test Report");
+            equipmentValid = false;
+        } else {
+            row.find(".instrument_test_report_error").text("");
+        }
 
-if (!hasPurchaseFile) {
-    row.find(".instrument_purchase_report_error").text("Upload Purchase Report");
-    equipmentValid = false;
-} else {
-    row.find(".instrument_purchase_report_error").text("");
-}
+        if (!hasPurchaseFile) {
+            row.find(".instrument_purchase_report_error").text("Upload Purchase Report");
+            equipmentValid = false;
+        } else {
+            row.find(".instrument_purchase_report_error").text("");
+        }
 
 
     });
@@ -2466,7 +2876,7 @@ function submitFormAFinal(formData, actionType) {
 
             let qcfees = formData.get("qcfee");
 
-            
+
 
             let licenseName = formData.get("licenseName");
 
@@ -3821,9 +4231,9 @@ $("#competency_form_a_return").on("submit", function (e) {
         directors.push({
             id: id,
             proprietor_name: $tds.eq(0).attr("data-name") || "",
-    
-             managing_director:
-              $tds.eq(0).attr("data-managing_director") || "no",
+
+            managing_director:
+                $tds.eq(0).attr("data-managing_director") || "no",
             fathers_name: $tds.eq(1).text().trim(),
 
             dob: $tds.eq(2).attr("data-dob"),
@@ -5428,8 +5838,8 @@ $("#competency_form_a_return").on("submit", function (e) {
                         .find(".error")
                         .html(
                             "Certificate is active with Contractor Licence: <b>" +
-                                res.form_name +
-                                "</b>",
+                            res.form_name +
+                            "</b>",
                         );
                     resultStatus.valid = false;
                 } else {
@@ -5554,27 +5964,27 @@ $("#competency_form_a_return").on("submit", function (e) {
         } else {
             row.find(".date_error").text("");
         }
-// TEST
-let testCell = row.find('input[name^="instrument_test_report"]').closest("td");
-let hasTestFile = testFile.files.length > 0 || testCell.find(".uploaded-file, .file-link").length > 0;
+        // TEST
+        let testCell = row.find('input[name^="instrument_test_report"]').closest("td");
+        let hasTestFile = testFile.files.length > 0 || testCell.find(".uploaded-file, .file-link").length > 0;
 
-// PURCHASE
-let purchaseCell = row.find('input[name^="instrument_purchase_report"]').closest("td");
-let hasPurchaseFile = purchaseFile.files.length > 0 || purchaseCell.find(".uploaded-file, .file-link").length > 0;
+        // PURCHASE
+        let purchaseCell = row.find('input[name^="instrument_purchase_report"]').closest("td");
+        let hasPurchaseFile = purchaseFile.files.length > 0 || purchaseCell.find(".uploaded-file, .file-link").length > 0;
 
-if (!hasTestFile) {
-    row.find(".instrument_test_report_error").text("Upload Test Report");
-    equipmentValid = false;
-} else {
-    row.find(".instrument_test_report_error").text("");
-}
+        if (!hasTestFile) {
+            row.find(".instrument_test_report_error").text("Upload Test Report");
+            equipmentValid = false;
+        } else {
+            row.find(".instrument_test_report_error").text("");
+        }
 
-if (!hasPurchaseFile) {
-    row.find(".instrument_purchase_report_error").text("Upload Purchase Report");
-    equipmentValid = false;
-} else {
-    row.find(".instrument_purchase_report_error").text("");
-}
+        if (!hasPurchaseFile) {
+            row.find(".instrument_purchase_report_error").text("Upload Purchase Report");
+            equipmentValid = false;
+        } else {
+            row.find(".instrument_purchase_report_error").text("");
+        }
 
 
     });
@@ -6386,7 +6796,7 @@ function validateqcstaffcertificate(e, btn) {
 
                 hiddenInput.val("1");
 
-                
+
 
             } else {
 
@@ -6414,7 +6824,7 @@ function validateqcstaffcertificate(e, btn) {
 // -----------------staff recent certificate check------------------------
 function validatestaffcertificateEA(e, btn) {
 
-    
+
     e.preventDefault();
 
     const $row = $(btn).closest("tr");
@@ -6438,35 +6848,35 @@ function validatestaffcertificateEA(e, btn) {
     }
 
     //  First row rule
-   if (index === 0 || index === 1) {
-    const startsWithB = /^(B|LB)/i.test(licenseNumber);
+    if (index === 0 || index === 1) {
+        const startsWithB = /^(B|LB)/i.test(licenseNumber);
 
-    if (!startsWithB) {
-        resultBox.html(
-            `<span class="text-danger">⚠️ License must start with 'B' or 'LB'.</span>`
-        );
-        hiddenInput.val("0");
-        return;
-    }
-} else {
-    const prefixPattern = /^(H|C|B|LH|LB|LC)/i;
+        if (!startsWithB) {
+            resultBox.html(
+                `<span class="text-danger">⚠️ License must start with 'B' or 'LB'.</span>`
+            );
+            hiddenInput.val("0");
+            return;
+        }
+    } else {
+        const prefixPattern = /^(H|C|B|LH|LB|LC)/i;
 
-    if (!prefixPattern.test(licenseNumber)) {
-        resultBox.html(
-            `<span class="text-danger">⚠️ License must start with H, C, B, LH, LB or LC.</span>`
-        );
-        hiddenInput.val("0");
-        return;
+        if (!prefixPattern.test(licenseNumber)) {
+            resultBox.html(
+                `<span class="text-danger">⚠️ License must start with H, C, B, LH, LB or LC.</span>`
+            );
+            hiddenInput.val("0");
+            return;
+        }
     }
-}
 
     const strippedNumber = licenseNumber.replace(/^(WH|C|B|L|H)/i, "");
     resultBox.html(`<span class="text-info">Verifying...</span>`);
 
     const ajaxUrl =
-    [0, 1].includes(index)
-        ? "/verifylicensecc_blicense"
-        : "/verifylicenseformAccc";
+        [0, 1].includes(index)
+            ? "/verifylicensecc_blicense"
+            : "/verifylicenseformAccc";
 
     $.ajax({
         url: BASE_URL + ajaxUrl,
@@ -6647,7 +7057,7 @@ function fillProprietorForm(data) {
 flatpickr('input[name="competency_certificate_validity_to[]"]', {
     dateFormat: "Y-m-d",
 
-    onChange: function(selectedDates, dateStr, instance) {
+    onChange: function (selectedDates, dateStr, instance) {
 
         console.log("Selected Date:", dateStr);
 
@@ -6681,7 +7091,7 @@ flatpickr('input[name="dob[]"]', {
 flatpickr('input[name="competency_certificate_validity_to[]"]', {
     dateFormat: "Y-m-d",
 
-    onChange: function(selectedDates, dateStr) {
+    onChange: function (selectedDates, dateStr) {
 
         let certificateNo =
             $('input[name="competency_certificate_number[]"]').first().val();
@@ -6702,11 +7112,42 @@ flatpickr('input[name="competency_certificate_validity_to[]"]', {
 // qcstaff-----------
 $(document).on("click", "#add_qc_staff", function () {
 
-    $("#staffqc_datasection").slideDown();
+    let $section = $("#staffqc_datasection");
 
-    // Scroll to form
+    // Next staff number
+    let staffRowIndex =
+        $("#staffqc-records tr.staffqc-record").length + 1;
+
+    // Set document number for current staff
+    $section.find(".app_doc").val(staffRowIndex);
+    $section.find(".cons_doc").val(staffRowIndex);
+
+    // Also store it in upload buttons
+    $section.find(".upload-btn").attr(
+        "data-row-index",
+        staffRowIndex
+    );
+
+    // Clear other fields
+    $section.find(".staff_category").val("");
+
+    $section.find(
+        'input[name="staff_cc_no[]"],' +
+        'input[name="staff_cc_first_issue[]"],' +
+        'input[name="staff_cc_validity_from[]"],' +
+        'input[name="staff_cc_validity_to[]"]'
+    ).val("");
+
+    $section.find(".app-doc-file, .cons-doc-file").val("");
+
+    $section.find(".file-link").empty();
+
+    $section.find(".text-danger").text("");
+
+    $section.slideDown();
+
     $("html, body").animate({
-        scrollTop: $("#staffqc_datasection").offset().top - 100
+        scrollTop: $section.offset().top - 100
     }, 500);
 
 });
@@ -6811,11 +7252,13 @@ $(document).on("click", "#save_qc", function () {
     // APPOINTMENT DOCUMENT
     // -----------------------------
 
-    let appDoc = $section
-        .find(".app_doc")
-        .val();
+    let appFileLink = $section
+        .find(".app-doc-file")
+        .siblings(".file-link")
+        .find("a")
+        .length;
 
-    if (!appDoc) {
+    if (!appFileLink) {
 
         $section.find(".app_doc_upload_error")
             .text("Please upload Appointment Letter.");
@@ -6828,18 +7271,19 @@ $(document).on("click", "#save_qc", function () {
     // CONSENT DOCUMENT
     // -----------------------------
 
-    let consDoc = $section
-        .find(".cons_doc")
-        .val();
+    let consFileLink = $section
+        .find(".cons-doc-file")
+        .siblings(".file-link")
+        .find("a")
+        .length;
 
-    if (!consDoc) {
+    if (!consFileLink) {
 
         $section.find(".cons_doc_upload_error")
             .text("Please upload Consent Letter.");
 
         hasError = true;
     }
-
 
     // -----------------------------
     // STOP IF ERROR
@@ -6858,136 +7302,382 @@ $(document).on("click", "#save_qc", function () {
         ? 15000
         : 25000;
 
-
     // -----------------------------
-    // ADD RECORD TO TABLE
-    // -----------------------------
-
-    addQCStaffRecord(
-        category,
-        ccNo,
-        firstIssue,
-        validityFrom,
-        validityTo,
-        fee
-    );
-
-
-    // -----------------------------
-    // HIDE FORM
+    // CHECK CERTIFICATE IN DATABASE
     // -----------------------------
 
-    $section.slideUp();
+    $.ajax({
+        // url: "{{ route('check-qc-certificate') }}",
+        url: BASE_URL + "/check-qc-certificate",
+        type: "POST",
+        data: {
+            _token: $('meta[name="csrf-token"]').attr("content"),
 
-    // Reset form
-    resetQCStaffForm();
+            staffcategory: category,
+            certificate_no: ccNo,
+            dateof_issue: firstIssue,
+            valid_from: validityFrom,
+            valid_to: validityTo
+        },
+
+        success: function (response) {
+
+            if (response.status === true) {
+
+                // -----------------------------
+                // CALCULATE FEE
+                // -----------------------------
+
+                let fee = category === "QC"
+                    ? 15000
+                    : 25000;
+
+
+                // -----------------------------
+                // GET APPOINTMENT DOCUMENT
+                // -----------------------------
+
+                let appDocLink = $section
+                    .find(".app-doc-file")
+                    .siblings(".file-link")
+                    .find("a")
+                    .attr("href") || "";
+
+                let appDocName = $section
+                    .find(".app-doc-file")
+                    .siblings(".file-link")
+                    .find("a")
+                    .text()
+                    .trim() || "Appointment Letter";
+
+
+                // -----------------------------
+                // GET CONSENT DOCUMENT
+                // -----------------------------
+
+                let consDocLink = $section
+                    .find(".cons-doc-file")
+                    .siblings(".file-link")
+                    .find("a")
+                    .attr("href") || "";
+
+                let consDocName = $section
+                    .find(".cons-doc-file")
+                    .siblings(".file-link")
+                    .find("a")
+                    .text()
+                    .trim() || "Consent Letter";
+
+
+                // -----------------------------
+                // ADD RECORD
+                // -----------------------------
+
+                addQCStaffRecord(
+                    category,
+                    ccNo,
+                    firstIssue,
+                    validityFrom,
+                    validityTo,
+                    fee,
+                    appDocLink,
+                    "Appointment Letter",
+                    consDocLink,
+                    "Consent Letter"
+                );
+
+
+                // -----------------------------
+                // HIDE FORM
+                // -----------------------------
+
+                $section.slideUp();
+
+                // Reset form
+                resetQCStaffForm();
+
+            } else {
+
+                // Certificate not valid / inactive
+                $section.find(".qc-staff-errors")
+                    .text(response.message);
+
+            }
+        },
+
+        error: function (xhr) {
+
+            console.log(xhr.responseText);
+
+            $section.find(".qc-staff-errors")
+                .text("Unable to verify certificate. Please try again.");
+
+        }
+
+    });
 
 });
-
 function addQCStaffRecord(
     category,
     ccNo,
     firstIssue,
     validityFrom,
     validityTo,
-    fee
+    fee,
+    appDocLink = "",
+    appDocName = "",
+    consDocLink = "",
+    consDocName = ""
 ) {
 
-    let rowCount = $("#staffqc-records tr").length + 1;
+    let rowCount =
+        $("#staffqc-records tr.staffqc-record").length + 1;
+
+    // Auto increment document indexes
+    let appDocIndex =
+        $("#staffqc-records input.app_doc").length + 1;
+
+    let consDocIndex =
+        $("#staffqc-records input.cons_doc").length + 1;
 
     let categoryText = category === "QC"
         ? "QC"
         : "QSC";
 
+
+    // Fee based on category
+    fee = category === "QC"
+        ? 15000
+        : 25000;
+
+
+    // Appointment Document
+    let appointmentDocument = appDocLink
+        ? `
+            <i class="fa fa-file-pdf-o"
+               style="color:red;"></i>
+
+            <a href="${appDocLink}"
+               target="_blank"
+               class="app-doc-link">
+
+                Appointment Letter
+
+            </a>
+        `
+        : `
+            <span class="text-danger">
+                Appointment Letter Not Available
+            </span>
+        `;
+
+
+    // Consent Document
+    let consentDocument = consDocLink
+        ? `
+            <i class="fa fa-file-pdf-o"
+               style="color:red;"></i>
+
+            <a href="${consDocLink}"
+               target="_blank"
+               class="cons-doc-link">
+
+                Consent Letter
+
+            </a>
+        `
+        : `
+            <span class="text-danger">
+                Consent Letter Not Available
+            </span>
+        `;
+
+
+    // --------------------------------------------------
+    // STAFF ROW ONLY
+    // --------------------------------------------------
+
     let row = `
         <tr class="staffqc-record">
 
-            <td>${rowCount}.</td>
-
-            <td>${categoryText}</td>
-
-            <td>${ccNo}</td>
-
-            <td>${firstIssue}</td>
-
-            <td>${validityFrom}</td>
-
-            <td>${validityTo}</td>
-
             <td>
-                <i class="fa fa-file-pdf-o"
-                   style="color:red;"></i>
-                <a href="#" class="app-doc-link">
-                    Appointment letter
-                </a>
-
-                <br>
-
-                <i class="fa fa-file-pdf-o"
-                   style="color:red;"></i>
-                <a href="#" class="cons-doc-link">
-                    Consent letter
-                </a>
+                ${rowCount}.
             </td>
 
             <td>
+                ${categoryText}
+
+                <input type="hidden"
+                       name="staff_category[]"
+                       value="${category}">
+            </td>
+
+            <td>
+                ${ccNo}
+
+                <input type="hidden"
+                       name="staff_cc_no[]"
+                       value="${ccNo}">
+            </td>
+
+            <td>
+                ${firstIssue}
+
+                <input type="hidden"
+                       name="staff_cc_first_issue[]"
+                       value="${firstIssue}">
+            </td>
+
+            <td>
+                ${validityFrom}
+
+                <input type="hidden"
+                       name="staff_cc_validity_from[]"
+                       value="${validityFrom}">
+            </td>
+
+            <td>
+                ${validityTo}
+
+                <input type="hidden"
+                       name="staff_cc_validity_to[]"
+                       value="${validityTo}">
+            </td>
+
+            <td>
+
+                ${appointmentDocument}
+
+                <br>
+
+                ${consentDocument}
+
+                <!-- Appointment Document Index -->
+                <input type="hidden"
+                       name="app_doc[]"
+                       class="app_doc"
+                       value="${appDocIndex}">
+
+                <!-- Consent Document Index -->
+                <input type="hidden"
+                       name="cons_doc[]"
+                       class="cons_doc"
+                       value="${consDocIndex}">
+
+            </td>
+
+            <td>
+
                 <button type="button"
                         class="btn btn-danger remove-qc-staff">
+
                     &#128465; Remove
+
                 </button>
+
             </td>
 
         </tr>
     `;
 
+
     $("#staffqc-records").append(row);
 
+
+    // Update single total fee row
     updateQCStaffTotalFee();
 }
 
 function updateQCStaffTotalFee() {
 
-    let total = 0;
 
-    $("#staffqc-records .staffqc-record").each(function () {
 
-        let category = $(this)
-            .find("td:eq(1)")
-            .text()
-            .trim();
+    let totalFee = 0;
+
+
+    // Calculate fee from every staff row
+    $("#staffqc-records tr.staffqc-record").each(function () {
+
+        let category =
+            $(this)
+                .find('input[name="staff_category[]"]')
+                .val();
+
 
         if (category === "QC") {
-            total += 15000;
-        }
 
-        if (category === "QSC") {
-            total += 25000;
+            totalFee += 15000;
+
+        } else if (category === "QSC") {
+
+            totalFee += 25000;
+
         }
 
     });
 
 
-    $(".staffqc-fee").text(
-        "₹ " + total.toLocaleString("en-IN")
-    );
+    // Remove old fee row
+    $("#staffqc-records tr.staffqc-total-fee")
+        .remove();
+
+
+    // If no staff, don't show fee
+    if (totalFee <= 0) {
+
+        return;
+    }
+
+// alert(totalFee);
+    // Add ONE total fee row
+    let feeRow = `
+        <tr class="staffqc-total-fee">
+
+            <td colspan="7"
+                class="fw-bold">
+
+                Fees
+
+            </td>
+
+            <td>
+
+                <span class="btn btn-primary">
+
+                    ₹ ${totalFee.toLocaleString("en-IN")}
+
+                </span>
+
+            </td>
+
+        </tr>
+    `;
+
+
+    $("#staffqc-records").append(feeRow);
 }
+
 $(document).on("click", ".remove-qc-staff", function () {
 
     $(this)
-        .closest(".staffqc-record")
+        .closest("tr.staffqc-record")
         .remove();
 
-    // Re-number
-    $("#staffqc-records .staffqc-record").each(function (index) {
 
-        $(this)
-            .find("td:first")
-            .text((index + 1) + ".");
+    // Re-number staff rows
+    $("#staffqc-records tr.staffqc-record")
+        .each(function (index) {
 
-    });
+            $(this)
+                .find("td:first")
+                .text((index + 1) + ".");
 
-    // Recalculate fee
+        });
+
+
+    // Recalculate total
     updateQCStaffTotalFee();
+
 });
 
 function resetQCStaffForm() {
@@ -7033,14 +7723,14 @@ function checkCompetencyCertificate() {
         return;
     }
 
-    
+
 
     $.ajax({
         url: BASE_URL + "/check-competency-certificate",
         type: "POST",
 
         data: {
-              _token: $('meta[name="csrf-token"]').attr("content"),
+            _token: $('meta[name="csrf-token"]').attr("content"),
             certificate_no: certificate_no,
             dateof_issue: dateof_issue,
             valid_from: valid_from,
@@ -7055,11 +7745,11 @@ function checkCompetencyCertificate() {
 
         success: function (response) {
 
-    if (response.status === true && response.data) {
+            if (response.status === true && response.data) {
 
-        let data = response.data;
+                let data = response.data;
 
-        let table = `
+                let table = `
             <div class="table-responsive mt-3">
                 <table class="table table-bordered table-striped head_label_exp">
                     <thead>
@@ -7102,17 +7792,17 @@ function checkCompetencyCertificate() {
             </div>
         `;
 
-        $('#competency_exp_result').html(table);
+                $('#competency_exp_result').html(table);
 
-    } else {
+            } else {
 
-        $('#competency_exp_result').html(`
+                $('#competency_exp_result').html(`
             <div class="alert alert-warning">
                 ${response.message}
             </div>
         `);
-    }
-},
+            }
+        },
 
         error: function (xhr) {
 

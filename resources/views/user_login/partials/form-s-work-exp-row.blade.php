@@ -8,6 +8,13 @@
         'board_member_tnelb' => 'board_member_tnelb',
     ];
     $hasRow = isset($expRow) && $expRow;
+
+    $tilldate = $expRow->till_date ?? null;
+
+    $tilldate = '111';
+
+    // var_dump($tilldate); exit;
+
     $empTypeRaw = $hasRow ? (string) ($expRow->emp_type ?? '') : '';
     $empType = $legacyEmpMap[$empTypeRaw] ?? $empTypeRaw;
     $contractorCat = '';
@@ -313,3 +320,4 @@
     </div>
     <div class="work-row-date-validation" aria-live="polite"></div>
 </div>
+

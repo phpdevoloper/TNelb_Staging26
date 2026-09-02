@@ -81,6 +81,92 @@ class FormAController extends BaseController
             return null;
         }
     }
+    // QC check------------
+
+   public function checkQCCertificate(Request $request)
+{
+    $dateofIssue = Carbon::createFromFormat(
+        'd-m-Y',
+        $request->dateof_issue
+    )->format('Y-m-d');
+
+    $validFrom = Carbon::createFromFormat(
+        'd-m-Y',
+        $request->valid_from
+    )->format('Y-m-d');
+
+    $validTo = Carbon::createFromFormat(
+        'd-m-Y',
+        $request->valid_to
+    )->format('Y-m-d');
+
+    // dd($validFrom); exit;
+
+
+    // -------------------------------------------------
+    // STEP 1: Check certificate details
+    // -------------------------------------------------
+
+    $certificate = DB::table('cc_forms_cert')
+        ->where('certificate_no', $request->certificate_no)
+        ->where('dateof_issue', $dateofIssue)
+        ->where('valid_from', $validFrom)
+        ->where('valid_to', $validTo)
+        ->where('cert_status', 'A')
+        ->first();
+
+        // dd($certificate->certificate_no); exit;
+
+
+    // Certificate details are not valid
+    if (!$certificate) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Certificate details are not valid.'
+        ]);
+    }
+
+
+    // -------------------------------------------------
+    // STEP 2: Check QC / QSC eligibility
+    // -------------------------------------------------
+
+    if ($request->staffcategory === 'QC') {
+
+        if ($certificate->qc != 1) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This certificate is not eligible for QC.'
+            ]);
+        }
+
+    } elseif ($request->staffcategory === 'QSC') {
+
+        if ($certificate->qsc != 1) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This certificate is not eligible for QSC.'
+            ]);
+        }
+
+    } else {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid staff category.'
+        ]);
+    }
+
+
+    // -------------------------------------------------
+    // Certificate verified
+    // -------------------------------------------------
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Certificate verified successfully.'
+    ]);
+}
 
     public function store(Request $request)
     {
@@ -3474,7 +3560,7 @@ class FormAController extends BaseController
                 // HH24:MI:SS
                 $dbNow  = DB::selectOne("SELECT TO_CHAR(NOW(), 'DD-MM-YYYY ') AS db_now")->db_now;
                 $fees_details['dbNow'] = $dbNow;
-                
+
                 $fees_details['total_fees'] = $paymentDetails[0]->total_fee;
                 $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
@@ -4349,13 +4435,13 @@ class FormAController extends BaseController
 
     public function expiry_date_change()
     {
-        
+
         $licensedates = DB::table('cc_forms_cert')
             ->select('cc_id', 'application_id', 'certificate_no', 'valid_to')
             ->orderBy('cc_id', 'ASC')
             ->get();
 
-        
+
         return view('user_login.license_datechange.index', compact('licensedates'));
     }
 
@@ -4383,61 +4469,61 @@ class FormAController extends BaseController
 
     // ---------------------------exp retrival -----------------------
     public function checkCompetencyCertificate(Request $request)
-{
-    // dd($request->all());exit;
-    $request->validate([
-        'certificate_no' => 'required',
-        'dateof_issue'   => 'required|date',
-        'valid_from'     => 'required|date',
-        'valid_to'       => 'required|date',
-    ]);
+    {
+        // dd($request->all());exit;
+        $request->validate([
+            'certificate_no' => 'required',
+            'dateof_issue'   => 'required|date',
+            'valid_from'     => 'required|date',
+            'valid_to'       => 'required|date',
+        ]);
 
-    $certificate = DB::table('cc_forms_cert')
-        ->where('certificate_no', $request->certificate_no)
-        ->whereDate('dateof_issue', $request->dateof_issue)
-        ->whereDate('valid_from', $request->valid_from)
-        ->whereDate('valid_to', $request->valid_to)
-        ->first();
+        $certificate = DB::table('cc_forms_cert')
+            ->where('certificate_no', $request->certificate_no)
+            ->whereDate('dateof_issue', $request->dateof_issue)
+            ->whereDate('valid_from', $request->valid_from)
+            ->whereDate('valid_to', $request->valid_to)
+            ->first();
 
         // dd($certificate);exit;
 
-    if (!$certificate) {
+        if (!$certificate) {
 
-        return response()->json([
-            'status' => false,
-            'message' => 'Certificate details not found - Enter valid details.'
-        ]);
-    }
+            return response()->json([
+                'status' => false,
+                'message' => 'Certificate details not found - Enter valid details.'
+            ]);
+        }
 
-  
 
-    $application_id = $certificate->application_id;
 
-   
+        $application_id = $certificate->application_id;
 
-    $cc_exp = DB::table('cc_exp')
-        ->where('application_id', $application_id)
-        ->orderBy('exp_id', 'DESC')
-        ->first();
 
-    if (!$cc_exp) {
+
+        $cc_exp = DB::table('cc_exp')
+            ->where('application_id', $application_id)
+            ->orderBy('exp_id', 'DESC')
+            ->first();
+
+        if (!$cc_exp) {
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Certificate found, but no experience data found.',
+                'application_id' => $application_id,
+                'data' => null
+            ]);
+        }
+
+        // Step 4:
+        // Return latest cc_exp row
 
         return response()->json([
             'status' => true,
-            'message' => 'Certificate found, but no experience data found.',
+            'message' => 'Certificate and experience data found.',
             'application_id' => $application_id,
-            'data' => null
+            'data' => $cc_exp
         ]);
     }
-
-    // Step 4:
-    // Return latest cc_exp row
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Certificate and experience data found.',
-        'application_id' => $application_id,
-        'data' => $cc_exp
-    ]);
-}
 }

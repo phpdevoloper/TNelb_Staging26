@@ -109,116 +109,162 @@ async function loadInstructions() {
 
 // digitization_cl Submit
 $(document).on("click", "#digitization_clSubmit", function () {
-    $(".error").html("");
+
+    // Clear all errors
+    $("#digitization_clForm .error").html("");
 
     let isValid = true;
 
-    let ccnumber = $('input[name="ccnumber"]').val().trim();
-    let fissue = $('input[name="fissue"]').val();
-    let from_date = $('input[name="from_date"]').val();
-    let to_date = $('input[name="to_date"]').val();
-    let qc = $('input[name="qc_det"]:checked').val();
-    let file = $('input[name="cc_doc"]')[0].files[0];
+    // -----------------------------------------
+    // GET VALUES
+    // -----------------------------------------
 
-    let fileqc = $('input[name="qc_doc"]')[0].files[0];
+    let clnumber = $('#digitization_clForm input[name="clnumber"]')
+        .val()
+        .trim();
 
-    if (ccnumber === "") {
-        $("#ccnumber_error").html("Certificate Number is required");
+    let fissue = $('#digitization_clForm input[name="fissue"]')
+        .val();
+
+    let from_date = $('#digitization_clForm input[name="from_date"]')
+        .val();
+
+    let to_date = $('#digitization_clForm input[name="to_date"]')
+        .val();
+
+    let fileInput = $('#digitization_clForm input[name="cl_doc"]')[0];
+
+    let file = fileInput && fileInput.files.length
+        ? fileInput.files[0]
+        : null;
+
+
+    // -----------------------------------------
+    // LICENCE NUMBER
+    // -----------------------------------------
+
+    if (clnumber === "") {
+
+        $("#clnumber_error")
+            .html("Licence Number is required");
+
         isValid = false;
     }
+
+
+    // -----------------------------------------
+    // FIRST ISSUE
+    // -----------------------------------------
 
     if (fissue === "") {
-        $("#fissue_error").html("Date of First Issue is required");
+        
+
+        $(".fissue_error")
+            .html("Date of First Issue is required");
+
         isValid = false;
     }
+
+
+    // -----------------------------------------
+    // VALIDITY FROM
+    // -----------------------------------------
 
     if (from_date === "") {
-        $("#from_date_error").html("From Date is required");
+
+        $(".from_date_error")
+            .html("Validity From Date is required");
+
         isValid = false;
     }
+
+
+    // -----------------------------------------
+    // VALIDITY TO
+    // -----------------------------------------
 
     if (to_date === "") {
-        $("#to_date_error").html("To Date is required");
+
+        $(".to_date_error")
+            .html("Validity To Date is required");
+
         isValid = false;
     }
 
-    if (from_date && to_date && new Date(to_date) < new Date(from_date)) {
-        $("#to_date_error").html(
-            "To Date must be greater than or equal to From Date",
-        );
-        isValid = false;
+
+    // -----------------------------------------
+    // DATE COMPARISON
+    // -----------------------------------------
+
+    if (from_date && to_date) {
+
+        if (new Date(to_date) < new Date(from_date)) {
+
+            $(".to_date_error").html(
+                "Validity To Date must be greater than or equal to Validity From Date"
+            );
+
+            isValid = false;
+        }
     }
 
-    if (!qc) {
-        $("#qc_error").html("Please select Yes or No");
-        isValid = false;
-    }
+
+    // -----------------------------------------
+    // FILE VALIDATION
+    // -----------------------------------------
 
     if (!file) {
-        $("#cc_doc_error").html("Please upload PDF document");
+
+        $(".cl_doc_error")
+            .html("Please upload PDF document");
 
         isValid = false;
+
     } else {
+
         if (file.type !== "application/pdf") {
-            $("#cc_doc_error").html("Only PDF files are allowed");
+
+            $("#cl_doc_error")
+                .html("Only PDF files are allowed");
 
             isValid = false;
         }
 
         if (file.size > 250 * 1024) {
-            $("#cc_doc_error").html("File size should not exceed 250 KB");
+
+            $("#cl_doc_error")
+                .html("File size should not exceed 250 KB");
 
             isValid = false;
         }
     }
 
-    if (qc === "yes") {
-        let cl_type = $("#cl_type").val();
-        let licence_no = $('input[name="licence_no"]').val().trim();
-        let contractor_name = $('input[name="contractor_name"]').val().trim();
 
-        if (cl_type === "" || cl_type === "0") {
-            $("#cl_type_error").html("Please select License Type");
-            isValid = false;
-        }
-
-        if (licence_no === "") {
-            $("#licence_no_error").html("License Number is required");
-            isValid = false;
-        }
-
-        if (contractor_name === "") {
-            $("#contractor_error").html("Contractor Name is required");
-            isValid = false;
-        }
-
-        if (!fileqc) {
-            $("#qc_doc_error").html("Please upload PDF document");
-
-            isValid = false;
-        } else {
-            if (fileqc.type !== "application/pdf") {
-                $("#qc_doc_error").html("Only PDF files are allowed");
-
-                isValid = false;
-            }
-
-            if (fileqc.size > 250 * 1024) {
-                $("#qc_doc_error").html("File size should not exceed 250 KB");
-
-                isValid = false;
-            }
-        }
-    }
+    // -----------------------------------------
+    // STOP IF FRONTEND VALIDATION FAILS
+    // -----------------------------------------
 
     if (!isValid) {
         return false;
     }
 
-    let formData = new FormData(document.getElementById("digitization_clForm"));
+
+    // -----------------------------------------
+    // FORM DATA
+    // -----------------------------------------
+
+    let formData = new FormData(
+        document.getElementById("digitization_clForm")
+    );
+
+
+    // -----------------------------------------
+    // AJAX
+    // -----------------------------------------
 
     $.ajax({
-        url: "/digitization_cl/storedigitization_cl",
+
+        url: BASE_URL + "/digitization_cl/storedigitization_cl",
 
         type: "POST",
 
@@ -229,79 +275,119 @@ $(document).on("click", "#digitization_clSubmit", function () {
         contentType: false,
 
         headers: {
-            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+            "X-CSRF-TOKEN":
+                $('meta[name="csrf-token"]').attr("content")
         },
+
 
         beforeSend: function () {
+
             $("#digitization_clSubmit")
                 .prop("disabled", true)
-                .text("Please Wait...");
+                .html("Please Wait...");
         },
 
-        success: async function (response) {
-            $("#digitization_clSubmit").prop("disabled", false).text("Submit");
 
-            if (response.status == 200) {
-                // If certificate found, fill applicant name
-                if (response.is_matched == 1) {
-                    // $("#Applicant_Name").val(response.appname);
-                    $("#certcode").val(response.certcode);
-                    // $("#applicants_address").val(response.address);
-                } else {
-                    $("#Applicant_Name").val("");
-                    $("#certcode").val("");
-                    $("#applicants_address").val("");
-                }
+        success: function (response) {
+
+            $("#digitization_clSubmit")
+                .prop("disabled", false)
+                .html(`
+                    Submit
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2.5"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                `);
+
+
+            if (response.status === 200) {
 
                 $("#digitization_clForm")[0].reset();
 
                 digitization_clModal.hide();
 
-                $("#declaration-agree-renew").prop("checked", false);
+                $("#declaration-agree-renew")
+                    .prop("checked", false);
 
-                $("#declaration-error-renew").addClass("d-none");
+                $("#declaration-error-renew")
+                    .addClass("d-none");
 
-                await loadInstructions();
+                loadInstructions();
 
                 competencyModal.show();
             }
         },
 
-        error: function (xhr) {
-            $("#digitization_clSubmit").prop("disabled", false).text("Submit");
 
-            if (xhr.status === 422) {
-                $.each(xhr.responseJSON.errors, function (key, value) {
-                    $("#" + key + "_error").html(value[0]);
-                });
+error: function (xhr) {
+
+    $("#digitization_clSubmit")
+        .prop("disabled", false)
+        .text("Submit");
+
+    $("#digitization_clForm .error").html("");
+
+    if (xhr.status === 422 && xhr.responseJSON?.errors) {
+
+        // alert("Please correct the errors in the form.");
+
+        $.each(xhr.responseJSON.errors, function (key, value) {
+
+            let message = value[0];
+
+            if (
+                message === "Validity To Date must be greater than or equal to Validity From Date." ||
+                message === "Apply New Application Validity Period including Renewal exceeds limits"
+            ) {
+
+                $("#digitization_clForm .error_message")
+                    .html(message)
+                    .show();
+
+            } else {
+
+                $("#" + key + "_error")
+                    .html(message)
+                    .show();
             }
-        },
+
+        });
+    }
+},
+
     });
+
 });
 
 $(document).on("keyup", 'input[name="ccnumber"]', function () {
     $("#ccnumber_error").html("");
-    
+
 });
 
 $(document).on("change", 'input[name="fissue"]', function () {
     $("#fissue_error").html("");
-    
+
 });
 
 $(document).on("change", 'input[name="from_date"]', function () {
     $("#from_date_error").html("");
-    
+
 });
 
 $(document).on("change", 'input[name="to_date"]', function () {
     $("#to_date_error").html("");
-    
+
 });
 
 $(document).on("change", 'input[name="cc_doc"]', function () {
     $("#cc_doc_error").html("");
-    
+
 });
 
 $(document).on("keyup", 'input[name="cl_type"]', function () {
@@ -318,7 +404,7 @@ $(document).on("keyup", 'input[name="contractor_name"]', function () {
 
 $(document).on("change", 'input[name="qc_doc"]', function () {
     $("#qc_doc_error").html("");
-    
+
 });
 
 $(document).on("change", 'input[name="qc"]', function () {

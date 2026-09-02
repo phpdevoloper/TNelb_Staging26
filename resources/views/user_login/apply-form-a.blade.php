@@ -2855,23 +2855,29 @@ exit; -->
                                         </div>
 
                                         <div class="col-md-6 col-lg-2">
-                                            <input type="file" class="form-control" name="app_doc" id="app_doc[]"
-                                                accept="application/pdf">
+                                            <input type="file" class="form-control app-doc-file" name="app_doc[]" accept="application/pdf">
                                             <span class="file-limit">PDF only (Max 250 KB)</span>
                                             <br>
                                             <span class="text-danger app_doc_upload_error"></span>
                                             <span class="text-danger upload-error d-block"></span>
 
+                                            <div class="file-link">
+
+                                            </div>
+
                                         </div>
-                                        <div class="col-12 col-md-2 file-link">
+                                        <div class="col-12 col-md-2 ">
                                             <button type="button" class="btn btn-info upload-btn"
-                                                data-login_id="tnelb_1121" data-module="APPOINTMENT DOCUMENT"
-                                                data-document_category="app_doc" data-document_sub_category="QD"
+                                                data-login_id="tnelb_1121" data-module="QC APPOINTMENT DOCUMENT"
+                                                data-document_category="app_doc" data-document_sub_category="QAD"
                                                 data-ownership_type="" data-form_code="8" data-app_doc="1">
                                                 <i class="fa fa-upload"></i> Upload
                                             </button>
 
-                                            <input type="hidden" name="app_doc[]" class="app_doc" value="1">
+                                            <input type="hidden"
+                                                name="app_doc[]"
+                                                class="app_doc"
+                                                value="${appDocIndex}">
 
                                             <input type="hidden" name="staffqc_id[]" value="">
                                         </div>
@@ -2892,24 +2898,31 @@ exit; -->
 
                                         </div>
 
-                                        <div class="col-md-6 col-lg-2 file-link">
-                                            <input type="file" class="form-control" name="app_doc" id="app_doc"
-                                                accept="application/pdf">
+                                        <div class="col-md-6 col-lg-2 ">
+                                            <input type="file" class="form-control cons-doc-file" name="cons_doc[]"
+                                             accept="application/pdf">
                                             <span class="file-limit">PDF only (Max 250 KB)</span>
                                             <br>
                                             <span class="text-danger cons_doc_upload_error"></span>
                                             <span class="text-danger upload-error d-block"></span>
 
+                                             <div class="file-link">
+
+                                            </div>
+
                                         </div>
                                         <div class="col-12 col-md-2">
                                             <button type="button" class="btn btn-info upload-btn"
-                                                data-login_id="tnelb_1121" data-module="APPOINTMENT DOCUMENT"
-                                                data-document_category="cons_doc" data-document_sub_category="QD"
+                                                data-login_id="tnelb_1121" data-module="QC CONSENT DOCUMENT"
+                                                data-document_category="cons_doc" data-document_sub_category="QCD"
                                                 data-ownership_type="" data-form_code="8" data-cons_doc="1">
                                                 <i class="fa fa-upload"></i> Upload
                                             </button>
 
-                                            <input type="hidden" name="cons_doc[]" class="cons_doc" value="1">
+                                            <input type="hidden"
+                                                name="cons_doc[]"
+                                                class="cons_doc"
+                                                value="${consDocIndex}">
 
                                             <input type="hidden" name="staffqc_id[]" value="">
                                         </div>
@@ -2917,6 +2930,9 @@ exit; -->
 
 
 
+                                    </div>
+                                    <div class="text-center">
+                                        <span class="text-danger qc-staff-errors"></span>
                                     </div>
 
                                     <div class="row">
