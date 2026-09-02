@@ -271,6 +271,20 @@ class DocumentUploadController extends Controller
                                 
                 }
 
+                 if ($request->document_sub_category === 'QAD') {
+
+                    $existingQuery->where('document_sub_category', 'QAD')
+                                ->where('row_index', $request->row_index);
+                                
+                }
+
+                   if ($request->document_sub_category === 'QCD') {
+
+                    $existingQuery->where('document_sub_category', 'QCD')
+                                ->where('row_index', $request->row_index);
+                                
+                }
+
                 $existing = $existingQuery->first();
 
 
@@ -371,6 +385,27 @@ class DocumentUploadController extends Controller
                            
 
                             // dd($fileName);exit;
+
+                        } 
+
+                        elseif ($request->document_sub_category === 'QAD') {
+
+                        // dd($request->row_index); exit;
+
+                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                                'L' . $form_code . '_' .
+                                $moduleCode.$request->row_index . '.pdf';
+
+
+                        } 
+
+                        elseif ($request->document_sub_category === 'QCD') {
+                        // dd($request->row_index); exit;
+                     
+                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                                'L' . $form_code . '_' .
+                                $moduleCode.$request->row_index . '.pdf';
+
 
                         } 
                         

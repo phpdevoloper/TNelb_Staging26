@@ -1,5 +1,6 @@
 @php
     $exp_details = $exp_details ?? collect();
+  
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
     $workContainerId = $workContainerId ?? 'work-container';
     $workAddBtnId = $workAddBtnId ?? 'work-exp-add-btn';
@@ -96,6 +97,9 @@
         data-max-rows="{{ $workMaxRows }}">
         @if ($exp_details->isNotEmpty())
             @foreach ($exp_details as $index => $expRow)
+{{-- @php
+            var_dump($expRow->till_date); exit;
+            @endphp --}}
                 @include('user_login.partials.form-s-work-exp-row', [
                     'expRow' => $expRow,
                     'rowIndex' => $index,

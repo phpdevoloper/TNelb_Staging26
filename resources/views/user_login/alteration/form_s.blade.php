@@ -1333,9 +1333,13 @@
                                 ? $application_details->applicant_email
                                 : (Auth::user()->email ?? ''))
                             : '';
+<<<<<<< HEAD
+                        $addressVal = isset($application_details) ? $application_details->applicant_address : Auth::user()->address;
+=======
                         $addressVal = isset($application_details)
                             ? ($application_details->applicant_address ?? $application_details->applicants_address ?? '')
                             : Auth::user()->address;
+>>>>>>> 67de25e028c7d20f2b7d6711abba51e94ef6eddc
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1827,7 +1831,7 @@
                                     <span class="section-hint">(Upload the documents)</span>
                                     @if($isAlterationMode)
                                     <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeWork" data-alt-opt="work" aria-pressed="false" title="Edit work experience">
-                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit</span>
+                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit work</span>
                                     </button>
                                     @endif
                                 </div>
@@ -1900,6 +1904,7 @@
                                                                 @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                                                                 <tr class="work-fields fs-alt-existing-work">
                                                                     @php
+                                                                   
                                                                         $workEmpType = $expRow->emp_type ?? 'company';
                                                                         $workEmployerName = $expRow->emp_cate ?? $expRow->company_name ?? '';
                                                                         $workTotalExp = $expRow->total_exp ?? $expRow->experience ?? '';
@@ -3187,6 +3192,8 @@
             });
 
             $(document).on('click', function(e) {
+
+                
                 if (!e.target.closest('.add-more-work') && !e.target.closest('.remove-work')) return;
 
                 var container = document.getElementById('work-container');
@@ -3194,7 +3201,9 @@
                 var workRows = container.querySelectorAll('.work-fields');
 
                 if (e.target.closest('.add-more-work')) {
+                    
                     if (workRows.length >= 3) {
+                        
                         $('#work-table').next('.work-error').remove();
                         $('<div class="text-danger mt-2 work-error">You can add a maximum of 3 work experience entries.</div>').insertAfter('#work-table');
                         setTimeout(function() { $('.work-error').fadeOut(); }, 7000);

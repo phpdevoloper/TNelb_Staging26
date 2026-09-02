@@ -1317,6 +1317,10 @@ use Illuminate\Support\Facades\Auth;
             color: #163b6a;
             text-decoration: underline;
         }
+
+
+        /* --------digi CL---------- */
+    
     </style>
 </head>
 <script>
@@ -1623,7 +1627,7 @@ use Illuminate\Support\Facades\Auth;
 
                 <div class="modal-body">
                     <div class="col-md-12">
-                        <form class="mt-0 digi_form" id="digitization_clForm">
+                        <form class="mt-0 digi_form_cl" id="digitization_clForm">
                             <div class="form-group">
                                 <div class="row mb-2">
                                     <div class="col-lg-3">
@@ -1669,7 +1673,7 @@ use Illuminate\Support\Facades\Auth;
 
 
                                         <input type="date" class="form-control" name="fissue">
-                                        <span class="error text-danger" id="fissue_error"></span>
+                                        <span class="error text-danger fissue_error" id="fissue_error"></span>
 
                                     </div>
 
@@ -1685,7 +1689,7 @@ use Illuminate\Support\Facades\Auth;
 
 
                                         <input type="date" class="form-control" name="from_date">
-                                        <span class="error text-danger" id="from_date_error"></span>
+                                        <span class="error text-danger from_date_error" id="from_date_error"></span>
 
                                     </div>
                                 </div>
@@ -1701,7 +1705,7 @@ use Illuminate\Support\Facades\Auth;
 
 
                                         <input type="date" class="form-control" name="to_date">
-                                        <span class="error text-danger" id="to_date_error"></span>
+                                        <span class="error text-danger to_date_error" id="to_date_error"></span>
 
                                     </div>
 
@@ -1722,109 +1726,23 @@ use Illuminate\Support\Facades\Auth;
 
 
 
-                                        <input type="file" class="form-control" name="cc_doc" accept="application/pdf">
+                                        <input type="file" class="form-control" name="cl_doc" accept="application/pdf">
 
                                         <span class="file-limit">PDF only (Max 250 KB)</span>
                                         <br>
-                                        <span class="error text-danger" id="cc_doc_error"></span>
+                                        <span class="error text-danger cl_doc_error" id="cl_doc_error"></span>
 
                                     </div>
 
+                                      
+
                                 </div>
+                                <div class="error text-center text-danger error_message">
+                                    <div id="error_message" class="text-danger error_message"></div>
+                                </div>
+                                
 
                             </div>
-
-                            @php
-                            $showQc = Request::is('apply-form-s_d');
-                            @endphp
-
-                            <div class="form-group" id="qc_section" {{ !$showQc ? 'style=display:none;' : '' }}>
-                                <div class="row mb-2">
-                                    <div class="col-lg-8">
-                                        <label>Is Supervisory Competency Certificate recognized in EA/ESA Contractor License as a Qualified Supervisor?</label>
-
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="qc_yes" name="qc_det" value="yes">
-                                            <label class="form-check-label" for="qc_yes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="qc_no" name="qc_det" value="no" checked="">
-                                            <label class="form-check-label" for="qc_no">No</label>
-                                        </div>
-                                        <span class="error text-danger" id="qc_error"></span>
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-                            <div class="form-group" id="qc_details" style="display:none;">
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Grade of Licence </label>
-
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                        <select class="form-control" id="cl_type" name="cl_type">
-                                            <option value="0">---Select Type---</option>
-                                            <option value="EA">EA </option>
-                                            <option value="ESA">ESA</option>
-
-                                        </select>
-                                        <span class="error text-danger" id="cl_type_error"></span>
-                                    </div>
-
-                                </div>
-
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Licence Number </label>
-
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                        <input type="text" class="form-control" name="licence_no"
-                                            inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off"
-                                            placeholder="e.g. 12345">
-                                        <span class="error text-danger" id="licence_no_error"></span>
-                                    </div>
-
-                                </div>
-
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Name of Contractor </label>
-
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                        <input type="text" class="form-control" name="contractor_name">
-                                        <span class="error text-danger" id="contractor_error"></span>
-                                    </div>
-
-                                </div>
-
-                                <div class="row mb-2">
-                                    <div class="col-lg-5">
-                                        <label>Upload Supporting Document </label>
-
-
-                                    </div>
-                                    <div class="col-12 col-md-5">
-                                        <input type="file" class="form-control" name="qc_doc" accept="application/pdf">
-
-                                        <span class="file-limit">PDF only (Max 250 KB)</span>
-                                        <br>
-                                        <span class="error text-danger" id="qc_doc_error"></span>
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-
 
                         </form>
 
@@ -1835,6 +1753,10 @@ use Illuminate\Support\Facades\Auth;
                 </div>
 
                 <div class="modal-footer justify-content-center">
+                     <a  href="{{ route('dashboard')}}" class=" btn btn-secondary">
+                        Back
+                       
+                    </a>
 
                     <button type="button" class="btn-proceed" id="digitization_clSubmit">
                         Submit
