@@ -386,7 +386,6 @@
                             if ($isFormW && !empty($workflow->login_id)) {
                                 $hasCertificateC = DB::table('cc_form_w_meta as ta')
                                     ->leftJoin('cc_form_w_cert as l', 'l.application_id', '=', 'ta.application_id')
-                                    
                                     ->where('ta.login_id', $workflow->login_id)
                                     ->where('ta.form_name', 'W')
                                     ->where('ta.app_status', 'A')
@@ -394,9 +393,6 @@
                                     ->exists();
                             }
                             $showRenewalLink = !empty($workflow->can_apply_renewal);
-                            var_dump($workflow->can_apply_renewal);
-                            var_dump($hasCertificateC);
-                            die();
                         @endphp
                         @if ($showRenewalLink && !($isFormW && $hasCertificateC))
                             <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'cc_renew_form', ['application_id' => $workflow->application_id]) }}"

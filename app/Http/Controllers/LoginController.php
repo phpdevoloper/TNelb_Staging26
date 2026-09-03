@@ -116,7 +116,7 @@ class LoginController extends BaseController
     private function normalizeCcPaymentStatus(?string $status): string
     {
         $normalized = strtolower(trim((string) $status));
-
+        
         return match ($normalized) {
             'n', 'draft' => 'draft',
             'y', 'payment', 'paid', 'success' => 'payment',
@@ -125,36 +125,29 @@ class LoginController extends BaseController
     }
 
     /** Align cc_form_*_meta row shape with legacy tnelb_application_tbl fields used by dashboard views. */
-    private function normalizeCcWorkflowRow(object $workflow): object
+    private function normalizeCcWorkflowRow(object $metaRow): object
     {
-        $workflow->application_id = trim((string) ($workflow->application_id ?? ''));
-        $workflow->form_name = strtoupper(trim((string) ($workflow->form_name ?? '')));
-        $workflow->appl_type = strtoupper(trim((string) ($workflow->appl_type ?? '')));
-        $workflow->certificate_name = trim((string) ($workflow->certificate_name ?? ''));
+        
+        $metaRow->application_id = trim((string) ($metaRow->application_id ?? ''));
+        $metaRow->form_name = strtoupper(trim((string) ($metaRow->form_name ?? '')));
+        $metaRow->appl_type = strtoupper(trim((string) ($metaRow->appl_type ?? '')));
+        $metaRow->certificate_name = trim((string) ($metaRow->certificate_name ?? ''));
+        $metaRow->application_status = strtoupper(trim((string) ($metaRow->status ?? $metaRow->app_status ?? '')));
+        $metaRow->payment_status = $this->normalizeCcPaymentStatus($metaRow->payment_status ?? null);
 
-        if (! isset($workflow->license_name) || trim((string) ($workflow->license_name ?? '')) === '') {
-            $workflow->license_name = $workflow->certificate_name !== '' ? $workflow->certificate_name : null;
-        } else {
-            $workflow->license_name = trim((string) $workflow->license_name);
+        if (! isset($metaRow->id) && isset($metaRow->app_id)) {
+            $metaRow->id = $metaRow->app_id;
         }
 
-        $workflow->status = $this->normalizeWorkflowStatus($workflow->status ?? $workflow->app_status ?? null);
-        $workflow->application_status = $workflow->status;
-        $workflow->payment_status = $this->normalizeCcPaymentStatus($workflow->payment_status ?? null);
-
-        if (! isset($workflow->id) && isset($workflow->app_id)) {
-            $workflow->id = $workflow->app_id;
+        if (empty($metaRow->created_at) && ! empty($metaRow->submitted_date)) {
+            $metaRow->created_at = $metaRow->submitted_date;
         }
 
-        if (empty($workflow->created_at) && ! empty($workflow->submitted_date)) {
-            $workflow->created_at = $workflow->submitted_date;
+        if (isset($metaRow->processed_by)) {
+            $metaRow->processed_by = trim((string) $metaRow->processed_by);
         }
 
-        if (isset($workflow->processed_by)) {
-            $workflow->processed_by = trim((string) $workflow->processed_by);
-        }
-
-        return $workflow;
+        return $metaRow;
     }
 
     /** Map tnelb_form_p row shape to fields expected by dashboard views. */
@@ -221,7 +214,7 @@ class LoginController extends BaseController
         $renewalApplicationId = null;
         $isValid = false;
 
-        $licenceID = MstLicence::where('cert_licence_code', $workflow->license_name)->value('id');
+        $licenceID = MstLicence::where('cert_licence_code', $workflow->certificate_name)->value('id');
         $certificatePdfApplicationId = $this->issuedCertificateApplicationId($workflow);
 
         if (in_array($workflow->appl_type, ['N', 'D', 'R', 'A'], true)) {
@@ -342,7 +335,9 @@ class LoginController extends BaseController
         $renewalApplicationId = null;
         $isValid = false;
 
-        $licenceID = MstLicence::where('cert_licence_code', $workflow->license_name)->value('id');
+        
+
+        $licenceID = MstLicence::where('cert_licence_code', $workflow->certificate_name)->value('id');
         $certificatePdfApplicationId = $this->issuedCertificateApplicationId($workflow);
 
         if (in_array($workflow->appl_type, ['N', 'D', 'R', 'A'], true)) {
@@ -375,7 +370,7 @@ class LoginController extends BaseController
                 }
             }
 
-            if ($workflow->appl_type === 'A' && $workflow->status !== 'A') {
+            if ($workflow->appl_type === 'A' && $workflow->app_status !== 'A') {
                 $licenseNumber = null;
                 $expiry = null;
             }
@@ -559,7 +554,7 @@ class LoginController extends BaseController
     {
         $ccSelect = $this->ccMetaSelectColumns();
         
-        $ccWorkflows = collect();
+        $ccmetaData = collect();
 
         foreach ($this->competencySwMetaTables() as $metaTable) {
             $rows = DB::table("{$metaTable} as ta")
@@ -567,18 +562,17 @@ class LoginController extends BaseController
                 ->orderByRaw($this->ccMetaReturnedFirstOrderSql('ta.app_status', 'ta.payment_status'))
                 ->orderByDesc('ta.submitted_date')
                 ->get($ccSelect);
-
-            $ccWorkflows = $ccWorkflows->merge($rows);
+            $ccmetaData = $ccmetaData->merge($rows);
         }
 
-        $ccWorkflows = $ccWorkflows
+        $ccmetaData = $ccmetaData
             ->map(function ($workflow) {
                 return $this->enrichCompetencyWorkflowRow(
                     $this->normalizeCcWorkflowRow($workflow)
                 );
             });
 
-        $ccApplicationIds = $ccWorkflows->pluck('application_id')->filter()->values()->all();
+        $ccApplicationIds = $ccmetaData->pluck('application_id')->filter()->values()->all();
 
         $legacyWorkflows = DB::table('cc_form_s_meta as ta')
             ->where('ta.login_id', $loginId)
@@ -593,7 +587,7 @@ class LoginController extends BaseController
                 );
             });
 
-        return $ccWorkflows->merge($legacyWorkflows)->values();
+        return $ccmetaData->merge($legacyWorkflows)->values();
     }
 
     private function attachAlterationParentContext(Collection $workflows): Collection
