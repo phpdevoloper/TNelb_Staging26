@@ -1333,13 +1333,7 @@
                                 ? $application_details->applicant_email
                                 : (Auth::user()->email ?? ''))
                             : '';
-<<<<<<< HEAD
                         $addressVal = isset($application_details) ? $application_details->applicant_address : Auth::user()->address;
-=======
-                        $addressVal = isset($application_details)
-                            ? ($application_details->applicant_address ?? $application_details->applicants_address ?? '')
-                            : Auth::user()->address;
->>>>>>> 67de25e028c7d20f2b7d6711abba51e94ef6eddc
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';

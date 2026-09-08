@@ -752,6 +752,37 @@
                     </article>
                 </li>
             @endif
-            </ol>
+            @if($application->appl_type === 'A')
+            <li class="dash-tl-step is-yes" @if($get_till_date_exp->work_to_till_date == 1) style="display: none;" @endif>
+                <div class="dash-tl-step-rail" aria-hidden="true">
+                    <span class="dash-tl-step-num">6</span>
+                </div>
+                <article class="dash-tl-step-card">
+                    <header class="dash-tl-step-hd">
+                        <div>
+                            <h4 class="dash-tl-step-title">Staff Releaving Status in Alteration</h4>
+                            <p class="dash-tl-step-copy">Check the details of staff releaving status in alteration.</p>
+                        </div>
+                        <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Captured</span>
+                        @if($get_till_date_exp->work_to_till_date == 1)
+                        <span class="dash-tl-pill dash-tl-pill-no"><i class="fa fa-times"></i> Not Releaved</span>
+                        @endif
+                    </header>
+                    <div class="dash-tl-step-body">
+                        <div class="dash-tl-result is-yes">
+                            <span class="dash-tl-result-icon" aria-hidden="true">
+                                <i class="fa fa-check"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <p class="dash-tl-result-text">
+                                The staff releaving status in alteration is releaved.
+                            </p>
+                        </div>
+                    </div>
+                </article>
+            </li>
         @endif
-    </section>
+        </ol>
+    @endif
+</section>
