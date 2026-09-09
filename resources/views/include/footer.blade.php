@@ -2939,6 +2939,13 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             }
         });
     });    
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalElement = document.getElementById('infoModal');
+        const modal = new bootstrap.Modal(modalElement);
+
+        modal.show();
+    });
     
 </script>
 

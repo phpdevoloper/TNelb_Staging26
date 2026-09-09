@@ -1159,11 +1159,21 @@ class LoginController extends Controller
             }
         }
 
+
+        if($application->appl_type == 'A' && $application->old_application != ''){
+            $application_id = $application->old_application;
+        }
+
         $getdetails_digitisation = DB::table('tnelb_cc_digitization')->where('application_id', $application_id)->first();
         $get_digitisation_mapping = DB::table('cc_digitisation_map')->where('application_id', $application_id)->first();
         $get_till_date_exp = CC_Experience::where('application_id', $application_id)
         ->where('work_to_till_date', 1)
         ->first();
+
+        $check_releaved = CC_Experience::where('application_id', $application->appl_type == 'A' ? $application->application_id : $application_id)
+        ->where('work_to_till_date', 0)
+        ->exists();
+
         $get_issued_certificate = CC_Forms_cert::where('application_id', $application_id)->first();
 
         if (! $application) {
@@ -1178,7 +1188,8 @@ class LoginController extends Controller
             'getdetails_digitisation',
             'get_digitisation_mapping',
             'get_till_date_exp',
-            'get_issued_certificate'
+            'get_issued_certificate',
+            'check_releaved'
         ));
     }
 

@@ -1,6 +1,5 @@
 @include('include.header')
 
-
 <style>
     td {
         font-size: 15px;

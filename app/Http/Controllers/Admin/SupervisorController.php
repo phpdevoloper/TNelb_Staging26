@@ -2030,7 +2030,6 @@ class SupervisorController extends Controller
                 'processed_by' => $request->processed_by,
                 'role_id' => Auth::user()->roles_id,
                 'appl_status' => 'A',
-
                 'remarks' => $request->remarks ?? 'No remarks provided',
                 'forwarded_to' => $request->forwarded_to ?? null,
                 'created_at' => $this->dbNow,
@@ -2048,7 +2047,6 @@ class SupervisorController extends Controller
             if (CC_Forms_cert::where('certificate_no', $licenseNumber)->exists()) {
                 $updated = CC_Forms_cert::where('certificate_no', $licenseNumber)->update($payload);
 
-                // dd($updated); exit;
             }
 
 

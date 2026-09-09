@@ -63,6 +63,7 @@
         return asset($relative);
     };
 
+
     if ($digi) {
         $hasDigi = true;
         $oldCertNo = trim((string) ($digi->ccnumber ?? $digi->application_id ?? ''));
@@ -752,8 +753,9 @@
                     </article>
                 </li>
             @endif
-            @if($application->appl_type === 'A')
-            <li class="dash-tl-step is-yes" @if($get_till_date_exp->work_to_till_date == 1) style="display: none;" @endif>
+           
+            @if($application->appl_type == 'A')
+            <li class="dash-tl-step is-yes" @if($get_till_date_exp->work_to_till_date !== 1) style="display: none;" @endif>
                 <div class="dash-tl-step-rail" aria-hidden="true">
                     <span class="dash-tl-step-num">6</span>
                 </div>
@@ -763,9 +765,8 @@
                             <h4 class="dash-tl-step-title">Staff Releaving Status in Alteration</h4>
                             <p class="dash-tl-step-copy">Check the details of staff releaving status in alteration.</p>
                         </div>
-                        <span class="dash-tl-pill dash-tl-pill-ok"><i class="fa fa-check"></i> Captured</span>
-                        @if($get_till_date_exp->work_to_till_date == 1)
-                        <span class="dash-tl-pill dash-tl-pill-no"><i class="fa fa-times"></i> Not Releaved</span>
+                        @if($check_releaved)
+                        <span class="dash-tl-pill dash-tl-pill-no"><i class="fa fa-check"></i> Releaved</span>
                         @endif
                     </header>
                     <div class="dash-tl-step-body">
@@ -773,11 +774,17 @@
                             <span class="dash-tl-result-icon" aria-hidden="true">
                                 <i class="fa fa-check"></i>
                             </span>
-                        </div>
-                        <div>
-                            <p class="dash-tl-result-text">
-                                The staff releaving status in alteration is releaved.
-                            </p>
+                            <div>
+                                <p class="dash-tl-result-text">
+                                    The staff is releaved from the contractor.
+                                </p>
+                                <div class="dash-tl-meta">
+                                    <div class="dash-tl-meta-item">
+                                        <span class="dash-tl-meta-label">Contractor Licence & No</span>
+                                        <div class="dash-tl-meta-value">{{ $licence_no }}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </article>
