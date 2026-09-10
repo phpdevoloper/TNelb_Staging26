@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Models\ProprietorformA;
+use App\Models\Tnelb_Addressproof_cl;
+use App\Models\Tnelb_Attachments_cl;
+use App\Models\Tnelb_banksolvency_a;
+use App\Models\Tnelb_Equimentsuser_cl;
+use App\Models\Equipment_storetmp_A;
 
 class FormADigitizationController extends BaseController
 {
@@ -301,5 +307,73 @@ class FormADigitizationController extends BaseController
                 'file'    => $e->getFile(),
             ], 500);
         }
+    }
+
+    public function draft_edit($application_id)
+    {
+
+        $application = null;
+        $proprietors = collect();
+        $staffs = collect();
+        $document = collect();
+
+        if ($application_id) {
+            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+            $proprietors = DB::table('cl_ownership_table')
+                ->where('application_id', $application_id)
+                ->where('proprietor_flag', '1')
+                ->orderBy('id')->get();
+            $draftCount = $proprietors->count();
+
+            $draftCounts = ProprietorformA::where('application_id', $application_id)
+                ->count();
+
+            $ownershipType = ProprietorformA::where('application_id', $application_id)
+                ->where('proprietor_flag', 1)
+                ->value('ownership_type');
+            // dd($proprietors);exit;
+
+            $staffs = DB::table('cl_staff_tbl')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
+
+            // dd($staffs);
+            // exit;
+
+            $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
+            $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
+            $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status', '1')->first();
+
+            $equipmentlist = Equipment_storetmp_A::where('application_id', $application_id)->first();
+
+
+            $attachment_doc = Tnelb_Attachments_cl::where('application_id', $application_id)->get();
+
+            $Address_proof = Tnelb_Addressproof_cl::where('application_id', $application_id)->first();
+
+            $equipmentDetails = Tnelb_Equimentsuser_cl::where('application_id', $application_id)
+                ->get()
+                ->keyBy('equipment_id');
+
+
+
+            $equiplist = Mst_equipment_tbl::where('equip_licence_name', 8)
+                ->where('status', 1)
+                ->orderBy('id')
+                ->get();
+
+            $equipmentlist = DB::table('equipmentforma_tbls')
+                ->where('login_id', Auth::user()->login_id)
+                ->where('application_id', $application_id) // IMPORTANT
+                ->get();
+
+            $cert_licence_code = 'EA';
+            $form_code = MstLicence::where('cert_licence_code', $cert_licence_code)
+                ->where('status', 1)
+                ->orderBy('id')
+                ->first();
+
+            // var_dump()
+        }
+
+        return view('user_login.digitization.EA.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'Qcstaffs', 'draftCounts', 'ownershipType'));
     }
 }

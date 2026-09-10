@@ -234,7 +234,7 @@ class FormBprocessController extends Controller
 
 
 
-        $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+        $cl_ownership_table = DB::table('cl_ownership_table')
             ->where('application_id', $applicant_id)
             ->orderBy('id', 'Desc')
             ->where('proprietor_flag', '1')
@@ -385,7 +385,7 @@ class FormBprocessController extends Controller
 
         return view($view, compact(
             'applicant',
-            'proprietordetailsform_A',
+            'cl_ownership_table',
             'showQcWarning',
             'staffdetails',
             'nextForwardUser',
@@ -1287,7 +1287,7 @@ class FormBprocessController extends Controller
 
 
 
-        $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+        $cl_ownership_table = DB::table('cl_ownership_table')
             ->where('application_id', $applicant_id)
             ->orderBy('id', 'Desc')
             ->where('proprietor_flag', '1')
@@ -1427,7 +1427,7 @@ class FormBprocessController extends Controller
 
         return view($view, compact(
             'applicant',
-            'proprietordetailsform_A',
+            'cl_ownership_table',
             'staffdetails',
             'showQcWarning',
             'nextForwardUser',

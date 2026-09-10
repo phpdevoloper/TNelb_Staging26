@@ -89,8 +89,8 @@ class ReturnapplicantController extends BaseController
         $document = collect();
 
         if ($application_id) {
-            $application = DB::table('tnelb_ea_applications')->where('application_id', $application_id)->first();
-            $proprietors = DB::table('proprietordetailsform_A')
+            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+            $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
@@ -623,12 +623,12 @@ class ReturnapplicantController extends BaseController
 
             // table move edu_file----------
 
-            // $recordexists = DB::table('proprietordetailsform_A')
+            // $recordexists = DB::table('cl_ownership_table')
             //             ->where('application_id', $applicationId)
             //             ->get();
             // if ($recordexists) {
 
-            //              DB::table('$proprietordetailsform_A')
+            //              DB::table('$cl_ownership_table')
             //             ->where('application_id', $applicationId)
             //             ->update([
             //                 'educ_qual_proof' => $finalDbPath,
@@ -1134,7 +1134,7 @@ class ReturnapplicantController extends BaseController
 
                 $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
 
-                DB::table('tnelb_ea_applications')
+                DB::table('ccl_forma_meta')
                     ->updateOrInsert(
                         ['application_id' => $applicationId],
                         [
@@ -1437,7 +1437,7 @@ class ReturnapplicantController extends BaseController
             //     if ($updateColumn) {
 
             //         // 🔹 Update main application table
-            //         DB::table('tnelb_ea_applications')
+            //         DB::table('ccl_forma_meta')
             //             ->where('application_id', $applicationId)
             //             ->update([
             //                 $updateColumn => $doc->file_name,
@@ -1460,7 +1460,7 @@ class ReturnapplicantController extends BaseController
 
             // dd('111');exit;
 
-            DB::table('tnelb_ea_applications')
+            DB::table('ccl_forma_meta')
                 ->where('application_id', $applicationId)
                 ->update([
                     'processed_by'   => null,
@@ -1504,7 +1504,7 @@ class ReturnapplicantController extends BaseController
             ]);
         }
 
-        //  DB::table('tnelb_ea_applications')
+        //  DB::table('ccl_forma_meta')
         //         ->where('application_id', $applicationId)
         //          ->update([
         //                     'payment_status'   => $request->input('form_action'),
@@ -1512,7 +1512,7 @@ class ReturnapplicantController extends BaseController
         //                 ]);
 
         // dd('1111');exit;
-        DB::table('tnelb_ea_applications')
+        DB::table('ccl_forma_meta')
             ->where('application_id', $applicationId)
             ->update([
                 'application_status'   => 'RETD',

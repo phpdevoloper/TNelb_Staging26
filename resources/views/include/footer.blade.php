@@ -834,87 +834,7 @@ $(document).ready(function() {
             });
 
 
-            let staffValid = true;
-            let staffCount = 0;
-
-            // Clear all previous error messages once before loop
-            $(".staff-fieldsrenew .error").text("");
-
-            $(".staff-fieldsrenew").each(function() {
-                const name = $(this).find('input[name="staff_name[]"]');
-                const qual = $(this).find('select[name="staff_qualification[]"]');
-                const ccNum = $(this).find('input[name="cc_number[]"]');
-                const ccValid = $(this).find('input[name="cc_validity[]"]');
-                const category = $(this).find('select[name="staff_category[]"]');
-
-                const nameVal = name.val().trim();
-                const ccNumVal = ccNum.val().trim();
-                const ccValidVal = ccValid.val().trim();
-                const qualVal = qual.val();
-                const categoryVal = category.val();
-
-                // Live error clearing
-                name.on("keyup", function() {
-                    if ($(this).val().trim() !== "") {
-                        name.siblings(".error").text("");
-                    }
-                });
-
-                qual.on("change", function() {
-                    if ($(this).val() !== "") {
-                        qual.siblings(".error").text("");
-                    }
-                });
-
-                ccNum.on("keyup", function() {
-                    if ($(this).val().trim() !== "") {
-                        ccNum.siblings(".error").text("");
-                    }
-                });
-
-                ccValid.on("change keyup", function() {
-                    if ($(this).val().trim() !== "") {
-                        ccValid.siblings(".error").text("");
-                    }
-                });
-
-                category.on("change", function() {
-                    if ($(this).val() !== "") {
-                        category.siblings(".error").text("");
-                    }
-                });
-
-                // Validation
-                if (nameVal === "") {
-                    name.siblings(".error").text("Name is required.");
-                    staffValid = false;
-                }
-
-                if (!qualVal) {
-                    qual.siblings(".error").text("Qualification is required.");
-                    staffValid = false;
-                }
-
-                if (ccNumVal === "") {
-                    ccNum.siblings(".error").text("Certificate Number is required.");
-                    staffValid = false;
-                }
-
-                if (ccValidVal === "") {
-                    ccValid.siblings(".error").text("Certificate Validity is required.");
-                    staffValid = false;
-                }
-
-                if (!categoryVal) {
-                    category.siblings(".error").text("Category is required.");
-                    staffValid = false;
-                }
-
-                // Count only if all fields filled
-                if (nameVal && qualVal && ccNumVal && ccValidVal && categoryVal) {
-                    staffCount++;
-                }
-            });
+          
 
             // Declaration Checkboxes
             const declaration1Checked = $("#declarationCheckbox").is(":checked");
@@ -1313,79 +1233,76 @@ $(document).ready(function() {
     }
     });
 /* 🔁 Ownership change */
-$(document).on("change", "#ownership_type_select", function () {
+$(document).ready(function () {
+
+    let draftCount = {{ $draftCount ?? 0 }};
+    let draftOwnershipType = "{{ $ownershipType ?? '' }}";
+
+    if (draftCount > 0 && draftOwnershipType !== "") {
+
+        $("#ownership_type_select").val(draftOwnershipType);
+
+        // Tell change handler this is from draft
+        $("#ownership_type_select").trigger("change", [true]);
+    }
+
+});
+
+
+$(document).on("change", "#ownership_type_select", function (e, fromDraft = false) {
 
     let type = $(this).val();
+
+    console.log("Ownership Type:", type);
+    console.log("From Draft:", fromDraft);
 
     // Clear files + errors
     $("input[type='file']").val("");
     $(".ownershipdoc_upload_error").text("");
 
-    // Hide all sections first
-    //$("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section")
-      //  .hide();
-    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section")
-    .hide();
-
-    // Reset readonly + values
-    $("input[name='proprietor_name[]']")
-        .val("")
-        .prop("readonly", false);
+    // Hide all sections
+    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section").hide();
 
     // ================= PARTNERSHIP =================
-    if (type === 'pt') {
+    if (type === "pt") {
 
         $("#partnershipdeed").slideDown();
         $("#partnersfill-section").slideDown();
         $("#partner-section").slideDown();
 
-        let rowCount = $("#partnersfill-section table tbody tr").length;
-
-        @if(Auth::check())
-        if (rowCount === 0) {
-            $("#partnersfill-section")
-                .find("input[name='proprietor_name[]']")
-                .val("{{ Auth::user()->first_name.' '.Auth::user()->last_name }}")
-                .prop("readonly", true);
-        }
-        @endif
     }
 
-    // ================= COMPANY TYPES =================
+    // ================= DIRECTOR =================
     else if (
-        type === 'pvt' ||
-        type === 'public' ||
-        type === 'ltd'
+        type === "dr" ||
+        type === "pvt" ||
+        type === "public" ||
+        type === "ltd"
     ) {
 
         $("#directormom").slideDown();
         $("#directorfill-section").slideDown();
         $("#director-section").slideDown();
 
-        let rowCount = $("#director-section table tbody tr").length;
-
-        @if(Auth::check())
-        if (rowCount === 0) {
-            $("#directorfill-section")
-                .find("input[name='proprietor_name[]']")
-                .val("{{ Auth::user()->first_name.' '.Auth::user()->last_name }}")
-                .prop("readonly", true);
-        }
-        @endif
     }
 
     // ================= PROPRIETOR =================
-    else if (type === 'pr') {
+    else if (type === "pr") {
 
-        $("#proprietor-sectionfresh").slideDown();
-        $("#proprietor-section").slideDown();
+        if (fromDraft) {
 
-        @if(Auth::check())
-        $("#proprietor-sectionfresh")
-            .find("input[name='proprietor_name[]']")
-            .val("{{ Auth::user()->first_name.' '.Auth::user()->last_name }}")
-            .prop("readonly", true);
-        @endif
+           
+
+            // Draft → ONLY saved table
+            $("#proprietor-section").slideDown();
+
+        } else {
+ 
+            // Normal → show input section + table
+            $("#proprietor-sectionfresh").slideDown();
+            $("#proprietor-section").slideDown();
+
+        }
     }
 
 });

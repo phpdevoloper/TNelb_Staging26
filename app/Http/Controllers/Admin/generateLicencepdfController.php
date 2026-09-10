@@ -24,7 +24,7 @@ class generateLicencepdfController extends Controller
             // 'tnelb_esa_applications',
             // 'tnelb_esb_applications',
             // 'tnelb_eb_applications',
-            'tnelb_ea_applications'
+            'ccl_forma_meta'
         ];
 
         foreach ($tables as $t) {
@@ -219,7 +219,7 @@ class generateLicencepdfController extends Controller
     </tr>
 </table>';
 
-        $proprietors = DB::table('proprietordetailsform_A')
+        $proprietors = DB::table('cl_ownership_table')
             ->where('application_id', $application_id)
             ->where('proprietor_flag', '1')
             ->orderBy('id')
@@ -433,7 +433,7 @@ class generateLicencepdfController extends Controller
             // 'tnelb_esa_applications',
             // 'tnelb_esb_applications',
             // 'tnelb_eb_applications',
-            'tnelb_ea_applications'
+            'ccl_forma_meta'
         ];
 
         foreach ($tables as $t) {
@@ -653,7 +653,7 @@ class generateLicencepdfController extends Controller
     </tr>
 </table>';
 
-        $proprietors = DB::table('proprietordetailsform_A')
+        $proprietors = DB::table('cl_ownership_table')
             ->where('application_id', $application_id)
             ->where('proprietor_flag', '1')
             ->orderBy('id')

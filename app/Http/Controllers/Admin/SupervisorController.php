@@ -845,7 +845,7 @@ class SupervisorController extends Controller
 
         // Contractor forms: EA, SA, B, SB etc. use separate tables
         $contractorTablesByCode = [
-            'EA' => 'tnelb_ea_applications',
+            'EA' => 'ccl_forma_meta',
             'SA' => 'tnelb_esa_applications',
             'B'  => 'tnelb_eb_applications',
             'SB' => 'tnelb_esb_applications',
@@ -972,7 +972,7 @@ class SupervisorController extends Controller
         // dd($role_id);exit;
 
         // Base query for Form A contractor applications
-        $query = DB::table('tnelb_ea_applications as ta')
+        $query = DB::table('ccl_forma_meta as ta')
             ->where('ta.form_name', 'A')
             ->where('ta.payment_status', 'paid');
 
@@ -1022,7 +1022,7 @@ class SupervisorController extends Controller
     {
         $userRole = Auth::user()->roles_id;
 
-        // $assignedForms = DB::table('tnelb_ea_applications as ta')
+        // $assignedForms = DB::table('ccl_forma_meta as ta')
         // ->whereIn('ta.application_status', ['F', 'RF','A']) // Filter by status
         // ->select('ta.*') // Select all columns from applicant_formA
         // ->get();
@@ -1030,7 +1030,7 @@ class SupervisorController extends Controller
 
         // var_dump($assignedForms);die;
 
-        $workflows = DB::table('tnelb_ea_applications')
+        $workflows = DB::table('ccl_forma_meta')
             ->whereIn('application_status', ['F', 'RF', 'A'])
             ->orderby('updated_at', 'DESC')
             ->select('*')
@@ -1427,7 +1427,7 @@ class SupervisorController extends Controller
         // ]);
 
 
-        // $formType = DB::table('tnelb_ea_applications')
+        // $formType = DB::table('ccl_forma_meta')
         //     ->where('application_id', $request->application_id)
         //     ->select('form_id')
         //     ->first();
@@ -1519,7 +1519,7 @@ class SupervisorController extends Controller
             'licensename'       => 'required|string',
         ]);
 
-        $application = DB::table('tnelb_ea_applications')
+        $application = DB::table('ccl_forma_meta')
             ->where('application_id', $request->application_id)
             ->first();
 
@@ -1534,7 +1534,7 @@ class SupervisorController extends Controller
 
             $processed = Auth::user()->name === 'President' ? 'PR' : 'SE';
 
-            DB::table('tnelb_ea_applications')
+            DB::table('ccl_forma_meta')
                 ->where('application_id', $request->application_id)
                 ->update([
                     'application_status' => 'A',

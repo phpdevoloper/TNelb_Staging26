@@ -143,7 +143,7 @@ class SecretaryController extends Controller
         // return $type;
  
         // $formId = $request->query('form_id');
-     $workflows = DB::table('tnelb_ea_applications as ta')
+     $workflows = DB::table('ccl_forma_meta as ta')
           ->whereIn('ta.application_status', ['F', 'RF','RE'])
         ->whereIn('ta.processed_by', ['A', 'SPRE', 'RSA', 'PR']) 
 
@@ -157,7 +157,7 @@ class SecretaryController extends Controller
 
             // ---------------
 
-    //    $workflows = DB::table('tnelb_ea_applications as ta')
+    //    $workflows = DB::table('ccl_forma_meta as ta')
     // ->where(function($q) {
     //     $q->where('ta.processed_by', '=', 'A')
     //       ->orWhereIn('ta.application_status', ['RF', 'F']);
@@ -167,7 +167,7 @@ class SecretaryController extends Controller
     // ->select('ta.*')
     // ->get();
 
-        // $workflows = DB::table('tnelb_ea_applications as ta')
+        // $workflows = DB::table('ccl_forma_meta as ta')
         //     ->where('ta.processed_by', 'A')
         //     ->orWhere('ta.application_status', 'RF')
         //     // ->where('ta.form_id', $formId)
@@ -187,7 +187,7 @@ class SecretaryController extends Controller
 
     public function view_sec_forma_completed(Request $request)
     {
-     $workflows = DB::table('tnelb_ea_applications as ta')
+     $workflows = DB::table('ccl_forma_meta as ta')
         ->whereIn('ta.application_status', ['F','A', 'RE'])
         ->whereIn('processed_by', ['PR', 'SE'])
         ->orderByDesc('updated_at')
@@ -196,7 +196,7 @@ class SecretaryController extends Controller
             ->get();
         // $formId = $request->query('form_id');
     
-       // $workflows = DB::table('tnelb_ea_applications as ta')
+       // $workflows = DB::table('ccl_forma_meta as ta')
        //      ->whereIn('ta.processed_by', ['A', 'SPRE']) 
        //      ->orWhere('ta.application_status', 'RF')
        //      // ->where('ta.form_id', $formId)

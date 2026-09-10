@@ -83,90 +83,240 @@ class FormAController extends BaseController
     }
     // QC check------------
 
-   public function checkQCCertificate(Request $request)
-{
-    $dateofIssue = Carbon::createFromFormat(
-        'd-m-Y',
-        $request->dateof_issue
-    )->format('Y-m-d');
+    public function checkCCCertificate(Request $request)
+    {
 
-    $validFrom = Carbon::createFromFormat(
-        'd-m-Y',
-        $request->valid_from
-    )->format('Y-m-d');
+    //    dd($request->all());exit;
+        // $dateofIssue = Carbon::createFromFormat(
+        //     'd-m-Y',
+        //     $request->dateof_issue
+        // )->format('Y-m-d');
 
-    $validTo = Carbon::createFromFormat(
-        'd-m-Y',
-        $request->valid_to
-    )->format('Y-m-d');
+        // $validFrom = Carbon::createFromFormat(
+        //     'd-m-Y',
+        //     $request->valid_from
+        // )->format('Y-m-d');
 
-    // dd($validFrom); exit;
+        // $validTo = Carbon::createFromFormat(
+        //     'd-m-Y',
+        //     $request->valid_to
+        // )->format('Y-m-d');
 
+        $dateofIssue = Carbon::createFromFormat(
+            'Y-m-d',
+            $request->dateof_issue
+        )->format('Y-m-d');
 
-    // -------------------------------------------------
-    // STEP 1: Check certificate details
-    // -------------------------------------------------
+        $validFrom = Carbon::createFromFormat(
+            'Y-m-d',
+            $request->valid_from
+        )->format('Y-m-d');
 
-    $certificate = DB::table('cc_forms_cert')
-        ->where('certificate_no', $request->certificate_no)
-        ->where('dateof_issue', $dateofIssue)
-        ->where('valid_from', $validFrom)
-        ->where('valid_to', $validTo)
-        ->where('cert_status', 'A')
-        ->first();
-
-        // dd($certificate->certificate_no); exit;
-
-
-    // Certificate details are not valid
-    if (!$certificate) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Certificate details are not valid.'
-        ]);
-    }
+        $validTo = Carbon::createFromFormat(
+            'Y-m-d',
+            $request->valid_to
+        )->format('Y-m-d');
 
 
-    // -------------------------------------------------
-    // STEP 2: Check QC / QSC eligibility
-    // -------------------------------------------------
+        // -------------------------------------------------
+        // STEP 1: Check certificate details
+        // -------------------------------------------------
 
-    if ($request->staffcategory === 'QC') {
+        $certificate = DB::table('cc_forms_cert')
+            ->where('certificate_no', $request->certificate_no)
+            ->where('dateof_issue', $dateofIssue)
+            ->where('valid_from', $validFrom)
+            ->where('valid_to', $validTo)
+            ->where('cert_status', 'A')
+            ->first();
 
-        if ($certificate->qc != 1) {
+            // dd($certificate);exit;
+
+
+        if (!$certificate) {
             return response()->json([
                 'status' => false,
-                'message' => 'This certificate is not eligible for QC.'
+                'message' => 'Staff Certificate details are not valid.'
             ]);
         }
 
-    } elseif ($request->staffcategory === 'QSC') {
 
-        if ($certificate->qsc != 1) {
+        // -------------------------------------------------
+        // STEP 2: Check QC / QSC eligibility
+        // -------------------------------------------------
+
+       
+
+        // -------------------------------------------------
+        // STEP 3: Check certificate already mapped
+        // -------------------------------------------------
+
+        $existingStaff = DB::table('cl_staff_tbl')
+            ->where('staff_cc_no', $request->certificate_no)
+            ->where('staff_cc_first_issue', $dateofIssue)
+            ->where('staff_cc_validity_from', $validFrom)
+            ->where('staff_cc_validity_to', $validTo)
+            // ->whereIn('staff_status', ['A', 'P'])
+            ->where('staff_status', 'A')
+
+            ->exists();
+
+
+
+        $existingStaffpending = DB::table('cl_staff_tbl')
+            ->where('staff_cc_no', $request->certificate_no)
+            ->where('staff_cc_first_issue', $dateofIssue)
+            ->where('staff_cc_validity_from', $validFrom)
+            ->where('staff_cc_validity_to', $validTo)
+            ->where('staff_status',  'P')
+            ->exists();
+
+
+        // dd($existingStaff);exit;
+
+        if ($existingStaffpending) {
             return response()->json([
                 'status' => false,
-                'message' => 'This certificate is not eligible for QSC.'
+                'message' => 'Certificate is under process for another licence.'
             ]);
         }
 
-    } else {
+        if ($existingStaff) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Certificate is already mapped with another licence.'
+            ]);
+        }
+
+
+        // -------------------------------------------------
+        // Certificate verified
+        // -------------------------------------------------
 
         return response()->json([
-            'status' => false,
-            'message' => 'Invalid staff category.'
+            'status' => true,
+            'message' => 'Certificate verified successfully.'
         ]);
     }
+    public function checkQCCertificate(Request $request)
+    {
+        $dateofIssue = Carbon::createFromFormat(
+            'd-m-Y',
+            $request->dateof_issue
+        )->format('Y-m-d');
+
+        $validFrom = Carbon::createFromFormat(
+            'd-m-Y',
+            $request->valid_from
+        )->format('Y-m-d');
+
+        $validTo = Carbon::createFromFormat(
+            'd-m-Y',
+            $request->valid_to
+        )->format('Y-m-d');
 
 
-    // -------------------------------------------------
-    // Certificate verified
-    // -------------------------------------------------
+        // -------------------------------------------------
+        // STEP 1: Check certificate details
+        // -------------------------------------------------
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Certificate verified successfully.'
-    ]);
-}
+        $certificate = DB::table('cc_forms_cert')
+            ->where('certificate_no', $request->certificate_no)
+            ->where('dateof_issue', $dateofIssue)
+            ->where('valid_from', $validFrom)
+            ->where('valid_to', $validTo)
+            ->where('cert_status', 'A')
+            ->first();
+
+
+        if (!$certificate) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Staff Certificate details are not valid.'
+            ]);
+        }
+
+
+        // -------------------------------------------------
+        // STEP 2: Check QC / QSC eligibility
+        // -------------------------------------------------
+
+        if ($request->staffcategory === 'QC') {
+
+            if ($certificate->qc != 1) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This certificate is not eligible for QC.'
+                ]);
+            }
+        } elseif ($request->staffcategory === 'QSC') {
+
+            if ($certificate->qsc != 1) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This certificate is not eligible for QSC.'
+                ]);
+            }
+        } else {
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid staff category.'
+            ]);
+        }
+
+
+        // -------------------------------------------------
+        // STEP 3: Check certificate already mapped
+        // -------------------------------------------------
+
+        $existingStaff = DB::table('cl_staff_tbl')
+            ->where('staff_cc_no', $request->certificate_no)
+            ->where('staff_cc_first_issue', $dateofIssue)
+            ->where('staff_cc_validity_from', $validFrom)
+            ->where('staff_cc_validity_to', $validTo)
+            // ->whereIn('staff_status', ['A', 'P'])
+            ->where('staff_status', 'A')
+
+            ->exists();
+
+
+
+        $existingStaffpending = DB::table('cl_staff_tbl')
+            ->where('staff_cc_no', $request->certificate_no)
+            ->where('staff_cc_first_issue', $dateofIssue)
+            ->where('staff_cc_validity_from', $validFrom)
+            ->where('staff_cc_validity_to', $validTo)
+            ->where('staff_status',  'P')
+            ->exists();
+
+
+        // dd($existingStaff);exit;
+
+        if ($existingStaffpending) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Certificate is under process for another licence.'
+            ]);
+        }
+
+        if ($existingStaff) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Certificate is already mapped with another licence.'
+            ]);
+        }
+
+
+        // -------------------------------------------------
+        // Certificate verified
+        // -------------------------------------------------
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Certificate verified successfully.'
+        ]);
+    }
 
     public function store(Request $request)
     {
@@ -233,25 +383,19 @@ class FormAController extends BaseController
                 'business_address' => 'required|string|max:500',
 
                 'application_ownershiptype' => 'required|string',
-                'authorised_name_designation' => 'required',
-                'authorised_name' => 'nullable|string|max:255',
-                'authorised_designation' => 'nullable|string|max:255',
+
                 'previous_contractor_license' => 'required|string|max:10',
                 'previous_application_number' => 'nullable|string|max:50',
-                'previous_application_validity' => 'nullable',
-                'previous_contractor_license_verify' => 'nullable|numeric',
+                'previous_validity_first_issue' => 'nullable',
+                'previous_validity_from' => 'nullable',
+                'previous_validity_to' => 'nullable',
 
                 'bank_address' => 'required|string|max:500',
                 'bank_validity' => 'required|date',
                 'bank_amount' => 'required|numeric|min:0',
 
                 'criminal_offence' => ['required', 'string', Rule::in(['yes', 'no'])],
-                'consent_letter_enclose' => ['required', 'string', Rule::in(['yes', 'no'])],
-                'cc_holders_enclosed' => ['required', 'string', Rule::in(['yes', 'no'])],
-                'purchase_bill_enclose' => ['required', 'string', Rule::in(['yes', 'no'])],
-                'test_reports_enclose' => ['required', 'string', Rule::in(['yes', 'no'])],
-                'specimen_signature_enclose' => ['required', 'string', Rule::in(['yes', 'no'])],
-                'separate_sheet' => ['required', 'string', Rule::in(['yes', 'no'])],
+               
                 'form_name' => 'required|string|max:255',
                 'license_name' => 'required|string|max:255',
 
@@ -267,35 +411,35 @@ class FormAController extends BaseController
         // exit;
         $validatedData = $request->validate($rules);
 
-        $validatedData['name_of_authorised_to_sign'] = !empty($request->name_of_authorised_to_sign)
-            ? json_encode($request->name_of_authorised_to_sign)
-            : null;
+        // $validatedData['name_of_authorised_to_sign'] = !empty($request->name_of_authorised_to_sign)
+        //     ? json_encode($request->name_of_authorised_to_sign)
+        //     : null;
 
-        $validatedData['age_of_authorised_to_sign'] = !empty($request->age_of_authorised_to_sign)
-            ? json_encode($request->age_of_authorised_to_sign)
-            : null;
+        // $validatedData['age_of_authorised_to_sign'] = !empty($request->age_of_authorised_to_sign)
+        //     ? json_encode($request->age_of_authorised_to_sign)
+        //     : null;
 
-        $validatedData['qualification_of_authorised_to_sign'] = !empty($request->qualification_of_authorised_to_sign)
-            ? json_encode($request->qualification_of_authorised_to_sign)
-            : null;
+        // $validatedData['qualification_of_authorised_to_sign'] = !empty($request->qualification_of_authorised_to_sign)
+        //     ? json_encode($request->qualification_of_authorised_to_sign)
+        //     : null;
 
-        // Convert to uppercase for certain fields
-        foreach (
-            [
-                'applicant_name',
-                'business_address',
-                'authorised_name',
-                'authorised_designation',
-                'bank_address',
-                'form_name',
-                'license_name',
+        // // Convert to uppercase for certain fields
+        // foreach (
+        //     [
+        //         'applicant_name',
+        //         'business_address',
+        //         'authorised_name',
+        //         'authorised_designation',
+        //         'bank_address',
+        //         'form_name',
+        //         'license_name',
 
-            ] as $field
-        ) {
-            if (!empty($validatedData[$field])) {
-                $validatedData[$field] = strtoupper($validatedData[$field]);
-            }
-        }
+        //     ] as $field
+        // ) {
+        //     if (!empty($validatedData[$field])) {
+        //         $validatedData[$field] = strtoupper($validatedData[$field]);
+        //     }
+        // }
 
 
 
@@ -312,7 +456,7 @@ class FormAController extends BaseController
         }
         if (!$applicationId) {
             $applicationId = $this->generateApplicationId(
-                $request->appl_type !== 'N',
+                $request->appl_type,
                 $request->form_name,
                 $request->license_name
             );
@@ -618,86 +762,173 @@ class FormAController extends BaseController
 
 
 
-        if ($request->has('staff_name')) {
+        if ($request->has('staff_category')) {
 
-            // dd($request->staff_category);exit;
+            //    dd($request->has('staff_category'));exit;
+
             $processedStaffIds = [];
 
             $staffIdsFromForm = $request->staff_id ?? [];
-            $existingStaffIds = TnelbApplicantStaffDetail::where('application_id', $applicationId)->pluck('id')->toArray();
 
-            // $processedStaffIds = [];
+            // Existing B / C / OTHERS staff records
+            $existingStaffIds = DB::table('cl_staff_tbl')
+                ->where('application_id', $applicationId)
+                ->whereNotIn('staff_category', ['QC', 'QSC'])
+                ->pluck('id')
+                ->toArray();
 
-            foreach ($request->staff_name as $index => $staffName) {
+
+            // ==========================================================
+            // LOOP THROUGH ALL STAFF ROWS
+            // ==========================================================
+
+            foreach ($request->staff_category as $index => $category) {
+
+                // dd($request->staff_category); exit;
+
+                //     dd([
+                //     'staff_category' => $request->input('staff_category'),
+                //     'cc_number' => $request->input('cc_number'),
+                //     'cc_firstissue' => $request->input('cc_firstissue'),
+                //     'cc_validity_from' => $request->input('cc_validity_from'),
+                //     'cc_validity_to' => $request->input('cc_validity_to'),
+                //     'staff_id' => $request->input('staff_id'),
+                // ]);exit;
+
+                $category = strtoupper(trim($category ?? ''));
+
+                $ccNumber = $request->cc_number[$index] ?? null;
+
+                $firstIssue = $request->cc_firstissue[$index] ?? null;
+
+                $validityFrom = $request->cc_validity_from[$index] ?? null;
+
+                $validityTo = $request->cc_validity_to[$index] ?? null;
+
+                $designation = $request->designation[$index] ?? null;
+
+                $staffId = $staffIdsFromForm[$index] ?? null;
+
+
+                // ======================================================
+                // SKIP COMPLETELY EMPTY ROW
+                // ======================================================
+
                 if (
-                    !empty($staffName) ||
-                    // !empty($request->staff_qualification[$index]) ||
-                    !empty($request->cc_number[$index]) ||
-                    !empty($request->cc_validity[$index]) ||
-                    !empty($request->staff_category[$index]) ||
-                    !empty($request->designation[$index])
+                    empty($category) &&
+                    empty($ccNumber) &&
+                    empty($firstIssue) &&
+                    empty($validityFrom) &&
+                    empty($validityTo) &&
+                    empty($designation)
                 ) {
-                    $staffId = $staffIdsFromForm[$index] ?? null;
-                    $validity = $request->cc_validity[$index] ?? null;
+                    continue;
+                }
 
-                    $staffData = [
-                        'application_id'      => $applicationId,
-                        'login_id'            => $request->login_id_store,
-                        'staff_name'          => strtoupper($staffName),
-                        'staff_qualification' => strtoupper($request->staff_qualification[$index] ?? ''),
-                        'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
-                        'cc_validity'         => $validity,
-                        'staff_category'      => strtoupper($request->staff_category[$index] ?? ''),
-                        'staff_cc_verify'     => $request->staff_cc_verify[$index],
-                        'designation'     => $request->designation[$index]
-                    ];
 
-                    if ($staffId && in_array($staffId, $existingStaffIds)) {
-                        $existingStaff = TnelbApplicantStaffDetail::find($staffId);
+                // ======================================================
+                // STAFF DATA
+                // ======================================================
 
-                        if (
-                            strtoupper($existingStaff->staff_name) !== strtoupper($staffName) ||
-                            strtoupper($existingStaff->staff_qualification) !== strtoupper($request->staff_qualification[$index] ?? '') ||
-                            strtoupper($existingStaff->cc_number) !== strtoupper($request->cc_number[$index] ?? '') ||
-                            $existingStaff->cc_validity !== $validity ||
-                            strtoupper($existingStaff->staff_category) !== strtoupper($request->staff_category[$index] ?? '') ||
-                            strtoupper($existingStaff->designation) !== strtoupper($request->designation[$index] ?? '')
-                        ) {
-                            $existingStaff->update($staffData);
-                        }
+                $staffData = [
 
-                        $processedStaffIds[] = $staffId;
-                    } else {
-                        // Create new entry
-                        $newStaff = TnelbApplicantStaffDetail::create($staffData);
-                        $processedStaffIds[] = $newStaff->id;
-                    }
+                    'application_id' => $applicationId,
+
+                    'login_id' => $request->login_id_store,
+
+                    'staff_category' => $category,
+
+                    'staff_cc_no' => strtoupper(trim($ccNumber ?? '')),
+
+                    'staff_cc_first_issue' => $firstIssue,
+
+                    'staff_cc_validity_from' => $validityFrom,
+
+                    'staff_cc_validity_to' => $validityTo,
+
+                    'staff_status' => 'N',
+
+                     'staff_designation' => !empty($designation)
+                        ? trim($designation)
+                        : null,
+
+                    'updated_at' => now(),
+
+                ];
+
+
+                // ======================================================
+                // OTHERS DESIGNATION
+                // ======================================================
+
+                if ($category === 'OTHERS') {
+
+                    $staffData['staff_designation'] = trim($designation ?? '');
+
+                    // OTHERS does not need certificate details
+                    $staffData['staff_cc_no'] = null;
+                    $staffData['staff_cc_first_issue'] = null;
+                    $staffData['staff_cc_validity_from'] = null;
+                    $staffData['staff_cc_validity_to'] = null;
+                }
+
+
+                // ======================================================
+                // UPDATE EXISTING STAFF
+                // ======================================================
+
+                if (
+                    $staffId &&
+                    in_array($staffId, $existingStaffIds)
+                ) {
+
+                    DB::table('cl_staff_tbl')
+                        ->where('id', $staffId)
+                        ->where('application_id', $applicationId)
+                        ->whereNotIn('staff_category', ['QC', 'QSC'])
+                        ->update($staffData);
+
+                    $processedStaffIds[] = $staffId;
+                } else {
+
+                    // ==================================================
+                    // INSERT NEW STAFF
+                    // ==================================================
+
+                    $staffData['staff_status'] = 'NA';
+
+                    $staffData['created_at'] = now();
+
+                    $newStaffId = DB::table('cl_staff_tbl')
+                        ->insertGetId($staffData);
+
+                    $processedStaffIds[] = $newStaffId;
                 }
             }
 
 
+            // ==========================================================
+            // DELETE REMOVED B / C / OTHERS STAFF
+            // ==========================================================
 
-            // Remove deleted staff
-            TnelbApplicantStaffDetail::where('application_id', $applicationId)
-                ->whereNotIn('id', $processedStaffIds)
-                ->delete();
+            // $deleteQuery = DB::table('cl_staff_tbl')
+            //     ->where('application_id', $applicationId)
+            //     ->whereNotIn('staff_category', ['QC', 'QSC']);
+
+
+            // if (!empty($processedStaffIds)) {
+
+            //     $deleteQuery
+            //         ->whereNotIn('id', $processedStaffIds)
+            //         ->delete();
+            // } else {
+
+            //     $deleteQuery->delete();
+            // }
         }
 
-        // Update only staff_cc_verify values by staff_id (if they exist)
-        if ($request->has('staff_cc_verify') && $request->has('staff_id')) {
-            foreach ($request->staff_cc_verify as $index => $verifyValue) {
-                $staffId = $request->staff_id[$index] ?? null;
 
-                if ($staffId) {
-                    TnelbApplicantStaffDetail::where('id', $staffId)->update([
-                        'staff_cc_verify' => $verifyValue
-                    ]);
-                }
-            }
-        }
 
-        //    dd($request->all());
-        // exit;
 
         $newProprietorIds = [];
         if ($request->has('proprietor_name')) {
@@ -712,22 +943,13 @@ class FormAController extends BaseController
 
                 $competencyHolding = data_get($request->competency, $index);
 
-                //                     // dd($competencyHolding);
-                //                     // exit;
-                $presently_employed = data_get($request->employed, $index);
-                $previous_experience = data_get($request->experience, $index);
-                //                     // Skip if no name (avoid empty row)
-                //                     if (empty(trim($proprietor_name))) {
-                //                         continue;
-                //                     }
-
-
                 $proprietorId = $request->proprietor_id[$index] ?? null;
                 $data = [
                     'login_id' => $request->login_id_store,
                     'application_id' => $applicationId,
                     'proprietor_name' => strtoupper($name ?? ''),
-                    'ownership_type' => $request->ownership_type[$index],
+                    // 'ownership_type' => $request->ownership_type[$index],
+                    'ownership_type' => 'pr',
                     'proprietor_address' => strtoupper(data_get($request->proprietor_address, $index, '')),
                     'dob' => $request->dob[$index],
                     'age' => data_get($request->age, $index),
@@ -736,40 +958,29 @@ class FormAController extends BaseController
                     'fathers_name' => strtoupper(data_get($request->fathers_name, $index, '')),
                     'present_business' => strtoupper(data_get($request->present_business, $index, '')),
                     'competency_certificate_holding' => $competencyHolding,
-                    'competency_certificate_number' => $competencyHolding === 'yes' ? strtoupper(data_get($request->competency_certno, $index)) : null,
-                    'competency_certificate_validity' => $competencyHolding === 'yes' ? data_get($request->competency_validity, $index) : null,
-                    'proprietor_cc_verify' => $competencyHolding === 'yes' ? data_get($request->ccverify, $index) : null,
 
 
-                    'presently_employed' => $presently_employed,
+                    'competency_certificate_number' =>
+                    $competencyHolding === 'yes'
+                        ? strtoupper(data_get($request->competency_certno, $index, ''))
+                        : null,
 
-                    'presently_employed_name' => $presently_employed === 'yes' ? strtoupper(data_get($request->employer_name, $index)) : null,
+                    'competency_certificate_first_issue' =>
+                    $competencyHolding === 'yes'
+                        ? data_get($request->competency_first_issue, $index)
+                        : null,
 
-                    'presently_employed_address' => $presently_employed === 'yes' ? strtoupper(data_get($request->employer_address, $index)) : null,
+                    'competency_certificate_validity_from' =>
+                    $competencyHolding === 'yes'
+                        ? data_get($request->competency_validity_from, $index)
+                        : null,
 
-                    // 'presently_employed_name' => data_get($presently_employed, $index) === 'yes' ? strtoupper(data_get($request->employer_name, $index)) : null,
-                    // 'presently_employed_address' => data_get($presently_employed, $index) === 'yes' ? strtoupper(data_get($request->employer_address, $index)) : null,
-
-                    'previous_experience' => $previous_experience,
-
-                    'previous_experience_name' => $previous_experience === 'yes' ? strtoupper(data_get($request->exp_name, $index)) : null,
-
-                    'previous_experience_address' => $previous_experience === 'yes' ? strtoupper(data_get($request->exp_address, $index)) : null,
-
-
-                    'previous_experience_lnumber' => $previous_experience === 'yes' ? strtoupper(data_get($request->exp_license, $index)) : null,
-
-                    'previous_experience_lnumber_validity' => $previous_experience === 'yes' ? strtoupper(data_get($request->exp_validity, $index)) : null,
+                    'competency_certificate_validity_to' =>
+                    $competencyHolding === 'yes'
+                        ? data_get($request->competency_validity_to, $index)
+                        : null,
 
 
-
-                    // 'previous_experience_name' => data_get($request->previous_experience, $index) === 'yes' ? strtoupper(data_get($request->previous_experience_name, $index)) : null,
-                    // 'previous_experience_address' => data_get($request->previous_experience, $index) === 'yes' ? strtoupper(data_get($request->previous_experience_address, $index)) : null,
-                    // 'previous_experience_lnumber' => data_get($request->previous_experience, $index) === 'yes' ? strtoupper(data_get($request->previous_experience_lnumber, $index)) : null,
-
-                    // 'previous_experience_lnumber_validity' => data_get($request->previous_experience, $index) === 'yes' ? data_get($request->previous_experience_lnumber_validity, $index) : null,
-
-                    'proprietor_contractor_verify' => $previous_experience === 'yes' ? data_get($request->expverify, $index) : null,
                     'proprietor_flag' => 1,
 
                     'ownership_count' => $count,
@@ -794,12 +1005,12 @@ class FormAController extends BaseController
 
             // table move edu_file----------
 
-            // $recordexists = DB::table('proprietordetailsform_A')
+            // $recordexists = DB::table('cl_ownership_table')
             //             ->where('application_id', $applicationId)
             //             ->get();
             // if ($recordexists) {
 
-            //              DB::table('$proprietordetailsform_A')
+            //              DB::table('$cl_ownership_table')
             //             ->where('application_id', $applicationId)
             //             ->update([
             //                 'educ_qual_proof' => $finalDbPath,
@@ -1675,7 +1886,163 @@ class FormAController extends BaseController
                     ]);
             }
         }
+        // QC Staff -------------------
+        // ============================================================
+        // SAVE QC / QSC STAFF
+        // ============================================================
 
+        $staffCategories =
+            $request->input('staff_category', []);
+
+        $staffCcNos =
+            $request->input('staff_cc_no', []);
+
+        $staffFirstIssues =
+            $request->input('staff_cc_first_issue', []);
+
+        $staffValidityFroms =
+            $request->input('staff_cc_validity_from', []);
+
+        $staffValidityTos =
+            $request->input('staff_cc_validity_to', []);
+
+        $appDocs =
+            $request->input('app_doc', []);
+
+        $consDocs =
+            $request->input('cons_doc', []);
+
+        $staffQcIds =
+            $request->input('staffqc_id', []);
+
+        // dd([
+        //     'categories' => $staffCategories,
+        //     'cc_no' => $staffCcNos,
+        //     'first_issue' => $staffFirstIssues,
+        //     'validity_from' => $staffValidityFroms,
+        //     'validity_to' => $staffValidityTos,
+        //     'app_doc' => $appDocs,
+        //     'cons_doc' => $consDocs,
+        //     'ids' => $staffQcIds,
+        // ]);
+        // exit;
+        $savedIds = [];
+
+
+        // ============================================================
+        // LOOP STAFF
+        // ============================================================
+
+        foreach ($staffCcNos as $index => $ccNo) {
+            // dd([
+            //     'categories' => $staffCategories,
+            //     'cc_no' => $staffCcNos,
+            //     'first_issue' => $staffFirstIssues,
+            //     'validity_from' => $staffValidityFroms,
+            //     'validity_to' => $staffValidityTos,
+            //     'app_doc' => $appDocs,
+            //     'cons_doc' => $consDocs,
+            //     'ids' => $staffQcIds,
+            // ]);
+            // exit;
+
+            // --------------------------------------------------------
+            // SKIP EMPTY ROW
+            // --------------------------------------------------------
+
+            if (empty($ccNo)) {
+                continue;
+            }
+
+
+            // --------------------------------------------------------
+            // DATA
+            // --------------------------------------------------------
+
+            $data = [
+
+                'login_id' =>
+                $request->input('login_id_store'),
+
+                'application_id' =>
+                $applicationId,
+
+                'staff_category' =>
+                $staffCategories[$index] ?? null,
+
+                'staff_cc_no' =>
+                $staffCcNos[$index] ?? null,
+
+                'staff_cc_first_issue' =>
+                $staffFirstIssues[$index] ?? null,
+
+                'staff_cc_validity_from' =>
+                $staffValidityFroms[$index] ?? null,
+
+                'staff_cc_validity_to' =>
+                $staffValidityTos[$index] ?? null,
+
+                'app_doc' =>
+                $appDocs[$index] ?? null,
+
+                'cons_doc' =>
+                $consDocs[$index] ?? null,
+
+                'row_index' =>
+                $index + 1,
+
+                'staff_status' => 'NA',
+
+                'updated_at' =>
+                now(),
+            ];
+
+
+            // --------------------------------------------------------
+            // EXISTING RECORD = UPDATE
+            // --------------------------------------------------------
+
+            if (
+                !empty($staffQcIds[$index])
+            ) {
+
+
+                DB::table('cl_staff_tbl')
+                    ->where(
+                        'id',
+                        $staffQcIds[$index]
+                    )
+                    ->where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->update($data);
+
+
+                $savedIds[] =
+                    $staffQcIds[$index];
+            }
+
+
+            // --------------------------------------------------------
+            // NEW RECORD = INSERT
+            // --------------------------------------------------------
+
+            else {
+
+                $data['created_at'] =
+                    now();
+
+
+                $id =
+                    DB::table('cl_staff_tbl')
+                    ->insertGetId($data);
+
+
+                $savedIds[] =
+                    $id;
+            }
+        }
 
 
 
@@ -2134,7 +2501,16 @@ class FormAController extends BaseController
 
             // dd($issued_licence);
             // exit;
+            if ($appl_type === 'D') {
 
+                return response()->json([
+                    'draft_status'    => false,
+                    'message'         => 'Application Submitted Successfully!',
+                    'login_id'        => $applicationId,
+                    'transaction_id'  => null,
+                    'application_type'=> 'D',
+                ]);
+            }
 
             if ($appl_type === 'R') {
 
@@ -2238,11 +2614,13 @@ class FormAController extends BaseController
     }
 
     // ------------application id-----------------------
-    private function generateApplicationId($isRenewal, $formName, $licenseName)
+    private function generateApplicationId($appl_type, $formName, $licenseName)
     {
-        $model = $isRenewal ? EA_Application_model::class : EA_Application_model::class;
 
-        $prefix = $isRenewal ? 'R' : '';
+        // dd($appl_type, $formName, $licenseName);exit;
+        $model = $appl_type ? EA_Application_model::class : EA_Application_model::class;
+
+        $prefix = $appl_type;
         $year = date('y');
 
         // Get last application for this specific prefix & year
@@ -2856,160 +3234,7 @@ class FormAController extends BaseController
         // exit;
 
 
-        // --------------------------QC Details------------------------------------------
-        $processedStaffIdsQC = [];
 
-        if ($request->has('staffqc_name')) {
-
-            dd('QC Details');
-            exit;
-
-
-            $staffIdsFromForm = $request->staff_id ?? [];
-            $existingStaffIds = Tnelb_EA_QC_model::where('application_id', $applicationId)->pluck('id')->toArray();
-
-            // $processedStaffIdsQC = [];
-
-            foreach ($request->staffqc_name as $index => $staffName) {
-                if (
-                    !empty($staffName) ||
-                    // !empty($request->staff_qualification[$index]) ||
-                    !empty($request->cc_number[$index]) ||
-                    !empty($request->cc_validity[$index]) ||
-                    !empty($request->staff_category[$index])
-                ) {
-                    $staffId = $staffIdsFromForm[$index] ?? null;
-                    $validity = $request->cc_validity[$index] ?? null;
-
-                    $staffData = [
-                        'application_id'      => $applicationId,
-                        'login_id'            => $request->login_id_store,
-                        'staffqc_name'          => strtoupper($staffName),
-                        'staff_qualification' => strtoupper($request->staff_qualification[$index] ?? ''),
-                        'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
-                        'cc_validity'         => $validity,
-                        'staff_category'      => strtoupper($request->staff_category[$index] ?? ''),
-                        'staff_cc_verify'     => $request->staff_cc_verify[$index]
-                    ];
-
-                    if ($staffId && in_array($staffId, $existingStaffIds)) {
-                        $existingStaff = Tnelb_EA_QC_model::find($staffId);
-
-                        if (
-                            strtoupper($existingStaff->staff_name) !== strtoupper($staffName) ||
-                            strtoupper($existingStaff->staff_qualification) !== strtoupper($request->staff_qualification[$index] ?? '') ||
-                            strtoupper($existingStaff->cc_number) !== strtoupper($request->cc_number[$index] ?? '') ||
-                            $existingStaff->cc_validity !== $validity ||
-                            strtoupper($existingStaff->staff_category) !== strtoupper($request->staff_category[$index] ?? '')
-                        ) {
-                            $existingStaff->update($staffData);
-                        }
-
-                        $processedStaffIdsQC[] = $staffId;
-                    } else {
-                        // Create new entry
-                        $newStaff = Tnelb_EA_QC_model::create($staffData);
-                        $processedStaffIdsQC[] = $newStaff->id;
-                    }
-                }
-            }
-
-
-
-            // Remove deleted staff
-            Tnelb_EA_QC_model::where('application_id', $applicationId)
-                ->whereNotIn('id', $processedStaffIdsQC)
-                ->delete();
-        }
-
-        // Update only staff_cc_verify values by staff_id (if they exist)
-        if ($request->has('staff_qccc_verify') && $request->has('staffqc_id')) {
-            foreach ($request->staff_qccc_verify as $index => $verifyValue) {
-                $staffId = $request->staff_id[$index] ?? null;
-
-                if ($staffId) {
-                    Tnelb_EA_QC_model::where('id', $staffId)->update([
-                        'staff_qccc_verify' => $verifyValue
-                    ]);
-                }
-            }
-        }
-        // -----------------------------------------------
-
-        $processedStaffIds = [];
-
-        if ($request->has('staff_name')) {
-
-
-            $staffIdsFromForm = $request->staff_id ?? [];
-            $existingStaffIds = TnelbApplicantStaffDetail::where('application_id', $applicationId)->pluck('id')->toArray();
-
-            // $processedStaffIds = [];
-
-            foreach ($request->staff_name as $index => $staffName) {
-                if (
-                    !empty($staffName) ||
-                    // !empty($request->staff_qualification[$index]) ||
-                    !empty($request->cc_number[$index]) ||
-                    !empty($request->cc_validity[$index]) ||
-                    !empty($request->staff_category[$index])
-                ) {
-                    $staffId = $staffIdsFromForm[$index] ?? null;
-                    $validity = $request->cc_validity[$index] ?? null;
-
-                    $staffData = [
-                        'application_id'      => $applicationId,
-                        'login_id'            => $request->login_id_store,
-                        'staff_name'          => strtoupper($staffName),
-                        'staff_qualification' => strtoupper($request->staff_qualification[$index] ?? ''),
-                        'cc_number'           => strtoupper($request->cc_number[$index] ?? ''),
-                        'cc_validity'         => $validity,
-                        'staff_category'      => strtoupper($request->staff_category[$index] ?? ''),
-                        'staff_cc_verify'     => $request->staff_cc_verify[$index]
-                    ];
-
-                    if ($staffId && in_array($staffId, $existingStaffIds)) {
-                        $existingStaff = TnelbApplicantStaffDetail::find($staffId);
-
-                        if (
-                            strtoupper($existingStaff->staff_name) !== strtoupper($staffName) ||
-                            strtoupper($existingStaff->staff_qualification) !== strtoupper($request->staff_qualification[$index] ?? '') ||
-                            strtoupper($existingStaff->cc_number) !== strtoupper($request->cc_number[$index] ?? '') ||
-                            $existingStaff->cc_validity !== $validity ||
-                            strtoupper($existingStaff->staff_category) !== strtoupper($request->staff_category[$index] ?? '')
-                        ) {
-                            $existingStaff->update($staffData);
-                        }
-
-                        $processedStaffIds[] = $staffId;
-                    } else {
-                        // Create new entry
-                        $newStaff = TnelbApplicantStaffDetail::create($staffData);
-                        $processedStaffIds[] = $newStaff->id;
-                    }
-                }
-            }
-
-
-
-            // Remove deleted staff
-            TnelbApplicantStaffDetail::where('application_id', $applicationId)
-                ->whereNotIn('id', $processedStaffIds)
-                ->delete();
-        }
-
-        // Update only staff_cc_verify values by staff_id (if they exist)
-        if ($request->has('staff_cc_verify') && $request->has('staff_id')) {
-            foreach ($request->staff_cc_verify as $index => $verifyValue) {
-                $staffId = $request->staff_id[$index] ?? null;
-
-                if ($staffId) {
-                    TnelbApplicantStaffDetail::where('id', $staffId)->update([
-                        'staff_cc_verify' => $verifyValue
-                    ]);
-                }
-            }
-        }
 
         //    dd($request->all());
         // exit;
@@ -3471,6 +3696,8 @@ class FormAController extends BaseController
 
     public function getFormInstructions(Request $request)
     {
+
+    // dd($request->all());exit;
         try {
             $formName  = $request->get('form_name');
             $appl_type = $request->get('appl_type');
@@ -3513,6 +3740,26 @@ class FormAController extends BaseController
                     'fees_start_date' => null
                 ], 404);
             }
+
+             if ($appl_type === 'D') {
+
+            $fees_details = [
+                'dbNow'       => Carbon::now()->format('d-m-Y'),
+                'total_fees'  => 0,
+                'lateFees'    => 0,
+                'late_months' => 0,
+                'basic_fees'  => 0,
+                'qcfee'       => 0,
+            ];
+
+            return response()->json([
+                'status'          => 'success',
+                'instructions'    => $form->instructions,
+                'licenseName'     => $form->licence_name,
+                'fees_details'    => $fees_details,
+                'fees_start_date' => null
+            ], 200);
+        }
 
             if ($appl_type === 'R') {
 
@@ -3825,19 +4072,7 @@ class FormAController extends BaseController
 
         ] + $validatedData);
 
-        if ($request->has('staff_name')) {
-            foreach ($request->staff_name as $index => $staffName) {
-                TnelbApplicantStaffDetail::create([
-                    'login_id' => $request->login_id_store,
-                    'application_id' => $newApplicationId,
-                    'staff_name' => $staffName,
-                    'staff_qualification' => $request->staff_qualification[$index] ?? null,
-                    'cc_number' => $request->cc_number[$index] ?? null,
-                    'cc_validity' => $request->cc_validity[$index] ?? null,
-                    'staff_category' => $request->staff_category[$index],
-                ]);
-            }
-        }
+
 
 
 

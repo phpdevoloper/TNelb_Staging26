@@ -324,7 +324,7 @@ class LicenseController extends Controller
         // dd($date);
         // exit;
         $history = DB::table('tnelb_applicant_cl_staffdetails as s')
-            ->leftJoin('tnelb_ea_applications as a', 's.application_id', '=', 'a.application_id')
+            ->leftJoin('ccl_forma_meta as a', 's.application_id', '=', 'a.application_id')
             ->where('s.cc_number', $license)
             // ->where('s.cc_validity', $date)
             ->where('a.application_status', 'A')

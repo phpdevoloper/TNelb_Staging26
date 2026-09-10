@@ -6,7 +6,7 @@ $(document).on("click", ".upload-btn", function () {
     // Get document category
     let documentCategory = btn.data("document_category");
 
-  
+
     let fileInput;
 
     if (documentCategory === "app_doc") {
@@ -211,10 +211,9 @@ $(document).on("click", ".upload-btn", function () {
     // STATIC VALUES
     // --------------------------------------------------
 
-    formData.append(
-        "appl_type",
-        "N"
-    );
+    let applType = $("#appl_type").val()?.trim() || "";
+
+    //   alert(applType);
 
     formData.append(
         "form_name",
@@ -226,7 +225,7 @@ $(document).on("click", ".upload-btn", function () {
         "EA"
     );
 
-
+    formData.append("appl_type", applType);
     // --------------------------------------------------
     // AJAX UPLOAD
     // --------------------------------------------------
@@ -1524,114 +1523,862 @@ $("#competency_form_a").on("submit", function (e) {
 
     // ----------------------------------------------------
 
-    let authorisedSelected = $(
-        'input[name="authorised_name_designation"]:checked',
-    ).val();
-    if (!authorisedSelected) {
-        $("#authorised_name_designation_error").text(
-            " select Yes or No for authorised signatory.",
-        );
-        isValid = false;
-    } else if (authorisedSelected === "yes") {
-        let authName = $("#authorised_name").val().trim();
-        let authDesig = $("#authorised_designation").val().trim();
-
-        if (authName === "") {
-            $("#authorised_name").after(
-                '<span class="error text-danger d-block">Authorised Name is required.</span>',
-            );
-            isValid = false;
-        }
-
-        if (authDesig === "") {
-            $("#authorised_designation").after(
-                '<span class="error text-danger d-block">Authorised Designation is required.</span>',
-            );
-            isValid = false;
-        }
-    }
-
-    $('input[name="authorised_name_designation"]').on("change", function () {
-        $("#authorised_name_designation_error").text("");
-    });
-
-    // Authorised Name & Designation Inputs
-    $("#authorised_name, #authorised_designation").on("keyup", function () {
-        $(this).next(".error").remove(); // remove dynamically appended span
-    });
+ 
 
     // ------------------ 3. Previous Contractor License ------------------
     let previousSelected = $(
-        'input[name="previous_contractor_license"]:checked',
+        'input[name="previous_contractor_license"]:checked'
     ).val();
 
     if (!previousSelected) {
+
         $("#previous_contractor_license_error").text(
-            "Select Yes or No for previous application.",
+            "Select Yes or No for previous application."
         );
+
         isValid = false;
+
+        showBasicDetailsTab();
+
     } else if (previousSelected === "yes") {
+
         let prevAppNo = $("#previous_application_number").val().trim();
+
         $("#previous_application_number").next(".error").remove();
+        $("#previous_application_number_error").remove();
 
         if (prevAppNo === "") {
+
             $("#previous_application_number").after(
-                '<span class="error text-danger d-block">Previous License Number is required.</span>',
+                '<span class="error text-danger d-block">' +
+                'Previous Licence Number is required.' +
+                '</span>'
             );
+
             isValid = false;
-        }
-        // ✅ Check if starts with EA
-        else if (!/^EA|L/i.test(prevAppNo)) {
-            // Remove existing error (optional cleanup)
-            $("#previous_application_number_error").remove();
 
-            // Add error message under input
+            showBasicDetailsTab();
+
+        } else if (!/^(EA|L)/i.test(prevAppNo)) {
+
             $("#previous_application_number").after(
-                '<span id="previous_application_number_error" class="error text-danger d-block">License number must start with "EA or L".</span>',
+                '<span id="previous_application_number_error" class="error text-danger d-block">' +
+                'License number must start with "EA" or "L".' +
+                '</span>'
             );
 
-            // Add red border highlight
             $("#previous_application_number").addClass("input-error");
 
-            // Switch to tab "Basic Details"
-            $(".nav-item").each(function () {
-                if ($(this).text().trim() === "Basic Details") {
-                    $(this).addClass("tab-error-bg");
-                    $(this).trigger("click");
-                }
-            });
+            isValid = false;
 
-            // Smooth scroll to the input field
+            showBasicDetailsTab();
+
             document
                 .getElementById("previous_application_number")
-                .scrollIntoView({ behavior: "smooth", block: "center" });
+                .scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
 
-            isValid = false;
             return;
         }
 
-        let prevAppNoval = $("#previous_application_validity").val().trim();
-        $("#previous_application_validity").next(".error").remove();
+        // First Issue
+        let firstIssue = $("#previous_validity_first_issue").val().trim();
 
-        if (prevAppNoval === "") {
-            $("#previous_application_validity").after(
-                '<span class="error text-danger d-block">Previous License Validity is required.</span>',
+        $("#previous_validity_first_issue").next(".error").remove();
+
+        if (firstIssue === "") {
+
+            $("#previous_validity_first_issue").after(
+                '<span class="error text-danger d-block">' +
+                'Licence Date of First Issue is required.' +
+                '</span>'
             );
+
             isValid = false;
+
+            showBasicDetailsTab();
+        }
+
+        // Validity From
+        let validityFrom = $("#previous_validity_from").val().trim();
+
+        $("#previous_validity_from").next(".error").remove();
+
+        if (validityFrom === "") {
+
+            $("#previous_validity_from").after(
+                '<span class="error text-danger d-block">' +
+                'Licence Validity From is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+
+            showBasicDetailsTab();
+        }
+
+        // Validity To
+        let validityTo = $("#previous_validity_to").val().trim();
+
+        $("#previous_validity_to").next(".error").remove();
+
+        if (validityTo === "") {
+
+            $("#previous_validity_to").after(
+                '<span class="error text-danger d-block">' +
+                'Licence Validity To is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+
+            showBasicDetailsTab();
         }
     }
 
-    // Clear errors on input change
     $('input[name="previous_contractor_license"]').on("change", function () {
         $("#previous_contractor_license_error").text("");
     });
+
     $("#previous_application_number").on("keyup", function () {
         $(this).next(".error").remove();
+        $("#previous_application_number_error").remove();
+        $(this).removeClass("input-error");
     });
-    $("#previous_application_validity").on("change", function () {
+
+    $("#previous_validity_first_issue").on("change", function () {
         $(this).next(".error").remove();
     });
 
+    $("#previous_validity_from").on("change", function () {
+        $(this).next(".error").remove();
+    });
+
+    $("#previous_validity_to").on("change", function () {
+        $(this).next(".error").remove();
+    });
+
+    function showBasicDetailsTab() {
+        $(".nav-item").each(function () {
+
+            if ($(this).text().trim() === "Basic Details") {
+
+                $(this).addClass("tab-error-bg");
+
+                $(this).trigger("click");
+
+                return false;
+            }
+
+        });
+    }
+    // ======================================================
+    // 5A STAFF QC/QSC VALIDATION - FIRST PRIORITY
+    // ======================================================
+
+    // ======================================================
+    // QC / QSC STAFF VALIDATION
+    // ======================================================
+    let qcStaffRecords = [];
+
+
+    // ----------------------------------------------------------
+    // GET ALL QC / QSC STAFF ROWS
+    // ----------------------------------------------------------
+
+    $("#staffqc-records tr").each(function (index) {
+
+        let $tr = $(this);
+
+        // Skip rows that are not actual QC/QSC staff rows
+        if (
+            !$tr.hasClass("staffqc-record") &&
+            !$tr.hasClass("staffqc-fields")
+        ) {
+            return;
+        }
+
+        let record = {
+
+            // Existing database ID
+            id: $tr.data("id") || null,
+
+            // Category
+            staff_category:
+                $tr.find(".staff_category").val()
+                ||
+                $tr.find('input[name="staff_category[]"]').val()
+                ||
+                $tr.find('input[name^="staff_category["]').val()
+                ||
+                $tr.find("td:eq(1)").text().trim()
+                ||
+                "",
+
+            // Certificate Number
+            staff_cc_no:
+                $tr.find(".staff_cc_no").val()
+                ||
+                $tr.find(".cc_number").val()
+                ||
+                $tr.find('input[name="staff_cc_no[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_no["]').val()
+                ||
+                $tr.find("td:eq(2)").text().trim()
+                ||
+                "",
+
+            // First Issue
+            staff_cc_first_issue:
+                $tr.find(".staff_cc_first_issue").val()
+                ||
+                $tr.find(".cc_firstissue").val()
+                ||
+                $tr.find('input[name="staff_cc_first_issue[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_first_issue["]').val()
+                ||
+                "",
+
+            // Validity From
+            staff_cc_validity_from:
+                $tr.find(".staff_cc_validity_from").val()
+                ||
+                $tr.find(".cc_validity_from").val()
+                ||
+                $tr.find('input[name="staff_cc_validity_from[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_validity_from["]').val()
+                ||
+                "",
+
+            // Validity To
+            staff_cc_validity_to:
+                $tr.find(".staff_cc_validity_to").val()
+                ||
+                $tr.find(".cc_validity_to").val()
+                ||
+                $tr.find('input[name="staff_cc_validity_to[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_validity_to["]').val()
+                ||
+                "",
+
+            // Appointment document
+            app_doc:
+                $tr.find('input[name="app_doc[]"]').val()
+                ||
+                $tr.find('input[name^="app_doc["]').val()
+                ||
+                "",
+
+            // Consent document
+            cons_doc:
+                $tr.find('input[name="cons_doc[]"]').val()
+                ||
+                $tr.find('input[name^="cons_doc["]').val()
+                ||
+                ""
+        };
+
+
+        qcStaffRecords.push(record);
+
+    });
+
+
+    // ----------------------------------------------------------
+    // DEBUG
+    // ----------------------------------------------------------
+
+    console.log("QC/QSC row count:",
+        $("#staffqc-records tr").length
+    );
+
+    console.log("QC/QSC records:",
+        qcStaffRecords);
+
+
+    // ----------------------------------------------------------
+    // MINIMUM ONE QC / QSC STAFF
+    // ----------------------------------------------------------
+
+    if (qcStaffRecords.length === 0) {
+
+        isValid = false;
+
+        // Add red border
+        $("#staff-table").addClass("qc-table-error");
+
+
+        Swal.fire({
+            icon: "warning",
+            title: "Staff Details Required",
+            text: "Please enter minimum one QC/QSC staff.",
+            confirmButtonText: "OK",
+            width: 450
+        });
+
+
+        // Open Staff & Bank Details tab
+        $(".nav-item").each(function () {
+
+            if (
+                $(this)
+                    .text()
+                    .trim()
+                    .includes("Staff & Bank Details")
+            ) {
+
+                $(this).addClass("tab-error-bg");
+
+                $(this).trigger("click");
+
+                return false;
+            }
+
+        });
+
+
+        return;
+    }
+
+
+    // ----------------------------------------------------------
+    // QC/QSC STAFF EXISTS
+    // ----------------------------------------------------------
+
+    console.log(
+        "Minimum QC/QSC requirement satisfied.",
+        qcStaffRecords.length,
+        "record(s) found."
+    );
+
+
+    // Remove previous error border
+    $("#staff-table").removeClass("qc-table-error");
+
+
+    // Remove tab error
+    $(".nav-item").each(function () {
+
+        if (
+            $(this)
+                .text()
+                .trim()
+                .includes("Staff & Bank Details")
+        ) {
+
+            $(this).removeClass("tab-error-bg");
+
+            return false;
+        }
+
+    });
+
+    // ----------------------------------------
+    // ADD QC RECORDS TO FORMDATA
+    // ----------------------------------------
+
+    formData.set(
+        "qc_staff_records",
+        JSON.stringify(qcStaffRecords)
+    );
+
+
+    console.log(
+        "FINAL QC STAFF:",
+        formData.get("qc_staff_records")
+    );
+
+    // ======================================================
+    // STAFF B VALIDATION - SECOND PRIORITY
+    // FIRST 2 STAFF MUST BE CATEGORY B
+    // ALL CERTIFICATE FIELDS ARE MANDATORY
+    // ======================================================
+    // ======================================================
+    // MANDATORY STAFF VALIDATION
+    // ======================================================
+
+    let $mandatoryStaffRows =
+        $("#staff-container tr.staff-fields");
+
+    let mandatoryStaffRowCount =
+        $mandatoryStaffRows.length;
+
+    $("#staff-container .staff-validation-error").remove();
+
+    let staffValidationPassed = true;
+
+
+    // ======================================================
+    // CHECK MINIMUM 2 STAFF
+    // ======================================================
+
+    if (mandatoryStaffRowCount < 2) {
+
+        isValid = false;
+        staffValidationPassed = false;
+
+        Swal.fire({
+            icon: "warning",
+            title: "Staff Details Required",
+            text: "Minimum 2 B staff members are mandatory.",
+            confirmButtonText: "OK",
+            width: 450
+        });
+
+
+        // Open Staff & Bank Details tab
+        $(".nav-item").each(function () {
+
+            if (
+                $(this)
+                    .text()
+                    .trim()
+                    .includes("Staff & Bank Details")
+            ) {
+
+                $(this).addClass("tab-error-bg");
+
+                $(this).trigger("click");
+
+                return false;
+            }
+        });
+
+
+        $("#staff-container").after(
+
+            '<span class="staff-validation-error error text-danger d-block">' +
+
+            'Minimum 2 B staff members are mandatory.' +
+
+            '</span>'
+        );
+
+        return;
+    }
+
+
+    // ======================================================
+    // VALIDATE FIRST 2 B STAFF
+    // ======================================================
+let staffValidationRequests = [];
+let staffBasicValidationPassed = true;
+
+// ======================================================
+// VALIDATE ALL STAFF ROWS
+// B + C = CERTIFICATE VALIDATION
+// OTHERS = SKIP CERTIFICATE VALIDATION
+// ======================================================
+
+$mandatoryStaffRows.each(function (index) {
+
+    let $row = $(this);
+
+    // ==================================================
+    // CATEGORY
+    // ==================================================
+
+    let category = ($row.find(".staff_category").val() || "").trim();
+
+    // First 2 rows are mandatory B
+    if (index < 2) {
+        category = "B";
+    }
+
+    console.log("====================================");
+    console.log("STAFF " + (index + 1));
+    console.log("CATEGORY:", category);
+
+
+    // ==================================================
+    // OTHERS
+    // No certificate validation required
+    // ==================================================
+
+    if (category === "OTHERS") {
+
+        console.log(
+            "STAFF " + (index + 1) +
+            ": OTHERS - Certificate validation skipped"
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // ONLY B AND C REQUIRE CERTIFICATE DETAILS
+    // ==================================================
+
+    if (category !== "B" && category !== "C") {
+
+        staffBasicValidationPassed = false;
+
+        $row.find(".staff_category").after(
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Please select a valid staff category.' +
+            '</span>'
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // CERTIFICATE NUMBER
+    // ==================================================
+
+    let ccNumber = ($row.find(".cc_number").val() || "").trim();
+
+    // ==================================================
+    // FIRST ISSUE
+    // ==================================================
+
+    let firstIssue = ($row.find(".cc_firstissue").val() || "").trim();
+
+    // ==================================================
+    // VALIDITY FROM
+    // ==================================================
+
+    let validityFrom = ($row.find(".cc_validity_from").val() || "").trim();
+
+    // ==================================================
+    // VALIDITY TO
+    // ==================================================
+
+    let validityTo = ($row.find(".cc_validity_to").val() || "").trim();
+
+
+    console.log("Certificate No:", ccNumber);
+    console.log("First Issue:", firstIssue);
+    console.log("Validity From:", validityFrom);
+    console.log("Validity To:", validityTo);
+
+
+    // ==================================================
+    // CERTIFICATE NUMBER REQUIRED
+    // ==================================================
+
+    if (ccNumber === "") {
+
+        staffBasicValidationPassed = false;
+
+        $row.find(".cc_number").after(
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate Number is required.</span>'
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // FIRST ISSUE REQUIRED
+    // ==================================================
+
+    if (firstIssue === "") {
+
+        staffBasicValidationPassed = false;
+
+        $row.find(".cc_firstissue").after(
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate First Issue is required.</span>'
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // VALIDITY FROM REQUIRED
+    // ==================================================
+
+    if (validityFrom === "") {
+
+        staffBasicValidationPassed = false;
+
+        $row.find(".cc_validity_from").after(
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate Validity From is required.</span>'
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // VALIDITY TO REQUIRED
+    // ==================================================
+
+    if (validityTo === "") {
+
+        staffBasicValidationPassed = false;
+
+        $row.find(".cc_validity_to").after(
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate Validity To is required.</span>'
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // SEND B / C CERTIFICATE TO CONTROLLER
+    // ==================================================
+
+    let request = validateStaffCertificate(
+        category,
+        ccNumber,
+        firstIssue,
+        validityFrom,
+        validityTo
+    )
+
+    
+    .then(function (response) {
+
+        console.log(
+            "STAFF " + (index + 1) +
+            " CERTIFICATE RESPONSE:",
+            response
+        );
+
+
+        // ==================================================
+        // CERTIFICATE INVALID
+        // ==================================================
+
+        if (response.status !== true) {
+
+            staffValidationPassed = false;
+
+            $row.find(".cc_number").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                (response.message || "Certificate validation failed.") +
+                '</span>'
+            );
+
+            return false;
+        }
+
+
+        // ==================================================
+        // CERTIFICATE VALID
+        // ==================================================
+
+        console.log(
+            "STAFF " + (index + 1) +
+            " certificate verified successfully."
+        );
+
+        return true;
+
+    })
+    .catch(function (xhr) {
+
+        staffValidationPassed = false;
+
+        console.log(
+            "STAFF " + (index + 1) +
+            " CERTIFICATE ERROR"
+        );
+
+        console.log("HTTP STATUS:", xhr.status);
+        console.log("RESPONSE:", xhr.responseText);
+        console.log("JSON:", xhr.responseJSON);
+
+
+        $row.find(".cc_number").after(
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Unable to verify certificate. Please try again.' +
+            '</span>'
+        );
+
+        return false;
+    });
+console.log(request);
+
+    staffValidationRequests.push(request);
+
+});
+
+
+// ======================================================
+// BASIC VALIDATION FAILED
+// ======================================================
+
+if (!staffBasicValidationPassed) {
+
+    alert('111');
+
+    isValid = false;
+
+    Swal.fire({
+        icon: "warning",
+        title: "Staff Details Incomplete",
+        text: "Please complete all mandatory staff certificate details.",
+        confirmButtonText: "OK",
+        width: 500
+    });
+
+    $(".nav-item").each(function () {
+
+        if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+            $(this).addClass("tab-error-bg");
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+
+        }
+
+    }, 300);
+
+    return;
+}
+
+
+// ======================================================
+// WAIT FOR ALL B + C CERTIFICATE CHECKS
+// ======================================================
+
+Promise.all(staffValidationRequests)
+.then(function (results) {
+
+    console.log(
+        "ALL STAFF CERTIFICATE RESULTS:",
+        results
+    );
+
+
+    // ==================================================
+    // CHECK ALL CERTIFICATES
+    // ==================================================
+
+    let allCertificatesValid = results.every(function (result) {
+        return result === true;
+    });
+
+
+    if (!allCertificatesValid) {
+alert('222');
+        isValid = false;
+
+        Swal.fire({
+            icon: "warning",
+            title: "Invalid Staff Certificate",
+            text: "Please correct the invalid B/C staff certificate details.",
+            confirmButtonText: "OK",
+            width: 500
+        });
+
+        $(".nav-item").each(function () {
+
+            if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+                $(this).addClass("tab-error-bg");
+                $(this).trigger("click");
+
+                return false;
+            }
+
+        });
+
+        setTimeout(function () {
+
+            if ($("#staff-table").length) {
+
+                $("#staff-table")[0].scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+
+            }
+
+        }, 300);
+
+        return;
+    }
+
+
+    // ==================================================
+    // ALL B/C CERTIFICATES VALID
+    // ==================================================
+
+    console.log(
+        "All B/C staff certificates verified successfully."
+    );
+
+    // Continue remaining form validation here
+
+});
+
+ console.log(
+        "next function check:",
+    );
+
+    // ======================================================
+    // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
+    // ======================================================
+
+    $(document).on("input change", "#staff-container .cc_number", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("input change", "#staff-container .cc_firstissue", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("input change", "#staff-container .cc_validity_from", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("input change", "#staff-container .cc_validity_to", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("change", "#staff-container .staff_category", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
     // ---------------- 7 Bank------------------------
 
     let bankAddress = $("textarea[name='bank_address']").val().trim();
@@ -1684,6 +2431,7 @@ $("#competency_form_a").on("submit", function (e) {
     }
 
     if ((bankValidity === "") | (bankAmount === "") | (bankAddress === "")) {
+        alert('333');
         if (bankValidity === "") {
             $("#bank_validity_error").text("Validity period is required.");
         }
@@ -1720,7 +2468,7 @@ $("#competency_form_a").on("submit", function (e) {
     let hasUploadedFile = $("#bank_doc_section .file-link a").length > 0;
 
     if (!hasUploadedFile) {
-        // alert("empty");
+        alert("444");
 
         $("#bank_doc_error").text("Bank Solvency Document must be uploaded.");
 
@@ -1807,6 +2555,7 @@ $("#competency_form_a").on("submit", function (e) {
 
     // ❌ IF INVALID
     if (!addressValid) {
+        alert('555');
         $(".nav-item").each(function () {
             if ($(this).text().trim() === "Staff & Bank Details") {
                 $(this).addClass("tab-error-bg");
@@ -1836,488 +2585,8 @@ $("#competency_form_a").on("submit", function (e) {
         }
     });
 
-    // -----------------8-----------------
-
-    let criminalOffence = $('input[name="criminal_offence"]:checked').val();
-    if (!criminalOffence) {
-        $("#criminal_offence_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="criminal_offence"]').on("change", function () {
-        $("#criminal_offence_error").text("");
-    });
-
-    // -----------------9-----------------
-
-    let consent_letter_enclose = $(
-        'input[name="consent_letter_enclose"]:checked',
-    ).val();
-    if (!consent_letter_enclose) {
-        $("#consent_letter_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="consent_letter_enclose"]').on("change", function () {
-        $("#consent_letter_enclose_error").text("");
-    });
-
-    // -----------------10-----------------
-
-    let cc_holders_enclosed = $(
-        'input[name="cc_holders_enclosed"]:checked',
-    ).val();
-    if (!cc_holders_enclosed) {
-        $("#cc_holders_enclosed_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="cc_holders_enclosed"]').on("change", function () {
-        $("#cc_holders_enclosed_error").text("");
-    });
-
-    // -----------------10 (ii)-----------------
-
-    let purchase_bill_enclose = $(
-        'input[name="purchase_bill_enclose"]:checked',
-    ).val();
-    if (!purchase_bill_enclose) {
-        $("#purchase_bill_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="purchase_bill_enclose"]').on("change", function () {
-        $("#purchase_bill_enclose_error").text("");
-    });
-
-    // -----------------10-----------------
-
-    let test_reports_enclose = $(
-        'input[name="test_reports_enclose"]:checked',
-    ).val();
-    if (!test_reports_enclose) {
-        $("#test_reports_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="test_reports_enclose"]').on("change", function () {
-        $("#test_reports_enclose_error").text("");
-    });
-
-    // -----------------11-----------------
-
-    let specimen_signature_enclose = $(
-        'input[name="specimen_signature_enclose"]:checked',
-    ).val();
-    if (!specimen_signature_enclose) {
-        $("#specimen_signature_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="specimen_signature_enclose"]').on("change", function () {
-        $("#specimen_signature_enclose_error").text("");
-    });
-
-    // -----------------11 (ii)-----------------
-
-    let separate_sheet = $('input[name="separate_sheet"]:checked').val();
-    if (!separate_sheet) {
-        $("#separate_sheet_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="separate_sheet"]').on("change", function () {
-        $("#separate_sheet_error").text("");
-    });
-
-    // Aadhaar number validation
-    // ------------------ Collect Inputs ------------------
-    // let aadhaar = $("#aadhaar").val().replace(/\s+/g, "");
-    // let pancard = $("#pancard").val().trim().toUpperCase();
-    // let gst_number = $("#gst_number").val().trim().toUpperCase();
-
-    // ------------------ Clear Previous Errors ------------------
-    // $("#aadhaar_error, #pancard_error, #gst_number_error, #aadhaar_doc_error, #pancard_doc_error, #gst_doc_error").text("");
-
-    // // ------------------ Aadhaar Validation ------------------
-    // if (aadhaar === "") {
-    //     $("#aadhaar_error").text("Aadhaar number is required.");
-    //     isValid = false;
-    // } else if (!/^\d{12}$/.test(aadhaar)) {
-    //     $("#aadhaar_error").text("Enter a valid 12-digit Aadhaar number.");
-    //     isValid = false;
-    // }
-
-    // // ------------------ PAN Validation ------------------
-    // const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
-    // if (pancard === "") {
-    //     $("#pancard_error").text("PAN card number is required.");
-    //     isValid = false;
-    // } else if (!panPattern.test(pancard)) {
-    //     $("#pancard_error").text("Invalid PAN format (e.g., ABCDE1234F)");
-    //     isValid = false;
-    // }
-
-    // ------------------ GST Validation ------------------
-    // if (gst_number === "") {
-    //     $("#gst_number_error").text("GST Number is required.");
-    //     isValid = false;
-    // } else if (!/^[A-Z0-9]{15}$/.test(gst_number)) {
-    //     $("#gst_number_error").text(
-    //         "Enter 15-character alphanumeric GST Number.",
-    //     );
-    //     isValid = false;
-    // }
-
-    // ------------------ Document Validation ------------------
-    const allowedTypes = ["application/pdf"];
-    const maxSize = 250 * 1024;
-
-    function validateDoc(inputId, errorId, name) {
-        const input = document.getElementById(inputId);
-        if (input && input.type === "file") {
-            const file = input.files[0];
-            if (!file) {
-                $(`#${errorId}`).text(`${name} document is Mandatory.`);
-                isValid = false;
-            } else if (!allowedTypes.includes(file.type)) {
-                $(`#${errorId}`).text("Only PDF files are allowed.");
-                isValid = false;
-            } else if (file.size > maxSize) {
-                $(`#${errorId}`).text("File size Permitted Only 5 to 250 KB");
-                isValid = false;
-            } else {
-                $(`#${errorId}`).text("");
-            }
-        }
-    }
-
-    validateDoc("aadhaar_doc", "aadhaar_doc_error", "Aadhaar");
-    validateDoc("pancard_doc", "pancard_doc_error", "Pan Card");
-    validateDoc("gst_doc", "gst_doc_error", "GST");
-
-    // ------------------ If Any Error Found ------------------
-    if (!isValid) {
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click"); // switch to Staff & Bank Details tab
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return; // stop further submission
-    }
-
-    // ------------------ Live Input Handlers ------------------
-    $("#aadhaar").on("keyup", function () {
-        let val = $(this).val().replace(/\D/g, "");
-        let formatted = val.replace(/(.{4})/g, "$1 ").trim();
-        $(this).val(formatted);
-
-        if (val.length === 12 && /^[2-9]/.test(val)) {
-            $("#aadhaar_error").text("");
-        } else {
-            $("#aadhaar_error").text(
-                "Enter a valid 12-digit Aadhaar number (should not start with 0 or 1).",
-            );
-        }
-    });
-
-    $("#pancard").on("keyup", function () {
-        const value = $(this).val().toUpperCase();
-        $(this).val(value);
-
-        if (panPattern.test(value)) {
-            $("#pancard_error").text("");
-        } else {
-            $("#pancard_error").text("Invalid PAN format (e.g., ABCDE1234F)");
-        }
-    });
-
-    $("#gst_number").on("keyup", function () {
-        // alert('script');
-        const value = $(this).val().toUpperCase();
-        $(this).val(value);
-        if (/^[A-Z0-9]{15}$/.test(value)) {
-            $("#gst_number_error").text("");
-        } else {
-            $("#gst_number_error").text(
-                "Enter 15-character alphanumeric GST Number.",
-            );
-        }
-    });
-
-    // ------------------ Clear Errors on File Change ------------------
-    $("#aadhaar_doc").on("change", function () {
-        $("#aadhaar_doc_error").text("");
-    });
-    $("#pancard_doc").on("change", function () {
-        $("#pancard_doc_error").text("");
-    });
-    $("#gst_doc").on("change", function () {
-        $("#gst_doc_error").text("");
-    });
-
-    // ----------document------------------------
-
-    // -------------------end doc--------------------
-
-    // -------------------- 1. Proprietor Validation --------------------
-    // let proprietorValid = true;
-
-    // $(".border.box-shadow-blue, .proprietor-block").each(function (index) {
-    //     const block = $(this);
-
-    //     // Basic required fields
-    //     const name = block.find('input[name="proprietor_name[]"]');
-    //     const address = block.find('textarea[name="proprietor_address[]"]');
-    //     const age = block.find('input[name="age[]"]');
-    //     const qualification = block.find('input[name="qualification[]"]');
-    //     const fatherName = block.find('input[name="fathers_name[]"]');
-    //     const present_business = block.find('input[name="present_business[]"]');
-
-    //     if (name.val().trim() === "") {
-    //         block.find("#proprietor_name_error").text("Name is required.");
-    //         proprietorValid = false;
-    //     } else {
-    //         block.find("#proprietor_name_error").text("");
-    //     }
-
-    //     if (address.val().trim() === "") {
-    //         block
-    //             .find("#proprietor_address_error")
-    //             .text("Address is required.");
-    //         proprietorValid = false;
-    //     } else {
-    //         block.find("#proprietor_address_error").text("");
-    //     }
-
-    //     if (age.val().trim() === "") {
-    //         block.find("#age_error").text("Age is required.");
-    //         proprietorValid = false;
-    //          isValid = false;
-    //     } else {
-    //         block.find("#age_error").text("");
-    //     }
-
-    //     if (qualification.val().trim() === "") {
-    //         block
-    //             .find("#qualification_error")
-    //             .text("Qualification is required.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find("#qualification_error").text("");
-    //     }
-
-    //     if (fatherName.val().trim() === "") {
-    //         block
-    //             .find("#fathers_name_error")
-    //             .text("Father/Husband's name is required.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find("#fathers_name_error").text("");
-    //     }
-
-    //     if (present_business.val().trim() === "") {
-    //         block
-    //             .find("#present_business_error")
-    //             .text("Present business is required.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find("#present_business_error").text("");
-    //     }
-
-    //     // --- (v) Competency Certificate Validation ---
-    //     const compSelected = block.find(
-    //         `input[name="competency_certificate_holding[${index}]"]:checked`
-    //     );
-    //     if (compSelected.length === 0) {
-    //         block
-    //             .find(".competency_certificate_holding_error")
-    //             .text("Please select Yes or No.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find(".competency_certificate_holding_error").text("");
-    //         if (compSelected.val() === "yes") {
-    //             const certNo = block.find(
-    //                 'input[name="competency_certificate_number[]"]'
-    //             );
-    //             const certValid = block.find(
-    //                 'input[name="competency_certificate_validity[]"]'
-    //             );
-
-    //             if (certNo.val().trim() === "") {
-    //                 block
-    //                     .find(".competency_number_error")
-    //                     .text("Certificate Number is required.");
-    //                 proprietorValid = false;
-    //             } else if (!/^[HBCL]/i.test(certNo.val().trim())) {
-    //                 block
-    //                     .find(".competency_number_error")
-    //                     .text("Certificate Number must start with H, B, C, L.");
-    //                 proprietorValid = false;
-
-    //                 isValid = false;
-    //             } else {
-    //                 block.find(".competency_number_error").text("");
-    //             }
-
-    //             if (certValid.val().trim() === "") {
-    //                 block
-    //                     .find(".competency_validity_error")
-    //                     .text("Certificate Validity is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 block.find(".competency_validity_error").text("");
-    //             }
-    //         }
-    //     }
-
-    //     // --- (vi) Presently Employed ---
-    //     const empSelected = block.find(
-    //         `input[name="presently_employed[${index}]"]:checked`
-    //     );
-    //     if (empSelected.length === 0) {
-    //         block
-    //             .find(".presently_employed_error")
-    //             .text("Please select Yes or No.");
-    //         proprietorValid = false;
-
-    //     } else {
-    //         block.find(".presently_employed_error").text("");
-    //         if (empSelected.val() === "yes") {
-    //             const empName = block.find(
-    //                 'input[name="presently_employed_name[]"]'
-    //             );
-    //             const empAddr = block.find(
-    //                 'textarea[name="presently_employed_address[]"]'
-    //             );
-
-    //             if (empName.val().trim() === "") {
-    //                 empName
-    //                     .next(".presently_employed_name_error")
-    //                     .text("Employer name is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 empName.next(".presently_employed_name_error").text("");
-    //             }
-
-    //             if (empAddr.val().trim() === "") {
-    //                 empAddr
-    //                     .next(".presently_employed_address_error")
-    //                     .text("Employer address is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 empAddr.next(".presently_employed_address_error").text("");
-    //             }
-    //         }
-    //     }
-
-    //     // --- (vii) Previous Experience ---
-    //     const expSelected = block.find(
-    //         `input[name="previous_experience[${index}]"]:checked`
-    //     );
-    //     if (expSelected.length === 0) {
-    //         block
-    //             .find(".previous_experience_error")
-    //             .text("Please select Yes or No.");
-    //         proprietorValid = false;
-    //     } else {
-    //         block.find(".previous_experience_error").text("");
-    //         if (expSelected.val() === "yes") {
-    //             const expName = block.find(
-    //                 'input[name="previous_experience_name[]"]'
-    //             );
-    //             const expAddr = block.find(
-    //                 'textarea[name="previous_experience_address[]"]'
-    //             );
-    //             const expLic = block.find(
-    //                 'input[name="previous_experience_lnumber[]"]'
-    //             );
-
-    //             const expLicensevalid = block.find(
-    //                 'input[name="previous_experience_lnumber_validity[]"]'
-    //             );
-
-    //             if (expName.val().trim() === "") {
-    //                 expName
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_name_error")
-    //                     .text("Contractor name is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 expName
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_name_error")
-    //                     .text("");
-    //             }
-
-    //             if (expAddr.val().trim() === "") {
-    //                 expAddr
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_address_error")
-    //                     .text("Contractor address is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 expAddr
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_address_error")
-    //                     .text("");
-    //             }
-
-    //             // License Number
-    //             if (expLic.val().trim() === "") {
-    //                 block
-    //                     .find(".previous_experience_lnumber_error")
-    //                     .text("License number is required.");
-    //                 proprietorValid = false;
-    //             } else if (!/^EA|L/i.test(expLic.val().trim())) {
-    //                 block
-    //                     .find(".previous_experience_lnumber_error")
-    //                     .text("License number must start with EA or L.");
-    //                 proprietorValid = false;
-    //                 isValid = false;
-    //             } else {
-    //                 block.find(".previous_experience_lnumber_error").text("");
-    //             }
-
-    //             // License Validity
-    //             if (expLicensevalid.val().trim() === "") {
-    //                 block
-    //                     .find(".previous_experience_lnumber_validity_error")
-    //                     .text("License Validity is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 block
-    //                     .find(".previous_experience_lnumber_validity_error")
-    //                     .text("");
-    //             }
-    //         }
-    //     }
-    // });
-
-    // $(document).on(
-    //     "keyup change input",
-    //     'input[name="proprietor_name[]"], textarea[name="proprietor_address[]"], input[name="age[]"], input[name="qualification[]"], input[name="fathers_name[]"], input[name="present_business[]"], input[name="competency_certificate_number[]"], input[name="competency_certificate_validity[]"], input[name="presently_employed_name[]"], textarea[name="presently_employed_address[]"], input[name="previous_experience_name[]"], textarea[name="previous_experience_address[]"], input[name="previous_experience_lnumber[]"], input[name="previous_experience_lnumber_validity[]"] ',
-    //     function () {
-    //         $(this).siblings(".error").text(""); // Remove existing error text
-    //         $(this).next(".error").remove(); // Remove appended span errors
-    //     }
-    // );
+    
+  
 
     // Declaration Checkboxes
     const declaration1Checked = $("#declarationCheckbox").is(":checked");
@@ -2362,7 +2631,7 @@ $("#competency_form_a").on("submit", function (e) {
         });
 
         $("#bank_validity_error").text(
-            "Minimum 3 year is required for Bank Solvency Validity Period.",
+            "Minimum 1 year is required for Bank Solvency Validity Period.",
         );
 
         const bankValidityInput = $("input[name='bank_validity']")[0];
@@ -2405,13 +2674,13 @@ $("#competency_form_a").on("submit", function (e) {
             row.find(".serial_error").text("");
         }
 
-        // MODEL
-        if (model.val().trim() === "") {
-            row.find(".model_error").text("Model required");
-            equipmentValid = false;
-        } else {
-            row.find(".model_error").text("");
-        }
+        // // MODEL
+        // if (model.val().trim() === "") {
+        //     row.find(".model_error").text("Model required");
+        //     equipmentValid = false;
+        // } else {
+        //     row.find(".model_error").text("");
+        // }
 
         // DATE
         if (date.val().trim() === "") {
@@ -2465,7 +2734,7 @@ $("#competency_form_a").on("submit", function (e) {
             $(this).closest("tr").find(".date_error").text("");
         }
     });
-
+// alert('666');
     $(document).on(
         "change",
         'input[name^="instrument_test_report"]',
@@ -2515,7 +2784,7 @@ $("#competency_form_a").on("submit", function (e) {
     // -------------------------------------
 
     if (isValid) {
-        // alert('111');
+        // alert('valid final');
         checkvaliditydatesformA(formData);
         // showDeclarationPopupformA(formData);
     }
@@ -2588,6 +2857,43 @@ $("#competency_form_a").on("submit", function (e) {
     //     }
     // });
 });
+
+
+function validateStaffCertificate(
+    staffCategory,
+    certificateNo,
+    firstIssue,
+    validityFrom,
+    validityTo
+) {
+
+    return $.ajax({
+
+        url: BASE_URL + "/check-cc-certificate",
+
+        type: "POST",
+
+        dataType: "json",
+
+        data: {
+
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            staffcategory: staffCategory,
+
+            certificate_no: certificateNo,
+
+            dateof_issue: firstIssue,
+
+            valid_from: validityFrom,
+
+            valid_to: validityTo
+
+        }
+
+    });
+}
+
 
 function checkvaliditydatesformA(formData, actionType = "") {
     let firstCertNo = $("input[name='cc_number[]']").eq(0).val()?.trim();
@@ -2759,48 +3065,74 @@ function showDeclarationPopupformA(formData) {
             }
 
             // Insert instructions only (not replacing values above)
-            const modalEl = document.getElementById(
-                "contractorInstructionsModal",
-            );
-            document.getElementById("certificate_name").textContent =
-                certificate_name;
-            document.getElementById("fees_starts_from").textContent =
-                fees_start_date;
-            document.getElementById("form_fees").textContent =
-                "Rs." + basic_fees + "/-";
+            const modalEl = document.getElementById("contractorInstructionsModal");
 
-            // Build HTML to show inside instructions
-            let topDetails = `
-            <div>
-            <p>1. (i)Fees Issue for <span > ${certificate_name}</span> from <span >${fees_start_date}</span> onwards is <span id="form_fees" style="color:#1f6920; font-weight:600;">Rs.${basic_fees}</span>.</p>
-               
-            </div>`;
+            if (!modalEl) {
+                console.error("contractorInstructionsModal not found");
+                return;
+            }
+
+            let topDetails = "";
+
+            if (appl_type === "D") {
+
+                topDetails = `
+                    <div>
+                        <p>
+                            1. (i) No fees are applicable for this application.
+                        </p>
+                    </div>
+                `;
+
+            } else {
+
+                topDetails = `
+                    <div>
+                        <p>
+                            1. (i) Fees issued for
+                            <span>${certificate_name}</span>
+                            from
+                            <span>${fees_start_date}</span>
+                            onwards is
+                            <span style="color:#1f6920; font-weight:600;">
+                                Rs.${basic_fees}/-
+                            </span>.
+                        </p>
+                    </div>
+                `;
+            }
 
             const instructionsList = modalEl.querySelector(".instruct");
-            instructionsList.innerHTML = topDetails + html;
 
-            // Reset checkbox & error text
+            if (instructionsList) {
+                instructionsList.innerHTML = topDetails + html;
+            }
+
             const agreeCheckbox = modalEl.querySelector(
-                "#declaration-agree-renew-contractor",
+                "#declaration-agree-renew-contractor"
             );
+
             const errorText = modalEl.querySelector(
-                "#declaration-error-renew-contractor",
+                "#declaration-error-renew-contractor"
             );
 
             agreeCheckbox.checked = false;
             errorText.classList.add("d-none");
 
             const proceedBtn = modalEl.querySelector("#proceedPayment");
+
             proceedBtn.onclick = function () {
+
                 if (!agreeCheckbox.checked) {
                     errorText.classList.remove("d-none");
                     return;
                 }
+
                 $("#contractorInstructionsModal").modal("hide");
+
                 submitFormAFinal(formData, "submit");
             };
 
-            // Show Modal
             $("#contractorInstructionsModal").modal("show");
         },
 
@@ -2829,7 +3161,7 @@ function submitFormAFinal(formData, actionType) {
             ? BASE_URL + "/forma/storerenewal"
             : BASE_URL + "/forma/store";
     //  let amount = formData.get("fees") || 0;
-
+    let qcfee = parseFloat(formData.get("qcfee")) || 0;
     let totalfee = formData.get("total_fees") || 0;
 
     let amount = totalfee + qcfee;
@@ -2893,6 +3225,35 @@ function submitFormAFinal(formData, actionType) {
                 </tr>
                             `;
             }
+
+              if (applType === "D") {
+
+                    // Fill success modal
+                    $("#ps_applicantName").text(applicantName);
+                    $("#ps_applicationId").text(loginId);
+                    $("#ps_licenceName").text(licence_name);
+                    $("#ps_transactionId").text("-");
+                    $("#ps_transactionDate").text(transactionDate);
+                    $("#ps_amount").text("0");
+
+                    // Store application details if needed
+                    window.paymentAppId = loginId;
+                    window.paymentFormType = form_type;
+                    window.licenseName = licence_name;
+                    window.formName = $("#form_name").val();
+
+                    // Show success modal
+                    $("#paymentSuccessModalcontractor").modal({
+                        backdrop: "static",
+                        keyboard: false
+                    });
+
+                    $("#paymentSuccessModalcontractor").modal("show");
+
+                    $(".save-draft, .submit-payment").prop("disabled", false);
+
+                    return;
+                }
             if (actionType === "draft") {
                 Swal.fire({
                     width: 450,
@@ -5039,139 +5400,7 @@ $("#competency_form_a_return").on("submit", function (e) {
         }
     });
 
-    // -----------------8-----------------
-
-    let criminalOffence = $('input[name="criminal_offence"]:checked').val();
-    if (!criminalOffence) {
-        $("#criminal_offence_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="criminal_offence"]').on("change", function () {
-        $("#criminal_offence_error").text("");
-    });
-
-    // -----------------9-----------------
-
-    let consent_letter_enclose = $(
-        'input[name="consent_letter_enclose"]:checked',
-    ).val();
-    if (!consent_letter_enclose) {
-        $("#consent_letter_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="consent_letter_enclose"]').on("change", function () {
-        $("#consent_letter_enclose_error").text("");
-    });
-
-    // -----------------10-----------------
-
-    let cc_holders_enclosed = $(
-        'input[name="cc_holders_enclosed"]:checked',
-    ).val();
-    if (!cc_holders_enclosed) {
-        $("#cc_holders_enclosed_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="cc_holders_enclosed"]').on("change", function () {
-        $("#cc_holders_enclosed_error").text("");
-    });
-
-    // -----------------10 (ii)-----------------
-
-    let purchase_bill_enclose = $(
-        'input[name="purchase_bill_enclose"]:checked',
-    ).val();
-    if (!purchase_bill_enclose) {
-        $("#purchase_bill_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="purchase_bill_enclose"]').on("change", function () {
-        $("#purchase_bill_enclose_error").text("");
-    });
-
-    // -----------------10-----------------
-
-    let test_reports_enclose = $(
-        'input[name="test_reports_enclose"]:checked',
-    ).val();
-    if (!test_reports_enclose) {
-        $("#test_reports_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="test_reports_enclose"]').on("change", function () {
-        $("#test_reports_enclose_error").text("");
-    });
-
-    // -----------------11-----------------
-
-    let specimen_signature_enclose = $(
-        'input[name="specimen_signature_enclose"]:checked',
-    ).val();
-    if (!specimen_signature_enclose) {
-        $("#specimen_signature_enclose_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="specimen_signature_enclose"]').on("change", function () {
-        $("#specimen_signature_enclose_error").text("");
-    });
-
-    // -----------------11 (ii)-----------------
-
-    let separate_sheet = $('input[name="separate_sheet"]:checked').val();
-    if (!separate_sheet) {
-        $("#separate_sheet_error").text(" select Yes or No ");
-        isValid = false;
-    }
-
-    $('input[name="separate_sheet"]').on("change", function () {
-        $("#separate_sheet_error").text("");
-    });
-
-    // Aadhaar number validation
-    // ------------------ Collect Inputs ------------------
-    // let aadhaar = $("#aadhaar").val().replace(/\s+/g, "");
-    // let pancard = $("#pancard").val().trim().toUpperCase();
-    // let gst_number = $("#gst_number").val().trim().toUpperCase();
-
-    // ------------------ Clear Previous Errors ------------------
-    // $("#aadhaar_error, #pancard_error, #gst_number_error, #aadhaar_doc_error, #pancard_doc_error, #gst_doc_error").text("");
-
-    // // ------------------ Aadhaar Validation ------------------
-    // if (aadhaar === "") {
-    //     $("#aadhaar_error").text("Aadhaar number is required.");
-    //     isValid = false;
-    // } else if (!/^\d{12}$/.test(aadhaar)) {
-    //     $("#aadhaar_error").text("Enter a valid 12-digit Aadhaar number.");
-    //     isValid = false;
-    // }
-
-    // // ------------------ PAN Validation ------------------
-    // const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
-    // if (pancard === "") {
-    //     $("#pancard_error").text("PAN card number is required.");
-    //     isValid = false;
-    // } else if (!panPattern.test(pancard)) {
-    //     $("#pancard_error").text("Invalid PAN format (e.g., ABCDE1234F)");
-    //     isValid = false;
-    // }
-
-    // ------------------ GST Validation ------------------
-    // if (gst_number === "") {
-    //     $("#gst_number_error").text("GST Number is required.");
-    //     isValid = false;
-    // } else if (!/^[A-Z0-9]{15}$/.test(gst_number)) {
-    //     $("#gst_number_error").text(
-    //         "Enter 15-character alphanumeric GST Number.",
-    //     );
-    //     isValid = false;
-    // }
-
+ 
     // ------------------ Document Validation ------------------
     const allowedTypes = ["application/pdf"];
     const maxSize = 250 * 1024;
@@ -5553,201 +5782,6 @@ $("#competency_form_a_return").on("submit", function (e) {
         }
     });
 
-    let staffValid = true;
-    let staffCount = 0;
-    let licenseNumbers = [];
-    let duplicateFound = false;
-    let stopValidation = false; // 🚨 To stop when LC age > 75
-
-    $(".staff-fields").each(function (index) {
-        const name = $(this).find('input[name="staff_name[]"]');
-        const qual = $(this).find('select[name="staff_qualification[]"]');
-        const ccNum = $(this).find('input[name="cc_number[]"]');
-        const ccValid = $(this).find('input[name="cc_validity[]"]');
-        const category = $(this).find('select[name="staff_category[]"]');
-
-        // Clear error on typing
-        name.on("keyup", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        qual.on("change", function () {
-            if ($(this).val() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        category.on("change", function () {
-            if ($(this).val() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        ccNum.on("keyup input", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-        ccValid.on("keyup change", function () {
-            if ($(this).val().trim() !== "")
-                $(this).closest("td").find(".error").text("");
-        });
-
-        const nameVal = name.val().trim();
-        const qualVal = qual.val();
-        const ccNumVal = ccNum.val().trim().toUpperCase();
-        const ccValidVal = ccValid.val().trim();
-        const categoryVal = category.val();
-
-        // ---- Mandatory validation for first 4 rows ----
-        if (index < 4) {
-            if (nameVal === "") {
-                name.closest("td").find(".error").text("Name is required.");
-                staffValid = false;
-            }
-            if (qualVal === "" || qualVal === null) {
-                qual.closest("td")
-                    .find(".error")
-                    .text("Qualification is required.");
-                staffValid = false;
-            }
-            if (ccNumVal === "") {
-                ccNum
-                    .closest("td")
-                    .find(".error")
-                    .text("CC Number is required.");
-                staffValid = false;
-            }
-            if (ccValidVal === "") {
-                ccValid
-                    .closest("td")
-                    .find(".error")
-                    .text("CC Validity is required.");
-                staffValid = false;
-            }
-            if (categoryVal === "" || categoryVal === null) {
-                category
-                    .closest("td")
-                    .find(".error")
-                    .text("Category is required.");
-                staffValid = false;
-            }
-        }
-
-        // ---- Proceed when a complete row is filled ----
-        if (
-            nameVal !== "" &&
-            qualVal !== "" &&
-            ccNumVal !== "" &&
-            ccValidVal !== "" &&
-            categoryVal !== ""
-        ) {
-            staffCount++;
-
-            let certCheck = checkCertificateValidity(
-                ccNumVal,
-                ccValidVal,
-                ccNum,
-                staffCount - 1, // pass 0-based index
-            );
-
-            if (!certCheck.valid) {
-                staffValid = false;
-            }
-
-            // Duplicate CC Number (inside UI)
-            if (licenseNumbers.includes(ccNumVal)) {
-                duplicateFound = true;
-                staffValid = false;
-                ccNum
-                    .siblings(".error")
-                    .text("Duplicate CC Number not allowed.");
-            } else {
-                licenseNumbers.push(ccNumVal);
-            }
-
-            // ---- Prefix rule ----
-            const prefix = ccNumVal.startsWith("LC")
-                ? "LC"
-                : ccNumVal.charAt(0);
-
-            // 🔥 LC AGE VALIDATION (only LC prefix)
-            if (prefix === "LC") {
-                $.ajax({
-                    url: BASE_URL + "/checkLcAge",
-                    type: "POST",
-                    async: false,
-                    data: {
-                        _token: $('meta[name="csrf-token"]').attr("content"),
-                        cc_number: ccNumVal,
-                    },
-                    success: function (res) {
-                        if (res.status === "not_found") {
-                            ccNum
-                                .siblings(".error")
-                                .text("Invalid LC license number.");
-                            staffValid = false;
-                            return;
-                        } else if (res.status === "age_above_limit") {
-                            Swal.fire({
-                                icon: "error",
-                                width: 500,
-                                title: "Age Limit Exceeded",
-                                text: "QC staff age more than 75 is not allowed to apply this license.",
-                                confirmButtonText: "OK",
-                            });
-
-                            ccNum
-                                .siblings(".error")
-                                .text(
-                                    "QC staff age more than 75 is not allowed to apply this license.",
-                                );
-
-                            $(".nav-item").each(function () {
-                                if (
-                                    $(this).text().trim() ===
-                                    "Staff & Bank Details"
-                                ) {
-                                    $(this).addClass("tab-error-bg");
-                                    $(this).trigger("click");
-                                }
-                            });
-
-                            const ownershipNotice =
-                                document.querySelector(".text-red");
-                            if (ownershipNotice) {
-                                ownershipNotice.style.color = "red";
-                                ownershipNotice.style.fontWeight = "bold";
-                                ownershipNotice.scrollIntoView({
-                                    behavior: "smooth",
-                                    block: "center",
-                                });
-                            }
-
-                            stopValidation = true; // 🚨 STOP all remaining checks
-                            staffValid = false;
-                            return;
-                        }
-                    },
-                    error: function () {
-                        ccNum
-                            .siblings(".error")
-                            .text("Error validating LC age. Try again.");
-                        staffValid = false;
-                        return;
-                    },
-                });
-            }
-
-            if (index === 0 && !["C", "LC"].includes(prefix)) {
-                ccNum
-                    .siblings(".error")
-                    .text("First staff's license must start with 'C' or 'LC'.");
-                staffValid = false;
-            } else if (index > 0 && !["C", "B", "H", "LC"].includes(prefix)) {
-                ccNum
-                    .siblings(".error")
-                    .text("License must start with 'C', 'B', 'H', or 'L'.");
-                staffValid = false;
-            }
-        }
-    });
-
     // let bankValidity = $("input[name='bank_validity']").val().trim();
     if (!checkBankValidity(bankValidity)) {
         $(".nav-item").each(function () {
@@ -5950,12 +5984,12 @@ $("#competency_form_a_return").on("submit", function (e) {
         }
 
         // MODEL
-        if (model.val().trim() === "") {
-            row.find(".model_error").text("Model required");
-            equipmentValid = false;
-        } else {
-            row.find(".model_error").text("");
-        }
+        // if (model.val().trim() === "") {
+        //     row.find(".model_error").text("Model required");
+        //     equipmentValid = false;
+        // } else {
+        //     row.find(".model_error").text("");
+        // }
 
         // DATE
         if (date.val().trim() === "") {
@@ -6130,6 +6164,58 @@ $("#competency_form_a_return").on("submit", function (e) {
     //     }
     // });
 });
+
+function validateBStaffCertificate(
+    staffCategory,
+    certificateNo,
+    firstIssue,
+    validityFrom,
+    validityTo
+) {
+
+    return $.ajax({
+
+        url: BASE_URL + "/check-cc-certificate",
+
+        type: "POST",
+
+        dataType: "json",
+
+        data: {
+
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            staffcategory: staffCategory,
+
+            certificate_no: certificateNo,
+
+            dateof_issue: firstIssue,
+
+            valid_from: validityFrom,
+
+            valid_to: validityTo
+        },
+
+        success: function (response) {
+
+            console.log("Certificate API response:", response);
+
+        },
+
+        error: function (xhr) {
+
+            console.log("========== CERTIFICATE ERROR ==========");
+            console.log("URL:", BASE_URL + "/check-cc-certificate");
+            console.log("HTTP Status:", xhr.status);
+            console.log("Status Text:", xhr.statusText);
+            console.log("Response:", xhr.responseText);
+            console.log("Response JSON:", xhr.responseJSON);
+            console.log("======================================");
+
+        }
+
+    });
+}
 
 function checkvaliditydatesformA_return(formData, actionType = "") {
     let firstCertNo = $("input[name='cc_number[]']").eq(0).val()?.trim();
@@ -7065,13 +7151,24 @@ flatpickr('input[name="competency_certificate_validity_to[]"]', {
     }
 });
 
-
 flatpickr(
-    'input[name="previous_validity_first_issue"], input[name="previous_validity_from"], input[name="previous_validity_to"], input[name="staff_cc_first_issue[]"], input[name="staff_cc_validity_from[]"], input[name="staff_cc_validity_to[]"]',
+    'input[name="previous_validity_first_issue"],' +
+    'input[name="previous_validity_from"],' +
+    'input[name="previous_validity_to"],' +
+    'input[name="staff_cc_first_issue[]"],' +
+    'input[name="staff_cc_validity_from[]"],' +
+    'input[name="staff_cc_validity_to[]"],' +
+    'input[name="cc_validity[]"],' +
+
+    'input[name="cc_firstissue[]"],' +
+    'input[name="cc_validity_from[]"],' +
+    'input[name="cc_validity_to[]"]',
+
+    'input[name="cc_number[]"]',
+    'input[name="cc_firstissue[]"]',
 
     {
-        dateFormat: "d-m-Y",
-
+        dateFormat: "d-m-Y"
     }
 );
 
@@ -7179,6 +7276,7 @@ $(document).on("click", "#save_qc", function () {
     // -----------------------------
     // CC NUMBER
     // -----------------------------
+    let appl_type = $("#appl_type").val().trim();
 
     let ccNo = $section
         .find('input[name="staff_cc_no[]"]')
@@ -7380,6 +7478,7 @@ $(document).on("click", "#save_qc", function () {
                     validityFrom,
                     validityTo,
                     fee,
+                    appl_type,
                     appDocLink,
                     "Appointment Letter",
                     consDocLink,
@@ -7424,11 +7523,14 @@ function addQCStaffRecord(
     validityFrom,
     validityTo,
     fee,
+    appl_type,
     appDocLink = "",
     appDocName = "",
     consDocLink = "",
     consDocName = ""
 ) {
+    // alert(appl_type);
+
 
     let rowCount =
         $("#staffqc-records tr.staffqc-record").length + 1;
@@ -7585,74 +7687,57 @@ function addQCStaffRecord(
 
 
     // Update single total fee row
-    updateQCStaffTotalFee();
+    updateQCStaffTotalFee(appl_type);
 }
 
-function updateQCStaffTotalFee() {
-
-
+function updateQCStaffTotalFee(appl_type) {
 
     let totalFee = 0;
 
-
-    // Calculate fee from every staff row
     $("#staffqc-records tr.staffqc-record").each(function () {
 
-        let category =
-            $(this)
-                .find('input[name="staff_category[]"]')
-                .val();
+        let category = $(this)
+            .find('input[name="staff_category[]"]')
+            .val();
 
+        // appl_type is NOT D
+        if (appl_type !== "D") {
 
-        if (category === "QC") {
+            if (category === "QC") {
 
-            totalFee += 15000;
+                totalFee += 15000;
 
-        } else if (category === "QSC") {
+            } else if (category === "QSC") {
 
-            totalFee += 25000;
-
+                totalFee += 25000;
+            }
         }
 
     });
 
-
     // Remove old fee row
-    $("#staffqc-records tr.staffqc-total-fee")
-        .remove();
+    $("#staffqc-records tr.staffqc-total-fee").remove();
 
-
-    // If no staff, don't show fee
+    // If no fee, don't show
     if (totalFee <= 0) {
-
         return;
     }
 
-// alert(totalFee);
-    // Add ONE total fee row
     let feeRow = `
         <tr class="staffqc-total-fee">
 
-            <td colspan="7"
-                class="fw-bold">
-
+            <td colspan="7" class="fw-bold">
                 Fees
-
             </td>
 
             <td>
-
                 <span class="btn btn-primary">
-
                     ₹ ${totalFee.toLocaleString("en-IN")}
-
                 </span>
-
             </td>
 
         </tr>
     `;
-
 
     $("#staffqc-records").append(feeRow);
 }

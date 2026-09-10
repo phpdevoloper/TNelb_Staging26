@@ -231,7 +231,7 @@ class FormSBprocessController extends Controller
 
 
 
-        $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+        $cl_ownership_table = DB::table('cl_ownership_table')
             ->where('application_id', $applicant_id)
             ->orderBy('id', 'Desc')
             ->where('proprietor_flag', '1')
@@ -322,7 +322,7 @@ class FormSBprocessController extends Controller
 
         return view($view, compact(
             'applicant',
-            'proprietordetailsform_A',
+            'cl_ownership_table',
             'staffdetails',
             'nextForwardUser',
             'returnForwardUser',
@@ -962,7 +962,7 @@ class FormSBprocessController extends Controller
             ->get();
         // $formId = $request->query('form_id');
     
-       // $workflows = DB::table('tnelb_ea_applications as ta')
+       // $workflows = DB::table('ccl_forma_meta as ta')
        //      ->whereIn('ta.processed_by', ['A', 'SPRE']) 
        //      ->orWhere('ta.application_status', 'RF')
        //      // ->where('ta.form_id', $formId)
@@ -1219,7 +1219,7 @@ class FormSBprocessController extends Controller
 
 
 
-        $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+        $cl_ownership_table = DB::table('cl_ownership_table')
             ->where('application_id', $applicant_id)
             ->orderBy('id', 'Desc')
             ->where('proprietor_flag', '1')
@@ -1309,7 +1309,7 @@ class FormSBprocessController extends Controller
 
         return view($view, compact(
             'applicant',
-            'proprietordetailsform_A',
+            'cl_ownership_table',
             'staffdetails',
             'nextForwardUser',
             'returnForwardUser',
@@ -1352,7 +1352,7 @@ class FormSBprocessController extends Controller
   
         // $formId = $request->query('form_id');
     
-       // $workflows = DB::table('tnelb_ea_applications as ta')
+       // $workflows = DB::table('ccl_forma_meta as ta')
        //      ->whereIn('ta.processed_by', ['A', 'SPRE']) 
        //      ->orWhere('ta.application_status', 'RF')
        //      // ->where('ta.form_id', $formId)

@@ -60,8 +60,8 @@ class IndexController extends Controller
             }
         }
 
-        if (Schema::hasTable('tnelb_ea_applications')) {
-            $appCountsEA = DB::table('tnelb_ea_applications')
+        if (Schema::hasTable('ccl_forma_meta')) {
+            $appCountsEA = DB::table('ccl_forma_meta')
                 ->where('application_status', 'A')
                 ->select('form_name', DB::raw('COUNT(*) as cnt'))
                 ->groupBy('form_name')

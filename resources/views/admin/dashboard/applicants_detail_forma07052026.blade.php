@@ -404,7 +404,7 @@
                                             
                                         </div>
                                     </div>
-<!-- ALTER TABLE tnelb_ea_applications 
+<!-- ALTER TABLE ccl_forma_meta 
 ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                     <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
                                         <?php //var_dump($workflows->first()->is_verified);die; ?>
@@ -533,7 +533,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                                 <span class="history-result_staff"></span>       
                                                     @php
                                                         $history = DB::table('tnelb_applicant_cl_staffdetails as s')
-                                                            ->leftJoin('tnelb_ea_applications as a', 's.application_id', '=', 'a.application_id')
+                                                            ->leftJoin('ccl_forma_meta as a', 's.application_id', '=', 'a.application_id')
                                                             ->where('s.cc_number', $staff->cc_number)
                                                             ->where('s.cc_validity', $staff->cc_validity)
                                                             ->where('a.application_status', 'A')

@@ -1132,7 +1132,7 @@ class FormBController extends BaseController
 
         if ($application_id) {
             $application = DB::table('tnelb_eb_applications')->where('application_id', $application_id)->first();
-            $proprietors = DB::table('proprietordetailsform_A')
+            $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
@@ -1192,7 +1192,7 @@ class FormBController extends BaseController
 
         if ($application_id) {
             $application = DB::table('tnelb_eb_applications')->where('application_id', $application_id)->first();
-            $proprietors = DB::table('proprietordetailsform_A')
+            $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();

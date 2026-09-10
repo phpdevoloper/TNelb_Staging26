@@ -26,7 +26,7 @@ class PDFFormAController extends Controller
 
         // $form = EA_Application_model::where('application_id', $newApplicationId)->first() ;
 
-        $form = DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
+        $form = DB::table('ccl_forma_meta')->where('application_id', $newApplicationId)->first()
             ?? DB::table('tnelb_esa_applications')->where('application_id', $newApplicationId)->first()
             ?? DB::table('tnelb_esb_applications')->where('application_id', $newApplicationId)->first()
             ?? DB::table('tnelb_eb_applications')->where('application_id', $newApplicationId)->first()

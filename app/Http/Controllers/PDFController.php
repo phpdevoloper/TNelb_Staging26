@@ -231,7 +231,7 @@ class PDFController extends Controller
             return null;
         }
 
-        // $contractorForm = DB::table('tnelb_ea_applications')
+        // $contractorForm = DB::table('ccl_forma_meta')
         //     ->where('application_id', $applicationId)
         //     ->first();
         // if ($contractorForm) {
@@ -2917,7 +2917,7 @@ class PDFController extends Controller
     {
         // dd($newApplicationId);
         // exit;
-        $form = DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
+        $form = DB::table('ccl_forma_meta')->where('application_id', $newApplicationId)->first()
             ?? $this->resolveApplicationFormForPdf($newApplicationId);
 
         if (! $form) {
@@ -3023,7 +3023,7 @@ class PDFController extends Controller
     //     {
     //       // dd($newApplicationId);
     //       // exit;
-    //         $form= DB::table('tnelb_ea_applications')->where('application_id', $newApplicationId)->first()
+    //         $form= DB::table('ccl_forma_meta')->where('application_id', $newApplicationId)->first()
     //                 ?? DB::table('tnelb_esa_applications')->where('application_id', $newApplicationId)->first()
     //                 ?? DB::table('tnelb_esb_applications')->where('application_id', $newApplicationId)->first()
     //                 ?? DB::table('tnelb_eb_applications')->where('application_id', $newApplicationId)->first()

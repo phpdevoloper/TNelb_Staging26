@@ -3163,7 +3163,7 @@ class FormAController extends BaseController
         ]);
 
         $application =
-            DB::table('tnelb_ea_applications')->where('application_id', $request->application_id)->first()
+            DB::table('ccl_forma_meta')->where('application_id', $request->application_id)->first()
             ?? DB::table('tnelb_esa_applications')->where('application_id', $request->application_id)->first()
             ?? DB::table('tnelb_esb_applications')->where('application_id', $request->application_id)->first()
             ?? DB::table('tnelb_eb_applications')->where('application_id', $request->application_id)->first();

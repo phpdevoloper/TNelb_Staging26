@@ -136,7 +136,7 @@ class LoginController extends Controller
     //         ->get();
 
 
-    //     $presidentFormA = DB::table('tnelb_ea_applications as ta')
+    //     $presidentFormA = DB::table('ccl_forma_meta as ta')
     //         ->select(
     //             DB::raw("COUNT(CASE WHEN ta.application_status IN ('F','RF') AND ta.processed_by IN ('SE','S') THEN 1 END) as pending_count"),
     //             DB::raw("COUNT(CASE WHEN ta.application_status = 'A' AND ta.processed_by = 'PR' THEN 1 END) as completed_count")
@@ -171,7 +171,7 @@ class LoginController extends Controller
     //         ->where('status', 'P')
     //         ->get();
 
-    //     $query2 = DB::table('tnelb_ea_applications')
+    //     $query2 = DB::table('ccl_forma_meta')
     //         ->select('id', '*')
     //         ->where('application_status', 'P')
     //         ->get();
@@ -184,7 +184,7 @@ class LoginController extends Controller
     //         ->where('status', 'F')
     //         ->get();
 
-    //     $query3 = DB::table('tnelb_ea_applications')
+    //     $query3 = DB::table('ccl_forma_meta')
     //         ->select('id', '*')
     //         ->where('application_status', 'F')
     //         ->get();
@@ -288,7 +288,7 @@ class LoginController extends Controller
                 // color_code drives the card background class
                 'f.cert_licence_code as color_code',
                 // cert_licence_code (EA, EB, etc.) is used to map contractor
-                // application rows (tnelb_ea_applications.form_name) back to
+                // application rows (ccl_forma_meta.form_name) back to
                 // the correct mst_licences IDs when building contractorCounts.
                 'f.cert_licence_code as cert_licence_code',
                 'f.category_id'
@@ -449,7 +449,7 @@ class LoginController extends Controller
 
             if ($contractorLicences->isNotEmpty()) {
                 // Map contractor form_code (A, B, etc) to one or more mst_licences IDs.
-                // Contractor application tables (e.g. tnelb_ea_applications) store form_name
+                // Contractor application tables (e.g. ccl_forma_meta) store form_name
                 // as the base form code (A, B, ...), not the cert_licence_code (EA, EB, ...),
                 // so we group by form_code here to make the mapping line up.
                 $contractorFormToIds = $contractorLicences
@@ -464,7 +464,7 @@ class LoginController extends Controller
                 $contractorCounts = collect();
 
                 // EA (A/SA) and EB (B/SB) application tables share the same structure
-                $contractorTables = ['tnelb_ea_applications'];
+                $contractorTables = ['ccl_forma_meta'];
 
                 foreach ($contractorTables as $tbl) {
 
@@ -718,7 +718,7 @@ class LoginController extends Controller
                 )
                 ->orderByDesc('ta.created_at')
                 ->get();
-            $receivedFromEa = DB::table('tnelb_ea_applications')
+            $receivedFromEa = DB::table('ccl_forma_meta')
                 ->whereIn('application_status', ['F', 'RF'])
                 ->where('processed_by', 'A')
                 ->whereIn('payment_status', ['payment', 'paid'])
@@ -761,7 +761,7 @@ class LoginController extends Controller
                 )
                 ->orderByDesc('ta.updated_at')
                 ->get();
-            $inprogressFromEa = DB::table('tnelb_ea_applications')
+            $inprogressFromEa = DB::table('ccl_forma_meta')
                 ->whereIn('application_status', ['F', 'RF', 'QU'])
                 ->whereIn('payment_status', ['payment', 'paid'])
                 ->select('application_id', 'form_name', 'created_at', 'updated_at', 'processed_by', DB::raw('application_status as status'))
@@ -883,7 +883,7 @@ class LoginController extends Controller
             );
         }
 
-        // Contractor tables: tnelb_ea_applications (Form A/B and variants)
+        // Contractor tables: ccl_forma_meta (Form A/B and variants)
         $contractorLicences = $licences->filter(function ($lic) use ($contractorCategoryIds) {
             if (!empty($contractorCategoryIds)) {
                 return in_array((int) ($lic->category_id ?? 0), $contractorCategoryIds, true);
@@ -898,7 +898,7 @@ class LoginController extends Controller
                 })
                 ->map(fn($group) => $group->pluck('id')->all());
 
-            $contractorTables = ['tnelb_ea_applications'];
+            $contractorTables = ['ccl_forma_meta'];
 
             if (Schema::hasTable('tnelb_esa_applications')) {
                 $contractorTables[] = 'tnelb_esa_applications';
@@ -1076,7 +1076,7 @@ class LoginController extends Controller
         $rows = collect();
         $ccAdminQuery = app(CompetencyAdminQueryService::class);
         $contractorTablesByCode = [
-            'EA' => 'tnelb_ea_applications',
+            'EA' => 'ccl_forma_meta',
             'SA' => 'tnelb_esa_applications',
             'B'  => 'tnelb_eb_applications',
             'SB' => 'tnelb_esb_applications',
@@ -1731,11 +1731,11 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        $applicantQuery1 = DB::table('tnelb_ea_applications')
-            ->leftJoin('payments', 'tnelb_ea_applications.application_id', '=', 'payments.application_id')
-            ->where('tnelb_ea_applications.application_id', $applicant_id)
+        $applicantQuery1 = DB::table('ccl_forma_meta')
+            ->leftJoin('payments', 'ccl_forma_meta.application_id', '=', 'payments.application_id')
+            ->where('ccl_forma_meta.application_id', $applicant_id)
             ->select(
-                'tnelb_ea_applications.*',
+                'ccl_forma_meta.*',
                 'payments.transaction_id',
                 'payments.payment_status',
                 'payments.amount',
@@ -1870,7 +1870,7 @@ class LoginController extends Controller
 
         // psql -U postgres -d arundb_dec01 -p 5432 -f "D:\laravel_program\tnelb-program-arun-dec01\TNelb-Staging\db\latest_v28112025.sql"
 
-        $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+        $cl_ownership_table = DB::table('cl_ownership_table')
             ->where('application_id', $applicant_id)
             ->orderBy('id', 'Desc')
             ->where('proprietor_flag', '1')
@@ -1929,7 +1929,7 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        $user_entry = DB::table('tnelb_ea_applications')
+        $user_entry = DB::table('ccl_forma_meta')
             ->where('application_id', $applicant_id)
             ->select('*')
 
@@ -1942,17 +1942,17 @@ class LoginController extends Controller
             ->first();
 
         $workflows = DB::table('tnelb_workflow_a')
-            ->leftjoin('tnelb_ea_applications', 'tnelb_workflow_a.application_id', '=', 'tnelb_ea_applications.application_id')
+            ->leftjoin('ccl_forma_meta', 'tnelb_workflow_a.application_id', '=', 'ccl_forma_meta.application_id')
             ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
             ->where('tnelb_workflow_a.application_id', $applicant_id)
-            ->select('tnelb_workflow_a.*', 'mst__roles.name', 'tnelb_ea_applications.form_name', 'tnelb_ea_applications.license_name')
+            ->select('tnelb_workflow_a.*', 'mst__roles.name', 'ccl_forma_meta.form_name', 'ccl_forma_meta.license_name')
             ->orderBy('tnelb_workflow_a.id', 'desc')
             ->get();
 
         // var_dump($workflows);die;
 
         $queries = DB::table('tnelb_query_applicable as qa')
-            ->leftJoin('tnelb_ea_applications as ta', 'qa.application_id', '=', 'ta.application_id')
+            ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
             ->where('qa.application_id', $applicant_id)
             ->where('qa.query_status', 'P')
             ->select('qa.*')
@@ -2022,7 +2022,7 @@ class LoginController extends Controller
 
         return view($view, compact(
             'applicant',
-            'proprietordetailsform_A',
+            'cl_ownership_table',
             'staffdetails',
             'showQcWarning',
             'nextForwardUser',
@@ -2059,11 +2059,11 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        $applicantQuery1 = DB::table('tnelb_ea_applications')
-            ->leftJoin('payments', 'tnelb_ea_applications.application_id', '=', 'payments.application_id')
-            ->where('tnelb_ea_applications.application_id', $applicant_id)
+        $applicantQuery1 = DB::table('ccl_forma_meta')
+            ->leftJoin('payments', 'ccl_forma_meta.application_id', '=', 'payments.application_id')
+            ->where('ccl_forma_meta.application_id', $applicant_id)
             ->select(
-                'tnelb_ea_applications.*',
+                'ccl_forma_meta.*',
                 'payments.transaction_id',
                 'payments.payment_status',
                 'payments.amount',
@@ -2216,7 +2216,7 @@ class LoginController extends Controller
 
         // psql -U postgres -d arundb_dec01 -p 5432 -f "D:\laravel_program\tnelb-program-arun-dec01\TNelb-Staging\db\latest_v28112025.sql"
 
-        $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+        $cl_ownership_table = DB::table('cl_ownership_table')
             ->where('application_id', $applicant_id)
             ->orderBy('id', 'Desc')
             ->where('proprietor_flag', '1')
@@ -2275,7 +2275,7 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        $user_entry = DB::table('tnelb_ea_applications')
+        $user_entry = DB::table('ccl_forma_meta')
             ->where('application_id', $applicant_id)
             ->select('*')
 
@@ -2288,17 +2288,17 @@ class LoginController extends Controller
             ->first();
 
         $workflows = DB::table('tnelb_workflow_a')
-            ->leftjoin('tnelb_ea_applications', 'tnelb_workflow_a.application_id', '=', 'tnelb_ea_applications.application_id')
+            ->leftjoin('ccl_forma_meta', 'tnelb_workflow_a.application_id', '=', 'ccl_forma_meta.application_id')
             ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
             ->where('tnelb_workflow_a.application_id', $applicant_id)
-            ->select('tnelb_workflow_a.*', 'mst__roles.name', 'tnelb_ea_applications.form_name', 'tnelb_ea_applications.license_name')
+            ->select('tnelb_workflow_a.*', 'mst__roles.name', 'ccl_forma_meta.form_name', 'ccl_forma_meta.license_name')
             ->orderBy('tnelb_workflow_a.id', 'desc')
             ->get();
 
         // var_dump($workflows);die;
 
         $queries = DB::table('tnelb_query_applicable as qa')
-            ->leftJoin('tnelb_ea_applications as ta', 'qa.application_id', '=', 'ta.application_id')
+            ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
             ->where('qa.application_id', $applicant_id)
             ->where('qa.query_status', 'P')
             ->select('qa.*')
@@ -2368,7 +2368,7 @@ class LoginController extends Controller
 
         return view($view, compact(
             'applicant',
-            'proprietordetailsform_A',
+            'cl_ownership_table',
             'staffdetails',
             'showQcWarning',
             'nextForwardUser',
@@ -2513,11 +2513,11 @@ class LoginController extends Controller
 
 
 
-    //     $applicant = DB::table('tnelb_ea_applications')
-    //         ->leftJoin('payments', 'tnelb_ea_applications.application_id', '=', 'payments.application_id')
-    //         ->where('tnelb_ea_applications.application_id', $applicant_id)
+    //     $applicant = DB::table('ccl_forma_meta')
+    //         ->leftJoin('payments', 'ccl_forma_meta.application_id', '=', 'payments.application_id')
+    //         ->where('ccl_forma_meta.application_id', $applicant_id)
     //         ->select(
-    //             'tnelb_ea_applications.*',
+    //             'ccl_forma_meta.*',
     //             'payments.transaction_id',
     //             'payments.payment_status',
     //             'payments.amount',
@@ -2602,7 +2602,7 @@ class LoginController extends Controller
 
 
 
-    //     $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+    //     $cl_ownership_table = DB::table('cl_ownership_table')
     //         ->where('application_id', $applicant_id)
     //         ->where('proprietor_flag', '1')
     //         ->get();
@@ -2619,7 +2619,7 @@ class LoginController extends Controller
     //     }
 
 
-    //     $user_entry = DB::table('tnelb_ea_applications')
+    //     $user_entry = DB::table('ccl_forma_meta')
     //         ->where('application_id', $applicant_id)
     //         ->select('*')
     //         ->first();
@@ -2631,17 +2631,17 @@ class LoginController extends Controller
 
 
     //     $workflows = DB::table('tnelb_workflow_a')
-    //         ->leftjoin('tnelb_ea_applications', 'tnelb_workflow_a.application_id', '=', 'tnelb_ea_applications.application_id')
+    //         ->leftjoin('ccl_forma_meta', 'tnelb_workflow_a.application_id', '=', 'ccl_forma_meta.application_id')
     //         ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
     //         ->where('tnelb_workflow_a.application_id', $applicant_id)
-    //         ->select('tnelb_workflow_a.*', 'mst__roles.name', 'tnelb_ea_applications.form_name', 'tnelb_ea_applications.license_name')
+    //         ->select('tnelb_workflow_a.*', 'mst__roles.name', 'ccl_forma_meta.form_name', 'ccl_forma_meta.license_name')
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
 
     //     // var_dump($workflows);die;
 
     //     $queries = DB::table('tnelb_query_applicable as qa')
-    //         ->leftJoin('tnelb_ea_applications as ta', 'qa.application_id', '=', 'ta.application_id')
+    //         ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
     //         ->where('qa.application_id', $applicant_id)
     //         ->where('qa.query_status', 'P')
     //         ->select('qa.*')
@@ -2660,7 +2660,7 @@ class LoginController extends Controller
 
     //     return view($view, compact(
     //         'applicant',
-    //         'proprietordetailsform_A',
+    //         'cl_ownership_table',
     //         'staffdetails',
     //         'nextForwardUser',
     //         'user_entry',
@@ -2689,11 +2689,11 @@ class LoginController extends Controller
 
 
     //     // Fetch applicant details
-    //     $applicant = DB::table('tnelb_ea_applications')
-    //         ->leftJoin('payments', 'tnelb_ea_applications.application_id', '=', 'payments.application_id')
-    //         ->where('tnelb_ea_applications.application_id', $applicant_id)
+    //     $applicant = DB::table('ccl_forma_meta')
+    //         ->leftJoin('payments', 'ccl_forma_meta.application_id', '=', 'payments.application_id')
+    //         ->where('ccl_forma_meta.application_id', $applicant_id)
     //         ->select(
-    //             'tnelb_ea_applications.*',
+    //             'ccl_forma_meta.*',
     //             'payments.transaction_id',
     //             'payments.payment_status',
     //             'payments.amount',
@@ -2774,7 +2774,7 @@ class LoginController extends Controller
 
 
     //     // Fetch educational qualifications
-    //     $proprietordetailsform_A = DB::table('proprietordetailsform_A')
+    //     $cl_ownership_table = DB::table('cl_ownership_table')
     //         ->where('application_id', $applicant_id)
     //          ->orderBy('updated_at', 'ASC')
     //         ->where('proprietor_flag', '1')
@@ -2792,7 +2792,7 @@ class LoginController extends Controller
     //     }
 
 
-    //     $user_entry = DB::table('tnelb_ea_applications')
+    //     $user_entry = DB::table('ccl_forma_meta')
     //         ->where('application_id', $applicant_id)
     //         ->select('*')
     //         ->first();
@@ -2804,17 +2804,17 @@ class LoginController extends Controller
 
 
     //     $workflows = DB::table('tnelb_workflow_a')
-    //         ->leftjoin('tnelb_ea_applications', 'tnelb_workflow_a.application_id', '=', 'tnelb_ea_applications.application_id')
+    //         ->leftjoin('ccl_forma_meta', 'tnelb_workflow_a.application_id', '=', 'ccl_forma_meta.application_id')
     //         ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
     //         ->where('tnelb_workflow_a.application_id', $applicant_id)
-    //         ->select('tnelb_workflow_a.*', 'mst__roles.name', 'tnelb_ea_applications.form_name', 'tnelb_ea_applications.license_name')
+    //         ->select('tnelb_workflow_a.*', 'mst__roles.name', 'ccl_forma_meta.form_name', 'ccl_forma_meta.license_name')
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
 
     //     // var_dump($workflows);die;
 
     //     $queries = DB::table('tnelb_query_applicable as qa')
-    //         ->leftJoin('tnelb_ea_applications as ta', 'qa.application_id', '=', 'ta.application_id')
+    //         ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
     //         ->where('qa.application_id', $applicant_id)
     //         ->where('qa.query_status', 'P')
     //         ->select('qa.*')
@@ -2833,7 +2833,7 @@ class LoginController extends Controller
 
     //     return view($view, compact(
     //         'applicant',
-    //         'proprietordetailsform_A',
+    //         'cl_ownership_table',
     //         'staffdetails',
     //         'nextForwardUser',
     //         'user_entry',
@@ -3471,7 +3471,7 @@ class LoginController extends Controller
 
         // Contractor (EA, SA, B, SB)
         if (!$applicant) {
-            foreach (['tnelb_ea_applications', 'tnelb_esa_applications', 'tnelb_eb_applications', 'tnelb_esb_applications'] as $tbl) {
+            foreach (['ccl_forma_meta', 'tnelb_esa_applications', 'tnelb_eb_applications', 'tnelb_esb_applications'] as $tbl) {
                 if (!Schema::hasTable($tbl)) {
                     continue;
                 }

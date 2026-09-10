@@ -113,7 +113,7 @@ class AuditorController extends Controller
     {
         // Accountant should see Form A contractor applications that have been
         // forwarded by Supervisor to Accountant: processed_by = 'A', status F/RF.
-        $workflows_ea = DB::table('tnelb_ea_applications')
+        $workflows_ea = DB::table('ccl_forma_meta')
             ->where('form_name', 'A')
             ->whereIn('application_status', ['F', 'RF'])
             ->where('processed_by', 'S')

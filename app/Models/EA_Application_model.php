@@ -15,7 +15,7 @@ class EA_Application_model extends Model
 
     
 
-    protected $table = 'tnelb_ea_applications'; 
+    protected $table = 'ccl_forma_meta'; 
 
     protected $fillable = [
         'login_id',
@@ -80,5 +80,9 @@ class EA_Application_model extends Model
         'return_submit',
         'return_reason',
         'remarks_return',
+
+        'previous_validity_first_issue',
+        'previous_validity_from',
+        'previous_validity_to'
     ];
 }

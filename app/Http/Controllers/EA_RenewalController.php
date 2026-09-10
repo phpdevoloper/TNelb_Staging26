@@ -265,8 +265,8 @@ class EA_RenewalController extends BaseController
         $document = collect();
 
         if ($application_id) {
-            $application = DB::table('tnelb_ea_applications')->where('application_id', $application_id)->first();
-            $proprietors = DB::table('proprietordetailsform_A')
+            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+            $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
@@ -328,8 +328,8 @@ class EA_RenewalController extends BaseController
         $document = collect();
 
         if ($application_id) {
-            $application = DB::table('tnelb_ea_applications')->where('application_id', $application_id)->first();
-            $proprietors = DB::table('proprietordetailsform_A')
+            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+            $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
@@ -388,8 +388,8 @@ class EA_RenewalController extends BaseController
         $document = collect();
 
         if ($application_id) {
-            $application = DB::table('tnelb_ea_applications')->where('application_id', $application_id)->first();
-            $proprietors = DB::table('proprietordetailsform_A')
+            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+            $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
@@ -447,7 +447,7 @@ class EA_RenewalController extends BaseController
 
         // var_dump($license_deatails->license_number);die;
 
-        $proprietors = DB::table('proprietordetailsform_A')
+        $proprietors = DB::table('cl_ownership_table')
         ->where('application_id', $appl_id)
         ->get();
 

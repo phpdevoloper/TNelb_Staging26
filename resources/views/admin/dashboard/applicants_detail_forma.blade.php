@@ -404,7 +404,7 @@
                                             
                                         </div>
                                     </div>
-<!-- ALTER TABLE tnelb_ea_applications 
+<!-- ALTER TABLE ccl_forma_meta 
 ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                     <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
                                         <?php //var_dump($workflows->first()->is_verified);die; ?>

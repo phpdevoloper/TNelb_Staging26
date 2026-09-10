@@ -513,7 +513,7 @@ class ApplicationController extends Controller
         }
 
 
-        $formType = DB::table('tnelb_ea_applications')
+        $formType = DB::table('ccl_forma_meta')
             ->where('application_id', $request->application_id)
 
             // ->select('form_id')
@@ -560,7 +560,7 @@ class ApplicationController extends Controller
 
 
         // Update application status
-        // DB::table('tnelb_ea_applications')
+        // DB::table('ccl_forma_meta')
         //     ->where('application_id', $request->application_id)
         //     ->update([
         //         'application_status'  => 'RE',
@@ -764,7 +764,7 @@ class ApplicationController extends Controller
         }
 
 
-        $formType = DB::table('tnelb_ea_applications')
+        $formType = DB::table('ccl_forma_meta')
             ->where('application_id', $request->application_id)
 
             // ->select('form_id')

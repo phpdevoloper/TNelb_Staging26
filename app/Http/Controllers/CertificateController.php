@@ -13,13 +13,13 @@ class CertificateController extends Controller
 {
     public function verifycertificate($application_id) {
 
-         $application = DB::table('tnelb_ea_applications')->where('application_id', $application_id)->first() ??
+         $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first() ??
                         DB::table('tnelb_esa_applications')->where('application_id', $application_id)->first() ?? 
                         DB::table('tnelb_eb_applications')->where('application_id', $application_id)->first() ??
                         DB::table('tnelb_esb_applications')->where('application_id', $application_id)->first() ;
         if($application){
 
-            $proprietors = DB::table('proprietordetailsform_A')
+            $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();

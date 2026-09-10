@@ -251,6 +251,9 @@ Route::middleware(['auth'])->group(function () {
     // ------------draft form-----------------------------
     Route::get('/apply-form-a_draft/{application_id}', [EA_RenewalController::class, 'edit'])->name('apply-form-a_draft');
 
+
+    Route::get('/apply-form-a_d_draft/{application_id}', [FormADigitizationController::class, 'draft_edit'])->name('apply-form-a_d_draft');
+
     Route::get('/apply-form-a_renewal_draft/{application_id}', [EA_RenewalController::class, 'edit_renewaldraft'])->name('apply-form-a_renewal_draft');
 
       //New Modified Routes added here 
@@ -290,6 +293,9 @@ Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.stor
 
 // formA QC Check------------------------
 Route::post('/check-qc-certificate',[FormAController::class, 'checkQCCertificate'])->name('check-qc-certificate');
+
+
+Route::post('/check-cc-certificate',[FormAController::class, 'checkCCCertificate'])->name('check-cc-certificate');
 
 // --------exp retrieve Form A ---------------
 Route::post('/check-competency-certificate',[FormAController::class, 'checkCompetencyCertificate'])->name('check.competency.certificate');
