@@ -41,7 +41,7 @@ use App\Http\Controllers\FormADigitizationController;
 use App\Http\Controllers\FormpDigitizationController;
 use App\Http\Controllers\FormSAlteration;
 use App\Http\Controllers\FormSDigitizationController;
-use App\Http\Controllers\FormWDigitizationController;
+use App\Http\Controllers\FormWController;
 use App\Http\Controllers\FormWHDigitizationController;
 use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
@@ -122,7 +122,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/apply-form-s', [RegisterController::class, 'apply_form_s'])->name('apply-form-s');
     
-    Route::get('/apply-form-w', [RegisterController::class, 'apply_form_w'])->name('apply-form-w');
+    Route::get('/apply-form-w', [FormWController::class, 'create'])->name('apply-form-w');
     Route::get('/apply-form-wh', [RegisterController::class, 'apply_form_wh'])->name('apply-form-wh');
     Route::get('/apply_form_p', [FormPController::class, 'apply_form_p'])->name('apply_form_p');
     Route::get('/renew-form-p/{application_id}', [FormPController::class, 'renew_form_p'])->name('renew_form_p');
@@ -134,9 +134,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/digitization/storeDigitization', [FormSDigitizationController::class, 'storeDigitization'])->name('digitization.storeDigitization');
     Route::get('/digitization/getContractorDetails', [FormSDigitizationController::class, 'fetchContractorDetails'])->name('digitization.getContractorDetails');
 
-    Route::get('/apply-form-w_d', [FormWDigitizationController::class, 'index'])->name('apply-form-w_d');
-    Route::post('/digitization/w/storeDigitization', [FormWDigitizationController::class, 'storeDigitization'])->name('digitization.w.storeDigitization');
-    Route::get('/digitization/w/getContractorDetails', [FormWDigitizationController::class, 'fetchContractorDetails'])->name('digitization.w.getContractorDetails');
+    Route::get('/apply-form-w_d', [FormWController::class, 'digitize'])->name('apply-form-w_d');
+    Route::post('/digitization/w/storeDigitization', [FormWController::class, 'storeDigitization'])->name('digitization.w.storeDigitization');
+    Route::get('/digitization/w/getContractorDetails', [FormWController::class, 'fetchContractorDetails'])->name('digitization.w.getContractorDetails');
 
     Route::get('/apply-form-wh_d', [FormWHDigitizationController::class, 'index'])->name('apply-form-wh_d');
     Route::get('/apply_form_p_d', [FormpDigitizationController::class, 'index'])->name('apply_form_p_d');
@@ -156,6 +156,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('form_s_alt/verify', [FormSAlteration::class, 'verifyParent'])->name('form_s_alt.verify');
     Route::post('form_s_alt/store', [FormSAlteration::class, 'store'])->name('form_s_alt.store');
     Route::post('form_s_alt/draft', [FormSAlteration::class, 'saveDraft'])->name('form_s_alt.draft');
+
+    Route::get('form_w_alt', [FormWController::class, 'alterIndex'])->name('form_w_alt');
+    Route::get('form_w_alt/certificates', [FormWController::class, 'listCertificates'])->name('form_w_alt.certificates');
+    Route::post('form_w_alt/verify', [FormWController::class, 'verifyParent'])->name('form_w_alt.verify');
+    Route::post('form_w_alt/store', [FormWController::class, 'storeAlteration'])->name('form_w_alt.store');
+    Route::post('form_w_alt/draft', [FormWController::class, 'saveAlterationDraft'])->name('form_w_alt.draft');
 
     // CL Alteration-----------------------------
     Route::get('alteration_cl', [FormCLAlteration::class, 'index'])->name('alteration_cl');
@@ -265,14 +271,20 @@ Route::middleware(['auth'])->group(function () {
 
 // ------------------------ Form Submit & PDF Routes ------------------------
 Route::post('/form/store', [FormController::class, 'store'])->name('form.store');
+Route::post('/form_w/store', [FormWController::class, 'store'])->name('form_w.store');
 Route::post('/form/draft_submit/{appl_id}', [FormController::class, 'draft_submit'])->name('form.draft_submit');
 Route::post('/form/draft_update/{appl_id}', [FormController::class, 'draft_update'])->name('form.draft-update');
+Route::post('/form_w/draft_update/{appl_id}', [FormWController::class, 'draftUpdate'])->name('form_w.draft-update');
 Route::post('/form/submit_returned_application/{appl_id}', [FormController::class, 'submitReturnedApplication'])->name('form.submit_returned_application');
 Route::post('/form/draft_submit', [FormController::class, 'draft_submit'])->name('form.draft_submit');
+Route::post('/form_w/draft_submit', [FormWController::class, 'draftSubmit'])->name('form_w.draft_submit');
 Route::post('/form/draft_renewal_submit/{appl_id}', [FormController::class, 'draft_renewal_submit'])
     ->name('form.draft_renewal_submit');
+Route::post('/form_w/draft_renewal_submit/{appl_id}', [FormWController::class, 'draftRenewalSubmit'])
+    ->name('form_w.draft_renewal_submit');
 
 Route::post('/form/update/{appl_id}', [FormController::class, 'update'])->name('form.update');
+Route::post('/form_w/update/{appl_id}', [FormWController::class, 'updateApplication'])->name('form_w.update');
 Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.store');
 
 

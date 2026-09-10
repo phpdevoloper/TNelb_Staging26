@@ -32,7 +32,9 @@ class Tnelb_CC_Digitization extends Model
         'original_name',
         'qc_original_name',
         'qc_det',
-        'new_cc_no'
+        'new_cc_no',
+        'cc_type',
+        'flag',
     ];
 
 }

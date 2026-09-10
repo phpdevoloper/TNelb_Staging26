@@ -658,7 +658,170 @@
         }
     }
 
+    #infoModal.notice-alert-modal {
+        --color-primary: #1d4ed8;
+        --color-primary-hover: #1e40af;
+        --color-accent: #d97706;
+        --color-background: #ffffff;
+        --color-surface: #fffbeb;
+        --color-text-main: #0f172a;
+        --color-text-muted: #64748b;
+        --color-border: #e2e8f0;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --transition-smooth: all 0.2s ease-in-out;
+        z-index: 10060;
+    }
+
+    .modal-backdrop.notice-alert-backdrop {
+        z-index: 10050;
+    }
+
+    #infoModal.notice-alert-modal .modal-dialog {
+        max-width: min(28rem, calc(100vw - 2rem));
+        margin: 1rem auto;
+    }
+
+    #infoModal.notice-alert-modal .modal-content {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 1.25rem 2.5rem rgba(15, 23, 42, 0.16);
+    }
+
+    #infoModal.notice-alert-modal .modal-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem 0.85rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: var(--color-background);
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__heading {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+        flex: 1;
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        flex-shrink: 0;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, #1d4ed8, #1d4ed8);
+        color: #fff;
+        font-size: 1.05rem;
+    }
+
+    #infoModal.notice-alert-modal .modal-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--color-text-main);
+        letter-spacing: 0.01em;
+        line-height: 1.3;
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__close {
+        margin: 0 0 0 auto;
+        padding: 0;
+        font-size: 1.75rem;
+        font-weight: 400;
+        line-height: 1;
+        color: #64748b;
+        opacity: 0.7;
+        background: transparent;
+        border: 0;
+        transition: var(--transition-smooth);
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__close:hover,
+    #infoModal.notice-alert-modal .notice-alert__close:focus {
+        color: #0f172a;
+        opacity: 1;
+        text-decoration: none;
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__close:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 3px;
+    }
+
+    #infoModal.notice-alert-modal .modal-body {
+        padding: 0.9rem 1.15rem 0.35rem;
+        background: var(--color-background);
+        border-left: 0.25rem solid var(--color-accent);
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__copy {
+        margin: 0;
+        padding: 0.85rem 0.95rem;
+        background: var(--color-surface);
+        border: 1px solid #fde68a;
+        border-radius: var(--radius-md);
+        color: var(--color-text-main);
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    #infoModal.notice-alert-modal .modal-footer {
+        border-top: 0;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0.85rem 1.15rem 1.05rem;
+        background: var(--color-background);
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__ok {
+        min-width: 6.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-md);
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        transition: var(--transition-smooth);
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__ok:hover,
+    #infoModal.notice-alert-modal .notice-alert__ok:focus {
+        background: var(--color-primary-hover);
+        border-color: var(--color-primary-hover);
+    }
+
+    #infoModal.notice-alert-modal .notice-alert__ok:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 3px;
+    }
+
 </style>
+<!-- Notice Alert -->
+<div class="modal fade notice-alert-modal" id="infoModal" tabindex="-1" role="alertdialog" aria-labelledby="infoModalLabel" aria-describedby="infoModalBody" aria-modal="true" aria-hidden="true" data-backdrop="static" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="notice-alert__heading">
+                    <span class="notice-alert__icon" aria-hidden="true"><i class="fa fa-bullhorn"></i></span>
+                    <h5 class="modal-title" id="infoModalLabel">Important Notice</h5>
+                </div>
+                <button type="button" class="close notice-alert__close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="notice-alert__copy" id="infoModalBody">There is any correction in your competency certificate experience details. Please update your valid experience through the Alteration form within <span class="text-danger">30 days</span> of Application Submission.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary notice-alert__ok" data-bs-dismiss="modal" data-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <section class="dashboard-panel">
     <div class="layout-login">
         <div class="container-fluid">

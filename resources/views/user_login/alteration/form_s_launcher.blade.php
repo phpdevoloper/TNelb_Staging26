@@ -6,8 +6,8 @@
 
 <script>
     window.formSAltLauncher = true;
-    window.formSAltVerifyUrl = "{{ route('form_s_alt.verify') }}";
-    window.formSAltCertificatesUrl = "{{ route('form_s_alt.certificates') }}";
+    window.formSAltVerifyUrl = "{{ $alterVerifyUrl ?? route('form_s_alt.verify') }}";
+    window.formSAltCertificatesUrl = "{{ $alterCertificatesUrl ?? route('form_s_alt.certificates') }}";
     window.dashboardUrl = "{{ route('dashboard') }}";
     window.formSAltCert = @json($form_code ?? 'S');
     window.formSAltCertLabel = @json($form_label ?? 'Supervisor Competency Certificate [Form S]');

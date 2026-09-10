@@ -10,6 +10,7 @@ use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Models\Mst_experience;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\FormWSchema;
 use App\Models\CC_Proof_doc;
 use App\Models\Payment;
 use Illuminate\Support\Collection;
@@ -721,7 +722,9 @@ class FormSAlterationService
 
             if ($alterWork) {
                 $this->assertFormSExperienceDateSequence($request);
-                $this->assertFormSCountableExperienceMinimum($parent, $request);
+                if (! FormWSchema::isFormW($formName)) {
+                    $this->assertFormSCountableExperienceMinimum($parent, $request);
+                }
                 CC_Experience::where('application_id', $child->application_id)->delete();
                 $this->storeWorkExperienceAlterationRows($request, $child, $loginId, $parent);
             } else {
@@ -1648,6 +1651,11 @@ class FormSAlterationService
 
     protected function syncLegacyApplicationProfile(string $parentApplicationId, array $parentUpdates): void
     {
+        $parentTable = app(CompetencyMetaService::class)->metaTableForApplicationId($parentApplicationId);
+        if ($parentTable !== 'cc_form_s_meta') {
+            return;
+        }
+
         if (! DB::getSchemaBuilder()->hasTable('cc_form_s_meta')) {
             return;
         }

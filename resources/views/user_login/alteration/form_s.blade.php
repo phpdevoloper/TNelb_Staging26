@@ -2628,8 +2628,8 @@
     @include('include.footer')
     
     <script>
-        window.formSAltStoreUrl = "{{ route('form_s_alt.store') }}";
-        window.formSAltDraftUrl = "{{ route('form_s_alt.draft') }}";
+        window.formSAltStoreUrl = "{{ $alterStoreUrl ?? route('form_s_alt.store') }}";
+        window.formSAltDraftUrl = "{{ $alterDraftUrl ?? route('form_s_alt.draft') }}";
         window.dashboardUrl = "{{ route('dashboard') }}";
         window.formSAltEditableMode = @json($isAlterationEditable);
     </script>

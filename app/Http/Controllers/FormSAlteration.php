@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 
 
+use App\Services\Competency\FormWSchema;
 use App\Services\FormS\FormSAlterationService;
 
 use Illuminate\Http\Request;
@@ -62,7 +63,9 @@ class FormSAlteration extends BaseController
 
         $formCode = $this->resolveFormCode($request);
 
-
+        if (FormWSchema::isFormW($formCode)) {
+            return redirect()->route('form_w_alt', $request->query());
+        }
 
         if ($parentId === '') {
 
@@ -142,6 +145,10 @@ class FormSAlteration extends BaseController
         }
 
         $formCode = $this->resolveFormCode($request);
+        if (FormWSchema::isFormW($formCode)) {
+            return app(FormWController::class)->listCertificates($request);
+        }
+
         $loginId = (string) Auth::user()->login_id;
         $certificates = $this->alterationService->listIssuedCertificatesForLogin($loginId, $formCode);
 
@@ -156,7 +163,11 @@ class FormSAlteration extends BaseController
     {
         $formCode = $this->resolveFormCode($request);
 
-        if (!in_array($formCode, ['S', 'W'], true)) {
+        if (FormWSchema::isFormW($formCode)) {
+            return app(FormWController::class)->verifyParent($request);
+        }
+
+        if ($formCode !== 'S') {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Alteration for this certificate type is not available yet.',
@@ -254,6 +265,9 @@ class FormSAlteration extends BaseController
     public function store(Request $request)
 
     {
+        if (FormWSchema::isFormW($this->resolveFormCode($request))) {
+            return app(FormWController::class)->storeAlteration($request);
+        }
 
         $request->validate([
 
@@ -322,6 +336,9 @@ class FormSAlteration extends BaseController
     public function saveDraft(Request $request)
 
     {
+        if (FormWSchema::isFormW($this->resolveFormCode($request))) {
+            return app(FormWController::class)->saveAlterationDraft($request);
+        }
 
         $request->validate([
 

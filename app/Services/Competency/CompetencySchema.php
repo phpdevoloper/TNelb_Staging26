@@ -14,6 +14,9 @@ namespace App\Services\Competency;
  * - cc_edu, cc_exp, cc_proof_doc, cc_doc_log, cc_payments
  *
  * Do NOT create per-form copies of edu / exp / proof_doc tables.
+ *
+ * Form W identity and table contract: see FormWSchema
+ * (cc_form_w_meta, cc_workflow_formw, cc_form_w_cert + shared tables + tnelb_cc_digitization).
  */
 final class CompetencySchema
 {

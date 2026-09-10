@@ -32,6 +32,8 @@ use App\Services\FormS\FormSDocumentUploadHandler;
 use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\FormWExperienceRules;
+use App\Services\Competency\FormWSchema;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\FormSWorkTillDate;
@@ -72,6 +74,24 @@ class FormController extends BaseController
     private function isCompetencyForm(?string $formName): bool
     {
         return in_array($formName, ['S', 'W', 'WH', 'P'], true);
+    }
+
+    /**
+     * Form W HTTP entry is FormWController. Keep /form/* as aliases.
+     *
+     * @return mixed
+     */
+    private function dispatchFormWIfNeeded(Request $request, string $method, ...$args)
+    {
+        if (! FormWSchema::isFormW($request->form_name ?? $request->input('form_name'))) {
+            return null;
+        }
+
+        if ($request->attributes->get(FormWSchema::VIA_CONTROLLER_ATTR)) {
+            return null;
+        }
+
+        return app(FormWController::class)->{$method}($request, ...$args);
     }
 
     private function formSDocumentHandler(): FormSDocumentUploadHandler
@@ -587,16 +607,16 @@ class FormController extends BaseController
     }
 
     /**
-     * When Form S 7b switch is "No", hidden 7b/current row inputs may still post empty
-     * legacy fields (work_level/experience/designation). Prune those indexes before
-     * validator "required.*" rules run.
+     * When 7b switch is "No", hidden 7b/current row inputs may still post empty
+     * legacy fields. Prune those indexes before validator/persist run.
      */
     private function pruneHiddenFormSCurrentSectionLegacyRows(Request $request): void
     {
-        if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+        $formName = strtoupper((string) ($request->form_name ?? ''));
+        if (! in_array($formName, ['S', 'W'], true)) {
             return;
         }
-        if ($this->isFormSBoardMemberSwitchYes($request)) {
+        if (strtolower(trim((string) $request->input('current_work_board_member', 'no'))) === 'yes') {
             return;
         }
 
@@ -615,7 +635,28 @@ class FormController extends BaseController
             return;
         }
 
-        foreach (['work_level', 'experience', 'designation'] as $field) {
+        foreach ([
+            'work_level',
+            'experience',
+            'designation',
+            'work_employer_name',
+            'work_employment_type',
+            'work_organisation_address',
+            'work_contractor_category',
+            'work_licence_number',
+            'work_date_from',
+            'work_date_to',
+            'work_to_till_date',
+            'work_exp_section',
+            'work_board_meeting_details',
+            'work_board_meeting_date',
+            'work_experience_total',
+            'work_id',
+            'existing_work_document',
+            'existing_work_relieving_document',
+            'removed_document_work',
+            'removed_document_work_relieving',
+        ] as $field) {
             $values = $request->input($field, null);
             if (!is_array($values)) {
                 continue;
@@ -1654,7 +1695,9 @@ class FormController extends BaseController
      */
     private function validateOptionalCompetencyWorkRows(Request $request, \Illuminate\Validation\Validator $validator): void
     {
-        if (($request->form_name ?? '') === 'W') {
+        if (FormWSchema::isFormW($request->form_name ?? '')) {
+            app(FormWExperienceRules::class)->validatePostedRows($request, $validator);
+
             return;
         }
 
@@ -2741,7 +2784,10 @@ class FormController extends BaseController
 
    public function store(Request $request)
     {
-        
+        if ($dispatched = $this->dispatchFormWIfNeeded($request, 'store')) {
+            return $dispatched;
+        }
+
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
@@ -3288,6 +3334,10 @@ class FormController extends BaseController
     // DRAFT UPDATE
     public function draft_update(Request $request, $applicationId)
     {
+        if ($dispatched = $this->dispatchFormWIfNeeded($request, 'draftUpdate', $applicationId)) {
+            return $dispatched;
+        }
+
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
@@ -3875,7 +3925,10 @@ class FormController extends BaseController
 
     public function draft_submit(Request $request, $id = null)
     {
-        
+        if ($dispatched = $this->dispatchFormWIfNeeded($request, 'draftSubmit', $id)) {
+            return $dispatched;
+        }
+
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
@@ -3885,6 +3938,8 @@ class FormController extends BaseController
                 'pancard' => strtoupper(preg_replace('/\s+/', '', $request->pancard)),
             ]);
         }
+
+        $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
 
         $applicationId = $id;
         $existingForm = $applicationId
@@ -4233,6 +4288,9 @@ class FormController extends BaseController
 
     public function draft_renewal_submit(Request $request, $id = null)
     {
+        if ($dispatched = $this->dispatchFormWIfNeeded($request, 'draftRenewalSubmit', $id)) {
+            return $dispatched;
+        }
 
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
@@ -4533,6 +4591,10 @@ class FormController extends BaseController
 
 public function update(Request $request, $id)
     {
+        if ($dispatched = $this->dispatchFormWIfNeeded($request, 'updateApplication', $id)) {
+            return $dispatched;
+        }
+
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
@@ -4542,6 +4604,8 @@ public function update(Request $request, $id)
                 'pancard' => strtoupper(preg_replace('/\s+/', '', $request->pancard)),
             ]);
         }
+
+        $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
 
         $applicationId = $id;
         $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);

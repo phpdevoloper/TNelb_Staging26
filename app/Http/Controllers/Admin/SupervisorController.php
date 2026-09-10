@@ -1957,25 +1957,35 @@ class SupervisorController extends Controller
 
 
             if ($appl_type == 'A') {
+                $formName = (string) ($application->form_name ?? '');
+                $certTable = $this->competencyCertificateService()->certTableForForm($formName) ?: 'cc_forms_cert';
+                $metaService = app(CompetencyMetaService::class);
+                $metaTable = $metaService->tableForForm($formName)
+                    ?: $metaService->metaTableForApplicationId($request->application_id);
 
-                $alter_insert = DB::table('cc_forms_cert')->where('application_id', $request->application_id)->first();
+                $alter_insert = DB::table($certTable)->where('application_id', $request->application_id)->first();
 
-                if (!$alter_insert) {
-                    $metadata = DB::table('cc_form_s_meta')->where('application_id', $request->application_id)->first();
+                if (! $alter_insert && $metaTable) {
+                    $metadata = DB::table($metaTable)->where('application_id', $request->application_id)->first();
+                    $parentId = trim((string) ($metadata->old_application ?? $application->old_application ?? ''));
+                    $licensedetails = $parentId !== ''
+                        ? DB::table($certTable)
+                            ->where('application_id', $parentId)
+                            ->orderByDesc('cc_id')
+                            ->first()
+                        : null;
 
-                    $licensedetails = DB::table('cc_forms_cert')
-                        ->where('application_id', $metadata->old_application)
-                        ->latest('cc_id')
-                        ->first();
-                    $alter_insert = DB::table('cc_forms_cert')->insert([
-                        'application_id' => $request->application_id,
-                        'certificate_no' => $licenseNumber,
-                        'dateof_issue' => $licensedetails->dateof_issue,
-                        'valid_from' => $licensedetails->valid_from,
-                        'valid_to' => $licensedetails->valid_to,
-                        'cert_status' => 'A',
-                        'created_at' => $this->dbNow,
-                    ]);
+                    if ($licensedetails) {
+                        DB::table($certTable)->insert([
+                            'application_id' => $request->application_id,
+                            'certificate_no' => $licenseNumber,
+                            'dateof_issue' => $licensedetails->dateof_issue,
+                            'valid_from' => $licensedetails->valid_from,
+                            'valid_to' => $licensedetails->valid_to,
+                            'cert_status' => 'A',
+                            'created_at' => $this->dbNow,
+                        ]);
+                    }
                 }
             }
 
@@ -1995,13 +2005,17 @@ class SupervisorController extends Controller
                 ->first();
 
 
-            $meta_tbl_certIupdate = DB::table('cc_form_s_meta')
-                ->where('application_id', $request->application_id)
-                ->update([
-                    'certificate_no' => $licenseNumber,
-                    'updated_at' => now(),
-
-                ]);
+            $metaService = app(CompetencyMetaService::class);
+            $metaTableForCert = $metaService->metaTableForApplicationId($request->application_id)
+                ?: $metaService->tableForForm((string) ($application->form_name ?? ''));
+            if ($metaTableForCert) {
+                DB::table($metaTableForCert)
+                    ->where('application_id', $request->application_id)
+                    ->update([
+                        'certificate_no' => $licenseNumber,
+                        'updated_at' => now(),
+                    ]);
+            }
 
             if ($Existingcheck) {
                 $Existingcheck->update([

@@ -11,6 +11,11 @@
     /* ── Page wrapper ─────────────────────────────────── */
     .fs-page-wrap { background: #f0f4f9; min-height: 100vh; padding-bottom: 48px; }
 
+    /* Digitization enrollment modal: stay hidden unless JS opens it */
+    #digitization.modal:not(.show) {
+        display: none !important;
+    }
+
     /* ── Breadcrumb ───────────────────────────────────── */
     .fs-breadcrumb-bar { background: #fff; border-bottom: 1px solid #e3e8f0; padding: 10px 0; }
     .fs-breadcrumb-bar #breadcrumb,
@@ -136,11 +141,14 @@
     .form-s-file-upload-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; }
     .form-s-file-upload-wrap .form-control { flex: 1 1 auto; min-width: 0; }
     #education-table .form-s-file-upload-wrap--combined,
-    #work-table .form-s-file-upload-wrap--combined { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; align-self: flex-start; gap: 0; width: 100%; min-width: 12rem; max-width: 20rem; border: 1px solid #ccd5e3; border-radius: 6px; overflow: hidden; background: #fff; }
+    #work-table .form-s-file-upload-wrap--combined,
+    .work-exp-wrap .form-s-file-upload-wrap--combined { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; align-self: flex-start; gap: 0; width: 100%; min-width: 12rem; max-width: 20rem; border: 1px solid #ccd5e3; border-radius: 6px; overflow: hidden; background: #fff; }
     #education-table .form-s-file-upload-wrap--combined .form-control,
     #work-table .form-s-file-upload-wrap--combined .form-control,
+    .work-exp-wrap .form-s-file-upload-wrap--combined .form-control,
     #education-table .form-s-file-upload-wrap--combined input[type="file"],
-    #work-table .form-s-file-upload-wrap--combined input[type="file"] { flex: 1 1 auto; min-width: 0; width: auto; font-size: .8125rem; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: .3rem .45rem; background: #fff; }
+    #work-table .form-s-file-upload-wrap--combined input[type="file"],
+    .work-exp-wrap .form-s-file-upload-wrap--combined input[type="file"] { flex: 1 1 auto; min-width: 0; width: auto; font-size: .8125rem; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: .3rem .45rem; background: #fff; }
 
     /* ── Table action cells ───────────────────────────── */
     #education-table td.form-s-actions-cell { vertical-align: middle; width: 3rem; }
@@ -277,13 +285,15 @@
     .prv-btn-confirm:not(:disabled):hover { opacity:.9; }
 </style>
 
-{{-- Form W serial-7 work-experience engine styles (shared with Form S; voltage/nature/transformer hidden) --}}
 <style>
+{{-- Form W serial-7 work-experience engine (7a/7b) --}}
 @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => 'W'])
 @include('user_login.partials.form-s-work-exp-7ab-styles')
 </style>
 
-{{-- ░░ BREADCRUMB ░░ --}}
+{{-- Enrollment modal lives in include.header (#digitization). Do not duplicate it here. --}}
+
+{{-- Breadcrumb --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
         <ul id="breadcrumb">
@@ -293,12 +303,12 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{-- Page Body --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Application for Wireman Competency Certificate</h5>
@@ -311,16 +321,16 @@
                 </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- Mandatory notice --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- Form body --}}
             <div class="fs-form-body fs-form apply-card">
                 <form id="competency_form_ws" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTIONS 1–3 — Name, Father's Name, Email (same layout as apply-form-s) ═══ --}}
+                    {{-- Sections 1–3 — Name, Father's Name, Email (same layout as apply-form-s) --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
@@ -362,7 +372,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTIONS 4–5 — Address / D.O.B & Age (same layout as apply-form-s) ═══ --}}
+                    {{-- Sections 4–5 — Address / D.O.B & Age (same layout as apply-form-s) --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
@@ -414,7 +424,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 6 — Education ═══ --}}
+                    {{-- Section 6 — Education --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">6</span>
@@ -504,7 +514,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Work Experience (card UI, mirrors Form S but without Voltage / Nature / Transformer) ═══ --}}
+                    {{-- Section 7 — Work Experience (card UI, mirrors Form S but without Voltage / Nature / Transformer) --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">7</span>
@@ -517,12 +527,15 @@
                             @include('user_login.partials.form-w-work-exp-7ab-body', [
                                 'exp_details' => $exp_details ?? collect(),
                                 'showContractorNotice' => false,
-                                'contractorDetails' => null,
+                                'contractorDetails' => $contractorDetails ?? null,
+                                'previousMaxRows' => 7,
+                                'hideUploadWhenDocExists' => false,
+                                'isAlterationMode' => false,
                             ])
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 8 — Previous Certificate ═══ --}}
+                    {{-- Section 8 — Previous Certificate --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
@@ -577,7 +590,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 9 — Upload Documents ═══ --}}
+                    {{-- Section 9 — Upload Documents --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">9</span>
@@ -686,7 +699,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ Declaration ═══ --}}
+                    {{-- Declaration --}}
                     <div class="fs-declaration">
                         <label class="container">
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
@@ -710,11 +723,11 @@
                     @csrf
                     <input type="hidden" id="form_action" name="form_action" value="draft">
 
-                    {{-- ── Action buttons ── --}}
+                    {{-- Action buttons --}}
                     <div class="fs-action-bar">
                         @if(! isset($application))
                         <button type="button" class="btn-fs-draft" id="saveDraftBtn"
-                            data-url="{{ route('form.draft_submit') }}"
+                            data-url="{{ route('form_w.draft_submit') }}"
                             data-id="{{ $application_details->application_id ?? '' }}">
                             <i class="fa fa-floppy-o"></i> Save As Draft
                         </button>
@@ -730,7 +743,7 @@
     </div>{{-- /container --}}
 </div>{{-- /fs-page-wrap --}}
 
-{{-- ── Draft saved modal ── --}}
+{{-- Draft saved modal --}}
 <div id="draftModal" class="overlay-bg" style="display:none;">
     <div class="otp-modal">
         <h5><i class="fa fa-check-circle"></i> Your Application Details Saved Successfully</h5>
@@ -738,7 +751,7 @@
     </div>
 </div>
 
-{{-- ── Application Preview Modal ── --}}
+{{-- Application Preview Modal --}}
 <div id="appPreviewModal" class="prv-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Application Preview">
     <div class="prv-panel">
         <div class="prv-header">

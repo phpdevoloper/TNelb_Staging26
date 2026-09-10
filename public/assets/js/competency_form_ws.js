@@ -12,6 +12,16 @@
 
     var cfg = window.COMPETENCY_FORM_CONFIG || {};
 
+    function competencyPersistUrls() {
+        var formName = String($('#form_name').val() || '').toUpperCase();
+        var isW = formName === 'W';
+        return {
+            store: (isW && cfg.formWStoreUrl) ? cfg.formWStoreUrl : cfg.formStoreUrl,
+            update: (isW && cfg.formWUpdateUrlTemplate) ? cfg.formWUpdateUrlTemplate : cfg.formUpdateUrlTemplate,
+            renewal: (isW && cfg.formWDraftRenewalUrlTemplate) ? cfg.formWDraftRenewalUrlTemplate : cfg.draftRenewalUrlTemplate
+        };
+    }
+
     function getPaymentsService(licence_code, issued_licence, appl_type, options) {
         const silent = !!(options && typeof options === 'object' && options.silent);
 
@@ -232,15 +242,16 @@
                 }
                 let applicationId = $('#application_id').val();
                 let formUrl;
+                const persistUrls = competencyPersistUrls();
 
                 if (applicationId) {
                     if (appl_type === 'R') {
-                        formUrl = String(cfg.draftRenewalUrlTemplate || '').replace('__APPL_ID__', applicationId);
+                        formUrl = String(persistUrls.renewal || '').replace('__APPL_ID__', applicationId);
                     } else {
-                        formUrl = String(cfg.formUpdateUrlTemplate || '').replace('__APPL_ID__', applicationId);
+                        formUrl = String(persistUrls.update || '').replace('__APPL_ID__', applicationId);
                     }
                 } else {
-                    formUrl = cfg.formStoreUrl;
+                    formUrl = persistUrls.store;
                 }
 
                 // ---- Date helpers (avoid RangeError: Invalid time value) ----
@@ -1345,6 +1356,35 @@
             return false;
         }
 
+        function localFilePreviewField($el) {
+            if (!$el || !$el.length) return $();
+            const $field = $el.closest('.work-card-field, [data-doc-field], td, .file-section, .form-group');
+            if ($field.length) return $field.first();
+            const $wrap = $el.closest('.form-s-file-upload-wrap');
+            if ($wrap.length) return $wrap.parent();
+            return $el.parent();
+        }
+
+        function localFilePreviewForInput($input) {
+            if (!$input || !$input.length) return $();
+            const $wrap = $input.closest('.form-s-file-upload-wrap');
+            if ($wrap.length) {
+                const $next = $wrap.nextAll('.local-file-preview').first();
+                if ($next.length) return $next;
+            }
+            return localFilePreviewField($input).children('.local-file-preview').first();
+        }
+
+        function fileInputForLocalPreview($preview) {
+            if (!$preview || !$preview.length) return $();
+            const $prevWrap = $preview.prevAll('.form-s-file-upload-wrap').first();
+            if ($prevWrap.length) {
+                const $fromWrap = $prevWrap.find('input[type="file"]').first();
+                if ($fromWrap.length) return $fromWrap;
+            }
+            return localFilePreviewField($preview).find('input[type="file"]').first();
+        }
+
         $(document).on('click', '.local-file-preview .preview-link', async function (e) {
             e.preventDefault();
 
@@ -1352,8 +1392,7 @@
             const href = $link.attr('href');
             const target = $link.attr('target') || '_blank';
             const $preview = $link.closest('.local-file-preview');
-            const $scope = $preview.closest('td, .file-section, .form-group, .education-fields, .work-fields, .col-12, .col-md-7');
-            const $fileInput = $scope.find('input[type="file"]').first();
+            const $fileInput = fileInputForLocalPreview($preview);
             const input = $fileInput.get(0);
             const file = input && input.files && input.files[0] ? input.files[0] : null;
 
@@ -1369,7 +1408,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'File Not Accessible',
-                    text: 'Selected file is missing or deleted on education upload. Please choose the file again.'
+                    text: 'Selected file is missing or deleted. Please choose the file again.'
                 });
                 return;
             }
@@ -1380,7 +1419,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'File Not Accessible',
-                    text: 'Selected file is missing or deleted on education upload. Please choose the file again.'
+                    text: 'Selected file is missing or deleted. Please choose the file again.'
                 });
                 return;
             }
@@ -1395,8 +1434,7 @@
 
         function clearLocalFilePreviewForInput($input) {
             if (!$input || !$input.length) return;
-            const $scope = $input.closest('td, .file-section, .form-group, .education-fields, .work-fields');
-            const $preview = $scope.find('.local-file-preview').first();
+            const $preview = localFilePreviewForInput($input);
             const blobUrl = $preview.data('blobUrl');
             if (blobUrl) {
                 try { URL.revokeObjectURL(blobUrl); } catch (e) { }
@@ -1432,15 +1470,16 @@
             $preview.append($link);
 
             const $wrap = $input.closest('.form-s-file-upload-wrap');
+            const $field = localFilePreviewField($input);
             if ($wrap.length) {
-                const $limitText = $wrap.parent().find('.file-limit').first();
+                const $limitText = $field.find('.file-limit').first();
                 if ($limitText.length) {
                     $preview.insertBefore($limitText);
                 } else {
                     $wrap.after($preview);
                 }
             } else {
-                const $limitText = $input.parent().find('.file-limit').first();
+                const $limitText = $field.find('.file-limit').first();
                 if ($limitText.length) {
                     $preview.insertBefore($limitText);
                 } else {
@@ -1572,16 +1611,16 @@
             const applicationId = ($('#application_id').val() || '').trim();
             let formUrl = '';
 
+            const persistUrls = competencyPersistUrls();
             if (formWsEl) {
                 if (applicationId) {
                     if (applType === 'R') {
-                        formUrl = String(cfg.draftRenewalUrlTemplate || '').replace('__APPL_ID__', applicationId);
+                        formUrl = String(persistUrls.renewal || '').replace('__APPL_ID__', applicationId);
                     } else {
-                        // New (N) and Digitization (D) — update existing draft
-                        formUrl = String(cfg.formUpdateUrlTemplate || '').replace('__APPL_ID__', applicationId);
+                        formUrl = String(persistUrls.update || '').replace('__APPL_ID__', applicationId);
                     }
                 } else {
-                    formUrl = cfg.formStoreUrl;
+                    formUrl = persistUrls.store;
                 }
             } else if (formPEl) {
                 if (applicationId) {

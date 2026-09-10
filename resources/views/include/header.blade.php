@@ -1330,25 +1330,6 @@ use Illuminate\Support\Facades\Auth;
 </script>
 
 <body class="theme-color-two">
-
-    <!-- Modal -->
-    <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="infoModalLabel">Modal title</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Modal body text goes here.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Save changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
       
     <!-- Declaration Modal -->
     <div class="modal fade" id="declarationModal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
@@ -1594,6 +1575,52 @@ use Illuminate\Support\Facades\Auth;
                                             <input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf">
                                             <span class="file-limit">PDF only (Max 250 KB)</span>
                                             <span class="error text-danger" id="qc_doc_error"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            @php
+                            $showCl = Request::is('apply-form-w_d');
+                            @endphp
+
+                            <section class="digi-section" id="cl_section" {{ !$showCl ? 'style=display:none;' : '' }} aria-label="Current Contractor Licence Details">
+                                <div class="digi-qc-gate">
+                                    <p class="digi-qc-question">
+                                        Are you currently working with contractor ? if Yes, please upload the current contractor licence details?
+                                    </p>
+                                    <div class="digi-qc-toggle" role="radiogroup" aria-label="Qualified Supervisor recognition">
+                                        <label>
+                                            <input type="radio" id="cl_yes" name="cl_det" value="yes">
+                                            <span>Yes</span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" id="cl_no" name="cl_det" value="no" checked>
+                                            <span>No</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <span class="error text-danger" id="cl_error"></span>
+                                <div id="cl_details" class="digi-cl-panel" style="display:none;">
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="cl_type">Grade of Licence <span class="fill">*</span></label>
+                                        <div class="digi-field-control">
+                                            <select class="form-control" id="cl_type" name="cl_type">
+                                                <option value="0">---Select Type---</option>
+                                                <option value="EA">EA</option>
+                                                <option value="ESA">ESA</option>
+                                            </select>
+                                            <span class="error text-danger" id="cl_type_error"></span>
+                                        </div>
+                                        <div class="digi-field-control"><input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf">
+                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                            <span class="error text-danger" id="cl_doc_error"></span>
+                                        </div>
+                                        <div class="digi-field-control">
+                                            <label class="digi-field-label" for="digi_qc_doc">Details of the employee in Contractor Licence <span class="fill">*</span></label>
+                                            <input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf">
+                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                            <span class="error text-danger" id="cl_doc_error"></span>
                                         </div>
                                     </div>
                                 </div>

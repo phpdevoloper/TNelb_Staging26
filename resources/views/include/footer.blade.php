@@ -164,6 +164,9 @@ window.COMPETENCY_FORM_CONFIG = {
     formStoreUrl: @json(route('form.store')),
     formUpdateUrlTemplate: @json(route('form.update', ['appl_id' => '__APPL_ID__'])),
     draftRenewalUrlTemplate: @json(route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__'])),
+    formWStoreUrl: @json(route('form_w.store')),
+    formWUpdateUrlTemplate: @json(route('form_w.update', ['appl_id' => '__APPL_ID__'])),
+    formWDraftRenewalUrlTemplate: @json(route('form_w.draft_renewal_submit', ['appl_id' => '__APPL_ID__'])),
     formPStoreUrl: @json(route('form_p.store')),
     formPUpdateUrl: @json(route('form_p.update')),
     formPDraftRenewalUrlTemplate: @json(route('form_p.draft_renewal_submit', ['appl_id' => '__APPL_ID__'])),
@@ -2942,9 +2945,42 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
 
     document.addEventListener('DOMContentLoaded', function () {
         const modalElement = document.getElementById('infoModal');
-        const modal = new bootstrap.Modal(modalElement);
+        if (!modalElement) {
+            return;
+        }
 
-        modal.show();
+        // Bootstrap 4 appends the backdrop to <body>. This modal lives inside
+        // .page-wrapper (z-index: 9), so the backdrop sat on top and blocked clicks.
+        if (modalElement.parentElement !== document.body) {
+            document.body.appendChild(modalElement);
+        }
+
+        if (window.jQuery && typeof window.jQuery.fn.modal === 'function') {
+            const $modal = window.jQuery(modalElement);
+
+            $modal
+                .off('shown.bs.modal.noticeAlert hidden.bs.modal.noticeAlert')
+                .on('shown.bs.modal.noticeAlert', function () {
+                    window.jQuery('.modal-backdrop').last().addClass('notice-alert-backdrop');
+                    const okButton = modalElement.querySelector('.notice-alert__ok');
+                    if (okButton) {
+                        okButton.focus();
+                    }
+                })
+                .on('hidden.bs.modal.noticeAlert', function () {
+                    window.jQuery('.modal-backdrop.notice-alert-backdrop').remove();
+                })
+                .modal({
+                    backdrop: 'static',
+                    keyboard: true,
+                    show: true
+                });
+            return;
+        }
+
+        if (typeof bootstrap !== 'undefined' && typeof bootstrap.Modal === 'function') {
+            new bootstrap.Modal(modalElement).show();
+        }
     });
     
 </script>

@@ -342,7 +342,12 @@ $(document).on("click", "#digitizationSubmit", function () {
         return false;
     }
 
-    let formData = new FormData(document.getElementById("digitizationForm"));
+    var formEl = document.querySelector("#digitization #digitizationForm")
+        || document.getElementById("digitizationForm");
+    if (!formEl) {
+        return false;
+    }
+    let formData = new FormData(formEl);
 
     $.ajax({
         url: BASE_URL + "/digitization/w/storeDigitization",
