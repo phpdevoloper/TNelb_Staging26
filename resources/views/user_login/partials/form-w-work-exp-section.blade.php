@@ -20,6 +20,7 @@
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $isAlterationMode = !empty($isAlterationMode);
     $lockExistingRows = !empty($lockExistingRows) || $isAlterationMode;
+    $contractorDetails = $contractorDetails ?? null;
 @endphp
 <div class="work-exp-wrap" data-work-part="{{ $workPart }}">
     @if ($showAddRow)
@@ -110,6 +111,7 @@
                     'isAlterationMode' => $isAlterationMode,
                     'lockExistingRows' => $lockExistingRows,
                     'alterationExistingRow' => $lockExistingRows && $expRow,
+                    'contractorDetails' => $contractorDetails,
                 ])
             @endforeach
         @elseif ($workMinRows > 0)
@@ -129,6 +131,7 @@
                     'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
                     'isAlterationMode' => $isAlterationMode,
                     'alterationExistingRow' => false,
+                    'contractorDetails' => $contractorDetails,
                 ])
             @endfor
         @endif

@@ -11,8 +11,13 @@
     $hasRow = isset($expRow) && $expRow;
     $empTypeRaw = $hasRow ? (string) ($expRow->emp_type ?? '') : '';
     $empType = $legacyEmpMap[$empTypeRaw] ?? $empTypeRaw;
+    $orgName = $hasRow ? (string) ($expRow->org_name ?? $expRow->company_name ?? '') : '';
+    if ($hasRow && $orgName === '' && $empType !== 'electrical_contractor' && ! empty($expRow->emp_cate)) {
+        $orgName = (string) $expRow->emp_cate;
+    }
     $contractorCat = '';
     $licenceNo = '';
+    $validContractorGrades = ['EA', 'ESA', 'ESB', 'EB'];
     if ($hasRow && $empType === 'electrical_contractor') {
         $stored = (string) ($expRow->emp_cate ?? '');
         if ($stored !== '' && str_contains($stored, '||')) {
@@ -20,12 +25,25 @@
             $contractorCat = $parts[0] ?? '';
             $licenceNo = $parts[1] ?? '';
         } elseif ($stored !== '') {
-            $contractorCat = $stored;
+            $storedUpper = strtoupper($stored);
+            if (in_array($storedUpper, $validContractorGrades, true)) {
+                $contractorCat = $storedUpper;
+            } elseif ($orgName === '') {
+                $orgName = $stored;
+            }
         }
     }
-    $orgName = $hasRow ? (string) ($expRow->org_name ?? $expRow->company_name ?? '') : '';
-    if ($hasRow && $orgName === '' && $empType !== 'electrical_contractor' && ! empty($expRow->emp_cate)) {
-        $orgName = (string) $expRow->emp_cate;
+    $contractorDetails = $contractorDetails ?? null;
+    if ($empType === 'electrical_contractor' && is_array($contractorDetails)) {
+        if ($contractorCat === '' && ! empty($contractorDetails['cl_type'])) {
+            $contractorCat = (string) $contractorDetails['cl_type'];
+        }
+        if ($licenceNo === '' && ! empty($contractorDetails['licence_no'])) {
+            $licenceNo = (string) $contractorDetails['licence_no'];
+        }
+        if ($orgName === '' && ! empty($contractorDetails['contractor_name'])) {
+            $orgName = (string) $contractorDetails['contractor_name'];
+        }
     }
     $orgAddress = $hasRow ? (string) ($expRow->org_address ?? '') : '';
     $designation = $hasRow ? (string) ($expRow->designation ?? '') : '';

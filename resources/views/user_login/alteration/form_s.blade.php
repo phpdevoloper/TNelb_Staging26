@@ -1326,13 +1326,16 @@
                     {{-- ═══ SECTION 1 to 4 — Applicant Details ═══ --}}
                     @php
                         $formName = $application_details->form_name ?? '';
+                        $hasApplicantEmail = in_array($formName, ['S', 'W'], true);
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
-                        $emailVal = ($formName === 'S')
-                            ? (isset($application_details->applicant_email) && $application_details->applicant_email !== ''
-                                ? $application_details->applicant_email
-                                : (Auth::user()->email ?? ''))
-                            : '';
+                        $emailVal = '';
+                        if ($hasApplicantEmail) {
+                            $emailVal = trim((string) ($application_details->applicant_email ?? ''));
+                            if ($emailVal === '') {
+                                $emailVal = trim((string) (Auth::user()->email ?? ''));
+                            }
+                        }
                         $addressVal = isset($application_details) ? $application_details->applicant_address : Auth::user()->address;
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
@@ -1402,7 +1405,7 @@
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-field-num">{{ $formName === 'S' ? '4' : '3' }}</span>
+                                            <span class="fs-field-num">{{ $hasApplicantEmail ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address
                                                     @if($isAlterationMode)
@@ -1435,7 +1438,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-field-num">{{ $formName === 'S' ? '5' : '4' }}</span>
+                                                    <span class="fs-field-num">{{ $hasApplicantEmail ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>Date of Birth</div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
@@ -1483,18 +1486,18 @@
                                         <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
-                                @if($formName === 'S')
+                                @if($hasApplicantEmail)
                                 <div class="row mt-3">
                                     <div class="col-12">
                                         <div class="fs-field-head">
                                             <span class="fs-field-num">3</span>
                                             <div class="fs-field-head-text">
-                                                <div class="fs-field-label">Email ID <span class="req">*</span></div>
+                                                <div class="fs-field-label">Email ID @if($formName === 'S')<span class="req">*</span>@else<span class="section-hint">(optional)</span>@endif</div>
                                                 <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
                                             </div>
                                         </div>
                                         <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
-                                            maxlength="191" required value="{{ $emailVal }}">
+                                            maxlength="191" {{ $formName === 'S' ? 'required' : '' }} value="{{ $emailVal }}">
                                         <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
@@ -1502,7 +1505,7 @@
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
-                                            <span class="fs-field-num">{{ $formName === 'S' ? '4' : '3' }}</span>
+                                            <span class="fs-field-num">{{ $hasApplicantEmail ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
                                                 <div class="fs-field-label">Applicant Address <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
@@ -1515,7 +1518,7 @@
                                         <div class="row">
                                             <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                                 <div class="fs-field-head">
-                                                    <span class="fs-field-num">{{ $formName === 'S' ? '5' : '4' }}</span>
+                                                    <span class="fs-field-num">{{ $hasApplicantEmail ? '5' : '4' }}</span>
                                                     <div class="fs-field-head-text">
                                                         <div class="fs-field-label"><span class="fs-field-num-sub">(i)</span>D.O.B <span class="req">*</span></div>
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>

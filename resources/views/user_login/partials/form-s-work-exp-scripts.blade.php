@@ -1240,6 +1240,26 @@
                     }
                     return false;
                 }
+                if (typeof window.wxDigitizationContractorRowBlocksSubmit === 'function'
+                    && window.wxDigitizationContractorRowBlocksSubmit($tr)) {
+                    ensureWorkRowDoneBar($tr);
+                    var $tillGateBar = $tr.find('.work-row-done-bar');
+                    if ($tillGateBar.length && !$tillGateBar.find('.work-row-done-hint').length) {
+                        $tillGateBar.append('<p class="work-row-done-hint" role="alert">The given licence number must be a Till date (currently working) experience row.</p>');
+                    }
+                    if (typeof window.validateDigitizationContractorExperience === 'function') {
+                        window.validateDigitizationContractorExperience();
+                    }
+                    applyRowLayout($tr);
+                    var $tillBox = $tr.find('.work-date-till').first();
+                    if ($tillBox.length) {
+                        try {
+                            $tillBox[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        } catch (err) {}
+                        $tillBox.trigger('focus');
+                    }
+                    return false;
+                }
                 clearAllWorkRowRequiredErrors($tr);
                 if (!workContainerUsesSummaryPanel(workContainerFor($tr))) {
                     $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
@@ -2006,6 +2026,32 @@
                 $sync.val(val);
             }
 
+            function fillContractorFieldsFromDigitization($tr) {
+                if (!$tr || !$tr.length) return;
+                var d = window.contractorDetails;
+                if (!d || !(d.licence_no || d.cl_type || d.contractor_name)) {
+                    d = {
+                        cl_type: ($('#contractor-cl-type').text() || '').trim(),
+                        licence_no: ($('#contractor-licence-no').text() || '').trim(),
+                        contractor_name: ($('#contractor-name').text() || '').trim()
+                    };
+                }
+                if (!(d.licence_no || d.cl_type || d.contractor_name)) return;
+                var $cat = $tr.find('.work-contractor-cat').first();
+                var $lic = $tr.find('.work-licence-number').first();
+                var $emp = $tr.find('.work-employer-input').first();
+                if (d.cl_type && !($cat.val() || '').trim()) {
+                    $cat.val(String(d.cl_type).trim());
+                }
+                if (d.licence_no && !String($lic.val() || '').replace(/\D+/g, '')) {
+                    $lic.val(String(d.licence_no).replace(/\D+/g, ''));
+                }
+                if (d.contractor_name && !($emp.val() || '').trim()) {
+                    $emp.val(String(d.contractor_name).trim());
+                }
+                syncContractorFieldsHidden($tr);
+            }
+
             /** Keep Grade of Licence / Licence No posted for every row (disabled UI fields are omitted by FormData). */
             function syncContractorFieldsHidden($tr) {
                 if (!$tr || !$tr.length) return;
@@ -2126,6 +2172,7 @@
                     $lic.prop('disabled', false).prop('required', true);
                     setFieldLock($tr, 'contractor-cat', false);
                     setFieldLock($tr, 'licence-number', false);
+                    fillContractorFieldsFromDigitization($tr);
                 } else {
                     $cat.val('').prop('disabled', true).prop('required', false);
                     $lic.val('').prop('disabled', true).prop('required', false);

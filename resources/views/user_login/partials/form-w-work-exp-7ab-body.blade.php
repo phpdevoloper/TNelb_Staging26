@@ -55,6 +55,7 @@
         'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
         'isAlterationMode' => $isAlterationMode,
         'lockExistingRows' => $lockExistingRows,
+        'contractorDetails' => $contractorDetails,
     ])
 </div>
 

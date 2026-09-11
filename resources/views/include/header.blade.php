@@ -1064,19 +1064,22 @@ use Illuminate\Support\Facades\Auth;
             color: #fff;
         }
 
-        .applicant-instr-modal .digi-qc-panel {
+        .applicant-instr-modal .digi-qc-panel,
+        .applicant-instr-modal .digi-cl-panel {
             margin-top: 14px;
             padding-top: 14px;
             border-top: 1px dashed #dbe3ee;
         }
 
-        .applicant-instr-modal .digi-qc-panel .digi-field {
+        .applicant-instr-modal .digi-qc-panel .digi-field,
+        .applicant-instr-modal .digi-cl-panel .digi-field {
             grid-template-columns: minmax(160px, 38%) 1fr;
         }
 
         @media (max-width: 767.98px) {
             .applicant-instr-modal .digi-field,
-            .applicant-instr-modal .digi-qc-panel .digi-field {
+            .applicant-instr-modal .digi-qc-panel .digi-field,
+            .applicant-instr-modal .digi-cl-panel .digi-field {
                 grid-template-columns: 1fr;
             }
 
@@ -1515,11 +1518,11 @@ use Illuminate\Support\Facades\Auth;
                                     </p>
                                     <div class="digi-qc-toggle" role="radiogroup" aria-label="Qualified Supervisor recognition">
                                         <label>
-                                            <input type="radio" id="qc_yes" name="qc_det" value="yes">
+                                            <input type="radio" id="qc_yes" name="qc_det" value="yes" {{ !$showQc ? 'disabled' : '' }}>
                                             <span>Yes</span>
                                         </label>
                                         <label>
-                                            <input type="radio" id="qc_no" name="qc_det" value="no" checked>
+                                            <input type="radio" id="qc_no" name="qc_det" value="no" {{ $showQc ? 'checked' : '' }} {{ !$showQc ? 'disabled' : '' }}>
                                             <span>No</span>
                                         </label>
                                     </div>
@@ -1530,7 +1533,7 @@ use Illuminate\Support\Facades\Auth;
                                     <div class="digi-field">
                                         <label class="digi-field-label" for="cl_type">Grade of Licence <span class="fill">*</span></label>
                                         <div class="digi-field-control">
-                                            <select class="form-control" id="cl_type" name="cl_type">
+                                            <select class="form-control" id="cl_type" name="cl_type" {{ !$showQc ? 'disabled' : '' }}>
                                                 <option value="0">---Select Type---</option>
                                                 <option value="EA">EA</option>
                                                 <option value="ESA">ESA</option>
@@ -1547,7 +1550,7 @@ use Illuminate\Support\Facades\Auth;
                                         <div class="digi-field-control">
                                             <input type="text" class="form-control" id="digi_licence_no" name="licence_no"
                                                 inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off"
-                                                placeholder="e.g. 12345">
+                                                placeholder="e.g. 12345" {{ !$showQc ? 'disabled' : '' }}>
                                             <span class="error text-danger" id="licence_no_error"></span>
                                         </div>
                                     </div>
@@ -1555,7 +1558,7 @@ use Illuminate\Support\Facades\Auth;
                                     <div class="digi-field">
                                         <label class="digi-field-label" for="digi_contractor_name">Name of the Organisation <span class="fill">*</span></label>
                                         <div class="digi-field-control">
-                                            <input type="text" class="form-control" id="digi_contractor_name" name="contractor_name">
+                                            <input type="text" class="form-control" id="digi_contractor_name" name="contractor_name" {{ !$showQc ? 'disabled' : '' }}>
                                             <span class="error text-danger" id="contractor_error"></span>
                                         </div>
                                     </div>
@@ -1572,7 +1575,7 @@ use Illuminate\Support\Facades\Auth;
                                             </span>
                                         </label>
                                         <div class="digi-field-control">
-                                            <input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf">
+                                            <input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf" {{ !$showQc ? 'disabled' : '' }}>
                                             <span class="file-limit">PDF only (Max 250 KB)</span>
                                             <span class="error text-danger" id="qc_doc_error"></span>
                                         </div>
@@ -1587,15 +1590,15 @@ use Illuminate\Support\Facades\Auth;
                             <section class="digi-section" id="cl_section" {{ !$showCl ? 'style=display:none;' : '' }} aria-label="Current Contractor Licence Details">
                                 <div class="digi-qc-gate">
                                     <p class="digi-qc-question">
-                                        Are you currently working with contractor ? if Yes, please upload the current contractor licence details?
+                                        Are you currently working with a contractor? If yes, please upload the current contractor licence details.
                                     </p>
-                                    <div class="digi-qc-toggle" role="radiogroup" aria-label="Qualified Supervisor recognition">
+                                    <div class="digi-qc-toggle" role="radiogroup" aria-label="Currently working with a contractor">
                                         <label>
-                                            <input type="radio" id="cl_yes" name="cl_det" value="yes">
+                                            <input type="radio" id="cl_yes" name="cl_det" value="yes" {{ !$showCl ? 'disabled' : '' }}>
                                             <span>Yes</span>
                                         </label>
                                         <label>
-                                            <input type="radio" id="cl_no" name="cl_det" value="no" checked>
+                                            <input type="radio" id="cl_no" name="cl_det" value="no" {{ $showCl ? 'checked' : '' }} {{ !$showCl ? 'disabled' : '' }}>
                                             <span>No</span>
                                         </label>
                                     </div>
@@ -1603,24 +1606,53 @@ use Illuminate\Support\Facades\Auth;
                                 <span class="error text-danger" id="cl_error"></span>
                                 <div id="cl_details" class="digi-cl-panel" style="display:none;">
                                     <div class="digi-field">
-                                        <label class="digi-field-label" for="cl_type">Grade of Licence <span class="fill">*</span></label>
+                                        <label class="digi-field-label" for="w_cl_type">Grade of Licence <span class="fill">*</span></label>
                                         <div class="digi-field-control">
-                                            <select class="form-control" id="cl_type" name="cl_type">
+                                            <select class="form-control" id="w_cl_type" name="cl_type" {{ !$showCl ? 'disabled' : '' }}>
                                                 <option value="0">---Select Type---</option>
                                                 <option value="EA">EA</option>
                                                 <option value="ESA">ESA</option>
                                             </select>
-                                            <span class="error text-danger" id="cl_type_error"></span>
+                                            <span class="error text-danger" id="w_cl_type_error"></span>
                                         </div>
-                                        <div class="digi-field-control"><input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf">
-                                            <span class="file-limit">PDF only (Max 250 KB)</span>
-                                            <span class="error text-danger" id="cl_doc_error"></span>
-                                        </div>
+                                    </div>
+
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="w_licence_no">
+                                            Licence Number <span class="fill">*</span>
+                                            <span class="digi-field-hint">Numbers only (e.g. 12345)</span>
+                                        </label>
                                         <div class="digi-field-control">
-                                            <label class="digi-field-label" for="digi_qc_doc">Details of the employee in Contractor Licence <span class="fill">*</span></label>
-                                            <input type="file" class="form-control" id="digi_qc_doc" name="qc_doc" accept="application/pdf">
+                                            <input type="text" class="form-control" id="w_licence_no" name="licence_no"
+                                                inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off"
+                                                placeholder="e.g. 12345" {{ !$showCl ? 'disabled' : '' }}>
+                                            <span class="error text-danger" id="w_licence_no_error"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="w_contractor_name">Name of the Organisation <span class="fill">*</span></label>
+                                        <div class="digi-field-control">
+                                            <input type="text" class="form-control" id="w_contractor_name" name="contractor_name" {{ !$showCl ? 'disabled' : '' }}>
+                                            <span class="error text-danger" id="w_contractor_error"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="digi-field">
+                                        <label class="digi-field-label" for="w_qc_doc">
+                                            Details of the employee in Contractor Licence <span class="fill">*</span>
+                                            <span class="digi-field-hint">
+                                                Note: Page No. 3 &amp; 12 of Contractor Licence
+                                                <span class="image-tooltip" style="color:#dc2626;">
+                                                    Sample
+                                                    <img src="{{ asset('assets/images/1.webp') }}" alt="Sample Image">
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <div class="digi-field-control">
+                                            <input type="file" class="form-control" id="w_qc_doc" name="qc_doc" accept="application/pdf" {{ !$showCl ? 'disabled' : '' }}>
                                             <span class="file-limit">PDF only (Max 250 KB)</span>
-                                            <span class="error text-danger" id="cl_doc_error"></span>
+                                            <span class="error text-danger" id="w_qc_doc_error"></span>
                                         </div>
                                     </div>
                                 </div>

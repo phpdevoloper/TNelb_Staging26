@@ -526,7 +526,7 @@
                         <div class="fs-section-body">
                             @include('user_login.partials.form-w-work-exp-7ab-body', [
                                 'exp_details' => $exp_details ?? collect(),
-                                'showContractorNotice' => false,
+                                'showContractorNotice' => true,
                                 'contractorDetails' => $contractorDetails ?? null,
                                 'previousMaxRows' => 7,
                                 'hideUploadWhenDocExists' => false,
@@ -889,6 +889,47 @@
 <footer class="main-footer">
     @include('include.footer')
     <script src="{{ url('assets/js/digitization_w.js') }}?v={{ filemtime(public_path('assets/js/digitization_w.js')) }}"></script>
+    <script>
+        window.showContractorDetails = window.showContractorDetails || function (details) {
+            var notice = document.getElementById("contractor-details-notice");
+            if (!notice) {
+                return;
+            }
+            var hasDetails = details && (details.licence_no || details.cl_type || details.contractor_name);
+            if (hasDetails) {
+                var cl = document.getElementById("contractor-cl-type");
+                var no = document.getElementById("contractor-licence-no");
+                var name = document.getElementById("contractor-name");
+                if (cl) cl.textContent = details.cl_type || "";
+                if (no) no.textContent = details.licence_no || "";
+                if (name) name.textContent = details.contractor_name || "";
+                notice.classList.remove("d-none");
+                notice.style.removeProperty("display");
+                window.contractorDetails = details;
+            } else {
+                notice.classList.add("d-none");
+                notice.style.setProperty("display", "none", "important");
+                window.contractorDetails = null;
+            }
+        };
+        @if (!empty($contractorDetails) && is_array($contractorDetails))
+        window.showContractorDetails(@json($contractorDetails));
+        @endif
+        $(document).ajaxSuccess(function (event, xhr, settings) {
+            var url = (settings && settings.url) ? String(settings.url) : "";
+            if (url.indexOf("storeDigitization") === -1 && url.indexOf("getContractorDetails") === -1) {
+                return;
+            }
+            try {
+                var response = typeof xhr.responseJSON === "object" && xhr.responseJSON
+                    ? xhr.responseJSON
+                    : JSON.parse(xhr.responseText || "{}");
+                if (response && response.contractorDetails) {
+                    window.showContractorDetails(response.contractorDetails);
+                }
+            } catch (e) {}
+        });
+    </script>
 
     {{-- Form W serial-7 work-experience engine (shared with Form S; voltage/nature/transformer hidden) --}}
     @include('user_login.partials.form-s-work-exp-scripts', [
@@ -1194,7 +1235,7 @@
     document.getElementById('prvConfirmCheck').addEventListener('change',function(){document.getElementById('prvConfirmBtn').disabled=!this.checked;});
     document.getElementById('prvConfirmBtn').addEventListener('click',function(){closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(true);window._prvResolve=null;}});
     document.getElementById('appPreviewModal').addEventListener('click',function(e){if(e.target===this){closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}}});
-    window.showCompetencyPreviewModal=function(){return new Promise(function(resolve){window._prvResolve=resolve;openPreviewModal();});};
+    // Use the shared competency preview (#appPreviewModalSw) so Form W matches Form S size.
 
 
 

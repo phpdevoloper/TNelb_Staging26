@@ -858,8 +858,8 @@
     }
 
 
-    @php $editFormName = 'S'; @endphp
-    @include('user_login.partials.form-s-work-exp-styles')
+    @php $editFormName = strtoupper((string) ($applicant->form_name ?? 'S')); @endphp
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
 </style>
 <div id="content" class="main-content applicant-supervisor-page">
     <div class="layout-px-spacing">
@@ -1896,7 +1896,7 @@
                         ];
 
                     @endphp
-                    @if ($role == 'Secretary' || $role == 'President')
+                    @if ($applicant->form_name == 'S' && ($role == 'Secretary' || $role == 'President'))
 
                         <div class="statbox widget box eligibile_criteria">
                             <div class="row">

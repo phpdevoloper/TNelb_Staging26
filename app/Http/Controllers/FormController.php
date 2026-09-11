@@ -527,7 +527,8 @@ class FormController extends BaseController
         if (strtoupper((string) ($request->appl_type ?? '')) !== 'D') {
             return null;
         }
-        if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
+        $formName = strtoupper((string) ($request->form_name ?? ''));
+        if (! in_array($formName, ['S', 'W'], true)) {
             return null;
         }
 
@@ -542,7 +543,7 @@ class FormController extends BaseController
         } elseif ($tempAppId !== '') {
             $query->where('temp_app_id', $tempAppId);
         } else {
-            $query->where('form_name', 'S');
+            $query->where('form_name', $formName);
         }
 
         $row = $query->orderByDesc('id')->first();
@@ -836,10 +837,10 @@ class FormController extends BaseController
             return $category;
         }
         if ($category === '') {
-            return '||'.$licence;
+            return ','.$licence;
         }
 
-        return $category.'||'.$licence;
+        return $category.','.$licence;
     }
 
     /**
@@ -1045,14 +1046,16 @@ class FormController extends BaseController
     {
         $normalizedForm = strtoupper((string) $formName);
         $isFormS = $normalizedForm === 'S';
+        $isFormW = FormWSchema::isFormW($normalizedForm);
+        $isCardWorkForm = $isFormS || $isFormW;
         /** Form S, W, WH, P: persist decimal years to `total_exp` (uses `work_experience_total[]` first). */
         $storesTotalExp = in_array($normalizedForm, ['S', 'W', 'WH', 'P'], true);
 
-        $orgName = $isFormS
+        $orgName = $isCardWorkForm
             ? trim((string) ($request->work_employer_name[$key] ?? $request->work_level[$key] ?? ''))
             : trim((string) ($request->work_level[$key] ?? ''));
 
-        $orgAddress = $isFormS
+        $orgAddress = $isCardWorkForm
             ? trim((string) ($request->work_organisation_address[$key] ?? ''))
             : '';
 
@@ -1067,7 +1070,7 @@ class FormController extends BaseController
         $intimationDate = trim((string) ($request->work_intimation_date[$key] ?? ''));
         $boardMeetingDetails = '';
         $boardMeetingDate = '';
-        if ($isFormS && strtolower($empType) === self::FORM_S_BOARD_MEMBER_EMP_TYPE) {
+        if ($isCardWorkForm && strtolower($empType) === self::FORM_S_BOARD_MEMBER_EMP_TYPE) {
             $boardMeetingDetails = trim((string) ($request->work_board_meeting_details[$key] ?? ''));
             $boardMeetingDate = trim((string) ($request->work_board_meeting_date[$key] ?? ''));
         }
@@ -1085,24 +1088,20 @@ class FormController extends BaseController
         }
 
         $empCate = null;
-        if ($isFormS && strtolower($empType) === 'electrical_contractor') {
+        if ($isCardWorkForm && strtolower($empType) === 'electrical_contractor') {
             $empCate = $this->encodeFormSContractorEmpCate(
                 trim((string) ($request->work_contractor_category[$key] ?? '')),
                 trim((string) ($request->work_licence_number[$key] ?? ''))
             );
-        } elseif (! $isFormS && $orgName !== '') {
+            
+        } elseif (! $isCardWorkForm && $orgName !== '') {
             $empCate = $orgName;
         }
 
         $workToTillDate = 0;
-        if ($isFormS) {
+        if ($isCardWorkForm) {
             $tillFlags = $request->work_to_till_date ?? [];
             $tillRaw = $tillFlags[$key] ?? '0';
-            // Previous: posted Y-m-d (or legacy "1") was converted to today's date and written only to to_date.
-            // $tillDate = FormSWorkTillDate::toDateString($tillRaw, $this->today);
-            // if ($tillDate !== null) {
-            //     $toDate = $tillDate;
-            // }
             $workToTillDate = FormSWorkTillDate::isChecked($tillRaw) ? 1 : 0;
             if ($workToTillDate === 1) {
                 $toDate = $this->today;
@@ -1112,13 +1111,14 @@ class FormController extends BaseController
             $intimationDate = '';
         }
 
-        $ymd = $isFormS
+        $ymd = $isCardWorkForm
             ? $this->workExperienceCalendarYmd(
                 $fromDate !== '' ? $fromDate : null,
                 $toDate !== '' ? $toDate : null
             )
             : null;
 
+        
         return [
             'org_name' => $orgName,
             'org_address' => ($orgAddress !== '' ? $orgAddress : null),
@@ -1137,10 +1137,10 @@ class FormController extends BaseController
             'board_meeting_details' => ($boardMeetingDetails !== '' ? $boardMeetingDetails : null),
             'board_meeting_date' => ($boardMeetingDate !== '' ? CalendarDate::ymd($boardMeetingDate) : null),
             'total_exp' => ($experience !== '' ? $experience : null),
-            'total_y' => $isFormS ? ($ymd['y'] ?? null) : null,
-            'total_m' => $isFormS ? ($ymd['m'] ?? null) : null,
-            'total_d' => $isFormS ? ($ymd['d'] ?? null) : null,
-            'store_work_duration_ymd' => $isFormS,
+            'total_y' => $isCardWorkForm ? ($ymd['y'] ?? null) : null,
+            'total_m' => $isCardWorkForm ? ($ymd['m'] ?? null) : null,
+            'total_d' => $isCardWorkForm ? ($ymd['d'] ?? null) : null,
+            'store_work_duration_ymd' => $isCardWorkForm,
             'store_total_exp' => $storesTotalExp,
             'is_empty' => ($orgName === '' && $experience === '' && $designation === ''),
         ];
@@ -1333,6 +1333,7 @@ class FormController extends BaseController
         }
 
         $isFormS = strtoupper((string) $formName) === 'S';
+        $isCardWorkForm = $isFormS || FormWSchema::isFormW($formName);
         $experienceModel = $this->resolveExperienceModelClass($workflowForm, $formName);
         $masterApplicationId = $this->resolveFormSMasterApplicationIdFromWorkflow(
             $workflowForm,
@@ -1382,7 +1383,7 @@ class FormController extends BaseController
 
             if ($workId !== '' && $existingRow) {
                 $identity = ['exp_id' => $existingRow->getKey()];
-            } elseif ($isFormS && $orgName !== '') {
+            } elseif ($isCardWorkForm && $orgName !== '') {
                 $identity['org_name'] = $orgName;
                 if (! empty($workRow['from_date'])) {
                     $identity['from_date'] = $workRow['from_date'];
@@ -2491,6 +2492,14 @@ class FormController extends BaseController
             );
         }
 
+        if (FormWSchema::isFormW($application_details->form_name ?? '')) {
+            $get_contractor_details = app(FormWController::class)->getContractorDetails(
+                Auth::user()->login_id,
+                $cc_digitization_temp_id,
+                $appl_id
+            );
+        }
+
         return view('user_login.edit_application', compact(
             'applicationid',
             'application_details',
@@ -2764,6 +2773,21 @@ class FormController extends BaseController
 
         $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForValidation);
 
+        $get_contractor_details = null;
+        if (FormWSchema::isFormW($application_details->form_name ?? '')) {
+            $get_contractor_details = app(FormWController::class)->getContractorDetails(
+                Auth::user()->login_id,
+                null,
+                $appl_id
+            );
+        } elseif (strtoupper((string) ($application_details->form_name ?? '')) === 'S') {
+            $get_contractor_details = app(FormSDigitizationController::class)->getContractorDetails(
+                Auth::user()->login_id,
+                null,
+                $appl_id
+            );
+        }
+
         return view('user_login.edit_returned_application', compact(
             'applicationid',
             'application_details',
@@ -2778,7 +2802,8 @@ class FormController extends BaseController
             'queries',
             'queryReasonsForValidation',
             'returnRemarks',
-            'returnedEditableSections'
+            'returnedEditableSections',
+            'get_contractor_details'
         ));
     }
 
@@ -2830,7 +2855,7 @@ class FormController extends BaseController
             'certificate_date'              => 'nullable|date',
             'certificate_issue_date'        => 'nullable|date',
 
-            'applicant_email'      => ($request->form_name === 'S')
+            'applicant_email'      => (in_array($request->form_name, ['S', 'W'], true))
                 ? 'required|email|max:191'
                 : 'nullable|email|max:191',
 
@@ -3443,7 +3468,7 @@ class FormController extends BaseController
             'existing_work_relieving_document' => 'nullable|array',
             'existing_work_relieving_document.*' => 'nullable|string|max:500',
 
-            'applicant_email'      => ($request->form_name === 'S')
+            'applicant_email'      => (in_array($request->form_name, ['S', 'W'], true))
                 ? 'required|email|max:191'
                 : 'nullable|email|max:191',
         ];

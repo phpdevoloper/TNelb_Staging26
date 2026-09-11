@@ -130,6 +130,7 @@ class FormWController extends BaseController
             'from_date' => 'required|date|after_or_equal:fissue',
             'to_date' => 'required|date|after_or_equal:from_date',
             'cc_doc' => 'required|mimes:pdf|max:250',
+            'cl_det' => 'required|in:yes,no',
             'form_name' => 'required|in:W',
             'cert_name' => 'required|in:B',
         ], [
@@ -149,11 +150,45 @@ class FormWController extends BaseController
             ], 422);
         }
 
+        $workingWithContractor = $request->cl_det === 'yes';
+
+        if ($workingWithContractor) {
+            $request->validate([
+                'cl_type' => 'required|in:EA,ESA',
+                'licence_no' => 'required|digits_between:1,5',
+                'contractor_name' => 'required|max:100',
+                'qc_doc' => 'required|mimes:pdf|max:250',
+            ], [
+                'cl_type.in' => 'Please select License Type',
+                'licence_no.digits_between' => 'Licence Number must contain numbers only (1 to 5 digits).',
+            ]);
+        }
+
         $now = db_now();
         $original_name = null;
         $fileName = 'pending';
+        $qcFileName = null;
 
-        $record = DB::transaction(function () use ($request, $now, &$original_name, &$fileName) {
+        $record = DB::transaction(function () use (
+            $request,
+            $now,
+            $workingWithContractor,
+            &$original_name,
+            &$fileName,
+            &$qcFileName
+        ) {
+            $qc = 0;
+            $qsc = 0;
+            $clType = $workingWithContractor ? $request->cl_type : null;
+            $licenceNo = $workingWithContractor ? $request->licence_no : null;
+            $contractorName = $workingWithContractor ? $request->contractor_name : null;
+
+            if ($clType === 'EA') {
+                $qc = 1;
+            } elseif ($clType === 'ESA') {
+                $qsc = 1;
+            }
+
             $row = Tnelb_CC_Digitization::create([
                 'login_id' => Auth::user()->login_id,
                 'temp_app_id' => 'TEMP'.date('Ymd').'0000',
@@ -163,15 +198,15 @@ class FormWController extends BaseController
                 'fissue' => $request->fissue,
                 'from_date' => $request->from_date,
                 'to_date' => $request->to_date,
-                'qc' => 0,
-                'qsc' => 0,
-                'cl_type' => null,
-                'licence_no' => null,
-                'contractor_name' => null,
+                'qc' => $qc,
+                'qsc' => $qsc,
+                'cl_type' => $clType,
+                'licence_no' => $licenceNo,
+                'contractor_name' => $contractorName,
                 'cc_doc' => 'pending',
                 'created_at' => $now,
                 'updated_at' => $now,
-                'qc_det' => 0,
+                'qc_det' => $workingWithContractor ? 1 : 0,
                 'cc_type' => FormWSchema::LICENSE_NAME,
             ]);
 
@@ -183,6 +218,13 @@ class FormWController extends BaseController
                 $extension = $file->getClientOriginalExtension();
                 $fileName = $temp_app_id.'_'.time().'_'.$request->cert_name.'.'.$extension;
                 $fileName = $this->fileUpload->upload($file, 'uploads/digitization/scc', $fileName);
+            }
+
+            if ($workingWithContractor && $request->hasFile('qc_doc')) {
+                $qcFile = $request->file('qc_doc');
+                $extension = $qcFile->getClientOriginalExtension();
+                $qcFileName = $temp_app_id.'_QC_'.time().'.'.$extension;
+                $qcFileName = $this->fileUpload->upload($qcFile, 'uploads/digitization/qc/', $qcFileName);
             }
 
             CC_Digitisation_Map::create([
@@ -197,18 +239,28 @@ class FormWController extends BaseController
                 'temp_app_id' => $temp_app_id,
                 'cc_doc' => $fileName,
                 'original_name' => $original_name,
+                'qc_doc' => $qcFileName,
                 'updated_at' => $now,
             ]);
 
             return $row->fresh();
         });
 
+        $contractorDetails = null;
+        if (! empty($record->licence_no)) {
+            $contractorDetails = [
+                'cl_type' => $record->cl_type,
+                'licence_no' => $record->licence_no,
+                'contractor_name' => $record->contractor_name,
+            ];
+        }
+
         return response()->json([
             'status' => 200,
             'message' => 'Digitization details saved successfully.',
             'temp_app_id' => $record->temp_app_id,
             'digitization_id' => $record->id,
-            'contractorDetails' => null,
+            'contractorDetails' => $contractorDetails,
         ]);
     }
 

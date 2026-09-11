@@ -49,6 +49,8 @@ $(document).ready(function () {
         $("#qc_section").hide();
     }
 
+    $("#cl_section").find(":input").prop("disabled", true);
+
 
     var isFormSDigitizationPage = (path === "/apply-form-s_d" || path.endsWith("/apply-form-s_d"));
 

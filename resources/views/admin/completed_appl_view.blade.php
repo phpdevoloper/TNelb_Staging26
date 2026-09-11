@@ -756,8 +756,8 @@
     }
 
 
-    @php $editFormName = 'S'; @endphp
-    @include('user_login.partials.form-s-work-exp-styles')
+    @php $editFormName = strtoupper((string) ($applicant->form_name ?? 'S')); @endphp
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
 </style>
 <div id="content" class="main-content applicant-supervisor-page">
     <div class="layout-px-spacing">
@@ -1311,37 +1311,9 @@
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
                                                 @else
-                                                    <div class="applicant-detail-table-wrap">
-                                                        <table
-                                                            class="table table-sm table-bordered applicant-detail-compact-table work-exp-table">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Company</th>
-                                                                    <th>Designation</th>
-                                                                    <th>Exp.</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @forelse ($workExperience as $experience)
-                                                                    <tr>
-                                                                        <td class="col-wrap">
-                                                                            {{ $experience->emp_cate ?? $experience->company_name ?? '' }}
-                                                                        </td>
-                                                                        <td class="col-wrap">{{ $experience->designation }}</td>
-                                                                        <td class="col-wrap">
-                                                                            {{ $experience->total_exp ?? $experience->experience ?? 0 }}
-                                                                            yrs
-                                                                        </td>
-                                                                    </tr>
-                                                                @empty
-                                                                    <tr>
-                                                                        <td colspan="3" class="text-center">No work experience
-                                                                            available.</td>
-                                                                    </tr>
-                                                                @endforelse
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
+                                                    {{-- Form W: same rich readonly view as Form S, without
+                                                         Nature of Work / Voltage Level / Transformer kVA columns. --}}
+                                                    @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect(), 'hideVoltageFields' => true])
                                                 @endif
                                             @endif
                                             @if ($applicant->form_name == 'S')

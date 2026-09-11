@@ -45,8 +45,23 @@ $(document).ready(function () {
         });
     }
 
-    // Form W has no Qualified Supervisor (QC) step.
-    $("#qc_section").hide();
+    // Form W uses the contractor-licence gate, not the Form S Qualified Supervisor step.
+    $("#qc_section").hide().find(":input").prop("disabled", true);
+    $("#cl_section").show();
+
+    $('input[name="cl_det"]').on("change", function () {
+        if ($(this).val() === "yes") {
+            $("#cl_details").slideDown();
+            $("#cl_error").html("");
+        } else {
+            $("#cl_details").slideUp();
+            $("#w_cl_type").val("0");
+            $("#w_licence_no").val("");
+            $("#w_contractor_name").val("");
+            $("#w_qc_doc").val("");
+            $("#cl_section .error").html("");
+        }
+    });
 
     var path = window.location.pathname;
     var isFormWDigitizationPage = (path === "/apply-form-w_d" || path.endsWith("/apply-form-w_d"));
@@ -89,6 +104,14 @@ function loadContractorDetails() {
         return;
     }
     var tempAppId = ($("#cc_digitization_temp_id").val() || "").trim();
+    if (!tempAppId) {
+        try {
+            tempAppId = String(sessionStorage.getItem("cc_digitization_temp_id") || "").trim();
+            if (tempAppId) {
+                $("#cc_digitization_temp_id").val(tempAppId);
+            }
+        } catch (e) {}
+    }
     var applicationId = ($("#application_id").val() || "").trim();
     if (!tempAppId && !applicationId) {
         return;
@@ -279,7 +302,10 @@ $(document).on("click", "#digitizationSubmit", function () {
     let fissue = $('input[name="fissue"]').val();
     let from_date = $('input[name="from_date"]').val();
     let to_date = $('input[name="to_date"]').val();
+    let clDet = $('input[name="cl_det"]:checked').val();
     let file = $('input[name="cc_doc"]')[0].files[0];
+    let clDocInput = document.getElementById("w_qc_doc");
+    let fileCl = clDocInput && clDocInput.files ? clDocInput.files[0] : null;
 
     if (ccnumber === "") {
         $("#ccnumber_error").html("Certificate Number is required");
@@ -335,6 +361,49 @@ $(document).on("click", "#digitizationSubmit", function () {
         if (file.size > 250 * 1024) {
             $("#cc_doc_error").html("File size should not exceed 250 KB");
             isValid = false;
+        }
+    }
+
+    if (!clDet) {
+        $("#cl_error").html("Please select Yes or No");
+        isValid = false;
+    }
+
+    if (clDet === "yes") {
+        let cl_type = $("#w_cl_type").val();
+        let licence_no = ($("#w_licence_no").val() || "").trim();
+        let contractor_name = ($("#w_contractor_name").val() || "").trim();
+
+        if (cl_type === "" || cl_type === "0") {
+            $("#w_cl_type_error").html("Please select License Type");
+            isValid = false;
+        }
+
+        if (licence_no === "") {
+            $("#w_licence_no_error").html("License Number is required");
+            isValid = false;
+        } else if (!/^\d{1,5}$/.test(licence_no)) {
+            $("#w_licence_no_error").html("Licence Number must contain numbers only (1 to 5 digits)");
+            isValid = false;
+        }
+
+        if (contractor_name === "") {
+            $("#w_contractor_error").html("Contractor Name is required");
+            isValid = false;
+        }
+
+        if (!fileCl) {
+            $("#w_qc_doc_error").html("Please upload PDF document");
+            isValid = false;
+        } else {
+            if (fileCl.type !== "application/pdf") {
+                $("#w_qc_doc_error").html("Only PDF files are allowed");
+                isValid = false;
+            }
+            if (fileCl.size > 250 * 1024) {
+                $("#w_qc_doc_error").html("File size should not exceed 250 KB");
+                isValid = false;
+            }
         }
     }
 
@@ -396,7 +465,15 @@ $(document).on("click", "#digitizationSubmit", function () {
 
             if (xhr.status === 422) {
                 $.each(xhr.responseJSON.errors, function (key, value) {
-                    $("#" + key + "_error").html(value[0]);
+                    var map = {
+                        cl_det: "#cl_error",
+                        cl_type: "#w_cl_type_error",
+                        licence_no: "#w_licence_no_error",
+                        contractor_name: "#w_contractor_error",
+                        qc_doc: "#w_qc_doc_error",
+                    };
+                    var selector = map[key] || "#" + key + "_error";
+                    $(selector).html(value[0]);
                 });
             }
         },
@@ -413,6 +490,26 @@ $(document).on("input", 'input[name="ccnumber"]', function () {
 
 $(document).on("change", 'input[name="cc_doc"]', function () {
     $("#cc_doc_error").html("");
+});
+
+$(document).on("change", "#w_cl_type", function () {
+    $("#w_cl_type_error").html("");
+});
+
+$(document).on("input", "#w_licence_no", function () {
+    var cleaned = String($(this).val() || "").replace(/\D+/g, "").slice(0, 5);
+    if ($(this).val() !== cleaned) {
+        $(this).val(cleaned);
+    }
+    $("#w_licence_no_error").html("");
+});
+
+$(document).on("keyup", "#w_contractor_name", function () {
+    $("#w_contractor_error").html("");
+});
+
+$(document).on("change", "#w_qc_doc", function () {
+    $("#w_qc_doc_error").html("");
 });
 
 // Hide error when checkbox selected

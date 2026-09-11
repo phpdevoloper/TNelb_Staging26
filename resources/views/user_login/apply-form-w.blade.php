@@ -350,11 +350,11 @@
                                     <div class="fs-section-header fs-section-header--in-grid">
                                         <span class="fs-section-num">3</span>
                                         <div>
-                                            <div class="fs-section-title">Email ID <span class="section-hint">(optional)</span></div>
+                                            <div class="fs-section-title">Email ID <span class="section-req">*</span></div>
                                             <div class="fs-section-tamil">மின்னஞ்சல் முகவரி</div>
                                         </div>
                                     </div>
-                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email" maxlength="191"
+                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email" maxlength="191" required
                                         value="{{ old('applicant_email', isset($application) ? ($application->applicant_email ?? '') : (Auth::user()->email ?? '')) }}">
                                     <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
@@ -1218,7 +1218,7 @@
     document.getElementById('prvConfirmCheck').addEventListener('change',function(){document.getElementById('prvConfirmBtn').disabled=!this.checked;});
     document.getElementById('prvConfirmBtn').addEventListener('click',function(){closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(true);window._prvResolve=null;}});
     document.getElementById('appPreviewModal').addEventListener('click',function(e){if(e.target===this){closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}}});
-    window.showCompetencyPreviewModal=function(){return new Promise(function(resolve){window._prvResolve=resolve;openPreviewModal();});};
+    // Use the shared competency preview (#appPreviewModalSw) so Form W matches Form S size.
 
 
 

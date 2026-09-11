@@ -1867,8 +1867,8 @@
                 .prv-sw-overlay.is-open { display: flex; }
                 @media (max-width: 767.98px) { .prv-sw-overlay { align-items: flex-end; padding: 0; } }
                 .prv-sw-modal-root .prv-sw-panel {
-                    background: #f0f4f9; width: 100%; max-width: 940px;
-                    max-height: min(90vh, 920px); display: flex; flex-direction: column;
+                    background: #f0f4f9; width: 100%; max-width: min(96vw, 1100px);
+                    max-height: min(92vh, 960px); display: flex; flex-direction: column;
                     border-radius: 14px; overflow: hidden;
                     box-shadow: 0 18px 48px rgba(3, 90, 179, .22);
                     animation: prvSwIn .28s ease;
@@ -3164,7 +3164,7 @@
             if (showWork) {
                 const swPanel = document.querySelector('#appPreviewModalSw .prv-sw-panel');
                 if (swPanel) {
-                    swPanel.style.maxWidth = (formCode === 'S') ? 'min(96vw, 1100px)' : '940px';
+                    swPanel.style.maxWidth = (formCode === 'S' || formCode === 'W') ? 'min(96vw, 1100px)' : '940px';
                 }
 
                 if (formCode === 'S') {
@@ -3548,26 +3548,29 @@
             }
         }
 
+        function previousWorkExperienceRows() {
+            return $('#work-container-previous .work-fields, .js-work-container[data-work-part="previous"] .work-fields');
+        }
+
         function getContractorDetailsFromPage() {
-            if (window.contractorDetails && (window.contractorDetails.licence_no || window.contractorDetails.cl_type)) {
-                return window.contractorDetails;
-            }
-            var cl = ($('#contractor-cl-type').text() || '').trim();
-            var no = ($('#contractor-licence-no').text() || '').trim();
-            var name = ($('#contractor-name').text() || '').trim();
+            var fromWindow = window.contractorDetails || {};
+            var cl = String(fromWindow.cl_type || $('#contractor-cl-type').text() || '').trim();
+            var no = String(fromWindow.licence_no || $('#contractor-licence-no').text() || '').replace(/\D/g, '');
+            var name = String(fromWindow.contractor_name || $('#contractor-name').text() || '').trim();
             if (!cl && !no && !name) {
                 return null;
             }
             return {
                 cl_type: cl,
-                licence_no: no,
+                licence_no: no || String(fromWindow.licence_no || $('#contractor-licence-no').text() || '').trim(),
                 contractor_name: name
             };
         }
+        window.getContractorDetailsFromPage = getContractorDetailsFromPage;
 
         function hasContractorExperienceRow() {
             var found = false;
-            $('#work-container-previous .work-fields').each(function () {
+            previousWorkExperienceRows().each(function () {
                 var emp = ($(this).find('.work-employment-type').val() || '').trim().toLowerCase();
                 if (emp === 'electrical_contractor') {
                     found = true;
@@ -3582,21 +3585,26 @@
                 || String($row.find('.work-date-till-hidden').val() || '') === '1';
         }
 
+        function workRowContractorCatLic($row) {
+            var cat = ($row.find('.work-contractor-category-sync').val() || $row.find('.work-contractor-cat').val() || '').trim().toUpperCase();
+            var lic = String($row.find('.work-licence-number-sync').val() || $row.find('.work-licence-number').val() || '').replace(/\D/g, '');
+            return { cat: cat, lic: lic };
+        }
+
         function hasMatchingContractorExperience(details, requireTillDate) {
             var wantCat = String(details.cl_type || '').trim().toUpperCase();
             var wantLic = String(details.licence_no || '').replace(/\D/g, '');
-            // var wantOrg = String(details.contractor_name || '').trim().toLowerCase().replace(/\s+/g, ' ');
             var matched = false;
-            $('#work-container-previous .work-fields').each(function () {
+            previousWorkExperienceRows().each(function () {
                 var $row = $(this);
                 var emp = ($row.find('.work-employment-type').val() || '').trim().toLowerCase();
                 if (emp !== 'electrical_contractor') {
                     return;
                 }
-                var cat = ($row.find('.work-contractor-category-sync').val() || $row.find('.work-contractor-cat').val() || '').trim().toUpperCase();
-                var lic = String($row.find('.work-licence-number-sync').val() || $row.find('.work-licence-number').val() || '').replace(/\D/g, '');
-                // var org = ($row.find('.work-employer-input').val() || '').trim().toLowerCase().replace(/\s+/g, ' ');
-                if (cat === wantCat && lic === wantLic) {
+                var pair = workRowContractorCatLic($row);
+                var catOk = !wantCat || pair.cat === wantCat;
+                var licOk = !wantLic || pair.lic === wantLic;
+                if (catOk && licOk && (wantCat || wantLic)) {
                     if (requireTillDate && !isContractorTillDateRow($row)) {
                         return;
                     }
@@ -3606,6 +3614,81 @@
             });
             return matched;
         }
+
+        function workRowMatchesDigitizationContractor($row, details) {
+            if (!$row || !$row.length || !details) {
+                return false;
+            }
+            if ($row.closest('#work-container-current, .js-work-container[data-work-part="current"]').length) {
+                return false;
+            }
+            var emp = ($row.find('.work-employment-type').val() || '').trim().toLowerCase();
+            if (emp !== 'electrical_contractor') {
+                return false;
+            }
+            var wantCat = String(details.cl_type || '').trim().toUpperCase();
+            var wantLic = String(details.licence_no || '').replace(/\D/g, '');
+            var pair = workRowContractorCatLic($row);
+            var catOk = !wantCat || pair.cat === wantCat;
+            var licOk = !wantLic || pair.lic === wantLic;
+            return catOk && licOk && (wantCat || wantLic);
+        }
+
+        function isDigitizationContractorTillDateForm() {
+            var formName = (($('#form_name').val() || '').trim() || '').toUpperCase();
+            var applType = (typeof resolveCompetencyApplType === 'function')
+                ? resolveCompetencyApplType()
+                : String($('#appl_type').val() || '').trim().toUpperCase();
+            return (formName === 'S' || formName === 'W') && applType === 'D';
+        }
+
+        /** Digitisation 7a: matching contractor licence must be a currently-working (Till date) row. */
+        function validateDigitizationContractorExperience() {
+            $('.contractor-exp-error').remove();
+            if (!isDigitizationContractorTillDateForm()) {
+                return true;
+            }
+            var contractorDetails = getContractorDetailsFromPage();
+            if (!contractorDetails) {
+                return true;
+            }
+            var contractorMsg = '';
+            if (!hasContractorExperienceRow()) {
+                contractorMsg = 'Please add a work experience with the contractor details already provided.';
+            } else if (!hasMatchingContractorExperience(contractorDetails)) {
+                contractorMsg = 'The Given Licence Number of Contractor must exist in the experience details.';
+            } else if (!hasMatchingContractorExperience(contractorDetails, true)) {
+                contractorMsg = 'The given licence number must be a Till date (currently working) experience row.';
+            }
+            if (!contractorMsg) {
+                return true;
+            }
+            var $contractorNotice = $('#contractor-details-notice');
+            if ($contractorNotice.length) {
+                $contractorNotice.removeClass('d-none');
+                if ($contractorNotice[0] && $contractorNotice[0].style) {
+                    $contractorNotice[0].style.removeProperty('display');
+                }
+            }
+            var $contractorErr = $('<div class="error-message text-danger d-block mt-1 contractor-exp-error" role="alert">' + contractorMsg + '</div>');
+            if ($contractorNotice.length) {
+                $contractorNotice.after($contractorErr);
+            } else {
+                $('#work-container-previous, .js-work-container[data-work-part="previous"]').first().before($contractorErr);
+            }
+            return false;
+        }
+        window.validateDigitizationContractorExperience = validateDigitizationContractorExperience;
+        window.wxDigitizationContractorRowBlocksSubmit = function ($tr) {
+            if (!isDigitizationContractorTillDateForm()) {
+                return false;
+            }
+            var details = getContractorDetailsFromPage();
+            if (!details || !workRowMatchesDigitizationContractor($tr, details)) {
+                return false;
+            }
+            return !isContractorTillDateRow($tr);
+        };
 
         $(document).off('change.fsDeclaration', '#declarationCheckbox').on('change.fsDeclaration', '#declarationCheckbox', function () {
             if ($(this).is(':checked')) {
@@ -3722,7 +3805,7 @@
             if (applicantEmailEl.length) {
                 let ev = readApplicantEmailValue();
                 let formNameEmail = ($('#form_name').val() || '').toString().trim().toUpperCase();
-                let emailRequired = formNameEmail === 'S';
+                let emailRequired = formNameEmail === 'S' || formNameEmail === 'W';
                 if (emailRequired && ev === '') {
                     showCompetencyFieldError(applicantEmailEl, 'Email ID is required.');
                     if (!firstErrorField) firstErrorField = applicantEmailEl;
@@ -4329,31 +4412,15 @@
                 }
             }
 
-            $('.contractor-exp-error').remove();
-            if (isSWorkForm && ($('#appl_type').val() || '').toString().toUpperCase() === 'D') {
-                var contractorDetails = getContractorDetailsFromPage();
-                if (contractorDetails) {
-                    var contractorMsg = '';
-                    if (!hasContractorExperienceRow()) {
-                        contractorMsg = 'Please add a work experience with the contractor details already provided.';
-                    } else if (!hasMatchingContractorExperience(contractorDetails)) {
-                        contractorMsg = 'The Given Licence Number of Contractor must exist in the experience details.';
-                    } else if (!hasMatchingContractorExperience(contractorDetails, true)) {
-                        contractorMsg = 'The given licence number must be a Till date (currently working) experience row.';
-                    }
-                    if (contractorMsg) {
-                        var $contractorNotice = $('#contractor-details-notice');
-                        var $contractorErr = $('<div class="error-message text-danger d-block mt-2 contractor-exp-error" role="alert">' + contractorMsg + '</div>');
-                        if ($contractorNotice.length) {
-                            $contractorNotice.after($contractorErr);
-                            if (!firstErrorField) firstErrorField = $contractorNotice;
-                        } else {
-                            $('#work-container-previous').before($contractorErr);
-                            if (!firstErrorField) firstErrorField = $('#work-container-previous');
-                        }
-                        isValid = false;
-                    }
+            if (!validateDigitizationContractorExperience()) {
+                var $contractorErrShown = $('.contractor-exp-error').first();
+                var $contractorNotice = $('#contractor-details-notice');
+                if (!firstErrorField) {
+                    firstErrorField = $contractorErrShown.length
+                        ? $contractorErrShown
+                        : ($contractorNotice.length ? $contractorNotice : $('#work-container-previous'));
                 }
+                isValid = false;
             }
 
             // Max length validation for competency form (S/W/WH/P) – validate all text/number fields
@@ -4724,7 +4791,7 @@
         $(document).on('input change blur', '#applicant_email', function () {
             var ev = readApplicantEmailValue();
             var formNameEmail = ($('#form_name').val() || '').toString().trim().toUpperCase();
-            var emailRequired = formNameEmail === 'S';
+            var emailRequired = formNameEmail === 'S' || formNameEmail === 'W';
             if (!emailRequired) {
                 clearCompetencyFieldError($(this));
                 return;
