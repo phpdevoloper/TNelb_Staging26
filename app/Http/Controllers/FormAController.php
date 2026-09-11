@@ -200,22 +200,39 @@ class FormAController extends BaseController
     }
     public function checkQCCertificate(Request $request)
     {
+
+    
+        // $dateofIssue = Carbon::createFromFormat(
+        //     'd-m-Y',
+        //     $request->dateof_issue
+        // )->format('Y-m-d');
+
+        // $validFrom = Carbon::createFromFormat(
+        //     'd-m-Y',
+        //     $request->valid_from
+        // )->format('Y-m-d');
+
+        // $validTo = Carbon::createFromFormat(
+        //     'd-m-Y',
+        //     $request->valid_to
+        // )->format('Y-m-d');
+
         $dateofIssue = Carbon::createFromFormat(
-            'd-m-Y',
+            'Y-m-d',
             $request->dateof_issue
         )->format('Y-m-d');
 
         $validFrom = Carbon::createFromFormat(
-            'd-m-Y',
+            'Y-m-d',
             $request->valid_from
         )->format('Y-m-d');
 
         $validTo = Carbon::createFromFormat(
-            'd-m-Y',
+            'Y-m-d',
             $request->valid_to
         )->format('Y-m-d');
 
-
+        // dd($dateofIssue,$validFrom,$validTo);exit;
         // -------------------------------------------------
         // STEP 1: Check certificate details
         // -------------------------------------------------
@@ -226,7 +243,10 @@ class FormAController extends BaseController
             ->where('valid_from', $validFrom)
             ->where('valid_to', $validTo)
             ->where('cert_status', 'A')
+            ->orderBy('cc_id', 'desc')
             ->first();
+
+            // dd($certificate);exit;
 
 
         if (!$certificate) {
