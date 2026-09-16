@@ -283,6 +283,14 @@ $(document).ready(function () {
         }
         e.preventDefault(); 
 
+        const isRenewalDraft = String($('#appl_type').val() || '').toUpperCase() === 'R';
+
+        if (isRenewalDraft && typeof window.validateCompetencyFormForSubmit === 'function') {
+            const renewalDraftValid = await window.validateCompetencyFormForSubmit();
+            if (!renewalDraftValid) {
+                return;
+            }
+        } else {
         if ($('#competency_form_ws').length && typeof window.normalizeCompetencyDynamicSections === 'function') {
             window.normalizeCompetencyDynamicSections();
         }
@@ -467,7 +475,9 @@ $(document).ready(function () {
 
             return; 
 
-        } else {
+        }
+        }
+
             let applicationId = $('#application_id').val();
 
             let applType = $('#appl_type').val();
@@ -476,21 +486,41 @@ $(document).ready(function () {
             let formData = new FormData($('#competency_form_ws')[0]);
 
             formData.append('form_action', 'draft');
+            if (typeof window.appendWorkTransformerKvaToFormData === 'function') {
+                window.appendWorkTransformerKvaToFormData(formData, $('#competency_form_ws')[0]);
+            }
+            if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
+                window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
+            }
+            if (typeof window.appendWorkContractorFieldsToFormData === 'function') {
+                window.appendWorkContractorFieldsToFormData(formData, $('#competency_form_ws')[0]);
+            }
+            if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
+                window.appendWorkBoardMemberFieldsToFormData(formData, $('#competency_form_ws')[0]);
+            }
 
             
 
             if (applType === "R") {
-                // Renewal draft submit route
-                url = BASE_URL + "/form/draft_renewal_submit";
+                if (typeof window.competencyPersistUrls === 'function') {
+                    const persistUrls = window.competencyPersistUrls();
+                    if (applicationId) {
+                        url = String(persistUrls.renewal || '').replace('__APPL_ID__', applicationId);
+                    } else {
+                        url = persistUrls.store;
+                    }
+                } else {
+                    url = BASE_URL + "/form/draft_renewal_submit";
+                    if (applicationId) {
+                        url += "/" + applicationId;
+                    }
+                }
             } else {
                 // New application draft submit route
                 url = BASE_URL + "/form/draft_submit";
-            } 
-
-            // let url = $(this).data("url");
-
-            if (applicationId) {
-                url += "/" + applicationId;
+                if (applicationId) {
+                    url += "/" + applicationId;
+                }
             }
 
             $.ajax({
@@ -570,14 +600,15 @@ $(document).ready(function () {
                     }
                 }
             });
-
-        }
     });
 
     $(document).on('click', '.remove-doc_edu', function (e) {
         e.preventDefault();
         e.stopPropagation();
         const $row = $(this).closest('tr');
+        if ($row.attr('data-renew-locked') === '1') {
+            return;
+        }
         // Keep array indexes aligned: flip existing hidden flag to 1
         const $flag = $row.find('input.removed-document-edu[name="removed_document[]"]');
         if ($flag.length) $flag.val('1');

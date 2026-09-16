@@ -28,7 +28,7 @@ class CompetencyWorkflowService
     private const FORM_TABLE_MAP = [
         'S' => 'cc_workflow_forms',
         'W' => 'cc_workflow_formw',
-        'WH' => 'cc_workflow_formwh',
+        'WH' => 'cc_workflow_wh',
         'P' => 'cc_workflow_formp',
     ];
 

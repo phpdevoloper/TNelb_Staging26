@@ -452,6 +452,9 @@
         prepareAlterationFormForSubmit();
         syncAlterFlagsFromForm();
         var formData = new FormData(document.getElementById('competency_form_ws'));
+        if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
+            window.appendWorkBoardMemberFieldsToFormData(formData, document.getElementById('competency_form_ws'));
+        }
         formData.set('alter_name', $('#alter_name').val() || '0');
         formData.set('alter_address', $('#alter_address').val() || '0');
         formData.set('alter_workexp', $('#alter_workexp').val() || '0');

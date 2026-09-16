@@ -407,7 +407,7 @@
                                                             @if (!empty($applicant->aadhaar_doc))
                                                                 <div class="fw-bold mb-0" style="color: #515365">
                                                                     {{ $masked }}
-                                                                    (<a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $applicant->aadhaar_doc]) }}"
+                                                                    (<a href="{{ proof_document_url($applicant->aadhaar_doc, 'aadhaar') }}"
                                                                         target="_blank"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open Aadhaar document">
@@ -428,7 +428,7 @@
                                                             @if (!empty($panDocFile))
                                                                 <div class="fw-bold mb-0" style="color: #515365">
                                                                     {{ $maskedPan }}
-                                                                    (<a href="{{ route('document.show', ['type' => 'pan', 'filename' => $panDocFile]) }}"
+                                                                    (<a href="{{ proof_document_url($panDocFile, 'pan') }}"
                                                                         target="_blank"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open PAN document">

@@ -44,14 +44,20 @@ class FormSDocumentController extends Controller
     ): ?string {
         $filePath = trim(str_replace('\\', '/', (string) $filePath));
 
-        if ($filePath !== '' && $this->storageService->exists($filePath)) {
-            return $filePath;
+        if ($filePath !== '') {
+            $resolved = $this->storageService->resolveExistingPath($filePath);
+            if ($resolved !== null) {
+                return $resolved;
+            }
         }
 
         if ($ccLog) {
             $proofPath = $this->proofDocPathForLog($ccLog);
-            if ($proofPath !== null && $this->storageService->exists($proofPath)) {
-                return $proofPath;
+            if ($proofPath !== null) {
+                $resolvedProof = $this->storageService->resolveExistingPath($proofPath);
+                if ($resolvedProof !== null) {
+                    return $resolvedProof;
+                }
             }
         }
 
@@ -101,34 +107,52 @@ class FormSDocumentController extends Controller
             abort(404);
         }
 
+        $pathCandidates = [$filePath];
+        if (preg_match('/\.pdf$/i', $filePath)) {
+            $pathCandidates[] = (string) preg_replace('/\.pdf$/i', '.bin', $filePath);
+        } elseif (preg_match('/\.bin$/i', $filePath)) {
+            $pathCandidates[] = (string) preg_replace('/\.bin$/i', '.pdf', $filePath);
+        }
+
         $ccLog = CC_Doc_Log::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($filePath) {
-                $query->where('file_path', $filePath)
-                    ->orWhere('old_file_path', $filePath);
+            ->where(function ($query) use ($pathCandidates) {
+                $query->whereIn('file_path', $pathCandidates)
+                    ->orWhereIn('old_file_path', $pathCandidates);
             })
             ->orderByDesc('doc_id')
             ->first();
 
         if ($ccLog) {
-            return $this->storageService->download($ccLog->file_path, $ccLog->file_name);
+            $resolved = $this->resolveDownloadPath($ccLog->file_path, $ccLog)
+                ?? $this->storageService->resolveExistingPath($ccLog->file_path)
+                ?? $this->storageService->resolveExistingPath($filePath);
+            if ($resolved !== null) {
+                return $this->storageService->download($resolved, $ccLog->file_name ?: basename($resolved));
+            }
         }
 
         $log = DocumentsLog::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($filePath) {
-                $query->where('file_path', $filePath)
-                    ->orWhere('old_file_path', $filePath);
+            ->where(function ($query) use ($pathCandidates) {
+                $query->whereIn('file_path', $pathCandidates)
+                    ->orWhereIn('old_file_path', $pathCandidates);
             })
             ->orderByDesc('id')
             ->first();
 
         if ($log) {
-            return $this->storageService->download($log->file_path, $log->file_name);
+            $resolved = $this->resolveDownloadPath($log->file_path, null, $log)
+                ?? $this->storageService->resolveExistingPath($log->file_path)
+                ?? $this->storageService->resolveExistingPath($filePath);
+            if ($resolved !== null) {
+                return $this->storageService->download($resolved, $log->file_name ?: basename($resolved));
+            }
         }
 
-        if ($this->storageService->exists($filePath)) {
-            return $this->storageService->download($filePath, basename($filePath));
+        $resolved = $this->storageService->resolveExistingPath($filePath);
+        if ($resolved !== null) {
+            return $this->storageService->download($resolved, basename($resolved));
         }
 
         if (is_file(public_path($filePath))) {

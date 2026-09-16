@@ -2,8 +2,8 @@
 
 namespace App\Models\Competency;
 
-/** Form WH admin workflow (`cc_workflow_formwh`). */
+/** Form WH admin workflow (`cc_workflow_wh`). */
 class CC_Workflow_FormWH extends CC_CompetencyWorkflow
 {
-    protected $table = 'cc_workflow_formwh';
+    protected $table = 'cc_workflow_wh';
 }

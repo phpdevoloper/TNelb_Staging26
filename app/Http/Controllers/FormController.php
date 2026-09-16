@@ -34,10 +34,12 @@ use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\FormWExperienceRules;
 use App\Services\Competency\FormWSchema;
+use App\Services\Competency\FormWHSchema;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
+use App\Services\DocumentVersion\DocumentStorageService;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Models\Tnelb_CC_Digitization;
@@ -77,12 +79,20 @@ class FormController extends BaseController
     }
 
     /**
-     * Form W HTTP entry is FormWController. Keep /form/* as aliases.
+     * Form W / WH HTTP entry is FormWController / FormWHController. Keep /form/* as aliases.
      *
      * @return mixed
      */
     private function dispatchFormWIfNeeded(Request $request, string $method, ...$args)
     {
+        if (FormWHSchema::isFormWH($request->form_name ?? $request->input('form_name'))) {
+            if ($request->attributes->get(FormWHSchema::VIA_CONTROLLER_ATTR)) {
+                return null;
+            }
+
+            return app(FormWHController::class)->{$method}($request, ...$args);
+        }
+
         if (! FormWSchema::isFormW($request->form_name ?? $request->input('form_name'))) {
             return null;
         }
@@ -494,6 +504,10 @@ class FormController extends BaseController
             if (trim((string) ($request->work_board_meeting_date[$key] ?? '')) === '') {
                 return 'Date of Meeting is required when Board member employment type is selected.';
             }
+
+            if (trim((string) ($request->work_board_member_name[$key] ?? '')) === '') {
+                return 'Name of member is required when Board member employment type is selected.';
+            }
         }
 
         return null;
@@ -651,6 +665,7 @@ class FormController extends BaseController
             'work_exp_section',
             'work_board_meeting_details',
             'work_board_meeting_date',
+            'work_board_member_name',
             'work_experience_total',
             'work_id',
             'existing_work_document',
@@ -669,6 +684,50 @@ class FormController extends BaseController
         }
     }
 
+    /**
+     * §7b board-member rows have no duration UI but still post empty experience[].
+     * Form S store requires experience.* numeric — fill 0 so 7b does not fail 7a year rules.
+     */
+    private function fillBoardMemberExperienceYearPlaceholders(Request $request): void
+    {
+        $formName = strtoupper((string) ($request->form_name ?? ''));
+        if (! in_array($formName, ['S', 'W'], true)) {
+            return;
+        }
+        if (strtolower(trim((string) $request->input('current_work_board_member', 'no'))) !== 'yes') {
+            return;
+        }
+
+        $types = $request->input('work_employment_type', []);
+        $sections = $request->input('work_exp_section', []);
+        $exps = is_array($request->input('experience')) ? $request->input('experience') : [];
+        $totals = is_array($request->input('work_experience_total')) ? $request->input('work_experience_total') : [];
+        $changed = false;
+
+        foreach ($this->getWorkRowIndexes($request) as $i) {
+            $isBoard = strtolower(trim((string) ($types[$i] ?? ''))) === self::FORM_S_BOARD_MEMBER_EMP_TYPE;
+            $isCurrent = strtolower(trim((string) ($sections[$i] ?? ''))) === 'current';
+            if (! $isBoard && ! $isCurrent) {
+                continue;
+            }
+            if (trim((string) ($exps[$i] ?? '')) === '') {
+                $exps[$i] = '0';
+                $changed = true;
+            }
+            if (trim((string) ($totals[$i] ?? '')) === '') {
+                $totals[$i] = '0';
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            $request->merge([
+                'experience' => $exps,
+                'work_experience_total' => $totals,
+            ]);
+        }
+    }
+
     private function getWorkRowIndexes(Request $request): array
     {
         $indexes = [];
@@ -681,6 +740,7 @@ class FormController extends BaseController
             'work_nature_of_work',
             'work_board_meeting_details',
             'work_board_meeting_date',
+            'work_board_member_name',
             'work_date_from',
             'designation',
             'experience',
@@ -853,6 +913,7 @@ class FormController extends BaseController
         $payload = [
             'emp_type' => $workRow['emp_type'] ?? null,
             'emp_cate' => $workRow['emp_cate'] ?? null,
+            'member_name' => $workRow['member_name'] ?? null,
             'org_name' => ($orgName !== null && $orgName !== '') ? $orgName : null,
             'org_address' => $workRow['org_address'] ?? null,
             'from_date' => $workRow['from_date'] ?? null,
@@ -1088,12 +1149,15 @@ class FormController extends BaseController
         }
 
         $empCate = null;
+        $memberName = null;
         if ($isCardWorkForm && strtolower($empType) === 'electrical_contractor') {
             $empCate = $this->encodeFormSContractorEmpCate(
                 trim((string) ($request->work_contractor_category[$key] ?? '')),
                 trim((string) ($request->work_licence_number[$key] ?? ''))
             );
-            
+        } elseif ($isCardWorkForm && strtolower($empType) === self::FORM_S_BOARD_MEMBER_EMP_TYPE) {
+            $postedMember = trim((string) ($request->work_board_member_name[$key] ?? ''));
+            $memberName = $postedMember !== '' ? $postedMember : null;
         } elseif (! $isCardWorkForm && $orgName !== '') {
             $empCate = $orgName;
         }
@@ -1127,6 +1191,7 @@ class FormController extends BaseController
             'designation' => $designation,
             'emp_type' => ($empType !== '' ? $empType : null),
             'emp_cate' => $empCate,
+            'member_name' => $memberName,
             'nature_work' => ($natureWork !== '' ? $natureWork : null),
             'voltage_level' => ($voltageLevel !== '' ? $voltageLevel : null),
             'transformer_kva' => ($kvaRaw !== '' ? $kvaRaw : null),
@@ -1473,11 +1538,12 @@ class FormController extends BaseController
                         'application_id' => $childId,
                         'emp_type' => $parentExp->emp_type,
                         'emp_cate' => $parentExp->emp_cate,
+                        'member_name' => $parentExp->member_name,
                         'org_name' => $parentExp->org_name,
                         'org_address' => $parentExp->org_address,
                         'designation' => $parentExp->designation,
-                        'from_date' => $parentExp->from_date,
-                        'to_date' => $parentExp->to_date,
+                        'from_date' => $this->calendarDateYmd($parentExp->from_date),
+                        'to_date' => $this->calendarDateYmd($parentExp->to_date),
                         'work_to_till_date' => (int) ($parentExp->work_to_till_date ?? 0),
                         'total_y' => $parentExp->total_y,
                         'total_m' => $parentExp->total_m,
@@ -1487,7 +1553,7 @@ class FormController extends BaseController
                         'voltage_level' => $parentExp->voltage_level,
                         'transformer_kva' => $parentExp->transformer_kva,
                         'board_meeting_details' => $parentExp->board_meeting_details,
-                        'board_meeting_date' => $parentExp->board_meeting_date,
+                        'board_meeting_date' => $this->calendarDateYmd($parentExp->board_meeting_date),
                         'support_document' => $parentExp->support_document,
                         'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
                     ]);
@@ -1559,11 +1625,12 @@ class FormController extends BaseController
                 'application_id' => $childId,
                 'emp_type' => $parentExp->emp_type,
                 'emp_cate' => $parentExp->emp_cate,
+                'member_name' => $parentExp->member_name,
                 'org_name' => $orgName,
                 'org_address' => $parentExp->org_address,
                 'designation' => $designation,
-                'from_date' => $parentExp->from_date,
-                'to_date' => $parentExp->to_date,
+                'from_date' => $this->calendarDateYmd($parentExp->from_date),
+                'to_date' => $this->calendarDateYmd($parentExp->to_date),
                 'work_to_till_date' => (int) ($parentExp->work_to_till_date ?? 0),
                 'total_y' => $parentExp->total_y,
                 'total_m' => $parentExp->total_m,
@@ -1573,7 +1640,7 @@ class FormController extends BaseController
                 'voltage_level' => $parentExp->voltage_level,
                 'transformer_kva' => $parentExp->transformer_kva,
                 'board_meeting_details' => $parentExp->board_meeting_details,
-                'board_meeting_date' => $parentExp->board_meeting_date,
+                'board_meeting_date' => $this->calendarDateYmd($parentExp->board_meeting_date),
                 'support_document' => $parentExp->support_document,
                 'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
             ]);
@@ -1697,6 +1764,11 @@ class FormController extends BaseController
     private function validateOptionalCompetencyWorkRows(Request $request, \Illuminate\Validation\Validator $validator): void
     {
         if (FormWSchema::isFormW($request->form_name ?? '')) {
+            app(FormWExperienceRules::class)->validatePostedRows($request, $validator);
+
+            return;
+        }
+        if (FormWHSchema::isFormWH($request->form_name ?? '')) {
             app(FormWExperienceRules::class)->validatePostedRows($request, $validator);
 
             return;
@@ -2499,6 +2571,13 @@ class FormController extends BaseController
                 $appl_id
             );
         }
+        if (FormWHSchema::isFormWH($application_details->form_name ?? '')) {
+            $get_contractor_details = app(FormWHController::class)->getContractorDetails(
+                Auth::user()->login_id,
+                $cc_digitization_temp_id,
+                $appl_id
+            );
+        }
 
         return view('user_login.edit_application', compact(
             'applicationid',
@@ -2780,6 +2859,12 @@ class FormController extends BaseController
                 null,
                 $appl_id
             );
+        } elseif (FormWHSchema::isFormWH($application_details->form_name ?? '')) {
+            $get_contractor_details = app(FormWHController::class)->getContractorDetails(
+                Auth::user()->login_id,
+                null,
+                $appl_id
+            );
         } elseif (strtoupper((string) ($application_details->form_name ?? '')) === 'S') {
             $get_contractor_details = app(FormSDigitizationController::class)->getContractorDetails(
                 Auth::user()->login_id,
@@ -2824,6 +2909,7 @@ class FormController extends BaseController
         }
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
+        $this->fillBoardMemberExperienceYearPlaceholders($request);
 
         
         $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
@@ -3374,6 +3460,7 @@ class FormController extends BaseController
         }
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
+        $this->fillBoardMemberExperienceYearPlaceholders($request);
 
         $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
         $masterApplicationId = $existingForm
@@ -3965,6 +4052,7 @@ class FormController extends BaseController
         }
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
+        $this->fillBoardMemberExperienceYearPlaceholders($request);
 
         $applicationId = $id;
         $existingForm = $applicationId
@@ -4631,6 +4719,7 @@ public function update(Request $request, $id)
         }
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
+        $this->fillBoardMemberExperienceYearPlaceholders($request);
 
         $applicationId = $id;
         $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
@@ -5065,49 +5154,63 @@ public function update(Request $request, $id)
 
     public function showEncryptedDocument($type, $filename)
     {
-        $allowedTypes = [
-            'aadhaar' => ['folder' => 'private_documents', 'default_mime' => 'application/pdf'],
-            'pan'     => ['folder' => 'private_documents', 'default_mime' => 'application/pdf'],
-        ];
+        $allowedTypes = ['aadhaar', 'pan'];
 
-        if (!array_key_exists($type, $allowedTypes)) {
+        if (! in_array((string) $type, $allowedTypes, true)) {
             abort(400, 'Invalid document type.');
         }
 
-        $path = storage_path('app/' . $allowedTypes[$type]['folder'] . '/' . $filename);
-
-        if (!file_exists($path)) {
+        $filename = trim(str_replace('\\', '/', rawurldecode((string) $filename)));
+        if ($filename === '' || str_contains($filename, '..')) {
             abort(404, 'File not found.');
         }
 
-        $encrypted = file_get_contents($path);
+        $candidates = [$filename, basename($filename)];
+        if (preg_match('/\.pdf$/i', $filename)) {
+            $candidates[] = (string) preg_replace('/\.pdf$/i', '.bin', $filename);
+            $candidates[] = basename((string) preg_replace('/\.pdf$/i', '.bin', $filename));
+        } elseif (preg_match('/\.bin$/i', $filename)) {
+            $candidates[] = (string) preg_replace('/\.bin$/i', '.pdf', $filename);
+        }
+
+        $storage = app(DocumentStorageService::class);
+
+        foreach (array_unique(array_filter($candidates)) as $relative) {
+            $resolved = $storage->resolveExistingPath($relative);
+            if ($resolved !== null) {
+                return $storage->download($resolved, basename($resolved));
+            }
+        }
+
+        foreach (array_unique(array_filter($candidates)) as $relative) {
+            $legacyPath = storage_path('app/private_documents/' . basename((string) $relative));
+            if (is_file($legacyPath)) {
+                return $this->streamLegacyEncryptedProof($legacyPath, basename((string) $relative));
+            }
+        }
+
+        abort(404, 'File not found.');
+    }
+
+    protected function streamLegacyEncryptedProof(string $absolutePath, string $downloadName)
+    {
+        $encrypted = file_get_contents($absolutePath);
+        if ($encrypted === false || $encrypted === '') {
+            abort(404, 'File not found.');
+        }
 
         try {
             $decrypted = Crypt::decrypt($encrypted);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             abort(500, 'Could not decrypt file.');
         }
 
-        // Detect mime type by extension
-        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        switch ($ext) {
-            case 'pdf':
-                $mime = 'application/pdf';
-                break;
-            case 'jpg':
-            case 'jpeg':
-                $mime = 'image/jpeg';
-                break;
-            case 'png':
-                $mime = 'image/png';
-                break;
-            default:
-                $mime = $allowedTypes[$type]['default_mime'];
-        }
+        $crypt = app(SensitiveProofCryptService::class);
+        $displayName = $crypt->displayFileNameForProofDocument($downloadName);
 
         return response($decrypted)
-            ->header('Content-Type', $mime)
-            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+            ->header('Content-Type', $crypt->inlineMimeTypeForProofDocument($downloadName, $displayName))
+            ->header('Content-Disposition', 'inline; filename="' . $displayName . '"');
     }
 
 

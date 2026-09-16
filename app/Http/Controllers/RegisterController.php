@@ -12,6 +12,7 @@ use App\Models\CC_Proof_doc;
 use App\Models\MstLicence;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\FormWSchema;
+use App\Services\Competency\FormWHSchema;
 use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\SensitiveProofCryptService;
@@ -199,6 +200,11 @@ class RegisterController extends BaseController
         if (FormWSchema::isFormW($application->form_name ?? '')
             && ! request()->attributes->get(FormWSchema::VIA_CONTROLLER_ATTR)) {
             return app(FormWController::class)->renew($appl_id);
+        }
+
+        if (FormWHSchema::isFormWH($application->form_name ?? '')
+            && ! request()->attributes->get(FormWHSchema::VIA_CONTROLLER_ATTR)) {
+            return app(FormWHController::class)->renew($appl_id);
         }
 
         $loginId = Auth::user()->login_id ?? session('login_id');
@@ -435,29 +441,7 @@ class RegisterController extends BaseController
 
     public function apply_form_wh()
     {
-
-        if (!Auth::check()) {
-            return redirect()->route('logout');
-        }
-        $authUser = Auth::user();
-
-        $user = [
-            'user_id' => $authUser->login_id,
-            'salutation' => $authUser->salutation,
-            'applicant_name' => $authUser->first_name . ' ' . $authUser->last_name,
-        ];
-
-        // $user_id = Auth::user()->login_id;
-        // $check_applications = Mst_Form_s_w::where('login_id', $user_id)
-        //         ->where('form_name', 'WH')
-        //         ->exists();
-
-        // if ($check_applications) {
-        //     return redirect()->route('dashboard')->with('already_applied', true);
-        // }
-
-
-        return view('user_login.apply-form-wh', compact('user'));
+        return app(FormWHController::class)->create();
     }
 
     public function apply_form_a()

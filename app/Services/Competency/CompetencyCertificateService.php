@@ -427,6 +427,6 @@ class CompetencyCertificateService
     {
         $formName = strtoupper(trim((string) $formName));
 
-        return $formName === 'W' ? 'W' : $formName;
+        return $formName === 'H' ? 'WH' : $formName;
     }
 }

@@ -854,7 +854,7 @@
                                         <td style="min-width:200px;">
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container fs-doc-existing" style="justify-content:flex-start;">
-                                                    <a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $application_details->aadhaar_doc]) }}" target="_blank">
+                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank">
                                                         <i class="fa fa-file-pdf-o"></i> View
                                                     </a>
                                                     <button type="button" class="btn-tbl-remove remove-docs py-1 px-2">Remove</button>
@@ -900,7 +900,7 @@
                                         <td style="min-width:200px;">
                                             @if (!empty($existingPanDocFormP))
                                                 <div class="pan-doc-container fs-doc-existing" style="justify-content:flex-start;">
-                                                    <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $existingPanDocFormP]) }}" target="_blank">
+                                                    <a href="{{ proof_document_url($existingPanDocFormP, 'pan') }}" target="_blank">
                                                         <i class="fa fa-file-pdf-o"></i> View
                                                     </a>
                                                     <button type="button" class="btn-tbl-remove remove-pan-doc py-1 px-2">Remove</button>

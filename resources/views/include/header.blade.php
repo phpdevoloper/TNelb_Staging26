@@ -1584,7 +1584,7 @@ use Illuminate\Support\Facades\Auth;
                             </section>
 
                             @php
-                            $showCl = Request::is('apply-form-w_d');
+                            $showCl = Request::is('apply-form-w_d') || Request::is('apply-form-wh_d');
                             @endphp
 
                             <section class="digi-section" id="cl_section" {{ !$showCl ? 'style=display:none;' : '' }} aria-label="Current Contractor Licence Details">
@@ -2322,11 +2322,11 @@ use Illuminate\Support\Facades\Auth;
 
                         <!-- RIGHT DOWNLOAD PANEL -->
                         <div class="col-md-6 text-center">
-                            <p class="fw-bold">Download Your Payment Receipt:</p>
-                            <button class="btn btn-info btn-sm mb-2" onclick="paymentreceiptformA()">
+                            {{-- <p class="fw-bold">Download Your Payment Receipt:</p> --}}
+                            {{-- <button class="btn btn-info btn-sm mb-2" onclick="paymentreceiptformA()">
                                 <i class="fa fa-file-pdf-o text-danger"></i>
                                 Download Receipt
-                            </button>
+                            </button> --}}
 
                             <p class="fw-bold mt-3">Download Your Application PDF:</p>
 
@@ -2394,11 +2394,11 @@ use Illuminate\Support\Facades\Auth;
                         <div class="col-md-6 text-center">
 
                             <div class="ps-payment-only">
-                                <p class="fw-bold">Download Your Payment Receipt:</p>
-                                <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt()">
+                                {{-- <p class="fw-bold">Download Your Payment Receipt:</p> --}}
+                                {{-- <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt()">
                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                     Download Receipt
-                                </button>
+                                </button> --}}
                             </div>
 
                             <p class="fw-bold ps-app-pdf-heading mt-3">Download Your Application PDF:</p>

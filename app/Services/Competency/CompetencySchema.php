@@ -7,7 +7,7 @@ namespace App\Services\Competency;
  *
  * Per-form (S / W / WH / P):
  * - Application meta: cc_form_s_meta, cc_form_w_meta, cc_form_wh_meta, cc_form_p_meta
- * - Workflow: cc_workflow_forms, cc_workflow_formw, cc_workflow_formwh, cc_workflow_formp
+ * - Workflow: cc_workflow_forms, cc_workflow_formw, cc_workflow_wh, cc_workflow_formp
  * - Issued certificate: cc_form_s_cert, cc_form_w_cert, cc_form_wh_cert, cc_form_p_cert
  *
  * Shared across ALL competency forms (keyed by application_id string):
@@ -36,7 +36,7 @@ final class CompetencySchema
     public const WORKFLOW_TABLES = [
         'S' => 'cc_workflow_forms',
         'W' => 'cc_workflow_formw',
-        'WH' => 'cc_workflow_formwh',
+        'WH' => 'cc_workflow_wh',
         'P' => 'cc_workflow_formp',
     ];
 

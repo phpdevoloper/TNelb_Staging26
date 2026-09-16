@@ -30,6 +30,9 @@
                 if (!$isTill && $fromIso !== '' && $toIso === '') {
                     $isTill = true;
                 }
+                $memberName = trim((string) (($expRow->member_name ?? '') !== ''
+                    ? $expRow->member_name
+                    : ($expRow->emp_cate ?? '')));
                 $periodText = '';
                 if ($fromIso !== '') {
                     $periodText = 'From ' . format_date($fromIso);
@@ -51,6 +54,10 @@
                         <tr>
                             <th>Representing Organisation</th>
                             <td>{{ trim((string) ($expRow->org_name ?? $expRow->company_name ?? '')) !== '' ? ($expRow->org_name ?? $expRow->company_name) : '—' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Name of member</th>
+                            <td>{{ $memberName !== '' ? $memberName : '—' }}</td>
                         </tr>
                         <tr>
                             <th>Details of the meeting</th>

@@ -153,7 +153,9 @@ class CompetencyMetaService
 
     public function normalizeFormName(?string $formName): string
     {
-        return strtoupper(trim((string) $formName));
+        $code = strtoupper(trim((string) $formName));
+
+        return $code === 'H' ? 'WH' : $code;
     }
 
     public function latestApplicationId(): ?string

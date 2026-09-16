@@ -1,4 +1,4 @@
-@if ((($editFormName ?? '') === 'W') || (($editFormName ?? ($application_details->form_name ?? '')) === 'S'))
+@if (in_array(($editFormName ?? ($application_details->form_name ?? '')), ['S', 'W', 'WH'], true))
 @php
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
@@ -113,6 +113,70 @@
                 );
             }
 
+            function parse7bMemberNames(raw) {
+                return String(raw || '')
+                    .split(/[,;|\n]+/)
+                    .map(function (s) { return String(s || '').trim(); })
+                    .filter(function (s) { return s !== ''; });
+            }
+
+            function format7bBmNoMatch(no) {
+                return format7bBmNo(no);
+            }
+
+            function fill7bMemberOptions($row, preferredMember) {
+                var $sel = $row.find('select.work-board-member-name').first();
+                var $sync = $row.find('.work-board-member-name-sync').first();
+                if (!$sel.length) return;
+                if ($sel.prop('disabled') && $row.closest('.fs-alt-existing-work').length) {
+                    return;
+                }
+
+                var dateIso = String($row.find('.work-board-meeting-date').first().val() || '').trim();
+                var meetingNo = format7bBmNo($row.find('.work-board-meeting-details').first().val());
+                var org = String($row.find('.work-employer-input').first().val() || '').trim();
+                preferredMember = String(preferredMember || $sel.val() || $sync.val() || '').trim();
+                var wasAlterationLocked = $row.closest('.fs-alt-existing-work').length > 0;
+
+                $sel.empty();
+                if (!dateIso || !org) {
+                    $sel.append($('<option></option>').attr('value', '').text('Select organisation first'));
+                    if (!wasAlterationLocked) {
+                        $sel.prop('disabled', true).val('');
+                    }
+                    if ($sync.length && !$sync.prop('disabled')) {
+                        $sync.val('');
+                    }
+                    return;
+                }
+
+                var names = [];
+                get7bBoardMasterRows().forEach(function (r) {
+                    if (String((r && r.bm_date) || '') !== dateIso) return;
+                    if (meetingNo && format7bBmNoMatch(r && r.bm_no) !== meetingNo) return;
+                    if (String((r && r.bm_member) || '').trim() !== org) return;
+                    parse7bMemberNames(r && r.bm_members).forEach(function (n) {
+                        if (n && names.indexOf(n) === -1) names.push(n);
+                    });
+                });
+                names.sort(function (a, b) { return a.localeCompare(b); });
+
+                $sel.append($('<option></option>').attr('value', '').text('Select member'));
+                names.forEach(function (n) {
+                    $sel.append($('<option></option>').attr('value', n).text(n));
+                });
+                if (preferredMember && names.indexOf(preferredMember) === -1) {
+                    $sel.append($('<option></option>').attr('value', preferredMember).text(preferredMember));
+                }
+                if (!wasAlterationLocked) {
+                    $sel.prop('disabled', false);
+                }
+                $sel.val(preferredMember || '');
+                if ($sync.length && !$sync.prop('disabled')) {
+                    $sync.val(String($sel.val() || '').trim());
+                }
+            }
+
             function fill7bOrgOptionsForDate($row, dateIso, preferredOrg, hasMeetings) {
                 var $org = $row.find('.work-employer-input').first();
                 if (!$org.length || !$org.is('select')) return;
@@ -131,6 +195,7 @@
                         $org.prop('disabled', true).val('');
                     }
                     $row.find('.work-level-sync').val('');
+                    fill7bMemberOptions($row, '');
                     return;
                 }
 
@@ -155,6 +220,46 @@
                 }
                 $org.val(preferredOrg || '');
                 $row.find('.work-level-sync').val(String($org.val() || '').trim());
+                fill7bMemberOptions($row, '');
+            }
+
+            function unique7bMeetingDates() {
+                var dates = [];
+                get7bBoardMasterRows().forEach(function (r) {
+                    var d = String((r && r.bm_date) || '').trim();
+                    if (d && dates.indexOf(d) === -1) dates.push(d);
+                });
+                dates.sort(function (a, b) { return b.localeCompare(a); });
+                return dates;
+            }
+
+            function format7bDateLabel(iso) {
+                var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                return m ? (m[3] + '-' + m[2] + '-' + m[1]) : String(iso || '');
+            }
+
+            function fill7bMeetingDateOptions($row, preferredDate) {
+                var $date = $row.find('.work-board-meeting-date').first();
+                if (!$date.length || !$date.is('select')) return;
+                if ($date.prop('disabled') && $row.closest('.fs-alt-existing-work').length) {
+                    return;
+                }
+                preferredDate = String(preferredDate || $date.val() || '').trim();
+                var dates = unique7bMeetingDates();
+                $date.empty();
+                $date.append($('<option></option>').attr('value', '').text('Select date'));
+                dates.forEach(function (d) {
+                    $date.append($('<option></option>').attr('value', d).text(format7bDateLabel(d)));
+                });
+                if (preferredDate && dates.indexOf(preferredDate) === -1) {
+                    $date.append($('<option></option>').attr('value', preferredDate).text(format7bDateLabel(preferredDate)));
+                }
+                $date.val(preferredDate || '');
+                if (preferredDate) {
+                    $date.attr('data-raw', preferredDate);
+                } else {
+                    $date.removeAttr('data-raw');
+                }
             }
 
             function fill7bMeetingDetailsForDate($row, dateIso, preferredNo, preferredOrg) {
@@ -171,6 +276,7 @@
                     $details.append($('<option></option>').attr('value', '').text('Select date first'));
                     $details.prop('disabled', true).val('');
                     fill7bOrgOptionsForDate($row, '', '', false);
+                    fill7bMemberOptions($row, '');
                     return '';
                 }
 
@@ -186,6 +292,7 @@
                     $details.append($('<option></option>').attr('value', '').text('Select date first'));
                     $details.prop('disabled', true).val('');
                     fill7bOrgOptionsForDate($row, dateIso, '', false);
+                    fill7bMemberOptions($row, '');
                     show7bNoMeetingValidation($row);
                     return '';
                 }
@@ -205,7 +312,7 @@
                 return String($details.val() || '').trim();
             }
 
-            function on7bMeetingDateChanged($dateInput, preferredNo, preferredOrg) {
+            function on7bMeetingDateChanged($dateInput, preferredNo, preferredOrg, preferredMember) {
                 var $row = $dateInput.closest('.work-fields');
                 if (!$row.length) return;
                 var dateIso = '';
@@ -220,10 +327,11 @@
                     else $dateInput.removeAttr('data-raw');
                 }
                 fill7bMeetingDetailsForDate($row, dateIso, preferredNo || '', preferredOrg || '');
+                fill7bMemberOptions($row, preferredMember || '');
             }
 
             $(document).on(
-                'change input',
+                'change',
                 '#work-container-current .work-board-meeting-date, .js-work-container[data-work-part="current"] .work-board-meeting-date',
                 function () {
                     on7bMeetingDateChanged($(this), '', '');
@@ -236,6 +344,24 @@
                 function () {
                     var $row = $(this).closest('.work-fields');
                     $row.find('.work-level-sync').val(String($(this).val() || '').trim());
+                    fill7bMemberOptions($row, '');
+                }
+            );
+
+            $(document).on(
+                'change',
+                '#work-container-current .work-board-meeting-details, .js-work-container[data-work-part="current"] .work-board-meeting-details',
+                function () {
+                    fill7bMemberOptions($(this).closest('.work-fields'), '');
+                }
+            );
+
+            $(document).on(
+                'change',
+                '#work-container-current select.work-board-member-name, .js-work-container[data-work-part="current"] select.work-board-member-name',
+                function () {
+                    var $row = $(this).closest('.work-fields');
+                    $row.find('.work-board-member-name-sync').val(String($(this).val() || '').trim());
                 }
             );
 
@@ -1808,6 +1934,7 @@
                     if (!($tr.find('.work-board-meeting-details').val() || '').trim()) return false;
                     if (!readWorkDateFromInput($tr.find('.work-board-meeting-date'))) return false;
                     if (!($tr.find('.work-employer-input').val() || '').trim()) return false;
+                    if (!($tr.find('select.work-board-member-name').val() || $tr.find('.work-board-member-name-sync').val() || '').trim()) return false;
                 }
                 var $doc = $tr.find('.work-doc-input').first();
                 if (!isCurrentPart && !workInputHasFile($doc)) return false;
@@ -1879,6 +2006,9 @@
                     if (!readWorkDateFromInput($meetDate)) fail($meetDate, 'Date of Meeting is required.');
                     var $empBoard = $tr.find('.work-employer-input').first();
                     if (!($empBoard.val() || '').trim()) fail($empBoard, 'Organisation is required.');
+                    var $memberName = $tr.find('select.work-board-member-name').first();
+                    var memberVal = String($memberName.val() || $tr.find('.work-board-member-name-sync').val() || '').trim();
+                    if (!memberVal) fail($memberName.length ? $memberName : $tr.find('.work-board-member-name-sync').first(), 'Name of member is required.');
                 }
 
                 if (!isCurrentPart) {
@@ -2367,16 +2497,23 @@
                     var $row = $(this);
                     var $date = $row.find('.work-board-meeting-date').first();
                     if (!$date.length) return;
-                    var dateIso = '';
-                    if (typeof readWorkDateFromInput === 'function') {
-                        dateIso = readWorkDateFromInput($date);
-                    }
-                    if (!dateIso) dateIso = String($date.val() || '').trim();
-                    if (dateIso) $date.attr('data-raw', dateIso);
                     var preferredNo = format7bBmNo($row.find('.work-board-meeting-details').first().val());
                     var preferredOrg = String($row.find('.work-employer-input').first().val() || '').trim();
+                    var preferredMember = String(
+                        $row.find('.work-board-member-name-sync').first().val()
+                        || $row.find('select.work-board-member-name').first().val()
+                        || ''
+                    ).trim();
+                    var dateIso = String($date.val() || '').trim();
+                    if (typeof readWorkDateFromInput === 'function') {
+                        dateIso = readWorkDateFromInput($date) || dateIso;
+                    }
+                    fill7bMeetingDateOptions($row, dateIso);
+                    dateIso = String($date.val() || '').trim();
+                    if (dateIso) $date.attr('data-raw', dateIso);
                     if (dateIso) {
                         fill7bMeetingDetailsForDate($row, dateIso, preferredNo, preferredOrg);
+                        fill7bMemberOptions($row, preferredMember);
                     } else {
                         fill7bOrgOptionsForDate($row, '', '', false);
                     }

@@ -11,6 +11,7 @@ use App\Models\Mst_experience;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\FormWSchema;
+use App\Services\Competency\FormWHSchema;
 use App\Models\CC_Proof_doc;
 use App\Models\Payment;
 use Illuminate\Support\Collection;
@@ -36,7 +37,7 @@ class FormSAlterationService
     ) {}
 
     /** Competency CC forms this alteration flow currently supports. */
-    private const SUPPORTED_FORM_NAMES = ['S', 'W'];
+    private const SUPPORTED_FORM_NAMES = ['S', 'W', 'WH'];
 
     /**
      * @return array{ok: bool, message?: string, application?: CC_CompetencyMeta}
@@ -722,7 +723,7 @@ class FormSAlterationService
 
             if ($alterWork) {
                 $this->assertFormSExperienceDateSequence($request);
-                if (! FormWSchema::isFormW($formName)) {
+                if (! FormWSchema::isFormW($formName) && ! FormWHSchema::isFormWH($formName)) {
                     $this->assertFormSCountableExperienceMinimum($parent, $request);
                 }
                 CC_Experience::where('application_id', $child->application_id)->delete();
@@ -1402,6 +1403,7 @@ class FormSAlterationService
             'application_id' => $child->application_id,
             'emp_type' => $parentExp->emp_type,
             'emp_cate' => $parentExp->emp_cate,
+            'member_name' => $parentExp->member_name,
             'org_name' => $orgName,
             'org_address' => $parentExp->org_address,
             'designation' => $designation,
@@ -1458,9 +1460,14 @@ class FormSAlterationService
         $licenceNos = (array) $request->input('work_licence_number', []);
 
         $empCate = null;
+        $memberName = null;
         $cat = trim((string) ($contractorCats[$key] ?? ''));
         $licence = trim((string) ($licenceNos[$key] ?? ''));
-        if ($cat !== '' || $licence !== '') {
+        $empType = strtolower(trim((string) ($empTypes[$key] ?? '')));
+        if ($empType === 'board_member_tnelb') {
+            $postedMember = trim((string) (((array) $request->input('work_board_member_name', []))[$key] ?? ''));
+            $memberName = $postedMember !== '' ? $postedMember : null;
+        } elseif ($cat !== '' || $licence !== '') {
             $empCate = $cat . ($licence !== '' ? '||' . $licence : '');
         }
 
@@ -1494,6 +1501,7 @@ class FormSAlterationService
             'application_id' => $child->application_id,
             'emp_type' => $empTypes[$key] ?? null,
             'emp_cate' => $empCate,
+            'member_name' => $memberName,
             'org_name' => $orgName,
             'org_address' => $orgAddresses[$key] ?? null,
             'designation' => $designation,
@@ -1771,6 +1779,7 @@ class FormSAlterationService
                 'login_id' => $row->login_id ?: ($childRow->login_id ?? null),
                 'emp_type' => $row->emp_type,
                 'emp_cate' => $row->emp_cate,
+                'member_name' => $row->member_name,
                 'org_name' => $row->org_name,
                 'org_address' => $row->org_address,
                 'designation' => $row->designation,

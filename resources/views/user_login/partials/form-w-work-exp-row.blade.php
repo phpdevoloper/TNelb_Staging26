@@ -288,6 +288,9 @@
     @endif
 
         <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $totalExp }}" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" class="work-board-member-name-sync" name="work_board_member_name[]" value="" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="work_board_meeting_date[]" value="" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
+        <input type="hidden" name="work_board_meeting_details[]" value="" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
         <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $orgName }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
         <input type="hidden" name="experience[]" class="experience-sync" value="{{ $totalExp }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
         <input type="hidden" name="work_exp_section[]" value="{{ $workPart }}" @if($alterationExistingRow) disabled @endif>

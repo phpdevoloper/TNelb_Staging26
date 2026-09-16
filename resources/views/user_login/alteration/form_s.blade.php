@@ -1169,7 +1169,7 @@
     }
 </style>
 
-@if (in_array($application_details->form_name ?? '', ['S', 'W'], true))
+@if (in_array($application_details->form_name ?? '', ['S', 'W', 'WH'], true))
 <style>
     @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $application_details->form_name ?? ''])
 </style>
@@ -1808,10 +1808,9 @@
                     </div>
                     {{-- /SECTION 5 --}}
 
-                    @if (!isset($application_details->form_name) || $application_details->form_name !== 'WH')
-                                                @php
-                                                    $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
-                                                @endphp
+                    @php
+                        $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
+                    @endphp
 
                     {{-- ═══ SECTION 6 — Work Experience ═══ --}}
                     <div class="fs-section" @if($isAlterationMode) id="fsAltSectionWork" @endif>
@@ -1847,7 +1846,7 @@
                                     'hideUploadWhenDocExists' => true,
                                     'isAlterationMode' => $isAlterationMode,
                                 ])
-                            @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
+                            @elseif(isset($application_details->form_name) && in_array($application_details->form_name, ['W', 'WH'], true))
                                 @include('user_login.partials.form-w-work-exp-7ab-body', [
                                     'exp_details' => $exp_details ?? collect(),
                                     'hideUploadWhenDocExists' => true,
@@ -2191,8 +2190,6 @@
                         </div>
                     </div>
                     
-                    @endif
-
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
                     <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
@@ -2637,13 +2634,13 @@
         window.formSAltEditableMode = @json($isAlterationEditable);
     </script>
 
-@if (in_array($application_details->form_name ?? '', ['S', 'W'], true))
+@if (in_array($application_details->form_name ?? '', ['S', 'W', 'WH'], true))
 @include('user_login.partials.form-s-work-exp-scripts', [
     'editFormName' => $application_details->form_name ?? '',
     'showBoardMemberEmploymentType' => false,
     'hideUploadWhenDocExists' => true,
     'isAlterationMode' => $isAlterationMode,
-    'hideVoltageFields' => (($application_details->form_name ?? '') === 'W'),
+    'hideVoltageFields' => in_array(($application_details->form_name ?? ''), ['W', 'WH'], true),
 ])
 <script>
     (function () {

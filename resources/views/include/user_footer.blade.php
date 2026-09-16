@@ -732,6 +732,12 @@
             let actionType = $(this).attr('id') === 'saveDraftBtn' ? "draft" : "payment";
             let formData = new FormData($('#competency_form_ws')[0]);
             formData.append('form_action', actionType);
+            if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
+                window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
+            }
+            if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
+                window.appendWorkBoardMemberFieldsToFormData(formData, $('#competency_form_ws')[0]);
+            }
 
             $.ajax({
                 url: "{{ route('form.store') }}",

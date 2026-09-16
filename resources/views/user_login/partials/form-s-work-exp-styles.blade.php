@@ -1,4 +1,4 @@
-﻿@if ((($editFormName ?? '') === 'W') || (($editFormName ?? ($application_details->form_name ?? '')) === 'S'))
+﻿@if (in_array(($editFormName ?? ($application_details->form_name ?? '')), ['S', 'W', 'WH'], true))
     /* ── Work Experience: row-grid layout (restructured) ──── */
     .work-exp-wrap {
         --wx-accent: #035ab3;

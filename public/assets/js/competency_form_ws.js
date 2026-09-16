@@ -15,12 +15,17 @@
     function competencyPersistUrls() {
         var formName = String($('#form_name').val() || '').toUpperCase();
         var isW = formName === 'W';
+        var isWH = formName === 'WH';
         return {
-            store: (isW && cfg.formWStoreUrl) ? cfg.formWStoreUrl : cfg.formStoreUrl,
-            update: (isW && cfg.formWUpdateUrlTemplate) ? cfg.formWUpdateUrlTemplate : cfg.formUpdateUrlTemplate,
-            renewal: (isW && cfg.formWDraftRenewalUrlTemplate) ? cfg.formWDraftRenewalUrlTemplate : cfg.draftRenewalUrlTemplate
+            store: (isW && cfg.formWStoreUrl) ? cfg.formWStoreUrl
+                : ((isWH && cfg.formWHStoreUrl) ? cfg.formWHStoreUrl : cfg.formStoreUrl),
+            update: (isW && cfg.formWUpdateUrlTemplate) ? cfg.formWUpdateUrlTemplate
+                : ((isWH && cfg.formWHUpdateUrlTemplate) ? cfg.formWHUpdateUrlTemplate : cfg.formUpdateUrlTemplate),
+            renewal: (isW && cfg.formWDraftRenewalUrlTemplate) ? cfg.formWDraftRenewalUrlTemplate
+                : ((isWH && cfg.formWHDraftRenewalUrlTemplate) ? cfg.formWHDraftRenewalUrlTemplate : cfg.draftRenewalUrlTemplate)
         };
     }
+    window.competencyPersistUrls = competencyPersistUrls;
 
     function getPaymentsService(licence_code, issued_licence, appl_type, options) {
         const silent = !!(options && typeof options === 'object' && options.silent);
@@ -237,8 +242,14 @@
                 if (typeof window.appendWorkTransformerKvaToFormData === 'function') {
                     window.appendWorkTransformerKvaToFormData(formData, $('#competency_form_ws')[0]);
                 }
+                if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
+                    window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
+                }
                 if (typeof window.appendWorkContractorFieldsToFormData === 'function') {
                     window.appendWorkContractorFieldsToFormData(formData, $('#competency_form_ws')[0]);
+                }
+                if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
+                    window.appendWorkBoardMemberFieldsToFormData(formData, $('#competency_form_ws')[0]);
                 }
                 let applicationId = $('#application_id').val();
                 let formUrl;
@@ -1558,6 +1569,42 @@
         }
         window.appendWorkTransformerKvaToFormData = appendWorkTransformerKvaToFormData;
 
+        /**
+         * Renewal locks disable from/to (and org/designation) so native FormData drops those
+         * slots and later rows' dates bind to the wrong work_id. Rebuild one slot per card.
+         */
+        function appendWorkExperienceDateFieldsToFormData(formData, formRoot) {
+            if (!formData || !formRoot) return;
+            formData.delete('work_date_from[]');
+            formData.delete('work_date_to[]');
+            formData.delete('work_employer_name[]');
+            formData.delete('work_organisation_address[]');
+            formData.delete('designation[]');
+            formData.delete('work_employment_type[]');
+            $(formRoot).find('.js-work-container .work-fields, #work-container .work-fields').each(function () {
+                const $row = $(this);
+                formData.append('work_date_from[]', readWorkDateIsoGeneric($row.find('.work-date-from').first()));
+                formData.append('work_date_to[]', readWorkDateIsoGeneric($row.find('.work-date-to').first()));
+                formData.append(
+                    'work_employer_name[]',
+                    String($row.find('.work-employer-input').first().val() || '').trim()
+                );
+                formData.append(
+                    'work_organisation_address[]',
+                    String($row.find('.work-org-address').first().val() || '').trim()
+                );
+                formData.append(
+                    'designation[]',
+                    String($row.find('.work-designation').first().val() || '').trim()
+                );
+                formData.append(
+                    'work_employment_type[]',
+                    String($row.find('.work-employment-type').first().val() || '').trim()
+                );
+            });
+        }
+        window.appendWorkExperienceDateFieldsToFormData = appendWorkExperienceDateFieldsToFormData;
+
         /** Rebuild contractor grade/licence arrays so every work row posts one aligned slot. */
         function appendWorkContractorFieldsToFormData(formData, formRoot) {
             if (!formData || !formRoot) return;
@@ -1586,6 +1633,28 @@
         }
         window.appendWorkContractorFieldsToFormData = appendWorkContractorFieldsToFormData;
 
+        /** Rebuild 7b arrays so each work row posts one aligned slot (disabled selects are skipped by FormData). */
+        function appendWorkBoardMemberFieldsToFormData(formData, formRoot) {
+            if (!formData || !formRoot) return;
+            formData.delete('work_board_member_name[]');
+            formData.delete('work_board_meeting_date[]');
+            formData.delete('work_board_meeting_details[]');
+            $(formRoot).find('.js-work-container .work-fields, #work-container .work-fields').each(function () {
+                const $row = $(this);
+                const member = String(
+                    ($row.find('select.work-board-member-name').first().val() || '')
+                    || ($row.find('.work-board-member-name-sync').first().val() || '')
+                    || ''
+                ).trim();
+                const meetingDate = String($row.find('.work-board-meeting-date').first().val() || '').trim();
+                const meetingDetails = String($row.find('.work-board-meeting-details').first().val() || '').trim();
+                formData.append('work_board_member_name[]', member);
+                formData.append('work_board_meeting_date[]', meetingDate);
+                formData.append('work_board_meeting_details[]', meetingDetails);
+            });
+        }
+        window.appendWorkBoardMemberFieldsToFormData = appendWorkBoardMemberFieldsToFormData;
+
         async function saveCompetencyDraftSilently() {
             const formWsEl = $('#competency_form_ws')[0];
             const formPEl = $('#competency_form_p')[0];
@@ -1597,7 +1666,9 @@
 
             if (formWsEl) {
                 appendWorkTransformerKvaToFormData(formData, formWsEl);
+                appendWorkExperienceDateFieldsToFormData(formData, formWsEl);
                 appendWorkContractorFieldsToFormData(formData, formWsEl);
+                appendWorkBoardMemberFieldsToFormData(formData, formWsEl);
             }
 
             if (formPEl) {
@@ -2704,13 +2775,13 @@
 
             const formCode = (v('form_name') || valByName('form_name') || 'S').toUpperCase();
             const applType = (v('appl_type') || valByName('appl_type') || 'N').toUpperCase();
-            const showWork = (formCode === 'S' || formCode === 'W');
+            const showWork = (formCode === 'S' || formCode === 'W' || formCode === 'WH');
             const showWiremanCert = (formCode === 'S');
 
             // Section visibility + numbering — matches each form's native section numbers.
             // S:  1 (1-5) · 6 Edu · 7 Work (7a/7b) · 8 Prev S · 9 Wireman · 10 Docs
             // W:  1 (1-5) · 6 Edu · 7 Work · 8 Prev W · ──        · 9  Docs
-            // WH: 1 (1-5) · 6 Edu · ──     · 7 Prev H · ──        · 8  Docs
+            // WH: 1 (1-5) · 6 Edu · 7 Work · 8 Prev H · ──        · 9  Docs
             setSecVisible('prvSwSecWork', showWork);
             setSecVisible('prvSwSecWiremanCert', showWiremanCert);
             setNum('personal', '1');
@@ -2725,7 +2796,7 @@
                 setNum('prev', '8');
                 setNum('wireman', '9');
                 setNum('docs', '10');
-            } else if (formCode === 'W') {
+            } else if (formCode === 'W' || formCode === 'WH') {
                 setNum('wireman', '9');
                 setNum('prev', '8');
                 setNum('docs', '9');
@@ -3164,7 +3235,7 @@
             if (showWork) {
                 const swPanel = document.querySelector('#appPreviewModalSw .prv-sw-panel');
                 if (swPanel) {
-                    swPanel.style.maxWidth = (formCode === 'S' || formCode === 'W') ? 'min(96vw, 1100px)' : '940px';
+                    swPanel.style.maxWidth = (formCode === 'S' || formCode === 'W' || formCode === 'WH') ? 'min(96vw, 1100px)' : '940px';
                 }
 
                 if (formCode === 'S') {
@@ -3698,28 +3769,12 @@
             }
         });
 
-        $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if ($('#competency_form_ws.fs-alt-form').length) {
-                return;
-            }
-            if ($('#competency_form_p').length && !$('#competency_form_ws').length) {
-                return;
-            }
-            const $submitBtn = $(this);
-            if ($submitBtn.data('isProcessing') === true) {
-                return;
-            }
-            $submitBtn.data('isProcessing', true).prop('disabled', true);
-            const originalSubmitLabel = $submitBtn.html();
-            $submitBtn.html('Processing...');
+        async function validateCompetencyFormForSubmit() {
             normalizeCompetencyDynamicSections();
 
             const readableFiles = await validateReadableSelectedFiles();
             if (!readableFiles) {
-                $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
-                return;
+                return false;
             }
 
             clearCompetencyValidationErrors();
@@ -3944,7 +3999,7 @@
             const workOptional = (formName === 'W' || formName === 'WH' || formName === 'P');
             const isSWorkForm = (formName === 'S');
             /* §7a non-overlap rule applies to both SCC (S) and Wireman (W) work experience. */
-            const usesWorkExpSequenceRule = (formName === 'S' || formName === 'W');
+            const usesWorkExpSequenceRule = (formName === 'S' || formName === 'W' || formName === 'WH');
 
             /** True when a work file input has a new selection, local preview, or marked upload (Form S card layout). */
             function workFileInputHasSelection($input) {
@@ -3997,7 +4052,7 @@
             }
 
             $('.js-work-container .work-fields, #work-container .work-fields').each(function () {
-                if (isSWorkForm || formName === 'W') {
+                if (isSWorkForm || formName === 'W' || formName === 'WH') {
                     /* Form S (13-column SCC layout):
                        Required per row:
                          • Employment Type (col 2)
@@ -4099,6 +4154,15 @@
                         if (meetingDate.length && !readWorkDateIsoGeneric(meetingDate)) {
                             meetingDate.after('<span class="error-message text-danger d-block mt-1">Date of Meeting is required.</span>');
                             if (!firstErrorField) firstErrorField = meetingDate;
+                            isValid = false;
+                        }
+                        const memberName = $row.find('select.work-board-member-name').first();
+                        const memberVal = String(
+                            (memberName.val && memberName.val()) || $row.find('.work-board-member-name-sync').val() || ''
+                        ).trim();
+                        if (memberName.length && memberVal === '') {
+                            memberName.after('<span class="error-message text-danger d-block mt-1">Name of member is required.</span>');
+                            if (!firstErrorField) firstErrorField = memberName;
                             isValid = false;
                         }
                     }
@@ -4682,6 +4746,31 @@
                     // no-op: keep legacy scroll behaviour
                 }
                 scrollCompetencyToValidationError(firstErrorField);
+                return false;
+            }
+
+            return true;
+        }
+        window.validateCompetencyFormForSubmit = validateCompetencyFormForSubmit;
+
+        $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if ($('#competency_form_ws.fs-alt-form').length) {
+                return;
+            }
+            if ($('#competency_form_p').length && !$('#competency_form_ws').length) {
+                return;
+            }
+            const $submitBtn = $(this);
+            if ($submitBtn.data('isProcessing') === true) {
+                return;
+            }
+            $submitBtn.data('isProcessing', true).prop('disabled', true);
+            const originalSubmitLabel = $submitBtn.html();
+            $submitBtn.html('Processing...');
+            const formValid = await validateCompetencyFormForSubmit();
+            if (!formValid) {
                 $submitBtn.data('isProcessing', false).prop('disabled', false).html(originalSubmitLabel);
                 return;
             }
@@ -4844,7 +4933,7 @@
            Form S supports a "Till date" checkbox on the To-date that suppresses the To-date input. */
         $(document).on('change blur input', '#work-container .work-fields .work-date-from, #work-container .work-fields .work-date-to, #work-container .work-fields .work-date-till', function (e) {
             var formName = String($('#form_name').val() || '').trim().toUpperCase();
-            if (formName !== 'S' && formName !== 'WH') {
+            if (formName !== 'S') {
                 return;
             }
             var $row = $(this).closest('.work-fields');

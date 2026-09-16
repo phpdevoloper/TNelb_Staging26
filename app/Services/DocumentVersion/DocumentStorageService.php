@@ -287,6 +287,34 @@ class DocumentStorageService
         return Storage::disk($this->disk())->exists($relativePath);
     }
 
+    /**
+     * Resolve a stored relative path that actually exists on disk.
+     * Encrypted Aadhaar/PAN files may be .bin while logs still point at .pdf.
+     */
+    public function resolveExistingPath(string $relativePath): ?string
+    {
+        $relativePath = trim(str_replace('\\', '/', $relativePath));
+        if ($relativePath === '' || str_contains($relativePath, '..')) {
+            return null;
+        }
+
+        $candidates = [$relativePath];
+        if (preg_match('/\.pdf$/i', $relativePath)) {
+            $candidates[] = (string) preg_replace('/\.pdf$/i', '.bin', $relativePath);
+        } elseif (preg_match('/\.bin$/i', $relativePath)) {
+            $candidates[] = (string) preg_replace('/\.bin$/i', '.pdf', $relativePath);
+        }
+
+        $disk = Storage::disk($this->disk());
+        foreach (array_unique($candidates) as $candidate) {
+            if ($candidate !== '' && $disk->exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
     public function duplicateFile(string $sourceRelativePath, string $destinationRelativePath): string
     {
         $disk = Storage::disk($this->disk());
@@ -319,6 +347,7 @@ class DocumentStorageService
 
     public function download(string $relativePath, string $downloadName): Response
     {
+        $relativePath = $this->resolveExistingPath($relativePath) ?? trim(str_replace('\\', '/', $relativePath));
         $disk = Storage::disk($this->disk());
 
         if (!$disk->exists($relativePath)) {

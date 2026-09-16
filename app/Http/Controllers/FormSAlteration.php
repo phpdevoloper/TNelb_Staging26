@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 
 
 use App\Services\Competency\FormWSchema;
+use App\Services\Competency\FormWHSchema;
 use App\Services\FormS\FormSAlterationService;
 
 use Illuminate\Http\Request;
@@ -65,6 +66,10 @@ class FormSAlteration extends BaseController
 
         if (FormWSchema::isFormW($formCode)) {
             return redirect()->route('form_w_alt', $request->query());
+        }
+
+        if (FormWHSchema::isFormWH($formCode)) {
+            return redirect()->route('form_wh_alt', $request->query());
         }
 
         if ($parentId === '') {
@@ -148,6 +153,9 @@ class FormSAlteration extends BaseController
         if (FormWSchema::isFormW($formCode)) {
             return app(FormWController::class)->listCertificates($request);
         }
+        if (FormWHSchema::isFormWH($formCode)) {
+            return app(FormWHController::class)->listCertificates($request);
+        }
 
         $loginId = (string) Auth::user()->login_id;
         $certificates = $this->alterationService->listIssuedCertificatesForLogin($loginId, $formCode);
@@ -165,6 +173,10 @@ class FormSAlteration extends BaseController
 
         if (FormWSchema::isFormW($formCode)) {
             return app(FormWController::class)->verifyParent($request);
+        }
+
+        if (FormWHSchema::isFormWH($formCode)) {
+            return app(FormWHController::class)->verifyParent($request);
         }
 
         if ($formCode !== 'S') {
@@ -268,6 +280,9 @@ class FormSAlteration extends BaseController
         if (FormWSchema::isFormW($this->resolveFormCode($request))) {
             return app(FormWController::class)->storeAlteration($request);
         }
+        if (FormWHSchema::isFormWH($this->resolveFormCode($request))) {
+            return app(FormWHController::class)->storeAlteration($request);
+        }
 
         $request->validate([
 
@@ -338,6 +353,9 @@ class FormSAlteration extends BaseController
     {
         if (FormWSchema::isFormW($this->resolveFormCode($request))) {
             return app(FormWController::class)->saveAlterationDraft($request);
+        }
+        if (FormWHSchema::isFormWH($this->resolveFormCode($request))) {
+            return app(FormWHController::class)->saveAlterationDraft($request);
         }
 
         $request->validate([

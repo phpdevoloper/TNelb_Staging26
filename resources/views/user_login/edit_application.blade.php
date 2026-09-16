@@ -5,6 +5,7 @@
     $editLicenseName = $application_details->license_name ?? '';
     $editShowBoardMember = ($editFormName === 'S');
     $editApplTypeCode = strtoupper(trim((string) ($application_details->appl_type ?? 'N')));
+    $isRenewalDraftEdit = $editApplTypeCode === 'R';
 @endphp
 
 <style>
@@ -904,12 +905,38 @@
         display: inline-block;
     }
 
-    @if (in_array($editFormName, ['S', 'W'], true))
+    @if (in_array($editFormName, ['S', 'W', 'WH'], true))
     @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
+    @endif
+
+    @if ($isRenewalDraftEdit)
+    /* Renewal draft: existing education rows stay view-only; Add stays enabled */
+    #education-table .fs-renew-existing-edu input:not([type="hidden"]),
+    #education-table .fs-renew-existing-edu select {
+        pointer-events: none !important;
+        background-color: #f4f6fb !important;
+        color: #6b7a99 !important;
+        box-shadow: none !important;
+    }
+    #education-table .fs-renew-existing-edu select {
+        appearance: none;
+        -webkit-appearance: none;
+    }
+    #education-table .fs-renew-existing-edu .remove-education,
+    #education-table .fs-renew-existing-edu .remove-doc_edu_confirm,
+    #education-table .fs-renew-existing-edu .edu-doc-input,
+    #education-table .fs-renew-existing-edu input[type="file"] {
+        display: none !important;
+    }
+    #education-table thead .add-more-education {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        opacity: 1 !important;
+    }
     @endif
 </style>
 
-@if (in_array($editFormName, ['S', 'W'], true))
+@if (in_array($editFormName, ['S', 'W', 'WH'], true))
 <style>
     @include('user_login.partials.form-s-work-exp-7ab-styles')
     @if ($editApplTypeCode === 'D')
@@ -1326,7 +1353,10 @@
                                                         @endphp --}}
                                                         @if ($edu_details->isNotEmpty())
                                                         @foreach ($edu_details as $edu_details)
-                                                        <tr class="education-fields text-center" data-edu-index="{{ $loop->index }}">
+                                                        @php
+                                                            $isExistingRenewEdu = $isRenewalDraftEdit && !empty($edu_details->id);
+                                                        @endphp
+                                                        <tr class="education-fields text-center{{ $isExistingRenewEdu ? ' fs-renew-existing-edu' : '' }}" data-edu-index="{{ $loop->index }}"@if($isExistingRenewEdu) data-renew-locked="1"@endif>
                                                             <td class="edu-serial text-center">{{ $loop->iteration }}</td>
                                                             <td>
                                                                 @php $formName = $application_details->form_name ?? ''; @endphp
@@ -1415,7 +1445,9 @@
                                                                             <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document, 'education', (int) ($edu_details->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
                                                                                 <i class="fa fa-file-pdf-o" style="color: red"></i> View Document
                                                                             </a>
+                                                                            @unless($isExistingRenewEdu)
                                                                             <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
+                                                                            @endunless
                                                                         </div>
                                                                         <div class="edu-doc-input d-none">
                                                                             <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
@@ -1432,9 +1464,11 @@
 
                                                             <td class="form-s-actions-cell text-center p-1">
                                                                 <div class="form-s-actions-stack">
+                                                                    @unless($isExistingRenewEdu)
                                                                     <button type="button" class="btn btn-danger btn-sm remove-education remove_edu py-1 px-2" data-edu_id = "{{ $edu_details->id }}" data-url= "{{ route('delete_education') }}" title="Remove row">
                                                                         <i class="fa fa-trash-o"></i>
                                                                     </button>
+                                                                    @endunless
                                                                 </div>
                                                                 <!-- Keep IDs inside a cell to avoid invalid table markup causing dropped/misaligned inputs -->
                                                                 <input type="hidden" name="edu_id[]" value="{{ $edu_details->id }}">
@@ -1547,10 +1581,9 @@
                     </div>
                     {{-- /SECTION 5 --}}
 
-                    @if (!isset($application_details->form_name) || $application_details->form_name !== 'WH')
-                                                @php
-                                                    $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
-                                                @endphp
+                    @php
+                        $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
+                    @endphp
 
                     {{-- ═══ SECTION 6 — Work Experience ═══ --}}
                     <div class="fs-section">
@@ -1580,14 +1613,16 @@
                             @include('user_login.partials.form-s-work-exp-7ab-body', [
                                 'showContractorNotice' => true,
                                 'hideUploadWhenDocExists' => true,
+                                'lockExistingRows' => $isRenewalDraftEdit,
                                 'contractorDetails' => $get_contractor_details,
                             ])
-                            @elseif ($editFormName === 'W')
+                            @elseif (in_array($editFormName, ['W', 'WH'], true))
                             @include('user_login.partials.form-w-work-exp-7ab-body', [
                                 'exp_details' => $exp_details ?? collect(),
                                 'showContractorNotice' => true,
                                 'contractorDetails' => $get_contractor_details ?? null,
                                 'hideUploadWhenDocExists' => true,
+                                'lockExistingRows' => $isRenewalDraftEdit,
                             ])
                             @else
                             <div class="fs-table-wrap">
@@ -1737,7 +1772,6 @@
                         </div>
                     </div>
                     {{-- /SECTION 6 --}}
-                    @endif
 
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
@@ -2527,6 +2561,10 @@
         }
 
         if (e.target.closest(".remove-education")) {
+            var remEdu = e.target.closest("tr");
+            if (remEdu && remEdu.getAttribute('data-renew-locked') === '1') {
+                return;
+            }
             // if (educationRows.length <= 1) {
 
             //     $('#education-table').next('.education-error').remove();
@@ -2550,6 +2588,9 @@
     $(document).on('click', '.remove-doc_edu_confirm', function(e) {
         e.preventDefault();
         var $button = $(this);
+        if ($button.closest('tr').attr('data-renew-locked') === '1') {
+            return;
+        }
         Swal.fire({
             title: 'Do you want to remove the document?',
             icon: 'warning',
@@ -2584,8 +2625,9 @@
     (function() {
         var isSForm = "{{ $editFormName }}" === 'S';
         var isWForm = "{{ $editFormName }}" === 'W';
+        var isWHForm = "{{ $editFormName }}" === 'WH';
 
-        if (isSForm || isWForm) {
+        if (isSForm || isWForm || isWHForm) {
             return;
         }
 
@@ -3031,14 +3073,15 @@
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
 
 </script>
-@if (in_array($editFormName, ['S', 'W'], true))
+@if (in_array($editFormName, ['S', 'W', 'WH'], true))
 @include('user_login.partials.form-s-work-exp-scripts', [
     'editFormName' => $editFormName,
     'showBoardMemberEmploymentType' => false,
     'enableBoardMemberFeeExempt' => $editShowBoardMember,
     'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
     'hideUploadWhenDocExists' => true,
-    'hideVoltageFields' => ($editFormName === 'W'),
+    'lockExistingRows' => $isRenewalDraftEdit,
+    'hideVoltageFields' => in_array($editFormName, ['W', 'WH'], true),
 ])
 <script>
     (function () {

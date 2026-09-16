@@ -1389,7 +1389,7 @@
                                                 </table>
                                             </div>
 
-                                            @if (in_array(($applicant->form_name ?? ''), ['S', 'W'], true))
+                                            @if (in_array(($applicant->form_name ?? ''), ['S', 'W', 'WH'], true))
                                                 @php $isFormS = (($applicant->form_name ?? '') === 'S'); @endphp
                                                 <h6 class="asp-section-title">Work Experience</h6>
                                                 @if($applicant->appl_type == 'A')

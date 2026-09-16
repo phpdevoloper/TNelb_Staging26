@@ -1997,8 +1997,8 @@ class PDFController extends Controller
         }
         $html .= '</table>';
 
-        // ── Experience: section 6 (Form S) or 7 (W — WH has no experience block) ────────────
-        if ($form->form_name !== 'WH') {
+        // ── Experience: section 6 (Form S) or 7 (W / WH) ────────────
+        if (in_array((string) $form->form_name, ['S', 'W', 'WH'], true)) {
             $isFormS = strtoupper((string) $form->form_name) === 'S';
 
             $html .= '
@@ -2159,7 +2159,7 @@ class PDFController extends Controller
             </tr>';
         };
 
-        // ── Q7–Q10 (Form S) / Q7–Q9 (WH) / Q8–Q10 (W) ───────────────────────
+        // ── Q7–Q10 (Form S) / Q8–Q10 (W / WH) ───────────────────────
         $html .= '<table style="width:100%; border-collapse:collapse; margin-top:10px;">';
 
         if ($form->form_name == 'S') {
@@ -2174,16 +2174,14 @@ class PDFController extends Controller
             $html .= $qRow('9', 'AADHAAR NUMBER', $masked);
             $html .= $qRow('10', 'PAN NUMBER',     $maskedPan);
         } else {
-            $no = ($form->form_name == 'WH') ? '7' : '8';
+            $no = '8';
             $certLabel = ($form->form_name == 'WH')
                 ? 'DO YOU POSSESS WIREMAN HELPER COMPETENCY CERTIFICATE ISSUED BY THIS BOARD? IF SO FURNISH THE DETAILS AND SURRENDER THE SAME.'
                 : 'DO YOU POSSESS WIREMAN COMPETENCY CERTIFICATE / WIREMAN HELPER COMPETENCY CERTIFICATE ISSUED BY THIS BOARD? IF SO FURNISH THE DETAILS AND SURRENDER THE SAME.';
             $html .= $qRow($no, $certLabel, e($certno));
 
-            $aadhaarNo = ($form->form_name == 'WH') ? '8' : '9';
-            $panNo     = ($form->form_name == 'WH') ? '9' : '10';
-            $html .= $qRow($aadhaarNo, 'AADHAAR NUMBER', $masked);
-            $html .= $qRow($panNo,     'PAN NUMBER',     $maskedPan);
+            $html .= $qRow('9', 'AADHAAR NUMBER', $masked);
+            $html .= $qRow('10', 'PAN NUMBER',     $maskedPan);
         }
 
         $html .= '</table>';
@@ -2672,8 +2670,8 @@ class PDFController extends Controller
         }
         $html .= '</table>';
 
-        // Section 6 Experience: skip for Form WH only (same as English PDF)
-        if ($form->form_name !== 'WH') {
+        // Section 6 Experience: Form S; section 7 for W / WH
+        if (in_array((string) $form->form_name, ['S', 'W', 'WH'], true)) {
             $isFormS = strtoupper((string) $form->form_name) === 'S';
 
             // ── Experience (6 for S — 7 for W) ────────────────────────────────────
@@ -2850,15 +2848,13 @@ class PDFController extends Controller
             $html .= $qRow('9', 'ஆதார் எண்', e($masked));
             $html .= $qRow('10', 'நிரந்தர கணக்கு எண்', e($maskedPan));
         } else {
-            $no = ($form->form_name == 'WH') ? '7' : '8';
+            $no = '8';
             $certLabelTa = ($form->form_name == 'WH')
                 ? 'இந்த வாரியம் வழங்கிய மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? இருப்பின் விவரங்களை வழங்கி சான்றிதழை ஒப்படைக்கவும்.'
                 : 'இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதி சான்றிதழ் அல்லது மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? இருப்பின் விவரங்களை வழங்கி சான்றிதழை ஒப்படைக்கவும்.';
             $html .= $qRow($no, $certLabelTa, e($certno));
-            $aadhaarNo = ($form->form_name == 'WH') ? '8' : '9';
-            $panNo     = ($form->form_name == 'WH') ? '9' : '10';
-            $html .= $qRow($aadhaarNo, 'ஆதார் எண்', e($masked));
-            $html .= $qRow($panNo,     'நிரந்தர கணக்கு எண்', e($maskedPan));
+            $html .= $qRow('9', 'ஆதார் எண்', e($masked));
+            $html .= $qRow('10', 'நிரந்தர கணக்கு எண்', e($maskedPan));
         }
 
         $html .= '</table>';

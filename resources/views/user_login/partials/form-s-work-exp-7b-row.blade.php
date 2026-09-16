@@ -2,9 +2,6 @@
 @php
     $hasRow = isset($expRow) && $expRow;
     $orgName = $hasRow ? (string) ($expRow->org_name ?? $expRow->company_name ?? '') : '';
-    if ($hasRow && $orgName === '' && ! empty($expRow->emp_cate)) {
-        $orgName = (string) $expRow->emp_cate;
-    }
     $orgAddress = $hasRow ? (string) ($expRow->org_address ?? '') : '';
     $designation = $hasRow ? (string) ($expRow->designation ?? '') : '';
     $totalExp = $hasRow ? (string) ($expRow->total_exp ?? $expRow->experience ?? '') : '';
@@ -40,6 +37,33 @@
             ->all()
         : [];
     $hasValidMeetingDate = $meetingDate !== '' && count($meetingNosForDate) > 0;
+    $memberName = $hasRow
+        ? (string) (($expRow->member_name ?? '') !== '' ? $expRow->member_name : ($expRow->emp_cate ?? ''))
+        : '';
+    $boardMemberNames = $hasValidMeetingDate && $orgName !== ''
+        ? $boardMeetingMaster
+            ->filter(function ($r) use ($meetingDate, $meetingDetails, $orgName) {
+                if ((string) ($r['bm_date'] ?? '') !== $meetingDate) {
+                    return false;
+                }
+                if ($meetingDetails !== '' && (string) ($r['bm_no'] ?? '') !== (string) $meetingDetails) {
+                    return false;
+                }
+
+                return (string) ($r['bm_member'] ?? '') === $orgName;
+            })
+            ->pluck('bm_members')
+            ->flatMap(function ($raw) {
+                return preg_split('/[,;|\n]+/', (string) $raw) ?: [];
+            })
+            ->map(fn ($n) => trim((string) $n))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all()
+        : [];
+    $hasValidOrg = $hasValidMeetingDate && $orgName !== '';
     $rowIndex = $rowIndex ?? 0;
     $hideUploadWhenDocExists = ! empty($hideUploadWhenDocExists);
     $alterationExistingRow = ! empty($alterationExistingRow);
@@ -75,7 +99,11 @@
             <div class="row g-2">
                 <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-date">
                     <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
-                    <input type="date" class="form-control work-board-meeting-date" name="work_board_meeting_date[]" value="{{ $meetingDate }}" title="Date of Meeting" aria-label="Date of board meeting attended" required data-raw="{{ $meetingDate }}">
+                    @include('user_login.partials.form-s-7b-meeting-date-select', [
+                        'meetingDate' => $meetingDate,
+                        'boardMeetingMaster' => $boardMeetingMaster,
+                        'alterationExistingRow' => $alterationExistingRow,
+                    ])
                     @if ($meetingDate !== '' && count($meetingNosForDate) === 0)
                         <span class="error-message text-danger d-block mt-1 work-board-meeting-date-error" role="alert">No meeting for this date</span>
                     @endif
@@ -101,6 +129,17 @@
                         'disabled' => $alterationExistingRow,
                         'boardRepresentingOrgs' => $boardRepresentingOrgs,
                         'hasValidMeetingDate' => $hasValidMeetingDate,
+                    ])
+                </div>
+                <div class="col-12 col-md-4 work-card-field" data-field="board-member-name">
+                    <label class="work-card-field-label">Name of member <span class="req">*</span></label>
+                    @include('user_login.partials.form-s-7b-member-name-select', [
+                        'memberName' => $memberName,
+                        'required' => true,
+                        'disabled' => $alterationExistingRow,
+                        'boardMemberNames' => $boardMemberNames,
+                        'hasValidOrg' => $hasValidOrg,
+                        'alterationExistingRow' => $alterationExistingRow,
                     ])
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation-address">

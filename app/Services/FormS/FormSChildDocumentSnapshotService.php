@@ -158,6 +158,7 @@ class FormSChildDocumentSnapshotService
                 'application_id' => $childId,
                 'emp_type' => $parentExp->emp_type,
                 'emp_cate' => $parentExp->emp_cate,
+                'member_name' => $parentExp->member_name,
                 'org_name' => $orgName,
                 'org_address' => $parentExp->org_address,
                 'designation' => $designation,

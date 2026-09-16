@@ -819,7 +819,7 @@
     $exp_details = isset($exp_details) ? collect($exp_details) : collect();
 @endphp
 
-@if (in_array($renewFormName, ['S', 'W'], true))
+@if (in_array($renewFormName, ['S', 'W', 'WH'], true))
 <style>
     @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $renewFormName])
 </style>
@@ -1192,7 +1192,7 @@
                         $isRenewS = $renewFormName === 'S';
                         $isRenewW = $renewFormName === 'W';
                         $isRenewWH = $renewFormName === 'WH';
-                        $showRenewWork = !$isRenewWH;
+                        $showRenewWork = true;
                     @endphp
                     {{-- ═══ SECTION 2 — Education ═══ --}}
                     <div class="fs-section">
@@ -1419,7 +1419,7 @@
                                 'hideUploadWhenDocExists' => true,
                                 'lockExistingRows' => true,
                             ])
-                            @elseif($isRenewW)
+                            @elseif($isRenewW || $isRenewWH)
                             @php
                                 $renewWorkExpList = isset($exp_details) ? $exp_details : collect();
                             @endphp
@@ -2381,7 +2381,8 @@
     (function() {
         var isRenewS = @json($isRenewS);
         var isRenewW = @json($isRenewW);
-        if (isRenewS || isRenewW) return;
+        var isRenewWH = @json($isRenewWH);
+        if (isRenewS || isRenewW || isRenewWH) return;
 
         function refreshWorkSerials() {
             $('#work-container .work-fields .work-serial').each(function(index) {
@@ -2687,7 +2688,7 @@
     document.querySelectorAll('#competency_form_ws .work-date-from, #competency_form_ws .work-date-to').forEach(initDateDisplay);
 </script>
 
-@if ($isRenewS || $isRenewW)
+@if ($isRenewS || $isRenewW || $isRenewWH)
 @include('user_login.partials.form-s-work-exp-scripts', [
     'editFormName' => $renewFormName,
     'showBoardMemberEmploymentType' => false,
@@ -2695,7 +2696,7 @@
     'enableBoardMemberRenewalFeeExempt' => true,
     'hideUploadWhenDocExists' => true,
     'lockExistingRows' => true,
-    'hideVoltageFields' => $isRenewW,
+    'hideVoltageFields' => ($isRenewW || $isRenewWH),
 ])
 <script>
     (function () {

@@ -294,7 +294,7 @@
                                                             {{ $masked }}
                                                             (
                                                             @if(!empty($applicant->aadhaar_doc))
-                                                                <a href="{{ route('document.show', ['type' => 'aadhaar', 'filename' => $applicant->aadhaar_doc]) }}" 
+                                                                <a href="{{ proof_document_url($applicant->aadhaar_doc, 'aadhaar') }}" 
                                                                    target="_blank" class="text-primary">
                                                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                                                 </a>
@@ -310,7 +310,7 @@
                                                             {{ $maskedPan }}
                                                             (
                                                             @if(!empty($applicant->pan_doc))
-                                                                <a href="{{ route('document.show', ['type' => 'pan', 'filename' => $applicant->pan_doc]) }}" 
+                                                                <a href="{{ proof_document_url($applicant->pan_doc, 'pan') }}" 
                                                                    target="_blank" class="text-primary">
                                                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                                                 </a>

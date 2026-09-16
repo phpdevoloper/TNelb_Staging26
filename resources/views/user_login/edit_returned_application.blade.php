@@ -902,12 +902,12 @@
         filter: grayscale(0.06);
     }
 
-    @if (in_array($editFormName, ['S', 'W'], true))
+    @if (in_array($editFormName, ['S', 'W', 'WH'], true))
     @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
     @endif
 </style>
 
-@if (in_array($editFormName, ['S', 'W'], true))
+@if (in_array($editFormName, ['S', 'W', 'WH'], true))
 <style>
     @include('user_login.partials.form-s-work-exp-7ab-styles')
     .fs-section:has(.work-exp-wrap) {
@@ -1579,10 +1579,9 @@
                     </div>
                     {{-- /SECTION 5 --}}
 
-                    @if (!isset($application_details->form_name) || $application_details->form_name !== 'WH')
-                                                @php
-                                                    $workQuestionNo = in_array(($application_details->form_name ?? ''), ['S', 'W'], true) ? 7 : 6;
-                                                @endphp
+                    @php
+                        $workQuestionNo = in_array(($application_details->form_name ?? ''), ['S', 'W', 'WH'], true) ? 7 : 6;
+                    @endphp
 
                     {{-- ═══ SECTION 6 — Work Experience ═══ --}}
                     <div class="fs-section{{ $retLockClass('experience') }}" data-return-section="experience">
@@ -1614,7 +1613,7 @@
                                 'showContractorNotice' => true,
                                 'contractorDetails' => $get_contractor_details ?? null,
                             ])
-                            @elseif ($editFormName === 'W')
+                            @elseif (in_array($editFormName, ['W', 'WH'], true))
                             @include('user_login.partials.form-w-work-exp-7ab-body', [
                                 'exp_details' => $exp_details ?? collect(),
                                 'showContractorNotice' => true,
@@ -1783,7 +1782,6 @@
                         </div>
                     </div>
                     {{-- /SECTION 6 --}}
-                    @endif
 
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
@@ -2613,8 +2611,9 @@
     (function() {
         var isSForm = "{{ $editFormName }}" === 'S';
         var isWForm = "{{ $editFormName }}" === 'W';
+        var isWHForm = "{{ $editFormName }}" === 'WH';
 
-        if (isSForm) {
+        if (isSForm || isWForm || isWHForm) {
             return;
         }
 
@@ -3060,14 +3059,14 @@
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
 
 </script>
-@if (in_array($editFormName, ['S', 'W'], true))
+@if (in_array($editFormName, ['S', 'W', 'WH'], true))
 @include('user_login.partials.form-s-work-exp-scripts', [
     'editFormName' => $editFormName,
     'showBoardMemberEmploymentType' => false,
     'enableBoardMemberFeeExempt' => $editShowBoardMember,
     'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
     'hideUploadWhenDocExists' => true,
-    'hideVoltageFields' => ($editFormName === 'W'),
+    'hideVoltageFields' => in_array($editFormName, ['W', 'WH'], true),
 ])
 <script>
     (function () {

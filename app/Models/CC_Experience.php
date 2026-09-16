@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\CalendarDate;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $application_id
  * @property string|null $emp_type
  * @property string|null $emp_cate
+ * @property string|null $member_name
  * @property string|null $org_name
  * @property string|null $org_address
  * @property \Illuminate\Support\Carbon|null $from_date
@@ -62,13 +64,13 @@ class CC_Experience extends Model
         'board_meeting_details',
         'board_meeting_date',
         'work_to_till_date',
-        
+        'member_name',
     ];
 
     protected $casts = [
-        'from_date' => 'date:Y-m-d',
-        'to_date' => 'date:Y-m-d',
-        'board_meeting_date' => 'date:Y-m-d',
+        'from_date' => CalendarDate::class,
+        'to_date' => CalendarDate::class,
+        'board_meeting_date' => CalendarDate::class,
         'total_y' => 'integer',
         'total_m' => 'integer',
         'total_d' => 'integer',

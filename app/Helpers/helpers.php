@@ -385,18 +385,30 @@ if (!function_exists('proof_document_url')) {
 
         $storedPath = trim(str_replace('\\', '/', $storedPath));
 
-        if (preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
-            return competency_document_path_url($storedPath);
-        }
-
         if (str_starts_with($storedPath, 'http://') || str_starts_with($storedPath, 'https://')) {
             return $storedPath;
         }
 
-        return route('document.show', [
-            'type' => $legacyType,
-            'filename' => basename($storedPath),
-        ]);
+        $legacyType = strtolower($legacyType) === 'pan' ? 'pan' : 'aadhaar';
+        $isEncryptedBlob = str_ends_with(strtolower($storedPath), '.bin')
+            || preg_match('#^FORM_[A-Z]+/#', $storedPath)
+            || str_starts_with($storedPath, 'uploads/digitization/')
+            || ! str_contains($storedPath, '/');
+
+        // Encrypted Aadhaar/PAN must be decrypted by Laravel and shown inline as PDF.
+        // Do not use the public /competency/... URL — the raw .bin cannot be viewed.
+        if ($isEncryptedBlob && \Illuminate\Support\Facades\Route::has('document.show')) {
+            return route('document.show', [
+                'type' => $legacyType,
+                'filename' => $storedPath,
+            ]);
+        }
+
+        if (preg_match('#^FORM_[A-Z]+/#', $storedPath) || str_starts_with($storedPath, 'uploads/digitization/')) {
+            return competency_document_path_url($storedPath);
+        }
+
+        return '/' . ltrim($storedPath, '/');
     }
 }
 

@@ -164,9 +164,12 @@ window.COMPETENCY_FORM_CONFIG = {
     formStoreUrl: @json(route('form.store')),
     formUpdateUrlTemplate: @json(route('form.update', ['appl_id' => '__APPL_ID__'])),
     draftRenewalUrlTemplate: @json(route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__'])),
-    formWStoreUrl: @json(route('form_w.store')),
-    formWUpdateUrlTemplate: @json(route('form_w.update', ['appl_id' => '__APPL_ID__'])),
-    formWDraftRenewalUrlTemplate: @json(route('form_w.draft_renewal_submit', ['appl_id' => '__APPL_ID__'])),
+    formWStoreUrl: @json(\Illuminate\Support\Facades\Route::has('form_w.store') ? route('form_w.store') : url('/form_w/store')),
+    formWUpdateUrlTemplate: @json(\Illuminate\Support\Facades\Route::has('form_w.update') ? route('form_w.update', ['appl_id' => '__APPL_ID__']) : url('/form_w/update/__APPL_ID__')),
+    formWDraftRenewalUrlTemplate: @json(\Illuminate\Support\Facades\Route::has('form_w.draft_renewal_submit') ? route('form_w.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) : url('/form_w/draft_renewal_submit/__APPL_ID__')),
+    formWHStoreUrl: @json(\Illuminate\Support\Facades\Route::has('form_wh.store') ? route('form_wh.store') : url('/form_wh/store')),
+    formWHUpdateUrlTemplate: @json(\Illuminate\Support\Facades\Route::has('form_wh.update') ? route('form_wh.update', ['appl_id' => '__APPL_ID__']) : url('/form_wh/update/__APPL_ID__')),
+    formWHDraftRenewalUrlTemplate: @json(\Illuminate\Support\Facades\Route::has('form_wh.draft_renewal_submit') ? route('form_wh.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) : url('/form_wh/draft_renewal_submit/__APPL_ID__')),
     formPStoreUrl: @json(route('form_p.store')),
     formPUpdateUrl: @json(route('form_p.update')),
     formPDraftRenewalUrlTemplate: @json(route('form_p.draft_renewal_submit', ['appl_id' => '__APPL_ID__'])),
@@ -2114,6 +2117,12 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 }
                 let formData = new FormData($('#competency_form_ws')[0]);
                 formData.set('form_action', 'draft');
+                if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
+                    window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
+                }
+                if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
+                    window.appendWorkBoardMemberFieldsToFormData(formData, $('#competency_form_ws')[0]);
+                }
                 let applicationId = $('#application_id').val();
                 let formUrl;
                 
