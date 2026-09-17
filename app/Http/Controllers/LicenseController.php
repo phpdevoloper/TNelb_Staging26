@@ -1074,8 +1074,8 @@ class LicenseController extends Controller
     public function check_ealicence_validity_bk(Request $request)
     {
 
-        // dd($request->all());
-        // exit;
+        dd($request->all());
+        exit;
         try {
 
             $firstCertNo = $request->firstCertNo;

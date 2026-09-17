@@ -12,8 +12,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\RoleHelper;
+use App\Models\Admin\WorkflowA;
 use App\Models\CC_Forms_cert;
 use App\Models\CC_Forms_Meta;
+use App\Models\Cl_Checklist_applicant;
+use App\Models\EA_Application_model;
 use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyCertificateService;
@@ -84,7 +87,7 @@ class SupervisorController extends Controller
     }
 
 
-     public function view_applications(Request $request)
+    public function view_applications(Request $request)
     {
 
 
@@ -131,7 +134,7 @@ class SupervisorController extends Controller
                     ->orderByDesc('ta.submitted_date')
                     ->orderByDesc('ta.id')
                     ->get();
-                 } elseif ($roleLevel === 3) {
+            } elseif ($roleLevel === 3) {
                 $query = DB::table('tnelb_form_p as ta')
                     ->whereIn('ta.payment_status', ['payment', 'paid'])
                     ->whereIn('ta.app_status', ['P', 'PRE'])
@@ -151,9 +154,7 @@ class SupervisorController extends Controller
                     ->orderByDesc('ta.submitted_date')
                     ->orderByDesc('ta.id')
                     ->get();
-            }
-
-            else {
+            } else {
                 $twLast = DB::table('cc_workflow_forms')->select('application_id', DB::raw('MAX(id) as max_id'))->groupBy('application_id');
                 $currentAppIds = DB::table('cc_workflow_forms as tw')
                     ->joinSub($twLast, 'tw_last', function ($join) {
@@ -799,7 +800,7 @@ class SupervisorController extends Controller
      */
     public function view_completed_applications(Request $request)
     {
-        
+
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -1131,7 +1132,7 @@ class SupervisorController extends Controller
         //     'created_at'     => now(),
         // ]);
 
-      $checklistData = [];
+        $checklistData = [];
 
         foreach ($request->check_id as $id => $checkId) {
 
@@ -1141,7 +1142,7 @@ class SupervisorController extends Controller
                 'verify'  => (int) ($request->status[$id] ?? 0),
             ];
         }
-// dd($applicant->certificate_name); exit;
+        // dd($applicant->certificate_name); exit;
         // dd(([
         //     'login_id'        => Auth::id(),
         //     'applicant_id'    => $request->application_id,
@@ -1154,10 +1155,10 @@ class SupervisorController extends Controller
 
 
         $Existingcheck = CC_Checklist_applicant::where('applicant_id', $request->application_id)
-        ->where('certificate_name', $applicant->certificate_name)
-        ->first();
+            ->where('certificate_name', $applicant->certificate_name)
+            ->first();
 
-        if($Existingcheck){
+        if ($Existingcheck) {
             $Existingcheck->update([
 
                 // 'certificate_name'       => $request->certificate_name,
@@ -1222,13 +1223,13 @@ class SupervisorController extends Controller
 
 
 
-         if ($role == 'assistantsecretary') {
+        if ($role == 'assistantsecretary') {
 
 
             $role = 'Assistant Secretary';
-            }
+        }
 
-            // dd($role); exit;
+        // dd($role); exit;
 
         return response()->json([
             'status' => "success",
@@ -1374,8 +1375,20 @@ class SupervisorController extends Controller
             'checkboxes'     => 'nullable|string',
             'queryswitch'    => 'nullable|string',
             'queryType'      => 'array',
-            'remarks'        => 'nullable|string'
+            'remarks'        => 'nullable|string',
+            'staff_verification'  => 'nullable|string',
         ]);
+
+
+
+        $staffVerification = json_decode(
+            $request->staff_verification,
+            true
+        );
+
+        if (!is_array($staffVerification)) {
+            $staffVerification = [];
+        }
 
 
         $applicant = EA_Application_model::where('application_id', $request->application_id)
@@ -1451,6 +1464,123 @@ class SupervisorController extends Controller
 
         $forwarded = $request->forwarded_to;
 
+        foreach ($staffVerification as $staffVerify) {
+
+            $staffId = $staffVerify['staff_id'] ?? null;
+
+            if (!$staffId) {
+                continue;
+            }
+
+            $verifyFlag = (int) (
+                $staffVerify['verify_flag'] ?? 0
+            );
+
+
+            $staffDetail = DB::table('cl_staff_tbl')
+                ->where('id', $staffId)
+                ->first();
+
+
+            if (!$staffDetail) {
+                continue;
+            }
+
+
+            // OTHERS does not have CC verification
+            if (
+                isset($staffDetail->staff_category) &&
+                $staffDetail->staff_category === 'OTHERS'
+            ) {
+                continue;
+            }
+
+
+            DB::table('cl_staff_detail_adminstore')
+                ->updateOrInsert(
+
+                    [
+                        'application_id' =>
+                        $request->application_id,
+
+                        'staff_cc_no' =>
+                        $staffDetail->staff_cc_no,
+                    ],
+
+                    [
+                        'staff_cc_first_issue' =>
+                        $staffDetail->staff_cc_first_issue,
+
+                        'staff_cc_validity_from' =>
+                        $staffDetail->staff_cc_validity_from,
+
+                        'staff_cc_validity_to' =>
+                        $staffDetail->staff_cc_validity_to,
+
+                        'verify_flag' =>
+                        $verifyFlag,
+
+                        'processed_by' =>
+                        $staffID,
+
+                        'updated_at' =>
+                        now(),
+
+                        'created_at' =>
+                        now(),
+                    ]
+                );
+        }
+        $checklistData = [];
+
+        $checkIds = $request->input('check_id', []);
+        $checklists = $request->input('checklists', []);
+        $statuses = $request->input('status', []);
+
+        foreach ($checkIds as $id => $checkId) {
+
+            $checklistData[] = [
+                'id'      => $checkId,
+                'checked' => (int) ($checklists[$id] ?? 0),
+                'verify'  => (int) ($statuses[$id] ?? 0),
+            ];
+        }
+        // dd($applicant->certificate_name); exit;
+        // dd(([
+        //     'login_id'        => Auth::id(),
+        //     'applicant_id'    => $request->application_id,
+        //     'cert_license_id' => $applicant->id,
+        //     // 'check_id'       => $request->check_id[array_key_first($request->check_id)],
+        //     'checklist_json'  => json_encode($checklistData),
+        //     'updated_by'      => Auth::id(),
+        // ]));
+        // exit;
+
+
+        $Existingcheck = Cl_Checklist_applicant::where('applicant_id', $request->application_id)
+            ->where('licence_name', $applicant->certificate_name)
+            ->first();
+
+        if ($Existingcheck) {
+            $Existingcheck->update([
+
+                // 'certificate_name'       => $request->certificate_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        } else {
+
+            // dd( json_encode($checklistData)); exit;
+
+            Cl_Checklist_applicant::create([
+                'login_id'        => Auth::id(),
+                'applicant_id'    => $request->application_id,
+                'cert_license_id' => $applicant->id,
+                'licence_name'       => $applicant->license_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        }
 
         // dd($forwarded);exit;
 
@@ -1507,6 +1637,8 @@ class SupervisorController extends Controller
 
     public function approveApplicationForma(Request $request)
     {
+        // dd($request->all()); exit;
+
         $request->validate([
             'application_id'    => 'required|string',
             'processed_by'      => 'required|string',
@@ -1524,12 +1656,15 @@ class SupervisorController extends Controller
             ->first();
 
         if (!$application) {
-            return response()->json(['error' => 'Application not found'], 404);
+            return response()->json([
+                'error' => 'Application not found'
+            ], 404);
         }
 
         DB::beginTransaction();
 
         try {
+
             /* -------------------- BASIC UPDATE -------------------- */
 
             $processed = Auth::user()->name === 'President' ? 'PR' : 'SE';
@@ -1543,10 +1678,13 @@ class SupervisorController extends Controller
                 ]);
 
             $appl_type = trim($application->appl_type); // R or N
-            // $issuedAt  = now()->format('Y-m-d H:i:s');
-            $issuedAt  = $application->dt_submit;
+
+            $issuedAt = now()->format('Y-m-d H:i:s');
+            // $issuedAt  = $application->dt_submit;
+
             $expiresAt = null;
             $newSerial = null;
+
 
             /* -------------------- GET LICENCE VALIDITY MONTHS -------------------- */
 
@@ -1554,6 +1692,12 @@ class SupervisorController extends Controller
                 ->where('cert_licence_code', $request->licensename)
                 ->where('status', 1)
                 ->first();
+
+            if (!$form) {
+                throw new \Exception(
+                    'Licence master record not found.'
+                );
+            }
 
             $validity = DB::table('mst_fees_validity')
                 ->where('licence_id', $form->id)
@@ -1563,13 +1707,21 @@ class SupervisorController extends Controller
                 ->orderBy('validity_start_date', 'desc')
                 ->first();
 
-            $monthsToAdd = $validity->validity ?? 0;
+            if (!$validity) {
+                throw new \Exception(
+                    'Licence validity configuration not found.'
+                );
+            }
+
+            $monthsToAdd = $validity->validity;
+
 
             /* -------------------- NORMAL EXPIRY CALCULATION -------------------- */
 
             if ($appl_type === 'R') {
 
                 // Renewal → old expiry + months
+
                 $oldExpiry = DB::table('tnelb_renewal_license')
                     ->where('application_id', $request->oldapplicationId)
                     ->value('expires_at');
@@ -1578,24 +1730,25 @@ class SupervisorController extends Controller
                     ? Carbon::parse($oldExpiry)
                     : now();
 
-                $expiresAt = $baseExpiry->copy()->addMonths($monthsToAdd)->toDateString();
+                $expiresAt = $baseExpiry
+                    ->copy()
+                    ->addMonths($monthsToAdd)
+                    ->toDateString();
             } else {
 
                 // Fresh → today + months
-                $expiresAt = now()->addMonths($monthsToAdd)->toDateString();
 
-
-                // dd($monthsToAdd);exit;
+                $expiresAt = now()
+                    ->addMonths($monthsToAdd)
+                    ->toDateString();
             }
+
 
             /* -------------------- OVERRIDE (POPUP CONFIRMED) -------------------- */
 
             if ($request->validity_override === 'YES') {
 
-                // dd('111');
-                // exit;
-
-                $qcValidity   = $request->qc_validity_date
+                $qcValidity = $request->qc_validity_date
                     ? Carbon::parse($request->qc_validity_date)
                     : null;
 
@@ -1607,87 +1760,221 @@ class SupervisorController extends Controller
                     Carbon::parse($expiresAt),
                     $qcValidity,
                     $bankValidity,
-                ])->filter()->min()->toDateString();
-
-                // dd($expiresAt);
-                // exit;
+                ])
+                    ->filter()
+                    ->min()
+                    ->toDateString();
             }
+
 
             /* -------------------- LICENSE INSERT / UPDATE -------------------- */
 
             if ($appl_type === 'R') {
 
                 DB::table('tnelb_renewal_license')->insert([
+
                     'login_id'       => $application->login_id,
+
                     'license_number' => $application->license_number,
+
                     'application_id' => $request->application_id,
+
                     'issued_by'      => $request->processed_by,
+
                     'issued_at'      => $issuedAt,
+
                     'expires_at'     => $expiresAt,
+
                     'created_at'     => now(),
+
                 ]);
 
                 $newSerial = $application->license_number;
             } else {
 
                 $prefix    = $application->license_name;
+
                 $yearMonth = now()->format('Ym');
 
+
                 $lastSerial = DB::table('tnelb_license')
-                    ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
+                    ->where(
+                        'license_number',
+                        'LIKE',
+                        "L{$prefix}{$yearMonth}%"
+                    )
                     ->orderByDesc('license_number')
                     ->value('license_number');
 
-                $next = $lastSerial ? str_pad((int)substr($lastSerial, -5) + 1, 5, '0', STR_PAD_LEFT) : '00001';
+
+                $next = $lastSerial
+                    ? str_pad(
+                        (int) substr($lastSerial, -5) + 1,
+                        5,
+                        '0',
+                        STR_PAD_LEFT
+                    )
+                    : '00001';
+
 
                 $newSerial = "L{$prefix}{$yearMonth}{$next}";
 
+
                 DB::table('tnelb_license')->insert([
+
                     'application_id' => $request->application_id,
+
                     'license_number' => $newSerial,
+
                     'issued_by'      => $request->processed_by,
+
                     'issued_at'      => $issuedAt,
+
                     'expires_at'     => $expiresAt,
+
                 ]);
             }
 
 
+            /* =========================================================
+           CL DIGITISATION MAPPING
+           ========================================================= */
+           $digitisationMapping = null;
+           
+           /*
+           * Find mapping_digi_cls record using the current
+           * application_id.
+           */
+        if (trim($application->appl_type) === 'D' ) {
+
+                $digitisationCL = DB::table('mapping_digi_cls')
+                    ->where(
+                        'application_id',
+                        $request->application_id
+                    )
+                    ->first();
+
+
+                if ($digitisationCL && !empty($digitisationCL->clnumber)) {
+
+                    $oldCLNumber = $digitisationCL->clnumber;
+
+
+                    /*
+             * Store:
+             *
+             * old_cl_no = old CL number
+             * new_cl_no = generated licence number
+             */
+
+                    DB::table('cc_digitisation_map')->insert([
+
+                        'old_cl_no' => $oldCLNumber,
+
+                        'new_cl_no'  => $newSerial,
+
+                        'created_at' => now(),
+
+                        'updated_at' => now(),
+
+                    ]);
+
+
+                    /*
+             * Data sent back to AJAX
+             */
+
+                    $digitisationMapping = [
+
+                        'old_cl_no' => $oldCLNumber,
+
+                        'new_cl_no'  => $newSerial,
+
+                    ];
+                }
+            }
+
+
+            /* -------------------- WORKFLOW -------------------- */
+
             $workflowId = DB::table('tnelb_workflow_a')->insertGetId([
+
                 'application_id' => $request->application_id,
+
                 'processed_by'   => $request->processed_by,
+
                 'role_id'        => Auth::user()->roles_id,
+
                 'appl_status'    => 'A',
-                'remarks'        => $request->remarks ?? 'No remarks provided',
+
+                'remarks'        => $request->remarks
+                    ?? 'No remarks provided',
+
                 'forwarded_to'   => $request->forwarded_to,
+
                 'created_at'     => now(),
+
                 'updated_at'     => now(),
+
             ]);
 
-            // 2️⃣ UPDATE SAME RECORD (guaranteed)
+
+            // UPDATE SAME RECORD
+
             DB::table('tnelb_workflow_a')
                 ->where('id', $workflowId)
                 ->update([
+
                     'created_at' => DB::raw('NOW()'),
+
                     'updated_at' => DB::raw('NOW()'),
+
                 ]);
 
 
             DB::commit();
 
+
+            /* -------------------- SUCCESS RESPONSE -------------------- */
+
             return response()->json([
-                'status'         => 'success',
-                'message'        => $appl_type === 'R'
-                    ? "Renewal expires on " . date('d/m/Y', strtotime($expiresAt))
-                    : "License expires on " . date('d/m/Y', strtotime($expiresAt)),
+
+                'status' => 'success',
+
+                'message' => $appl_type === 'R'
+
+                    ? "Renewal expires on "
+                    . date(
+                        'd/m/Y',
+                        strtotime($expiresAt)
+                    )
+
+                    : "License expires on "
+                    . date(
+                        'd/m/Y',
+                        strtotime($expiresAt)
+                    ),
+
                 'license_number' => $newSerial,
-                'issued_at'      => $issuedAt,
-                'expires_at'     => $expiresAt,
+
+                'issued_at' => $issuedAt,
+
+                'expires_at' => $expiresAt,
+
+
+                'digitisation' => $digitisationMapping,
+
             ], 200);
         } catch (\Exception $e) {
+
             DB::rollBack();
+
             return response()->json([
+
                 'error' => 'Approval failed',
-                'msg'   => $e->getMessage()
+
+                'msg'   => $e->getMessage(),
+
             ], 500);
         }
     }
@@ -1740,7 +2027,7 @@ class SupervisorController extends Controller
 
     private function markCompetencyApplicationApproved(object $application, string $processedBy, ?string $qc = null, ?string $qsc = null): void
     {
-        
+
         $update = [
             'processed_by' => $processedBy,
             'updated_at' => now(),
@@ -1937,7 +2224,6 @@ class SupervisorController extends Controller
                 } else {
                     $message = 'Failed to update new CC No!';
                 }
-
             }
 
 
@@ -1970,9 +2256,9 @@ class SupervisorController extends Controller
                     $parentId = trim((string) ($metadata->old_application ?? $application->old_application ?? ''));
                     $licensedetails = $parentId !== ''
                         ? DB::table($certTable)
-                            ->where('application_id', $parentId)
-                            ->orderByDesc('cc_id')
-                            ->first()
+                        ->where('application_id', $parentId)
+                        ->orderByDesc('cc_id')
+                        ->first()
                         : null;
 
                     if ($licensedetails) {
@@ -2060,7 +2346,6 @@ class SupervisorController extends Controller
 
             if (CC_Forms_cert::where('certificate_no', $licenseNumber)->exists()) {
                 $updated = CC_Forms_cert::where('certificate_no', $licenseNumber)->update($payload);
-
             }
 
 
@@ -2109,7 +2394,7 @@ class SupervisorController extends Controller
         $certService = $this->competencyCertificateService();
         $formName = (string) ($application->form_name ?? '');
 
-        
+
 
         // Renewal flow — one cc_*_cert row per application_id
         if ($applType === 'R') {
@@ -2120,7 +2405,7 @@ class SupervisorController extends Controller
                 : Carbon::parse(db_now());
             $now = Carbon::parse(db_now());
 
-            if (!$licenseDetails ||$now->greaterThan(Carbon::parse($licenseDetails->expires_at))){
+            if (!$licenseDetails || $now->greaterThan(Carbon::parse($licenseDetails->expires_at))) {
                 $issuedAt = $previousExpiryCarbon->copy()->addDay()->format('Y-m-d');
                 $effectiveApplType = $applType;
 
@@ -2168,7 +2453,7 @@ class SupervisorController extends Controller
             }
 
             $result = app(FormSAlterationService::class)->applyApprovedAlterationChanges($applicationId, $metaTable);
-                // dd($result); exit;
+            // dd($result); exit;
             return [
                 $result['license_number'],
                 $result['issued_at'],
@@ -2177,7 +2462,7 @@ class SupervisorController extends Controller
         }
 
         if ($applType === 'D') {
-            
+
             $licenseDetails = $certService->asLicenseDetails($applicationId, $formName);
 
 

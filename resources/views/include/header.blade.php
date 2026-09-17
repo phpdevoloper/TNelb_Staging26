@@ -1847,7 +1847,7 @@ use Illuminate\Support\Facades\Auth;
         </div>
     </div>
 
-
+  
     <!-- ----------------Alteration------------------- -->
 
 
@@ -2312,7 +2312,7 @@ use Illuminate\Support\Facades\Auth;
                                 <div class="label">Transaction ID:</div>
                                 <div class="value" id="ps_transactionId"></div>
 
-                                <div class="label">Transaction Date:</div>
+                                <div class="label">Submitted Date:</div>
                                 <div class="value" id="ps_transactionDate"></div>
 
                                 <div class="label">Amount Paid:</div>
@@ -2322,11 +2322,15 @@ use Illuminate\Support\Facades\Auth;
 
                         <!-- RIGHT DOWNLOAD PANEL -->
                         <div class="col-md-6 text-center">
+<<<<<<< HEAD
                             {{-- <p class="fw-bold">Download Your Payment Receipt:</p> --}}
                             {{-- <button class="btn btn-info btn-sm mb-2" onclick="paymentreceiptformA()">
                                 <i class="fa fa-file-pdf-o text-danger"></i>
                                 Download Receipt
                             </button> --}}
+=======
+                           
+>>>>>>> 253a221a (form A president approval)
 
                             <p class="fw-bold mt-3">Download Your Application PDF:</p>
 

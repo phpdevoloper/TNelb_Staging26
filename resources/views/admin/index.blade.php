@@ -80,7 +80,7 @@
                                         <div class="col-12">
                                             <div class="mb-4">
                                                 <label class="form-label">Password</label>
-                                                <input type="password" name="password" id="password" class="form-control" value="">
+                                                <input type="password" name="password" id="password" class="form-control" value="Tnelb@123">
                                                 <small class="text-danger" id="password-error"></small>
                                             </div>
                                         </div>
