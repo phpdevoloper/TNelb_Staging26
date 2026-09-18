@@ -290,39 +290,55 @@ $(document).on("click", "#digitization_clSubmit", function () {
 
         success: function (response) {
 
-            $("#digitization_clSubmit")
-                .prop("disabled", false)
-                .html(`
-                    Submit
-                    <svg viewBox="0 0 24 24"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2.5"
-                         stroke-linecap="round"
-                         stroke-linejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                `);
+    $("#digitization_clSubmit")
+        .prop("disabled", false)
+        .html(`
+            Submit
+            <svg viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2.5"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+        `);
 
+    if (response.status === 200) {
 
-            if (response.status === 200) {
+        // Store temp application ID
+        $("#digitization_cl_temp_app_id")
+            .val(response.temp_app_id);
 
-                $("#digitization_clForm")[0].reset();
+        // Also keep it in JS if needed later
+        window.digitizationTempAppId = response.temp_app_id;
 
-                digitization_clModal.hide();
+        console.log(
+            "Digitization Temp App ID:",
+            response.temp_app_id
+        );
 
-                $("#declaration-agree-renew")
-                    .prop("checked", false);
+        $("#digitization_clForm")[0].reset();
 
-                $("#declaration-error-renew")
-                    .addClass("d-none");
+        // IMPORTANT:
+        // reset() clears hidden input too, so set it again
+        $("#digitization_cl_temp_app_id")
+            .val(response.temp_app_id);
 
-                loadInstructions();
+        digitization_clModal.hide();
 
-                competencyModal.show();
-            }
-        },
+        $("#declaration-agree-renew")
+            .prop("checked", false);
+
+        $("#declaration-error-renew")
+            .addClass("d-none");
+
+        loadInstructions();
+
+        competencyModal.show();
+    }
+},
 
 
 error: function (xhr) {

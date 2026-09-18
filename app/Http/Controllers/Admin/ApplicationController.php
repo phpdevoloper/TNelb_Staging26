@@ -285,6 +285,8 @@ class ApplicationController extends Controller
         }
     }
 
+    
+
 
     public function returntoSupervisor(Request $request)
     {
@@ -535,6 +537,126 @@ class ApplicationController extends Controller
             'Secretary'  => 'SE',
             'Supervisor' => 'S',
             'Assistant Secretary'    => 'A',
+            default      => abort(403, 'Unauthorized'),
+        };
+
+        $raised_by    = ($request->queryswitch === 'Yes') ? $processed_by : $staffID;
+        // var_dump($queryTypeJson);die;
+
+        // Insert data into tnelb_workflow table
+        $workflow = WorkflowA::create([ // Ensure this is the correct model
+            'application_id' => $request->application_id,
+            'appl_status'    => 'RE', // Forwarded
+            'processed_by'   => $request->return_by,
+            'forwarded_to'   => $forwarded_to,
+            'role_id'        => $staffID,
+            'is_verified'    => $request->checkboxes,
+            'query_status'   => $query_status,
+            // "Yes" or "No"
+            'remarks'        => $request->remarks,
+            'created_at'     => now(), // Automatically managed if model has timestamps
+            'login_id'       => $staffID,
+            'queries'        => $queryTypeJson,
+            'raised_by'      => $query_status == 'P' ? $raised_by : ''
+        ]);
+
+
+        // Update application status
+        // DB::table('ccl_forma_meta')
+        //     ->where('application_id', $request->application_id)
+        //     ->update([
+        //         'application_status'  => 'RE',
+        //         'processed_by'  => $processed_by,
+        //         'updated_at' => now(),
+        //     ]);
+
+        // WorkflowA::where('application_id', $request->application_id)
+        //     ->where('processed_by', $request->return_by)
+        //     ->where('role_id', $staffID)
+        //       ->update([
+
+        //           'created_at' => DB::raw('NOW()'),
+        //       ]);
+
+        WorkflowA::where('application_id', $request->application_id)
+            ->where('processed_by', $request->return_by)
+            ->where('role_id', $staffID)
+            ->orderByDesc('id')
+            ->limit(1)
+            ->update([
+                'created_at' => DB::raw('NOW()'),
+            ]);
+
+
+
+        EA_Application_model::where('application_id', $request->application_id)
+            ->update([
+                'application_status' =>  'RE',
+                'processed_by'  => $processed_by,
+                'updated_at' => DB::raw('NOW()'),
+            ]);
+
+
+
+        //Get Role
+        $role = DB::table('mst_roles')
+            ->where('r_id', $forwarded_to)
+            ->first();
+        $roleName = $role->role_name ?? $role->name ?? 'selected role';
+        // var_dump($role->name);die;
+
+
+        return response()->json([
+            'status' => "success",
+            'message' => "Application Returned to $roleName successfully!",
+        ], 201);
+    }
+
+
+    // -------forma return --------------------
+     public function returntoSecretaryforma(Request $request)
+    {
+
+        $staff = Auth::user();
+
+        $staffID = Auth::user()->id;
+
+        // dd($request->forwaded_to);
+        // exit;
+        $request->validate([
+            'application_id' => 'required|string',
+            'return_by'      => 'required|string',
+            'forwarded_to'   => 'required|string',
+            'checkboxes'     => 'nullable|string',
+            'queryswitch'    => 'nullable|string',
+            'queryType'      => 'array',
+            'remarks'        => 'nullable|string'
+        ]);
+
+
+        $query_status = null;
+        $queryTypeJson = json_encode($request->queryType);
+        $forwarded_to    = ($request->return_by === 'President') ? 3 : 1;
+
+        // dd($forwarded_to);exit;
+
+        if ($request->queryswitch == 'Yes' && !empty($request->queryType) || ($request->queryswitch == 'true')) {
+            $query_status = "P";
+        }
+
+
+        $formType = DB::table('ccl_forma_meta')
+            ->where('application_id', $request->application_id)
+
+            
+            ->first();
+
+       
+
+        $processed_by = match ($staff->name) {
+            'President'  => 'PR',
+            'Secretary'  => 'SE',
+          
             default      => abort(403, 'Unauthorized'),
         };
 

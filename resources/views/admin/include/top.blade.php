@@ -82,6 +82,72 @@
     const BASE_URL = "{{ UrlHelper::baseFileUrl() }}";
 </script>
 
+<style>
+    .competency-result-box {
+    padding: 18px;
+    border: 1px solid #cfd8e3;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.competency-result-title {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #d9e0e8;
+    color: #104484;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.competency-verified {
+    display: inline-block;
+    margin-bottom: 18px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: #d1e7dd;
+    color: #146c43;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.competency-item {
+    margin-bottom: 16px;
+}
+
+.competency-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.competency-value {
+    display: block;
+    color: #104484;
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.competency-experience {
+    padding: 12px 15px;
+    border: 1px solid #b8d4ef;
+    border-radius: 6px;
+    background: #eef6ff;
+}
+
+.competency-experience .competency-label {
+    color: #104484;
+}
+
+.competency-experience .competency-value {
+    color: #198754;
+    font-size: 16px;
+    font-weight: 700;
+}
+</style>
+
 <body class="layout-boxed">
     <!-- BEGIN LOADER -->   
     {{-- <div id="load_screen"> 

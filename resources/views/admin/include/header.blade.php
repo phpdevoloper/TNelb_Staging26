@@ -73,3 +73,38 @@
         </ul>
     </header>
 </div>
+
+
+  {{-- supervisor competency certificate data ---------------------------------- --}}
+        <div class="modal fade" id="competencyVerifyModal" tabindex="-1"
+            aria-labelledby="competencyVerifyModalLabel" aria-hidden="true">
+
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="competencyVerifyModalLabel">
+                            Competency Certificate History
+                        </h5>
+
+                        <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                        </button>
+                    </div>
+
+                    <div class="modal-body" id="competencyVerifyModalBody">
+
+                        <div class="text-center text-info">
+                            Checking certificate...
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+

@@ -20,8 +20,10 @@ use App\Models\Equipment_storetmp_A;
 
 class FormADigitizationController extends BaseController
 {
-    public function index()
+    public function index(Request $request)
     {
+
+    // dd($request->all());exit;
         if (!Auth::check()) {
             return redirect()->route('logout');
         }
@@ -333,12 +335,22 @@ class FormADigitizationController extends BaseController
                 ->value('ownership_type');
             // dd($proprietors);exit;
 
-            $staffs = DB::table('cl_staff_tbl')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
+             $QCstaffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereIn('staff_category', ['QC', 'QSC'])
+            ->orderBy('id', 'ASC')
+            ->get();
+
+            $staffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->orderBy('id', 'ASC')
+            ->get();
 
             // dd($staffs);
             // exit;
 
-            $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
+            // $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
             $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status', '1')->first();
 
@@ -374,6 +386,6 @@ class FormADigitizationController extends BaseController
             // var_dump()
         }
 
-        return view('user_login.digitization.EA.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'Qcstaffs', 'draftCounts', 'ownershipType'));
+        return view('user_login.digitization.EA.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType'));
     }
 }

@@ -45,6 +45,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\CC_Checklist_applicant;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_cert;
+use App\Models\Cl_Checklist_applicant;
 use App\Models\Tnelb_CC_Digitization;
 use App\Support\DashboardApplicationTimeline;
 
@@ -227,7 +228,7 @@ class LoginController extends Controller
      */
     public function dashboard()
     {
-        
+
         $staff = Auth::user();
 
 
@@ -423,8 +424,6 @@ class LoginController extends Controller
                         ->selectRaw('ta.form_id, ta.appl_type, COUNT(*) as cnt')
                         ->groupBy('ta.form_id', 'ta.appl_type')
                         ->get();
-
-
                 }
 
                 $ccAdminQuery->mergePendingCountRows($pendingCounts ?? collect(), $pendingCountsMap);
@@ -485,8 +484,8 @@ class LoginController extends Controller
                                     ->orWhereNull('ta.processed_by');
                             })
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
-                            ->selectRaw('ta.form_name, ta.appl_type, COUNT(*) as cnt')
-                            ->groupBy('ta.form_name', 'ta.appl_type')
+                            ->selectRaw('ta.form_name, TRIM(ta.appl_type) as appl_type, COUNT(*) as cnt')
+                            ->groupBy('ta.form_name', DB::raw('TRIM(ta.appl_type)'))
                             ->get();
                     } elseif ($staff->role_id == '2') {
                         $rows = DB::table($tbl . ' as ta')
@@ -497,8 +496,8 @@ class LoginController extends Controller
                             ->whereIn('ta.application_status', ['F'])
                             ->whereIn('ta.processed_by', ['S'])
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
-                            ->selectRaw('ta.form_name, ta.appl_type, COUNT(*) as cnt')
-                            ->groupBy('ta.form_name', 'ta.appl_type')
+                            ->selectRaw('ta.form_name, TRIM(ta.appl_type) as appl_type, COUNT(*) as cnt')
+                            ->groupBy('ta.form_name', DB::raw('TRIM(ta.appl_type)'))
                             ->get();
                     } elseif ($staff->role_id == '3') {
                         $rows = DB::table($tbl . ' as ta')
@@ -511,8 +510,8 @@ class LoginController extends Controller
                             ->whereIn('ta.application_status', ['F', 'RF', 'RE'])
                             ->whereIn('ta.processed_by', ['A', 'PR'])
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
-                            ->selectRaw('ta.form_name, ta.appl_type, COUNT(*) as cnt')
-                            ->groupBy('ta.form_name', 'ta.appl_type')
+                            ->selectRaw('ta.form_name, TRIM(ta.appl_type) as appl_type, COUNT(*) as cnt')
+                            ->groupBy('ta.form_name', DB::raw('TRIM(ta.appl_type)'))
                             ->get();
                     } elseif ($staff->role_id == '4') {
                         $rows = DB::table($tbl . ' as ta')
@@ -523,8 +522,8 @@ class LoginController extends Controller
                             ->whereIn('ta.application_status', ['F'])
                             ->whereIn('ta.processed_by', ['SE'])
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
-                            ->selectRaw('ta.form_name, ta.appl_type, COUNT(*) as cnt')
-                            ->groupBy('ta.form_name', 'ta.appl_type')
+                            ->selectRaw('ta.form_name, TRIM(ta.appl_type) as appl_type, COUNT(*) as cnt')
+                            ->groupBy('ta.form_name', DB::raw('TRIM(ta.appl_type)'))
                             ->get();
                     }
 
@@ -532,6 +531,8 @@ class LoginController extends Controller
 
                     $contractorCounts = $contractorCounts->merge($rows);
                 }
+
+                // dd($contractorCounts);exit;
 
 
 
@@ -694,6 +695,8 @@ class LoginController extends Controller
 
         $contractorCards = $contractorCardsCollection->all();
 
+        // dd($contractorCards);exit;
+
 
 
         $amendmentCards = $amendmentCardsCollection->all();
@@ -808,7 +811,7 @@ class LoginController extends Controller
      */
     public function completedApplications()
     {
-        
+
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -1160,19 +1163,19 @@ class LoginController extends Controller
         }
 
 
-        if($application->appl_type == 'A' && $application->old_application != ''){
+        if ($application->appl_type == 'A' && $application->old_application != '') {
             $application_id = $application->old_application;
         }
 
         $getdetails_digitisation = DB::table('tnelb_cc_digitization')->where('application_id', $application_id)->first();
         $get_digitisation_mapping = DB::table('cc_digitisation_map')->where('application_id', $application_id)->first();
         $get_till_date_exp = CC_Experience::where('application_id', $application_id)
-        ->where('work_to_till_date', 1)
-        ->first();
+            ->where('work_to_till_date', 1)
+            ->first();
 
         $check_releaved = CC_Experience::where('application_id', $application->appl_type == 'A' ? $application->application_id : $application_id)
-        ->where('work_to_till_date', 0)
-        ->exists();
+            ->where('work_to_till_date', 0)
+            ->exists();
 
         $get_issued_certificate = CC_Forms_cert::where('application_id', $application_id)->first();
 
@@ -1437,11 +1440,11 @@ class LoginController extends Controller
     // showApplicantDetails
     public function showApplicantDetails($applicant_id)
     {
-        
+
         $returnForwardUser = null;
         $appService = app(CompetencyApplicationService::class);
         $applicant = $appService->findApplicantWithPayment($applicant_id);
-        
+
 
         if (!$applicant) {
             return abort(403, 'Applicant not found');
@@ -1457,7 +1460,7 @@ class LoginController extends Controller
 
 
         if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
-            
+
             $workflowApp = CC_Forms_Meta::findByApplicationId($applicant_id);
             if ($workflowApp) {
                 $reviewContext = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($workflowApp);
@@ -1624,7 +1627,7 @@ class LoginController extends Controller
             ->where('certificate_name', $applicant->certificate_name)
             ->first();
 
-      $checkedList_1 = [];
+        $checkedList_1 = [];
         $verifyList = [];
 
         if ($Existingchecklist && $Existingchecklist->checklist_json) {
@@ -1636,8 +1639,6 @@ class LoginController extends Controller
                 $checkedList_1[$row['id']] = $row['checked'];
                 $verifyList[$row['id']]  = $row['verify'];
             }
-
-
         }
 
         // Determine view based on user role
@@ -1799,6 +1800,8 @@ class LoginController extends Controller
 
         $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
 
+        $license_name_data = DB::table('mst_licences')->where('cert_licence_code', $applicant->license_name)->first();
+        // dd($license_name_data); exit;
 
         if (!$applicant) {
             return abort(404, 'Applicant not found');
@@ -1885,25 +1888,44 @@ class LoginController extends Controller
             ->where('proprietor_flag', '1')
             ->get();
 
-        $staffdetails = DB::table('tnelb_applicant_cl_staffdetails')
+        $staffdetails = DB::table('cl_staff_tbl')
             ->where('application_id', $applicant_id)
             ->orderBy('id')
             ->get();
 
+        $otherstaffdetails = DB::table('cl_staff_tbl')
+            ->where('application_id', $applicant_id)
+            ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->orderBy('id')
+            ->get();
+
+
+
+        $qcQscStaffs_details = $staffdetails
+            ->filter(function ($staff) {
+                return in_array(
+                    strtoupper(trim($staff->staff_category)),
+                    ['QC', 'QSC']
+                );
+            });
+
+
+
         $showQcWarning = false;
+        $licence_validitystaff = null;
 
         $licence_name_validitystaff = MstLicence::where('form_code', $formname)->first();
 
         if ($licence_name_validitystaff && $staffdetails->count() > 0) {
 
             $today = Carbon::today()->toDateString();
-            $applType = trim($applicant->appl_type); // N or R
+            $applType = trim($applicant->appl_type);
 
-            /* -----------------------------
-       Get fees validity
-    ------------------------------ */
-            $licence_validitystaff = FeesValidity::where('licence_id', $licence_name_validitystaff->id)
-                ->where('form_type', $applType === 'N' ? 'N' : 'R')
+            $licence_validitystaff = FeesValidity::where(
+                'licence_id',
+                $licence_name_validitystaff->id
+            )
+                ->whereIn('form_type', ['N', 'R', 'D', 'A'])
                 ->where('status', 1)
                 ->whereDate('validity_start_date', '<=', $today)
                 ->orderBy('validity_start_date', 'desc')
@@ -1911,25 +1933,45 @@ class LoginController extends Controller
 
             if ($licence_validitystaff && $licence_validitystaff->validity) {
 
-                /* -----------------------------
-                Compare FIRST QC validity
-                ------------------------------ */
-                $firstQcValidity = Carbon::parse($staffdetails->first()->cc_validity);
+                $qcQscStaff = $staffdetails
+                    ->filter(function ($staff) {
+                        return in_array(
+                            strtoupper(trim($staff->staff_category)),
+                            ['QC', 'QSC']
+                        );
+                    });
 
-                // dd($staffdetails->first()->cc_validity);
-                // exit;
+                if ($qcQscStaff->count() > 0) {
 
+                    // Get QC/QSC staff having the maximum validity_to date
+                    $latestQcQscStaff = $qcQscStaff->sortByDesc(function ($staff) {
+                        return Carbon::parse($staff->staff_cc_validity_to);
+                    })->first();
 
-                // Licence period (months)
-                $licencePeriodEnd = Carbon::now()->addMonths((int) $licence_validitystaff->validity);
-                // dd($licencePeriodEnd);
-                // exit;
+                    $firstQcValidity = Carbon::parse(
+                        $latestQcQscStaff->staff_cc_validity_from
+                    );
+
+                    $licencePeriodEnd = Carbon::now()->addMonths(
+                        (int) $licence_validitystaff->validity
+                    );
+
+                    if ($firstQcValidity->lt($licencePeriodEnd)) {
+                        $showQcWarning = true;
+                    }
+                }
+
+                $licencePeriodEnd = Carbon::now()->addMonths(
+                    (int) $licence_validitystaff->validity
+                );
 
                 if ($firstQcValidity->lt($licencePeriodEnd)) {
                     $showQcWarning = true;
                 }
             }
         }
+
+
 
 
 
@@ -2015,9 +2057,43 @@ class LoginController extends Controller
 
         //     default      => abort(403, 'Unauthorized'),
         // };
+        // dd($applicant->appl_type);exit;
+        $checklist = DB::table('mst_checklists as mc')
+            ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
+            ->where('ml.cert_licence_code', $applicant->license_name)
+            ->where('mc.appl_type', trim($applicant->appl_type))
+            ->where('mc.status', 1)
+            ->select(
+                'mc.*',
+                'ml.licence_name',
+                'ml.cert_licence_code'
+            )
+            ->get();
+
+        $Existingchecklist = Cl_Checklist_applicant::where('applicant_id', $applicant_id)
+            ->where('licence_name', $applicant->license_name)
+            ->first();
+
+
+
+        $checkedList_1 = [];
+        $verifyList = [];
+
+        if ($Existingchecklist && $Existingchecklist->checklist_json) {
+
+            $json = json_decode($Existingchecklist->checklist_json, true);
+
+            foreach ($json as $row) {
+
+                $checkedList_1[$row['id']] = $row['checked'];
+                $verifyList[$row['id']]  = $row['verify'];
+            }
+        }
+
 
         $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $applicant_id)->orderBy('id', 'ASC')->get();
-
+        $staff_checklist = DB::table('cl_staff_detail_adminstore')->where('application_id', $applicant_id)
+            ->get();
 
         $view = match ($staff->name) {
             'President'  => 'admin.dashboard.applicants_detail_forma',
@@ -2028,6 +2104,28 @@ class LoginController extends Controller
 
             default      => abort(403, 'Unauthorized'),
         };
+        $verifyList = $staff_checklist
+            ->whereNotNull('staff_cc_no')
+            ->pluck('verify_flag', 'staff_cc_no')
+            ->toArray();
+
+        $maxQcStaff = $qcQscStaffs_details
+            ->filter(function ($staff) {
+                return !empty($staff->staff_cc_validity_to);
+            })
+            ->sortByDesc(function ($staff) {
+                return \Carbon\Carbon::parse($staff->staff_cc_validity_to);
+            })
+            ->first();
+
+        $maxQcCertNo = $maxQcStaff?->staff_cc_no;
+        $maxQcValidityDate = $maxQcStaff?->staff_cc_validity_to;
+
+         $cl_digitization = DB::table('mapping_digi_cls')
+            ->where('application_id', $applicant_id)
+            ->first();
+
+            // dd($cl_digitization); exit;
 
         return view($view, compact(
             'applicant',
@@ -2049,7 +2147,17 @@ class LoginController extends Controller
             'old_issued_at_date',
             'attachments_cl',
             'addressproof',
-            'Qcstaffs'
+            'Qcstaffs',
+            'qcQscStaffs_details',
+            'otherstaffdetails',
+            'checklist',
+            'staff_checklist',
+            'verifyList',
+            'checkedList_1',
+            'maxQcCertNo',
+            'maxQcValidityDate',
+            'cl_digitization'
+
         ));
     }
 
@@ -3174,7 +3282,7 @@ class LoginController extends Controller
      * Used from the Completed Applications list.
      */
 
-     public function viewCompletedApplicationDetail($applicant_id)
+    public function viewCompletedApplicationDetail($applicant_id)
     {
 
 
@@ -3411,7 +3519,7 @@ class LoginController extends Controller
             ->where('certificate_name', $applicant->certificate_name)
             ->first();
 
-      $checkedList_1 = [];
+        $checkedList_1 = [];
         $verifyList = [];
 
         if ($Existingchecklist && $Existingchecklist->checklist_json) {
@@ -3423,8 +3531,6 @@ class LoginController extends Controller
                 $checkedList_1[$row['id']] = $row['checked'];
                 $verifyList[$row['id']]  = $row['verify'];
             }
-
-
         }
 
         // dd($checkedList);exit;
@@ -3432,7 +3538,7 @@ class LoginController extends Controller
         // dd($verifyList);exit;
 
         // Determine view based on user role
-        
+
 
         // var_dump($nextForwardUser);exit;
         return view('admin.completed_appl_view', compact(
@@ -3493,7 +3599,7 @@ class LoginController extends Controller
                 if (!Schema::hasTable($tbl)) {
                     continue;
                 }
-                
+
                 $row = DB::table($tbl)->where('application_id', $applicant_id)->where('application_status', 'A')->first();
                 if ($row) {
                     $applicant = (object) array_merge((array) $row, [

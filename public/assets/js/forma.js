@@ -809,7 +809,7 @@ $("#competency_form_a").on("submit", function (e) {
     let proprietor = [];
 
     // ✅ Collect all rows data first
-    $("#proprietor-section table tbody tr").each(function () {
+    $("#proprietor-section tbody tr").each(function () {
         let $tr = $(this);
         let $tds = $tr.find("td");
 
@@ -843,19 +843,9 @@ $("#competency_form_a").on("submit", function (e) {
             present_business: $tds.eq(5).text().trim(),
             competency: $tds.eq(6).data("competency") || "",
             competency_certno: $tds.eq(6).data("certno") || "",
-            competency_validity: $tds.eq(6).data("validity") || "",
-            ccverify: $tds.eq(6).data("ccverify") ?? "",
-
-            employed: $tds.eq(7).data("employed") || "",
-            employer_name: $tds.eq(7).data("employer") || "",
-            employer_address: $tds.eq(7).data("empaddress") || "",
-            experience: $tds.eq(8).data("experience") || "",
-            exp_name: $tds.eq(8).data("expname") || "",
-            exp_address: $tds.eq(8).data("expaddress") || "",
-            exp_license: $tds.eq(8).data("explicense") || "",
-            exp_validity: $tds.eq(8).data("expvalidity") || "",
-
-            expverify: $tds.eq(8).data("expverify") ?? "",
+            ccfirstissue: $tds.eq(6).data("ccfirstissue") || "",
+            ccvalidityfrom: $tds.eq(6).data("ccvalidityfrom") || "",
+            ccvalidityto: $tds.eq(6).data("ccvalidityto") || "",
 
             ownership_type:
                 $tds.eq(9).find("input[name='ownership_type[]']").val() ||
@@ -884,18 +874,10 @@ $("#competency_form_a").on("submit", function (e) {
         formData.append(`present_business[${index}]`, p.present_business);
         formData.append(`competency[${index}]`, p.competency);
         formData.append(`competency_certno[${index}]`, p.competency_certno);
-        formData.append(`competency_validity[${index}]`, p.competency_validity);
+        formData.append(`ccfirstissue[${index}]`, p.ccfirstissue);
+        formData.append(`ccvalidityfrom[${index}]`, p.ccvalidityfrom);
+        formData.append(`ccvalidityto[${index}]`, p.ccvalidityto);
 
-        formData.append(`ccverify[${index}]`, p.ccverify);
-
-        formData.append(`employed[${index}]`, p.employed);
-        formData.append(`employer_name[${index}]`, p.employer_name);
-        formData.append(`employer_address[${index}]`, p.employer_address);
-        formData.append(`experience[${index}]`, p.experience);
-        formData.append(`exp_name[${index}]`, p.exp_name);
-        formData.append(`exp_address[${index}]`, p.exp_address);
-        formData.append(`exp_license[${index}]`, p.exp_license);
-        formData.append(`exp_validity[${index}]`, p.exp_validity);
 
         formData.append(`expverify[${index}]`, p.expverify);
         // console.log(p.ccverify, p.expverify);
@@ -1429,101 +1411,7 @@ $("#competency_form_a").on("submit", function (e) {
         return;
     }
 
-    // Proprietor - table --------------------------------
-    let tableValid = true;
-    let errorRowData = null;
-    let errorRowIndex = null;
 
-    $(".head_label_proprietor tbody tr").each(function (index) {
-        const tds = $(this).find("td");
-
-        const rowData = {
-            name: tds.eq(0).text().trim(),
-            father: tds.eq(1).text().trim(),
-            age: tds.eq(2).text().trim(),
-            addr: tds.eq(3).text().trim(),
-            qual: tds.eq(4).text().trim(),
-            bus: tds.eq(5).text().trim(),
-
-            competency: tds.eq(6).data("competency") || "no",
-            certno: tds.eq(6).data("certno") || "",
-            validity: tds.eq(6).data("validity") || "",
-
-            employed: tds.eq(7).data("employed") || "no",
-            empname: tds.eq(7).data("employer") || "",
-            empaddr: tds.eq(7).data("empaddress") || "",
-
-            experience: tds.eq(8).data("experience") || "no",
-            expname: tds.eq(8).data("expname") || "",
-            expaddr: tds.eq(8).data("expaddress") || "",
-            explic: tds.eq(8).data("explicense") || "",
-            expval: tds.eq(8).data("expvalidity") || "",
-        };
-
-        if (
-            rowData.name !== "" &&
-            (!rowData.father ||
-                !rowData.age ||
-                !rowData.addr ||
-                !rowData.qual ||
-                !rowData.bus)
-        ) {
-            tableValid = false;
-            errorRowData = rowData;
-            errorRowIndex = index; // 🔑 STORE INDEX
-            return false;
-        }
-    });
-
-    if (!tableValid) {
-        Swal.fire({
-            icon: "error",
-            width: 450,
-            title: "Incomplete Proprietor Details",
-            text: "Proprietor details are incomplete. Please correct the highlighted fields.",
-        });
-
-        // Switch to Basic Details tab
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Basic Details") {
-                $(this).addClass("tab-error-bg").trigger("click");
-            }
-        });
-
-        // 🔑 SET EDIT MODE
-        editIndex = errorRowIndex;
-
-        // OPEN SECTION
-        const $section = $("#proprietor-sectionfresh");
-        $section.slideDown();
-
-        // PREFILL FORM + SHOW ERRORS
-        fillProprietorForm(errorRowData);
-
-        // 🔁 SWITCH BUTTON TO UPDATE MODE
-        $("#save_proprietor")
-            .text("Update")
-            .removeClass("btn-success")
-            .addClass("btn-warning");
-
-        if (!$("#cancel_proprietor").length) {
-            $("#save_proprietor").after(`
-            <button type="button" id="cancel_proprietor"
-                class="btn btn-danger ms-2">
-                Cancel
-            </button>
-        `);
-        }
-
-        // Scroll to form
-        $section[0].scrollIntoView({ behavior: "smooth", block: "start" });
-
-        return false; // ⛔ STOP SUBMIT
-    }
-
-    // ----------------------------------------------------
-
- 
 
     // ------------------ 3. Previous Contractor License ------------------
     let previousSelected = $(
@@ -1706,12 +1594,12 @@ $("#competency_form_a").on("submit", function (e) {
             id: $tr.data("id") || null,
 
             // Category
-            staff_category:
-                $tr.find(".staff_category").val()
+            staffqc_category:
+                $tr.find(".staffqc_category").val()
                 ||
-                $tr.find('input[name="staff_category[]"]').val()
+                $tr.find('input[name="staffqc_category[]"]').val()
                 ||
-                $tr.find('input[name^="staff_category["]').val()
+                $tr.find('input[name^="staffqc_category["]').val()
                 ||
                 $tr.find("td:eq(1)").text().trim()
                 ||
@@ -1967,326 +1855,263 @@ $("#competency_form_a").on("submit", function (e) {
     // ======================================================
     // VALIDATE FIRST 2 B STAFF
     // ======================================================
-let staffValidationRequests = [];
-let staffBasicValidationPassed = true;
+    let staffValidationRequests = [];
+    let staffBasicValidationPassed = true;
 
-// ======================================================
-// VALIDATE ALL STAFF ROWS
-// B + C = CERTIFICATE VALIDATION
-// OTHERS = SKIP CERTIFICATE VALIDATION
-// ======================================================
+    // ======================================================
+    // VALIDATE ALL STAFF ROWS
+    // B + C = CERTIFICATE VALIDATION
+    // OTHERS = SKIP CERTIFICATE VALIDATION
+    // ======================================================
 
-$mandatoryStaffRows.each(function (index) {
+    $mandatoryStaffRows.each(function (index) {
 
-    let $row = $(this);
+        let $row = $(this);
 
-    // ==================================================
-    // CATEGORY
-    // ==================================================
+        // ==================================================
+        // CATEGORY
+        // ==================================================
 
-    let category = ($row.find(".staff_category").val() || "").trim();
+        let category = ($row.find(".staff_category").val() || "").trim();
 
-    // First 2 rows are mandatory B
-    if (index < 2) {
-        category = "B";
-    }
+        // First 2 rows are mandatory B
+        if (index < 2) {
+            category = "B";
+        }
 
-    console.log("====================================");
-    console.log("STAFF " + (index + 1));
-    console.log("CATEGORY:", category);
-
-
-    // ==================================================
-    // OTHERS
-    // No certificate validation required
-    // ==================================================
-
-    if (category === "OTHERS") {
-
-        console.log(
-            "STAFF " + (index + 1) +
-            ": OTHERS - Certificate validation skipped"
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // ONLY B AND C REQUIRE CERTIFICATE DETAILS
-    // ==================================================
-
-    if (category !== "B" && category !== "C") {
-
-        staffBasicValidationPassed = false;
-
-        $row.find(".staff_category").after(
-            '<span class="staff-validation-error error text-danger d-block">' +
-            'Please select a valid staff category.' +
-            '</span>'
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // CERTIFICATE NUMBER
-    // ==================================================
-
-    let ccNumber = ($row.find(".cc_number").val() || "").trim();
-
-    // ==================================================
-    // FIRST ISSUE
-    // ==================================================
-
-    let firstIssue = ($row.find(".cc_firstissue").val() || "").trim();
-
-    // ==================================================
-    // VALIDITY FROM
-    // ==================================================
-
-    let validityFrom = ($row.find(".cc_validity_from").val() || "").trim();
-
-    // ==================================================
-    // VALIDITY TO
-    // ==================================================
-
-    let validityTo = ($row.find(".cc_validity_to").val() || "").trim();
-
-
-    console.log("Certificate No:", ccNumber);
-    console.log("First Issue:", firstIssue);
-    console.log("Validity From:", validityFrom);
-    console.log("Validity To:", validityTo);
-
-
-    // ==================================================
-    // CERTIFICATE NUMBER REQUIRED
-    // ==================================================
-
-    if (ccNumber === "") {
-
-        staffBasicValidationPassed = false;
-
-        $row.find(".cc_number").after(
-            '<span class="staff-validation-error error text-danger d-block">' +
-            'Certificate Number is required.</span>'
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // FIRST ISSUE REQUIRED
-    // ==================================================
-
-    if (firstIssue === "") {
-
-        staffBasicValidationPassed = false;
-
-        $row.find(".cc_firstissue").after(
-            '<span class="staff-validation-error error text-danger d-block">' +
-            'Certificate First Issue is required.</span>'
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // VALIDITY FROM REQUIRED
-    // ==================================================
-
-    if (validityFrom === "") {
-
-        staffBasicValidationPassed = false;
-
-        $row.find(".cc_validity_from").after(
-            '<span class="staff-validation-error error text-danger d-block">' +
-            'Certificate Validity From is required.</span>'
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // VALIDITY TO REQUIRED
-    // ==================================================
-
-    if (validityTo === "") {
-
-        staffBasicValidationPassed = false;
-
-        $row.find(".cc_validity_to").after(
-            '<span class="staff-validation-error error text-danger d-block">' +
-            'Certificate Validity To is required.</span>'
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // SEND B / C CERTIFICATE TO CONTROLLER
-    // ==================================================
-
-    let request = validateStaffCertificate(
-        category,
-        ccNumber,
-        firstIssue,
-        validityFrom,
-        validityTo
-    )
-
-    
-    .then(function (response) {
-
-        console.log(
-            "STAFF " + (index + 1) +
-            " CERTIFICATE RESPONSE:",
-            response
-        );
+        console.log("====================================");
+        console.log("STAFF " + (index + 1));
+        console.log("CATEGORY:", category);
 
 
         // ==================================================
-        // CERTIFICATE INVALID
+        // OTHERS
+        // No certificate validation required
         // ==================================================
 
-        if (response.status !== true) {
+        if (category === "OTHERS") {
 
-            staffValidationPassed = false;
+            console.log(
+                "STAFF " + (index + 1) +
+                ": OTHERS - Certificate validation skipped"
+            );
 
-            $row.find(".cc_number").after(
+            return;
+        }
+
+
+        // ==================================================
+        // ONLY B AND C REQUIRE CERTIFICATE DETAILS
+        // ==================================================
+
+        if (category !== "B" && category !== "C") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".staff_category").after(
                 '<span class="staff-validation-error error text-danger d-block">' +
-                (response.message || "Certificate validation failed.") +
+                'Please select a valid staff category.' +
                 '</span>'
             );
 
-            return false;
+            return;
         }
 
 
         // ==================================================
-        // CERTIFICATE VALID
+        // CERTIFICATE NUMBER
         // ==================================================
 
-        console.log(
-            "STAFF " + (index + 1) +
-            " certificate verified successfully."
-        );
+        let ccNumber = ($row.find(".cc_number").val() || "").trim();
 
-        return true;
+        // ==================================================
+        // FIRST ISSUE
+        // ==================================================
 
-    })
-    .catch(function (xhr) {
+        let firstIssue = ($row.find(".cc_firstissue").val() || "").trim();
 
-        staffValidationPassed = false;
+        // ==================================================
+        // VALIDITY FROM
+        // ==================================================
 
-        console.log(
-            "STAFF " + (index + 1) +
-            " CERTIFICATE ERROR"
-        );
+        let validityFrom = ($row.find(".cc_validity_from").val() || "").trim();
 
-        console.log("HTTP STATUS:", xhr.status);
-        console.log("RESPONSE:", xhr.responseText);
-        console.log("JSON:", xhr.responseJSON);
+        // ==================================================
+        // VALIDITY TO
+        // ==================================================
 
-
-        $row.find(".cc_number").after(
-            '<span class="staff-validation-error error text-danger d-block">' +
-            'Unable to verify certificate. Please try again.' +
-            '</span>'
-        );
-
-        return false;
-    });
-console.log(request);
-
-    staffValidationRequests.push(request);
-
-});
+        let validityTo = ($row.find(".cc_validity_to").val() || "").trim();
 
 
-// ======================================================
-// BASIC VALIDATION FAILED
-// ======================================================
+        console.log("Certificate No:", ccNumber);
+        console.log("First Issue:", firstIssue);
+        console.log("Validity From:", validityFrom);
+        console.log("Validity To:", validityTo);
 
-if (!staffBasicValidationPassed) {
 
-    alert('111');
+        // ==================================================
+        // CERTIFICATE NUMBER REQUIRED
+        // ==================================================
 
-    isValid = false;
+        if (ccNumber === "") {
 
-    Swal.fire({
-        icon: "warning",
-        title: "Staff Details Incomplete",
-        text: "Please complete all mandatory staff certificate details.",
-        confirmButtonText: "OK",
-        width: 500
-    });
+            staffBasicValidationPassed = false;
 
-    $(".nav-item").each(function () {
+            $row.find(".cc_number").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate Number is required.</span>'
+            );
 
-        if ($(this).text().trim().includes("Staff & Bank Details")) {
-
-            $(this).addClass("tab-error-bg");
-            $(this).trigger("click");
-
-            return false;
+            return;
         }
 
-    });
 
-    setTimeout(function () {
+        // ==================================================
+        // FIRST ISSUE REQUIRED
+        // ==================================================
 
-        if ($("#staff-table").length) {
+        if (firstIssue === "") {
 
-            $("#staff-table")[0].scrollIntoView({
-                behavior: "smooth",
-                block: "center"
+            staffBasicValidationPassed = false;
+
+            $row.find(".cc_firstissue").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate First Issue is required.</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // VALIDITY FROM REQUIRED
+        // ==================================================
+
+        if (validityFrom === "") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".cc_validity_from").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate Validity From is required.</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // VALIDITY TO REQUIRED
+        // ==================================================
+
+        if (validityTo === "") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".cc_validity_to").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate Validity To is required.</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // SEND B / C CERTIFICATE TO CONTROLLER
+        // ==================================================
+
+        let request = validateStaffCertificate(
+            category,
+            ccNumber,
+            firstIssue,
+            validityFrom,
+            validityTo
+        )
+
+
+            .then(function (response) {
+
+                console.log(
+                    "STAFF " + (index + 1) +
+                    " CERTIFICATE RESPONSE:",
+                    response
+                );
+
+
+                // ==================================================
+                // CERTIFICATE INVALID
+                // ==================================================
+
+                if (response.status !== true) {
+
+                    staffValidationPassed = false;
+
+                    $row.find(".cc_number").after(
+                        '<span class="staff-validation-error error text-danger d-block">' +
+                        (response.message || "Certificate validation failed.") +
+                        '</span>'
+                    );
+
+                    return false;
+                }
+
+
+                // ==================================================
+                // CERTIFICATE VALID
+                // ==================================================
+
+                console.log(
+                    "STAFF " + (index + 1) +
+                    " certificate verified successfully."
+                );
+
+                return true;
+
+            })
+            .catch(function (xhr) {
+
+                staffValidationPassed = false;
+
+                console.log(
+                    "STAFF " + (index + 1) +
+                    " CERTIFICATE ERROR"
+                );
+
+                console.log("HTTP STATUS:", xhr.status);
+                console.log("RESPONSE:", xhr.responseText);
+                console.log("JSON:", xhr.responseJSON);
+
+
+                $row.find(".cc_number").after(
+                    '<span class="staff-validation-error error text-danger d-block">' +
+                    'Unable to verify certificate. Please try again.' +
+                    '</span>'
+                );
+
+                return false;
             });
+        console.log(request);
 
-        }
+        staffValidationRequests.push(request);
 
-    }, 300);
-
-    return;
-}
-
-
-// ======================================================
-// WAIT FOR ALL B + C CERTIFICATE CHECKS
-// ======================================================
-
-Promise.all(staffValidationRequests)
-.then(function (results) {
-
-    console.log(
-        "ALL STAFF CERTIFICATE RESULTS:",
-        results
-    );
-
-
-    // ==================================================
-    // CHECK ALL CERTIFICATES
-    // ==================================================
-
-    let allCertificatesValid = results.every(function (result) {
-        return result === true;
     });
 
 
-    if (!allCertificatesValid) {
-alert('222');
+    // ======================================================
+    // BASIC VALIDATION FAILED
+    // ======================================================
+
+    if (!staffBasicValidationPassed) {
+
+
+
         isValid = false;
 
         Swal.fire({
             icon: "warning",
-            title: "Invalid Staff Certificate",
-            text: "Please correct the invalid B/C staff certificate details.",
+            title: "Staff Details Incomplete",
+            text: "Please complete all mandatory staff certificate details.",
             confirmButtonText: "OK",
             width: 500
         });
@@ -2320,19 +2145,82 @@ alert('222');
     }
 
 
-    // ==================================================
-    // ALL B/C CERTIFICATES VALID
-    // ==================================================
+    // ======================================================
+    // WAIT FOR ALL B + C CERTIFICATE CHECKS
+    // ======================================================
+
+    Promise.all(staffValidationRequests)
+        .then(function (results) {
+
+            console.log(
+                "ALL STAFF CERTIFICATE RESULTS:",
+                results
+            );
+
+
+            // ==================================================
+            // CHECK ALL CERTIFICATES
+            // ==================================================
+
+            let allCertificatesValid = results.every(function (result) {
+                return result === true;
+            });
+
+
+            if (!allCertificatesValid) {
+
+                isValid = false;
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Invalid Staff Certificate",
+                    text: "Please correct the invalid B/C staff certificate details.",
+                    confirmButtonText: "OK",
+                    width: 500
+                });
+
+                $(".nav-item").each(function () {
+
+                    if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+                        $(this).addClass("tab-error-bg");
+                        $(this).trigger("click");
+
+                        return false;
+                    }
+
+                });
+
+                setTimeout(function () {
+
+                    if ($("#staff-table").length) {
+
+                        $("#staff-table")[0].scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+
+                    }
+
+                }, 300);
+
+                return;
+            }
+
+
+            // ==================================================
+            // ALL B/C CERTIFICATES VALID
+            // ==================================================
+
+            console.log(
+                "All B/C staff certificates verified successfully."
+            );
+
+            // Continue remaining form validation here
+
+        });
 
     console.log(
-        "All B/C staff certificates verified successfully."
-    );
-
-    // Continue remaining form validation here
-
-});
-
- console.log(
         "next function check:",
     );
 
@@ -2431,7 +2319,7 @@ alert('222');
     }
 
     if ((bankValidity === "") | (bankAmount === "") | (bankAddress === "")) {
-        alert('333');
+
         if (bankValidity === "") {
             $("#bank_validity_error").text("Validity period is required.");
         }
@@ -2468,7 +2356,7 @@ alert('222');
     let hasUploadedFile = $("#bank_doc_section .file-link a").length > 0;
 
     if (!hasUploadedFile) {
-        alert("444");
+
 
         $("#bank_doc_error").text("Bank Solvency Document must be uploaded.");
 
@@ -2555,7 +2443,7 @@ alert('222');
 
     // ❌ IF INVALID
     if (!addressValid) {
-        alert('555');
+
         $(".nav-item").each(function () {
             if ($(this).text().trim() === "Staff & Bank Details") {
                 $(this).addClass("tab-error-bg");
@@ -2585,8 +2473,8 @@ alert('222');
         }
     });
 
-    
-  
+
+
 
     // Declaration Checkboxes
     const declaration1Checked = $("#declarationCheckbox").is(":checked");
@@ -2734,7 +2622,7 @@ alert('222');
             $(this).closest("tr").find(".date_error").text("");
         }
     });
-// alert('666');
+
     $(document).on(
         "change",
         'input[name^="instrument_test_report"]',
@@ -3065,75 +2953,14 @@ function showDeclarationPopupformA(formData) {
             }
 
             // Insert instructions only (not replacing values above)
-            const modalEl = document.getElementById("contractorInstructionsModal");
+           
 
-            if (!modalEl) {
-                console.error("contractorInstructionsModal not found");
-                return;
-            }
-
-            let topDetails = "";
-
-            if (appl_type === "D") {
-
-                topDetails = `
-                    <div>
-                        <p>
-                            1. (i) No fees are applicable for this application.
-                        </p>
-                    </div>
-                `;
-
-            } else {
-
-                topDetails = `
-                    <div>
-                        <p>
-                            1. (i) Fees issued for
-                            <span>${certificate_name}</span>
-                            from
-                            <span>${fees_start_date}</span>
-                            onwards is
-                            <span style="color:#1f6920; font-weight:600;">
-                                Rs.${basic_fees}/-
-                            </span>.
-                        </p>
-                    </div>
-                `;
-            }
-
-            const instructionsList = modalEl.querySelector(".instruct");
-
-            if (instructionsList) {
-                instructionsList.innerHTML = topDetails + html;
-            }
-
-            const agreeCheckbox = modalEl.querySelector(
-                "#declaration-agree-renew-contractor"
-            );
-
-            const errorText = modalEl.querySelector(
-                "#declaration-error-renew-contractor"
-            );
-
-            agreeCheckbox.checked = false;
-            errorText.classList.add("d-none");
-
-            const proceedBtn = modalEl.querySelector("#proceedPayment");
-
-            proceedBtn.onclick = function () {
-
-                if (!agreeCheckbox.checked) {
-                    errorText.classList.remove("d-none");
-                    return;
-                }
-
-                $("#contractorInstructionsModal").modal("hide");
+                
 
                 submitFormAFinal(formData, "submit");
-            };
+            
 
-            $("#contractorInstructionsModal").modal("show");
+            
         },
 
         error: function () {
@@ -3226,7 +3053,18 @@ function submitFormAFinal(formData, actionType) {
                             `;
             }
 
-              if (applType === "D") {
+            if (applType === "D") {
+
+                if (actionType === "draft") {
+                    Swal.fire({
+                        width: 450,
+                        title: "Draft Saved!",
+                        html: `Your Application ID is <strong>${loginId}</strong>`,
+                        icon: "success",
+                    }).then(() => {
+                        window.location.href = BASE_URL + "/dashboard";
+                    });
+                } else {
 
                     // Fill success modal
                     $("#ps_applicantName").text(applicantName);
@@ -3254,6 +3092,7 @@ function submitFormAFinal(formData, actionType) {
 
                     return;
                 }
+            }
             if (actionType === "draft") {
                 Swal.fire({
                     width: 450,
@@ -5400,7 +5239,7 @@ $("#competency_form_a_return").on("submit", function (e) {
         }
     });
 
- 
+
     // ------------------ Document Validation ------------------
     const allowedTypes = ["application/pdf"];
     const maxSize = 250 * 1024;
@@ -7143,12 +6982,12 @@ function fillProprietorForm(data) {
 flatpickr('input[name="competency_certificate_validity_to[]"]', {
     dateFormat: "Y-m-d",
 
-    onChange: function (selectedDates, dateStr, instance) {
+    // onChange: function (selectedDates, dateStr, instance) {
 
-        console.log("Selected Date:", dateStr);
+    //     console.log("Selected Date:", dateStr);
 
-        checkCompetencyCertificate();
-    }
+    //     checkCompetencyCertificate();
+    // }
 });
 
 flatpickr(
@@ -7201,9 +7040,9 @@ flatpickr('input[name="competency_certificate_validity_to[]"]', {
 
         let validTo = dateStr;
 
-        if (certificateNo && firstIssue && validFrom && validTo) {
-            checkCompetencyCertificate();
-        }
+        // if (certificateNo && firstIssue && validFrom && validTo) {
+        //     checkCompetencyCertificate();
+        // }
     }
 });
 // qcstaff-----------
@@ -7226,7 +7065,7 @@ $(document).on("click", "#add_qc_staff", function () {
     );
 
     // Clear other fields
-    $section.find(".staff_category").val("");
+    $section.find(".staffqc_category").val("");
 
     $section.find(
         'input[name="staff_cc_no[]"],' +
@@ -7262,7 +7101,7 @@ $(document).on("click", "#save_qc", function () {
     // CATEGORY
     // -----------------------------
 
-    let category = $section.find(".staff_category").val();
+    let category = $section.find(".staffqc_category").val();
 
     if (!category) {
 
@@ -7610,7 +7449,7 @@ function addQCStaffRecord(
                 ${categoryText}
 
                 <input type="hidden"
-                       name="staff_category[]"
+                       name="staffqc_category[]"
                        value="${category}">
             </td>
 
@@ -7697,7 +7536,7 @@ function updateQCStaffTotalFee(appl_type) {
     $("#staffqc-records tr.staffqc-record").each(function () {
 
         let category = $(this)
-            .find('input[name="staff_category[]"]')
+            .find('input[name="staffqc_category[]"]')
             .val();
 
         // appl_type is NOT D
@@ -7790,6 +7629,9 @@ function generateQCCode() {
     return $('#staffqc-container tr.staffqc-fields').length + 1;
 }
 
+$(document).on("click", "#verify_competency_btn", function () {
+    checkCompetencyCertificate();
+});
 
 
 function checkCompetencyCertificate() {
@@ -7799,16 +7641,16 @@ function checkCompetencyCertificate() {
     let valid_from = $('input[name="competency_certificate_validity_from[]"]').first().val();
     let valid_to = $('input[name="competency_certificate_validity_to[]"]').first().val();
 
-    if (
-        certificate_no === '' ||
-        dateof_issue === '' ||
-        valid_from === '' ||
-        valid_to === ''
-    ) {
+    if (!certificate_no || !dateof_issue || !valid_from || !valid_to) {
+
+        $('#competency_exp_result').html(`
+            <div class="alert alert-warning">
+                Please enter CC Number, First Issue Date, Validity From and Validity To.
+            </div>
+        `);
+
         return;
     }
-
-
 
     $.ajax({
         url: BASE_URL + "/check-competency-certificate",
@@ -7823,6 +7665,11 @@ function checkCompetencyCertificate() {
         },
 
         beforeSend: function () {
+
+            $('#verify_competency_btn')
+                .prop('disabled', true)
+                .text('Verifying...');
+
             $('#competency_exp_result').html(
                 '<div class="text-info">Checking certificate...</div>'
             );
@@ -7834,56 +7681,141 @@ function checkCompetencyCertificate() {
 
                 let data = response.data;
 
-                let table = `
-            <div class="table-responsive mt-3">
-                <table class="table table-bordered table-striped head_label_exp">
-                    <thead>
-                        <tr>
-                            <th>S.No</th>
-                            <th>Employee Type</th>
-                            <th>Licence Category</th>
-                            <th>Organisation Name</th>
-                            <th>Address</th>
-                            <th>Designation</th>
-                            <th>Nature of Work</th>
-                            <th>Voltage Level</th>
-                            <th>Transformer (kVA)</th>
-                            <th>From Date</th>
-                            <th>To Date</th>
-                            <th>Total Experience</th>
-                            
-                        </tr>
-                    </thead>
+                let result = `
+            <div class="competency-result-box">
 
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>${data.emp_type ?? ''}</td>
-                            <td>${data.emp_type === 'emp_cate' ? data.emp_cate ?? '' : '-'}</td>
-                            
-                            <td>${data.org_name ?? ''}</td>
-                            <td>${data.org_address ?? ''}</td>
-                            <td>${data.designation ?? ''}</td>
-                            <td>${data.nature_work ?? ''}</td>
-                            <td>${data.voltage_level ?? ''}</td>
-                            <td>${data.voltage_level != 'up_to_650v' ? data.transformer_kva ?? '' : '-'}${data.transformer_kva ?? ''}</td>
-                            <td>${data.from_date ?? ''}</td>
-                            <td>${data.to_date ?? ''}</td>
-                            <td>${data.total_exp ?? ''}</td>
-                           
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="competency-result-title">
+                    Supervisor Competency Certificate Details
+                </div>
+
+                <span class="competency-verified">
+                    ✓ Certificate Verified
+                </span>
+
+                <div class="row">
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            Employee Type
+                        </span>
+                        <span class="competency-value">
+                            ${data.emp_type ?? '-'}
+                        </span>
+                    </div>
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            Licence Category
+                        </span>
+                        <span class="competency-value">
+                            ${data.emp_type === 'emp_cate'
+                        ? (data.emp_cate ?? '-')
+                        : '-'
+                    }
+                        </span>
+                    </div>
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            Organisation Name
+                        </span>
+                        <span class="competency-value">
+                            ${data.org_name ?? '-'}
+                        </span>
+                    </div>
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            Designation
+                        </span>
+                        <span class="competency-value">
+                            ${data.designation ?? '-'}
+                        </span>
+                    </div>
+
+
+                    <div class="col-md-6 competency-item">
+                        <span class="competency-label">
+                            Address
+                        </span>
+                        <span class="competency-value">
+                            ${data.org_address ?? '-'}
+                        </span>
+                    </div>
+
+                    <div class="col-md-6 competency-item">
+                        <span class="competency-label">
+                            Nature of Work
+                        </span>
+                        <span class="competency-value">
+                            ${data.nature_work ?? '-'}
+                        </span>
+                    </div>
+
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            Voltage Level
+                        </span>
+                        <span class="competency-value">
+                            ${data.voltage_level ?? '-'}
+                        </span>
+                    </div>
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            Transformer (kVA)
+                        </span>
+                        <span class="competency-value">
+                            ${data.voltage_level != 'up_to_650v'
+                        ? (data.transformer_kva ?? '-')
+                        : '-'
+                    }
+                        </span>
+                    </div>
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            From Date
+                        </span>
+                        <span class="competency-value">
+                            ${data.from_date ?? '-'}
+                        </span>
+                    </div>
+
+                    <div class="col-md-3 competency-item">
+                        <span class="competency-label">
+                            To Date
+                        </span>
+                        <span class="competency-value">
+                            ${data.to_date ?? '-'}
+                        </span>
+                    </div>
+
+
+                    <div class="col-md-4 competency-item">
+                        <div class="competency-experience">
+                            <span class="competency-label">
+                                Total Experience
+                            </span>
+                            <span class="competency-value">
+                                ${data.total_exp ?? '-'}
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
         `;
 
-                $('#competency_exp_result').html(table);
+                $('#competency_exp_result').html(result);
 
             } else {
 
                 $('#competency_exp_result').html(`
-            <div class="alert alert-warning">
-                ${response.message}
+            <div class="alert alert-warning mt-3">
+                ${response.message ?? 'Certificate not found.'}
             </div>
         `);
             }
@@ -7893,14 +7825,20 @@ function checkCompetencyCertificate() {
 
             console.log(xhr.responseText);
 
-            $('#competency_exp_result').html(
-                '<div class="alert alert-danger">' +
-                'Unable to check certificate.' +
-                '</div>'
-            );
+            $('#competency_exp_result').html(`
+                <div class="alert alert-danger">
+                    Unable to check certificate.
+                </div>
+            `);
+        },
+
+        complete: function () {
+
+            $('#verify_competency_btn')
+                .prop('disabled', false)
+                .text('Verify');
         }
     });
 }
-
 
 // --validation---------------------------

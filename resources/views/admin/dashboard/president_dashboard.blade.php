@@ -243,6 +243,10 @@
                                         $renewHref = $isFormAContractor
                                             ? route('admin.view_form', ['type' => 'A'])
                                             : route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'R']);
+
+                                        $digitize = $isFormAContractor
+                                            ? route('admin.view_form', ['type' => 'A'])
+                                            : route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'D']);
                                     @endphp
                                     @php
                                         $rawCode = strtoupper((string) ($summary['form_name'] ?? ''));
@@ -267,6 +271,11 @@
                                                     <a href="{{ $renewHref }}"
                                                        class="badge outline-badge-info fw-semibold text-decoration-none">
                                                         RENEWAL <span class="ms-1 fw-bold text-danger">{{ $summary['renewal_count'] ?? 0 }}</span>
+                                                    </a>
+
+                                                     <a href="{{ $digitize }}"
+                                                       class="badge outline-badge-info fw-semibold text-decoration-none">
+                                                        Digitisation <span class="ms-1 fw-bold text-danger">{{ $summary['digi_count'] ?? 0 }}</span>
                                                     </a>
                                                 </div>
                                             </div>

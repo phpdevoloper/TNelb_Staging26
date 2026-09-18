@@ -1108,7 +1108,7 @@ class LoginController extends BaseController
             ->values()
             ->toArray();
 
-        $table_applied_formA = DB::table('tnelb_ea_applications as ta')
+        $table_applied_formA = DB::table('ccl_forma_meta as ta')
             ->where('ta.login_id', $loginId)
             ->pluck('form_name')
             ->map(fn ($v) => strtoupper(trim((string) $v)))

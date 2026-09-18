@@ -231,6 +231,8 @@ exit; -->
             <input type="hidden" class="form-control text-box single-line" id="form_name" name="form_name" value="A">
 
 
+            <input type="hidden" name="temp_app_id" id="digitization_cl_temp_app_id">
+
             <input type="hidden" class="form-control text-box single-line" id="license_name" name="license_name" value="EA">
 
 
@@ -524,7 +526,7 @@ exit; -->
                             </div>
 
                             <div class="table-responsive pr_table_count">
-                                <table class="table table-bordered head_label_proprietor">
+                                <table class="table table-bordered head_label_proprietor" id="proprietor-table">
                                     <thead>
                                         <tr>
                                             <th>Name </th>
@@ -573,9 +575,12 @@ exit; -->
                                                                 class="fa fa-file-pdf-o" style="color: red;"></i></a>
                                                     </td>
                                                     <td>{{ $p->present_business }}</td>
-                                                    <td data-competency="{{ $p->competency_certificate_holding }}" data-certno="{{ $p->competency_certificate_number }}" data-ccfirstissue="{{ $p->competency_certificate_first_issue }}"
-                                                        data-ccvalidityfrom="{{ \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') }}"
-                                                        data-ccvalidityto="{{ \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') }}">
+                                                   <td
+                                                    data-competency="{{ $p->competency_certificate_holding }}"
+                                                    data-certno="{{ $p->competency_certificate_number }}"
+                                                    data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
+                                                    data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
+                                                    data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
 
                                                         @if($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -915,9 +920,11 @@ exit; -->
                                                             <label>CC Number <span style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-8 mt-1">
-                                                            <input type="text" class="form-control competency_number"
-                                                                name="competency_certificate_number[]" maxlength="15"
-                                                                placeholder="CC Number" value="CC20260700003">
+                                                          <input type="text"
+                                                            class="form-control competency_number"
+                                                            name="competency_certificate_number[]"
+                                                            maxlength="15"
+                                                            placeholder="CC Number">
                                                             <span class="error text-danger"
                                                                 id="competency_certificate_number_error"></span>
                                                         </div>
@@ -933,7 +940,7 @@ exit; -->
                                                                     style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-6 mt-1">
-                                                            <input type="date"
+                                                           <input type="date"
                                                                 class="form-control competency_validity_first_issue"
                                                                 name="competency_certificate_first_issue[]"
                                                                 placeholder="Date of First Issue">
@@ -952,10 +959,10 @@ exit; -->
                                                                     style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-4 mt-1">
-                                                            <input type="text"
-                                                                class="form-control competency_validity_from"
-                                                                name="competency_certificate_validity_from[]"
-                                                                placeholder="Validity To">
+                                                        <input type="text"
+                                                            class="form-control competency_validity_from"
+                                                            name="competency_certificate_validity_from[]"
+                                                            placeholder="Validity From">
                                                             <span class="error text-danger"
                                                                 id="competency_certificate_validity_from_error"></span>
                                                         </div>
@@ -964,10 +971,10 @@ exit; -->
                                                                     style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-4 mt-1">
-                                                            <input type="text"
-                                                                class="form-control competency_validity_to"
-                                                                name="competency_certificate_validity_to[]"
-                                                                placeholder="Validity To">
+                                                    <input type="text"
+                                                        class="form-control competency_validity_to"
+                                                        name="competency_certificate_validity_to[]"
+                                                        placeholder="Validity To">
                                                             <span class="error text-danger"
                                                                 id="competency_certificate_validity_to_error"></span>
                                                             {{-- <input type="date"
@@ -979,6 +986,14 @@ exit; -->
                                                     </div>
                                                 </div>
 
+                                                <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
+                                                    <button type="button"
+                                                            class="btn btn-primary"
+                                                            id="verify_competency_btn">
+                                                        Verify
+                                                    </button>
+                                                </div>
+
 
                                             </div>
 
@@ -988,8 +1003,8 @@ exit; -->
                                     </div>
                                 </div>
 
+                               
                                 <div id="competency_exp_result" class="mt-3"></div>
-
 
 
 
@@ -2493,7 +2508,7 @@ exit; -->
 
 
                             <div class="table-responsive">
-                                <table class="table table-bordered" id="staff-table">
+                                <table class="table table-bordered" id="qc-staff-table">
                                     <thead>
                                         <tr>
                                             <th>S.NO</th>
@@ -2527,13 +2542,12 @@ exit; -->
                                        <tbody id="staffqc-records">
 
                                             @php
-                                                $qcStaffs = collect($staffs ?? [])
-                                                    ->filter(function ($staff) {
-                                                        return in_array($staff->staff_category ?? '', ['QC', 'QSC']);
-                                                    })
+                                                $qcStaffs = collect($QCstaffs ?? [])
                                                     ->values();
 
                                                 $staff_count = $qcStaffs->count();
+
+                                                // var_dump($staff_count); die;
                                             @endphp
 
                                             @for ($i = 0; $i < $staff_count; $i++)
@@ -2630,7 +2644,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <select class="form-control staff_category" name="staff_category[]">
+                                            <select class="form-control staffqc_category" name="staffqc_category[]">
 
                                                 <option value="">Select Category</option>
 
@@ -4190,7 +4204,9 @@ exit; -->
 
 <footer class="main-footer">
     @include('include.footer')
-    {{-- <script src="{{ url('assets/js/digitization_cl.js') }}"></script> --}}
+   @if (request()->is('apply-form-a_d'))
+    <script src="{{ url('assets/js/digitization_cl.js') }}"></script>
+@endif
     <script>
         $(document).ready(async function() {
             var modalEl = document.getElementById('rolePop');
@@ -5813,24 +5829,34 @@ $(document).on("change", ".working_under", function () {
                 $section.find("input[name^='previous_experience'][value='no']").prop("checked", true);
             }
 
-            let competency =
-                $section.find("input[name='competency_certificate_holding[]']:checked").val() || "no";
-
-            let ccNum =
-                $.trim($section.find("input[name='competency_certificate_number[]']").val());
-
-            let ccfirstissue =
-                $.trim($section.find("input[name='competency_certificate_first_issue[]']").val());
-
-            let ccvalidityfrom =
-                $.trim($section.find("input[name='competency_certificate_validity_from[]']").val());
-
-            let ccvalidityto =
-                $.trim(
-                    $section.find(
-                        "input[name='competency_certificate_validity_to[]']"
-                    ).val()
+           let $ccHolding = $section.find(
+                    "input[name='competency_certificate_holding[]']:checked"
                 );
+
+                let competency = $ccHolding.length
+                    ? $ccHolding.val()
+                    : "no";
+
+                let $ccNumber = $section.find(
+                    "input[name='competency_certificate_number[]']"
+                );
+
+                let $ccFirstIssue = $section.find(
+                    "input[name='competency_certificate_first_issue[]']"
+                );
+
+                let $ccValidityFrom = $section.find(
+                    "input[name='competency_certificate_validity_from[]']"
+                );
+
+                let $ccValidityTo = $section.find(
+                    "input[name='competency_certificate_validity_to[]']"
+                );
+
+                let ccNum = $.trim($ccNumber.val() || "");
+                let ccfirstissue = $.trim($ccFirstIssue.val() || "");
+                let ccvalidityfrom = $.trim($ccValidityFrom.val() || "");
+                let ccvalidityto = $.trim($ccValidityTo.val() || "");
 
 
 
@@ -6117,17 +6143,17 @@ $(document).on("change", ".working_under", function () {
                     ? formatDateToDDMMYYYY(ccfirstissue)
                     : "";
 
+                   
+
 
                 $row.find("td").eq(6)
                     .attr({
                         "data-competency": competency,
                         "data-certno": ccNum,
-                        "data-ccfirstissue": ccfirstissue,
-                        "data-ccvalidityfrom": ccvalidityfrom,
-                        "data-ccvalidityto": ccvalidityto,
-                        "data-ccfirstissue-formatted": ccFirstIssueFormatted,
-                        "data-ccvalidityfrom-formatted": ccValidityFromFormatted,
-                        "data-ccvalidityto-formatted": ccValidityFormatted
+                       
+                        "data-ccfirstissue": ccFirstIssueFormatted,
+                        "data-ccvalidityfrom": ccValidityFromFormatted,
+                        "data-ccvalidityto": ccValidityFormatted
                     })
                     .html(
                         competency === "yes"
@@ -6178,7 +6204,7 @@ $(document).on("change", ".working_under", function () {
                 let ccFirstIssueFormatted = ccfirstissue
                     ? formatDateToDDMMYYYY(ccfirstissue)
                     : "";
-
+   alert('ccValidityFormatted: ' + ccValidityFormatted + ', ccValidityFromFormatted: ' + ccValidityFromFormatted + ', ccFirstIssueFormatted: ' + ccFirstIssueFormatted);
 
                 $("#proprietor-section table tbody").append(`
                     <tr>
@@ -6222,12 +6248,10 @@ $(document).on("change", ".working_under", function () {
                         <td
                             data-competency="${competency}"
                             data-certno="${ccNum}"
-                            data-ccfirstissue="${ccfirstissue}"
-                            data-ccvalidityfrom="${ccvalidityfrom}"
-                            data-ccvalidityto="${ccvalidityto}"
-                            data-ccfirstissue-formatted="${ccFirstIssueFormatted}"
-                            data-ccvalidityfrom-formatted="${ccValidityFromFormatted}"
-                            data-ccvalidityto-formatted="${ccValidityFormatted}"
+                            
+                            data-ccfirstissue ="${ccFirstIssueFormatted}"
+                            data-ccvalidityfrom ="${ccValidityFromFormatted}"
+                            data-ccvalidityto ="${ccValidityFormatted}"
                             >
 
                             ${competency === "yes"
@@ -6439,7 +6463,7 @@ $(document).on("change", ".working_under", function () {
 
             let qualification = $qualTd.attr("data-qualification");
             let qual_text = $qualTd.attr("data-qual_text");
-            let qual_proof = $qualTd.attr("data-qual_proof");
+            let qual_proof = $qualTd.attr("data-educational_proof");
 
             // Set qualification
             $section.find(".qualification").val(qualification).trigger("change");
@@ -6462,7 +6486,7 @@ $(document).on("change", ".working_under", function () {
             // Get present file from TABLE (important)
             // let presentFile = $qualTd.attr("data-educational_proof");
 
-            let presentFile = $qualTd.attr("data-qual_proof");
+            let presentFile = $qualTd.attr("data-educational_proof");
 
             $section.attr("data-present-file", presentFile || "");
             // Show present file below input box (only for table edit)
@@ -6505,9 +6529,54 @@ $(document).on("change", ".working_under", function () {
 
             // Fill values
             $section.find("input[name='competency_certificate_number[]']").val(certNo);
-            $section.find("input[name='competency_certificate_first_issue[]']").val(ccFirstIssue);
-            $section.find("input[name='competency_certificate_validity_from[]']").val(ccValidityFrom);
-            $section.find("input[name='competency_certificate_validity_to[]']").val(ccValidityTo);
+                    function convertDDMMYYYYtoYMD(date) {
+
+                    if (!date) {
+                        return "";
+                    }
+
+                    date = $.trim(date);
+
+                    // Already YYYY-MM-DD
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                        return date;
+                    }
+
+                    // DD-MM-YYYY
+                    if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+
+                        let parts = date.split("-");
+
+                        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+
+                    // DD/MM/YYYY
+                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+
+                        let parts = date.split("/");
+
+                        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+
+                    return date;
+                }
+
+            let firstIssueYMD = convertDDMMYYYYtoYMD(ccFirstIssue);
+
+            $section.find("input[name='competency_certificate_first_issue[]']")
+                .val(firstIssueYMD);
+
+            $section.find("input[name='competency_certificate_validity_from[]']")
+                .val(ccValidityFrom);
+
+            $section.find("input[name='competency_certificate_validity_to[]']")
+                .val(ccValidityTo);
+
+            console.log("CC First Issue from table:", ccFirstIssue);
+            console.log("CC First Issue for date input:", firstIssueYMD);
+            console.log("Input actual value:",
+                $section.find("input[name='competency_certificate_first_issue[]']").val()
+            );
 
             // Clear previous verification result
             $section.find("#competency_exp_result").empty();
@@ -6549,14 +6618,27 @@ $(document).on("change", ".working_under", function () {
             return dateString;
         }
 
-        function formatDateToDDMMYYYY(dateStr) {
-            if (!dateStr) return "";
-            const d = new Date(dateStr);
-            const day = String(d.getDate()).padStart(2, "0");
-            const month = String(d.getMonth() + 1).padStart(2, "0");
-            const year = d.getFullYear();
-            return `${day}-${month}-${year}`;
-        }
+            function formatDateToDDMMYYYY(dateStr) {
+
+                if (!dateStr) {
+                    return "";
+                }
+
+                // Already DD-MM-YYYY
+                if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                    return dateStr;
+                }
+
+                // YYYY-MM-DD
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+
+                    let parts = dateStr.split("-");
+
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+
+                return dateStr;
+            }
 
 
         // Cancel update
