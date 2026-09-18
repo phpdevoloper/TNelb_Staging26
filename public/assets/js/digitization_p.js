@@ -1,5 +1,6 @@
-// Form WH (Wireman Helper) Certificate Digitization modal logic.
-// Posts to dedicated Form WH routes. No Qualified Supervisor (QC) step (Form S only).
+// Form W (Wireman) Certificate Digitization modal logic.
+// Mirrors digitization.js but posts to the dedicated Form W routes and has no
+// Qualified Supervisor (QC) step — that section is specific to Form S.
 
 function hasCcDigitizationTempId() {
     var $field = $("#cc_digitization_temp_id");
@@ -44,9 +45,9 @@ $(document).ready(function () {
         });
     }
 
-    // Form WH uses the contractor-licence gate, not the Form S Qualified Supervisor step.
+    // Form P uses the contractor-licence gate, not the Form S Qualified Supervisor step.
     $("#qc_section").hide().find(":input").prop("disabled", true);
-    $("#cl_section").show();
+    $("#cl_section").show().find(":input").prop("disabled", false);
 
     $('input[name="cl_det"]').on("change", function () {
         if ($(this).val() === "yes") {
@@ -63,12 +64,15 @@ $(document).ready(function () {
     });
 
     var path = window.location.pathname;
-    var isFormWHDigitizationPage = (path === "/apply-form-wh_d" || path.endsWith("/apply-form-wh_d"));
+    var isFormPDigitizationPage = (
+        path === "/apply-form-p_d" || path.endsWith("/apply-form-p_d")
+        || path === "/apply_form_p_d" || path.endsWith("/apply_form_p_d")
+    );
 
     if (digitizationModal) {
-        // On the Form WH digitization page always show the modal on load so users
+        // On the Form W digitization page always show the modal on load so users
         // who refreshed can continue with explicit confirmation.
-        if (isFormWHDigitizationPage || !hasCcDigitizationTempId()) {
+        if (isFormPDigitizationPage || !hasCcDigitizationTempId()) {
             digitizationModal.show();
         } else {
             hideDigitizationModalIfPresent();
@@ -123,7 +127,7 @@ function loadContractorDetails() {
         data.application_id = applicationId;
     }
     $.ajax({
-        url: BASE_URL + "/digitization/wh/getContractorDetails",
+        url: BASE_URL + "/digitization/p/getContractorDetails",
         type: "GET",
         data: data,
         success: function (response) {
@@ -418,7 +422,7 @@ $(document).on("click", "#digitizationSubmit", function () {
     let formData = new FormData(formEl);
 
     $.ajax({
-        url: BASE_URL + "/digitization/wh/storeDigitization",
+        url: BASE_URL + "/digitization/p/storeDigitization",
         type: "POST",
         data: formData,
         processData: false,
@@ -437,7 +441,6 @@ $(document).on("click", "#digitizationSubmit", function () {
             if (response.status == 200) {
                 if (response.temp_app_id) {
                     $("#cc_digitization_temp_id").val(response.temp_app_id);
-                    $("#appl_type").val("D");
                     sessionStorage.setItem(
                         "cc_digitization_temp_id",
                         response.temp_app_id,

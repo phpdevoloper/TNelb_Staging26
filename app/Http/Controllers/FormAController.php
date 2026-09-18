@@ -16,6 +16,7 @@ use App\Models\Tnelb_banksolvency_a;
 use App\Models\Tnelb_cl_validitycheck;
 use App\Models\Tnelb_EA_QC_model;
 use App\Models\TnelbApplicantStaffDetail;
+use App\Services\Competency\CompetencyCertificateService;
 use Carbon\Carbon;
 use Exception;
 // use Illuminate\Contracts\Validation\Rule;
@@ -4690,14 +4691,99 @@ class FormAController extends BaseController
 
     public function expiry_date_change()
     {
+        return view('user_login.license_datechange.index');
+    }
 
-        $licensedates = DB::table('cc_forms_cert')
-            ->select('cc_id', 'application_id', 'certificate_no', 'valid_to')
-            ->orderBy('cc_id', 'ASC')
-            ->get();
+    public function getLicenseNumbersByType(string $certificateType)
+    {
+        $table = $this->certTableForLicenseDateChange($certificateType);
+        if (! $table) {
+            return response()->json(['certificates' => []]);
+        }
 
+        $certificates = DB::table($table)
+            ->select('certificate_no', DB::raw('MAX(valid_to) as valid_to'))
+            ->whereNotNull('certificate_no')
+            ->where('certificate_no', '!=', '')
+            ->groupBy('certificate_no')
+            ->orderBy('certificate_no')
+            ->get()
+            ->map(function ($row) {
+                $row->valid_to = $this->formatLicenseValidTo($row->valid_to ?? null);
 
-        return view('user_login.license_datechange.index', compact('licensedates'));
+                return $row;
+            });
+
+        return response()->json(['certificates' => $certificates]);
+    }
+
+    public function getLicenseExpiry(string $certificateType, string $licenseNumber)
+    {
+        $table = $this->certTableForLicenseDateChange($certificateType);
+        if (! $table) {
+            return response()->json(['valid_to' => null]);
+        }
+
+        $license = DB::table($table)
+            ->where('certificate_no', $licenseNumber)
+            ->orderByDesc('created_at')
+            ->select('valid_to')
+            ->first();
+
+        return response()->json([
+            'valid_to' => $this->formatLicenseValidTo($license->valid_to ?? null),
+        ]);
+    }
+
+    public function updateLicenseExpiry(Request $request)
+    {
+        $request->validate([
+            'certificate_type' => 'required|string|in:S,W,WH,P,H',
+            'license_number' => 'required|string',
+            'expires_at' => 'required|date',
+        ], [
+            'certificate_type.required' => 'Please select a certificate type.',
+            'certificate_type.in' => 'Please select a valid certificate type.',
+            'license_number.required' => 'Please select a certificate number.',
+            'expires_at.required' => 'Please choose a valid to date.',
+            'expires_at.date' => 'Please enter a valid date.',
+        ]);
+
+        $table = $this->certTableForLicenseDateChange($request->certificate_type);
+        if (! $table) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid certificate type'], 422);
+        }
+
+        $updated = DB::table($table)
+            ->where('certificate_no', $request->license_number)
+            ->update([
+                'valid_to' => $request->expires_at,
+                'updated_at' => now(),
+            ]);
+
+        if ($updated) {
+            return response()->json(['status' => 'success', 'message' => 'Expiry date updated successfully']);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'License not found'], 404);
+    }
+
+    private function certTableForLicenseDateChange(?string $certificateType): ?string
+    {
+        return app(CompetencyCertificateService::class)->certTableForForm($certificateType);
+    }
+
+    private function formatLicenseValidTo(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
 

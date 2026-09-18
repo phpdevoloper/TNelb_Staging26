@@ -735,6 +735,9 @@
             if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
                 window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
             }
+            if (typeof window.appendWorkExperienceFilesToFormData === 'function') {
+                window.appendWorkExperienceFilesToFormData(formData, $('#competency_form_ws')[0]);
+            }
             if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
                 window.appendWorkBoardMemberFieldsToFormData(formData, $('#competency_form_ws')[0]);
             }

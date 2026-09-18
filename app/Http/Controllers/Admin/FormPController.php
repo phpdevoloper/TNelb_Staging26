@@ -23,7 +23,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyWorkflowService;
+use App\Services\Competency\FormPSchema;
+use App\Services\FormS\FormSProofDocumentService;
+use App\Services\ReturnedApplicationEditScope;
 
 class FormPController extends Controller
 {
@@ -43,92 +47,18 @@ class FormPController extends Controller
 
 
         $returnForwardUser = null;
-        // Fetch applicant details
-        $applicant = DB::table('tnelb_form_p')
-            ->join('payments', 'tnelb_form_p.application_id', '=', 'payments.application_id')
-            ->where('tnelb_form_p.application_id', $applicant_id)
-            ->select('tnelb_form_p.*', 'payments.*')
-            ->first();
-
-
-
-
-        if (!$applicant) {
+        $bundle = $this->loadFormPAdminBundle($applicant_id);
+        $applicant = $bundle['applicant'];
+        if (! $applicant) {
             return abort(403, 'Applicant not found');
         }
 
-
-        // var_dump($applicant->form_id);die;
-
-        if ($applicant->appl_type == "R") {
-
-            // $ids = [$applicant->old_application, $applicant_id];
-
-            // Fetch educational qualifications
-            $educationalQualifications = DB::table('tnelb_applicants_edu')
-                ->where('application_id', $applicant_id)
-                ->get();
-
-            // Fetch work experience
-            $workExperience = DB::table('tnelb_applicants_exp')
-                ->where('application_id', $applicant_id)
-                ->get();
-
-            // Fetch documents
-            $documents = Schema::hasTable('mst_documents')
-                ? DB::table('mst_documents')->where('application_id', $applicant_id)->get()
-                : collect([]);
-
-            // Get the last uploaded photo (if available)
-            $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
-                ->whereNotNull('upload_path')
-                ->orderByDesc('id')
-                ->first();
-
-            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
-                ->whereNotNull('uploaded_doc')
-                ->orderByDesc('id')
-                ->first();
-
-            $institute_details = collect([]);
-
-            // var_dump($workExperience);die;
-
-        } else {
-
-            // Fetch educational qualifications
-            $educationalQualifications = DB::table('tnelb_applicants_edu')
-                ->where('application_id', $applicant_id)
-                ->orderBy('year_of_passing', 'desc')
-                ->get();
-
-            // Fetch work experience
-            $workExperience = DB::table('tnelb_applicants_exp')
-                ->where('application_id', $applicant_id)
-                ->get();
-
-            // Fetch documents
-            $documents = Schema::hasTable('mst_documents')
-                ? DB::table('mst_documents')->where('application_id', $applicant_id)->get()
-                : collect([]);
-
-            // Get the last uploaded photo (if available)
-            $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
-                ->whereNotNull('upload_path')
-                ->orderByDesc('id')
-                ->first();
-
-            $uploadedSign = TnelbApplicantsSign::where('application_id', $applicant_id)
-                ->whereNotNull('uploaded_doc')
-                ->orderByDesc('id')
-                ->first();
-
-            $institute_details = TnelbAppsInstitute::where('application_id', $applicant_id)
-            ->whereNotNull('upload_doc')
-            ->orderByDesc('id')
-            ->get();
-
-        }
+        $educationalQualifications = $bundle['edu'];
+        $workExperience = $bundle['exp'];
+        $documents = $bundle['documents'];
+        $uploadedPhoto = $bundle['photo'];
+        $uploadedSign = $bundle['sign'];
+        $institute_details = $bundle['institutes'];
 
 
 
@@ -191,33 +121,9 @@ class FormPController extends Controller
                 ->select('user_name as name', 'role_id as roles_id')
                 ->first();
         }
-        $user_entry = DB::table('tnelb_form_p')
-            ->where('application_id', $applicant_id) // Filter by specific application
-            ->select('*')
-            ->first();
-  
-
-        $workflows = DB::table('tnelb_workflow')
-            ->leftjoin('tnelb_form_p', 'tnelb_workflow.application_id', '=', 'tnelb_form_p.application_id')
-            ->leftjoin('mst_roles', 'tnelb_workflow.forwarded_to', '=', 'mst_roles.r_id')
-            ->where('tnelb_workflow.application_id', $applicant_id) // Filter by specific application
-            ->select('tnelb_workflow.*', 'mst_roles.role_name as name', 'tnelb_form_p.form_name', 'tnelb_form_p.license_name')
-            ->orderBy('tnelb_workflow.id', 'desc')
-            ->get();
-
-        $workflows1 = DB::table('mst_roles')
-            ->select('*')
-            ->get();
-
-
-
-        $queries = DB::table('tnelb_query_applicable as qa')
-            ->leftJoin('tnelb_form_p as ta', 'qa.application_id', '=', 'ta.application_id')
-            ->where('qa.application_id', $applicant_id)
-            ->where('qa.query_status', 'P')
-            ->select('qa.*')
-            ->orderByDesc('qa.id')
-            ->get();
+        $user_entry = $applicant;
+        $workflows = $this->loadFormPWorkflows($applicant_id);
+        $queries = $this->loadFormPQueries($applicant_id, true);
 
 
 
@@ -244,74 +150,40 @@ class FormPController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        // Applicant from Form P table (completed only) with payment details
-        $applicant = DB::table('tnelb_form_p')
-            ->leftJoin('payments', 'tnelb_form_p.application_id', '=', 'payments.application_id')
-            ->where('tnelb_form_p.application_id', $applicant_id)
-            ->where('tnelb_form_p.app_status', 'A')
-            ->select('tnelb_form_p.*', 'payments.*')
-            ->first();
-
-        if (!$applicant) {
+        $bundle = $this->loadFormPAdminBundle($applicant_id);
+        $applicant = $bundle['applicant'];
+        if (! $applicant || strtoupper((string) ($applicant->app_status ?? '')) !== 'A') {
             return abort(404, 'Applicant not found');
         }
 
-        // Educational qualifications
-        $educationalQualifications = DB::table('tnelb_applicants_edu')
-            ->where('application_id', $applicant_id)
-            ->orderBy('year_of_passing', 'desc')
-            ->get();
-
-        // Work experience
-        $workExperience = DB::table('tnelb_applicants_exp')
-            ->where('application_id', $applicant_id)
-            ->get();
-
-        // Documents
-        $documents = Schema::hasTable('mst_documents')
-            ? DB::table('mst_documents')->where('application_id', $applicant_id)->get()
-            : collect([]);
-
-        // Latest applicant photo if available
-        $uploadedPhoto = TnelbApplicantPhoto::where('application_id', $applicant_id)
-            ->whereNotNull('upload_path')
-            ->orderByDesc('id')
-            ->first();
+        $educationalQualifications = $bundle['edu'];
+        $workExperience = $bundle['exp'];
+        $documents = $bundle['documents'];
+        $uploadedPhoto = $bundle['photo'];
+        $uploadedSign = $bundle['sign'];
+        $institute_details = $bundle['institutes'];
 
         $user_entry = $applicant;
-
-        // Workflow for this Form P application
-        $workflows = DB::table('tnelb_workflow')
-            ->leftJoin('tnelb_form_p', 'tnelb_workflow.application_id', '=', 'tnelb_form_p.application_id')
-            ->leftJoin('mst__roles', 'tnelb_workflow.forwarded_to', '=', 'mst__roles.id')
-            ->where('tnelb_workflow.application_id', $applicant_id)
-            ->select('tnelb_workflow.*', 'mst__roles.name', 'tnelb_form_p.form_name', 'tnelb_form_p.license_name')
-            ->orderBy('tnelb_workflow.id', 'desc')
-            ->get();
-
-        // All queries for display (read-only)
-        $queries = DB::table('tnelb_query_applicable as qa')
-            ->leftJoin('tnelb_form_p as ta', 'qa.application_id', '=', 'ta.application_id')
-            ->where('qa.application_id', $applicant_id)
-            ->select('qa.*')
-            ->orderByDesc('qa.id')
-            ->get();
+        $workflows = $this->loadFormPWorkflows($applicant_id);
+        $queries = $this->loadFormPQueries($applicant_id, false);
 
         return view('admin.dashboard.formp.applicants_detail_completed', compact(
             'applicant',
             'educationalQualifications',
             'workExperience',
             'uploadedPhoto',
+            'uploadedSign',
             'documents',
             'workflows',
             'queries',
             'user_entry',
-            'staff'
+            'staff',
+            'institute_details'
         ));
     }
 
     /**
-     * Forward Form P application to next role (uses tnelb_workflow + tnelb_form_p).
+     * Forward Form P application to next role (`cc_workflow_formp` + `cc_form_p_meta`).
      */
     public function forwardApplicationformp(Request $request, $role)
     {
@@ -329,7 +201,7 @@ class FormPController extends Controller
             'remarks'        => 'nullable|string',
         ]);
 
-        $applicant = DB::table('tnelb_form_p')->where('application_id', $request->application_id)->first();
+        $applicant = $this->findFormPApplication($request->application_id);
         if (!$applicant) {
             return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
         }
@@ -349,12 +221,11 @@ class FormPController extends Controller
         $raised_by    = ($request->queryswitch === 'Yes') ? $processed_by : $staffID;
 
         if ($processed_by === 'AS') {
-            $last_workflow = SupervisorModel::where('application_id', $request->application_id)
-                ->orderBy('id', 'desc')
-                ->first();
-            if ($last_workflow && $last_workflow->query_status === 'P') {
+            $last_workflow = $this->latestFormPWorkflow($request->application_id);
+            if ($last_workflow && ($last_workflow->query_status ?? null) === 'P') {
                 $query_status = 'P';
-                $queryTypeJson = $last_workflow->queries;
+                $queries = $last_workflow->queries ?? null;
+                $queryTypeJson = is_array($queries) ? json_encode($queries) : $queries;
             }
         }
 
@@ -367,7 +238,7 @@ class FormPController extends Controller
             default               => 'F',
         };
 
-        app(CompetencyWorkflowService::class)->record('cc_workflow_formp', [
+        $this->recordFormPWorkflow([
             'application_id' => $request->application_id,
             'appl_status'    => $app_status_workflow,
             'processed_by'   => $processed_by,
@@ -382,13 +253,11 @@ class FormPController extends Controller
             'raised_by'      => $query_status === 'P' ? $raised_by : $processed_by,
         ]);
 
-        DB::table('tnelb_form_p')
-            ->where('application_id', $request->application_id)
-            ->update([
-                'app_status'   => $status,
-                'processed_by' => $processed_by,
-                'updated_at'   => now(),
-            ]);
+        $this->updateFormPApplication($request->application_id, [
+            'app_status'   => $status,
+            'processed_by' => $processed_by,
+            'updated_at'   => now(),
+        ]);
 
         return response()->json([
             'status'  => 'success',
@@ -414,8 +283,7 @@ class FormPController extends Controller
             'remarks'        => 'nullable|string',
         ]);
 
-        $exists = DB::table('tnelb_form_p')->where('application_id', $request->application_id)->exists();
-        if (!$exists) {
+        if (! $this->findFormPApplication($request->application_id)) {
             return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
         }
 
@@ -433,7 +301,7 @@ class FormPController extends Controller
         };
         $raised_by = ($request->queryswitch === 'Yes') ? $processed_by : $staffID;
 
-        SupervisorModel::create([
+        $this->recordFormPWorkflow([
             'application_id' => $request->application_id,
             'appl_status'    => 'RE',
             'processed_by'   => $request->return_by,
@@ -444,17 +312,15 @@ class FormPController extends Controller
             'remarks'        => $request->remarks,
             'created_at'     => $this->dbNow,
             'login_id'       => $staffID,
-            'queries'        => $queryTypeJson,
+            'queries'        => $queryTypeJson ? json_decode($queryTypeJson, true) : null,
             'raised_by'      => $query_status === 'P' ? $raised_by : '',
         ]);
 
-        DB::table('tnelb_form_p')
-            ->where('application_id', $request->application_id)
-            ->update([
-                'app_status'   => 'RE',
-                'processed_by' => $processed_by,
-                'updated_at'   => $this->dbNow,
-            ]);
+        $this->updateFormPApplication($request->application_id, [
+            'app_status'   => 'RE',
+            'processed_by' => $processed_by,
+            'updated_at'   => $this->dbNow,
+        ]);
 
         $role = DB::table('mst__roles')->where('id', $request->forwarded_to)->value('name');
         return response()->json([
@@ -465,7 +331,6 @@ class FormPController extends Controller
 
     /**
      * Return Form P application back to the applicant with query.
-     * Mirrors ApplicationController::returnToApplicant but uses tnelb_form_p / app_status.
      */
     public function returnToApplicantFormp(Request $request)
     {
@@ -483,9 +348,7 @@ class FormPController extends Controller
             'remarks'                  => 'nullable|string|max:500',
         ]);
 
-        $applicant = DB::table('tnelb_form_p')
-            ->where('application_id', $request->application_id)
-            ->first();
+        $applicant = $this->findFormPApplication($request->application_id);
 
         if (!$applicant) {
             return response()->json(['status' => 'error', 'message' => 'Application not found.'], 404);
@@ -516,8 +379,7 @@ class FormPController extends Controller
             'created_at'            => $this->dbNow,
         ]);
 
-        // Workflow entry marking returned to applicant (QU)
-        SupervisorModel::create([
+        $this->recordFormPWorkflow([
             'application_id' => $request->application_id,
             'appl_status'    => 'QU',
             'processed_by'   => $processed_by,
@@ -528,7 +390,7 @@ class FormPController extends Controller
             'remarks'        => $remarks,
             'created_at'     => $this->dbNow,
             'login_id'       => $staffID,
-            'queries'        => $queryTypeJson,
+            'queries'        => is_string($queryTypeJson) ? json_decode($queryTypeJson, true) : $queryTypeJson,
             'raised_by'      => $processed_by,
         ]);
 
@@ -542,13 +404,11 @@ class FormPController extends Controller
         ]);
 
         // Mark Form P app as under query (QU) for applicant
-        DB::table('tnelb_form_p')
-            ->where('application_id', $request->application_id)
-            ->update([
-                'app_status'   => 'QU',
-                'processed_by' => $processed_by,
-                'updated_at'   => $this->dbNow,
-            ]);
+        $this->updateFormPApplication($request->application_id, [
+            'app_status'   => 'QU',
+            'processed_by' => $processed_by,
+            'updated_at'   => $this->dbNow,
+        ]);
 
         return response()->json([
             'status'  => 'success',
@@ -567,7 +427,7 @@ class FormPController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unauthorized.'], 401);
         }
 
-        $app = DB::table('tnelb_form_p')->where('application_id', $appl_id)->first();
+        $app = $this->findFormPApplication($appl_id);
         if (!$app) {
             return response()->json(['status' => 'error', 'message' => 'Application not found.'], 404);
         }
@@ -599,9 +459,7 @@ class FormPController extends Controller
 
         if (isset($data['status']) && $data['status'] === 'success') {
             // Preserve original payment_status and mark as resubmitted
-            DB::table('tnelb_form_p')
-                ->where('application_id', $appl_id)
-                ->update([
+            $this->updateFormPApplication($appl_id, [
                     'app_status'     => 'RE',
                     'processed_by'   => 'AP',
                     'updated_at'     => $this->dbNow,
@@ -618,7 +476,7 @@ class FormPController extends Controller
                 ->value('roles_id');
 
             if ($supervisorRoleId) {
-                SupervisorModel::create([
+                $this->recordFormPWorkflow([
                     'application_id' => $appl_id,
                     'appl_status'    => 'RE',
                     'processed_by'   => 'AP',
@@ -628,9 +486,9 @@ class FormPController extends Controller
                     'query_status'   => null,
                     'remarks'        => 'Resubmitted by applicant after query (Form P).',
                     'queries'        => null,
-                    'raised_by'      => null,
+                    'raised_by'      => 'AP',
+                    'login_id'       => $loginId,
                     'created_at'     => $this->dbNow,
-                    'updated_at'     => $this->dbNow,
                 ]);
             }
 
@@ -658,24 +516,21 @@ class FormPController extends Controller
             'reason'          => 'nullable|string',
         ]);
 
-        $exists = DB::table('tnelb_form_p')->where('application_id', $request->application_id)->exists();
-        if (!$exists) {
+        if (! $this->findFormPApplication($request->application_id)) {
             return response()->json(['success' => false, 'message' => 'Applicant not found.'], 404);
         }
 
-        DB::table('tnelb_workflow')->insert([
+        $this->recordFormPWorkflow([
             'application_id' => $request->application_id,
             'processed_by'   => $request->action_by,
             'role_id'        => Auth::user()->roles_id,
             'appl_status'    => $request->appl_status,
-            'reject_reason'   => $request->reason ?? '',
+            'remarks'        => $request->reason ?? '',
             'created_at'     => $this->dbNow,
             'login_id'       => $request->login_id,
         ]);
 
-        DB::table('tnelb_form_p')
-            ->where('application_id', $request->application_id)
-            ->update([
+        $this->updateFormPApplication($request->application_id, [
                 'app_status'   => $request->appl_status,
                 'updated_at'   => $this->dbNow,
             ]);
@@ -1218,9 +1073,7 @@ class FormPController extends Controller
             'remarks'        => 'nullable|string',
         ]);
 
-        $application = DB::table('tnelb_form_p')
-            ->where('application_id', $request->application_id)
-            ->first();
+        $application = $this->findFormPApplication($request->application_id);
 
         if (!$application) {
             return response()->json(['error' => 'Application not found.'], 404);
@@ -1234,15 +1087,21 @@ class FormPController extends Controller
             ->where('cert_licence_code', 'P')
             ->value('id');
 
-        // var_dump($licenceId,$appl_type);die;
-
         if ($licenceId <= 0) {
             return response()->json(['error' => 'Licence configuration for Form P not found.'], 422);
         }
 
-        // If licence already exists for this Form P application (fresh case),
-        // do not approve again – inform the user instead.
-        if ($appl_type === 'N') {
+        $existingCcCert = DB::table('cc_form_p_cert')
+            ->where('application_id', $request->application_id)
+            ->first();
+        if ($appl_type === 'N' && $existingCcCert) {
+            return response()->json([
+                'error' => 'Licence already exists for this application ID, so it cannot be approved again.',
+            ], 422);
+        }
+
+        // If licence already exists for this Form P application (legacy fresh case),
+        if ($appl_type === 'N' && ! $existingCcCert) {
             $existingLicence = DB::table('tnelb_license')
                 ->where('application_id', $request->application_id)
                 ->first();
@@ -1265,9 +1124,7 @@ class FormPController extends Controller
             };
 
             // -------------------- BASIC APPLICATION UPDATE --------------------
-            DB::table('tnelb_form_p')
-                ->where('application_id', $request->application_id)
-                ->update([
+            $this->updateFormPApplication($request->application_id, [
                     'app_status'   => 'A',
                     'processed_by' => $processed,
                     'updated_at'   => now(),
@@ -1298,110 +1155,61 @@ class FormPController extends Controller
             $issuedAt  = null;
             $expiresAt = null;
             $newSerial = null;
+            $certService = app(CompetencyCertificateService::class);
+            $certTable = FormPSchema::CERT_TABLE;
+            $prefix = $application->license_name ?? $application->certificate_name ?? FormPSchema::LICENSE_NAME;
 
-            // -------------------- NORMAL EXPIRY CALCULATION + LICENSE CREATION --------------------
             if ($appl_type === 'R') {
-                // Renewal → base expiry from previous renewal or today
                 $oldApplicationId = $application->old_application ?? null;
-
-                $oldExpiry = $oldApplicationId
-                    ? DB::table('tnelb_renewal_license')
-                        ->where('application_id', $oldApplicationId)
-                        ->value('expires_at')
-                    : null;
-
-                $baseExpiry = $oldExpiry
-                    ? Carbon::parse($oldExpiry)
-                    : now();
-
+                $oldExpiry = null;
+                if ($oldApplicationId) {
+                    $oldExpiry = DB::table($certTable)->where('application_id', $oldApplicationId)->value('valid_to')
+                        ?: DB::table('tnelb_renewal_license')->where('application_id', $oldApplicationId)->value('expires_at');
+                }
+                $baseExpiry = $oldExpiry ? Carbon::parse($oldExpiry) : now();
                 $issuedAt  = $baseExpiry->copy()->format('Y-m-d H:i:s');
                 $expiresAt = $baseExpiry->copy()->addMonths($monthsToAdd)->format('Y-m-d');
 
-                // Prefer existing licence number on the application, otherwise fall back to last licence
-                $newSerial = $application->license_number
-                    ?? DB::table('tnelb_license')
-                        ->where('application_id', $oldApplicationId)
-                        ->value('license_number');
+                $newSerial = $application->certificate_no
+                    ?? $application->license_number
+                    ?? ($oldApplicationId ? DB::table($certTable)->where('application_id', $oldApplicationId)->value('certificate_no') : null)
+                    ?? ($oldApplicationId ? DB::table('tnelb_license')->where('application_id', $oldApplicationId)->value('license_number') : null);
 
-                if (!$newSerial) {
-                    // As a final fallback, generate a fresh licence number
-                    $prefix    = $application->license_name ?? 'P';
-                    $yearMonth = now()->format('Ym');
-                    $lastSerial = DB::table('tnelb_license')
-                        ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
-                        ->orderBy('license_number', 'desc')
-                        ->value('license_number');
-
-                    if ($lastSerial) {
-                        $lastNumber = (int) substr($lastSerial, -5);
-                        $nextNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-                    } else {
-                        $nextNumber = '00001';
-                    }
-
-                    $newSerial = "L{$prefix}{$yearMonth}{$nextNumber}";
+                if (! $newSerial) {
+                    $newSerial = $this->nextFormPCertificateNumber($prefix);
                 }
-
-                DB::table('tnelb_renewal_license')->insert([
-                    'login_id'       => $login_id,
-                    'license_number' => $newSerial,
-                    'application_id' => $request->application_id,
-                    'issued_by'      => $request->processed_by,
-                    'issued_at'      => $issuedAt,
-                    'expires_at'     => $expiresAt,
-                    'created_at'     => now(),
-                ]);
             } else {
-                // Fresh → issue today + configured months
-                // First check if licence already exists for this application (idempotent behaviour)
-                $existingLicence = DB::table('tnelb_license')
-                    ->where('application_id', $request->application_id)
-                    ->first();
-
-                if ($existingLicence) {
-                    // Reuse existing licence details, do NOT insert again
-                    $newSerial = $existingLicence->license_number;
-                    $issuedAt  = $existingLicence->issued_at;
-                    $expiresAt = $existingLicence->expires_at;
+                $existingCc = DB::table($certTable)->where('application_id', $request->application_id)->first();
+                if ($existingCc) {
+                    $newSerial = $existingCc->certificate_no;
+                    $issuedAt  = $existingCc->dateof_issue;
+                    $expiresAt = $existingCc->valid_to;
                 } else {
-                    $prefix    = $application->license_name ?? 'P';
-                    $yearMonth = now()->format('Ym');
-
-                    $lastSerial = DB::table('tnelb_license')
-                        ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
-                        ->orderBy('license_number', 'desc')
-                        ->value('license_number');
-
-                    if ($lastSerial) {
-                        $lastNumber = (int) substr($lastSerial, -5);
-                        $nextNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-                    } else {
-                        $nextNumber = '00001';
-                    }
-
-                    $newSerial = "L{$prefix}{$yearMonth}{$nextNumber}";
+                    $newSerial = $this->nextFormPCertificateNumber($prefix);
                     $issuedAt  = now()->format('Y-m-d H:i:s');
                     $expiresAt = now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-
-                    DB::table('tnelb_license')->insert([
-                        'application_id' => $request->application_id,
-                        'license_number' => $newSerial,
-                        'issued_by'      => $request->processed_by,
-                        'issued_at'      => $issuedAt,
-                        'expires_at'     => $expiresAt,
-                    ]);
                 }
-
-                // Also store licence number back on Form P application for reference
-                DB::table('tnelb_form_p')
-                    ->where('application_id', $request->application_id)
-                    ->update([
-                        'license_number' => $newSerial,
-                    ]);
             }
 
-            // -------------------- WORKFLOW LOG --------------------
-            DB::table('tnelb_workflow')->insert([
+            $certService->issueOrUpdate('P', [
+                'application_id' => $request->application_id,
+                'certificate_no' => $newSerial,
+                'dateof_issue' => $issuedAt,
+                'valid_from' => $issuedAt,
+                'valid_to' => $expiresAt,
+                'cert_status' => 'A',
+            ]);
+
+            $certFields = ['updated_at' => now()];
+            if (Schema::hasColumn(FormPSchema::META_TABLE, 'certificate_no')) {
+                $certFields['certificate_no'] = $newSerial;
+            }
+            if (Schema::hasColumn(FormPSchema::META_TABLE, 'license_number')) {
+                $certFields['license_number'] = $newSerial;
+            }
+            $this->updateFormPApplication($request->application_id, $certFields);
+
+            $this->recordFormPWorkflow([
                 'application_id' => $request->application_id,
                 'processed_by'   => $request->processed_by,
                 'role_id'        => Auth::user()->roles_id,
@@ -1447,5 +1255,242 @@ class FormPController extends Controller
                 'msg'   => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function findFormPApplication(string $applicationId): ?object
+    {
+        return DB::table(FormPSchema::META_TABLE)->where('application_id', $applicationId)->first()
+            ?: DB::table('tnelb_form_p')->where('application_id', $applicationId)->first();
+    }
+
+    private function updateFormPApplication(string $applicationId, array $fields): void
+    {
+        foreach ([FormPSchema::META_TABLE, 'tnelb_form_p'] as $table) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+            if (! DB::table($table)->where('application_id', $applicationId)->exists()) {
+                continue;
+            }
+            $payload = [];
+            foreach ($fields as $col => $val) {
+                if (Schema::hasColumn($table, $col)) {
+                    $payload[$col] = $val;
+                }
+            }
+            if ($payload !== []) {
+                DB::table($table)->where('application_id', $applicationId)->update($payload);
+            }
+        }
+    }
+
+    private function recordFormPWorkflow(array $payload): void
+    {
+        $applicationId = (string) ($payload['application_id'] ?? '');
+        if ($applicationId !== '' && DB::table(FormPSchema::META_TABLE)->where('application_id', $applicationId)->exists()) {
+            app(CompetencyWorkflowService::class)->record(FormPSchema::WORKFLOW_TABLE, $payload);
+
+            return;
+        }
+        SupervisorModel::create($payload);
+    }
+
+    private function nextFormPCertificateNumber(string $prefix): string
+    {
+        $yearMonth = now()->format('Ym');
+        $like = 'C'.$prefix.$yearMonth.'%';
+        $lastSerial = DB::table(FormPSchema::CERT_TABLE)
+            ->where('certificate_no', 'LIKE', $like)
+            ->orderByDesc('certificate_no')
+            ->value('certificate_no');
+        $nextNumber = $lastSerial
+            ? str_pad((int) substr((string) $lastSerial, -5) + 1, 5, '0', STR_PAD_LEFT)
+            : '00001';
+
+        return 'C'.$prefix.$yearMonth.$nextNumber;
+    }
+
+    /**
+     * @return array{
+     *     applicant: ?object,
+     *     edu: \Illuminate\Support\Collection,
+     *     exp: \Illuminate\Support\Collection,
+     *     documents: \Illuminate\Support\Collection,
+     *     photo: mixed,
+     *     sign: mixed,
+     *     institutes: \Illuminate\Support\Collection
+     * }
+     */
+    private function loadFormPAdminBundle(string $applicantId): array
+    {
+        $fromCc = true;
+        $applicant = DB::table(FormPSchema::META_TABLE)->where('application_id', $applicantId)->first();
+        if (! $applicant) {
+            $fromCc = false;
+            $applicant = DB::table('tnelb_form_p')->where('application_id', $applicantId)->first();
+        }
+
+        if ($applicant) {
+            if (empty($applicant->applicants_address) && ! empty($applicant->applicant_address)) {
+                $applicant->applicants_address = $applicant->applicant_address;
+            }
+            if (empty($applicant->license_name) && ! empty($applicant->certificate_name)) {
+                $applicant->license_name = $applicant->certificate_name;
+            }
+            if (Schema::hasTable('cc_payments')) {
+                $payQuery = DB::table('cc_payments')->where('application_id', $applicantId);
+                if (Schema::hasColumn('cc_payments', 'p_id')) {
+                    $payQuery->orderByDesc('p_id');
+                }
+                $pay = $payQuery->first();
+                if ($pay) {
+                    $applicant->payment_status = $applicant->payment_status ?? ($pay->payment_status ?? null);
+                    $applicant->amount = $applicant->amount ?? ($pay->amount_paid ?? $pay->amount ?? null);
+                }
+            }
+        }
+
+        $edu = collect();
+        $exp = collect();
+        $documents = collect();
+        $photo = null;
+        $sign = null;
+
+        if ($applicant && $fromCc) {
+            $edu = Schema::hasTable('cc_edu')
+                ? DB::table('cc_edu')->where('application_id', $applicantId)->get()
+                : collect();
+            $exp = Schema::hasTable('cc_exp')
+                ? DB::table('cc_exp')->where('application_id', $applicantId)->get()
+                : collect();
+            $proofService = app(FormSProofDocumentService::class);
+            $photo = $proofService->loadPhotoForView($applicantId);
+            $sign = $proofService->loadSignForView($applicantId);
+            $documents = Schema::hasTable('cc_proof_doc')
+                ? DB::table('cc_proof_doc')->where('application_id', $applicantId)->get()
+                : collect();
+            foreach ($documents as $proof) {
+                $proofType = strtolower((string) ($proof->proof_type ?? ''));
+                $proofName = strtoupper((string) ($proof->proof_name ?? ''));
+                if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
+                    if (! empty($proof->proof_no) && empty($applicant->aadhaar)) {
+                        $applicant->aadhaar = $proof->proof_no;
+                    }
+                    if (! empty($proof->proof_doc)) {
+                        $applicant->aadhaar_doc = $proof->proof_doc;
+                    }
+                } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
+                    if (! empty($proof->proof_no) && empty($applicant->pancard)) {
+                        $applicant->pancard = $proof->proof_no;
+                    }
+                    if (! empty($proof->proof_doc)) {
+                        $applicant->pan_doc = $proof->proof_doc;
+                        $applicant->pancard_doc = $proof->proof_doc;
+                    }
+                }
+            }
+            $aadhaarPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_AADHAAR);
+            if ($aadhaarPath) {
+                $applicant->aadhaar_doc = $aadhaarPath;
+            }
+            $panPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_PAN);
+            if ($panPath) {
+                $applicant->pan_doc = $panPath;
+                $applicant->pancard_doc = $panPath;
+            }
+        } elseif ($applicant) {
+            $edu = Schema::hasTable('tnelb_applicants_edu')
+                ? DB::table('tnelb_applicants_edu')->where('application_id', $applicantId)->get()
+                : collect();
+            $exp = Schema::hasTable('tnelb_applicants_exp')
+                ? DB::table('tnelb_applicants_exp')->where('application_id', $applicantId)->get()
+                : collect();
+            $photo = TnelbApplicantPhoto::where('application_id', $applicantId)->first();
+            $sign = TnelbApplicantsSign::where('application_id', $applicantId)->first();
+        }
+
+        $edu = $edu->map(function ($row) {
+            if (is_object($row) && empty($row->id) && ! empty($row->edu_id)) {
+                $row->id = $row->edu_id;
+            }
+
+            return $row;
+        });
+        $exp = $exp->map(function ($row) {
+            if (! is_object($row)) {
+                return $row;
+            }
+            if (empty($row->id) && ! empty($row->exp_id)) {
+                $row->id = $row->exp_id;
+            }
+            if (empty($row->upload_document) && ! empty($row->support_document)) {
+                $row->upload_document = $row->support_document;
+            }
+            if (empty($row->company_name) && ! empty($row->org_name)) {
+                $row->company_name = $row->org_name;
+            }
+
+            return $row;
+        });
+
+        $institutes = Schema::hasTable('tnelb_applicant_institute')
+            ? TnelbAppsInstitute::where('application_id', $applicantId)
+                ->where(function ($q) {
+                    $q->where('institute_status', 1)->orWhereNull('institute_status');
+                })
+                ->get()
+            : collect();
+
+        return [
+            'applicant' => $applicant,
+            'edu' => $edu,
+            'exp' => $exp,
+            'documents' => $documents,
+            'photo' => $photo,
+            'sign' => $sign,
+            'institutes' => $institutes,
+        ];
+    }
+
+    private function loadFormPWorkflows(string $applicationId)
+    {
+        $workflows = app(CompetencyWorkflowService::class)->historyForApplication('P', $applicationId);
+        if ($workflows->isNotEmpty()) {
+            return $workflows;
+        }
+
+        if (! Schema::hasTable('tnelb_workflow')) {
+            return collect();
+        }
+
+        return DB::table('tnelb_workflow')
+            ->where('application_id', $applicationId)
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    private function latestFormPWorkflow(string $applicationId): ?object
+    {
+        if (Schema::hasTable(FormPSchema::WORKFLOW_TABLE)
+            && DB::table(FormPSchema::WORKFLOW_TABLE)->where('application_id', $applicationId)->exists()
+        ) {
+            return DB::table(FormPSchema::WORKFLOW_TABLE)
+                ->where('application_id', $applicationId)
+                ->orderByDesc('w_id')
+                ->first();
+        }
+
+        return SupervisorModel::where('application_id', $applicationId)->orderByDesc('id')->first();
+    }
+
+    private function loadFormPQueries(string $applicationId, bool $pendingOnly = false)
+    {
+        $q = DB::table('tnelb_query_applicable')
+            ->where('application_id', $applicationId);
+        if ($pendingOnly) {
+            $q->where('query_status', 'P');
+        }
+
+        return $q->orderByDesc('id')->get();
     }
 }

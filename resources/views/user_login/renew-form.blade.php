@@ -995,7 +995,7 @@
 
                     {{-- ═══ SECTION 1 — Applicant Details ═══ --}}
                     @php
-                        $hasApplicantEmail = in_array($renewFormName, ['S', 'W'], true);
+                        $hasApplicantEmail = in_array($renewFormName, ['S', 'W', 'WH'], true);
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
                         $emailVal = '';

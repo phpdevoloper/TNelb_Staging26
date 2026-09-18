@@ -288,7 +288,7 @@
 
                                                                 @if($institutes->upload_doc)
                                                                 <!-- Show Image -->
-                                                                <a href="{{ url($institutes->upload_doc) }}" target="_blank" style="font-size: small;">
+                                                                <a href="{{ competency_document_url($institutes->upload_doc, 'experience', (int) ($institutes->id ?? 0), 'supporting') }}" target="_blank" style="font-size: small;">
                                                                     <i class="fa fa-file-pdf-o" style="color:red"></i> View Document
                                                                 </a>
                                                                 @else
@@ -326,7 +326,7 @@
                                                             <td>{{ format_total_exp_years($exp->experience ?? $exp->total_exp) ?? '—' }}</td>
                                                             <td style="text-align:center;">
                                                                 @if(!empty($exp->upload_document))
-                                                                <a href="{{ url($exp->upload_document) }}" target="_blank" style="font-size: small;">
+                                                                <a href="{{ competency_document_url($exp->upload_document ?? $exp->support_document ?? null, 'experience', (int) ($exp->id ?? $exp->exp_id ?? 0), 'experience_doc') }}" target="_blank" style="font-size: small;">
                                                                     <i class="fa fa-file-pdf-o" style="color:red"></i> View Document
                                                                 </a>
                                                                 @else

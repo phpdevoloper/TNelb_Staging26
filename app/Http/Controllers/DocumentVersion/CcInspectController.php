@@ -11,6 +11,8 @@ use App\Services\Competency\CompetencyApplicationPurgeService;
 use App\Services\Competency\CompetencyMetaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class CcInspectController extends Controller
@@ -32,6 +34,12 @@ class CcInspectController extends Controller
         $relatedApplicationIds = [];
         $childApplicationIds = [];
         $notFound = false;
+        $docLogColumns = [];
+        $docLogs = collect();
+
+        if (Schema::hasTable('cc_doc_log')) {
+            $docLogColumns = Schema::getColumnListing('cc_doc_log');
+        }
 
         if ($applicationId !== '') {
             $meta = $this->metaService->findModel($applicationId);
@@ -45,6 +53,7 @@ class CcInspectController extends Controller
                 $proofs = CC_Proof_doc::where('application_id', $id)->orderBy('p_id')->get();
                 $relatedApplicationIds = $this->purgeService->relatedApplicationIds($id);
                 $childApplicationIds = $this->purgeService->childrenOf($id);
+                $docLogs = $this->docLogsForApplication($meta);
             }
         }
 
@@ -58,7 +67,33 @@ class CcInspectController extends Controller
             'relatedApplicationIds' => $relatedApplicationIds,
             'childApplicationIds' => $childApplicationIds,
             'notFound' => $notFound,
+            'docLogColumns' => $docLogColumns,
+            'docLogs' => $docLogs,
         ]);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function docLogsForApplication(object $meta)
+    {
+        if (! Schema::hasTable('cc_doc_log')) {
+            return collect();
+        }
+
+        $keys = array_values(array_unique(array_filter([
+            (string) $meta->application_id,
+            isset($meta->app_id) ? (string) $meta->app_id : '',
+        ], static fn (string $value) => $value !== '')));
+
+        if ($keys === []) {
+            return collect();
+        }
+
+        return DB::table('cc_doc_log')
+            ->whereIn('application_id', $keys)
+            ->orderByDesc('doc_id')
+            ->get();
     }
 
     public function destroy(DeleteCcInspectRequest $request): RedirectResponse

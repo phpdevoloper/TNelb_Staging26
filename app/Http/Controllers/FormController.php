@@ -35,6 +35,7 @@ use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\FormWExperienceRules;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
+use App\Services\Competency\FormPSchema;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\FormSWorkTillDate;
@@ -93,6 +94,14 @@ class FormController extends BaseController
             return app(FormWHController::class)->{$method}($request, ...$args);
         }
 
+        if (FormPSchema::isFormP($request->form_name ?? $request->input('form_name'))) {
+            if ($request->attributes->get(FormPSchema::VIA_CONTROLLER_ATTR)) {
+                return null;
+            }
+
+            return app(FormPController::class)->{$method}($request, ...$args);
+        }
+
         if (! FormWSchema::isFormW($request->form_name ?? $request->input('form_name'))) {
             return null;
         }
@@ -102,6 +111,68 @@ class FormController extends BaseController
         }
 
         return app(FormWController::class)->{$method}($request, ...$args);
+    }
+
+    private function prepareFormPRequest(Request $request): void
+    {
+        if (! FormPSchema::isFormP($request->form_name ?? $request->input('form_name'))) {
+            return;
+        }
+
+        if ($request->input('month_of_passing') === null && $request->exists('month_passing')) {
+            $request->merge(['month_of_passing' => (array) $request->input('month_passing', [])]);
+        }
+        if (! $request->filled('form_id')) {
+            $request->merge(['form_id' => FormPSchema::FORM_ID]);
+        }
+        if (! $request->filled('license_name')) {
+            $request->merge(['license_name' => FormPSchema::LICENSE_NAME]);
+        }
+        if (! $request->filled('form_name')) {
+            $request->merge(['form_name' => FormPSchema::FORM_NAME]);
+        }
+    }
+
+    private function persistFormPMetaExtras(string $applicationId, Request $request): void
+    {
+        if ($applicationId === '' || ! FormPSchema::isFormP($request->form_name ?? $request->input('form_name'))) {
+            return;
+        }
+
+        $table = FormPSchema::META_TABLE;
+        $payload = [];
+        // Form posts employer_name; legacy + views persist/read employer_detail.
+        if (Schema::hasColumn($table, 'employer_detail')
+            && ($request->exists('employer_name') || $request->exists('employer_detail'))) {
+            $payload['employer_detail'] = $request->input('employer_name', $request->input('employer_detail'));
+        }
+        if (Schema::hasColumn($table, 'previously_number') && $request->exists('previously_number')) {
+            $payload['previously_number'] = $request->input('previously_number');
+        }
+        if (Schema::hasColumn($table, 'previously_date') && $request->exists('previously_date')) {
+            $payload['previously_date'] = $request->input('previously_date');
+        }
+        if ($payload === []) {
+            return;
+        }
+        $payload['updated_at'] = $this->dbNow;
+        DB::table($table)->where('application_id', $applicationId)->update($payload);
+    }
+
+    /** Form P education month/certificate_no are optional; other competency forms still require month. */
+    private function educationRowMissingRequiredFields(Request $request, $key, $level): bool
+    {
+        if (empty($level)
+            || empty($request->institute_name[$key] ?? null)
+            || empty($request->year_of_passing[$key] ?? null)
+        ) {
+            return true;
+        }
+        if (FormPSchema::isFormP($request->form_name ?? '')) {
+            return false;
+        }
+
+        return empty($request->month_of_passing[$key] ?? null);
     }
 
     private function formSDocumentHandler(): FormSDocumentUploadHandler
@@ -360,16 +431,22 @@ class FormController extends BaseController
 
     private function resolveEducationUploadFileFromRequest(Request $request, $key): ?UploadedFile
     {
-        $directFile = $request->file('education_document.'.$key);
-        if ($directFile && $directFile->isValid()) {
-            return $directFile;
+        $keys = array_values(array_unique([$key, (int) $key, (string) $key], SORT_REGULAR));
+
+        foreach ($keys as $fileKey) {
+            $directFile = $request->file('education_document.'.$fileKey);
+            if ($directFile instanceof UploadedFile && $directFile->isValid()) {
+                return $directFile;
+            }
         }
 
         $indexed = $request->file('education_document');
-        if (is_array($indexed) && isset($indexed[$key])) {
-            $candidate = $indexed[$key];
-            if ($candidate && $candidate->isValid()) {
-                return $candidate;
+        if (is_array($indexed)) {
+            foreach ($keys as $fileKey) {
+                $candidate = $indexed[$fileKey] ?? null;
+                if ($candidate instanceof UploadedFile && $candidate->isValid()) {
+                    return $candidate;
+                }
             }
         }
 
@@ -541,8 +618,8 @@ class FormController extends BaseController
         if (strtoupper((string) ($request->appl_type ?? '')) !== 'D') {
             return null;
         }
-        $formName = strtoupper((string) ($request->form_name ?? ''));
-        if (! in_array($formName, ['S', 'W'], true)) {
+        $formName = FormWHSchema::canonical($request->form_name ?? '');
+        if (! in_array($formName, ['S', 'W', 'WH'], true)) {
             return null;
         }
 
@@ -628,7 +705,7 @@ class FormController extends BaseController
     private function pruneHiddenFormSCurrentSectionLegacyRows(Request $request): void
     {
         $formName = strtoupper((string) ($request->form_name ?? ''));
-        if (! in_array($formName, ['S', 'W'], true)) {
+        if (! in_array($formName, ['S', 'W', 'WH'], true)) {
             return;
         }
         if (strtolower(trim((string) $request->input('current_work_board_member', 'no'))) === 'yes') {
@@ -871,36 +948,17 @@ class FormController extends BaseController
      */
     private function decodeFormSContractorEmpCate(?string $stored): array
     {
-        if ($stored === null || $stored === '') {
-            return ['category' => null, 'licence' => null];
-        }
-        if (str_contains($stored, '||')) {
-            $parts = explode('||', $stored, 2);
+        $decoded = form_s_decode_contractor_emp_cate($stored);
 
-            return [
-                'category' => (($parts[0] ?? '') !== '') ? $parts[0] : null,
-                'licence' => (($parts[1] ?? '') !== '') ? $parts[1] : null,
-            ];
-        }
-
-        return ['category' => $stored, 'licence' => null];
+        return [
+            'category' => $decoded['category'] !== '' ? $decoded['category'] : null,
+            'licence' => $decoded['licence'] !== '' ? $decoded['licence'] : null,
+        ];
     }
 
     private function encodeFormSContractorEmpCate(?string $category, ?string $licence): ?string
     {
-        $category = $category !== null ? trim($category) : '';
-        $licence = $licence !== null ? trim($licence) : '';
-        if ($category === '' && $licence === '') {
-            return null;
-        }
-        if ($licence === '') {
-            return $category;
-        }
-        if ($category === '') {
-            return ','.$licence;
-        }
-
-        return $category.','.$licence;
+        return form_s_encode_contractor_emp_cate($category, $licence);
     }
 
     /**
@@ -951,6 +1009,26 @@ class FormController extends BaseController
     }
 
     /**
+     * File inputs are posted as work_document[0], work_document[2], … so a file on
+     * card 2 is not packed as work_document[0].
+     */
+    private function requestWorkRowFile(Request $request, string $field, $key): ?UploadedFile
+    {
+        $files = $request->file($field);
+        if ($files instanceof UploadedFile) {
+            return ((string) $key === '0' || (int) $key === 0) ? $files : null;
+        }
+        if (! is_array($files)) {
+            $named = $request->file($field.'.'.$key);
+            return $named instanceof UploadedFile ? $named : null;
+        }
+
+        $file = $files[$key] ?? $files[(string) $key] ?? $files[(int) $key] ?? null;
+
+        return $file instanceof UploadedFile ? $file : null;
+    }
+
+    /**
      * @return array{support_document: ?string, releive_document: ?string, pending_support_upload: ?UploadedFile, pending_relieve_upload: ?UploadedFile}
      */
     private function resolveWorkRowDocuments(
@@ -973,19 +1051,18 @@ class FormController extends BaseController
             && $this->isValidCompetencyAjaxDocPath($existingSupport, 'work')) {
             $support = $existingSupport;
         }
-        if (isset($request->file('work_document')[$key])) {
-            $file = $request->file('work_document')[$key];
-            if ($file && $file->isValid()) {
-                if ($useVersioned) {
-                    $pendingSupportUpload = $file;
-                    if ($support === null && $existing !== null && ! $supportRemoved) {
-                        $support = $existing->support_document ?? $existing->upload_document;
-                    }
-                } else {
-                    $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
-                    $file->move(public_path('work_experience'), $filename);
-                    $support = 'work_experience/'.$filename;
+        $uploadedSupport = $this->requestWorkRowFile($request, 'work_document', $key);
+        if ($uploadedSupport && $uploadedSupport->isValid()) {
+            $file = $uploadedSupport;
+            if ($useVersioned) {
+                $pendingSupportUpload = $file;
+                if ($support === null && $existing !== null && ! $supportRemoved) {
+                    $support = $existing->support_document ?? $existing->upload_document;
                 }
+            } else {
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+                $file->move(public_path('work_experience'), $filename);
+                $support = 'work_experience/'.$filename;
             }
         }
         if ($support === null && $existing !== null && ! $supportRemoved) {
@@ -998,19 +1075,18 @@ class FormController extends BaseController
             && $this->isValidCompetencyAjaxDocPath($existingRelieve, 'work')) {
             $relieve = $existingRelieve;
         }
-        if (isset($request->file('work_relieving_letter')[$key])) {
-            $file = $request->file('work_relieving_letter')[$key];
-            if ($file && $file->isValid()) {
-                if ($useVersioned) {
-                    $pendingRelieveUpload = $file;
-                    if ($relieve === null && $existing !== null && ! $relieveRemoved) {
-                        $relieve = $existing->releive_document;
-                    }
-                } else {
-                    $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
-                    $file->move(public_path('work_experience'), $filename);
-                    $relieve = 'work_experience/'.$filename;
+        $uploadedRelieve = $this->requestWorkRowFile($request, 'work_relieving_letter', $key);
+        if ($uploadedRelieve && $uploadedRelieve->isValid()) {
+            $file = $uploadedRelieve;
+            if ($useVersioned) {
+                $pendingRelieveUpload = $file;
+                if ($relieve === null && $existing !== null && ! $relieveRemoved) {
+                    $relieve = $existing->releive_document;
                 }
+            } else {
+                $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+                $file->move(public_path('work_experience'), $filename);
+                $relieve = 'work_experience/'.$filename;
             }
         }
         if ($relieve === null && $existing !== null && ! $relieveRemoved) {
@@ -1108,7 +1184,8 @@ class FormController extends BaseController
         $normalizedForm = strtoupper((string) $formName);
         $isFormS = $normalizedForm === 'S';
         $isFormW = FormWSchema::isFormW($normalizedForm);
-        $isCardWorkForm = $isFormS || $isFormW;
+        $isFormWH = FormWHSchema::isFormWH($normalizedForm);
+        $isCardWorkForm = $isFormS || $isFormW || $isFormWH;
         /** Form S, W, WH, P: persist decimal years to `total_exp` (uses `work_experience_total[]` first). */
         $storesTotalExp = in_array($normalizedForm, ['S', 'W', 'WH', 'P'], true);
 
@@ -1233,15 +1310,17 @@ class FormController extends BaseController
             $applicationId
         );
 
-        $orgName = $workRow['org_name'] ?? $workRow['company_name'] ?? '';
-        $expYears = $workRow['experience'];
-        $designation = $workRow['designation'];
+        $orgName = trim((string) ($workRow['org_name'] ?? $workRow['company_name'] ?? ''));
+        $expYears = trim((string) ($workRow['experience'] ?? ''));
+        $designation = trim((string) ($workRow['designation'] ?? ''));
+        $expYearsEmpty = $expYears === '' || (is_numeric($expYears) && (float) $expYears == 0.0);
 
         if ($requireAllFields) {
-            if ($orgName === '' || $expYears === '' || $designation === '') {
+            if ($orgName === '' || $expYearsEmpty || $designation === '') {
                 return;
             }
-        } elseif ($orgName === '' && $expYears === '' && $designation === '') {
+        } elseif ($orgName === '' && $designation === '') {
+            /* Placeholder 7a/7b cards often post duration 0 — do not insert a blank row. */
             return;
         }
 
@@ -1398,7 +1477,7 @@ class FormController extends BaseController
         }
 
         $isFormS = strtoupper((string) $formName) === 'S';
-        $isCardWorkForm = $isFormS || FormWSchema::isFormW($formName);
+        $isCardWorkForm = $isFormS || FormWSchema::isFormW($formName) || FormWHSchema::isFormWH($formName);
         $experienceModel = $this->resolveExperienceModelClass($workflowForm, $formName);
         $masterApplicationId = $this->resolveFormSMasterApplicationIdFromWorkflow(
             $workflowForm,
@@ -1435,7 +1514,7 @@ class FormController extends BaseController
                 $formName
             );
 
-            $hasAnyData = $orgName !== '' || $expYears !== '' || $designation !== ''
+            $hasAnyData = $orgName !== '' || $designation !== ''
                 || ! empty($documents['support_document']) || ! empty($documents['releive_document']);
             if (! $hasAnyData) {
                 continue;
@@ -1493,6 +1572,31 @@ class FormController extends BaseController
     }
 
     /**
+     * Existing till-date rows may only change Till date, To date, Relieving, and duration.
+     *
+     * @param  array<string, mixed>  $workRow
+     * @return array<string, mixed>
+     */
+    private function overlayLockedTillDateExperienceFromParent(array $workRow, CC_Experience $parentExp): array
+    {
+        $workRow['emp_type'] = $parentExp->emp_type;
+        $workRow['emp_cate'] = $parentExp->emp_cate;
+        $workRow['member_name'] = $parentExp->member_name;
+        $workRow['org_name'] = $parentExp->org_name;
+        $workRow['company_name'] = $parentExp->org_name;
+        $workRow['org_address'] = $parentExp->org_address;
+        $workRow['designation'] = $parentExp->designation;
+        $workRow['from_date'] = $this->calendarDateYmd($parentExp->from_date);
+        $workRow['nature_work'] = $parentExp->nature_work;
+        $workRow['voltage_level'] = $parentExp->voltage_level;
+        $workRow['transformer_kva'] = $parentExp->transformer_kva;
+        $workRow['board_meeting_details'] = $parentExp->board_meeting_details;
+        $workRow['board_meeting_date'] = $this->calendarDateYmd($parentExp->board_meeting_date);
+
+        return $workRow;
+    }
+
+    /**
      * Renewal submit: store a full experience snapshot on the renewal application_id.
      * Copied parent rows keep the parent document path (no re-upload). Newly chosen files
      * are stored under FORM_S/RENEWAL/…. Parent cc_exp is not updated.
@@ -1514,12 +1618,6 @@ class FormController extends BaseController
 
         foreach ($this->getWorkRowIndexes($request) as $key) {
             $workRow = $this->mapWorkExperienceRow($request, $key, $formName);
-            $orgName = trim((string) ($workRow['org_name'] ?? $workRow['company_name'] ?? ''));
-            $designation = trim((string) ($workRow['designation'] ?? ''));
-            if ($orgName === '' || $designation === '') {
-                continue;
-            }
-
             $workId = trim((string) ($request->work_id[$key] ?? ''));
             $parentExp = null;
             if ($workId !== '') {
@@ -1527,11 +1625,38 @@ class FormController extends BaseController
                 $parentExp = $this->childDocumentSnapshotService()
                     ->resolveParentExperienceFromPostedId($found, $parentId);
             }
+            if (! $parentExp) {
+                $parentExp = $this->matchParentExperienceFromPostedRow($parentId, $workRow, $copiedSourceIds);
+            }
+
+            $isTillDateRow = $parentExp && (
+                (int) ($parentExp->work_to_till_date ?? 0) === 1
+                || (! empty($parentExp->from_date) && empty($parentExp->to_date))
+            );
+            if ($isTillDateRow) {
+                $workRow = $this->overlayLockedTillDateExperienceFromParent($workRow, $parentExp);
+            }
+
+            $orgName = trim((string) ($workRow['org_name'] ?? $workRow['company_name'] ?? ''));
+            $designation = trim((string) ($workRow['designation'] ?? ''));
+            if ($orgName === '' || $designation === '') {
+                continue;
+            }
 
             if ($parentExp) {
-                $isTillDateRow = (int) ($parentExp->work_to_till_date ?? 0) === 1
-                    || (! empty($parentExp->from_date) && empty($parentExp->to_date));
-                if (! $isTillDateRow) {
+                $pendingDocs = $this->resolveWorkRowDocuments(
+                    $request,
+                    $key,
+                    $parentExp,
+                    isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1',
+                    isset($request->removed_document_work_relieving[$key])
+                        && $request->removed_document_work_relieving[$key] == '1',
+                    $child,
+                    $formName
+                );
+                $hasPendingUpload = ! empty($pendingDocs['pending_support_upload'])
+                    || ! empty($pendingDocs['pending_relieve_upload']);
+                if (! $isTillDateRow && ! $hasPendingUpload) {
                     $copiedSourceIds[(int) $parentExp->exp_id] = true;
                     CC_Experience::create([
                         'login_id' => $loginId,
@@ -1582,6 +1707,11 @@ class FormController extends BaseController
                 if (empty($documents['pending_relieve_upload']) && empty($documents['releive_document']) && ! $relieveRemoved) {
                     $documents['releive_document'] = $parentExp->relieve_document ?? $parentExp->releive_document;
                 }
+            }
+
+            if ($isTillDateRow && $parentExp) {
+                $documents['pending_support_upload'] = null;
+                $documents['support_document'] = $parentExp->support_document ?? $parentExp->upload_document;
             }
 
             $sourceExpId = $parentExp ? (int) $parentExp->exp_id : 0;
@@ -1645,6 +1775,59 @@ class FormController extends BaseController
                 'relieve_document' => $parentExp->relieve_document ?? $parentExp->releive_document,
             ]);
         }
+    }
+
+    /**
+     * When locked renewal rows omit work_id[], match the parent row by org/dates
+     * so the snapshot does not insert a posted copy and then copy the parent again.
+     *
+     * @param  array<int, bool>  $copiedSourceIds
+     */
+    private function matchParentExperienceFromPostedRow(
+        string $parentId,
+        array $workRow,
+        array $copiedSourceIds
+    ): ?CC_Experience {
+        $orgName = trim((string) ($workRow['org_name'] ?? $workRow['company_name'] ?? ''));
+        $designation = trim((string) ($workRow['designation'] ?? ''));
+        if ($orgName === '' || $designation === '') {
+            return null;
+        }
+
+        $query = CC_Experience::where('application_id', $parentId)
+            ->where('org_name', $orgName)
+            ->where('designation', $designation);
+
+        $claimed = array_keys(array_filter($copiedSourceIds));
+        if ($claimed !== []) {
+            $query->whereNotIn('exp_id', $claimed);
+        }
+
+        $from = $this->calendarDateYmd($workRow['from_date'] ?? null);
+        if ($from !== null) {
+            $query->whereDate('from_date', $from);
+        }
+
+        $candidates = $query->orderBy('exp_id')->get();
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        $to = $this->calendarDateYmd($workRow['to_date'] ?? null);
+        if ($to !== null) {
+            $byTo = $candidates->first(function ($row) use ($to) {
+                return $this->calendarDateYmd($row->to_date) === $to;
+            });
+            if ($byTo) {
+                return $byTo;
+            }
+        }
+
+        if ($candidates->count() === 1) {
+            return $candidates->first();
+        }
+
+        return null;
     }
 
     /**
@@ -1747,9 +1930,7 @@ class FormController extends BaseController
                     $education->fresh(),
                     $pendingEduFile
                 );
-                if ($approvedPath !== null
-                    && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
-                ) {
+                if ($approvedPath !== null && trim((string) $approvedPath) !== '') {
                     $education->update(['upload_document' => $approvedPath]);
                 }
             }
@@ -1769,6 +1950,11 @@ class FormController extends BaseController
             return;
         }
         if (FormWHSchema::isFormWH($request->form_name ?? '')) {
+            app(FormWExperienceRules::class)->validatePostedRows($request, $validator);
+
+            return;
+        }
+        if (FormPSchema::isFormP($request->form_name ?? '')) {
             app(FormWExperienceRules::class)->validatePostedRows($request, $validator);
 
             return;
@@ -2030,6 +2216,141 @@ class FormController extends BaseController
                 $validator->errors()->add(
                     'work_date_from.'.$curr['key'],
                     'From date must be after the previous row\'s To date ('.$prev['to']->format('d-M-Y').'). Experience periods must not overlap.'
+                );
+            }
+        }
+    }
+
+    /**
+     * Form P institute training From/To dates.
+     * Submit: every started row needs both dates, and To must be on/after From.
+     * Draft: dates stay optional; if either date is given, both must be valid and ordered.
+     */
+    private function validateFormPInstituteDates(Request $request, \Illuminate\Validation\Validator $validator, bool $requireComplete): void
+    {
+        if (! FormPSchema::isFormP($request->form_name ?? '')) {
+            return;
+        }
+
+        $names = (array) $request->input('institute_name_address', []);
+        $fromDates = (array) $request->input('from_date', []);
+        $toDates = (array) $request->input('to_date', []);
+
+        $completeRows = 0;
+        foreach ($names as $key => $name) {
+            $name = trim((string) ($name ?? ''));
+            $fromYmd = calendar_date_ymd($fromDates[$key] ?? null);
+            $toYmd = calendar_date_ymd($toDates[$key] ?? null);
+            $rowStarted = $name !== '' || $fromYmd !== '' || $toYmd !== '';
+            if (! $rowStarted) {
+                continue;
+            }
+
+            $mustHaveDates = $requireComplete || $fromYmd !== '' || $toYmd !== '';
+            if (! $mustHaveDates) {
+                continue;
+            }
+
+            if ($fromYmd === '') {
+                $validator->errors()->add('from_date.'.$key, 'From date is required.');
+            }
+            if ($toYmd === '') {
+                $validator->errors()->add('to_date.'.$key, 'To date is required.');
+            }
+            if ($fromYmd === '' || $toYmd === '') {
+                continue;
+            }
+
+            $from = $this->calendarDateStartOfDay($fromYmd);
+            $to = $this->calendarDateStartOfDay($toYmd);
+            if ($from === null) {
+                $validator->errors()->add('from_date.'.$key, 'From date is required.');
+                continue;
+            }
+            if ($to === null) {
+                $validator->errors()->add('to_date.'.$key, 'To date is required.');
+                continue;
+            }
+            if ($to->lt($from)) {
+                $validator->errors()->add(
+                    'to_date.'.$key,
+                    'To date must be greater than or equal to From date.'
+                );
+                continue;
+            }
+
+            $completeRows++;
+        }
+
+        if ($requireComplete && $completeRows === 0) {
+            $validator->errors()->add(
+                'institute_name_address.0',
+                'Please add at least one institute entry with From Date and To Date.'
+            );
+        }
+    }
+
+    private function assertFormPInstituteDates(Request $request, bool $requireComplete): void
+    {
+        $validator = Validator::make($request->all(), []);
+        $this->validateFormPInstituteDates($request, $validator, $requireComplete);
+        $this->validateFormPWorkExperienceDates($request, $validator, $requireComplete);
+        if ($validator->fails()) {
+            throw \Illuminate\Validation\ValidationException::withMessages($validator->errors()->toArray());
+        }
+    }
+
+    /**
+     * Form P power-station dates — same From/To rules as Form S experience.
+     */
+    private function validateFormPWorkExperienceDates(Request $request, \Illuminate\Validation\Validator $validator, bool $requireComplete): void
+    {
+        if (! FormPSchema::isFormP($request->form_name ?? '')) {
+            return;
+        }
+
+        $levels = is_array($request->work_level ?? null) ? $request->work_level : [];
+        $exps = is_array($request->experience ?? null) ? $request->experience : [];
+        $designations = is_array($request->designation ?? null) ? $request->designation : [];
+        $fromDates = is_array($request->work_date_from ?? null) ? $request->work_date_from : [];
+        $toDates = is_array($request->work_date_to ?? null) ? $request->work_date_to : [];
+
+        $max = max(count($levels), count($exps), count($designations), count($fromDates), count($toDates));
+        for ($i = 0; $i < $max; $i++) {
+            $wl = trim((string) ($levels[$i] ?? ''));
+            $ex = trim((string) ($exps[$i] ?? ''));
+            $des = trim((string) ($designations[$i] ?? ''));
+            $fromYmd = calendar_date_ymd($fromDates[$i] ?? null);
+            $toYmd = calendar_date_ymd($toDates[$i] ?? null);
+            $rowStarted = $wl !== '' || $ex !== '' || $des !== '' || $fromYmd !== '' || $toYmd !== '';
+            if (! $rowStarted) {
+                continue;
+            }
+
+            $mustHaveDates = $requireComplete || $fromYmd !== '' || $toYmd !== '';
+            if (! $mustHaveDates) {
+                continue;
+            }
+
+            if ($fromYmd === '') {
+                $validator->errors()->add('work_date_from.'.$i, 'From date is required.');
+            }
+            if ($toYmd === '') {
+                $validator->errors()->add('work_date_to.'.$i, 'To date is required.');
+            }
+            if ($fromYmd === '' || $toYmd === '') {
+                continue;
+            }
+
+            $from = $this->calendarDateStartOfDay($fromYmd);
+            $to = $this->calendarDateStartOfDay($toYmd);
+            if ($from === null || $to === null) {
+                continue;
+            }
+            if ($to->lt($from)) {
+                $validator->errors()->add(
+                    'work_date_to.'.$i,
+                    'To date must be greater than or equal to From date.'
                 );
             }
         }
@@ -2910,9 +3231,11 @@ class FormController extends BaseController
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
+        $this->prepareFormPRequest($request);
 
         
-        $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
+        $isWorkOptional = in_array($request->form_name, ['W', 'WH', 'P'], true);
+        $isFormP = FormPSchema::isFormP($request->form_name ?? '');
         $educationLevelRule = ($request->form_name === 'S')
             ? 'required|string|in:DEE,BEE,MEE,AMIE|max:50'
             : 'required|string|max:50';
@@ -2935,7 +3258,7 @@ class FormController extends BaseController
             'aadhaar'              => 'required|string|digits:12',
             'form_name'            => 'required|string|max:2',
             'license_name'         => 'required|string|max:2',
-            'form_id'              => 'required|integer',
+            'form_id'              => $isFormP ? 'nullable|integer' : 'required|integer',
             // 'amount'               => 'required|numeric|min:0',
             'competency_certificate_no' => 'nullable|string|max:80',
             'certificate_date'              => 'nullable|date',
@@ -2950,12 +3273,12 @@ class FormController extends BaseController
             'educational_level.*'  => $educationLevelRule,
             'institute_name'       => 'required|array|min:1',
             'institute_name.*'     => 'required|string|max:80',
-            'month_of_passing'     => 'required|array|min:1',
-            'month_of_passing.*'   => 'required|in:01,02,03,04,05,06,07,08,09,10,11,12',
+            'month_of_passing'     => $isFormP ? 'nullable|array' : 'required|array|min:1',
+            'month_of_passing.*'   => $isFormP ? 'nullable|string|max:20' : 'required|in:01,02,03,04,05,06,07,08,09,10,11,12',
             'year_of_passing'      => 'required|array|min:1',
             'year_of_passing.*'    => 'required|digits:4',
-            'certificate_no'       => 'required|array|min:1',
-            'certificate_no.*'     => 'required|string|max:20',
+            'certificate_no'       => $isFormP ? 'nullable|array' : 'required|array|min:1',
+            'certificate_no.*'     => $isFormP ? 'nullable|string|max:20' : 'required|string|max:20',
             
             // work experience arrays
             'work_level'           => $isWorkOptional ? 'nullable|array' : 'required|array|min:1',
@@ -2968,7 +3291,7 @@ class FormController extends BaseController
             // single files
             'upload_photo'         => 'required|image|mimes:jpg,jpeg,png|max:50',
             'upload_sign'          => 'required|image|mimes:jpg,jpeg,png|max:50',
-            'aadhaar_doc'          => 'required|mimes:pdf|min:10|max:250',
+            'aadhaar_doc'          => $isFormP ? 'nullable|mimes:pdf|max:250' : 'required|mimes:pdf|min:10|max:250',
             
             // multiple files (arrays) — file OR pre-uploaded path via existing_document / existing_work_document
             'education_document'   => 'nullable|array',
@@ -3067,15 +3390,11 @@ class FormController extends BaseController
             }
 
             foreach ($request->educational_level ?? [] as $key => $level) {
-                if (
-                    empty($level)
-                    || empty($request->institute_name[$key] ?? null)
-                    || empty($request->month_of_passing[$key] ?? null)
-                    || empty($request->year_of_passing[$key] ?? null)
-                ) {
+                $eduId = $request->edu_id[$key] ?? null;
+                if ($this->educationRowMissingRequiredFields($request, $key, $level) && empty($eduId)) {
                     continue;
                 }
-                $hasFile = $request->hasFile('education_document.'.$key);
+                $hasFile = $this->resolveEducationUploadFileFromRequest($request, $key) !== null;
                 $existing = $request->input('existing_document.'.$key);
                 if (! $hasFile && ($existing === null || $existing === '')) {
                     $validator->errors()->add(
@@ -3138,6 +3457,7 @@ class FormController extends BaseController
         $validator->after(function ($validator) use ($request) {
             $this->validateFormSWorkExperienceDateSequence($request, $validator);
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
+            $this->validateFormPInstituteDates($request, $validator, true);
         });
         $validator->validate();
 
@@ -3152,6 +3472,9 @@ class FormController extends BaseController
         // Idempotency guard: if the client already has an application_id, do not insert
         // a new application row. Route through draft_update so the same record is updated.
         $existingApplicationId = trim((string) $request->input('application_id', ''));
+        if ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $existingApplicationId)) {
+            return $reject;
+        }
         if ($existingApplicationId !== '' && CC_Forms_Meta::existsByApplicationId($existingApplicationId)) {
             return $this->draft_update($request, $existingApplicationId);
         }
@@ -3221,6 +3544,7 @@ class FormController extends BaseController
 
 
             $applicationId = $form->application_id;
+            $this->persistFormPMetaExtras((string) $applicationId, $request);
             $loginId = $form->login_id;
 
 
@@ -3247,13 +3571,7 @@ class FormController extends BaseController
                 $this->persistChildEducationSnapshot($request, $form, $loginId, $request->form_name ?? null);
             } elseif ($request->has('educational_level')) {
                 foreach ($request->educational_level as $key => $level) {
-                    // skip empty/incomplete rows
-                    if (
-                        empty($level)
-                        || empty($request->institute_name[$key] ?? null)
-                        || empty($request->month_of_passing[$key] ?? null)
-                        || empty($request->year_of_passing[$key] ?? null)
-                    ) {
+                    if ($this->educationRowMissingRequiredFields($request, $key, $level)) {
                         continue;
                     }
 
@@ -3399,7 +3717,7 @@ class FormController extends BaseController
                 'form_name'    => $form->form_name,
                 'licence_name' => $certificate_details['licence_name'],
                 'type_of_apps' => $certificate_details['category_name'],
-                'form_type'    => $certificate_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                'form_type'    => $this->competencyFormTypeLabel($certificate_details['form_type']),
                 'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y'),
                     
                     'ccnumber'   => $ccnumber,
@@ -3417,7 +3735,7 @@ class FormController extends BaseController
                 'form_name'    => $form->form_name,
                 'licence_name' => $certificate_details['licence_name'],
                 'type_of_apps' => $certificate_details['category_name'],
-                'form_type'    => $certificate_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                'form_type'    => $this->competencyFormTypeLabel($certificate_details['form_type']),
                 'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y')
                 ]);
              }
@@ -3430,7 +3748,7 @@ class FormController extends BaseController
                 'form_name'    => $form->form_name,
                 'licence_name' => $certificate_details['licence_name'],
                 'type_of_apps' => $certificate_details['category_name'],
-                'form_type'    => $certificate_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                'form_type'    => $this->competencyFormTypeLabel($certificate_details['form_type']),
                 'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y')
             ]);
             
@@ -3461,6 +3779,7 @@ class FormController extends BaseController
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
+        $this->prepareFormPRequest($request);
 
         $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
         $masterApplicationId = $existingForm
@@ -3479,10 +3798,10 @@ class FormController extends BaseController
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
         $aadhaarDocRule = ! $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR)
-            ? 'required|mimes:pdf|max:250'
+            ? (FormPSchema::isFormP($request->form_name ?? '') ? 'nullable|mimes:pdf|max:250' : 'required|mimes:pdf|max:250')
             : 'nullable|mimes:pdf|max:250';
 
-        $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
+        $isWorkOptional = in_array($request->form_name, ['W', 'WH', 'P'], true);
         $educationLevelRule = ($request->form_name === 'S')
             ? 'required|string|in:DEE,BEE,MEE,AMIE|max:50'
             : 'required|string|max:50';
@@ -3589,15 +3908,11 @@ class FormController extends BaseController
             }
 
             foreach ($request->educational_level ?? [] as $key => $level) {
-                if (
-                    empty($level)
-                    || empty($request->institute_name[$key] ?? null)
-                    || empty($request->month_of_passing[$key] ?? null)
-                    || empty($request->year_of_passing[$key] ?? null)
-                ) {
+                $eduId = $request->edu_id[$key] ?? null;
+                if ($this->educationRowMissingRequiredFields($request, $key, $level) && empty($eduId)) {
                     continue;
                 }
-                $hasFile = $request->hasFile('education_document.'.$key);
+                $hasFile = $this->resolveEducationUploadFileFromRequest($request, $key) !== null;
                 $existing = $request->input('existing_document.'.$key);
                 if (! $hasFile && ($existing === null || $existing === '')) {
                     $validator->errors()->add(
@@ -3631,7 +3946,7 @@ class FormController extends BaseController
                 ) {
                     continue;
                 }
-                // Form S §7b supporting docs are optional.
+                // Form S - 7b supporting docs are optional.
                 if (strtolower(trim((string) ($request->work_exp_section[$key] ?? ''))) === 'current') {
                     continue;
                 }
@@ -3660,13 +3975,14 @@ class FormController extends BaseController
         $validator->after(function ($validator) use ($request) {
             $this->validateFormSWorkExperienceDateSequence($request, $validator);
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
+            $this->validateFormPInstituteDates($request, $validator, true);
         });
         $validator->validate();
 
         $action = $request->input('form_action', 'draft');
-        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
-        //     return $reject;
-        // }
+        if ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $applicationId)) {
+            return $reject;
+        }
         $paymentStatus = $this->resolveCompetencyPaymentStatusOnSave(
             $action,
             $request->appl_type ?? $existingForm->appl_type ?? null,
@@ -3701,19 +4017,19 @@ class FormController extends BaseController
                 'submitted_date'    => $this->dbNow,
                 'updated_at'        => $this->dbNow,
             ]));
-
-
-
+            $this->persistFormPMetaExtras((string) $applicationId, $request);
 
             if ($this->shouldSnapshotChildDocuments($existingForm, $request->form_name ?? null)) {
                 $this->persistChildEducationSnapshot($request, $existingForm, $loginId, $request->form_name ?? null);
             } elseif ($request->has('educational_level')) {
                 foreach ($request->educational_level as $key => $level) {
-                    if (
-                        empty($level) ||
-                        empty($request->institute_name[$key] ?? null) ||
-                        empty($request->month_of_passing[$key] ?? null) ||
-                        empty($request->year_of_passing[$key] ?? null)
+                    $eduId = $request->edu_id[$key] ?? null;
+                    $removed = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
+                    $pendingProbe = $this->resolveEducationUploadFileFromRequest($request, $key);
+                    if ($this->educationRowMissingRequiredFields($request, $key, $level)
+                        && empty($eduId)
+                        && ! $removed
+                        && ! $pendingProbe
                     ) {
                         continue;
                     }
@@ -3724,7 +4040,9 @@ class FormController extends BaseController
                         'educational_level' => $level,
                     ];
 
-                    $existingByKey = CC_Education::where($upsertAttrs)->first();
+                    $existingByKey = $eduId
+                        ? $this->formSDocumentHandler()->resolveMasterEducation($existingForm, (int) $eduId, $level)
+                        : CC_Education::where($upsertAttrs)->first();
 
                     $docResolution = $this->resolveEducationDocumentForSave(
                         $request,
@@ -3732,28 +4050,48 @@ class FormController extends BaseController
                         $existingForm,
                         $request->form_name,
                         $existingByKey,
-                        false
+                        $removed
                     );
                     $filePath = $docResolution['path'];
-                    $pendingEduFile = $docResolution['pending_file'];
+                    $pendingEduFile = $docResolution['pending_file'] ?? $pendingProbe;
+
+                    $monthRaw = $request->month_of_passing[$key] ?? null;
+                    $monthVal = null;
+                    if ($monthRaw !== null && $monthRaw !== '') {
+                        $m = (int) ltrim((string) $monthRaw, '0');
+                        if ($m >= 1 && $m <= 12) {
+                            $monthVal = $m;
+                        }
+                    }
 
                     $uploadToStore = $filePath;
-                    if ($uploadToStore === null && $existingByKey && $existingByKey->upload_document) {
+                    if ($uploadToStore === null && ! $removed && $existingByKey && $existingByKey->upload_document) {
                         $uploadToStore = $existingByKey->upload_document;
                     }
 
-                    $education = CC_Education::updateOrCreate(
-                        $upsertAttrs,
-                        [
-                            'institute_name'  => $request->institute_name[$key],
-                            'month_passing'   => $request->month_of_passing[$key] ?? null,
-                            'year_of_passing' => $request->year_of_passing[$key],
-                            'certificate_no'  => $request->certificate_no[$key] ?? null,
-                            'upload_document' => $uploadToStore,
-                        ]
-                    );
+                    $eduPayload = [
+                        'institute_name'  => $request->institute_name[$key] ?? $existingByKey?->institute_name,
+                        'month_passing'   => $monthVal ?? $existingByKey?->month_passing ?? $monthRaw,
+                        'year_of_passing' => ($request->year_of_passing[$key] ?? null) !== null
+                            && $request->year_of_passing[$key] !== ''
+                            && $request->year_of_passing[$key] !== '0'
+                            ? $request->year_of_passing[$key]
+                            : $existingByKey?->year_of_passing,
+                        'certificate_no'  => $request->certificate_no[$key] ?? $existingByKey?->certificate_no,
+                        'upload_document' => $uploadToStore,
+                    ];
+                    if ($level !== null && $level !== '') {
+                        $eduPayload['educational_level'] = $level;
+                    }
 
-                    if ($pendingEduFile) {
+                    if ($existingByKey) {
+                        $existingByKey->update($eduPayload);
+                        $education = $existingByKey->fresh();
+                    } else {
+                        $education = CC_Education::updateOrCreate($upsertAttrs, $eduPayload);
+                    }
+
+                    if ($pendingEduFile && $education) {
                         $approvedPath = $this->applyPendingFormSEducationUpload(
                             $request,
                             $key,
@@ -3761,9 +4099,7 @@ class FormController extends BaseController
                             $education,
                             $pendingEduFile
                         );
-                        if ($approvedPath !== null
-                            && trim((string) $approvedPath) !== trim((string) ($education->upload_document ?? ''))
-                        ) {
+                        if ($approvedPath !== null && trim((string) $approvedPath) !== '') {
                             $education->update(['upload_document' => $approvedPath]);
                         }
                     }
@@ -4053,8 +4389,10 @@ class FormController extends BaseController
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
+        $this->prepareFormPRequest($request);
 
-        $applicationId = $id;
+        $applicationId = trim((string) ($id ?: $request->input('application_id') ?: ''));
+        $applicationId = $applicationId !== '' ? $applicationId : null;
         $existingForm = $applicationId
             ? CC_Forms_Meta::findByApplicationId($applicationId)
             : null;
@@ -4062,25 +4400,22 @@ class FormController extends BaseController
             ? $this->resolveFormSMasterApplicationId($existingForm, $request->form_name ?? null)
             : $applicationId;
         $proofService = $this->proofDocumentService();
-        $existingPhoto = $masterApplicationId
-            ? $proofService->loadPhotoForView($masterApplicationId)
-            : null;
 
         if (!$existingForm && $applicationId) {
             return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
         }
 
-        $uploadPhotoRule = (! $existingPhoto || empty($existingPhoto->upload_path))
-            ? 'image|mimes:jpg,jpeg,png|max:50'
-            : 'nullable|image|mimes:jpg,jpeg,png|max:50';
-
-        // Signature is optional for draft submit; file is validated only if present
+        // Draft: validate photo/sign only when a file is posted. Empty file inputs
+        // must not fail the image rule or the chosen files are dropped.
+        $uploadPhotoRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
-        $aadhaarDocRule = ($existingForm && $masterApplicationId
-            && ! $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR))
-            ? 'mimes:pdf|max:250'
-            : 'nullable|mimes:pdf|max:250';
+        $aadhaarDocRule = (FormPSchema::isFormP($request->form_name ?? '')
+            || ! $existingForm
+            || ! $masterApplicationId
+            || $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR))
+            ? 'nullable|mimes:pdf|max:250'
+            : 'mimes:pdf|max:250';
 
             $educationLevelRuleDraft = ($request->form_name === 'S')
                 ? 'nullable|string|in:DEE,BEE,MEE,AMIE|max:50'
@@ -4159,18 +4494,19 @@ class FormController extends BaseController
             'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
 
         ]);
+        $this->assertFormPInstituteDates($request, false);
 
         $action = $request->form_action; // "draft" or "submit"
-        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
-        //     return $reject;
-        // }
         $loginId = $this->resolveDigitizationLoginId($request, $request->login_id);
+        if ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $id ?: $request->input('application_id'))) {
+            return $reject;
+        }
         $appl_type = $request->appl_type ?? '';
 
         DB::beginTransaction();
 
         try {
-            $form = $id ? CC_Forms_Meta::findByApplicationId($id) : null;
+            $form = $existingForm ?: ($applicationId ? CC_Forms_Meta::findByApplicationId($applicationId) : null);
 
             if ($form) {
                 $applicationId = $form->application_id;
@@ -4199,6 +4535,7 @@ class FormController extends BaseController
                 $metaPayload['created_at'] = $this->dbNow;
                 $form = CC_Forms_Meta::createForForm((string) ($metaPayload['form_name'] ?? $request->form_name ?? 'S'), $metaPayload);
             }
+            $this->persistFormPMetaExtras((string) ($form->application_id ?? $applicationId), $request);
 
 
             if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
@@ -4415,6 +4752,10 @@ class FormController extends BaseController
             ]);
         }
 
+        $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
+        $this->fillBoardMemberExperienceYearPlaceholders($request);
+        $this->prepareFormPRequest($request);
+
         $applicationId = $id;
 
         $existingForm = $applicationId
@@ -4437,10 +4778,12 @@ class FormController extends BaseController
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
-        $aadhaarDocRule = ($existingForm && $masterApplicationId
-            && ! $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR))
-            ? 'mimes:pdf|max:250'
-            : 'nullable|mimes:pdf|max:250';
+        $aadhaarDocRule = (FormPSchema::isFormP($request->form_name ?? '')
+            || ! $existingForm
+            || ! $masterApplicationId
+            || $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR))
+            ? 'nullable|mimes:pdf|max:250'
+            : 'mimes:pdf|max:250';
 
         $educationLevelRuleDraft = ($request->form_name === 'S')
             ? 'nullable|string|in:DEE,BEE,MEE,AMIE|max:50'
@@ -4511,6 +4854,7 @@ class FormController extends BaseController
             'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
             'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
         ]);
+        $this->assertFormPInstituteDates($request, false);
 
         $action    = $request->form_action; // "draft" or "submit"
         // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
@@ -4582,6 +4926,7 @@ class FormController extends BaseController
                 $metaPayload['created_at'] = $nowTs;
                 $form = CC_Forms_Meta::createForForm((string) ($metaPayload['form_name'] ?? $request->form_name ?? 'S'), $metaPayload);
             }
+            $this->persistFormPMetaExtras((string) ($form->application_id ?? $applicationId), $request);
 
             $type_of_apps = MstLicence::where('form_code', $form->form_name)
                 ->select('licence_name')
@@ -4720,6 +5065,7 @@ public function update(Request $request, $id)
 
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
+        $this->prepareFormPRequest($request);
 
         $applicationId = $id;
         $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
@@ -4806,6 +5152,7 @@ public function update(Request $request, $id)
             'designation.*.max'             => 'Designation may not be greater than 80 characters.',
             'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
         ]);
+        $this->assertFormPInstituteDates($request, true);
 
         $action = $request->form_action;
         $applTypeForStatus = strtoupper(trim((string) ($request->appl_type ?? $existingForm?->appl_type ?? '')));
@@ -4813,10 +5160,10 @@ public function update(Request $request, $id)
         if (in_array($applTypeForStatus, ['D', 'A'], true)) {
             $action = 'submit';
         }
-        
-        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
-        //     return $reject;
-        // }
+
+        if ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $id)) {
+            return $reject;
+        }
         $loginId = $request->login_id;
 
         DB::beginTransaction();
@@ -4898,6 +5245,7 @@ public function update(Request $request, $id)
             );
 
             $applicationId = $renewal_form->application_id;
+            $this->persistFormPMetaExtras((string) $applicationId, $request);
 
             $form_details = MstLicence::where('status', 1)
             ->select('*')
@@ -5039,7 +5387,7 @@ public function update(Request $request, $id)
                     'form_name'    => $renewal_form->form_name,
                     'licence_name' => $licence_details['licence_name'],
                     'type_of_apps' => $licence_details['category_name'],
-                    'form_type'    => $licence_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                    'form_type'    => $this->competencyFormTypeLabel($licence_details['form_type']),
                     'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y'),
                     
                     // 'ccnumber'   => $ccnumber,
@@ -5057,7 +5405,7 @@ public function update(Request $request, $id)
                     'form_name'    => $renewal_form->form_name,
                     'licence_name' => $licence_details['licence_name'],
                     'type_of_apps' => $licence_details['category_name'],
-                    'form_type'    => $licence_details['form_type'] == 'N' ? 'FRESH' : 'RENEWAL',
+                    'form_type'    => $this->competencyFormTypeLabel($licence_details['form_type']),
                     'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y')
                 ]);
              }
@@ -5537,6 +5885,57 @@ public function update(Request $request, $id)
             if ($value !== '') {
                 return $value;
             }
+        }
+
+        return null;
+    }
+
+    private function competencyFormTypeLabel(?string $applType): string
+    {
+        return match (strtoupper(trim((string) $applType))) {
+            'N' => 'FRESH',
+            'R' => 'RENEWAL',
+            'D' => 'DIGITISATION',
+            'A' => 'ALTERATION',
+            default => strtoupper(trim((string) $applType)),
+        };
+    }
+
+    /**
+     * Digitisation (appl_type=D) must have a captured TEMP row before draft/submit.
+     * Contractor vs work-row check runs on submit for S, W, and WH.
+     */
+    private function rejectIfCompetencyDigitizationInvalid(Request $request, $action, $applicationId = null)
+    {
+        $applType = strtoupper(trim((string) ($request->appl_type ?? '')));
+        if ($applType !== 'D') {
+            return null;
+        }
+
+        $loginId = $this->resolveDigitizationLoginId($request, $request->login_id);
+        $tempAppId = trim((string) $request->input('cc_digitization_temp_id', ''));
+        $appId = trim((string) ($applicationId ?: $request->input('application_id', '')));
+
+        $canSave = app(CcDigitizationLinkService::class)->assertCanSave(
+            $tempAppId !== '' ? $tempAppId : null,
+            $loginId,
+            $appId !== '' ? $appId : null
+        );
+
+        if (! $canSave) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Please complete digitisation certificate details before saving this application.',
+            ], 422);
+        }
+
+        if ((string) $action === 'draft') {
+            return null;
+        }
+
+        $contractorErr = $this->checkContractorExperience($request);
+        if ($contractorErr !== null) {
+            return response()->json(['status' => 'error', 'message' => $contractorErr], 422);
         }
 
         return null;

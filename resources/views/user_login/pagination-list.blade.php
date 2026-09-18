@@ -407,7 +407,7 @@
                     <strong>Renewal Application</strong><br>
                     ID : <span class="text-success">{{ $workflow->renewal_application_id }}</span>
                 @elseif($sts == 'QU')
-                    <a href="{{ route(in_array(strtoupper($workflow->form_name ?? ''), ['P']) ? 'edit-application_p' : 'edit_returned_application', ['application_id' => $workflow->application_id]) }}">
+                    <a href="{{ route(in_array(strtoupper($workflow->form_name ?? ''), ['P']) ? 'edit_returned_application_p' : 'edit_returned_application', ['application_id' => $workflow->application_id]) }}">
                         <button class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i> Edit</button>
                     </a>
                 @else

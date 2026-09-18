@@ -1,12 +1,274 @@
 @include('include.header')
 
 @php
-    $editFormName = $application_details->form_name ?? '';
-    $editLicenseName = $application_details->license_name ?? '';
-    $editShowBoardMember = ($editFormName === 'S');
+    $isAlterationMode = !empty($is_alteration_mode);
+    $isAlterationEditable = !empty($alteration_editable_mode);
+    $parentApplicationId = $parent_application_id ?? ($application_details->application_id ?? '');
 @endphp
 
 <style>
+    /* Existing experience stays read-only; only new rows can be added. */
+    .fs-alt-form .fs-alt-existing-work input,
+    .fs-alt-form .fs-alt-existing-work select,
+    .fs-alt-form .fs-alt-existing-work textarea,
+    .fs-alt-form .fs-alt-existing-work button { pointer-events: none !important; }
+    .fs-alt-form .fs-alt-existing-work { background: #f8fafc; }
+    .fs-alt-existing-work .remove-work { display: none !important; }
+    .fs-alt-form .work-fields.fs-alt-existing-work,
+    .fs-alt-form .work-entry-block:has(.fs-alt-existing-work) {
+        display: none !important;
+    }
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-till-toggle,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-date-till,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit input.work-date-to:not([type="hidden"]),
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] input,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] button,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn {
+        pointer-events: auto !important;
+    }
+    /* Keep the expanded till-date card visible after Till date is unchecked
+       (row is still fs-till-date-work; Relieving / To date must stay editable). */
+    .fs-alt-form.fs-alt-work-unlocked .work-fields.fs-alt-existing-work.fs-till-date-work.work-row--expanded,
+    .fs-alt-form.fs-alt-work-unlocked .work-entry-block:has(.fs-alt-existing-work.fs-till-date-work.work-row--expanded) {
+        display: block !important;
+    }
+    .fs-alt-form:not(.fs-alt-work-unlocked) .add-more-work {
+        pointer-events: none !important;
+        opacity: .45;
+        cursor: not-allowed;
+    }
+    .work-exp-summary-tr--frozen .work-row-edit-trigger,
+    .work-exp-summary-tr--frozen .work-row-remove { display: none !important; }
+    .work-exp-summary-tr--frozen .wx-sum-frozen-label {
+        font-size: .78rem;
+        color: #9aa8b8;
+    }
+    .fs-alt-proof-panel { display: none; margin-top: 6px; }
+    .fs-alt-proof-panel.is-visible { display: block; }
+    .fs-alt-proof-compact { max-width: 100%; }
+    .fs-alt-proof-compact__label {
+        font-size: .72rem;
+        font-weight: 600;
+        color: #4a6288;
+        margin-bottom: 4px;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .fs-alt-proof-req {
+        display: inline;
+        margin-left: 2px;
+        color: #dc3545;
+        font-weight: 700;
+        line-height: inherit;
+        vertical-align: baseline;
+    }
+    .fs-alt-proof-compact__bar {
+        display: flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 5px 8px;
+        border: 1px solid #ccd5e3;
+        border-radius: 7px;
+        background: #f8fafc;
+        transition: border-color .15s, background .15s;
+    }
+    .fs-alt-proof-compact.is-filled .fs-alt-proof-compact__bar {
+        border-color: #9ec5f0;
+        background: #fff;
+    }
+    .fs-alt-proof-input {
+        position: absolute;
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        z-index: -1;
+    }
+    .fs-alt-proof-compact__idle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .fs-alt-proof-compact.is-filled .fs-alt-proof-compact__idle { display: none; }
+    .fs-alt-proof-browse {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        padding: 2px 9px;
+        font-size: .71rem;
+        font-weight: 600;
+        line-height: 1.4;
+        color: #035ab3;
+        background: #fff;
+        border: 1px solid #035ab3;
+        border-radius: 5px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .fs-alt-proof-browse:hover { background: #eef4fc; }
+    .fs-alt-proof-compact__hint {
+        font-size: .66rem;
+        color: #878787;
+        line-height: 1.2;
+    }
+    .fs-alt-proof-compact__status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        min-width: 0;
+    }
+    .fs-alt-proof-file-icon {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        font-size: .9rem;
+        color: #c0392b;
+        line-height: 1;
+    }
+    .fs-alt-proof-file-icon .fa { line-height: 1; vertical-align: middle; }
+    .fs-alt-proof-file-icon.is-image { color: #1e7e34; }
+    .fs-alt-proof-fname {
+        flex: 1;
+        min-width: 0;
+        font-size: .71rem;
+        font-weight: 600;
+        color: #1a3a6b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+    }
+    .fs-alt-proof-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+    .fs-alt-proof-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+        font-size: .71rem;
+        font-weight: 600;
+        color: #0056b3 !important;
+        text-decoration: none;
+        white-space: nowrap;
+        line-height: 1;
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+    .fs-alt-proof-view span { line-height: 1; }
+    .fs-alt-proof-view:hover { text-decoration: none; background: #eef4fc; }
+    .fs-alt-proof-view .fa {
+        color: #d9534f;
+        font-size: .85rem;
+        line-height: 1;
+        vertical-align: middle;
+    }
+    .fs-alt-proof-view.is-image .fa { color: #1e7e34; }
+    .fs-alt-proof-change,
+    .fs-alt-proof-clear {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: #6c7a89;
+        font-size: .82rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .fs-alt-proof-change .fa,
+    .fs-alt-proof-clear .fa {
+        line-height: 1;
+        vertical-align: middle;
+    }
+    .fs-alt-proof-change { margin: 0; }
+    .fs-alt-proof-change:hover,
+    .fs-alt-proof-clear:hover {
+        background: #eef4fc;
+        color: #035ab3;
+    }
+    .fs-alt-form .fs-edit-block { display: none !important; }
+    .fs-alt-frozen-section .add-more-education,
+    .fs-alt-frozen-section .remove-education,
+    .fs-alt-frozen-section .btn-tbl-add:not(.add-more-work),
+    .fs-alt-frozen-section .remove-work { display: none !important; }
+    .fs-alt-frozen-section input:not([type="hidden"]),
+    .fs-alt-frozen-section select,
+    .fs-alt-frozen-section textarea,
+    .fs-alt-frozen-section button:not(.add-more-work):not(.btn-danger) {
+        pointer-events: none !important;
+        background-color: #f8fafc !important;
+        border-color: #e3e8f0 !important;
+        color: #495057 !important;
+        box-shadow: none !important;
+    }
+    .fs-alt-frozen-section button.btn-danger {
+        pointer-events: none !important;
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: #fff !important;
+        opacity: .92;
+    }
+    .fs-alt-frozen-section select {
+        appearance: none;
+        -webkit-appearance: none;
+    }
+    .fs-alt-form .fs-mandatory-bar { display: none; }
+    .fs-alt-form--editable #fsAltSectionApplicant .fs-view-block input,
+    .fs-alt-form--editable #fsAltSectionApplicant .fs-view-block textarea {
+        background: #fff;
+    }
+    .fs-alt-form:not(.fs-alt-form--editable) .fs-alt-edit-badge { display: none !important; }
+    .fs-alt-options-error {
+        display: block;
+        margin: 8px 18px 0;
+        font-size: .78rem;
+        color: #d9363e;
+    }
+    .fs-alt-options-error:empty { display: none; }
+    .fs-alt-edit-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        vertical-align: middle;
+        margin-left: 8px;
+        font-size: .68rem;
+        font-weight: 600;
+        letter-spacing: .02em;
+        padding: 3px 7px;
+        border: 0;
+        border-radius: 4px;
+        line-height: 1;
+        cursor: pointer;
+        color: #fff;
+    }
+    .fs-alt-edit-badge .fa { font-size: .65rem; }
+    .fs-alt-edit-badge:hover,
+    .fs-alt-edit-badge:focus {
+        color: #fff;
+        opacity: .92;
+        outline: none;
+    }
+    .fs-alt-edit-badge.is-active {
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, .28);
+    }
+    .fs-section-title .fs-alt-edit-badge { margin-left: 10px; }
     /* ── Reset helpers ────────────────────────────────── */
     .fs-form hr {
         margin: 0;
@@ -121,7 +383,7 @@
         letter-spacing: .5px;
     }
     .fs-card-header .header-titles .draft-title {
-        margin: 5px 0 0;
+        margin: 2px 0 0;
         font-size: .74rem;
         font-weight: 600;
         line-height: 1.15;
@@ -599,7 +861,9 @@
     #work-table .work-exp-col-actions { width: 2.75rem; white-space: nowrap; }
     #work-table .work-exp-upload-head { font-size: .72rem; line-height: 1.2; }
     #work-table .work-exp-upload-head .file-limit { font-size: .68rem; }
-    #work-table .work-exp-inline { display: flex; flex-wrap: nowrap; align-items: flex-end; gap: .25rem; }
+    #work-table .work-exp-inline { display: flex; flex-wrap: nowrap; gap: .25rem; }
+    #work-table.work-table-w .work-exp-inline { align-items: flex-end; }
+    #work-table.work-exp-table:not(.work-table-w) .work-exp-inline:not(.work-exp-inline--head) { align-items: flex-start; }
     #work-table .work-exp-date-group { flex: 1 1 auto; min-width: 7.5rem; max-width: 10rem; }
     #work-table.work-table-w .work-exp-total-inline { flex: 0 0 4rem; min-width: 4rem; max-width: 4.5rem; }
     #work-table.work-exp-table:not(.work-table-w) .work-exp-total-inline { flex: 0 0 5.75rem; min-width: 5.5rem; max-width: 6.5rem; }
@@ -860,6 +1124,22 @@
         transition: all .2s;
     }
     .btn-fs-submit:hover { background: linear-gradient(135deg, #15883f, #116e32); box-shadow: 0 4px 14px rgba(26,158,79,.35); }
+    .btn-fs-cancel {
+        background: #fff;
+        color: #dc3545;
+        border: 2px solid #dc3545;
+        border-radius: 8px;
+        padding: 10px 28px;
+        font-size: .9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .2s;
+    }
+    .btn-fs-cancel:hover {
+        background: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+    }
 
     /* ── Validation messages — uniform size ─────────── */
     .fs-form .text-danger,
@@ -889,25 +1169,12 @@
         font-family: 'FontAwesome';
         display: inline-block;
     }
-
-    /* Returned-application partial edit: locked blocks are visible but non-interactive */
-    .fs-return-section-locked {
-        pointer-events: none;
-        opacity: 0.72;
-        filter: grayscale(0.06);
-    }
-    .fs-return-upload-cell.fs-return-section-locked {
-        pointer-events: none;
-        opacity: 0.72;
-        filter: grayscale(0.06);
-    }
-
-    @if (in_array($editFormName, ['S', 'W', 'WH'], true))
-    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
-    @endif
 </style>
 
-@if (in_array($editFormName, ['S', 'W', 'WH'], true))
+@if (in_array($application_details->form_name ?? '', ['S', 'W', 'WH'], true))
+<style>
+    @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $application_details->form_name ?? ''])
+</style>
 <style>
     @include('user_login.partials.form-s-work-exp-7ab-styles')
     .fs-section:has(.work-exp-wrap) {
@@ -920,61 +1187,20 @@
         border-radius: 10px !important;
         box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
     }
-    #work-container-previous .work-fields.work-row:hover {
-        border-color: #b8cfe8 !important;
-        box-shadow: 0 4px 14px rgba(3, 90, 179, 0.18) !important;
+    .fs-alt-form #work-container-previous .work-fields.work-row.fs-alt-existing-work {
+        background: #f8fafc !important;
+        border-color: #d4e0f0 !important;
+        box-shadow: none !important;
     }
-    #work-exp-summary-panel-previous .wx-order-card {
-        background: #ffffff !important;
-        border: 1px solid #c8d8f5 !important;
-        border-radius: 10px !important;
-        box-shadow: 0 2px 10px rgba(3, 90, 179, 0.14) !important;
-        padding: 12px 14px !important;
-    }
-    #work-container-previous .work-row-head {
-        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
-        border-bottom: 1px solid #dde5f3 !important;
-    }
-    #work-container-previous .work-row:not(.is-complete) .work-row-head {
-        background: linear-gradient(135deg, #f7faff 0%, #fbfdff 100%) !important;
-        border-bottom: 1px solid #dde5f3 !important;
-    }
-    #work-container-previous .work-row-head-actions .work-row-remove,
-    #work-container-previous .work-row-remove.remove-work {
-        color: #c1272d !important;
-    }
-    #work-container-previous .work-row-head-actions .work-row-remove .fa,
-    #work-container-previous .work-row-remove.remove-work .fa {
-        color: #c1272d !important;
+    .fs-alt-form #work-container-current .work-fields.work-row.fs-alt-existing-work {
+        background: #f8fafc !important;
+        border-color: #d4e0f0 !important;
     }
 </style>
 @endif
 
 
 @php
-    use App\Services\ReturnedApplicationEditScope;
-
-    $returnedEditableSections = $returnedEditableSections ?? [ReturnedApplicationEditScope::SECTION_FULL];
-    $returnedIsPartial = ! ReturnedApplicationEditScope::isFullUnlock($returnedEditableSections);
-    $retCanEdit = function (string $section) use ($returnedEditableSections): bool {
-        return ReturnedApplicationEditScope::isFullUnlock($returnedEditableSections)
-            || in_array($section, $returnedEditableSections, true);
-    };
-    $retLockClass = function (string $section) use ($returnedIsPartial, $retCanEdit): string {
-        if (! $returnedIsPartial) {
-            return '';
-        }
-
-        return $retCanEdit($section) ? '' : ' fs-return-section-locked';
-    };
-    $retSectionMode = function (string $section) use ($returnedIsPartial, $retCanEdit): string {
-        if (! $returnedIsPartial) {
-            return 'view';
-        }
-
-        return $retCanEdit($section) ? 'edit' : 'view';
-    };
-
     $editFormName = $application_details->form_name ?? '';
     $editLicenseName = $application_details->license_name ?? '';
     $editEnglishTitle = isset($licence_name->licence_name) ? $licence_name->licence_name : 'Competency Certificate';
@@ -1006,13 +1232,7 @@
     <div class="container">
         <ul id="breadcrumb">
             <li><a href="{{ route('dashboard') }}"><span class="fa fa-home"></span> Dashboard</a></li>
-            <li><a href="#"><span class="fa fa-info-circle"></span>
-                @if(isset($editFormName) && $editFormName === 'W')
-                    RETURN – Form {{ $editFormName }}
-                @else
-                    Return – Form {{ $editFormName }}
-                @endif
-            </a></li>
+            <li><a href="#"><span class="fa fa-info-circle"></span> Form {{ $editFormName }}@if($isAlterationMode) — Alteration @endif</a></li>
         </ul>
     </div>
 </div>
@@ -1025,12 +1245,17 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for {{ $editEnglishTitle }}</h5>
+                    <h5>Application for {{ $editEnglishTitle }} - Alteration</h5>
                     @if($editTamilTitle)
-                        <h5 class="tamil-title">{{ $editTamilTitle }}</h5>
+                        <h5 class="tamil-title">{{ $editTamilTitle }} - மாற்றுதல் விண்ணப்பம்</h5>
                     @endif
                     <span class="form-badge">FORM - {{ $editFormName }} / Certificate {{ $editLicenseName }}</span>
-                    <h5 class="draft-title">Returned Application</h5>
+                    @if($isAlterationMode)
+                        <h5 class="draft-title">Alteration Application</h5>
+                        <span class="form-badge" style="margin-top:4px;background:rgba(255,255,255,.18);">Ref: {{ $parentApplicationId }}</span>
+                    @else
+                        <h5 class="draft-title">Draft Application</h5>
+                    @endif
                 </div>
                 <div class="instructions-link">
                     <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
@@ -1039,81 +1264,57 @@
             </div>
 
             {{-- ── Mandatory notice ── --}}
+            @unless($isAlterationMode)
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
+            @endunless
 
             @if(isset($queries) && $queries->isNotEmpty())
-                @php
-                    $raisedByCodes = collect($queries)->pluck('raised_by')->filter()->unique()->values();
-                    $raisedByLabels = $raisedByCodes->map(function ($code) {
-                        $code = (string) $code;
-                        return match ($code) {
-                            'SE' => 'Secretary',
-                            'PR' => 'President',
-                            default => $code,
-                        };
-                    })->implode(', ');
-                @endphp
-                <style>
-                    @keyframes query-blink {
-                        0%, 100% { opacity: 1; }
-                        50%      { opacity: 0.2; }
-                    }
-                    .query-item-blink { animation: query-blink 1.2s infinite; }
-                </style>
-                <div class="fs-query-alert-wrap">
-                    <div class="mb-0" role="alert"
-                         style="background-color:#fff3e0;border-left:5px solid #ff9800;color:#4e342e;padding:12px 16px;border-radius:4px;">
-                        <h6 class="alert-heading font-weight-bold mb-2" style="margin:0 0 4px 0;">
-                            Query raised
-                            @if($raisedByLabels !== '')
-                                by {{ $raisedByLabels }}
-                            @endif
-                        </h6>
-                        <p class="mb-1" style="margin-bottom:6px;">
-                            The following issue(s) were reported. Please correct and submit again:
-                        </p>
-                        <ul class="mb-0 pl-4 query-list" style="margin:0;padding-left:20px;">
-                            @foreach($queries as $q)
-                                @php
-                                    $items = is_string($q->query_type) ? json_decode($q->query_type, true) : $q->query_type;
-                                    $items = is_array($items) ? $items : [$items];
-                                @endphp
-                                @foreach($items as $item)
-                                    <li class="text-danger"><i class="fa fa-exclamation-triangle text-danger query-item-blink" style="padding-right: 5px;"></i> {{ is_string($item) ? $item : '' }}</li>
-                                @endforeach
+            <div class="fs-query-alert-wrap">
+                <div class="alert alert-warning mb-0" role="alert">
+                    <h6 class="alert-heading font-weight-bold mb-2">
+                        <i class="fa fa-exclamation-triangle"></i> Query raised – please correct and resubmit
+                    </h6>
+                    <p class="mb-1">The following issue(s) were reported. Please correct and submit again:</p>
+                    <ul class="mb-0 pl-4">
+                        @foreach($queries as $q)
+                            @php
+                                $items = is_string($q->query_type) ? json_decode($q->query_type, true) : $q->query_type;
+                                $items = is_array($items) ? $items : [$items];
+                            @endphp
+                            @foreach($items as $item)
+                                <li>{{ is_string($item) ? $item : '' }}</li>
                             @endforeach
-                        </ul>
-                        @php
-                            $remarksText = isset($returnRemarks) ? trim((string) $returnRemarks) : '';
-                        @endphp
-                        @if($remarksText !== '')
-                            <div class="mt-2" style="background:#fff8e1;border:1px dashed #ffb74d;padding:10px 12px;border-radius:4px;">
-                                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                    <span class="fw-semibold" style="font-weight:600;">REMARKS :</span>
-                                    <span>{{ $remarksText }}</span>
-                                </div>
-                            </div>
-                        @endif
-                        @if($returnedIsPartial ?? false)
-                            <div class="mt-2 mb-0 rounded px-3 py-2" role="note"
-                                 style="background:#e8f4fd;border:1px solid #90caf9;color:#0d47a1;font-size:.83rem;">
-                                <strong>Partial correction:</strong> only the sections staff queried are editable. Other fields are locked but still shown for your reference.
-                            </div>
-                        @endif
-                    </div>
+                        @endforeach
+                    </ul>
                 </div>
+            </div>
             @endif
 
             {{-- ── Form body ── --}}
-            <div class="fs-form-body fs-form apply-card">
+            <div class="fs-form-body fs-form apply-card" id="fsAltFormRoot">
 
-                <form id="competency_form_ws" enctype="multipart/form-data">
+                @if($isAlterationMode)
+                <span class="fs-alt-options-error" id="fsAltOptionsError" role="alert" aria-live="polite"></span>
+                @endif
+
+                <form id="competency_form_ws" enctype="multipart/form-data" class="{{ $isAlterationMode ? 'fs-alt-form' : '' }}{{ $isAlterationEditable ? ' fs-alt-form--editable' : '' }}">
 
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id"
-                        value="{{ isset($application_details) ? $application_details->application_id : '' }}">
+                        value="{{ $alteration_draft->application_id ?? '' }}">
+                    <input type="hidden" id="parent_application_id" name="parent_application_id" value="{{ $parentApplicationId }}">
+                    <input type="hidden" id="fs_alt_parent_name" value="{{ $parent_application_details->applicant_name ?? '' }}">
+                    <input type="hidden" id="fs_alt_parent_address" value="{{ $parent_application_details->applicant_address ?? $parent_application_details->applicants_address ?? '' }}">
+                    <input type="hidden" id="alter_name" name="alter_name" value="0">
+                    <input type="hidden" id="alter_address" name="alter_address" value="0">
+                    <input type="hidden" id="alter_workexp" name="alter_workexp" value="0">
+                    @if($isAlterationMode)
+                    <input type="checkbox" id="fsAltOptName" class="sr-only" value="1" autocomplete="off" tabindex="-1" aria-hidden="true">
+                    <input type="checkbox" id="fsAltOptAddress" class="sr-only" value="1" autocomplete="off" tabindex="-1" aria-hidden="true">
+                    <input type="checkbox" id="fsAltOptWork" class="sr-only" value="1" autocomplete="off" tabindex="-1" aria-hidden="true">
+                    @endif
                     @php
                         $_issued_lic_renew = '';
                         if (!empty($license_details) && trim((string) ($license_details->license_number ?? '')) !== '') {
@@ -1124,10 +1325,10 @@
                     @endphp
                     <input type="hidden" id="license_number" name="license_number" value="{{ $_issued_lic_renew }}">
 
-                    {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
+                    {{-- ═══ SECTION 1 to 4 — Applicant Details ═══ --}}
                     @php
                         $formName = $application_details->form_name ?? '';
-                        $hasApplicantEmail = in_array($formName, ['S', 'W', 'WH'], true);
+                        $hasApplicantEmail = true;
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
                         $emailVal = '';
@@ -1137,13 +1338,13 @@
                                 $emailVal = trim((string) (Auth::user()->email ?? ''));
                             }
                         }
-                        $addressVal = isset($application_details) ? $application_details->applicants_address : Auth::user()->address;
+                        $addressVal = isset($application_details) ? $application_details->applicant_address : Auth::user()->address;
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
                     @endphp
-                    <div class="fs-section{{ $retLockClass('applicant') }}" data-return-section="applicant" data-mode="{{ $retSectionMode('applicant') }}">
-                        @unless(($returnedIsPartial ?? false) && ! ($retCanEdit('applicant')))
+                    <div class="fs-section" id="fsAltSectionApplicant" data-mode="view">
+                        @unless($isAlterationMode)
                         <button type="button" class="fs-section-edit-toggle" onclick="toggleSectionEdit(this)" title="Edit" style="position:absolute;top:10px;right:10px;">
                             <i class="fa fa-pencil"></i>
                         </button>
@@ -1155,13 +1356,27 @@
                                         <div class="fs-field-head">
                                             <span class="fs-field-num">1</span>
                                             <div class="fs-field-head-text">
-                                                <div class="fs-field-label">Applicant's Name</div>
+                                                <div class="fs-field-label">Applicant's Name
+                                                    @if($isAlterationMode)
+                                                    <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeName" data-alt-opt="name" aria-pressed="false" title="Edit applicant name">
+                                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit</span>
+                                                    </button>
+                                                    @endif
+                                                </div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் பெயர்</div>
                                             </div>
                                         </div>
-                                        <div class="fs-view-grid-value-box">
-                                            <div class="fs-view-value {{ empty($applicantNameVal) ? 'fs-view-value--empty' : '' }}" data-view-for="Applicant_Name">{{ $applicantNameVal ?: 'Not provided' }}</div>
+                                        <div class="">
+                                            <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text" value="{{ $applicantNameVal }}" @unless($isAlterationMode) readonly @endunless>
                                         </div>
+                                        @if($isAlterationMode)
+                                        @include('user_login.alteration.partials.alt-proof-upload', [
+                                            'panelId' => 'fsAltNameProofPanel',
+                                            'inputId' => 'name_alteration_proof',
+                                            'inputName' => 'name_alteration_proof',
+                                            'label' => 'Name proof',
+                                        ])
+                                        @endif
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="fs-field-head">
@@ -1174,8 +1389,8 @@
                                         <div class="fs-view-grid-value-box">
                                             <div class="fs-view-value {{ empty($fathersNameVal) ? 'fs-view-value--empty' : '' }}" data-view-for="Fathers_Name">{{ $fathersNameVal ?: 'Not provided' }}</div>
                                         </div>
+                                        <input type="hidden" id="Fathers_Name" name="fathers_name" value="{{ $fathersNameVal }}">
                                     </div>
-                                    @if($hasApplicantEmail)
                                     <div class="col-12 col-md-6 mb-2 mt-2">
                                         <div class="fs-field-head">
                                             <span class="fs-field-num">3</span>
@@ -1185,23 +1400,42 @@
                                             </div>
                                         </div>
                                         <div class="fs-view-grid-value-box">
-                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicant_email">{{ $emailVal ?: 'Not provided' }}</div>
+                                            <div class="fs-view-value {{ empty($emailVal) ? 'fs-view-value--empty' : '' }}">{{ $emailVal ?: 'Not provided' }}</div>
                                         </div>
+                                        <input type="hidden" id="applicant_email" name="applicant_email" value="{{ $emailVal }}">
                                     </div>
-                                    @endif
                                 </div>
                                 <div class="row mt-3">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
                                         <div class="fs-field-head">
                                             <span class="fs-field-num">{{ $hasApplicantEmail ? '4' : '3' }}</span>
                                             <div class="fs-field-head-text">
-                                                <div class="fs-field-label">Applicant Address</div>
+                                                <div class="fs-field-label">Applicant Address
+                                                    @if($isAlterationMode)
+                                                    <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeAddress" data-alt-opt="address" aria-pressed="false" title="Edit applicant address">
+                                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit</span>
+                                                    </button>
+                                                    @endif
+                                                </div>
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
                                             </div>
                                         </div>
-                                        <div class="fs-view-grid-value-box">
-                                            <div class="fs-view-value {{ empty($addressVal) ? 'fs-view-value--empty' : '' }}" data-view-for="applicants_address">{{ $addressVal ?: 'Not provided' }}</div>
+                                        <div @unless($isAlterationMode) class="fs-view-grid-value-box" @endunless>
+                                            <textarea rows="3"
+                                                class="form-control"
+                                                id="applicants_address"
+                                                name="applicants_address"
+                                                maxlength="255"
+                                                @unless($isAlterationMode) readonly @endunless>{{ $isAlterationMode ? $addressVal : ($addressVal ?: 'Not provided') }}</textarea>
                                         </div>
+                                        @if($isAlterationMode)
+                                        @include('user_login.alteration.partials.alt-proof-upload', [
+                                            'panelId' => 'fsAltAddressProofPanel',
+                                            'inputId' => 'address_alteration_proof',
+                                            'inputName' => 'address_alteration_proof',
+                                            'label' => 'Address proof',
+                                        ])
+                                        @endif
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="row">
@@ -1216,6 +1450,7 @@
                                                 <div class="fs-view-grid-value-box">
                                                     <div class="fs-view-value {{ empty($dobDisplayVal) ? 'fs-view-value--empty' : '' }}" data-view-for="d_o_b" data-view-format="date">{{ $dobDisplayVal ?: 'Not provided' }}</div>
                                                 </div>
+                                                <input type="hidden" id="d_o_b" name="d_o_b" value="{{ $dobIsoVal }}">
                                             </div>
                                             <div class="col-12 col-sm-5">
                                                 <div class="fs-field-label"><span class="fs-field-num-sub">(ii)</span>Age</div>
@@ -1223,11 +1458,13 @@
                                                 <div class="fs-view-grid-value-box">
                                                     <div class="fs-view-value {{ empty($ageVal) ? 'fs-view-value--empty' : '' }}" data-view-for="age">{{ $ageVal ?: 'Not provided' }}</div>
                                                 </div>
+                                                <input type="hidden" id="age" name="age" value="{{ $ageVal }}">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            @unless($isAlterationMode)
                             <div class="fs-edit-block">
                                 <div class="row">
                                     <div class="col-12 col-md-6 mb-3 mb-md-0">
@@ -1239,7 +1476,7 @@
                                             </div>
                                         </div>
                                         <input autocomplete="off" class="form-control" id="Applicant_Name" name="applicant_name" type="text"
-                                            value="{{ str_replace('.', '', $applicantNameVal) }}" readonly>
+                                            value="{{ str_replace('.', '', $applicantNameVal) }}" >
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="fs-field-head">
@@ -1309,18 +1546,17 @@
                                     </div>
                                 </div>
                             </div>
+                            @endunless
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 6 — Education (Form S) / SECTION 5 — Education (others) ═══ --}}
-                    <div class="fs-section{{ $retLockClass('education') }}" data-return-section="education">
+                    {{-- ═══ SECTION 5 — Education ═══ --}}
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">{{ in_array($formName, ['S', 'W'], true) ? 6 : 5 }}</span>
+                            <span class="fs-section-num">{{ $formName === 'S' ? 6 : 5 }}</span>
                             <div>
                                 <div class="fs-section-title">
-                                    {{ ($formName ?? '') === 'S'
-                                        ? 'Details of Technical Qualification passed by the applicant.'
-                                        : "Applicant's Educational / Technical Qualification and pass details" }}
+                                    Details of Technical Qualification passed by the applicant.
                                     <span class="section-req">*</span>
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
@@ -1343,12 +1579,10 @@
                                                             </th>
                                                             <th class="text-center p-1" rowspan="2">
                                                                 <div class="form-s-actions-stack">
-                                                                    @unless(($returnedIsPartial ?? false) && ! ($retCanEdit('education')))
                                                                     <button type="button"
                                                                         class="btn-tbl-add add-more add-more-education py-1 px-2" title="Add row">
                                                                         <i class="fa fa-plus"></i>
                                                                     </button>
-                                                                    @endunless
                                                                 </div>
                                                             </th>
                                                         </tr>
@@ -1370,7 +1604,6 @@
                                                                         <option value="DEE" {{ $edu_details->educational_level == 'DEE' ? 'selected' : '' }}>Diploma(Electrical Engineering)</option>
                                                                         <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
                                                                         <option value="MEE" {{ $edu_details->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
-                                                                        <option value="AMIE" {{ $edu_details->educational_level == 'AMIE' ? 'selected' : '' }}>A pass in AMIE</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC" {{ $edu_details->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
                                                                         <option value="Provisional" {{ $edu_details->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
@@ -1446,10 +1679,10 @@
                                                                 <div class="file-section text-center">
                                                                     @if (!empty($edu_details->upload_document))
                                                                         <div class="edu-doc-container d-flex align-items-center justify-content-center">
-                                                                            <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document, 'education', (int) ($edu_details->id ?? 0), 'certificate', [(int) ($application_details->id ?? 0)]) }}" target="_blank">
+                                                                            <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document ?? null, 'education', (int) ($edu_details->id ?? 0), 'certificate') ?? '#' }}" target="_blank">
                                                                                 <i class="fa fa-file-pdf-o" style="color: red"></i> View Document
                                                                             </a>
-                                                                            <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button>
+                                                                            {{-- <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button> --}}
                                                                         </div>
                                                                         <div class="edu-doc-input d-none">
                                                                             <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
@@ -1488,7 +1721,6 @@
                                                                         <option value="DEE">Diploma(Electrical Engineering)</option>
                                                                         <option value="BEE">B.E(Electrical Engineering)</option>
                                                                         <option value="MEE">M.E(Electrical Engineering)</option>
-                                                                        <option value="AMIE">A pass in AMIE</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC">NTC</option>
                                                                         <option value="Provisional">Provisional</option>
@@ -1582,11 +1814,11 @@
                     {{-- /SECTION 5 --}}
 
                     @php
-                        $workQuestionNo = in_array(($application_details->form_name ?? ''), ['S', 'W', 'WH'], true) ? 7 : 6;
+                        $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
                     @endphp
 
                     {{-- ═══ SECTION 6 — Work Experience ═══ --}}
-                    <div class="fs-section{{ $retLockClass('experience') }}" data-return-section="experience">
+                    <div class="fs-section" @if($isAlterationMode) id="fsAltSectionWork" @endif>
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $workQuestionNo }}</span>
                             <div>
@@ -1598,6 +1830,11 @@
                                         <span class="section-req">*</span>
                                     @endif
                                     <span class="section-hint">(Upload the documents)</span>
+                                    @if($isAlterationMode)
+                                    <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeWork" data-alt-opt="work" aria-pressed="false" title="Edit work experience">
+                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit work</span>
+                                    </button>
+                                    @endif
                                 </div>
                                 <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
                                     @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
@@ -1608,49 +1845,56 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
-                            @if ($editFormName === 'S')
-                            @include('user_login.partials.form-s-work-exp-7ab-body', [
-                                'exp_details' => $exp_details,
-                                'hideUploadWhenDocExists' => true,
-                                'showContractorNotice' => true,
-                                'contractorDetails' => $get_contractor_details ?? null,
-                            ])
-                            @elseif (in_array($editFormName, ['W', 'WH'], true))
-                            @include('user_login.partials.form-w-work-exp-7ab-body', [
-                                'exp_details' => $exp_details ?? collect(),
-                                'showContractorNotice' => true,
-                                'contractorDetails' => $get_contractor_details ?? null,
-                                'hideUploadWhenDocExists' => true,
-                            ])
+                            @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                @include('user_login.partials.form-s-work-exp-7ab-body', [
+                                    'exp_details' => $exp_details ?? collect(),
+                                    'hideUploadWhenDocExists' => true,
+                                    'isAlterationMode' => $isAlterationMode,
+                                ])
+                            @elseif(isset($application_details->form_name) && in_array($application_details->form_name, ['W', 'WH'], true))
+                                @include('user_login.partials.form-w-work-exp-7ab-body', [
+                                    'exp_details' => $exp_details ?? collect(),
+                                    'hideUploadWhenDocExists' => true,
+                                    'isAlterationMode' => $isAlterationMode,
+                                    'showContractorNotice' => false,
+                                    'contractorDetails' => null,
+                                ])
                             @else
                             <div class="fs-table-wrap">
-                                                    <table class="table table-bordered {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'table-sm work-exp-table work-table-w' : 'table-striped' }}" id="work-table">
+                                                    <table class="table table-bordered {{ (isset($application_details->form_name) && in_array($application_details->form_name, ['S','W'])) ? 'table-sm work-exp-table' : 'table-striped' }} {{ (isset($application_details->form_name) && $application_details->form_name == 'W') ? 'work-table-w' : '' }}" id="work-table">
                                                         <thead>
                                                             <tr>
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'W')
+                                                               
                                                                 <th class="work-exp-col-sno text-center">S.No</th>
-                                                                <th class="work-exp-col-company">Company Name / Contractor</th>
-                                                                <th class="work-exp-col-years" scope="col">
+                                                                <th class="work-exp-col-type">Employment type</th>
+                                                                <th class="work-exp-col-employer">Employer / organization</th>
+                                                                <th class="work-exp-col-years work-exp-years-head" scope="col">
                                                                     <div class="work-exp-years-title">Year of Experience</div>
                                                                     <div class="work-exp-inline work-exp-inline--head">
-                                                                        <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">From (date)</span></div>
-                                                                        <div class="work-exp-date-group"><span class="work-exp-label-fromto d-block">To (date)</span></div>
-                                                                        <div class="work-exp-total-inline"><span class="work-exp-label-fromto d-block">Total yrs</span></div>
+                                                                        <div class="work-exp-date-group">
+                                                                            <span class="work-exp-label-fromto d-block">From (date)</span>
+                                                                        </div>
+                                                                        <div class="work-exp-date-group">
+                                                                            <span class="work-exp-label-fromto d-block">To (date)</span>
+                                                                        </div>
+                                                                        <div class="work-exp-total-inline">
+                                                                            <span class="work-exp-label-fromto d-block">Total yrs</span>
+                                                                        </div>
                                                                     </div>
                                                                 </th>
-                                                                @else
-                                                                <th>S.No</th>
-                                                                <th>Company Name / Contractor</th>
-                                                                <th>Years of Experience (Years)</th>
-                                                                @endif
+                                                               
                                                                 <th class="work-exp-col-designation">Designation</th>
+                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                                                    <th class="text-center work-exp-col-upload work-exp-upload-head">
+                                                                        Upload Document
+                                                                        <br><span class="file-limit">File type: PDF(Min 5 KB To Max 200 KB)</span>
+                                                                    </th>
+                                                                @endif
                                                                 <th class="work-exp-col-actions text-center p-1">
                                                                     <div class="form-s-actions-stack">
-                                                                        @unless(($returnedIsPartial ?? false) && ! ($retCanEdit('experience')))
                                                                         <button type="button" class="btn-tbl-add add-more-work py-1 px-2" title="Add row">
                                                                             <i class="fa fa-plus"></i>
                                                                         </button>
-                                                                        @endunless
                                                                     </div>
                                                                 </th>
                                                             </tr>
@@ -1658,21 +1902,117 @@
                                                         <tbody id="work-container">
                                                             @if ($exp_details->isNotEmpty())
                                                             @foreach ($exp_details as $expRow)
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'W')
+                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                                                <tr class="work-fields fs-alt-existing-work">
+                                                                    @php
+                                                                   
+                                                                        $workEmpType = $expRow->emp_type ?? 'company';
+                                                                        $workEmployerName = $expRow->emp_cate ?? $expRow->company_name ?? '';
+                                                                        $workTotalExp = $expRow->total_exp ?? $expRow->experience ?? '';
+                                                                        $workFromDate = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
+                                                                        $workToDate = $expRow->to_date ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
+                                                                        $workIntimationDate = $expRow->intimation_date ? \Carbon\Carbon::parse($expRow->intimation_date)->format('Y-m-d') : '';
+                                                                    @endphp
+                                                                    <td class="work-serial text-center">{{ $loop->iteration }}</td>
+                                                                    <td class="work-exp-col-type">
+                                                                        <select class="form-control form-control-sm work-employment-type" name="work_employment_type[]" required>
+                                                                            <option value="" disabled>Select type</option>
+                                                                            <option value="company" {{ $workEmpType === 'company' ? 'selected' : '' }}>Company</option>
+                                                                            <option value="contractor" {{ $workEmpType === 'contractor' ? 'selected' : '' }}>Contractor</option>
+                                                                            <option value="apprentice" {{ $workEmpType === 'apprentice' ? 'selected' : '' }}>Apprentice</option>
+                                                                            <option value="electrical_inspector" {{ $workEmpType === 'electrical_inspector' ? 'selected' : '' }}>Government / Quasi Government / Board</option>
+                                                                            <option value="retired_employees" {{ $workEmpType === 'retired_employees' ? 'selected' : '' }}>Retired Employees</option>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td class="work-employer-cell work-exp-col-employer">
+                                                                        <div class="work-employer-label-row">
+                                                                            <span class="work-employer-label">—</span><span class="text-danger work-employer-req" style="display:none;"> *</span>
+                                                                        </div>
+                                                                        <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" value="{{ $workEmployerName }}">
+                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;">
+                                                                            <label class="small mb-0" style="font-size:.7rem;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;"><span style="white-space:nowrap;">Intimation letter</span><span class="text-danger flex-shrink-0">*</span></label>
+                                                                            <input type="date" class="form-control form-control-sm work-intimation-date" name="work_intimation_date[]" value="{{ $workIntimationDate }}">
+                                                                        </div>
+                                                                    </td>
+                                                                    <td class="work-exp-col-years">
+                                                                        <div class="work-exp-inline">
+                                                                            <div class="work-exp-date-group">
+                                                                                <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" value="{{ $workFromDate }}" title="From date" aria-label="Year of experience from date">
+                                                                            </div>
+                                                                            <div class="work-exp-date-group">
+                                                                                <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" value="{{ $workToDate }}" title="To date" aria-label="Year of experience to date">
+                                                                            </div>
+                                                                            <div class="work-exp-total-inline">
+                                                                                <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Yrs</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Mo</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Days</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $workTotalExp }}">
+                                                                            </div>
+                                                                        </div>
+                                                                        <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $workEmployerName }}" tabindex="-1" aria-hidden="true">
+                                                                        <input type="hidden" name="experience[]" class="experience-sync" value="{{ $workTotalExp }}" tabindex="-1" aria-hidden="true">
+                                                                    </td>
+                                                                    <td class="work-exp-col-designation">
+                                                                        <input autocomplete="off" class="form-control form-control-sm" name="designation[]" type="text" maxlength="80" value="{{ $expRow->designation ?? '' }}">
+                                                                    </td>
+                                                                    <td class="work-exp-col-upload">
+                                                                        <div class="file-section text-center">
+                                                                            @if (!empty($expRow->upload_document))
+                                                                                <div class="work-doc-container d-flex align-items-center justify-content-center">
+                                                                                    <a class="text-primary" href="{{ competency_document_url($expRow->support_document ?? $expRow->upload_document ?? null, 'experience', (int) ($expRow->exp_id ?? 0), 'experience_doc') ?? '#' }}" target="_blank">
+                                                                                        <i class="fa fa-file-pdf-o" style="color: red"></i> View
+                                                                                    </a>
+                                                                                    <button type="button" class="btn btn-sm btn-danger ml-2 remove-work-doc-confirm">Remove</button>
+                                                                                </div>
+                                                                                <div class="work-doc-input d-none">
+                                                                                    <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined mt-1" data-upload-kind="work">
+                                                                                        <input class="form-control form-control-sm p-1" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
+                                                                                    </div>
+                                                                                </div>
+                                                                            @else
+                                                                                <div class="work-doc-container d-none"></div>
+                                                                                <div class="work-doc-input">
+                                                                                    <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
+                                                                                        <input class="form-control form-control-sm p-1" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
+                                                                                    </div>
+                                                                                </div>
+                                                                            @endif
+                                                                        </div>
+                                                                    </td>
+                                                                    <td class="work-exp-col-actions text-center p-1">
+                                                                        <div class="form-s-actions-stack">
+                                                                            <button type="button" class="btn btn-danger btn-sm remove-work remove_exp py-1 px-2" data-exp_id="{{ $expRow->id }}" data-url="{{ route('delete_experience') }}" title="Remove row">
+                                                                                <i class="fa fa-trash-o"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                    <input type="hidden" name="work_id[]" value="{{ $expRow->id ?? '' }}">
+                                                                    <input type="hidden" name="fs_alt_existing_work[]" value="1">
+                                                                    <input type="hidden" name="existing_work_document[]" value="{{ $expRow->upload_document ?? '' }}">
+                                                                    <input type="hidden" name="removed_document_work[]" value="0">
+                                                                </tr>
+                                                                @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
                                                                 @php
                                                                     $wFromDate = $expRow->from_date ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
                                                                     $wToDate   = $expRow->to_date   ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d')   : '';
-                                                                    $wTotalExp = legacy_total_exp_from_duration(
-                                                                        $expRow->total_exp ?? $expRow->experience ?? null,
-                                                                        $expRow->total_y ?? null,
-                                                                        $expRow->total_m ?? null,
-                                                                        $expRow->total_d ?? null
-                                                                    );
+                                                                    $wTotalExp = $expRow->total_exp ?? $expRow->experience ?? '';
+                                                                    $wCompany  = $expRow->emp_cate ?? $expRow->company_name ?? '';
                                                                 @endphp
-                                                                <tr class="work-fields">
+                                                                <tr class="work-fields fs-alt-existing-work">
                                                                     <td class="work-serial text-center">{{ $loop->iteration }}</td>
                                                                     <td class="work-exp-col-company">
-                                                                        <input autocomplete="off" class="form-control form-control-sm" name="work_level[]" type="text" maxlength="80" value="{{ $expRow->company_name ?? '' }}">
+                                                                        <input autocomplete="off" class="form-control form-control-sm" name="work_level[]" type="text" maxlength="80" value="{{ $wCompany }}">
                                                                     </td>
                                                                     <td class="work-exp-col-years">
                                                                         <div class="work-exp-inline">
@@ -1702,18 +2042,10 @@
                                                                     <input type="hidden" name="removed_document_work[]" value="0">
                                                                 </tr>
                                                                 @else
-                                                                @php
-                                                                    $otherTotalExp = legacy_total_exp_from_duration(
-                                                                        $expRow->experience ?? $expRow->total_exp ?? null,
-                                                                        $expRow->total_y ?? null,
-                                                                        $expRow->total_m ?? null,
-                                                                        $expRow->total_d ?? null
-                                                                    );
-                                                                @endphp
                                                                 <tr class="work-fields text-center">
                                                                     <td>{{ $loop->iteration }}</td>
                                                                     <td><input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $expRow->company_name ?? '' }}"></td>
-                                                                    <td><input autocomplete="off" class="form-control" name="experience[]" type="number" value="{{ $otherTotalExp }}"></td>
+                                                                    <td><input autocomplete="off" class="form-control" name="experience[]" type="number" value="{{ $expRow->experience ?? '' }}"></td>
                                                                     <td><input autocomplete="off" class="form-control" name="designation[]" type="text" value="{{ $expRow->designation ?? '' }}"></td>
                                                                     <td>
                                                                         <button type="button" class="btn btn-danger remove-work remove_exp" data-exp_id="{{ $expRow->id }}" data-url="{{ route('delete_experience') }}">
@@ -1727,7 +2059,83 @@
                                                                 @endif
                                                             @endforeach
                                                             @else
-                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'W')
+                                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                                                <tr class="work-fields" id="fsAltWorkTemplateRow">
+                                                                    <td class="work-serial text-center">1</td>
+                                                                    <td class="work-exp-col-type">
+                                                                        <select class="form-control form-control-sm work-employment-type" name="work_employment_type[]" required>
+                                                                            <option value="" selected disabled>Select type</option>
+                                                                            <option value="company">Company</option>
+                                                                            <option value="contractor">Contractor</option>
+                                                                            <option value="apprentice">Apprentice</option>
+                                                                            <option value="electrical_inspector">Government / Quasi Government / Board</option>
+                                                                            <option value="retired_employees">Retired Employees</option>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td class="work-employer-cell work-exp-col-employer">
+                                                                        <div class="work-employer-label-row">
+                                                                            <span class="work-employer-label">—</span><span class="text-danger work-employer-req" style="display:none;"> *</span>
+                                                                        </div>
+                                                                        <input type="text" class="form-control form-control-sm work-employer-input" name="work_employer_name[]" maxlength="120" autocomplete="off" disabled>
+                                                                        <div class="work-block work-block--intimation mt-1" style="display:none;">
+                                                                            <label class="small mb-0" style="font-size:.7rem;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;"><span style="white-space:nowrap;">Intimation letter</span><span class="text-danger flex-shrink-0">*</span></label>
+                                                                            <input type="date" class="form-control form-control-sm work-intimation-date" name="work_intimation_date[]">
+                                                                        </div>
+                                                                    </td>
+                                                                    <td class="work-exp-col-years">
+                                                                        <div class="work-exp-inline">
+                                                                            <div class="work-exp-date-group">
+                                                                                <input type="date" class="form-control form-control-sm work-date-from" name="work_date_from[]" title="From date" aria-label="Year of experience from date">
+                                                                            </div>
+                                                                            <div class="work-exp-date-group">
+                                                                                <input type="date" class="form-control form-control-sm work-date-to" name="work_date_to[]" title="To date" aria-label="Year of experience to date">
+                                                                            </div>
+                                                                            <div class="work-exp-total-inline">
+                                                                                <div class="work-duration-ymd" role="group" aria-label="Duration (years, months, days from dates)">
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Yrs</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-y" readonly inputmode="none" tabindex="-1" title="Years" aria-label="Years in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Mo</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-m" readonly inputmode="none" tabindex="-1" title="Months" aria-label="Months in this period">
+                                                                                    </div>
+                                                                                    <div class="work-duration-cell">
+                                                                                        <span class="work-duration-label">Days</span>
+                                                                                        <input type="text" class="form-control form-control-sm work-duration-d" readonly inputmode="none" tabindex="-1" title="Days" aria-label="Days in this period">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
+                                                                            </div>
+                                                                        </div>
+                                                                        <input type="hidden" name="work_level[]" class="work-level-sync" value="" tabindex="-1" aria-hidden="true">
+                                                                        <input type="hidden" name="experience[]" class="experience-sync" value="" tabindex="-1" aria-hidden="true">
+                                                                    </td>
+                                                                    <td class="work-exp-col-designation">
+                                                                        <input autocomplete="off" class="form-control form-control-sm" name="designation[]" type="text" maxlength="80">
+                                                                    </td>
+                                                                    <td class="work-exp-col-upload">
+                                                                        <div class="file-section text-center">
+                                                                            <div class="work-doc-container d-none"></div>
+                                                                            <div class="work-doc-input">
+                                                                                <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="work">
+                                                                                    <input class="form-control form-control-sm p-1" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td class="work-exp-col-actions text-center p-1">
+                                                                        <div class="form-s-actions-stack">
+                                                                            <button type="button" class="btn btn-danger btn-sm remove-work py-1 px-2" title="Remove row">
+                                                                                <i class="fa fa-trash-o"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                    <input type="hidden" name="work_id[]">
+                                                                    <input type="hidden" name="existing_work_document[]">
+                                                                    <input type="hidden" name="removed_document_work[]" value="0">
+                                                                </tr>
+                                                                @elseif(isset($application_details->form_name) && $application_details->form_name == 'W')
                                                                 <tr class="work-fields">
                                                                     <td class="work-serial text-center">1</td>
                                                                     <td class="work-exp-col-company">
@@ -1780,14 +2188,16 @@
                                                         </tbody>
                                                     </table>
                                                 </div>
+                                                @if(isset($application_details->form_name) && $application_details->form_name == 'S')
+                                                <div id="work-exp-total-msg" class="work-exp-total-msg-wrap mt-1" aria-live="polite"></div>
+                                                @endif
                             @endif
                         </div>
                     </div>
-                    {{-- /SECTION 6 --}}
-
+                    
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
-                    <div class="fs-section{{ $retLockClass('applicant') }}" data-return-section="applicant">
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
                             <div>
@@ -1808,17 +2218,16 @@
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
                                                placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="80">
-                                        <input type="hidden" id="l_verify" name="l_verify" value="1">
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
                                         <span id="license_messagdfde" class="mt-1"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
@@ -1826,7 +2235,7 @@
                                                value="{{ $application_details->first_issue_date }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    <div class="col-12 col-md-3">
                                         <div class="fs-field-label">From date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
                                                id="previously_valid_from" name="previously_valid_from" type="date"
@@ -1834,14 +2243,24 @@
                                                value="{{ $application_details->scc_from_date ?? '' }}">
                                         <span id="previouslyFromDateError" class="text-danger"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    <div class="col-12 col-md-3">
                                         <div class="fs-field-label">To date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
                                                id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
-                                               value="{{ $application_details->scc_to_date }}">
+                                               value="{{ $application_details->scc_to_date ?? '' }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
+                                    {{-- <div class="col-12 col-md-2">
+                                        <div class="fs-verify-actions">
+                                            @if (!empty($application_details->previously_number))
+                                                <button type="button" class="btn btn-danger remove_verify" data-type="superviser"><i class="fa fa-trash"></i> Delete</button>
+                                                <button type="button" class="btn btn-primary verify-btn btn-forms d-none" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
+                                            @else
+                                                <button type="button" class="btn btn-primary verify-btn" data-type="license" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
+                                            @endif
+                                        </div>
+                                    </div> --}}
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
                         </div>{{-- /fs-section-body --}}
@@ -1859,7 +2278,7 @@
                             $cert_name = 'Wireman Helper Competency Certificate';
                             $useFormSQuestion9Head = false;
                         } elseif (isset($application_details->form_name) && $application_details->form_name == 'W') {
-                            $questionNumber = 8;
+                            $questionNumber = 7;
                             $cert_name = 'Wireman Competency Certificate / Wireman Helper Competency Certificate';
                             $useFormSQuestion9Head = false;
                         } else {
@@ -1870,7 +2289,7 @@
                     @endphp
 
                     {{-- ═══ SECTION 8 — Wireman/Helper Competency ═══ --}}
-                    <div class="fs-section{{ $retLockClass('applicant') }}" data-return-section="applicant">
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $questionNumber }}</span>
                             <div>
@@ -1896,7 +2315,7 @@
                             <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->wcc_no) ? 'block' : 'none' }};">
                                                         @php
                                                             if($application_details->form_name == 'S'){
-                                                                $cert_type = 'supervisor';
+                                                                $cert_type = 'certificate';
                                                             }else if($application_details->form_name == 'WH'){
                                                                 $cert_type = 'helper';
                                                             }else{
@@ -1905,13 +2324,13 @@
                                                         @endphp
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span>@if($application_details->form_name == 'S')<span class="text-muted" style="font-size:.75rem;font-weight:400;"> (eg. W1234)</span>@else<span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, LB2026041234 / LWH2026041234)</span>@endif</div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, LB2026041234 / LWH2026041234)</span></div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
                                                                    placeholder="Certificate Number" maxlength="80"
-                                                                   value="{{ $application_details->wcc_no }}">
-                                                            <input type="hidden" id="cert_verify" name="cert_verify" value="1">
+                                                                   value="{{ $application_details->wcc_no }}"
+                                                                   >
                                                             <span id="licenseError" class="text-danger"></span>
                                                             <span id="license_message" class="mt-1"></span>
                                                             <span id="certError" class="text-danger"></span>
@@ -1921,7 +2340,8 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ $application_details->wcc_issue_date }}">
+                                                                   value="{{ $application_details->wcc_issue_date }}"
+                                                                   >
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1929,7 +2349,8 @@
                                                             <input class="form-control text-box single-line verify-valid-from"
                                                                    id="certificate_valid_from" name="certificate_valid_from"
                                                                    data-error="#certFromDateError" type="date"
-                                                                   value="{{ $application_details->wcc_from ?? '' }}">
+                                                                   value="{{ $application_details->wcc_from ?? '' }}"
+                                                                   >
                                                             <span id="certFromDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1937,9 +2358,20 @@
                                                             <input class="form-control text-box single-line verify-date"
                                                                    id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->wcc_to }}">
+                                                                   value="{{ $application_details->wcc_to ?? '' }}"
+                                                                   >
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
+                                                        {{-- <div class="col-12 col-md-2">
+                                                            <div class="fs-verify-actions">
+                                                            @if (!empty($application_details->certificate_no))
+                                                                <button type="button" class="btn btn-danger remove_verify" data-type="superviser_two"><i class="fa fa-trash"></i> Delete</button>
+                                                                <button type="button" class="btn btn-primary verify-btn d-none" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
+                                                            @else
+                                                                <button type="button" class="btn btn-primary verify-btn" data-type="{{ $cert_type }}" data-url="{{ route('verifylicense') }}"><i class="fa fa-check-circle"></i> Verify</button>
+                                                            @endif
+                                                            </div>
+                                                        </div> --}}
                                 </div>
                             </div>{{-- /fs-toggle-panel --}}
                         </div>{{-- /fs-section-body --}}
@@ -1950,7 +2382,7 @@
                         if ($formName === 'S') {
                             $uploadQuestionNo = 10;
                         } elseif ($formName === 'W') {
-                            $uploadQuestionNo = 9;
+                            $uploadQuestionNo = 8;
                         } elseif ($formName === 'WH') {
                             $uploadQuestionNo = 7;
                         } elseif ($formName === 'P') {
@@ -1961,7 +2393,7 @@
                     @endphp
 
                     {{-- ═══ SECTION 9 — Upload Documents ═══ --}}
-                    <div class="fs-section" data-return-section="documents">
+                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $uploadQuestionNo }}</span>
                             <div>
@@ -1974,8 +2406,11 @@
                                 $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
                                 $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
-                                $hasPhoto = !empty($applicant_photo->upload_path);
-                                $hasSign  = !empty($proof_doc?->uploaded_doc);
+                                $hasPhoto = !empty($applicant_photo?->upload_path);
+                                $signPathRaw = $proof_doc?->uploaded_doc ?? $application_details->upload_sign ?? $application_details->signature ?? '';
+                                $hasSign = !empty($signPathRaw);
+                                $photoPreviewSrc = $hasPhoto ? competency_media_url($applicant_photo->upload_path) : '';
+                                $signPreviewSrc = $hasSign ? competency_media_url($signPathRaw) : '';
                             @endphp
                             <table class="table fs-docs-table mb-0">
                                 <tbody>
@@ -1986,9 +2421,8 @@
                                             <div class="fs-field-label">Upload Photo <span class="req">*</span></div>
                                             <div class="fs-field-tamil">புகைப்படத்தைப் பதிவேற்றவும்</div>
                                         </td>
-                                        <td colspan="3" class="p-0">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('photo') }}" data-return-section="photo">
-                                            <div class="fs-upload-card p-3">
+                                        <td colspan="3">
+                                            <div class="fs-upload-card">
                                                 <div class="fs-upload-controls">
                                                     <div id="photo-input-wrapper" style="{{ $hasPhoto ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
@@ -2007,9 +2441,8 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--photo">
                                                     <span id="photo_placeholder" class="fs-upload-placeholder" style="{{ $hasPhoto ? 'display:none;' : '' }}">Photo preview</span>
-                                                    <img id="preview_applicant" src="{{ $hasPhoto ? competency_media_url($applicant_photo->upload_path) : '' }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_applicant" src="{{ $photoPreviewSrc }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
                                                 </div>
-                                            </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -2021,23 +2454,20 @@
                                             <div class="fs-field-tamil">ஆதார் எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-aadhaar-no">
                                             <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}">
                                             <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                            </div>
                                         </td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
                                             <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
                                         </td>
                                         <td style="min-width:200px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="aadhaar_doc">
                                             @if (!empty($application_details->aadhaar_doc))
                                                 <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
                                                     </a>
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
+                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button> --}}
                                                 </div>
                                             @endif
                                             <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
@@ -2048,7 +2478,6 @@
                                                 <small class="text-danger file-error d-block"></small>
                                             </div>
                                             <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
-                                            </div>
                                         </td>
                                     </tr>
                                     {{-- PAN --}}
@@ -2059,23 +2488,20 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-pan-no">
                                             <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
-                                            </div>
                                         </td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">(iv) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('pan_doc') }}" data-return-section="pan_doc">
                                             @if (!empty($existingPanDoc))
                                                 <div class="pan-doc-container mb-2 d-flex align-items-center">
                                                     <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
                                                     </a>
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
+                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button> --}}
                                                 </div>
                                             @endif
                                             <div class="pan-doc-input {{ !empty($existingPanDoc) ? 'd-none' : '' }}">
@@ -2084,7 +2510,6 @@
                                                 </div>
                                                 <span class="file-limit">File type: PDF (Max 250 KB)</span>
                                                 <small class="text-danger file-error d-block"></small>
-                                            </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -2095,9 +2520,8 @@
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
                                         </td>
-                                        <td colspan="3" class="p-0">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('signature') }}" data-return-section="signature">
-                                            <div class="fs-upload-card p-3">
+                                        <td colspan="3">
+                                            <div class="fs-upload-card">
                                                 <div class="fs-upload-controls">
                                                     <div id="sign-input-wrapper" style="{{ $hasSign ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
@@ -2116,9 +2540,8 @@
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--sign">
                                                     <span id="sign_placeholder" class="fs-upload-placeholder" style="{{ $hasSign ? 'display:none;' : '' }}">Signature preview</span>
-                                                    <img id="preview_signature" src="{{ $hasSign ? competency_media_url($proof_doc->uploaded_doc) : '' }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
+                                                    <img id="preview_signature" src="{{ $signPreviewSrc }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
                                                 </div>
-                                            </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -2134,7 +2557,11 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                @if ($formName === 'S')
+                                @if ($isAlterationMode)
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<br>
+                                    I request that the selected alteration(s) to my Supervisor Competency Certificate may be processed.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.<br>எனது மேற்பார்வையாளர் திறன் சான்றிதழில் தேர்ந்தெடுத்த மாற்றம்(கள்) செயல்படுத்தப்பட வேண்டும் என்று கேட்டுக்கொள்கிறேன்.</span>
+                                @elseif ($formName === 'S')
                                     I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
                                     I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
                                     <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
@@ -2156,7 +2583,7 @@
                                 @endif
                             </div>
                         </label>
-                        <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
+                        <span id="checkboxError" class="text-danger mt-2 d-block d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
                     </div>
 
                     {{-- Hidden fields --}}
@@ -2167,25 +2594,32 @@
                     <input type="hidden" id="form_id" name="form_id"
                         value="{{ isset($application_details) ? $application_details->form_id : '' }}">
                     <input type="hidden" id="amount" name="amount" value="">
-                    @if ($editShowBoardMember)
-                    <input type="hidden" id="board_member_fee_exempt" name="board_member_fee_exempt" value="0">
-                    <div id="board-member-fee-notice" class="alert alert-info d-none mb-3 py-2 px-3" role="status" style="font-size:.9rem;">
-                        <i class="fa fa-info-circle" aria-hidden="true"></i>
-                        <strong>Fee not applicable:</strong> Applicants with TNEB/TANGEDCO Board Member work experience are exempt from application fees. You may proceed without payment.
-                    </div>
-                    @endif
-                    <input type="hidden" id="appl_type" name="appl_type"
-                        value="{{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }}">
+                    <!-- {{ isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N' }} -->
+                    <input type="hidden" id="appl_type" name="appl_type" value="{{ $isAlterationMode ? 'A' : (isset($application_details) ? ($application_details->appl_type ?? 'N') : 'N') }}">
+                    <input type="hidden" id="board_member_fee_exempt" value="0">
                     @csrf
 
                     {{-- ── Action buttons ── --}}
-                    <div class="fs-action-bar" id="actionButtonsWrap">
-                        <a href="{{ route('dashboard') }}" class="btn-fs-draft" id="cancelBtn">
-                            <i class="fa fa-arrow-left"></i> Back to Dashboard
-                        </a>
-                        <button type="button" class="btn-fs-submit" id="submitCorrectionsBtn"
-                            data-url="{{ route('form.submit_returned_application', ['appl_id' => $applicationid]) }}">
-                            <i class="fa fa-paper-plane"></i> Submit
+                    <div class="fs-action-bar">
+                        @if($isAlterationMode)
+                        <button type="button" class="btn-fs-cancel" id="fsAltCancelBtn">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                        @endif
+                        {{-- <button type="button" class="btn-fs-draft" id="saveDraftBtn"
+                            @unless($isAlterationMode)
+                            data-url="{{ route('form.draft_submit') }}"
+                            data-id="{{ $application_details->application_id ?? '' }}"
+                            @endunless>
+                            <i class="fa fa-floppy-o"></i> Save As Draft
+                        </button> --}}
+                        <button type="button" class="btn-fs-submit" id="submitPaymentBtn">
+                            <i class="fa fa-eye"></i>
+                            @if($isAlterationMode)
+                                Preview & Submit Alteration
+                            @else
+                                Preview & Proceed
+                            @endif
                         </button>
                     </div>
 
@@ -2197,8 +2631,100 @@
 
 <footer class="main-footer">
     @include('include.footer')
-</footer>
-</div>
+    
+    <script>
+        window.formSAltStoreUrl = "{{ $alterStoreUrl ?? route('form_p_alt.store') }}";
+        window.formSAltDraftUrl = "{{ $alterDraftUrl ?? route('form_p_alt.draft') }}";
+        window.dashboardUrl = "{{ route('dashboard') }}";
+        window.formSAltEditableMode = @json($isAlterationEditable);
+    </script>
+
+@if (in_array($application_details->form_name ?? '', ['S', 'W', 'WH'], true))
+@include('user_login.partials.form-s-work-exp-scripts', [
+    'editFormName' => $application_details->form_name ?? '',
+    'showBoardMemberEmploymentType' => false,
+    'hideUploadWhenDocExists' => true,
+    'isAlterationMode' => $isAlterationMode,
+    'hideVoltageFields' => in_array(($application_details->form_name ?? ''), ['W', 'WH'], true),
+])
+<script>
+    (function () {
+        if (typeof window.clearWorkRowUploadErrors !== 'function') {
+            window.clearWorkRowUploadErrors = function ($scope) {
+                if (!$scope || !$scope.length) return;
+                $scope.find('.error-message').each(function () {
+                    var txt = ($(this).text() || '').toLowerCase();
+                    if (
+                        txt.indexOf('supporting document is required') !== -1 ||
+                        txt.indexOf('relieving letter is required') !== -1 ||
+                        txt.indexOf('highest transformer capacity') !== -1 ||
+                        txt.indexOf('only pdf') !== -1 ||
+                        txt.indexOf('file size permitted') !== -1
+                    ) {
+                        $(this).remove();
+                    }
+                });
+            };
+        }
+    })();
+</script>
+<script>
+    (function () {
+        var BOARD_MEMBER_TYPE = 'board_member_tnelb';
+
+        function get7bWorkRow() {
+            return $('#work-container-current .work-fields').first();
+        }
+
+        function sync7bSegmentedActive($input) {
+            var $toggle = $('.fs-7b-board-toggle');
+            $toggle.find('.fs-segmented-opt').removeClass('is-active');
+            $input.closest('.fs-segmented-opt').addClass('is-active');
+        }
+
+        function apply7bBoardToggle(mode, isInit) {
+            var $root = $('#fs-7b-root');
+            var $row = get7bWorkRow();
+            if (!$root.length) return;
+
+            var isYes = mode === 'yes';
+            $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
+            $('#fs-7b-board-details').toggleClass('d-none', !isYes);
+
+            if (!$row.length) return;
+
+            var $emp = $row.find('.work-employment-type');
+            if (isYes) {
+                // Sync field must participate when board details are shown.
+                $emp.prop('disabled', false).prop('required', true);
+                if ($emp.val() !== BOARD_MEMBER_TYPE) {
+                    $emp.val(BOARD_MEMBER_TYPE).trigger('change');
+                }
+            } else {
+                // d-none does not remove HTML5 required — disable so validators ignore it.
+                $emp.prop('required', false).prop('disabled', true).val('');
+            }
+        }
+
+        $(document).on('change', 'input[name="current_work_board_member"]', function () {
+            if ($(this).prop('disabled') || $(this).closest('.fs-7b-board-toggle').hasClass('is-locked')) {
+                return;
+            }
+            sync7bSegmentedActive($(this));
+            apply7bBoardToggle($(this).val(), false);
+        });
+
+        $(function () {
+            var $checked = $('input[name="current_work_board_member"]:checked');
+            if ($checked.length) {
+                apply7bBoardToggle($checked.val(), true);
+            }
+        });
+    })();
+</script>
+@endif
+<script src="{{ url('assets/js/alteration.js') }}"></script>
+
 <script>
     window.toggleSectionEdit = function(btn) {
         var section = btn.closest('.fs-section');
@@ -2444,6 +2970,10 @@
             const issued_licence = ($('#license_number').val() || '').trim();
 
             if (!licence_code || !appl_type) return;
+            if (typeof isNoPaymentApplType === 'function' && isNoPaymentApplType()) {
+                $('#amount').val('0');
+                return;
+            }
 
             const data = await getPaymentsService(licence_code, issued_licence, appl_type);
             if (data && data.basic_fees !== undefined && data.basic_fees !== null && data.basic_fees !== '') {
@@ -2611,14 +3141,8 @@
     // });
 
     (function() {
-        var isSForm = "{{ $editFormName }}" === 'S';
-        var isWForm = "{{ $editFormName }}" === 'W';
-        var isWHForm = "{{ $editFormName }}" === 'WH';
-
-        if (isSForm || isWForm || isWHForm) {
-            return;
-        }
-
+        var isSForm = "{{ $application_details->form_name ?? '' }}" === 'S';
+        var isWForm = "{{ $application_details->form_name ?? '' }}" === 'W';
         function refreshWorkSerials() {
             $('#work-container .work-fields .work-serial').each(function(index) {
                 $(this).text(index + 1);
@@ -2637,8 +3161,8 @@
             }
 
             function updateTotalYearsW($tr) {
-                var fromStr = ($tr.find('.work-date-from').val() || '').trim();
-                var toStr   = ($tr.find('.work-date-to').val() || '').trim();
+                var fromStr = readIsoDate($tr.find('.work-date-from'));
+                var toStr   = readIsoDate($tr.find('.work-date-to'));
                 if (!fromStr || !toStr) {
                     $tr.find('.work-year-total-display').val('');
                     $tr.find('.work-experience-total-hidden').val('');
@@ -2667,6 +3191,8 @@
             });
 
             $(document).on('click', function(e) {
+
+                
                 if (!e.target.closest('.add-more-work') && !e.target.closest('.remove-work')) return;
 
                 var container = document.getElementById('work-container');
@@ -2674,7 +3200,9 @@
                 var workRows = container.querySelectorAll('.work-fields');
 
                 if (e.target.closest('.add-more-work')) {
+                    
                     if (workRows.length >= 3) {
+                        
                         $('#work-table').next('.work-error').remove();
                         $('<div class="text-danger mt-2 work-error">You can add a maximum of 3 work experience entries.</div>').insertAfter('#work-table');
                         setTimeout(function() { $('.work-error').fadeOut(); }, 7000);
@@ -2682,7 +3210,13 @@
                     }
                     var first = container.querySelector('.work-fields');
                     var newRow = first.cloneNode(true);
-                    newRow.querySelectorAll('.work-date-from, .work-date-to').forEach(function(inp) { inp.value = ''; });
+                    // Reset date inputs: clone may have been switched to type="text" / DD-MM-YYYY
+                    // by initDateDisplay, and addEventListener listeners aren't cloned.
+                    newRow.querySelectorAll('.work-date-from, .work-date-to').forEach(function(inp) {
+                        inp.removeAttribute('data-raw');
+                        inp.value = '';
+                        inp.type = 'date';
+                    });
                     var wtd = newRow.querySelector('.work-year-total-display'); if (wtd) wtd.value = '';
                     var hTot = newRow.querySelector('.work-experience-total-hidden'); if (hTot) hTot.value = '';
                     var hEx = newRow.querySelector('.experience-sync'); if (hEx) hEx.value = '';
@@ -2691,6 +3225,9 @@
                     var idIn = newRow.querySelector('input[name="work_id[]"]'); if (idIn) idIn.value = '';
                     var docIn = newRow.querySelector('input[name="existing_work_document[]"]'); if (docIn) docIn.value = '';
                     container.appendChild(newRow);
+                    if (typeof initDateDisplay === 'function') {
+                        newRow.querySelectorAll('.work-date-from, .work-date-to').forEach(initDateDisplay);
+                    }
                     refreshWorkSerials();
                 }
 
@@ -2706,6 +3243,10 @@
                     updateTotalYearsW($(this));
                 });
             });
+            return;
+        }
+
+        if (isSForm) {
             return;
         }
 
@@ -2725,15 +3266,6 @@
         function syncLegacyHidden($tr) {
             var emp = ($tr.find('.work-employer-input').val() || '').trim();
             var tot = ($tr.find('.work-experience-total-hidden').val() || '').trim();
-            if (!tot) {
-                var y = parseInt($tr.find('.work-duration-y').val(), 10) || 0;
-                var m = parseInt($tr.find('.work-duration-m').val(), 10) || 0;
-                var d = parseInt($tr.find('.work-duration-d').val(), 10) || 0;
-                if (y || m || d) {
-                    tot = (Math.round((y + (m / 12) + (d / 365.25)) * 10) / 10).toFixed(1);
-                    $tr.find('.work-experience-total-hidden').val(tot);
-                }
-            }
             $tr.find('.work-level-sync').val(emp);
             $tr.find('.experience-sync').val(tot);
         }
@@ -3060,461 +3592,6 @@
     }
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
 
-</script>
-@if (in_array($editFormName, ['S', 'W', 'WH'], true))
-@include('user_login.partials.form-s-work-exp-scripts', [
-    'editFormName' => $editFormName,
-    'showBoardMemberEmploymentType' => false,
-    'enableBoardMemberFeeExempt' => $editShowBoardMember,
-    'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
-    'hideUploadWhenDocExists' => true,
-    'hideVoltageFields' => in_array($editFormName, ['W', 'WH'], true),
-])
-<script>
-    (function () {
-        var BOARD_MEMBER_TYPE = 'board_member_tnelb';
-
-        function get7bWorkRow() {
-            return $('#work-container-current .work-fields').first();
-        }
-
-        function sync7bSegmentedActive($input) {
-            var $toggle = $('.fs-7b-board-toggle');
-            $toggle.find('.fs-segmented-opt').removeClass('is-active');
-            $input.closest('.fs-segmented-opt').addClass('is-active');
-        }
-
-        function apply7bBoardToggle(mode, isInit) {
-            var $root = $('#fs-7b-root');
-            var $row = get7bWorkRow();
-            if (!$root.length) return;
-
-            var isYes = mode === 'yes';
-            $root.toggleClass('fs-7b-mode-board', isYes).toggleClass('fs-7b-mode-standard', !isYes);
-            $('#fs-7b-board-details').toggleClass('d-none', !isYes);
-
-            if (!$row.length) {
-                if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
-                    window.wxSyncBoardMemberRenewalFee();
-                }
-                return;
-            }
-
-            var $emp = $row.find('.work-employment-type');
-            // When Board = No, disable ALL parallel [] fields so empty experience[n] is not posted.
-            var $parallel = $row.find('input[name$="[]"], select[name$="[]"], textarea[name$="[]"]');
-            if (isYes) {
-                $parallel.prop('disabled', false);
-                $emp.prop('disabled', false).prop('required', true);
-                if ($emp.val() !== BOARD_MEMBER_TYPE) {
-                    $emp.val(BOARD_MEMBER_TYPE).trigger('change');
-                }
-                // §7b has no date duration; keep a numeric legacy total for draft_update.
-                var $tot = $row.find('.work-experience-total-hidden, .experience-sync');
-                $tot.each(function () {
-                    if (!String(this.value || '').trim()) {
-                        this.value = '0';
-                    }
-                });
-                $row.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
-            } else {
-                $emp.prop('required', false).prop('disabled', true).val('');
-                $parallel.prop('disabled', true);
-            }
-
-            if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
-                window.wxSyncBoardMemberRenewalFee();
-            }
-        }
-
-        $(document).ready(function () {
-            $('input[name="current_work_board_member"]').on('change', function () {
-                sync7bSegmentedActive($(this));
-                apply7bBoardToggle($(this).val(), false);
-            });
-
-            var $checked = $('input[name="current_work_board_member"]:checked');
-            if ($checked.length) {
-                sync7bSegmentedActive($checked);
-                apply7bBoardToggle($checked.val(), true);
-            }
-        });
-    })();
-</script>
-@endif
-
-{{-- ░░ RETURNED APPLICATION — query reasons + submit corrections ░░ --}}
-<script>
-    window.returnApplicationQueryReasons = @json(isset($queryReasonsForValidation) ? $queryReasonsForValidation : []);
-</script>
-<script>
-    // ===== Inline server-side validation rendering helpers =====
-    window.__rfFieldLabels = {
-        applicant_name: 'Applicant Name',
-        fathers_name: "Father's Name",
-        applicants_address: 'Applicant Address',
-        d_o_b: 'Date of Birth',
-        age: 'Age',
-        aadhaar: 'Aadhaar Number',
-        pancard: 'PAN Number',
-        previously_number: 'Previous License Number',
-        previously_date: 'Previous Date of Expiry',
-        previously_issue_date: 'Previous Date of First Issue',
-        certificate_no: 'Certificate No',
-        certificate_date: 'Certificate Date of Expiry',
-        certificate_issue_date: 'Certificate Date of First Issue',
-        wireman_details: 'Wireman Details',
-        upload_photo: 'Photo',
-        upload_sign: 'Signature',
-        aadhaar_doc: 'Aadhaar Document',
-        pancard_doc: 'PAN Document',
-        educational_level: 'Education Level',
-        institute_name: 'Institute / School Name',
-        month_of_passing: 'Month of Passing',
-        year_of_passing: 'Year of Passing',
-        education_document: 'Education Document',
-        existing_document: 'Education Document',
-        work_level: 'Employer / Company',
-        experience: 'Years of Experience',
-        designation: 'Designation',
-        work_document: 'Experience Document',
-        existing_work_document: 'Experience Document'
-    };
-
-    function __rfHumanLabel(name) {
-        return window.__rfFieldLabels[name] || name.replace(/_/g, ' ');
-    }
-
-    function __rfLocateField($form, key) {
-        var parts = key.split('.');
-        var name = parts[0];
-        var idx = (parts.length > 1 && /^\d+$/.test(parts[1])) ? parseInt(parts[1], 10) : null;
-
-        var arrSel = 'input[name="' + name + '[]"], select[name="' + name + '[]"], textarea[name="' + name + '[]"]';
-        var scalarSel = 'input[name="' + name + '"], select[name="' + name + '"], textarea[name="' + name + '"]';
-
-        var $matches = $form.find(arrSel);
-        if (!$matches.length) {
-            $matches = $form.find(scalarSel);
-        }
-        if (!$matches.length) {
-            $matches = $form.find('[name="' + name + '[' + (idx === null ? '' : idx) + ']"]');
-        }
-        if (!$matches.length) return null;
-
-        var $field = (idx !== null && $matches.length > idx) ? $matches.eq(idx) : $matches.first();
-
-        if ($field.length && ($field.is('[type="hidden"]') || $field.is(':hidden'))) {
-            var $row = $field.closest('tr, .row, .form-group, .col-12, .col-md-6, .col-md-12');
-            var $visible = $row.find('input:visible, select:visible, textarea:visible').first();
-            if ($visible.length) $field = $visible;
-        }
-        return $field;
-    }
-
-    function __rfClearServerErrors($form) {
-        $form.find('.is-invalid').removeClass('is-invalid');
-        $form.find('.server-field-error').remove();
-        $form.find('.client-field-error').remove();
-        $('.server-error-summary').remove();
-    }
-
-    function __rfRenderServerErrors($form, errors) {
-        __rfClearServerErrors($form);
-        if (!errors || typeof errors !== 'object') return 0;
-
-        var firstField = null;
-        var summaryItems = [];
-        var rendered = 0;
-
-        Object.keys(errors).forEach(function (key) {
-            var msgs = errors[key];
-            var msg = Array.isArray(msgs) ? msgs[0] : String(msgs || '');
-            if (!msg) return;
-
-            var $field = __rfLocateField($form, key);
-            if (!$field || !$field.length) {
-                summaryItems.push(msg);
-                return;
-            }
-
-            $field.addClass('is-invalid');
-            var $err = $('<div class="server-field-error text-danger small mt-1"></div>').text(msg);
-
-            var $cell = $field.closest('td');
-            if ($cell.length) {
-                $cell.append($err);
-            } else {
-                $field.after($err);
-            }
-
-            var parts = key.split('.');
-            var fieldName = parts[0];
-            var idx = (parts.length > 1 && /^\d+$/.test(parts[1])) ? parseInt(parts[1], 10) : null;
-            var rowKind = '';
-            if ($field.closest('tr.education-fields').length) rowKind = 'Education row ' + (idx !== null ? idx + 1 : 1);
-            else if ($field.closest('tr.work-fields').length) rowKind = 'Experience row ' + (idx !== null ? idx + 1 : 1);
-            var label = (rowKind ? (rowKind + ' — ') : '') + __rfHumanLabel(fieldName);
-            summaryItems.push(label + ': ' + msg);
-
-            if (!firstField) firstField = $field;
-            rendered++;
-        });
-
-        if (summaryItems.length) {
-            var $summary = $(
-                '<div class="alert alert-danger server-error-summary mt-3" role="alert">' +
-                '<div class="fw-bold mb-1"><i class="fa fa-exclamation-triangle"></i> Please correct the highlighted fields below:</div>' +
-                '<ul class="mb-0 ps-3"></ul>' +
-                '</div>'
-            );
-            summaryItems.slice(0, 12).forEach(function (line) {
-                $summary.find('ul').append($('<li></li>').text(line));
-            });
-            if (summaryItems.length > 12) {
-                $summary.find('ul').append($('<li></li>').text('… and ' + (summaryItems.length - 12) + ' more issue(s).'));
-            }
-            $('#submitCorrectionsBtn').closest('.fs-action-bar, .row, div').first().before($summary);
-        }
-
-        if (firstField) {
-            try {
-                firstField[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                firstField.trigger('focus');
-            } catch (e) { /* ignore */ }
-        }
-        return rendered;
-    }
-
-    $(document).on('change input', '.is-invalid', function () {
-        var $f = $(this);
-        if (($f.val() || '').toString().trim() !== '') {
-            $f.removeClass('is-invalid');
-            var $cell = $f.closest('td');
-            ($cell.length ? $cell : $f.parent()).find('.server-field-error').remove();
-        }
-    });
-
-    $(document).on('change', '#declarationCheckbox', function () {
-        if ($(this).prop('checked')) {
-            $('#checkboxError').removeClass('d-block').addClass('d-none');
-        }
-    });
-
-    function __rfValidateBeforeSubmit($form, formEl) {
-        var valid = true;
-        var firstInvalid = null;
-        var seenRadioNames = {};
-        $form.find('.client-field-error').remove();
-        $form.find(':input[required]').each(function () {
-            var el = this;
-            var $f = $(el);
-            if (el.disabled) return;
-
-            // Toggle panels that are intentionally hidden should not be validated.
-            var $togglePanel = $f.closest('.fs-toggle-panel');
-            if ($togglePanel.length && !$togglePanel.is(':visible')) return;
-            var $intimationBlock = $f.closest('.work-block--intimation');
-            if ($intimationBlock.length && !$intimationBlock.is(':visible')) return;
-            // §7b board details stay in the DOM when Board = No; skip while hidden.
-            var $boardDetails = $f.closest('#fs-7b-board-details');
-            if ($boardDetails.length && !$boardDetails.is(':visible')) return;
-
-            // If section is in view mode, switch to edit mode so fields/messages are visible.
-            var $section = $f.closest('.fs-section');
-            if ($section.length && $section.attr('data-mode') === 'view') {
-                $section.attr('data-mode', 'edit');
-            }
-
-            if ($f.closest('.fs-return-section-locked').length) {
-                return;
-            }
-
-            var tag = (el.tagName || '').toLowerCase();
-            var type = (el.type || '').toLowerCase();
-            var isEmpty = false;
-
-            if (type === 'checkbox') {
-                isEmpty = !el.checked;
-            } else if (type === 'radio') {
-                var name = el.name || '';
-                if (!name || seenRadioNames[name]) return;
-                seenRadioNames[name] = true;
-                isEmpty = $form.find('input[type="radio"][name="' + name + '"]:checked').length === 0;
-            } else if (type === 'file') {
-                // Hidden file input usually means an existing uploaded document is present.
-                if (!$f.is(':visible')) return;
-                isEmpty = !(el.files && el.files.length > 0);
-            } else if (tag === 'select') {
-                isEmpty = !($f.val() && String($f.val()).trim() !== '');
-            } else {
-                isEmpty = String($f.val() || '').trim() === '';
-            }
-
-            if (isEmpty || (el.willValidate && !el.checkValidity())) {
-                valid = false;
-                if (!firstInvalid) firstInvalid = el;
-                var msg = el.validationMessage || (isEmpty ? 'This field is required.' : 'Invalid value.');
-                var $msg = $('<div class="client-field-error text-danger small mt-1"></div>').text(msg);
-                var $cell = $f.closest('td');
-                if ($cell.length) $cell.append($msg);
-                else $f.after($msg);
-            }
-        });
-
-        if (!valid && firstInvalid && typeof firstInvalid.focus === 'function') {
-            firstInvalid.focus();
-            try { firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
-        }
-        return valid;
-    }
-
-    $(document).on('click', '#submitCorrectionsBtn', function () {
-        var btn = $(this);
-        var url = btn.data('url');
-        var form = document.getElementById('competency_form_ws');
-        if (!form || !url) return;
-        var $form = $(form);
-
-        __rfClearServerErrors($form);
-
-        if (!$('#declarationCheckbox').prop('checked')) {
-            $('#checkboxError').removeClass('d-none').addClass('d-block');
-            var $cb = $('#declarationCheckbox');
-            if ($cb.length) {
-                $cb[0].focus();
-                $cb[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
-        }
-        $('#checkboxError').removeClass('d-block').addClass('d-none');
-     
-
-        if (!__rfValidateBeforeSubmit($form, form)) {
-            return;
-        }
-
-        var reasons = window.returnApplicationQueryReasons || [];
-        var err = [];
-        if (reasons.indexOf('Education document is missing') !== -1) {
-            var hasEduDoc = false;
-            $form.find('input[type="file"][name^="education_document"]').each(function () {
-                if (this.files && this.files.length > 0) hasEduDoc = true;
-            });
-            $form.find('input[name="existing_document[]"]').each(function () {
-                if ($(this).val()) hasEduDoc = true;
-            });
-            if (!hasEduDoc) err.push('Please upload Education document(s) for each qualification.');
-        }
-        if (reasons.indexOf('Photo is missing') !== -1) {
-            var photoInput = document.getElementById('upload_photo');
-            var photoWrapper = document.getElementById('photo-input-wrapper');
-            var hasPhoto = (photoInput && photoInput.files && photoInput.files.length > 0) ||
-                           (photoWrapper && photoWrapper.style.display === 'none');
-            if (!hasPhoto) err.push('Please upload Passport size photo.');
-        }
-        if (reasons.indexOf('Signature is missing') !== -1) {
-            var signInput = document.getElementById('upload_sign');
-            var signWrapper = document.getElementById('sign-input-wrapper');
-            var hasSign = (signInput && signInput.files && signInput.files.length > 0) ||
-                          (signWrapper && signWrapper.style.display === 'none');
-            if (!hasSign) err.push('Please upload Signature.');
-        }
-        if (reasons.indexOf('Aadhaar document is missing') !== -1) {
-            var aadhaarInput = document.getElementById('aadhaar_doc');
-            var aadhaarRemoved = $('#aadhaar_doc_removed').val();
-            var aadhaarInputWrap = $('.aadhaar-doc-input');
-            var hasAadhaar = (aadhaarInput && aadhaarInput.files && aadhaarInput.files.length > 0) ||
-                             (aadhaarRemoved !== '1' && aadhaarInputWrap.hasClass('d-none'));
-            if (!hasAadhaar) err.push('Please upload Aadhaar document.');
-        }
-        if (err.length > 0) {
-            var msg = err.join(' ');
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({ icon: 'warning', title: 'Missing documents', text: msg });
-            } else {
-                alert(msg);
-            }
-            return;
-        }
-
-        // Ensure legacy experience[] is filled from dates / Y·M·D before draft_update validation.
-        $form.find('.work-fields').each(function () {
-            var $row = $(this);
-            if (typeof window.wxRecalcWorkDuration === 'function') {
-                window.wxRecalcWorkDuration($row);
-            }
-            var $ex = $row.find('.experience-sync, input[name="experience[]"]');
-            if (!$ex.length) return;
-            var current = String($ex.first().val() || '').trim();
-            if (current !== '') return;
-
-            var tot = String($row.find('.work-experience-total-hidden').val() || '').trim();
-            if (!tot) {
-                var y = parseInt($row.find('.work-duration-y').val(), 10) || 0;
-                var m = parseInt($row.find('.work-duration-m').val(), 10) || 0;
-                var d = parseInt($row.find('.work-duration-d').val(), 10) || 0;
-                if (y || m || d) {
-                    tot = (Math.round((y + (m / 12) + (d / 365.25)) * 10) / 10).toFixed(1);
-                }
-            }
-            if (!tot && String($row.find('input[name="work_exp_section[]"]').val() || '') === 'current') {
-                tot = '0';
-            }
-            if (tot) {
-                $row.find('.work-experience-total-hidden').val(tot);
-                $ex.val(tot);
-            }
-        });
-
-        var formData = new FormData(form);
-        var originalHtml = btn.html();
-        btn.prop('disabled', true).html('Submitting...');
-        $.ajax({
-            url: url,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function (res) {
-                if (res && res.redirect) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({ icon: 'success', title: 'Success', text: 'Application Submitted' })
-                            .then(function () { window.location.href = res.redirect; });
-                    } else {
-                        window.location.href = res.redirect;
-                    }
-                } else {
-                    btn.prop('disabled', false).html(originalHtml);
-                }
-            },
-            error: function (xhr) {
-                btn.prop('disabled', false).html(originalHtml);
-                var resp = xhr.responseJSON || {};
-                if (xhr.status === 422 && resp.errors && typeof resp.errors === 'object') {
-                    var rendered = __rfRenderServerErrors($form, resp.errors);
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Please fix the highlighted fields',
-                            text: rendered === 1
-                                ? 'There is 1 issue marked below.'
-                                : 'There are ' + rendered + ' issues marked below. Scroll down to see all of them.',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                    return;
-                }
-                var msg = resp.message ? resp.message : 'Submission failed. Please try again.';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Error', text: msg });
-                } else {
-                    alert(msg);
-                }
-            }
-        });
-    });
 </script>
 </body>
 

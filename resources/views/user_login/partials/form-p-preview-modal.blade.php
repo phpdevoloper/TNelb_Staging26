@@ -8,7 +8,7 @@
         position: fixed; inset: 0; z-index: 10050;
         background: rgba(10, 24, 48, .58);
         display: none; align-items: center; justify-content: center;
-        padding: 20px 16px;
+        padding: 18px 24px;
         backdrop-filter: blur(2px);
     }
     #appPreviewModalFormP.prv-fp-overlay.is-open { display: flex; }
@@ -16,8 +16,8 @@
         #appPreviewModalFormP.prv-fp-overlay { align-items: flex-end; padding: 0; }
     }
     .prv-fp-modal-root .prv-fp-panel {
-        background: #f0f4f9; width: 100%; max-width: 940px;
-        max-height: min(90vh, 920px); display: flex; flex-direction: column;
+        background: #f0f4f9; width: 100%; max-width: min(96vw, 1200px);
+        max-height: min(94vh, 980px); display: flex; flex-direction: column;
         border-radius: 14px; overflow: hidden;
         box-shadow: 0 18px 48px rgba(3, 90, 179, .22);
         animation: prvFpIn .28s ease;
@@ -33,7 +33,7 @@
 
     .prv-fp-modal-root .prv-fp-header {
         background: linear-gradient(135deg, #035ab3 0%, #0472d9 100%);
-        padding: 16px 22px 14px; flex-shrink: 0;
+        padding: 16px 26px 14px; flex-shrink: 0;
         display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
     }
     .prv-fp-modal-root .prv-fp-header-main { min-width: 0; }
@@ -57,13 +57,13 @@
     .prv-fp-modal-root .prv-fp-close:hover { background: rgba(255,255,255,.28); }
 
     .prv-fp-modal-root .prv-fp-meta {
-        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
-        padding: 14px 22px 0; flex-shrink: 0;
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+        padding: 16px 26px 0; flex-shrink: 0; align-items: stretch;
     }
     @media (max-width: 575.98px) { .prv-fp-modal-root .prv-fp-meta { grid-template-columns: 1fr; } }
     .prv-fp-modal-root .prv-fp-meta-card {
         background: #fff; border: 1px solid #dde5f3; border-radius: 8px;
-        padding: 10px 12px; min-width: 0;
+        padding: 12px 14px; min-width: 0; display: flex; flex-direction: column; justify-content: center;
     }
     .prv-fp-modal-root .prv-fp-meta-label {
         font-size: .68rem; font-weight: 600; color: #5a7299;
@@ -74,10 +74,10 @@
         word-break: break-word; line-height: 1.35;
     }
 
-    .prv-fp-modal-root .prv-fp-body { overflow-y: auto; padding: 14px 22px 18px; flex: 1; }
+    .prv-fp-modal-root .prv-fp-body { overflow-y: auto; padding: 16px 26px 22px; flex: 1; }
     .prv-fp-modal-root .prv-fp-section {
         background: #fff; border: 1px solid #e3e8f0; border-radius: 10px;
-        margin-bottom: 12px; overflow: hidden;
+        margin-bottom: 14px; overflow: hidden;
     }
     .prv-fp-modal-root .prv-fp-section-hd {
         background: #eef3fb; border-bottom: 1px solid #dde5f3;
@@ -90,34 +90,39 @@
     }
     .prv-fp-modal-root .prv-fp-section-title { font-size: .84rem; font-weight: 600; color: #1a2a4a; line-height: 1.35; }
     .prv-fp-modal-root .prv-fp-section-tamil { font-size: .74rem; color: #5a7299; margin-top: 2px; line-height: 1.35; }
-    .prv-fp-modal-root .prv-fp-section-body { padding: 14px; }
+    .prv-fp-modal-root .prv-fp-section-body { padding: 16px 18px; }
 
     .prv-fp-modal-root .prv-fp-field { margin-bottom: 10px; }
     .prv-fp-modal-root .prv-fp-field:last-child { margin-bottom: 0; }
     .prv-fp-modal-root .prv-fp-label {
         font-size: .7rem; font-weight: 600; color: #5a7299;
-        text-transform: uppercase; letter-spacing: .35px; margin-bottom: 3px;
+        text-transform: uppercase; letter-spacing: .35px; margin-bottom: 4px; line-height: 1.3;
     }
     .prv-fp-modal-root .prv-fp-value {
-        font-size: .88rem; color: #1a2a4a; font-weight: 500;
-        padding: 7px 10px; background: #f8fafd; border: 1px solid #e3e8f0;
-        border-radius: 6px; min-height: 34px; word-break: break-word;
+        font-size: .9rem; color: #1a2a4a; font-weight: 500;
+        padding: 8px 12px; background: #f8fafd; border: 1px solid #e3e8f0;
+        border-radius: 6px; min-height: 40px; word-break: break-word; overflow-wrap: anywhere;
+        display: flex; align-items: center; line-height: 1.45;
     }
     .prv-fp-modal-root .prv-fp-value.prv-fp-empty { color: #9aa8bf; font-style: italic; font-weight: 400; }
+    .prv-fp-modal-root .prv-fp-value.prv-fp-value--multi {
+        align-items: flex-start; white-space: pre-line; min-height: 56px;
+    }
 
-    /* Personal & contact — compact grid layout */
+    /* Personal & contact — photo left, details fill remaining width */
     .prv-fp-modal-root .prv-fp-personal-layout {
         display: grid;
-        grid-template-columns: minmax(120px, 148px) minmax(0, 1fr);
-        gap: 16px;
-        align-items: start;
+        grid-template-columns: 168px minmax(0, 1fr);
+        gap: 20px;
+        align-items: stretch;
     }
-    @media (max-width: 575.98px) {
+    @media (max-width: 767.98px) {
         .prv-fp-modal-root .prv-fp-personal-layout { grid-template-columns: 1fr; }
     }
     .prv-fp-modal-root .prv-fp-media-col {
-        display: flex; flex-direction: column; gap: 12px;
-        padding: 10px; background: #f8fafd; border: 1px solid #e3e8f0; border-radius: 8px;
+        display: flex; flex-direction: column; gap: 14px; justify-content: flex-start;
+        padding: 12px; background: #f8fafd; border: 1px solid #e3e8f0; border-radius: 8px;
+        height: 100%;
     }
     .prv-fp-modal-root .prv-fp-media-label {
         font-size: .66rem; font-weight: 700; color: #5a7299;
@@ -134,16 +139,39 @@
 
     .prv-fp-modal-root .prv-fp-details-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px 16px;
         min-width: 0;
+        align-items: start;
     }
-    @media (max-width: 767.98px) {
+    @media (max-width: 991.98px) {
+        .prv-fp-modal-root .prv-fp-details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 575.98px) {
         .prv-fp-modal-root .prv-fp-details-grid { grid-template-columns: 1fr; }
     }
     .prv-fp-modal-root .prv-fp-detail-item { min-width: 0; }
     .prv-fp-modal-root .prv-fp-detail-item--full { grid-column: 1 / -1; }
     .prv-fp-modal-root .prv-fp-detail-item .prv-fp-field { margin-bottom: 0; }
+
+    .prv-fp-modal-root .prv-fp-id-grid,
+    .prv-fp-modal-root .prv-fp-section--identity .row,
+    .prv-fp-modal-root .prv-fp-prev-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+        gap: 12px 16px;
+        margin: 0;
+        align-items: start;
+    }
+    .prv-fp-modal-root .prv-fp-section--identity .row > [class*="col-"],
+    .prv-fp-modal-root .prv-fp-prev-grid > [class*="col-"] {
+        width: auto; max-width: none; flex: none; padding: 0;
+    }
+    @media (max-width: 575.98px) {
+        .prv-fp-modal-root .prv-fp-id-grid,
+        .prv-fp-modal-root .prv-fp-section--identity .row,
+        .prv-fp-modal-root .prv-fp-prev-grid { grid-template-columns: 1fr; }
+    }
 
     .prv-fp-modal-root .prv-fp-identity-row {
         display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; margin-bottom: 14px;
@@ -166,16 +194,18 @@
         padding-bottom: 4px; border-bottom: 1px dashed #dde5f3;
     }
     .prv-fp-modal-root .prv-fp-table-wrap { overflow-x: auto; border: 1px solid #e3e8f0; border-radius: 8px; margin-bottom: 12px; }
-    .prv-fp-modal-root .prv-fp-table { width: 100%; font-size: .76rem; border-collapse: collapse; margin: 0; min-width: 520px; }
+    .prv-fp-modal-root .prv-fp-table { width: 100%; font-size: .8rem; border-collapse: collapse; margin: 0; min-width: 640px; }
     .prv-fp-modal-root .prv-fp-table th {
         background: #eef3fb; color: #1a2a4a; font-weight: 600;
-        padding: .4rem .45rem; border: 1px solid #dde5f3; font-size: .7rem;
+        padding: .5rem .6rem; border: 1px solid #dde5f3; font-size: .72rem;
         white-space: nowrap; text-align: center; vertical-align: middle;
     }
     .prv-fp-modal-root .prv-fp-table td {
-        padding: .4rem .45rem; border: 1px solid #e8edf6; vertical-align: middle;
+        padding: .5rem .6rem; border: 1px solid #e8edf6; vertical-align: middle;
         color: #2c3e5e; text-align: center;
     }
+    .prv-fp-modal-root .prv-fp-table th:first-child,
+    .prv-fp-modal-root .prv-fp-table td:first-child { width: 2.4rem; }
     .prv-fp-modal-root .prv-fp-table td.prv-fp-td-left { text-align: left; white-space: pre-line; }
     .prv-fp-modal-root .prv-fp-table tr:nth-child(even) td { background: #f8fafd; }
 
@@ -198,7 +228,7 @@
     }
 
     .prv-fp-modal-root .prv-fp-footer {
-        background: #fff; border-top: 1px solid #e3e8f0; padding: 14px 22px;
+        background: #fff; border-top: 1px solid #e3e8f0; padding: 14px 26px;
         display: flex; align-items: center; justify-content: center; gap: 10px;
         flex-shrink: 0; flex-wrap: wrap;
     }
@@ -398,17 +428,11 @@
             print-color-adjust: exact;
         }
         /* Identity docs — 2-column grid (target by stable hook, not :last-child) */
-        html.prv-fp-print-active .prv-fp-modal-root .prv-fp-section--identity .row {
+        html.prv-fp-print-active .prv-fp-modal-root .prv-fp-section--identity .prv-fp-id-grid {
             display: grid !important;
             grid-template-columns: 1fr 1fr !important;
             gap: 5px 8px !important;
             margin: 0 !important;
-        }
-        html.prv-fp-print-active .prv-fp-modal-root .prv-fp-section--identity .col-12 {
-            width: auto !important;
-            max-width: none !important;
-            flex: none !important;
-            padding: 0 !important;
         }
     }
 </style>
@@ -463,6 +487,7 @@
                     <div class="prv-fp-personal-layout">
                         <div class="prv-fp-media-col">
                             <div>
+                                <div class="prv-fp-media-label">Photo</div>
                                 <div class="prv-fp-thumb prv-fp-thumb--photo">
                                     <div id="prvFpPhotoWrap"><div class="prv-fp-no-img" style="width:100%;height:120px;">No Photo</div></div>
                                 </div>
@@ -491,7 +516,7 @@
                                 <div class="prv-fp-field"><div class="prv-fp-label">Age</div><div class="prv-fp-value" id="prvFpAge">—</div></div>
                             </div>
                             <div class="prv-fp-detail-item prv-fp-detail-item--full">
-                                <div class="prv-fp-field"><div class="prv-fp-label">Address</div><div class="prv-fp-value" id="prvFpAddress" style="white-space:pre-line;">—</div></div>
+                                <div class="prv-fp-field"><div class="prv-fp-label">Address</div><div class="prv-fp-value prv-fp-value--multi" id="prvFpAddress">—</div></div>
                             </div>
                         </div>
                     </div>
@@ -563,7 +588,7 @@
 
                     <div class="prv-fp-field mb-0">
                         <div class="prv-fp-label">(iv) Name of the Employer</div>
-                        <div class="prv-fp-value" id="prvFpEmployer" style="white-space:pre-line;">—</div>
+                        <div class="prv-fp-value prv-fp-value--multi" id="prvFpEmployer">—</div>
                     </div>
                 </div>
             </div>
@@ -583,9 +608,9 @@
                         <span id="prvFpPrevYn">—</span>
                     </div>
                     <div id="prvFpPrevBlock" style="display:none;">
-                        <div class="row g-2">
-                            <div class="col-12 col-sm-6"><div class="prv-fp-field mb-0"><div class="prv-fp-label">Application Number</div><div class="prv-fp-value" id="prvFpPrevNo">—</div></div></div>
-                            <div class="col-12 col-sm-6"><div class="prv-fp-field mb-0"><div class="prv-fp-label">Date</div><div class="prv-fp-value" id="prvFpPrevDate">—</div></div></div>
+                        <div class="prv-fp-prev-grid">
+                            <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">Application Number</div><div class="prv-fp-value" id="prvFpPrevNo">—</div></div></div>
+                            <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">Date</div><div class="prv-fp-value" id="prvFpPrevDate">—</div></div></div>
                         </div>
                     </div>
                 </div>
@@ -601,11 +626,11 @@
                     </div>
                 </div>
                 <div class="prv-fp-section-body">
-                    <div class="row g-2">
-                        <div class="col-12 col-sm-5"><div class="prv-fp-field mb-0"><div class="prv-fp-label">Aadhaar Number</div><div class="prv-fp-value" id="prvFpAadhaar">—</div></div></div>
-                        <div class="col-12 col-sm-7"><div class="prv-fp-field mb-0"><div class="prv-fp-label">Aadhaar Document</div><div class="prv-fp-value" id="prvFpAadhaarDoc">—</div></div></div>
-                        <div class="col-12 col-sm-5"><div class="prv-fp-field mb-0"><div class="prv-fp-label">PAN Number</div><div class="prv-fp-value" id="prvFpPan">—</div></div></div>
-                        <div class="col-12 col-sm-7"><div class="prv-fp-field mb-0"><div class="prv-fp-label">PAN Document</div><div class="prv-fp-value" id="prvFpPanDoc">—</div></div></div>
+                    <div class="prv-fp-id-grid">
+                        <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">Aadhaar Number</div><div class="prv-fp-value" id="prvFpAadhaar">—</div></div></div>
+                        <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">Aadhaar Document</div><div class="prv-fp-value" id="prvFpAadhaarDoc">—</div></div></div>
+                        <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">PAN Number</div><div class="prv-fp-value" id="prvFpPan">—</div></div></div>
+                        <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">PAN Document</div><div class="prv-fp-value" id="prvFpPanDoc">—</div></div></div>
                     </div>
                 </div>
             </div>

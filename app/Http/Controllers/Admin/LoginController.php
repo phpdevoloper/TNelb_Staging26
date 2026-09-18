@@ -1611,6 +1611,15 @@ class LoginController extends Controller
                 ->first();
         }
 
+        if (($applicant->appl_type ?? '') === 'A' && $parentApplicantForAlter) {
+            if ((int) ($applicant->qc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qc ?? 0) === 1) {
+                $applicant->qc = 1;
+            }
+            if ((int) ($applicant->qsc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qsc ?? 0) === 1) {
+                $applicant->qsc = 1;
+            }
+        }
+
         $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)
             ->where('certificate_name', $applicant->certificate_name)
             ->first();
@@ -3387,6 +3396,15 @@ class LoginController extends Controller
                 ?? DB::table('tnelb_application_tbl')
                 ->where('application_id', $applicant->old_application)
                 ->first();
+        }
+
+        if (($applicant->appl_type ?? '') === 'A' && $parentApplicantForAlter) {
+            if ((int) ($applicant->qc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qc ?? 0) === 1) {
+                $applicant->qc = 1;
+            }
+            if ((int) ($applicant->qsc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qsc ?? 0) === 1) {
+                $applicant->qsc = 1;
+            }
         }
 
         $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)

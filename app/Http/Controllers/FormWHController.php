@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 class FormWHController extends BaseController
 {
-    private const FORM_LABEL = 'Wireman Helper Competency Certificate [Form H]';
+    private const FORM_LABEL = 'Wireman Helper Competency Certificate [Form WH]';
 
     protected $today;
 
@@ -73,8 +73,16 @@ class FormWHController extends BaseController
             'applicant_name' => $authUser->first_name.' '.$authUser->last_name,
         ];
         $contractorDetails = $this->getContractorDetails($authUser->login_id);
+        $applicant_photo = null;
+        $proof_doc = null;
 
-        return view('user_login.digitization.apply-form-wh_d', compact('user', 'form', 'contractorDetails'));
+        return view('user_login.digitization.apply-form-wh_d', compact(
+            'user',
+            'form',
+            'contractorDetails',
+            'applicant_photo',
+            'proof_doc'
+        ));
     }
 
     public function getContractorDetails($loginId, $tempAppId = null, $applicationId = null)
@@ -308,7 +316,7 @@ class FormWHController extends BaseController
         $parentId = trim((string) $request->query('parent', ''));
 
         if ($parentId === '') {
-            return view('user_login.alteration.form_s_launcher', [
+            return view('user_login.alteration.form_wh_launcher', [
                 'form_code' => FormWHSchema::FORM_NAME,
                 'form_label' => self::FORM_LABEL,
                 'alterVerifyUrl' => route('form_wh_alt.verify'),
@@ -342,7 +350,7 @@ class FormWHController extends BaseController
         $viewData['alterStoreUrl'] = route('form_wh_alt.store');
         $viewData['alterDraftUrl'] = route('form_wh_alt.draft');
 
-        return view('user_login.alteration.form_s', $viewData);
+        return view('user_login.alteration.form_wh', $viewData);
     }
 
     public function listCertificates(Request $request)

@@ -58,7 +58,13 @@ class FormSExperiencePartition
     public static function partition(iterable $expDetails): array
     {
         $split = self::splitBoardMember($expDetails);
-        $previous = $split['standard'];
+        $previous = $split['standard']->filter(function ($row) {
+            $org = trim((string) ($row->org_name ?? $row->company_name ?? ''));
+            $designation = trim((string) ($row->designation ?? ''));
+            $empType = trim((string) ($row->emp_type ?? ''));
+
+            return $org !== '' || $designation !== '' || $empType !== '';
+        })->values();
 
         $previous = $previous->sortBy(function ($row) {
             $from = $row->from_date ?? '';

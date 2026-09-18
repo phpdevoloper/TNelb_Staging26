@@ -664,7 +664,7 @@
                     <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id" value="{{ $cc_digitization_temp_id ?? '' }}">
                     <input type="hidden" id="form_name" name="form_name" value="P">
                     <input type="hidden" id="license_name" name="license_name" value="P">
-                    <input type="hidden" id="appl_type" name="appl_type" value="N">
+                    <input type="hidden" id="appl_type" name="appl_type" value="D">
                     <input type="hidden" id="form_action" name="form_action" value="draft">
                     @csrf
 
@@ -700,7 +700,7 @@
 
 <footer class="main-footer">
     @include('include.footer')
-    <script src="{{ url('assets/js/digitization.js') }}"></script>
+    <script src="{{ url('assets/js/digitization_p.js') }}"></script>
 
     <script>
 

@@ -1235,45 +1235,6 @@
                                                 </div>
                                             </div>
 
-                                            @if($applicant->appl_type == 'A' && ($alterationProofs ?? collect())->isNotEmpty())
-                                                <h6 class="asp-section-title mt-3">Alteration Supporting Documents</h6>
-                                                <div class="applicant-detail-table-wrap mb-3">
-                                                    <table
-                                                        class="table table-sm table-bordered applicant-detail-compact-table">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Document</th>
-                                                                <th>View</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($alterationProofs as $proof)
-                                                                @php
-                                                                    $proofViewUrl = !empty($proof->url)
-                                                                        ? $proof->url
-                                                                        : (!empty($proof->proof_doc) ? competency_document_path_url($proof->proof_doc) : null);
-                                                                @endphp
-                                                                <tr>
-                                                                    <td>{{ $proof->label ?? 'Supporting proof' }}</td>
-                                                                    <td>
-                                                                        @if(!empty($proofViewUrl))
-                                                                            <a href="{{ $proofViewUrl }}" target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                class="doc-pdf-link text-primary">
-                                                                                <i class="fa fa-file-pdf-o text-danger"></i>
-                                                                                <span>View Document</span>
-                                                                            </a>
-                                                                        @else
-                                                                            <span class="text-muted small">—</span>
-                                                                        @endif
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            @endif
-
                                             <h6 class="asp-section-title">Educational Qualifications</h6>
                                             <div class="applicant-detail-table-wrap">
                                                 <table

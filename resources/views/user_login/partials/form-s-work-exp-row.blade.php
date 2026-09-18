@@ -20,14 +20,9 @@
     $contractorCat = '';
     $licenceNo = '';
     if ($hasRow && $empType === 'electrical_contractor') {
-        $stored = (string) ($expRow->emp_cate ?? '');
-        if ($stored !== '' && str_contains($stored, '||')) {
-            $parts = explode('||', $stored, 2);
-            $contractorCat = $parts[0] ?? '';
-            $licenceNo = $parts[1] ?? '';
-        } elseif ($stored !== '') {
-            $contractorCat = $stored;
-        }
+        $decoded = form_s_decode_contractor_emp_cate((string) ($expRow->emp_cate ?? ''));
+        $contractorCat = $decoded['category'];
+        $licenceNo = $decoded['licence'];
     }
     $orgName = $hasRow ? (string) ($expRow->org_name ?? $expRow->company_name ?? '') : '';
     if ($hasRow && $orgName === '' && $empType !== 'electrical_contractor' && ! empty($expRow->emp_cate)) {
@@ -99,10 +94,6 @@
         : '';
     if ($isTill) {
         $storedRowClass .= ' fs-till-date-work';
-    }
-    /* Renewal: only Till date rows stay editable. Alteration keeps them frozen until Work Edit. */
-    if ($alterationExistingRow && $isTill && ! $isAlterationMode) {
-        $alterationExistingRow = false;
     }
     if ($alterationExistingRow) {
         $storedRowClass .= ' fs-alt-existing-work';
@@ -214,7 +205,7 @@
         </div>
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="to-date">
             <label class="work-card-field-label">To date <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" max="9999-12-31" title="To date" aria-label="Period of experience: to date" @if($isTill) readonly @endif disabled>
+            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" max="{{ now()->toDateString() }}" title="To date" aria-label="Period of experience: to date" @if($isTill) readonly @endif disabled>
             <label class="work-card-till-toggle">
                 <input type="checkbox" class="work-date-till" {{ $isTill ? 'checked' : '' }}>
                 <span>Till date (currently working)</span>

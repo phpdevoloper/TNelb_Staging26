@@ -3,6 +3,7 @@
     $showBoardMemberEmploymentType = $showBoardMemberEmploymentType ?? false;
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $isAlterationMode = !empty($isAlterationMode);
+    $lockExistingRows = !empty($lockExistingRows) || $isAlterationMode;
     // Form W serial-7 has no Voltage Level / Nature of Work / Transformer (kVA) fields.
     $hideVoltageFields = !empty($hideVoltageFields);
 @endphp
@@ -15,6 +16,7 @@
             var TWO_YEARS_MS = 730 * 86400000;
             var hideUploadWhenDocExists = @json($hideUploadWhenDocExists);
             var isAlterationMode = @json($isAlterationMode);
+            var lockExistingRows = @json($lockExistingRows);
             /* Form W: Voltage / Nature of Work / Transformer (kVA) fields are absent. */
             var WX_HIDE_VOLTAGE_FIELDS = @json($hideVoltageFields);
             var DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
@@ -403,13 +405,21 @@
                     || String($tr.find('.work-date-till-hidden').val() || '') === '1';
             }
 
-            function isAlterationFrozenRow($tr) {
-                /* Non-till existing rows stay read-only. Till date rows can be edited on renewal,
-                   and on alteration after Work Experience Edit is clicked. */
-                if (!$tr.hasClass('fs-alt-existing-work')) return false;
-                if (isTillDateWorkRow($tr) && $('#competency_form_ws.fs-alt-form').hasClass('fs-alt-work-unlocked')) {
+            function canPartiallyEditTillExistingRow($tr) {
+                if (!$tr || !$tr.length || !$tr.hasClass('fs-alt-existing-work') || !isTillDateWorkRow($tr)) {
                     return false;
                 }
+                if (isAlterationMode) {
+                    return $('#competency_form_ws.fs-alt-form').hasClass('fs-alt-work-unlocked');
+                }
+                return !!lockExistingRows;
+            }
+
+            function isAlterationFrozenRow($tr) {
+                /* Non-till existing rows stay read-only. Till date rows: only Till / To date / Relieving
+                   on renewal, and on alteration after Work Experience Edit is clicked. */
+                if (!$tr.hasClass('fs-alt-existing-work')) return false;
+                if (canPartiallyEditTillExistingRow($tr)) return false;
                 return true;
             }
 
@@ -449,14 +459,11 @@
                     var $tr = $(this);
                     var canEditTillDate = !!unlocked && isTillDateWorkRow($tr);
                     if (canEditTillDate) {
-                        $tr.find('input, textarea, select, button').prop('disabled', false);
-                        $tr.find('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
-                            .prop('disabled', true)
-                            .prop('readonly', true);
-                        initWorkRow($tr);
+                        enableAlterationTillDatePartialEdit($tr);
                         restoreEditableSummaryActions(getSummaryTr($tr));
                         return;
                     }
+                    $tr.removeClass('fs-alt-till-partial-edit');
                     $tr.find('input, textarea, select, button')
                         .not('input[type="hidden"]')
                         .prop('disabled', true);
@@ -468,6 +475,25 @@
                 syncSummaryTable();
                 updateWorkAddBtn();
             };
+
+            /**
+             * Existing till-date row: keep master fields posted but only Till / To date / Relieving
+             * are interactive so licence no. and other details cannot be changed by mistake.
+             */
+            function enableAlterationTillDatePartialEdit($tr) {
+                if (!$tr || !$tr.length) return;
+                $tr.addClass('fs-alt-till-partial-edit');
+                $tr.find('input, textarea, select, button').prop('disabled', false);
+                $tr.find('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
+                    .prop('readonly', true);
+                $tr.find('.work-date-from, .work-employer-input, .work-org-address, .work-designation, .work-nature, .work-board-meeting-details, .work-board-meeting-date')
+                    .prop('readonly', true);
+                $tr.find('input[type="file"]').not('.work-relieve-input').prop('disabled', true);
+                applyTillDate($tr, true);
+                $tr.find('input.work-date-to:not([type="hidden"])').each(function () {
+                    applyWorkDateYearCap(this);
+                });
+            }
 
             function workContainers() {
                 var $multi = $('.js-work-container');
@@ -762,9 +788,40 @@
                 return true;
             }
 
+            function clampWorkToDateNotFuture(el) {
+                if (!el || el.type === 'hidden' || !el.classList.contains('work-date-to')) return;
+                var max = todayIso();
+                el.setAttribute('max', max);
+                var iso = String(el.getAttribute('data-raw') || '').trim();
+                if (!iso) {
+                    if (el.type === 'date') {
+                        iso = String(el.value || '').trim();
+                    } else {
+                        var v = String(el.value || '').trim();
+                        var m = v.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+                        if (m) {
+                            iso = m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+                        }
+                    }
+                }
+                if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso) || iso <= max) return;
+                el.setAttribute('data-raw', max);
+                if (el.type === 'date') {
+                    el.value = max;
+                } else {
+                    var p = max.split('-');
+                    el.value = p[2] + '-' + p[1] + '-' + p[0];
+                }
+            }
+
             function applyWorkDateYearCap(el) {
                 if (!el || el.type === 'hidden') return;
                 el.removeAttribute('min');
+                if (el.classList.contains('work-date-to')) {
+                    el.setAttribute('max', todayIso());
+                    clampWorkToDateNotFuture(el);
+                    return;
+                }
                 if (!el.getAttribute('max')) {
                     el.setAttribute('max', WORK_DATE_MAX_ISO);
                 }
@@ -921,6 +978,9 @@
                 if (bounds.from && bounds.to && bounds.to < bounds.from) {
                     return 'To date must be greater than or equal to From date.';
                 }
+                if (!$tr.find('.work-date-till').is(':checked') && bounds.toStr && bounds.toStr > todayIso()) {
+                    return 'To date cannot be a future date.';
+                }
 
                 // Order-independent overlap check: compare this row against EVERY other
                 // §7a row (not just the immediate previous/next). Only rows that have a
@@ -970,7 +1030,10 @@
                     var $from = $tr.find('input.work-date-from:not([type="hidden"])').first();
                     var $to = $tr.find('input.work-date-to:not([type="hidden"])').first();
                     if ($from.length) $from.removeAttr('min');
-                    if ($to.length) $to.removeAttr('min');
+                    if ($to.length) {
+                        $to.removeAttr('min');
+                        applyWorkDateYearCap($to.get(0));
+                    }
                 });
             }
 
@@ -1681,6 +1744,28 @@
                 return $bar;
             }
 
+            /** New / empty cards cloned from locked existing rows have no trash button — add one. */
+            function ensureWorkRowRemoveButton($tr) {
+                if (!$tr || !$tr.length) return $();
+                if ($tr.hasClass('fs-alt-existing-work')) return $();
+                var workId = String($tr.find('input[name="work_id[]"]').val() || '').trim();
+                if (workId !== '') return $();
+                var $actions = $tr.find('.work-row-head-actions').first();
+                if (!$actions.length) return $();
+                var $btn = $actions.find('.work-row-remove, .remove-work').first();
+                if ($btn.length) {
+                    $btn.removeClass('remove_exp').removeAttr('data-exp_id data-url');
+                    return $btn;
+                }
+                $btn = $(
+                    '<button type="button" class="work-row-remove remove-work" title="Remove this entry" aria-label="Remove this work experience entry">' +
+                        '<i class="fa fa-trash-o" aria-hidden="true"></i>' +
+                    '</button>'
+                );
+                $actions.append($btn);
+                return $btn;
+            }
+
             /**
              * New complete rows auto-collapse into the summary grid.
              * Expanded complete rows (Edit) stay open until Submit / chevron.
@@ -2350,6 +2435,10 @@
                     syncContractorFieldsHidden($tr);
                     return;
                 }
+                if (canPartiallyEditTillExistingRow($tr)) {
+                    enableAlterationTillDatePartialEdit($tr);
+                    return;
+                }
                 if ($tr.closest('#work-container-current, .js-work-container[data-work-part="current"]').length) {
                     ensure7bRepresentingOrgSelect($tr);
                 }
@@ -2462,6 +2551,7 @@
             };
 
             $(document).ready(function() {
+                document.querySelectorAll('input.work-date-from, input.work-date-to').forEach(applyWorkDateYearCap);
                 workContainers().each(function() {
                     $(this).children('.work-fields, .work-entry-block').each(function() {
                         var $row = $(this).hasClass('work-fields') ? $(this) : $(this).find('.work-fields').first();
@@ -2478,6 +2568,9 @@
                         updateRowSummary($row);
                         applyFrozenSummaryActions($row, getSummaryTr($row));
                         return;
+                    }
+                    if (canPartiallyEditTillExistingRow($row)) {
+                        restoreEditableSummaryActions(getSummaryTr($row));
                     }
                     if (hydrateStoredWorkRow($row)) {
                         return;
@@ -2676,6 +2769,9 @@
             $(document).on('change blur', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
                 var $field = $(this);
                 clampWorkDateYearDigits($field.get(0));
+                if ($field.hasClass('work-date-to')) {
+                    clampWorkToDateNotFuture($field.get(0));
+                }
                 syncWorkDateRaw($field);
                 clearWorkDateFieldErrors($field);
                 var $tr = $workRow(this);
@@ -2862,7 +2958,7 @@
                     if (!newRow) return;
                     var isCurrent = (container.getAttribute('data-work-part') || '') === 'current';
                     /* Cloned rows must not inherit locked existing state (alteration / renewal). */
-                    newRow.classList.remove('fs-alt-existing-work');
+                    newRow.classList.remove('fs-alt-existing-work', 'fs-till-date-work', 'fs-alt-till-partial-edit');
                     if (newRoot && newRoot.classList) {
                         newRoot.classList.remove('fs-alt-existing-block');
                     }
@@ -2936,7 +3032,7 @@
                     /* New rows added on renewal/alteration must be fully editable. */
                     (function () {
                         var $newRow = $(newRow);
-                        $newRow.removeClass('is-complete work-row--compact work-row--in-summary fs-alt-existing-work')
+                        $newRow.removeClass('is-complete work-row--compact work-row--in-summary fs-alt-existing-work fs-till-date-work fs-alt-till-partial-edit')
                             .addClass('work-row--expanded')
                             .removeData('wxWasComplete wxSummaryTr');
                         $newRow.find('input[name="fs_alt_existing_work[]"]').remove();
@@ -2944,6 +3040,7 @@
                             .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
                             .prop('disabled', false)
                             .prop('readonly', false);
+                        ensureWorkRowRemoveButton($newRow);
                         ensureWorkRowDoneBar($newRow);
                         applyEmploymentType($newRow);
                         applyRowLayout($newRow);

@@ -37,7 +37,7 @@ class FormSAlterationService
     ) {}
 
     /** Competency CC forms this alteration flow currently supports. */
-    private const SUPPORTED_FORM_NAMES = ['S', 'W', 'WH'];
+    private const SUPPORTED_FORM_NAMES = ['S', 'W', 'WH', 'H', 'P'];
 
     /**
      * @return array{ok: bool, message?: string, application?: CC_CompetencyMeta}
@@ -54,7 +54,7 @@ class FormSAlterationService
         $parent = CC_Forms_Meta::where('application_id', $parentApplicationId)
             ->where('login_id', $loginId)
             ->whereIn('form_name', self::SUPPORTED_FORM_NAMES)
-            ->whereIn('appl_type', ['N', 'R', 'D'])
+            ->whereIn('appl_type', ['N', 'R', 'D','A'])
             ->where(function ($q) use ($paidStatuses) {
                 $q->whereIn('payment_status', $paidStatuses)
                     ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) IN ('y','payment','paid')");
@@ -65,7 +65,7 @@ class FormSAlterationService
             $parent = CC_Forms_Meta::where('certificate_no', $parentApplicationId)
                 ->where('login_id', $loginId)
                 ->whereIn('form_name', self::SUPPORTED_FORM_NAMES)
-                ->whereIn('appl_type', ['N', 'R', 'D'])
+                ->whereIn('appl_type', ['N', 'R', 'D','A'])
                 ->where(function ($q) use ($paidStatuses) {
                     $q->whereIn('payment_status', $paidStatuses)
                         ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) IN ('y','payment','paid')");
@@ -316,9 +316,9 @@ class FormSAlterationService
         if ($context['alterationDraft']) {
             $draft = $this->normalizeParentForDisplay($context['alterationDraft']);
             $applicationDetails->applicant_name = $draft->applicant_name;
-            $address = trim((string) ($draft->applicant_address ?? $draft->applicant_address ?? ''));
+            $address = $this->metaAddress($draft);
             $applicationDetails->applicant_address = $address;
-            $applicationDetails->applicant_address = $address;
+            $applicationDetails->applicants_address = $address;
         }
 
         $applicationDetails = $this->enrichApplicationProofFields(
@@ -349,11 +349,35 @@ class FormSAlterationService
     public function normalizeParentForDisplay(CC_CompetencyMeta $application): CC_CompetencyMeta
     {
         $normalized = clone $application;
-        $address = trim((string) ($normalized->applicant_address ?? $normalized->applicant_address ?? ''));
+        $address = $this->metaAddress($normalized);
         $normalized->applicant_address = $address;
-        $normalized->applicant_address = $address;
+        $normalized->applicants_address = $address;
 
         return $normalized;
+    }
+
+    protected function metaAddress(?object $row): string
+    {
+        if (! $row) {
+            return '';
+        }
+
+        $address = trim((string) ($row->applicant_address ?? $row->applicants_address ?? ''));
+
+        return strcasecmp($address, 'Not provided') === 0 ? '' : $address;
+    }
+
+    protected function requestAlterationAddress(Request $request, string $fallback = ''): string
+    {
+        $posted = trim((string) $request->input('applicants_address', ''));
+        if ($posted === '' || strcasecmp($posted, 'Not provided') === 0) {
+            $posted = trim((string) $request->input('applicant_address', ''));
+        }
+        if ($posted === '' || strcasecmp($posted, 'Not provided') === 0) {
+            return $fallback;
+        }
+
+        return $posted;
     }
 
     /**
@@ -365,7 +389,9 @@ class FormSAlterationService
         $row = clone $row;
 
         $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
-        $row->applicant_address = $row->applicant_address ?? $row->applicant_address ?? null;
+        $address = $this->metaAddress($row);
+        $row->applicant_address = $address;
+        $row->applicants_address = $address;
         $row->previously_number = $row->previously_number ?? $row->previous_scc_no ?? null;
         $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
         $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
@@ -611,9 +637,9 @@ class FormSAlterationService
         /** @var CC_CompetencyMeta $parent */
         $parent = $verify['application'];
         $parentName = trim((string) $parent->applicant_name);
-        $parentAddress = trim((string) ($parent->applicant_address ?? $parent->applicant_address ?? ''));
+        $parentAddress = $this->metaAddress($parent);
         $newName = trim((string) $request->input('applicant_name', ''));
-        $newAddress = trim((string) $request->input('applicant_address', $request->input('applicant_address', '')));
+        $newAddress = $this->requestAlterationAddress($request);
 
         $alterName = $request->input('alter_name') === '1' || ($newName !== '' && $newName !== $parentName);
         $alterAddress = $request->input('alter_address') === '1' || ($newAddress !== '' && $newAddress !== $parentAddress);
@@ -666,7 +692,7 @@ class FormSAlterationService
                 'login_id' => $loginId,
                 'applicant_name' => $alterName ? $newName : $parent->applicant_name,
                 'fathers_name' => $parent->fathers_name,
-                'applicant_email' => $parent->applicant_email,
+                'applicant_email' => $this->resolveAlterationApplicantEmail($request, $parent),
                 'applicant_address' => $alterAddress ? $newAddress : $parentAddress,
                 'd_o_b' => $parent->d_o_b,
                 'age' => $parent->age,
@@ -678,9 +704,8 @@ class FormSAlterationService
                 'form_id' => $parent->form_id,
                 'certificate_name' => $certName,
                 'certificate_no' => $parent->certificate_no,
-                'wcc_to' => $parent->wcc_to ?? $parent->certificate_valid_to ?? null,
-                'wcc_issue_date' => $parent->wcc_issue_date ?? $parent->certificate_issue_date ?? null,
-                'wcc_from' => $parent->wcc_from ?? $parent->certificate_valid_from ?? null,
+                ...$this->alterationWccSnapshot($parent, $request),
+                ...$this->alterationQcQscSnapshot($parent),
                 'appl_type' => 'A',
                 'old_application' => $parent->application_id,
                 'app_status' => 'P',
@@ -767,20 +792,21 @@ class FormSAlterationService
 
         /** @var CC_CompetencyMeta $parent */
         $parent = $verify['application'];
-        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicant_address ?? '');
+        $parentAddress = $this->metaAddress($parent);
         $newName = trim((string) $request->input('applicant_name', $parent->applicant_name));
-        $newAddress = trim((string) $request->input('applicant_address', $request->input('applicant_address', $parentAddress)));
+        $newAddress = $this->requestAlterationAddress($request, $parentAddress);
 
         return DB::transaction(function () use ($request, $parent, $loginId, $newName, $newAddress, $parentAddress) {
             $child = $this->findOrCreateAlterationDraftChild($parent, $loginId);
 
-            $child->update([
+            $child->update(array_merge([
                 'applicant_name' => $newName !== '' ? $newName : $parent->applicant_name,
+                'applicant_email' => $this->resolveAlterationApplicantEmail($request, $parent),
                 'applicant_address' => $newAddress !== '' ? $newAddress : $parentAddress,
                 'payment_status' => 'draft',
                 'app_status' => 'P',
                 'updated_at' => now(),
-            ]);
+            ], $this->alterationWccSnapshot($parent, $request), $this->alterationQcQscSnapshot($parent)));
 
             $this->snapshotUnchangedParentDocumentsOntoChild($child, $loginId);
 
@@ -818,6 +844,64 @@ class FormSAlterationService
         $this->childDocumentSnapshot->copyParentIdentityProofsToChild($child);
     }
 
+    /**
+     * Point 9 WCC number posts as competency_certificate_no and is stored as wcc_no.
+     * Alteration copies parent WCC details; posted values win when present.
+     *
+     * @return array{wcc_no: ?string, wcc_issue_date: mixed, wcc_from: mixed, wcc_to: mixed}
+     */
+    protected function alterationWccSnapshot(CC_CompetencyMeta $parent, ?Request $request = null): array
+    {
+        $postedNo = $request ? trim((string) $request->input('competency_certificate_no', '')) : '';
+        $postedIssue = $request ? trim((string) $request->input('certificate_issue_date', '')) : '';
+        $postedFrom = $request ? trim((string) $request->input('certificate_valid_from', '')) : '';
+        $postedTo = $request ? trim((string) $request->input('certificate_valid_to', '')) : '';
+        $parentNo = trim((string) ($parent->wcc_no ?? ''));
+
+        return [
+            'wcc_no' => $postedNo !== '' ? $postedNo : ($parentNo !== '' ? $parentNo : null),
+            'wcc_issue_date' => $postedIssue !== ''
+                ? $postedIssue
+                : ($parent->wcc_issue_date ?? $parent->certificate_issue_date ?? null),
+            'wcc_from' => $postedFrom !== ''
+                ? $postedFrom
+                : ($parent->wcc_from ?? $parent->certificate_valid_from ?? null),
+            'wcc_to' => $postedTo !== ''
+                ? $postedTo
+                : ($parent->wcc_to ?? $parent->certificate_valid_to ?? null),
+        ];
+    }
+
+    /**
+     * Copy parent QC/QSC eligibility onto the alteration application.
+     *
+     * @return array{qc: int, qsc: int}
+     */
+    protected function alterationQcQscSnapshot(CC_CompetencyMeta $parent): array
+    {
+        return [
+            'qc' => $this->qcEligibilityFlag($parent->qc ?? 0),
+            'qsc' => $this->qcEligibilityFlag($parent->qsc ?? 0),
+        ];
+    }
+
+    protected function qcEligibilityFlag(mixed $value): int
+    {
+        return ((int) $value === 1) ? 1 : 0;
+    }
+
+    private function resolveAlterationApplicantEmail(Request $request, CC_CompetencyMeta $parent): ?string
+    {
+        $posted = trim((string) $request->input('applicant_email', ''));
+        if ($posted !== '') {
+            return $posted;
+        }
+
+        $existing = trim((string) ($parent->applicant_email ?? ''));
+
+        return $existing !== '' ? $existing : null;
+    }
+
     protected function findOrCreateAlterationDraftChild(CC_CompetencyMeta $parent, string $loginId): CC_CompetencyMeta
     {
         $child = CC_Forms_Meta::where('old_application', $parent->application_id)
@@ -833,7 +917,7 @@ class FormSAlterationService
 
         $formName = (string) ($parent->form_name ?? 'S');
         $certName = (string) ($parent->certificate_name ?? $parent->license_name ?? '');
-        $parentAddress = (string) ($parent->applicant_address ?? $parent->applicant_address ?? '');
+        $parentAddress = $this->metaAddress($parent);
 
         $lastApplication = app(CompetencyMetaService::class)->latestApplicationId();
         $lastNumber = $lastApplication ? (int) substr($lastApplication, -7) : 1111110;
@@ -857,9 +941,8 @@ class FormSAlterationService
             'form_id' => $parent->form_id,
             'certificate_name' => $certName,
             'certificate_no' => $parent->certificate_no,
-            'wcc_to' => $parent->wcc_to ?? $parent->certificate_valid_to ?? null,
-            'wcc_issue_date' => $parent->wcc_issue_date ?? $parent->certificate_issue_date ?? null,
-            'wcc_from' => $parent->wcc_from ?? $parent->certificate_valid_from ?? null,
+            ...$this->alterationWccSnapshot($parent),
+            ...$this->alterationQcQscSnapshot($parent),
             'appl_type' => 'A',
             'old_application' => $parent->application_id,
             'app_status' => 'P',
@@ -989,16 +1072,44 @@ class FormSAlterationService
         $expId = (int) ($workIds[$key] ?? 0);
         $master = $expId > 0 ? CC_Experience::find($expId) : null;
         if ($master) {
-            if ((int) ($master->work_to_till_date ?? 0) === 1) {
-                return true;
-            }
-
-            return ! empty($master->from_date) && empty($master->to_date);
+            return $this->experienceIsTillDate($master);
         }
 
         $tillFlags = (array) $request->input('work_to_till_date', []);
 
         return FormSWorkTillDate::isChecked($tillFlags[$key] ?? '0');
+    }
+
+    protected function experienceIsTillDate(?CC_Experience $row): bool
+    {
+        if (! $row) {
+            return false;
+        }
+        if ((int) ($row->work_to_till_date ?? 0) === 1) {
+            return true;
+        }
+
+        return ! empty($row->from_date) && empty($row->to_date);
+    }
+
+    protected function assertExperienceToDateNotFuture(string $toDate): string
+    {
+        $toDate = trim($toDate);
+        if ($toDate === '') {
+            return '';
+        }
+
+        try {
+            $parsed = Carbon::parse($toDate)->startOfDay();
+        } catch (\Throwable $e) {
+            throw new RuntimeException('To date is invalid.');
+        }
+
+        if ($parsed->gt(Carbon::today())) {
+            throw new RuntimeException('To date cannot be a future date.');
+        }
+
+        return $parsed->toDateString();
     }
 
     /**
@@ -1171,6 +1282,10 @@ class FormSAlterationService
 
             if ($to->lt($from)) {
                 continue;
+            }
+
+            if (! $isTill && $to->gt($today)) {
+                throw new RuntimeException('To date cannot be a future date.');
             }
 
             $periods[] = [
@@ -1437,9 +1552,6 @@ class FormSAlterationService
         $designations = (array) $request->input('designation', []);
         $orgName = trim((string) ($employers[$key] ?? ''));
         $designation = trim((string) ($designations[$key] ?? ''));
-        if ($orgName === '' || $designation === '') {
-            return false;
-        }
 
         $empTypes = (array) $request->input('work_employment_type', []);
         $orgAddresses = $this->requestOrgAddresses($request);
@@ -1459,6 +1571,21 @@ class FormSAlterationService
         $contractorCats = (array) $request->input('work_contractor_category', []);
         $licenceNos = (array) $request->input('work_licence_number', []);
 
+        $postedExpId = $isExistingRow ? (int) ($workIds[$key] ?? 0) : 0;
+        $postedExp = $postedExpId > 0 ? CC_Experience::find($postedExpId) : null;
+        $parentId = (string) $this->workflowService->masterApplication($child)->application_id;
+        $master = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($postedExp, $parentId);
+        $isExistingTillMaster = $isExistingRow && $this->experienceIsTillDate($master);
+
+        if ($isExistingTillMaster) {
+            $orgName = trim((string) ($master->org_name ?? ''));
+            $designation = trim((string) ($master->designation ?? ''));
+        }
+
+        if ($orgName === '' || $designation === '') {
+            return false;
+        }
+
         $empCate = null;
         $memberName = null;
         $cat = trim((string) ($contractorCats[$key] ?? ''));
@@ -1471,10 +1598,6 @@ class FormSAlterationService
             $empCate = $cat . ($licence !== '' ? '||' . $licence : '');
         }
 
-        $postedExpId = $isExistingRow ? (int) ($workIds[$key] ?? 0) : 0;
-        $postedExp = $postedExpId > 0 ? CC_Experience::find($postedExpId) : null;
-        $parentId = (string) $this->workflowService->masterApplication($child)->application_id;
-        $master = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($postedExp, $parentId);
         $boardDetails = trim((string) ($meetingDetails[$key] ?? ''));
         $totalY = (int) ($durY[$key] ?? 0);
         $totalM = (int) ($durM[$key] ?? 0);
@@ -1484,44 +1607,63 @@ class FormSAlterationService
             $totalExp = (string) $master->total_exp;
         }
 
+        $empTypeVal = $empTypes[$key] ?? null;
+        $orgAddressVal = $orgAddresses[$key] ?? null;
+        $fromDateVal = $fromDates[$key] ?? null;
+        $natureVal = $natures[$key] ?? null;
+        $voltageVal = $voltages[$key] ?? null;
+        $kvaVal = $kvas[$key] ?? null;
+        $boardDetailsVal = $boardDetails !== '' ? $boardDetails : null;
+        $meetingDateVal = $meetingDates[$key] ?? null;
+
+        if ($isExistingTillMaster) {
+            $empTypeVal = $master->emp_type;
+            $empCate = $master->emp_cate;
+            $memberName = $master->member_name;
+            $orgAddressVal = $master->org_address;
+            $fromDateVal = $master->from_date;
+            $natureVal = $master->nature_work;
+            $voltageVal = $master->voltage_level;
+            $kvaVal = $master->transformer_kva;
+            $boardDetailsVal = $master->board_meeting_details;
+            $meetingDateVal = $master->board_meeting_date;
+        }
+
         $toDate = trim((string) ($toDates[$key] ?? ''));
         $tillRaw = $tillFlags[$key] ?? '0';
-        // Previous: posted Y-m-d (or legacy "1") was converted to today's date and written only to to_date.
-        // $tillDate = FormSWorkTillDate::toDateString($tillRaw, Carbon::today()->toDateString());
-        // if ($tillDate !== null) {
-        //     $toDate = $tillDate;
-        // }
         $workToTillDate = FormSWorkTillDate::isChecked($tillRaw) ? 1 : 0;
         if ($workToTillDate === 1) {
             $toDate = Carbon::today()->toDateString();
+        } else {
+            $toDate = $this->assertExperienceToDateNotFuture($toDate);
         }
 
         $experience = CC_Experience::create([
             'login_id' => $loginId,
             'application_id' => $child->application_id,
-            'emp_type' => $empTypes[$key] ?? null,
+            'emp_type' => $empTypeVal,
             'emp_cate' => $empCate,
             'member_name' => $memberName,
             'org_name' => $orgName,
-            'org_address' => $orgAddresses[$key] ?? null,
+            'org_address' => $orgAddressVal,
             'designation' => $designation,
-            'from_date' => $fromDates[$key] ?? null,
+            'from_date' => $fromDateVal,
             'to_date' => ($toDate !== '' ? $toDate : null),
             'work_to_till_date' => $workToTillDate,
             'total_y' => $totalY,
             'total_m' => $totalM,
             'total_d' => $totalD,
             'total_exp' => ($totalExp !== '' ? $totalExp : null),
-            'nature_work' => $natures[$key] ?? null,
-            'voltage_level' => $voltages[$key] ?? null,
-            'transformer_kva' => $kvas[$key] ?? null,
-            'board_meeting_details' => $boardDetails !== '' ? $boardDetails : null,
-            'board_meeting_date' => $meetingDates[$key] ?? null,
+            'nature_work' => $natureVal,
+            'voltage_level' => $voltageVal,
+            'transformer_kva' => $kvaVal,
+            'board_meeting_details' => $boardDetailsVal,
+            'board_meeting_date' => $meetingDateVal,
             'support_document' => $master?->support_document,
             'relieve_document' => $master?->relieve_document ?? $master?->releive_document,
         ]);
 
-        $supportFile = $this->uploadedFileAt($request, 'work_document', $key);
+        $supportFile = $isExistingTillMaster ? null : $this->uploadedFileAt($request, 'work_document', $key);
         if ($supportFile) {
             $path = $this->documentHandler->handleExperienceSupportUpload(
                 $child,
@@ -1629,8 +1771,10 @@ class FormSAlterationService
         $parentAddress = trim((string) ($parentRow->applicant_address ?? $parentRow->applicant_address ?? ''));
         if ($childAddress !== '' && $childAddress !== $parentAddress) {
             $parentUpdates['applicant_address'] = $childAddress;
-            $parentUpdates['applicant_address'] = $childAddress;
         }
+
+        $parentUpdates['qc'] = $this->qcEligibilityFlag($childRow->qc ?? $parentRow->qc ?? 0);
+        $parentUpdates['qsc'] = $this->qcEligibilityFlag($childRow->qsc ?? $parentRow->qsc ?? 0);
 
         if (count($parentUpdates) > 1) {
             DB::table($parentTable)->where('application_id', $parentId)->update($parentUpdates);

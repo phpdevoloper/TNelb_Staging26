@@ -21,6 +21,10 @@
                 : ((isWH && cfg.formWHStoreUrl) ? cfg.formWHStoreUrl : cfg.formStoreUrl),
             update: (isW && cfg.formWUpdateUrlTemplate) ? cfg.formWUpdateUrlTemplate
                 : ((isWH && cfg.formWHUpdateUrlTemplate) ? cfg.formWHUpdateUrlTemplate : cfg.formUpdateUrlTemplate),
+            draft: (isW && cfg.formWDraftSubmitUrl) ? cfg.formWDraftSubmitUrl
+                : ((isWH && cfg.formWHDraftSubmitUrl) ? cfg.formWHDraftSubmitUrl : (cfg.formDraftSubmitUrl || cfg.formStoreUrl)),
+            draftWithId: (isW && cfg.formWDraftSubmitUrlTemplate) ? cfg.formWDraftSubmitUrlTemplate
+                : ((isWH && cfg.formWHDraftSubmitUrlTemplate) ? cfg.formWHDraftSubmitUrlTemplate : (cfg.formDraftSubmitUrlTemplate || '')),
             renewal: (isW && cfg.formWDraftRenewalUrlTemplate) ? cfg.formWDraftRenewalUrlTemplate
                 : ((isWH && cfg.formWHDraftRenewalUrlTemplate) ? cfg.formWHDraftRenewalUrlTemplate : cfg.draftRenewalUrlTemplate)
         };
@@ -245,11 +249,17 @@
                 if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
                     window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
                 }
+                if (typeof window.appendWorkExperienceFilesToFormData === 'function') {
+                    window.appendWorkExperienceFilesToFormData(formData, $('#competency_form_ws')[0]);
+                }
                 if (typeof window.appendWorkContractorFieldsToFormData === 'function') {
                     window.appendWorkContractorFieldsToFormData(formData, $('#competency_form_ws')[0]);
                 }
                 if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
                     window.appendWorkBoardMemberFieldsToFormData(formData, $('#competency_form_ws')[0]);
+                }
+                if (typeof window.appendCompetencyPhotoSignToFormData === 'function') {
+                    window.appendCompetencyPhotoSignToFormData(formData, $('#competency_form_ws')[0]);
                 }
                 let applicationId = $('#application_id').val();
                 let formUrl;
@@ -699,7 +709,7 @@
                 payload.amount != null ? payload.amount : (opts.amount || 0),
                 payload.form_type || opts.formType || 'New Application',
                 payload.licence_name || opts.licenceName || 'N/A',
-                false,
+                opts.isFormP === true,
                 { feeExempt: false }
             );
         }
@@ -823,6 +833,7 @@
             }, 1500);
         }
     }
+    window.watchPayUPaymentProgress = watchPayUPaymentProgress;
 
     function showPaymentSuccessPopup(loginId, transactionId, transactionDate, applicantName, amount, form_type, licence_name, isFormP, options) {
         isFormP = (typeof isFormP !== 'undefined' && isFormP === true);
@@ -1546,18 +1557,28 @@
         }
         window.isFeeExemptCompetencySuccess = isFeeExemptCompetencySuccess;
 
+        function eachWorkExperienceCard($formRoot, fn) {
+            $($formRoot).find('.js-work-container .work-fields, #work-container .work-fields').each(function () {
+                fn($(this));
+            });
+        }
+
+        function namedInputVal($row, name) {
+            const $el = $row.find('[name="' + name + '"]').first();
+            return $el.length ? String($el.val() || '').trim() : '';
+        }
+
         /** Rebuild work_transformer_kva[] so each work row posts one aligned slot (disabled selects are skipped by FormData). */
         function appendWorkTransformerKvaToFormData(formData, formRoot) {
             if (!formData || !formRoot) return;
             formData.delete('work_transformer_kva[]');
-            $(formRoot).find('.js-work-container .work-fields, #work-container .work-fields').each(function () {
-                const $row = $(this);
+            eachWorkExperienceCard(formRoot, function ($row) {
                 const $sync = $row.find('.work-transformer-kva-sync').first();
                 const $sel = $row.find('select.work-transformer-kva').first();
                 let kva = '';
-                if ($sync.length && !$sync.prop('disabled')) {
+                if ($sync.length) {
                     kva = ($sync.val() || '').toString().trim();
-                } else if ($sel.length && !$sel.prop('disabled')) {
+                } else if ($sel.length) {
                     kva = ($sel.val() || '').toString().trim();
                 }
                 const voltage = ($row.find('.work-voltage').val() || '').toString().trim();
@@ -1570,25 +1591,53 @@
         window.appendWorkTransformerKvaToFormData = appendWorkTransformerKvaToFormData;
 
         /**
-         * Renewal locks disable from/to (and org/designation) so native FormData drops those
-         * slots and later rows' dates bind to the wrong work_id. Rebuild one slot per card.
+         * Renewal locks disable from/to (and org/designation/work_id) so native FormData
+         * drops those slots. Rebuild one aligned slot per card, including disabled values.
          */
         function appendWorkExperienceDateFieldsToFormData(formData, formRoot) {
             if (!formData || !formRoot) return;
-            formData.delete('work_date_from[]');
-            formData.delete('work_date_to[]');
-            formData.delete('work_employer_name[]');
-            formData.delete('work_organisation_address[]');
-            formData.delete('designation[]');
-            formData.delete('work_employment_type[]');
-            $(formRoot).find('.js-work-container .work-fields, #work-container .work-fields').each(function () {
-                const $row = $(this);
+            [
+                'work_date_from[]',
+                'work_date_to[]',
+                'work_employer_name[]',
+                'work_organisation_address[]',
+                'designation[]',
+                'work_employment_type[]',
+                'work_id[]',
+                'work_exp_section[]',
+                'work_level[]',
+                'experience[]',
+                'work_experience_total[]',
+                'work_to_till_date[]',
+                'work_nature_of_work[]',
+                'work_voltage_level[]',
+                'existing_work_document[]',
+                'existing_work_relieving_document[]',
+            ].forEach(function (name) {
+                formData.delete(name);
+            });
+            eachWorkExperienceCard(formRoot, function ($row) {
+                const org = String($row.find('.work-employer-input').first().val() || namedInputVal($row, 'work_level[]') || '').trim();
+                const total = String(
+                    $row.find('.work-experience-total-hidden').first().val()
+                    || namedInputVal($row, 'experience[]')
+                    || ''
+                ).trim();
+                const $tillHidden = $row.find('.work-date-till-hidden').first();
+                const $tillCb = $row.find('.work-date-till').first();
+                let till = $tillHidden.length ? String($tillHidden.val() || '0') : '0';
+                if ($tillCb.length && $tillCb.is(':checked')) {
+                    till = '1';
+                }
+                const section = String(
+                    namedInputVal($row, 'work_exp_section[]')
+                    || $row.closest('.js-work-container').attr('data-work-part')
+                    || ''
+                ).trim();
+
                 formData.append('work_date_from[]', readWorkDateIsoGeneric($row.find('.work-date-from').first()));
                 formData.append('work_date_to[]', readWorkDateIsoGeneric($row.find('.work-date-to').first()));
-                formData.append(
-                    'work_employer_name[]',
-                    String($row.find('.work-employer-input').first().val() || '').trim()
-                );
+                formData.append('work_employer_name[]', org);
                 formData.append(
                     'work_organisation_address[]',
                     String($row.find('.work-org-address').first().val() || '').trim()
@@ -1601,6 +1650,22 @@
                     'work_employment_type[]',
                     String($row.find('.work-employment-type').first().val() || '').trim()
                 );
+                formData.append('work_id[]', namedInputVal($row, 'work_id[]'));
+                formData.append('work_exp_section[]', section);
+                formData.append('work_level[]', namedInputVal($row, 'work_level[]') || org);
+                formData.append('experience[]', namedInputVal($row, 'experience[]') || total);
+                formData.append('work_experience_total[]', total);
+                formData.append('work_to_till_date[]', till);
+                formData.append(
+                    'work_nature_of_work[]',
+                    String($row.find('.work-nature').first().val() || namedInputVal($row, 'work_nature_of_work[]') || '').trim()
+                );
+                formData.append(
+                    'work_voltage_level[]',
+                    String($row.find('.work-voltage').first().val() || namedInputVal($row, 'work_voltage_level[]') || '').trim()
+                );
+                formData.append('existing_work_document[]', namedInputVal($row, 'existing_work_document[]'));
+                formData.append('existing_work_relieving_document[]', namedInputVal($row, 'existing_work_relieving_document[]'));
             });
         }
         window.appendWorkExperienceDateFieldsToFormData = appendWorkExperienceDateFieldsToFormData;
@@ -1655,6 +1720,66 @@
         }
         window.appendWorkBoardMemberFieldsToFormData = appendWorkBoardMemberFieldsToFormData;
 
+        /**
+         * Align work_document / relieving files to the same card index as work_id[].
+         * Native FormData packs only enabled non-empty file inputs as [0],[1], so a
+         * file on the 2nd card is stored as index 0 and never binds to that row.
+         */
+        function appendWorkExperienceFilesToFormData(formData, formRoot) {
+            if (!formData || !formRoot) return;
+            const drop = [];
+            formData.forEach(function (_value, key) {
+                if (
+                    key === 'work_document[]'
+                    || key === 'work_relieving_letter[]'
+                    || key.indexOf('work_document[') === 0
+                    || key.indexOf('work_relieving_letter[') === 0
+                ) {
+                    drop.push(key);
+                }
+            });
+            drop.forEach(function (key) {
+                formData.delete(key);
+            });
+            let i = 0;
+            eachWorkExperienceCard(formRoot, function ($row) {
+                const supportEl = $row.find('input[name="work_document[]"], input[name^="work_document["]').get(0);
+                const relieveEl = $row.find('input[name="work_relieving_letter[]"], input[name^="work_relieving_letter["]').get(0);
+                const supportFile = supportEl && supportEl.files && supportEl.files[0] ? supportEl.files[0] : null;
+                const relieveFile = relieveEl && relieveEl.files && relieveEl.files[0] ? relieveEl.files[0] : null;
+                if (supportFile) {
+                    formData.append('work_document[' + i + ']', supportFile);
+                }
+                if (relieveFile) {
+                    formData.append('work_relieving_letter[' + i + ']', relieveFile);
+                }
+                i += 1;
+            });
+        }
+        window.appendWorkExperienceFilesToFormData = appendWorkExperienceFilesToFormData;
+
+        /**
+         * Native FormData can send an empty upload_photo / upload_sign slot.
+         * Laravel then treats the field as present and the image rule fails,
+         * so the chosen file is never stored. Replace with the live File, or omit.
+         */
+        function appendCompetencyPhotoSignToFormData(formData, formRoot) {
+            if (!formData) return;
+            const root = formRoot || document.getElementById('competency_form_ws');
+            if (!root) return;
+            const photo = root.querySelector('#upload_photo, input[name="upload_photo"]');
+            const sign = root.querySelector('#upload_sign, input[name="upload_sign"]');
+            formData.delete('upload_photo');
+            formData.delete('upload_sign');
+            if (photo && photo.files && photo.files[0]) {
+                formData.set('upload_photo', photo.files[0]);
+            }
+            if (sign && sign.files && sign.files[0]) {
+                formData.set('upload_sign', sign.files[0]);
+            }
+        }
+        window.appendCompetencyPhotoSignToFormData = appendCompetencyPhotoSignToFormData;
+
         async function saveCompetencyDraftSilently() {
             const formWsEl = $('#competency_form_ws')[0];
             const formPEl = $('#competency_form_p')[0];
@@ -1667,8 +1792,10 @@
             if (formWsEl) {
                 appendWorkTransformerKvaToFormData(formData, formWsEl);
                 appendWorkExperienceDateFieldsToFormData(formData, formWsEl);
+                appendWorkExperienceFilesToFormData(formData, formWsEl);
                 appendWorkContractorFieldsToFormData(formData, formWsEl);
                 appendWorkBoardMemberFieldsToFormData(formData, formWsEl);
+                appendCompetencyPhotoSignToFormData(formData, formWsEl);
             }
 
             if (formPEl) {
@@ -1687,11 +1814,15 @@
                 if (applicationId) {
                     if (applType === 'R') {
                         formUrl = String(persistUrls.renewal || '').replace('__APPL_ID__', applicationId);
+                    } else if (String(applType || '').toUpperCase() === 'D' && persistUrls.draftWithId) {
+                        formUrl = String(persistUrls.draftWithId).replace('__APPL_ID__', applicationId);
                     } else {
                         formUrl = String(persistUrls.update || '').replace('__APPL_ID__', applicationId);
                     }
                 } else {
-                    formUrl = persistUrls.store;
+                    formUrl = (String(applType || '').toUpperCase() === 'D' && persistUrls.draft)
+                        ? persistUrls.draft
+                        : persistUrls.store;
                 }
             } else if (formPEl) {
                 if (applicationId) {
@@ -2608,7 +2739,12 @@
         function populateSwPreview() {
             const v = function (id) {
                 const el = document.getElementById(id);
-                return el ? String(el.value || '').trim() : '';
+                if (el && String(el.value || '').trim()) return String(el.value).trim();
+                const view = document.querySelector('[data-view-for="' + id + '"]');
+                if (!view) return el ? String(el.value || '').trim() : '';
+                const txt = String(view.textContent || '').trim();
+                if (!txt || /^not provided$/i.test(txt) || txt === '—') return '';
+                return txt;
             };
             const valByName = function (name) {
                 const el = document.querySelector('[name="' + name + '"]');
@@ -4658,7 +4794,8 @@
 
 
             let photoInput = document.getElementById("upload_photo");
-            const previewPhoto = document.getElementById("preview_applicant");
+            const previewPhoto = document.getElementById("preview_applicant")
+                || document.getElementById("photo_preview");
             const hasExistingPhotoPreview = !!(
                 previewPhoto &&
                 String(previewPhoto.getAttribute('src') || '').trim() !== '' &&

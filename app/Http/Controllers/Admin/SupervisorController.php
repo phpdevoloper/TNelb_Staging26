@@ -77,6 +77,8 @@ class SupervisorController extends Controller
             }
         }
 
+        $this->syncAlterationParentQcQsc($applicationId, $payload);
+
         return response()->json([
             'status' => true,
             'message' => 'Updated successfully'
@@ -1212,12 +1214,14 @@ class SupervisorController extends Controller
         ]);
 
         if ($request->filled('qc') || $request->filled('qsc')) {
+            $qcPayload = [
+                'qc' => $request->qc,
+                'qsc' => $request->qsc,
+            ];
             DB::table($appService->resolveMetaTable($request->application_id, $applicant))
                 ->where('application_id', $request->application_id)
-                ->update([
-                    'qc' => $request->qc,
-                    'qsc' => $request->qsc,
-                ]);
+                ->update($qcPayload);
+            $this->syncAlterationParentQcQsc($request->application_id, $qcPayload);
         }
 
 
@@ -1736,6 +1740,37 @@ class SupervisorController extends Controller
         }
 
         return null;
+    }
+
+    private function syncAlterationParentQcQsc(string $applicationId, array $payload): void
+    {
+        $row = CC_Forms_Meta::findByApplicationId($applicationId);
+        if (! $row) {
+            $metaTable = app(CompetencyMetaService::class)->metaTableForApplicationId($applicationId);
+            $row = $metaTable
+                ? DB::table($metaTable)->where('application_id', $applicationId)->first()
+                : null;
+        }
+        if (! $row || strtoupper((string) ($row->appl_type ?? '')) !== 'A') {
+            return;
+        }
+
+        $parentId = trim((string) ($row->old_application ?? ''));
+        if ($parentId === '') {
+            return;
+        }
+
+        $parentTable = app(CompetencyMetaService::class)->metaTableForApplicationId($parentId);
+        if (! $parentTable) {
+            return;
+        }
+
+        $parentPayload = array_intersect_key($payload, array_flip(['qc', 'qsc', 'updated_at']));
+        if ($parentPayload === []) {
+            return;
+        }
+
+        DB::table($parentTable)->where('application_id', $parentId)->update($parentPayload);
     }
 
     private function markCompetencyApplicationApproved(object $application, string $processedBy, ?string $qc = null, ?string $qsc = null): void

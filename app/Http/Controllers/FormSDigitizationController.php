@@ -35,8 +35,9 @@ class FormSDigitizationController extends BaseController
         }
         $authUser = Auth::user();
 
+        $request->merge(['form' => 'S']);
         $request->validate([
-            'form' => 'required|in:S,W,H,P',
+            'form' => 'required|in:S',
         ]);
 
         $form = $request->form;
@@ -95,6 +96,10 @@ class FormSDigitizationController extends BaseController
 
     public function storeDigitization(Request $request)
     {
+        $request->merge([
+            'form_name' => 'S',
+            'cert_name' => 'C',
+        ]);
         $request->validate([
             'ccnumber'   => 'required|digits_between:1,5',
             'fissue'     => 'required|date',
@@ -102,8 +107,8 @@ class FormSDigitizationController extends BaseController
             'to_date'    => 'required|date|after_or_equal:from_date',
             'qc_det'         => 'required',
             'cc_doc'     => 'required|mimes:pdf|max:250',
-            'form_name'       => 'required|in:S,W,H,P',
-            'cert_name'       => 'required|in:C,B,H,P',
+            'form_name'       => 'required|in:S',
+            'cert_name'       => 'required|in:C',
         ], [
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
         ]);
@@ -208,9 +213,11 @@ class FormSDigitizationController extends BaseController
             CC_Digitisation_Map::create([
                 'application_id' => $request->application_id,
                 'old_cc_no' => $request->ccnumber,
+                'old_cl_no' => $request->licence_no,
                 'created_at' => $now,
                 'temp_id' => $temp_app_id,
                 'cc_type' => $request->cert_name,
+                'cl_type' => $request->cl_type ?? null,
             ]);
 
             $row->update([

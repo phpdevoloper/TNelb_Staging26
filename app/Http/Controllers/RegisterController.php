@@ -13,6 +13,7 @@ use App\Models\MstLicence;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
+use App\Services\Competency\FormPSchema;
 use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\SensitiveProofCryptService;
@@ -205,6 +206,10 @@ class RegisterController extends BaseController
         if (FormWHSchema::isFormWH($application->form_name ?? '')
             && ! request()->attributes->get(FormWHSchema::VIA_CONTROLLER_ATTR)) {
             return app(FormWHController::class)->renew($appl_id);
+        }
+
+        if (FormPSchema::isFormP($application->form_name ?? '')) {
+            return app(FormPController::class)->renew_form_p($appl_id);
         }
 
         $loginId = Auth::user()->login_id ?? session('login_id');

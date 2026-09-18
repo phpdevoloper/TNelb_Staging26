@@ -2,27 +2,11 @@ async function showInstructPopup(licence_code,login_id) {
 
     try {
 
-        let total_fees, renewl_fees, lateFee, lateMonths, form_cost, form_name, licence, renewalAmoutStartson, latefee_amount, latefee_starts, form_instruct, fees_date;
+        let total_fees, lateFee, lateMonths;
 
         const appl_type = $('#appl_type').val();
         const issued_licence = $('#license_number').val();
 
-        
-
-        const formResponse = await $.ajax({
-            url: BASE_URL + "/licences/getFormInstruction",
-            type: "POST",
-            data: {
-                appl_type,
-                licence_code,
-                _token: $('meta[name="csrf-token"]').attr('content')
-            }
-        });
-
-        if (formResponse.status == 200) {
-            form_instruct = formResponse.data;
-        } 
-        
         const data = await getPaymentsService(licence_code, issued_licence, appl_type);
 
         if (data) {
@@ -38,79 +22,6 @@ async function showInstructPopup(licence_code,login_id) {
             }
         }
 
-        // console.log(data);
-        
-
-        fees_date = data.fees_start_date
-        certificate_name = data.certificate_name
-
-
-
-        // 🔹 Now you can safely use form_cost everywhere below
-        const modalEl = document.getElementById('competencyInstructionsModalP');
-        const agreeCheckbox = modalEl.querySelector('#declaration-agree-renew-p');
-        const errorText = modalEl.querySelector('#declaration-error-renew-p');
-        const proceedBtn = modalEl.querySelector('#proceedtoPayment');
-
-        document.getElementById('p_certificate_name').textContent = certificate_name;
-        document.getElementById('p_fees_starts_from').textContent = fees_date;
-        document.getElementById('p_form_fees').textContent = 'Rs.' + actual_fees + '/-';
-
-        // Reset state
-        agreeCheckbox.checked = false;
-        errorText.classList.add('d-none');
-
-        // Show modal
-        const modalBody = modalEl.querySelector('#instructionContentP');
-
-        let html = '<p class="mt-3 text-center" style="color:#0069d9">*** No instructions available. ***</p>';
-        if (form_instruct) {
-            try {
-                const delta = JSON.parse(form_instruct);
-        
-                if (delta && delta.ops) {
-                    const converter = new QuillDeltaToHtmlConverter(delta.ops, {
-                        inlineStyles: true,
-                        multiLineParagraph: false,
-                        listItemTag: "li",
-                        paragraphTag: "p"
-                    });
-        
-                    html = converter.convert();
-                    // Stray "@" before list markers (split Blade/@{{…}} in Quill) — safe for instruction HTML only.
-                    html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
-                    html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
-                } else {
-                    console.warn('Delta structure is invalid:', delta);
-                }
-            } catch (e) {
-                console.error('Error parsing form_instruct JSON:', e, form_instruct);
-            }
-        } else {
-            console.warn('form_instruct is null or empty:', form_instruct);
-        }
-
-
-        modalBody.innerHTML = html;
-        const el = modalEl.querySelector("#instructionContentP");
-
-        const modal = new bootstrap.Modal(modalEl, {
-            backdrop: 'static',
-            keyboard: false
-        });
-        modal.show();
-
-        
-        // Remove old listeners
-        const newProceedBtn = proceedBtn.cloneNode(true);
-        proceedBtn.replaceWith(newProceedBtn);
-
-        newProceedBtn.addEventListener('click', async function () {
-            if (!agreeCheckbox.checked) {
-                errorText.classList.remove('d-none');
-                return;
-            }
-            modal.hide();
             let formData = new FormData($('#competency_form_p')[0]);
             formData.delete('month_passing[]');
             $('#competency_form_p select[name="month_of_passing[]"]').each(function () {
@@ -176,10 +87,13 @@ async function showInstructPopup(licence_code,login_id) {
                     }
 
 
-                    const transactionId = "TRX" + Math.floor(100000 + Math.random() * 900000);
-                    const payment_mode = 'UPI';
+                    const formTypeLabel = form_type === 'FRESH' || form_type === 'New Application'
+                        ? 'New Application'
+                        : (form_type === 'RENEWAL' || form_type === 'Renewal Application'
+                            ? 'Renewal Application'
+                            : form_type);
 
-                    // 🔹 Show payment popup
+                    // 🔹 Show payment popup then open PayU (same as Form S/W/WH)
                     Swal.fire({
                         title: "<span style='color:#0d6efd;'>₹ Payment Details</span>",
                         html: `
@@ -200,7 +114,7 @@ async function showInstructPopup(licence_code,login_id) {
                                             </tr>
                                             <tr>
                                             <th style="text-align: left; padding: 6px 10px; color: #555;">Type of Form</th>
-                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${form_type === 'FRESH' ? 'New Application' : 'Renewal Application'}</td>
+                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${formTypeLabel}</td>
                                             </tr>
                                             <tr>
                                                 <th style="text-align: left; padding: 6px 10px; color: #555;">Date</th>
@@ -226,6 +140,7 @@ async function showInstructPopup(licence_code,login_id) {
                         showCloseButton: false,
                         allowOutsideClick: false,
                         allowEscapeKey: false,
+                        showLoaderOnConfirm: true,
                         customClass: {
                             popup: 'swal2-border-radius',
                             actions: 'd-flex justify-content-around mt-3',
@@ -233,42 +148,57 @@ async function showInstructPopup(licence_code,login_id) {
                         buttonsStyling: false,
                         footer: '<div><span style="font-size: 13px;">Note: </span><span style="font-size: 13px;color: red;">The total amount is exclusive of payment gateway service charges.</span>',
                         preConfirm: async () => {
-                            const paymentResponse = await $.ajax({
-                                url: BASE_URL + '/payment/updatePaymentFormP',
-                                type: "POST",
-                                dataType: "json",
-                                data: {
-                                    login_id,
-                                    application_id,
-                                    applicantName,
-                                    transaction_id: transactionId,
-                                    transactionDate,
-                                    amount,
-                                    payment_mode,
-                                    form_name,
-                                    form_type,
-                                    lateFee,
-                                    lateMonths
-
-                                },
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            try {
+                                const cfg = window.COMPETENCY_FORM_CONFIG || {};
+                                const payuWin = window.open('', 'tnelb_payu_gateway');
+                                if (!payuWin) {
+                                    throw new Error('Please allow pop-ups for this site to open the payment window.');
                                 }
-                            });
 
-                            // ✅ Success condition
-                            if (paymentResponse.status === 200) {
-                                showPaymentSuccessPopup(application_id, transactionId, transactionDate, applicantName, amount, form_type, licence_name, true);
-                            } else {
-                                Swal.fire({
-                                    title: "Payment Failed",
-                                    text: paymentResponse.message || "Something went wrong!",
-                                    icon: "error",
-                                    timer: 3000,
-                                    showConfirmButton: false
-                                }).then(() => {
-                                    // window.location.href = BASE_URL + "/dashboard";
+                                const form = document.createElement('form');
+                                form.method = 'POST';
+                                form.action = cfg.payuInitiateUrl;
+                                form.target = 'tnelb_payu_gateway';
+
+                                const fields = {
+                                    _token: cfg.csrfToken || $('meta[name="csrf-token"]').attr('content'),
+                                    application_id: application_id,
+                                    amount: amount ?? total_fees ?? 0,
+                                    actual_fees: actual_fees ?? 0,
+                                    lateFee: lateFee ?? 0,
+                                    lateMonths: lateMonths ?? 0,
+                                };
+
+                                Object.keys(fields).forEach((name) => {
+                                    const input = document.createElement('input');
+                                    input.type = 'hidden';
+                                    input.name = name;
+                                    input.value = fields[name];
+                                    form.appendChild(input);
                                 });
+
+                                document.body.appendChild(form);
+                                form.submit();
+                                form.remove();
+
+                                if (typeof window.watchPayUPaymentProgress === 'function') {
+                                    window.watchPayUPaymentProgress({
+                                        applicationId: application_id,
+                                        applicantName: applicantName,
+                                        amount: amount ?? total_fees ?? 0,
+                                        formType: formTypeLabel,
+                                        licenceName: licence_name,
+                                        transactionDate: transactionDate,
+                                        payuWin: payuWin,
+                                        isFormP: true,
+                                    });
+                                }
+                                return false;
+                            } catch (err) {
+                                Swal.showValidationMessage(
+                                    err.message || 'Payment failed. You can click Pay Now to try again.'
+                                );
+                                return false;
                             }
                         }
 
@@ -331,7 +261,6 @@ async function showInstructPopup(licence_code,login_id) {
                     return;
                 }
             }
-        });     
     } catch (err) {
         console.error("Error fetching form cost or saving form:", err);
 
@@ -353,8 +282,215 @@ async function showInstructPopup(licence_code,login_id) {
     }
 }
 
+function parseFormPInstituteIsoDate(value) {
+    var raw = (value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return null;
+    }
+    var parsed = new Date(raw + 'T12:00:00');
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function calculateFormPInstituteDuration(fromDate, toDate) {
+    var from = parseFormPInstituteIsoDate(fromDate);
+    var to = parseFormPInstituteIsoDate(toDate);
+    if (!from || !to || to < from) {
+        return '';
+    }
+    var years = to.getFullYear() - from.getFullYear();
+    var months = to.getMonth() - from.getMonth();
+    if (to.getDate() < from.getDate()) {
+        months -= 1;
+    }
+    if (months < 0) {
+        years -= 1;
+        months += 12;
+    }
+    if (years < 0) {
+        return '';
+    }
+    return years + '.' + months;
+}
+
+function showFormPInstituteFieldError($field, message, firstErrorField) {
+    $field.after('<span class="error-message text-danger d-block mt-1">' + message + '</span>');
+    return firstErrorField || $field;
+}
+
+/**
+ * @param {boolean} required  true = payment/submit (full row); false = draft (dates optional unless one is filled)
+ */
+function validateFormPInstituteDateRows(required) {
+    var isValid = true;
+    var firstErrorField = null;
+    var $rows = $('#institute-container .institute-fields');
+
+    if (required && $rows.length === 0) {
+        $('#institute-table').after('<span class="error-message text-danger d-block mt-1">At least one institute entry is required.</span>');
+        return { isValid: false, firstErrorField: $('#institute-table') };
+    }
+
+    var completeRows = 0;
+    $rows.each(function () {
+        var $row = $(this);
+        var $name = $row.find('textarea[name="institute_name_address[]"]');
+        var $from = $row.find('input[name="from_date[]"]');
+        var $to = $row.find('input[name="to_date[]"]');
+        var $duration = $row.find('input[name="duration[]"]');
+        var nameVal = ($name.val() || '').trim();
+        var fromVal = ($from.val() || '').trim();
+        var toVal = ($to.val() || '').trim();
+        var rowStarted = nameVal !== '' || fromVal !== '' || toVal !== '';
+
+        if (!rowStarted) {
+            return;
+        }
+
+        if (required && nameVal === '') {
+            firstErrorField = showFormPInstituteFieldError($name, 'Institute name and address is required.', firstErrorField);
+            isValid = false;
+        }
+
+        var mustCheckDates = required || fromVal !== '' || toVal !== '';
+        if (!mustCheckDates) {
+            return;
+        }
+
+        if (fromVal === '') {
+            firstErrorField = showFormPInstituteFieldError($from, 'From date is required.', firstErrorField);
+            isValid = false;
+        }
+        if (toVal === '') {
+            firstErrorField = showFormPInstituteFieldError($to, 'To date is required.', firstErrorField);
+            isValid = false;
+        }
+
+        var fromDate = fromVal ? parseFormPInstituteIsoDate(fromVal) : null;
+        var toDate = toVal ? parseFormPInstituteIsoDate(toVal) : null;
+        if (fromVal !== '' && !fromDate) {
+            firstErrorField = showFormPInstituteFieldError($from, 'From date is required.', firstErrorField);
+            isValid = false;
+        }
+        if (toVal !== '' && !toDate) {
+            firstErrorField = showFormPInstituteFieldError($to, 'To date is required.', firstErrorField);
+            isValid = false;
+        }
+        if (fromDate && toDate && toDate < fromDate) {
+            firstErrorField = showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', firstErrorField);
+            isValid = false;
+            $duration.val('');
+            return;
+        }
+        if (fromDate && toDate) {
+            var duration = calculateFormPInstituteDuration(fromVal, toVal);
+            $duration.val(duration);
+            var years = parseInt((duration.split('.')[0] || ''), 10);
+            if (required && (Number.isNaN(years) || years < 0 || years > 50)) {
+                firstErrorField = showFormPInstituteFieldError($duration, 'Duration must be between 0 and 50 years.', firstErrorField);
+                isValid = false;
+            } else {
+                completeRows += 1;
+            }
+        }
+    });
+
+    if (required && completeRows === 0 && isValid) {
+        $('#institute-table').after('<span class="error-message text-danger d-block mt-1">Please add at least one institute entry with From Date and To Date.</span>');
+        firstErrorField = firstErrorField || $('#institute-table');
+        isValid = false;
+    }
+
+    return { isValid: isValid, firstErrorField: firstErrorField };
+}
+
+function validateFormPWorkDateRows(required) {
+    var isValid = true;
+    var firstErrorField = null;
+
+    $('#work-container .work-fields').each(function () {
+        var $row = $(this);
+        var $from = $row.find('input[name="work_date_from[]"], .work-date-from').first();
+        var $to = $row.find('input[name="work_date_to[]"], .work-date-to').first();
+        var wl = ($row.find('input[name="work_level[]"]').val() || '').trim();
+        var des = ($row.find('input[name="designation[]"]').val() || '').trim();
+        var ex = ($row.find('input[name="experience[]"]').val() || '').trim();
+        var fromVal = ($from.val() || '').trim();
+        var toVal = ($to.val() || '').trim();
+        var rowStarted = wl !== '' || des !== '' || ex !== '' || fromVal !== '' || toVal !== '';
+        if (!rowStarted) {
+            return;
+        }
+
+        var mustCheckDates = required || fromVal !== '' || toVal !== '';
+        if (!mustCheckDates) {
+            return;
+        }
+
+        if (fromVal === '') {
+            firstErrorField = showFormPInstituteFieldError($from, 'From date is required.', firstErrorField);
+            isValid = false;
+        }
+        if (toVal === '') {
+            firstErrorField = showFormPInstituteFieldError($to, 'To date is required.', firstErrorField);
+            isValid = false;
+        }
+
+        var fromDate = fromVal ? parseFormPInstituteIsoDate(fromVal) : null;
+        var toDate = toVal ? parseFormPInstituteIsoDate(toVal) : null;
+        if (fromVal !== '' && !fromDate) {
+            firstErrorField = showFormPInstituteFieldError($from, 'From date is required.', firstErrorField);
+            isValid = false;
+        }
+        if (toVal !== '' && !toDate) {
+            firstErrorField = showFormPInstituteFieldError($to, 'To date is required.', firstErrorField);
+            isValid = false;
+        }
+        if (fromDate && toDate && toDate < fromDate) {
+            firstErrorField = showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', firstErrorField);
+            isValid = false;
+        }
+    });
+
+    return { isValid: isValid, firstErrorField: firstErrorField };
+}
+
 // Proceed for Payment
 $(document).ready(function () {
+    $(document).on('change', '#competency_form_p input[name="from_date[]"], #competency_form_p input[name="to_date[]"]', function () {
+        var $row = $(this).closest('.institute-fields');
+        if (!$row.length) {
+            return;
+        }
+        var $from = $row.find('input[name="from_date[]"]');
+        var $to = $row.find('input[name="to_date[]"]');
+        $from.next('.error-message').remove();
+        $to.next('.error-message').remove();
+        var fromVal = ($from.val() || '').trim();
+        var toVal = ($to.val() || '').trim();
+        $row.find('input[name="duration[]"]').val(calculateFormPInstituteDuration(fromVal, toVal));
+        var fromDate = parseFormPInstituteIsoDate(fromVal);
+        var toDate = parseFormPInstituteIsoDate(toVal);
+        if (fromDate && toDate && toDate < fromDate) {
+            showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', null);
+        }
+    });
+
+    $(document).on('change', '#competency_form_p .work-date-from, #competency_form_p .work-date-to', function () {
+        var $row = $(this).closest('.work-fields');
+        if (!$row.length) {
+            return;
+        }
+        var $from = $row.find('.work-date-from').first();
+        var $to = $row.find('.work-date-to').first();
+        $from.next('.error-message').remove();
+        $to.next('.error-message').remove();
+        var fromDate = parseFormPInstituteIsoDate(($from.val() || '').trim());
+        var toDate = parseFormPInstituteIsoDate(($to.val() || '').trim());
+        if (fromDate && toDate && toDate < fromDate) {
+            showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', null);
+        }
+    });
+
     $(document).on('click', '#ProceedtoPayment', async function (e) {
         if (!$('#competency_form_p').length) return;
         e.preventDefault();
@@ -486,54 +622,36 @@ $(document).ready(function () {
         });
 
 
-        if ($('#institute-container .institute-fields').length === 0) {
-            $('#institute-table').after('<span class="error-message text-danger d-block mt-1">At least one institute entry is required.</span>');
-            if (!firstErrorField) firstErrorField = $('#institute-table');
+        var instituteDateCheck = validateFormPInstituteDateRows(true);
+        if (!instituteDateCheck.isValid) {
             isValid = false;
+            if (!firstErrorField) {
+                firstErrorField = instituteDateCheck.firstErrorField;
+            }
+        }
+        var workDateCheck = validateFormPWorkDateRows(true);
+        if (!workDateCheck.isValid) {
+            isValid = false;
+            if (!firstErrorField) {
+                firstErrorField = workDateCheck.firstErrorField;
+            }
         }
 
         $('#institute-container .institute-fields').each(function () {
-            let institute_name_address = $(this).find('textarea[name="institute_name_address[]"]');
-            let duration = $(this).find('input[name="duration[]"]');
-            let from_date = $(this).find('input[name="from_date[]"]');
-            let to_date = $(this).find('input[name="to_date[]"]');
-            let instituteDocument = $(this).find('input[name="institute_document[]"]');
+            let $row = $(this);
+            let instituteDocument = $row.find('input[name="institute_document[]"], input[name^="institute_document["]').filter(':visible').first();
+            let hasExistingDoc = $row.find('.fs-doc-existing').length > 0;
 
-            if (institute_name_address.length && (institute_name_address.val() === null || institute_name_address.val() === "")) {
-                institute_name_address.after('<span class="error-message text-danger d-block mt-1">Institute name and address is required.</span>');
-                if (!firstErrorField) firstErrorField = institute_name_address;
-                isValid = false;
-            }
-
-            if (duration.length && (duration.val().trim() === "" || isNaN(duration.val()) || parseInt(duration.val()) < 0 || parseInt(duration.val()) > 50)) {
-                duration.after('<span class="error-message text-danger d-block mt-1"> Duration is required.</span>');
-                if (!firstErrorField) firstErrorField = duration;
-                isValid = false;
-            }
-
-            if (from_date.length && from_date.val().trim() === "") {
-                from_date.after('<span class="error-message text-danger d-block mt-1">From Date is required.</span>');
-                if (!firstErrorField) firstErrorField = from_date;
-                isValid = false;
-            }
-
-            if (to_date.length && to_date.val().trim() === "") {
-                to_date.after('<span class="error-message text-danger d-block mt-1">To Date is required.</span>');
-                if (!firstErrorField) firstErrorField = to_date;
-                isValid = false;
-            }
-
-            // 🔹 File validation (supports edit + new upload)
-             if (instituteDocument.length && instituteDocument.val().trim() === "") {
+            if (!hasExistingDoc && instituteDocument.length && instituteDocument.val().trim() === "") {
                 instituteDocument.after('<span class="error-message text-danger d-block mt-1">Institute upload is required.</span>');
                 if (!firstErrorField) firstErrorField = instituteDocument;
                 isValid = false;
             } else if (instituteDocument.length && instituteDocument[0].files.length > 0) {
-                const file = instituteDocument[0].files[0]; // ✅ use raw DOM element
+                const file = instituteDocument[0].files[0];
                 if (file) {
                     const allowedType = 'application/pdf';
-                    const minSize = 5 * 1024;   // 5 KB
-                    const maxSize = 250 * 1024; // 250 KB
+                    const minSize = 5 * 1024;
+                    const maxSize = 250 * 1024;
 
                     if (file.type !== allowedType) {
                         instituteDocument.after('<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for Institute upload.</span>');
@@ -546,7 +664,6 @@ $(document).ready(function () {
                     }
                 }
             }
-            
         });
 
 
@@ -1010,13 +1127,31 @@ $(document).ready(function () {
                 }
             }
         });
-        
+
+        var instituteDraftDateCheck = validateFormPInstituteDateRows(false);
+        if (!instituteDraftDateCheck.isValid) {
+            isValid = false;
+            if (!firstErrorField) {
+                firstErrorField = instituteDraftDateCheck.firstErrorField;
+            }
+        }
+        var workDraftDateCheck = validateFormPWorkDateRows(false);
+        if (!workDraftDateCheck.isValid) {
+            isValid = false;
+            if (!firstErrorField) {
+                firstErrorField = workDraftDateCheck.firstErrorField;
+            }
+        }
 
         let licenseError = document.getElementById("licenseError");
         let dateError = document.getElementById("dateError");
 
-        licenseError.textContent = '';
-        dateError.textContent = '';
+        if (licenseError) {
+            licenseError.textContent = '';
+        }
+        if (dateError) {
+            dateError.textContent = '';
+        }
 
         $("#pancard-error").text("");
         $("#checkboxError").text("");
@@ -1027,18 +1162,20 @@ $(document).ready(function () {
         const aadhaarInput = document.getElementById("aadhaar");
         const aadhaarError = document.getElementById("aadhaar-error");
 
-        // get value, remove spaces, and trim
-        const aadhaar = aadhaarInput.value.replace(/\s+/g, '').trim();
+        if (aadhaarInput) {
+            const aadhaar = aadhaarInput.value.replace(/\s+/g, '').trim();
+            const aadhaarRegex = /^[2-9]{1}[0-9]{11}$/;
 
-        const aadhaarRegex = /^[2-9]{1}[0-9]{11}$/;
-
-        if (aadhaar !== '' && !aadhaarRegex.test(aadhaar)) {
-            aadhaarError.textContent =
-                "Please enter a valid 12-digit Aadhaar number (should not start with 0 or 1).";
-            if (!firstErrorField) firstErrorField = aadhaar;
-            isValid = false;
-        } else {
-            aadhaarError.textContent = "";
+            if (aadhaar !== '' && !aadhaarRegex.test(aadhaar)) {
+                if (aadhaarError) {
+                    aadhaarError.textContent =
+                        "Please enter a valid 12-digit Aadhaar number (should not start with 0 or 1).";
+                }
+                if (!firstErrorField) firstErrorField = $(aadhaarInput);
+                isValid = false;
+            } else if (aadhaarError) {
+                aadhaarError.textContent = "";
+            }
         }
 
         let aadhaarFileInput = $('#aadhaar_doc')[0];

@@ -8,7 +8,7 @@ return [
     'production_enabled' => env('DOCUMENT_VERSIONING_PRODUCTION', true),
 
     /** Competency form codes (tnelb_application_tbl.form_name) using versioned storage. */
-    'versioned_form_codes' => ['S', 'W', 'WH'],
+    'versioned_form_codes' => ['S', 'W', 'WH', 'P'],
 
     'approval_levels' => [
         1 => ['label' => 'Supervisor', 'role' => 'supervisor'],
