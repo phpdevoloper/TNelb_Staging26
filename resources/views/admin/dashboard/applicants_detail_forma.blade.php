@@ -9,7 +9,7 @@
         text-align:left;
     }
     table th{
-        font-weight:800!important;    
+        font-weight:800!important;
     }
     .officers_section{
         background: #4361ee;
@@ -950,7 +950,7 @@
                                 </div>
 
                                 @if(trim($applicant->appl_type) == 'D')
-                               
+
                                     @if(!empty($cl_digitization))
                                         <div class="col-xl-6 col-md-6 col-sm-12 col-12 text-center">
                                             <h3 class="badge badge-primary ">Digitisation Old Certificate Details </h3>
@@ -991,7 +991,7 @@
                                         </div>
 
 
-                                        
+
                                     @endif
                                 @endif
                             </div>
@@ -1085,13 +1085,13 @@
 
                                                             <p class="text-info"><strong>Type of Ownership:</strong></p>
 
-                                                            
+
 
                                                         </div>
                                                         <div class="col-lg-3">
 
-                                                           <p> 
-                                                                @if($applicant->application_ownershiptype == 'pr') 
+                                                           <p>
+                                                                @if($applicant->application_ownershiptype == 'pr')
                                                                 Proprietor
                                                                 @elseif($applicant->application_ownershiptype == 'pt')
                                                                 Partnership
@@ -1108,8 +1108,8 @@
                                                         </div>
 
                                                         <!-- ------------------------ownership doc--------- -->
-                                                         @if($applicant->application_ownershiptype == 'pt' || $applicant->application_ownershiptype == 'pvt' || $applicant->application_ownershiptype == 'ltd') 
-                                                       
+                                                         @if($applicant->application_ownershiptype == 'pt' || $applicant->application_ownershiptype == 'pvt' || $applicant->application_ownershiptype == 'ltd')
+
                                                         <div class="col-lg-3">
 
                                                           <a href="{{asset($applicant->ownership_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View Ownership Document</a>
@@ -1130,25 +1130,25 @@
                                                             <th>D.O.B, Age and Proof</th>
                                                             <th>Address </th>
                                                             <th>Qualifications and Proof</th>
-                                                             
+
 
                                                             <th>Present business of
                                                                 the applicant</th>
                                                             <th>Competency
                                                                 Certificate and
                                                                 Validity </th>
-                                                           
+
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         @php
-                                                
+
                                                             $sortedProprietors = collect($cl_ownership_table)
                                                                 ->sortBy(function($item) {
                                                                     return match($item->ownership_type) {
-                                                                        'pr' => 1, 
-                                                                        'pt' => 2, 
-                                                                        'dr' => 3, 
+                                                                        'pr' => 1,
+                                                                        'pt' => 2,
+                                                                        'dr' => 3,
                                                                         default => 4,
                                                                     };
                                                                 });
@@ -1158,7 +1158,7 @@
                                                             <td>
                                                                 <!-- {{$proprietor->id}} -->
                                                                 @if($proprietor->ownership_type == 'pr' )
-                                                              Proprietor  
+                                                              Proprietor
                                                                 @elseif($proprietor->ownership_type == 'pt')
                                                                 Partner
                                                                 @else
@@ -1168,11 +1168,11 @@
                                                             </td>
                                                             <td>{{ $proprietor->proprietor_name }} </td>
                                                             <td> {{ $proprietor->fathers_name }}</td>
-                                                            <td>{{ \Carbon\Carbon::parse($proprietor->dob)->format('d-m-Y') 
+                                                            <td>{{ \Carbon\Carbon::parse($proprietor->dob)->format('d-m-Y')
                                                                  }}, {{ $proprietor->age }} <a href="{{asset($proprietor->age_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
                                                             <td>{{ $proprietor->proprietor_address }} </td>
                                                              <td> {{ $proprietor->qualification }}, {{ $proprietor->qualification_text }} <a href="{{asset($proprietor->educational_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
-                                                           
+
                                                             <td> {{ $proprietor->present_business }}</td>
                                                             <td>
                                                                 @if(!empty($proprietor->competency_certificate_number))
@@ -1242,7 +1242,7 @@
                                             </div>
 
 
-                                           
+
                                             <div class="row">
                                                 <div class="col-lg-12">
                                                     <div class="row mt-2">
@@ -1252,11 +1252,11 @@
                                                         <div class="col-lg-4">
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
-                                                                 - {{$applicant->previous_application_number}}, 
+                                                                 - {{$applicant->previous_application_number}},
                                                                     {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }}
 
                                                                                      <div class="row">
-                                                               
+
 
 
                                                            <div class="col-lg-12 col-12 d-flex align-items-center">
@@ -1273,16 +1273,16 @@
                                                              </div>
                                                                 @endif
                                                                 </p>
-                                                            
-                                            
-                                                             
-                                                              
-                                                                
+
+
+
+
+
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
                                     </div>
 
@@ -1416,18 +1416,18 @@
                                                 <thead>
                                                     <tr>
                                                         <th>Staff Category </th>
-                                                        
-                                                
-                                                        <th>Competency Certificate Number 
+
+
+                                                        <th>Competency Certificate Number
                                                         </th>
                                                         <th>Certificate First Issue , <br>Validity From<br> Validity To</th>
 
-                                                        <th>Attachments 
+                                                        <th>Attachments
                                                         </th>
                                                         <th>History of Staff
                                                         </th>
                                                         <th>Verify</th>
-                                                                                                                
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -1436,7 +1436,7 @@
 
                                                         <td>{{ $staff->staff_category }}</td>
                                                         <td>{{ $staff->staff_cc_no }}</td>
-                                                        
+
                                                          <td>{{ \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') }},<br> {{ \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') }},<br>{{ \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') }} </td>
 
 
@@ -1446,23 +1446,23 @@
                                                                  <a href="#" target="_blank">
                                                                     Appointment Letter
                                                                 </a>
-                                                            
+
                                                                 <br>
                                                                 <a href="#" target="_blank">
                                                                     Consent Letter
                                                                 </a>
-                                                            
+
                                                         </div>
                                                     </td>
                                                    <td>
                                                     @if(!empty($staff->staff_cc_no))
 
-                                                      
+
 
                                                         <button type="button"
                                                             class="btn btn-primary verify-staff"
 
-                                                           
+
 
                                                             data-license="{{ $staff->staff_cc_no }}"
 
@@ -1486,7 +1486,7 @@
 
                                                     @endif
 
-                                                   
+
                                                 </td>
 
                                             <td class="text-center">
@@ -1522,9 +1522,9 @@
                                                 @endif
 
                                             </td>
-                                                       
-                                                       
-                                                    
+
+
+
 
                                                     </tr>
                                                     @empty
@@ -1540,69 +1540,69 @@
                                             <table class="table table-bordered">
                                                 <thead>
                                                     <tr>
-                                                      
+
                                                         <th>Staff Category </th>
-                                                        
-                                                
+
+
                                                         <th>CC Number <br>
                                                        CC First Issue , <br>Validity From<br> Validity To</th>
 
-                                                       
+
                                                         <th>History of Staff
                                                         </th>
                                                         <th class="text-center">Verify</th>
-                                                                                                                
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     @forelse ($otherstaffdetails as $index => $staff)
                                                     <tr>
-                                                       
-                                                        
+
+
                                                         <td>{{ $staff->staff_category }}</td>
 
                                                         <td>
-                                                            
+
                                                         @if( $staff->staff_category == 'OTHERS')
                                                             {{ $staff->staff_designation }}
 
                                                         @else
-                                                      
 
-                                                      
+
+
                                                         {{ $staff->staff_cc_first_issue
                                                             ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
                                                             : ''
                                                         }},<br>
 
-                                                    
+
                                                         {{ $staff->staff_cc_validity_from
                                                             ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
                                                             : ''
                                                         }},<br>
 
-                                                      
+
                                                         {{ $staff->staff_cc_validity_to
                                                             ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
                                                             : ''
                                                         }}
-                                                            
-                                                            
+
+
                                                         @endif
                                                         </td>
-                                                     
-                                                    
+
+
                                                     <td>
                                                         @if( $staff->staff_category != 'OTHERS')
-                                                       
-                                                    
 
-                                                      
+
+
+
 
                                                         <button type="button"
                                                             class="btn btn-primary verify-staff"
 
-                                                           
+
 
                                                             data-license="{{ $staff->staff_cc_no }}"
 
@@ -1624,10 +1624,10 @@
                                                             View History
                                                         </button>
 
-                                                    
 
-                                                   
-                                                
+
+
+
                                                         <div class="history-result_staff mt-2"></div>
                                                         @endif
                                                     </td>
@@ -1715,13 +1715,13 @@
                          <!-- ---------------------------License End--------------- -->
 
                                         <div class="row mt-3">
-                                           
+
                                             <div class="row ">
                                                 <div class="col-lg-12">
                                                     <p class="text-info"><strong>7. Bank Solvency Certificate Details</strong></p>
                                                 </div>
                                             </div>
-                                        
+
                                             <div class="row">
                                                 <div class="col-lg-2">
                                                     <p><strong>Bank Name</strong></p>
@@ -1741,7 +1741,7 @@
                                                             @if($showbankWarning)
                                                                      <p class="text-left fw-bold text-danger">Bank validity period is less than EA licence period</p>
                                                                 @endif
-                                                  
+
                                                 </div>
                                             </div>
                                             <div class="row">
@@ -1761,7 +1761,7 @@
                                                     <a href="{{asset($banksolvency->bank_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View </a>
                                                 </div>
                                             </div>
-                                         
+
                                     </div>
                                 </div>
 
@@ -1780,7 +1780,7 @@
                                             <p>{{ strtoupper($applicant->criminal_offence) }}</p>
                                         </div>
 
-                                        
+
 
                                                  @php
                                                     $criminaloffence = $attachments_cl->where('type', 'criminaloffence')->first();
@@ -1795,22 +1795,22 @@
 
 
 
-                                       
 
-                                       
 
-                                      
+
+
+
 
                                     </div>
 
                                     <div class="row mt-3">
-                                           
+
                                             <div class="row ">
                                                 <div class="col-lg-12">
                                                     <p class="text-info"><strong>12. Address Proof  </strong></p>
                                                 </div>
                                             </div>
-                                        
+
                                             <div class="row">
                                                 <div class="col-lg-3">
                                                     <p><strong>Type of Address Proof</strong></p>
@@ -1826,9 +1826,9 @@
                                                 <div class="col-lg-4">
                                                     <p>{{$addressproof->addressproofno ?? ''}}</p>
                                                 </div>
-                                                  
+
                                             </div>
-                                            
+
 
                                               <div class="row">
                                                 <div class="col-lg-3">
@@ -1838,11 +1838,11 @@
                                                     <a href="{{asset($addressproof->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View </a>
                                                 </div>
                                             </div>
-                                         
+
                                     </div>
                                 </div>
 
-                                
+
 
                                 <!-- ----------------equipment-tab--------------------- -->
                                    <div class="tab-pane fade" id="equipment-tab-panel" role="tabpanel" aria-labelledby="equipment-tab" tabindex="0">
@@ -1857,7 +1857,7 @@
                                             Create map:
                                             equip_id => equipment_value
 
-                                            
+
                                             */
                                            $equipmentMap = collect($equipmentlist)->keyBy('equipment_id');
 
@@ -1915,7 +1915,7 @@
                                                             <td>{{ strtoupper($serial) }}</td>
 
                                                             <td>{{ strtoupper($model) }}</td>
-                                                          
+
 
                                                             <td><a href="{{asset($testfile)}}" target="_blank" class="file_view fw-bold"><i class="fa fa-file-pdf-o"></i> View </a> </td>
                                                             <td><a href="{{asset($purchasefile)}}" target="_blank" class="file_view fw-bold"><i class="fa fa-file-pdf-o"></i> View </a> </td>
@@ -1967,7 +1967,7 @@
                                                         <p class="badge text-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
                                                     </div>
 
-                                                   
+
                                                      <div class="col-lg-6">
                                                         <p><strong>Appication Fees</strong></p>
                                                     </div>
@@ -1988,7 +1988,7 @@
                                                         <p>{{ $applicant->late_fee }}.00</p>
                                                     </div>
                                                     @endif
-                                                    
+
 
                                                      <div class="col-lg-6">
                                                         <p><strong>Amount Paid</strong></p>
@@ -1996,9 +1996,9 @@
                                                     <div class="col-lg-6">
                                                         <p>{{ $applicant->amount }}.00</p>
                                                     </div>
-                                                    
-                                                   
-                                                   
+
+
+
 
                                                 </div>
                                             </div>
@@ -2043,8 +2043,8 @@
                                                 </div>
                                             </div>
 
-                                        
-                                        
+
+
                                     </div>
                                 </div>
 
@@ -2068,16 +2068,16 @@
              <div class="statbox widget officers_section mb-2">
                 <div class="col-lg-12 col-12 text-center">
                     <h6>Officers Handling Functions </h6>
-                </div> 
-                                            </div>   
-            
-            
+                </div>
+                                            </div>
+
+
          </div>
         <div class="row">
             <div id="tabsSimple" class="col-xl-6 col-12 layout-spacing">
-                
+
                 <div class="row align-items-center">
-                    
+
                     <div class="col-lg-12">
                        <div class="statbox widget box box-shadow mb-2">
                             <div class="row align-items-center">
@@ -2103,7 +2103,7 @@
                                 <div class="row mt-2">
                                     <div class="col-lg-12">
                                        <div class="form-group">
-                                         
+
                                             {{-- <label class="fw-bold">Select Query Type:</label> --}}
                                             <select class="form-control" id="queryType" name="queryType[]" multiple>
                                                 <option value="general">General Query</option>
@@ -2123,11 +2123,11 @@
                 <div class="row">
                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
                     <div class="statbox widget box box-shadow">
-                        
+
                         <div class="widget-header">
                             <h4>Remarks</h4>
 
-                            
+
 
                             <textarea class="form-control placement-top" id="remarks" name="remarks" rows="4"
                                         cols="50" maxlength="250"></textarea>
@@ -2143,19 +2143,19 @@
                                 'Supervisor2' => 'Assistant Secretary',
                                 'Assistant Secretary' => 'Secretary',
                                 'Secretary'  => 'President',
-                                'President'  => null, 
+                                'President'  => null,
                             ];
 
                                 @endphp
 
                                 @if ($role == 'Supervisor' || $role == 'Supervisor2')
-                                    
+
                                 {{-- Forward to Assistant Secretary --}}
-                                
+
                                 <button class="btn btn-success" id="forwardbtn"  >
                                         Forward to {{ $workflow[$role] }}
                                 </button>
-                                
+
 
                                 @elseif ($role == 'Assistant Secretary')
                                 <div class="row justify-content-center">
@@ -2165,23 +2165,23 @@
                                             <button class="btn btn-success" id="forwardbtn" data-bs-toggle="modal" data-bs-target="#declarationModal">
                                                 Forward to {{ $workflow[$role] }}
                                             </button>
-                                            
+
                                         </div>
                                     </div>
                                 </div>
 
                                 @elseif ($role == 'Secretary')
 
-                                  
 
-                                   
+
+
                                         <button class="btn btn-success" id="confirmForwardPres">
                                             Forward to {{ $workflow[$role] }}
                                         </button>
 
 
                                         @if(trim($applicant->appl_type) !='D')
-                          
+
 
                                     <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Supervisor
@@ -2236,39 +2236,36 @@
                             <label class="form-check-label" for="ownership_details">3) Applicant Ownership Details </label>
                         </div>
 
-                           <div class="form-check">
-                          <input type="checkbox" id="authorized_sign" name="return_reasons[]" value="authorized_sign" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="authorized_sign">4) Name and designation of authorised signatory </label>
-                        </div>
+
 
 
                              <div class="form-check">
-                          <input type="checkbox" id="previous_licence" name="return_reasons[]" value="previous_licence" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="previous_licence">5) Previous Contractor's Licence Details </label>
+                          <input type="checkbox" id="qc_staff" name="return_reasons[]" value="qc_staff" class="form-check-input return-checkbox">
+                            <label class="form-check-label" for="qc_staff">4) QC Staff Issue </label>
                         </div>
 
                          <div class="form-check">
                            <input type="checkbox" id="staff_details" name="return_reasons[]" value="staff_details" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="staff_details">6) Staff Details</label>
+                            <label class="form-check-label" for="staff_details">5) Other Staff Issue</label>
                         </div>
                          <div class="form-check">
                            <input type="checkbox" id="bank_solvency" name="return_reasons[]" value="bank_solvency" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="bank_solvency">7) Bank Solvency </label>
+                            <label class="form-check-label" for="bank_solvency">6) Bank Solvency </label>
                         </div>
 
                          <div class="form-check">
                            <input type="checkbox" id="atachment_points" name="return_reasons[]" value="atachment_points" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="bank_solvency">8 to 11)  Attachments Points </label>
+                            <label class="form-check-label" for="bank_solvency">7 and 8)  Attachments Points </label>
                         </div>
 
                         <div class="form-check">
                            <input type="checkbox" id="address_proof" name="return_reasons[]" value="address_proof" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="address_proof">12)  Address Proof </label>
+                            <label class="form-check-label" for="address_proof">9)  Address Proof </label>
                         </div>
 
                         <div class="form-check">
                            <input type="checkbox" id="equipments_details" name="return_reasons[]" value="equipments_details" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="equipments_details">13)  Equipments Details </label>
+                            <label class="form-check-label" for="equipments_details">10)  Equipments Details </label>
                         </div>
 
                         <div id="checkbox_error" class="text-danger mt-2 fw-bold" style="display:none;"></div>
@@ -2276,7 +2273,7 @@
                         <div class="">
                             <h4>Remarks For Return (Optional)</h4>
 
-                            
+
 
                             <textarea class="form-control" name="remarks_return" id="remarks_return" rows="4" cols="50"  maxlength="300"></textarea>
                         </div>
@@ -2312,7 +2309,7 @@
                                     <div class="item-timeline">
                                         <p class="t-time">{{ format_date_other($row->created_at) }}</p>
 
-                                        <div class="t-dot 
+                                        <div class="t-dot
                                                     {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
                                         </div>
                                         <div class="t-text">
@@ -2417,7 +2414,7 @@
                                                 @endif
                                             </p>
 
-                                           
+
                                         </div>
 
                                     </div>
@@ -2535,7 +2532,7 @@
 });
 
     $(document).ready(function() {
-   
+
         var checkAllBox = $('#check_all');
         var resetAllBox = $('#reset_all');
         var forwardbtn = $("#forwardbtn");
@@ -2546,7 +2543,7 @@
 
        //forwardbtn
         var approveButton = $('#confirmApprovalBtn');
-        var confirmApproval = $('#confirmApproval'); 
+        var confirmApproval = $('#confirmApproval');
         confirmApproval.change(function () {
             approveButton.prop('disabled', !this.checked);
         });
@@ -2680,7 +2677,7 @@
                     checklists: checklists,
                     status: status,
                     check_id: check_id
-                    
+
                 },
                 success: function (res) {
 
@@ -3237,7 +3234,7 @@
             var query_status = "No";
               var returnflag = @json($applicant->return_flag);
             var application_status = @json($applicant->application_status);
-            
+
             if (queryswitch) {
                 queryType = $("#queryType").val() || null;
                 query_status = 'Yes';
@@ -3289,7 +3286,7 @@
                         });
 
                         console.log("STAFF VERIFICATION:", staffVerification);
-                    
+
                     $.ajax({
                         url: '{{ route('admin.forwardApplicationforma',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
                         type: 'POST',
@@ -3367,13 +3364,13 @@
                     });
                 }
             });
-    
+
         });
 
 
  $('#confirmReturnBtn').on('click', function () {
 
-            
+
             var applicationId   = @json($applicant->application_id);
             var returnBy        = @json(Auth::user()->name);
             var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
@@ -3382,9 +3379,9 @@
             var remarks         = $("#remarks").val().trim();
 
             var returnflag = @json($applicant->return_flag);
-           
+
             var checkboxStatus = "Yes";
-            
+
             let queryswitch = $("#Queryswitch").prop("checked");
             queryType = $("#queryType").val();
             let errorBox = $("#query_error");
@@ -3424,13 +3421,13 @@
 
                         });
 
-                 
+
 
             Swal.fire({
                title: "Return",
                 html: 'You want to return this application!',
                 showCancelButton: true,
-              
+
                  confirmButtonText: "Forward to {{ 'Secretary' }}",
                 cancelButtonText: "Cancel",
                 focusConfirm: false,
@@ -3528,18 +3525,18 @@
         });
 
         $("#process_return").on("click", function () {
-            
- 
+
+
             var applicationId   = @json($applicant->application_id);
             var returnBy        = @json(Auth::user()->name);
             var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
             var checkboxStatus = "Yes";
-            
+
             var remarks         = $("#remarks").val().trim();
 
             var remarks_return         = $("#remarks_return").val().trim();
-          
-     
+
+
          let checkedReasons = [];
 
         $('.return-checkbox:checked').each(function() {
@@ -3563,8 +3560,8 @@
             // Hide error if valid
             $("#checkbox_error").fadeOut();
         }
-            
-            
+
+
             let queryswitch = $("#Queryswitch").prop("checked");
             queryType = $("#queryType").val();
             let errorBox = $("#query_error");
@@ -3572,7 +3569,7 @@
             Swal.fire({
               title: "Return",
               html: 'Confirm to return this application!',
-                
+
               showCancelButton: true,
               confirmButtonText: "Return to Applicant",
               cancelButtonText: "Cancel",
@@ -3594,13 +3591,13 @@
                             reasons         : checkedReasons,
                             queryswitch     : queryswitch,
                             remarks_return     : remarks_return,
-                            "queryType[]": queryType 
+                            "queryType[]": queryType
                         },
                         success: function (response) {
-                   
+
                             if (response.status == "success") {
                                 Swal.fire({
-                                    
+
                                     title: "Success",
                                     text: response.message,
                                     confirmButtonText: "OK",
@@ -3623,7 +3620,17 @@
 
         // -----------------------------------------------
  forwardbtn.click(function() {
- 
+
+                        var remarks = $("#remarks").val().trim();
+
+                         $("#remarks_error").text("");
+
+                        if (remarks === "") {
+                            $("#remarks_error").text("Remarks is required");
+                            $("#remarks").focus();
+                            return;
+                        }
+
             Swal.fire({
                 title: "Declaration",
                 text: 'I confirm that all documents have been verified.',
@@ -3644,17 +3651,7 @@
                     var role = @json($nextForwardUser->name);
 
                     var returnflag = @json($applicant->return_flag);
-                    var remarks = $("#remarks").val().trim();
 
-                    var remarks = $("#remarks").val().trim();
-
-                         $("#remarks_error").text("");
-
-                        if (remarks === "") {
-                            $("#remarks_error").text("Remarks is required");
-                            $("#remarks").focus();
-                            return;
-                        }
                    var application_status = @json($applicant->application_status);
 // alert(application_status);
 
@@ -3706,7 +3703,7 @@
                     console.log("CHECKLISTS:", checklists);
                     console.log("STATUS:", status);
 
-                   
+
                     let staffVerification = [];
 
                         $('.staff-status-switch').each(function () {
@@ -3723,7 +3720,7 @@
                         });
 
                         console.log("STAFF VERIFICATION:", staffVerification);
-                    
+
                     $.ajax({
                         url: '{{ route('admin.forwardApplicationforma',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
                         type: 'POST',
@@ -3754,7 +3751,7 @@
 
                         // IMPORTANT
                         staff_verification: JSON.stringify(staffVerification),
-                          
+
                         check_id: check_id,
                         checklists: checklists,
                         status: status
@@ -3827,7 +3824,7 @@
                 headers: {
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
                 },
-               
+
                data: {
             application_id: applicationId,
             processed_by: processedBy,
@@ -3871,7 +3868,7 @@
     let proprietorId = $(this).data("id");
 
     $.ajax({
-        url: "{{ route('admin.verify.license.formAccc_admin') }}", 
+        url: "{{ route('admin.verify.license.formAccc_admin') }}",
         method: "POST",
         data: {
             _token: "{{ csrf_token() }}",

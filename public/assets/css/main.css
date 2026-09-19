@@ -2529,13 +2529,13 @@ margin-bottom: 0px;
 }
 
 .comp_certificate .apply-card-body{
-  padding: 0em 1.25rem 1rem; 
+  padding: 0em 1.25rem 1rem;
 }
 
 #ownership_type_select:disabled {
     background-color: #fff !important;
     color: #595656 !important;
-    
+
     opacity: 1 !important;
 }
 
@@ -2576,8 +2576,8 @@ margin-bottom: 0px;
 }
 
 .certificate-menu .icon-left {
-    margin-top: 4px;   
-    min-width: 18px;  
+    margin-top: 4px;
+    min-width: 18px;
 }
 
 .contractor-menu .nav-link {
@@ -2586,8 +2586,8 @@ margin-bottom: 0px;
 }
 
 .contractor-menu .icon-left {
-    margin-top: 4px;   
-    min-width: 18px;  
+    margin-top: 4px;
+    min-width: 18px;
 }
 
 .clr_retur{
@@ -2650,12 +2650,14 @@ button.btn.btn-sm.btn-return {
 }
 
 
-#staff-table.qc-table-error {
+
+
+#qc-staff-table.qc-table-error {
     border: 2px solid red !important;
 }
 
-#staff-table.qc-table-error th,
-#staff-table.qc-table-error td {
+#qc-staff-table.qc-table-error th,
+#qc-staff-table.qc-table-error td {
     border-color: red !important;
 }
 

@@ -1,0 +1,8932 @@
+@include('include.header')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.all.min.js"></script>
+<!-- @if(session('expired_license'))
+
+
+<script>
+Swal.fire({
+    icon: 'warning',
+    title: 'License Expired',
+    width:450,
+    html: `<p>Your license expired on <b>{{ session('expired_date') }}</b>.</p>
+           <p>Please apply as a <b>fresh application</b>.</p>`,
+    confirmButtonText: 'OK',
+    confirmButtonColor: '#3085d6'
+});
+</script>
+@endif -->
+
+
+<style>
+    .tab-error-bg {
+        border: 1px solid red !important;
+        /* background-color: red !important;   */
+        color: #721c24 !important;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+
+
+    hr {
+        margin-top: 2px;
+        margin-bottom: 5px;
+        border: 0;
+        border-top: 1px solid rgba(0, 0, 0, .1);
+    }
+
+    .form-group {
+        margin-bottom: 0px;
+    }
+
+    .apply-card label {
+        display: inline-block;
+        max-width: 100%;
+        margin-bottom: 5px;
+        font-size: 15px;
+        font-weight: 500;
+    }
+
+    /* .apply-card-header a {
+        color: #ff0505;
+        font-weight: 700;
+    }
+    .apply-card-header a i {
+    color: #ff0505;
+} */
+
+    .swal2-popup.swal2-modal.swal2-show {
+        width: 100%;
+    }
+
+    .swal2-popup li {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+
+
+    .swal2-popup li {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+
+    .swal2-popup li ul {
+        margin-left: 15px;
+    }
+
+    th {
+        /* font-weight: 500; */
+        font-size: 14px;
+    }
+
+    .swal2-popup-sm {
+        width: 35% !important;
+        max-width: 100%;
+        font-size: 0.95rem;
+    }
+
+    .nav-item {
+        display: block;
+        color: #023a73 !important;
+        padding: 5px 5px;
+        border-radius: 3px;
+        border: 1px solid #cecaca;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 -1px 0px 0 rgb(3 90 179), 0 1px 5px 0 rgb(0 123 255);
+    }
+
+    .nav-item:nth-child(2) {
+        border-left: none;
+    }
+
+    .tabs-section a.nav-item.selected {
+        background-color: #035ab3;
+        color: #fff !important;
+    }
+
+    /* input[readonly] .pro,
+    textarea[readonly],
+    select[readonly] {
+        background-color: #d3d3d3 !important;
+        cursor: not-allowed;
+    } */
+</style>
+
+<!--
+<div class="modal fade show" id="rolePop" tabindex="-1" aria-labelledby="rolePop" style="padding-right: 15px; display: block;" data-accept-gate-bound="1" aria-modal="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: white;">
+                <h5 class="modal-title" id="competencyInstructionsModalLabel">Applicant Relationship</h5>
+                <button type="button" class="btn-close btn-close-white" data-dismiss="modal" aria-label="Close">X</button>
+            </div>
+            <div class="modal-body">
+                <label class="mb-3">
+                    What is the role/relationship of the registered login applying as member?
+                </label>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input role-radio" type="radio" name="applicant_role"
+                        value="Authorized Signatory" id="role1">
+
+                    <label class="form-check-label" for="role1">
+                        Authorized Signatory
+                    </label>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input role-radio" type="radio" name="applicant_role"
+                        value="Proprietor" id="role2">
+
+                    <label class="form-check-label" for="role2">
+                        Proprietor
+                    </label>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input role-radio" type="radio" name="applicant_role"
+                        value="One of the Partner" id="role3">
+
+                    <label class="form-check-label" for="role3">
+                        One of the Partner
+                    </label>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input role-radio" type="radio" name="applicant_role"
+                        value="One of the Director" id="role4">
+
+                    <label class="form-check-label" for="role4">
+                        One of the Director
+                    </label>
+                </div>
+
+                <span class="text-danger role-error"></span>
+
+
+            </div>
+
+            <div class="modal-footer" style="justify-content: center;">
+
+                <button type="button" class="btn btn-primary" id="submit">Submit</button>
+            </div>
+        </div>
+    </div>
+</div> -->
+
+<section class="">
+    <div class="auto-container_a">
+        <ul id="breadcrumb">
+            <li><a href="{{ route('dashboard')}}"><span class="fa fa-home"> </span> Dashboard</a></li>
+            <li><a href="#"> Digitization</a></li>
+            <li><a href="#"><span class=" fa fa-info-circle"> </span> Form A</a></li>
+
+        </ul>
+    </div>
+</section>
+<!-- <pre>
+{{ Auth::user() }}
+</pre>
+exit; -->
+
+
+
+
+<section class="tabs-section apply-card">
+    <div class="auto-container_a">
+        <div class="apply-card-header bg-form">
+            <div class="row">
+                <div class="col-12 col-lg-12 text-center">
+                    <h5 class="card-title_apply text-white text-center text-uppercase"> <span style="font-weight: 600;">Application for Electrical Contractor's Licence-Grade 'A' </span></h5>
+
+                    <h6 class="card-title_apply text-white mt-2 form-title text-uppercase">FORM - A / Licence EA</h4>
+                        <!-- <h6 class="card-title_apply text-white text-center">(Read the Instructions overleaf before filling the form)</h6> -->
+                </div>
+
+
+
+
+            </div>
+
+            <div class="row">
+
+
+                <div class="col-12 col-lg-12 text-md-right">
+                    <a href="{{url('assets/pdf/form_a_notes.pdf')}}" class="text-white" target="_blank">
+                        <span class="text-white font-weight-bold"> &nbsp; Instructions </span>
+
+                        English <i class="fa fa-file-pdf-o"></i> (74 KB)</a>
+
+                </div>
+
+
+
+            </div>
+        </div>
+
+        <form id="competency_form_a" enctype="multipart/form-data">
+
+            @csrf
+            <input type="hidden" class="form-control text-box single-line" id="login_id_store" name="login_id_store" value="{{ Auth::user()->login_id }}">
+            <input type="hidden" class="form-control text-box single-line" id="form_name" name="form_name" value="A">
+
+
+            <input type="hidden" name="temp_app_id" id="digitization_cl_temp_app_id">
+
+            <input type="hidden" class="form-control text-box single-line" id="license_name" name="license_name" value="EA">
+
+
+
+            <input type="hidden" class="form-control text-box single-line" id="appl_type" name="appl_type" value="D">
+
+            <input type="hidden" class="form-control text-box single-line" id="form_id" name="form_id" value="8">
+            {{-- <input type="hidden" class="form-control text-box single-line" id="amount" name="amount" value="12000"> --}}
+
+
+            <input type="hidden" name="record_id" id="record_id" value="{{ $application->application_id ?? '' }}">
+
+            <div class="tabs" id="tabbedForm">
+                <div class="row">
+                    <div class="col-12 col-md-12 text-md-right text-head">
+                        <p class="text-black f-s-14"> <span style="color: red;">*</span> Fields are Mandatory </p>
+                    </div>
+
+                </div>
+
+                <nav class="tab-nav">
+                    <!-- <button class="tab-btn active">Basic Details</button>
+                    <button class="tab-btn">Proprietor Details</button>
+                    <button class="tab-btn">Upload Documents</button> -->
+                </nav>
+
+                @php
+                $application = $application ?? null;
+                @endphp
+                <div class="tab tab-btn" data-name="Basic Details">
+
+                    <div class="row">
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <div class="col-12 col-md-12">
+                                    <label for="Name">1. Name in which Electrical Contractor's licence is applied for <span style="color: red;">*</span></label>
+                                </div>
+                                <div class="col-12 col-md-12">
+
+
+                                    <input autocomplete="off" class="form-control text-box single-line" id="applicant_name" name="applicant_name" type="text" placeholder="Name in which Electrical Contractor's licence is applied for" maxlength="50" value="{{ old('applicant_name', $application->applicant_name ?? '') }}">
+                                    <span class="error text-danger" id="applicant_name_error"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <div class="col-12 col-md-12">
+                                    <label for="Name">2. Business Address <span style="color: red;">*</span></label>
+                                </div>
+                                <div class="col-12 col-md-12">
+                                    <textarea id="business_address" rows="2" class="form-control" name="business_address" placeholder="Business Address">{{ $application->business_address ?? '' }}</textarea>
+                                    <span class="error text-danger" id="business_address_error"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!empty($proprietors) && $proprietors->isNotEmpty())
+                    <div class="mt-4 table-responsive" style="display: none;">
+                        <h5 class="pb-2">Details of Proprietor or Partners or Directors</h5>
+                        <table class="table table-bordered table-striped">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Address</th>
+                                    <th>Age</th>
+                                    <th>Qualification</th>
+                                    <th>Father/Husband's Name</th>
+                                    <th>Present Business</th>
+                                    <th>Competency Certificate</th>
+                                    <th>Employment Details</th>
+                                    <th>Experience Details</th>
+                                    <th class="text-center" colspan="2">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($proprietors as $index => $prop)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $prop->proprietor_name }}</td>
+                                    <td>{{ $prop->proprietor_address }}</td>
+                                    <td>{{ $prop->age }}</td>
+                                    <td>{{ $prop->qualification }}</td>
+                                    <td>{{ $prop->fathers_name }}</td>
+                                    <td>{{ $prop->present_business }}</td>
+                                    <td>
+                                        @if ($prop->competency_certificate_holding === 'yes')
+                                        Number: {{ $prop->competency_certificate_number }}<br>
+                                        First Issue: {{ $prop->competency_certificate_first_issue }}<br>
+                                        Validity: {{ $prop->competency_certificate_validity_from }} to {{ $prop->competency_certificate_validity_to }}
+                                        @else
+                                        No
+                                        @endif
+                                    </td>
+
+                                    <td>
+                                        <button class="btn btn-primary" type="button"> <i class="fa fa-pencil"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-danger" type="button"> <i class="fa fa-trash-o"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
+                    <!-- <p class="text-muted mt-4">No proprietor/partner details found.</p> -->
+                    @endif
+
+
+
+
+
+                    <div class="row align-items-center head_label mt-2">
+                        <div class="col-12 col-md-12 title_bar">
+                            <label>3) Ownership Type - Proprietor / Partners / Directors Details<span
+                                    style="color: red;">*</span></label>
+
+                        </div>
+
+                    </div>
+
+                    {{-- Detect draft --}}
+                    <!-- <script>
+                    const IS_DRAFT = {{ isset($application) ? 'true' : 'false' }};
+                    const SAVED_OWNERSHIP = "{{ $application->application_ownershiptype ?? '' }}";
+                </script> -->
+
+                    <div class="row mt-3">
+                        <div class=" col-lg-3 mt-2 text-right">
+                            <h6 class="">Type of Ownership <span class="text-danger">*</span></h6>
+                        </div>
+
+                        <div class="col-lg-3">
+                            <select class="custom-select" name="application_ownershiptype" id="ownership_type_select">
+                                <option value="">---Select Ownership Type---</option>
+                                <option value="pr" {{ isset($application) && $application->application_ownershiptype == 'pr' ? 'selected' : '' }}>Proprietorship
+                                </option>
+                                <option value="pt" {{ isset($application) && $application->application_ownershiptype == 'pt' ? 'selected' : '' }}>Partnership
+                                </option>
+                                <option value="pvt" {{ isset($application) && $application->application_ownershiptype == 'pvt' ? 'selected' : '' }}>Private Limited
+                                </option>
+                                <option value="public" {{ isset($application) && $application->application_ownershiptype == 'public' ? 'selected' : '' }}>Public
+                                    Limited </option>
+                                <option value="ltd" {{ isset($application) && $application->application_ownershiptype == 'ltd' ? 'selected' : '' }}>Limited
+                                </option>
+
+
+
+                            </select>
+                            <span class="error text-danger" id="ownership_type_error"></span>
+                        </div>
+                    </div>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6 offset-md-1 col-12">
+                            <div class="row  mt-3" id="partnershipdeed" style="display:none;">
+                                <div class="col-lg-4 mt-2 text-right">
+                                    <h6 class="">Upload Partnership Deed <span class="text-danger">*</span></h6>
+                                </div>
+
+                                <div class="col-md-5">
+                                    <input type="file" class="form-control" name="partnership_deed"
+                                        accept="application/pdf">
+
+                                    <input type="hidden" name="module" value="OWNERSHIP DOCUMENT">
+
+
+
+                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                    <br>
+                                    <span class="text-danger Doc_upload_error"></span>
+
+
+                                </div>
+
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-info upload-btn"
+                                        data-login_id="{{ Auth::user()->login_id }}" data-module="OWNERSHIP DOCUMENT"
+                                        data-document_category="ownership_doc" data-ownership_type="pt"
+                                        data-document_sub_category="OD" data-ownership_type="pt"
+                                        data-form_code="{{$form_code->id}}">
+                                        <i class="fa fa-upload"></i> Upload
+                                    </button>
+                                    <br>
+                                    <span class="error text-danger" id="partnership_deed_error"></span>
+                                </div>
+
+
+                            </div>
+
+
+
+                            <div class="row mt-3" id="directormom" style="display:none;">
+                                <div class="col-lg-4 mt-2 text-right">
+                                    <h6 class="">Upload Director AOA/MOM <span class="text-danger">*</span></h6>
+                                </div>
+
+                                <div class="col-md-5">
+                                    <input type="file" class="form-control" name="director_mom"
+                                        accept="application/pdf">
+
+
+                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                    <br>
+                                    <span class="text-danger Doc_upload_error"></span>
+
+                                </div>
+
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-info upload-btn"
+                                        data-login_id="{{ Auth::user()->login_id }}" data-module="OWNERSHIP DOCUMENT"
+                                        data-document_category="ownership_doc" data-ownership_type="dr"
+                                        data-document_sub_category="OD" data-ownership_type="pt"
+                                        data-form_code="{{$form_code->id}}">
+                                        <i class="fa fa-upload"></i> Upload
+                                    </button>
+                                    <br>
+                                    <span class="error text-danger" id="director_mom_error"></span>
+                                </div>
+
+
+
+                            </div>
+
+                        </div>
+
+                        <div
+                            class="col-md-4 mt-3 col-12 {{ empty($application->ownership_doc) ? 'd-none' : '' }} file-link">
+                            @if(!empty($application->ownership_doc))
+                            <a href="{{ asset($application->ownership_doc) }}" target="_blank"
+                                class="text-primary fw-bold">
+                                <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                            </a>
+                            @endif
+                        </div>
+
+                    </div>
+
+
+
+
+
+
+                    <!-- ----------------enter type ------------------ -->
+                    <!-- Ownership Type -->
+                    <div class="row mt-2" style="display: none;">
+                        <div class="col-12 col-md-3 offset-md-2 text-md-right">
+                            <label>Select Type <span class="text-red">*</span></label>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <select class="form-control" id="type_of_ea_license" name="type_of_ea_license">
+                                <option value="0">---Select Type---</option>
+                                <option value="1">Proprietor</option>
+                                <option value="2">Partners</option>
+                                <option value="3">Directors</option>
+                            </select>
+                            <span class="error text-danger" id="type_of_ea_license_error"></span>
+                        </div>
+                    </div>
+
+
+                    <!-- ----------------enter type ------------------ -->
+
+
+                    @php
+                    $proprietors = $proprietors ?? collect();
+                    @endphp
+                    <!-- Partner Section Template -->
+                    <!-- Proprietor Details -->
+                    <div id="proprietor-section" class="mt-3" style="display: none;">
+                        <div class="row mt-2">
+                            <!-- <div class="col-md-12 col-12 text-md-right pb-20">
+                                <button type="button" class="btn btn-primary" id="add-partner">
+                                    <i class="fa fa-plus"></i> Add Partner
+                                </button>
+
+                            </div> -->
+
+                            <div class="col-md-12 col-12  pb-20">
+                                <h5 class="card-title_apply">Proprietor Details (if any)</h5>
+
+                            </div>
+
+                            <div class="table-responsive pr_table_count">
+                                <table class="table table-bordered head_label_proprietor" id="proprietor-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name </th>
+                                            <th>Father/s
+                                                Husband/s
+                                                Name</th>
+                                            <th>D.O.B and Age</th>
+                                            <th>Address </th>
+                                            <th>Qualifications and Proof </th>
+
+
+                                            <th>Present business of
+                                                the applicant</th>
+                                            <th>If holding a Supervisor Competency
+                                                Certificate and
+                                                Validity </th>
+
+                                            <!-- <th>Proof</th> -->
+                                            <!-- <input type="hidden" value="proprietor" name="ownership_type"> -->
+                                            <th colspan="2" style="width: 100px;"> <button type="button"
+                                                    class="btn btn-primary" id="add-proprietor">
+                                                    <i class="fa fa-plus"></i> Add
+                                                </button>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                                        @foreach ($proprietors as $p)
+                                        @if($p->ownership_type === 'pr')
+                                        <tr data-id="{{ $p->id }}">
+                                            <td>{{ $p->proprietor_name }}</td>
+                                            <td>{{ $p->fathers_name }}</td>
+                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}"
+                                                data-age_proof="{{ asset($p->age_proof) }}">
+                                                {{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                                <a href="{{ asset($p->age_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
+                                            <td>{{ $p->proprietor_address }}</td>
+                                            <td data-qualification="{{ $p->qualification }}"
+                                                data-qual_text="{{ $p->qualification_text }}"
+                                                data-educational_proof="{{ asset($p->educational_proof) }}">
+                                                {{ $p->qualification }}, {{ $p->qualification_text }}
+                                                <a href="{{ asset($p->educational_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
+                                            <td>{{ $p->present_business }}</td>
+                                            <td
+                                                data-competency="{{ $p->competency_certificate_holding }}"
+                                                data-certno="{{ $p->competency_certificate_number }}"
+                                                data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
+                                                data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
+                                                data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+
+                                                @if($p->competency_certificate_holding == 'yes')
+                                                Yes - CC_No: {{ $p->competency_certificate_number }},
+                                                First Issue:{{ \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('d-m-Y') }},
+                                                Validity From:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') }},
+                                                Validity To:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') }} @else
+                                                No
+                                                @endif
+
+                                            </td>
+
+
+
+
+                                            <td style="display: none;">
+                                                <input type="hidden" name="ownership_type[]"
+                                                    value="{{ $p->ownership_type }}">
+                                            </td>
+                                            <td style="display: none;">
+                                                <input type="hidden" name="row_index[]" value="{{ $p->row_index }}">
+                                            </td>
+
+
+                                            <td>
+                                                <button type="button"
+                                                    class="btn btn-primary btn-sm update-proprietor-row"
+                                                    data-id="{{ $p->id }}">
+                                                    <i class="fa fa-pencil"></i>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button type="button"
+                                                    class="btn btn-danger btn-sm remove-proprietor-row"
+                                                    data-id="{{ $p->id }}">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endif
+                                        @endforeach
+
+                                    </tbody>
+                                </table>
+                            </div>
+
+
+
+                        </div>
+
+                        <!-- style="display:none;" -->
+                        <div class="border box-shadow-blue p-3 mt-3" id="proprietor-sectionfresh" style="display:none;">
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Proprietor Details </h5>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+
+                                <input type="hidden" name="ownership_type[]" value="pr">
+                                <div class="col-md-6">
+                                    <div class="row align-items-center">
+                                        <div class="col-12 col-md-12">
+                                            <label for="Name">(i) Full name and house address of proprietor <span
+                                                    style="color: red;">*</span><br><span class="text-label"
+                                                    style="color: #023466;">(If it is partnership concern, partnership
+                                                    deed should be enclosed)</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+                                            <label>Proprietor Name <span class="text-red">*</span></label>
+
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <input type="text" class="form-control mb-2 proprietor_name" maxlength="50"
+                                                id="proprietor_name" name="proprietor_name[]"
+                                                placeholder="Proprietor Name">
+
+                                            <span class="error text-danger" id="proprietor_name_error"></span>
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label>Proprietor Address <span class="text-red">*</span></label>
+
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <textarea rows="3" class="form-control" name="proprietor_address[]"
+                                                placeholder="Proprietor Address"></textarea>
+                                            <span class="error text-danger" id="proprietor_address_error"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="row">
+                                        <div class="col-12 col-md-12">
+                                            <label for="Name">(ii) Age and qualification along with
+                                                evidence <span style="color: red;">*</span></label>
+                                        </div>
+
+                                    </div>
+
+
+
+                                    <div class="row">
+                                        <div class="col-12 col-md-3">
+                                            <label>Date Of Birth <span class="text-red">*</span></label>
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <input type="date" class="form-control dob" name="dob[]">
+                                            <span class="error text-danger dob_error"></span>
+                                        </div>
+
+                                        <div class="col-12 col-md-2">
+                                            <label>Age <span class="text-red">*</span></label>
+                                        </div>
+
+                                        <div class="col-12 col-md-3">
+                                            <input type="number" class="form-control age" name="age[]" readonly>
+                                            <span class="error text-danger age_error"></span>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="row mt-2">
+                                        <div class="col-12 col-md-3 ">
+                                            <label>Qualification <span class="text-red">*</span></label>
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <select class="form-control qualification" name="qualification[]">
+                                                <option value="">Select Qualification</option>
+                                                <option value="8TH PASS">8TH PASS</option>
+                                                <option value="DEGREE">DEGREE</option>
+                                                <option value="DIPLOMA">DIPLOMA</option>
+                                                <option value="MASTER DEGREE">MASTER DEGREE</option>
+                                            </select>
+                                            <span class="error text-danger qualification_error"></span>
+                                        </div>
+
+
+                                        <div class="col-12 col-md-5 qualTextWrapper" id="qualTextWrapper"
+                                            style="display:none;">
+                                            <div class="row">
+                                                <div class="col-12 col-md-5">
+                                                    <label>Enter Qualification <span class="text-red">*</span></label>
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <input type="text" class="form-control" id="qual_text"
+                                                        name="qual_text[]">
+                                                    <span class="error text-danger qual_text_error"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mt-2">
+
+                                        <div class="col-12 col-md-3">
+                                            <label>Age Proof <span class="text-red">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-7">
+                                            <div class="row">
+                                                <div class="col-12 col-md-8">
+                                                    <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                    <input type="file" class="form-control" name="age_proof[]"
+                                                        accept="application/pdf">
+
+
+
+                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                    <br>
+                                                    <span class="text-danger Doc_upload_error"></span>
+                                                    <span class="error text-danger age_proof_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-4">
+                                                    <button type="button" class="btn btn-info upload-btn"
+                                                        data-login_id="{{ Auth::user()->login_id }}"
+                                                        data-module="AGE PROOF" data-document_category="age_proof"
+                                                        data-ownership_type="pr" data-row-index=""
+                                                        data-document_sub_category="AP"
+                                                        data-form_code="{{$form_code->id}}">
+                                                        <i class="fa fa-upload"></i> Upload
+                                                    </button>
+
+
+                                                </div>
+
+                                                <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-12 col-12 age-file-link">
+
+                                        </div>
+
+
+
+
+
+                                    </div>
+
+
+                                    <div class="row mt-2">
+
+                                        <div class="col-12 col-md-3">
+                                            <label>Qualification Proof <span class="text-red">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-7">
+                                            <div class="row">
+                                                <div class="col-12 col-md-8">
+                                                    <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                    <input type="file" class="form-control" name="qual_proof[]"
+                                                        accept="application/pdf">
+
+
+
+                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                    <br>
+                                                    <span class="text-danger Doc_upload_error"></span>
+                                                    <span class="error text-danger qual_proof_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-4">
+                                                    <button type="button" class="btn btn-info upload-btn"
+                                                        data-login_id="{{ Auth::user()->login_id }}"
+                                                        data-module="OWNERSHIP EDUCATIONAL DOCUMENT"
+                                                        data-document_category="educ_qual_proof"
+                                                        data-ownership_type="pr" data-row-index=""
+                                                        data-document_sub_category="OED"
+                                                        data-form_code="{{$form_code->id}}">
+                                                        <i class="fa fa-upload"></i> Upload
+                                                    </button>
+
+
+                                                </div>
+
+                                                <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-12 col-12  file-link">
+                                            <!-- @if(!empty($application->educational_proof))
+                                                <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                                </a>
+                                            @endif -->
+                                        </div>
+
+
+
+                                        <!-- <div class="col-12 col-md-3">
+                                            <button class="btn btn-info"> <i class="fa fa-upload"></i> Upload </button>
+                                        </div> -->
+
+                                    </div>
+
+
+
+
+                                </div>
+
+                            </div>
+
+                            <!-- ------------------------------------------ -->
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <div class="row align-items-center">
+                                        <div class="col-12 col-md-4">
+                                            <label for="Name">(iii) Father/Husband's name <span
+                                                    style="color: red;">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <input type="text" class="form-control" id="fathers_name" maxlength="50"
+                                                name="fathers_name[]" value="" placeholder="Father/Husband's name">
+                                            <span class="error text-danger" id="fathers_name_error"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="row align-items-center">
+                                        <div class="col-12 col-md-5">
+                                            <label for="Name">(iv) Present business of the applicant <span
+                                                    style="color: red;">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <input type="text" class="form-control" id="present_business"
+                                                name="present_business[]" value="" maxlength="50"
+                                                placeholder="Present business of the applicant">
+                                            <span class="error text-danger" id="present_business_error"></span>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+                            <!-- ---------------------- -->
+                            <div class="row mt-2">
+
+
+                                <div class="col-md-12">
+                                    <div class="row align-items-center">
+                                        <div class="col-12 col-md-12">
+                                            <label>(v) Whether holding a Supervisor Competency Certificate and if so,
+                                                the Number and Validity</label>
+                                        </div>
+
+
+                                        <div class="col-12 col-md-12">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" id="competency_yes"
+                                                    name="competency_certificate_holding[]" value="yes"
+                                                    onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                <label class="form-check-label"
+                                                    for="competency_yes_proprietor">Yes</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" id="competency_no"
+                                                    name="competency_certificate_holding[]" value="no"
+                                                    onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                    checked>
+                                                <label class="form-check-label"
+                                                    for="competency_no_proprietor">No</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                            style="display: none;">
+                                            <div class="row">
+                                                <div class="col-12 col-md-3">
+                                                    <div class="row">
+
+                                                        <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                            <label>CC Number <span style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-8 mt-1">
+                                                            <input type="text"
+                                                                class="form-control competency_number"
+                                                                name="competency_certificate_number[]"
+                                                                maxlength="15"
+                                                                placeholder="CC Number">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_number_error"></span>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-md-4">
+                                                    <div class="row">
+
+                                                        <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                            <label>Date of First Issue <span
+                                                                    style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-6 mt-1">
+                                                            <input type="date"
+                                                                class="form-control competency_validity_first_issue"
+                                                                name="competency_certificate_first_issue[]"
+                                                                placeholder="Date of First Issue">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_first_issue_error"></span>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-md-5">
+                                                    <div class="row">
+
+                                                        <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                            <label>Validity From <span
+                                                                    style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-4 mt-1">
+                                                            <input type="text"
+                                                                class="form-control competency_validity_from"
+                                                                name="competency_certificate_validity_from[]"
+                                                                placeholder="Validity From">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_validity_from_error"></span>
+                                                        </div>
+                                                        <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                            <label>Validity <br>To <span
+                                                                    style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-4 mt-1">
+                                                            <input type="text"
+                                                                class="form-control competency_validity_to"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_validity_to_error"></span>
+                                                            {{-- <input type="date"
+                                                                class="form-control flatpickr flatpickr-input competency_validity"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To"> --}}
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
+                                                    <button type="button"
+                                                        class="btn btn-primary"
+                                                        id="verify_competency_btn">
+                                                        Verify
+                                                    </button>
+                                                </div>
+
+
+                                            </div>
+
+                                        </div>
+
+
+                                    </div>
+                                </div>
+
+
+                                <div id="competency_exp_result" class="mt-3"></div>
+
+
+
+                            </div>
+
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="row align-items-center">
+
+                                        <div class="col-12 col-md-12 text-md-right">
+
+                                            <button type="button" class="btn btn-success"
+                                                id="save_proprietor">Save</button>
+                                            <button type="button" class="btn btn-danger ms-2"
+                                                id="cancel_proprietor">Cancel</button>
+
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    <!-- style="display:none;" -->
+                    <div id="partner-section" class="mt-3" style="display: none;">
+
+                        <div class="row mt-2">
+
+
+                            <div class="col-md-12 col-12  pb-20">
+                                <h5 class="card-title_apply">Partners Details (if any)</h5>
+
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered head_label_partner">
+                                    <thead>
+                                        <tr>
+                                            <th>Name </th>
+                                            <th>Father/s
+                                                Husband/s
+                                                Name</th>
+                                            <th>D.O.B and Age</th>
+                                            <th>Address </th>
+                                            <th>Qualifications and Proof </th>
+
+
+                                            <th>Present business of
+                                                the applicant</th>
+                                            <th>If holding a Supervisor Competency
+                                                Certificate and
+                                                Validity </th>
+
+                                            <th colspan="2" style="width: 100px;">
+                                                <button type="button" class="btn btn-primary add-partner"
+                                                    id="add-partner">
+                                                    <i class="fa fa-plus"></i> Add
+                                                </button>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                                        @foreach ($proprietors as $p)
+                                        @if($p->ownership_type === 'pt')
+                                        <tr data-id="{{ $p->id }}">
+                                            <td>{{ $p->proprietor_name }}</td>
+                                            <td>{{ $p->fathers_name }}</td>
+                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}"
+                                                data-age_proof="{{ asset($p->age_proof) }}">
+                                                {{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                                <a href="{{ asset($p->age_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
+                                            <td>{{ $p->proprietor_address }}</td>
+                                            <td data-qualification="{{ $p->qualification }}"
+                                                data-qual_text="{{ $p->qualification_text }}"
+                                                data-educational_proof="{{ asset($p->educational_proof) }}">
+                                                {{ $p->qualification }}, {{ $p->qualification_text }}
+                                                <a href="{{ asset($p->educational_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
+                                            <td>{{ $p->present_business }}</td>
+                                            <td
+                                                data-competency="{{ $p->competency_certificate_holding }}"
+                                                data-certno="{{ $p->competency_certificate_number }}"
+                                                data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
+                                                data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
+                                                data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+
+                                                @if($p->competency_certificate_holding == 'yes')
+                                                Yes - CC_No: {{ $p->competency_certificate_number }},
+                                                First Issue:{{ \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('d-m-Y') }},
+                                                Validity From:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') }},
+                                                Validity To:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') }} @else
+                                                No
+                                                @endif
+
+                                            </td>
+
+
+
+
+                                            <td style="display: none;">
+                                                <input type="hidden" name="ownership_type[]"
+                                                    value="{{ $p->ownership_type }}">
+                                            </td>
+                                            <td style="display: none;">
+                                                <input type="hidden" name="row_index[]" value="{{ $p->row_index }}">
+                                            </td>
+
+
+                                            <td>
+                                                <button type="button" class="btn btn-primary btn-sm update-partner-row"
+                                                    data-id="{{ $p->id }}">
+                                                    <i class="fa fa-pencil"></i>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-danger btn-sm remove-partner-row"
+                                                    data-id="{{ $p->id }}">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+
+
+                                        @endif
+                                        @endforeach
+
+                                    </tbody>
+                                </table>
+
+
+                            </div>
+
+
+
+                            <!-- <div class="col-12 col-md-5  text-md-right">
+                                <h5>Number of Partners? (Min 2, Max 6)</h5>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <input type="number" class="form-control" id="partner-count-input" min="2" max="6" />
+                                <span class="error text-danger" id="partner-count-error"></span>
+                            </div> -->
+
+
+                        </div>
+
+
+
+                        <div class="partner-row border box-shadow-blue card p-3 mt-2" id="partnersfill-section"
+                            style="display:none;">
+
+                            <h5>Partner Details</h5>
+                            <div class="p-3">
+                                <div class="row mt-1 ">
+
+
+                                    <div class="col-md-6">
+                                        <input type="hidden" name="ownership_type[]" value="pt">
+                                        <div class="row align-items-center">
+                                            <div class="col-12 col-md-12">
+                                                <label for="Name">(i) Full name and house address of partners <span
+                                                        style="color: red;">*</span><br><span class="text-label"
+                                                        style="color: #023466;">(If it is partnership concern,
+                                                        partnership deed should be enclosed)</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+                                                <label>Partner's Name <span class="text-red">*</span></label>
+
+                                            </div>
+
+
+                                            <div class="col-12 col-md-6">
+                                                <input type="hidden" class="form-control mb-2 ownership_type"
+                                                    maxlength="20" id="ownership_type" name="ownership_type[]"
+                                                    value="pt">
+                                                <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+
+                                                <input type="text" class="form-control mb-2 proprietor_name"
+                                                    maxlength="50" id="proprietor_name" name="proprietor_name[]"
+                                                    placeholder="Partner's Name">
+
+                                                <span class="error text-danger" id="proprietor_name_error"></span>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <label>Partner's Address <span class="text-red">*</span></label>
+
+                                            </div>
+                                            <div class="col-12 col-md-6">
+
+                                                <textarea rows="3" class="form-control" name="proprietor_address[]"
+                                                    placeholder="Partner's Address"></textarea>
+                                                <span class="error text-danger" id="proprietor_address_error"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="row">
+                                            <div class="col-12 col-md-12">
+                                                <label for="Name">(ii) Age and qualification along with
+                                                    evidence <span style="color: red;">*</span></label>
+                                            </div>
+
+                                        </div>
+
+
+
+                                        <div class="row">
+                                            <div class="col-12 col-md-3">
+                                                <label>Date Of Birth <span class="text-red">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <input type="date" class="form-control dob" name="dob[]">
+                                                <span class="error text-danger dob_error"></span>
+                                            </div>
+
+                                            <div class="col-12 col-md-2">
+                                                <label>Age <span class="text-red">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-3">
+                                                <input type="number" class="form-control age" name="age[]" readonly>
+                                                <span class="error text-danger age_error"></span>
+                                            </div>
+                                        </div>
+
+
+                                        <div class="row mt-2">
+                                            <div class="col-12 col-md-3 ">
+                                                <label>Qualification <span class="text-red">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <select class="form-control qualification" name="qualification[]">
+                                                    <option value="">Select Qualification</option>
+                                                    <option value="8TH PASS">8TH PASS</option>
+                                                    <option value="DEGREE">DEGREE</option>
+                                                    <option value="DIPLOMA">DIPLOMA</option>
+                                                    <option value="MASTER DEGREE">MASTER DEGREE</option>
+                                                </select>
+                                                <span class="error text-danger qualification_error"></span>
+                                            </div>
+
+
+                                            <div class="col-12 col-md-5 qualTextWrapper" id="qualTextWrapper"
+                                                style="display:none;">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-5">
+                                                        <label>Enter Qualification <span
+                                                                class="text-red">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-7">
+                                                        <input type="text" class="form-control" id="qual_text"
+                                                            name="qual_text[]">
+                                                        <span class="error text-danger qual_text_error"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mt-2">
+
+                                            <div class="col-12 col-md-3">
+                                                <label>Age Proof <span class="text-red">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                        <input type="file" class="form-control" name="age_proof[]"
+                                                            accept="application/pdf">
+
+
+
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger Doc_upload_error"></span>
+                                                        <span class="error text-danger age_proof_error"></span>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn"
+                                                            data-login_id="{{ Auth::user()->login_id }}"
+                                                            data-module="AGE PROOF" data-document_category="age_proof"
+                                                            data-ownership_type="pt" data-row-index=""
+                                                            data-document_sub_category="AP"
+                                                            data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+
+
+                                                    </div>
+
+                                                    <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12 col-12 age-file-link">
+
+                                            </div>
+
+
+
+
+
+                                        </div>
+
+
+                                        <div class="row mt-2">
+
+                                            <div class="col-12 col-md-3">
+                                                <label>Qualification Proof <span class="text-red">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                        <input type="file" class="form-control" name="qual_proof[]"
+                                                            accept="application/pdf">
+
+
+
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger Doc_upload_error"></span>
+                                                        <span class="error text-danger qual_proof_error"></span>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn"
+                                                            data-login_id="{{ Auth::user()->login_id }}"
+                                                            data-module="OWNERSHIP EDUCATIONAL DOCUMENT"
+                                                            data-document_category="educ_qual_proof"
+                                                            data-ownership_type="pt" data-row-index=""
+                                                            data-document_sub_category="OED"
+                                                            data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12 col-12  file-link">
+                                                <!-- @if(!empty($application->educational_proof))
+                                                <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                                </a>
+                                            @endif -->
+                                            </div>
+
+
+
+                                            <!-- <div class="col-12 col-md-3">
+                                            <button class="btn btn-info"> <i class="fa fa-upload"></i> Upload </button>
+                                        </div> -->
+
+                                        </div>
+
+
+
+
+                                    </div>
+
+                                </div>
+
+                                <!-- ------------------------------------------ -->
+                                <div class="row mt-2">
+                                    <div class="col-md-6">
+                                        <div class="row align-items-center">
+                                            <div class="col-12 col-md-4">
+                                                <label for="Name">(iii) Partner's Father/Husband's name <span
+                                                        style="color: red;">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <input type="text" class="form-control" id="fathers_name" maxlength="50"
+                                                    name="fathers_name[]" value=""
+                                                    placeholder="Partner's Father/Husband's name">
+                                                <span class="error text-danger" id="fathers_name_error"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="row align-items-center">
+                                            <div class="col-12 col-md-6">
+                                                <label for="Name">(iv) Partner's Present business of the applicant <span
+                                                        style="color: red;">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-6">
+                                                <input type="text" class="form-control" id="present_business"
+                                                    name="present_business[]" value="" maxlength="50"
+                                                    placeholder="Partner's Present business of the applicant">
+                                                <span class="error text-danger" id="present_business_error"></span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <!-- ---------------------- -->
+                                <div class="row mt-2">
+
+
+                                    <div class="col-md-12">
+                                        <div class="row align-items-center">
+                                            <div class="col-12 col-md-12">
+                                                <label>(v) Whether holding a Supervisor Competency Certificate and if so,
+                                                    the Number and Validity</label>
+                                            </div>
+
+
+                                            <div class="col-12 col-md-12">
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" id="competency_yes"
+                                                        name="competency_certificate_holding[]" value="yes"
+                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                    <label class="form-check-label"
+                                                        for="competency_yes_proprietor">Yes</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" id="competency_no"
+                                                        name="competency_certificate_holding[]" value="no"
+                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                        checked>
+                                                    <label class="form-check-label"
+                                                        for="competency_no_proprietor">No</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                                style="display: none;">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-3">
+                                                        <div class="row">
+
+                                                            <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                                <label>CC Number <span style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-8 mt-1">
+                                                                <input type="text"
+                                                                    class="form-control competency_number"
+                                                                    name="competency_certificate_number[]"
+                                                                    maxlength="15"
+                                                                    placeholder="CC Number">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_number_error"></span>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <div class="row">
+
+                                                            <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                                <label>Date of First Issue <span
+                                                                        style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-6 mt-1">
+                                                                <input type="date"
+                                                                    class="form-control competency_validity_first_issue"
+                                                                    name="competency_certificate_first_issue[]"
+                                                                    placeholder="Date of First Issue">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_first_issue_error"></span>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-5">
+                                                        <div class="row">
+
+                                                            <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                                <label>Validity From <span
+                                                                        style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-4 mt-1">
+                                                                <input type="text"
+                                                                    class="form-control competency_validity_from"
+                                                                    name="competency_certificate_validity_from[]"
+                                                                    placeholder="Validity From">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_validity_from_error"></span>
+                                                            </div>
+                                                            <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                                <label>Validity <br>To <span
+                                                                        style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-4 mt-1">
+                                                                <input type="text"
+                                                                    class="form-control competency_validity_to"
+                                                                    name="competency_certificate_validity_to[]"
+                                                                    placeholder="Validity To">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_validity_to_error"></span>
+                                                                {{-- <input type="date"
+                                                                class="form-control flatpickr flatpickr-input competency_validity"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To"> --}}
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
+                                                        <button type="button"
+                                                            class="btn btn-primary"
+                                                            id="verify_competency_btn">
+                                                            Verify
+                                                        </button>
+                                                    </div>
+
+
+                                                </div>
+
+                                            </div>
+
+
+                                        </div>
+                                    </div>
+
+
+                                    <div id="competency_exp_result" class="mt-3"></div>
+
+
+
+                                </div>
+
+
+
+                                <div class="row">
+
+
+                                    <div class="col-12 col-md-12 text-md-right">
+                                        <button type="button" class="btn btn-success"
+                                            id="save_partner">Save</button>
+
+                                        <button type="button" id="cancel_update"
+                                            class="btn btn-danger ms-2">Cancel</button>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+                <div id="partner-container"></div>
+            </div>
+
+            <!-- Directorsstyle="display:none;" -->
+            <div id="director-section" class="mt-3" style="display: none;">
+                <div class="row mt-2">
+                    <!-- <div class="col-md-12 col-12 text-md-right pb-20">
+                                <button type="button" class="btn btn-primary" id="add-partner">
+                                    <i class="fa fa-plus"></i> Add Partner
+                                </button>
+
+                            </div> -->
+
+                    <div class="col-md-12 col-12  pb-20">
+                        <h5 class="card-title_apply">Directors Details (if any)</h5>
+
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered head_label_director">
+                            <thead>
+                                <tr>
+                                    <th>Name </th>
+                                    <th>Father/s
+                                        Husband/s
+                                        Name</th>
+                                    <th>D.O.B and Age</th>
+                                    <th>Address </th>
+                                    <th>Qualifications and Proof </th>
+
+
+                                    <th>Present business of
+                                        the applicant</th>
+                                    <th>If holding a Supervisor Competency
+                                        Certificate and
+                                        Validity </th>
+
+                                    <th colspan="2" style="width: 100px;">
+                                        <button type="button" class="btn btn-primary" id="add-director">
+                                            <i class="fa fa-plus"></i> Add
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                            <tbody>
+
+                                @foreach ($proprietors as $p)
+                                @if($p->ownership_type === 'dr')
+                                <tr data-id="{{ $p->id }}">
+                                    <td>{{ $p->proprietor_name }}</td>
+                                    <td>{{ $p->fathers_name }}</td>
+                                    <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}"
+                                        data-age_proof="{{ asset($p->age_proof) }}">
+                                        {{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                        <a href="{{ asset($p->age_proof) }}" target="_blank"><i
+                                                class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                    </td>
+                                    <td>{{ $p->proprietor_address }}</td>
+                                    <td data-qualification="{{ $p->qualification }}"
+                                        data-qual_text="{{ $p->qualification_text }}"
+                                        data-educational_proof="{{ asset($p->educational_proof) }}">
+                                        {{ $p->qualification }}, {{ $p->qualification_text }}
+                                        <a href="{{ asset($p->educational_proof) }}" target="_blank"><i
+                                                class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                    </td>
+                                    <td>{{ $p->present_business }}</td>
+                                    <td
+                                        data-competency="{{ $p->competency_certificate_holding }}"
+                                        data-certno="{{ $p->competency_certificate_number }}"
+                                        data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
+                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
+                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+
+                                        @if($p->competency_certificate_holding == 'yes')
+                                        Yes - CC_No: {{ $p->competency_certificate_number }},
+                                        First Issue:{{ \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('d-m-Y') }},
+                                        Validity From:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') }},
+                                        Validity To:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') }} @else
+                                        No
+                                        @endif
+
+                                    </td>
+
+
+
+
+                                    <td style="display: none;">
+                                        <input type="hidden" name="ownership_type[]"
+                                            value="{{ $p->ownership_type }}">
+                                    </td>
+                                    <td style="display: none;">
+                                        <input type="hidden" name="row_index[]" value="{{ $p->row_index }}">
+                                    </td>
+
+
+
+
+                                    <td>
+                                        <button type="button" class="btn btn-primary btn-sm update-director-row"
+                                            data-id="{{ $p->id }}">
+                                            <i class="fa fa-pencil"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm remove-director-row"
+                                            data-id="{{ $p->id }}">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endif
+                                @endforeach
+
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- <div class="col-12 col-md-5  text-md-right">
+                                <h5>Number of Partners? (Min 2, Max 6)</h5>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <input type="number" class="form-control" id="partner-count-input" min="2" max="6" />
+                                <span class="error text-danger" id="partner-count-error"></span>
+                            </div> -->
+
+
+                </div>
+                <div class="border box-shadow-blue card p-3 mt-2" id="directorfill-section"
+                    style="display:none;">
+                    <h5>Director Details</h5>
+                    <div class=" p-3 ">
+                        <div class="row mt-2 managing-director-wrapper">
+                            <div class="col-md-12">
+                                <div class="form-check">
+                                    <input class="form-check-input managing-director-checkbox" type="checkbox"
+                                        id="is_managing_director">
+
+                                    <label class="form-check-label" for="is_managing_director">
+                                        Is this person Managing Director?
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-1 ">
+
+
+                            <div class="col-md-6">
+                                <input type="hidden" name="ownership_type[]" value="dr">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(i) Full name and house address of directors <span
+                                                style="color: red;">*</span><br><span class="text-label"
+                                                style="color: #023466;">(If it is partnership concern,
+                                                partnership deed should be enclosed)</span></label>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+                                        <label>Director's Name <span class="text-red">*</span></label>
+
+                                    </div>
+
+
+                                    <div class="col-12 col-md-6">
+                                        <input type="hidden" class="form-control mb-2 ownership_type"
+                                            maxlength="20" id="ownership_type" name="ownership_type[]"
+                                            value="dr">
+                                        <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+
+                                        <input type="text" class="form-control mb-2 proprietor_name"
+                                            maxlength="50" id="proprietor_name" name="proprietor_name[]"
+                                            placeholder="Director's Name">
+
+
+
+                                        <span class="error text-danger" id="proprietor_name_error"></span>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label>Director's Address <span class="text-red">*</span></label>
+
+                                    </div>
+                                    <div class="col-12 col-md-6">
+
+                                        <textarea rows="3" class="form-control" name="proprietor_address[]"
+                                            placeholder="Director's Address"></textarea>
+                                        <span class="error text-danger" id="proprietor_address_error"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(ii) Age and qualification along with
+                                            evidence <span style="color: red;">*</span></label>
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="row">
+                                    <div class="col-12 col-md-3">
+                                        <label>Date Of Birth <span class="text-red">*</span></label>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <input type="date" class="form-control dob" name="dob[]">
+                                        <span class="error text-danger dob_error"></span>
+                                    </div>
+
+                                    <div class="col-12 col-md-2">
+                                        <label>Age <span class="text-red">*</span></label>
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
+                                        <input type="number" class="form-control age" name="age[]" readonly>
+                                        <span class="error text-danger age_error"></span>
+                                    </div>
+                                </div>
+
+
+                                <div class="row mt-2">
+                                    <div class="col-12 col-md-3 ">
+                                        <label>Qualification <span class="text-red">*</span></label>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <select class="form-control qualification" name="qualification[]">
+                                            <option value="">Select Qualification</option>
+                                            <option value="8TH PASS">8th PASS</option>
+                                            <option value="DEGREE">DEGREE</option>
+                                            <option value="DIPLOMA">DIPLOMA</option>
+                                            <option value="MASTER DEGREE">MASTER DEGREE</option>
+                                        </select>
+                                        <span class="error text-danger qualification_error"></span>
+                                    </div>
+
+
+                                    <div class="col-12 col-md-5 qualTextWrapper" id="qualTextWrapper"
+                                        style="display:none;">
+                                        <div class="row">
+                                            <div class="col-12 col-md-5">
+                                                <label>Enter Qualification <span
+                                                        class="text-red">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <input type="text" class="form-control" id="qual_text"
+                                                    name="qual_text[]">
+                                                <span class="error text-danger qual_text_error"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-2">
+
+                                    <div class="col-12 col-md-3">
+                                        <label>Age Proof <span class="text-red">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-7">
+                                        <div class="row">
+                                            <div class="col-12 col-md-8">
+                                                <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                <input type="file" class="form-control" name="age_proof[]"
+                                                    accept="application/pdf">
+
+
+
+                                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                <br>
+                                                <span class="text-danger Doc_upload_error"></span>
+                                                <span class="error text-danger age_proof_error"></span>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <button type="button" class="btn btn-info upload-btn"
+                                                    data-login_id="{{ Auth::user()->login_id }}"
+                                                    data-module="AGE PROOF" data-document_category="age_proof"
+                                                    data-ownership_type="dr" data-row-index=""
+                                                    data-document_sub_category="AP"
+                                                    data-form_code="{{$form_code->id}}">
+                                                    <i class="fa fa-upload"></i> Upload
+                                                </button>
+
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 col-12 age-file-link">
+
+                                    </div>
+
+
+
+
+
+                                </div>
+
+
+                                <div class="row mt-2">
+
+                                    <div class="col-12 col-md-3">
+                                        <label>Qualification Proof <span class="text-red">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-7">
+                                        <div class="row">
+                                            <div class="col-12 col-md-8">
+                                                <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                <input type="file" class="form-control" name="qual_proof[]"
+                                                    accept="application/pdf">
+
+
+
+                                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                <br>
+                                                <span class="text-danger Doc_upload_error"></span>
+                                                <span class="error text-danger qual_proof_error"></span>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <button type="button" class="btn btn-info upload-btn"
+                                                    data-login_id="{{ Auth::user()->login_id }}"
+                                                    data-module="OWNERSHIP EDUCATIONAL DOCUMENT"
+                                                    data-document_category="educ_qual_proof"
+                                                    data-ownership_type="dr" data-row-index=""
+                                                    data-document_sub_category="OED"
+                                                    data-form_code="{{$form_code->id}}">
+                                                    <i class="fa fa-upload"></i> Upload
+                                                </button>
+                                            </div>
+
+                                            <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 col-12  file-link">
+                                        <!-- @if(!empty($application->educational_proof))
+                                                <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                                </a>
+                                            @endif -->
+                                    </div>
+
+
+
+                                    <!-- <div class="col-12 col-md-3">
+                                            <button class="btn btn-info"> <i class="fa fa-upload"></i> Upload </button>
+                                        </div> -->
+
+                                </div>
+
+
+
+
+                            </div>
+
+                        </div>
+
+                        <!-- ------------------------------------------ -->
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(iii) Director's Father/Husband's name <span
+                                                style="color: red;">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-12">
+                                        <input type="text" class="form-control" id="fathers_name" maxlength="50"
+                                            name="fathers_name[]" value=""
+                                            placeholder="Director's Father/Husband's name">
+                                        <span class="error text-danger" id="fathers_name_error"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(iv) Director's Present business of the applicant
+                                            <span style="color: red;">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-12">
+                                        <input type="text" class="form-control" id="present_business"
+                                            name="present_business[]" value="" maxlength="50"
+                                            placeholder="Director's Present business of the applicant">
+                                        <span class="error text-danger" id="present_business_error"></span>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                        <!-- ---------------------- -->
+                        <div class="row mt-2">
+
+
+                            <div class="col-md-12">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label>(v) Whether holding a Supervisor Competency Certificate and if so,
+                                            the Number and Validity</label>
+                                    </div>
+
+
+                                    <div class="col-12 col-md-12">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="competency_yes"
+                                                name="competency_certificate_holding[]" value="yes"
+                                                onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                            <label class="form-check-label"
+                                                for="competency_yes_proprietor">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="competency_no"
+                                                name="competency_certificate_holding[]" value="no"
+                                                onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                checked>
+                                            <label class="form-check-label"
+                                                for="competency_no_proprietor">No</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                        style="display: none;">
+                                        <div class="row">
+                                            <div class="col-12 col-md-3">
+                                                <div class="row">
+
+                                                    <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                        <label>CC Number <span style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-8 mt-1">
+                                                        <input type="text"
+                                                            class="form-control competency_number"
+                                                            name="competency_certificate_number[]"
+                                                            maxlength="15"
+                                                            placeholder="CC Number">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_number_error"></span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <div class="row">
+
+                                                    <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                        <label>Date of First Issue <span
+                                                                style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-6 mt-1">
+                                                        <input type="date"
+                                                            class="form-control competency_validity_first_issue"
+                                                            name="competency_certificate_first_issue[]"
+                                                            placeholder="Date of First Issue">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_first_issue_error"></span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-5">
+                                                <div class="row">
+
+                                                    <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                        <label>Validity From <span
+                                                                style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-4 mt-1">
+                                                        <input type="text"
+                                                            class="form-control competency_validity_from"
+                                                            name="competency_certificate_validity_from[]"
+                                                            placeholder="Validity From">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_validity_from_error"></span>
+                                                    </div>
+                                                    <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                        <label>Validity <br>To <span
+                                                                style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-4 mt-1">
+                                                        <input type="text"
+                                                            class="form-control competency_validity_to"
+                                                            name="competency_certificate_validity_to[]"
+                                                            placeholder="Validity To">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_validity_to_error"></span>
+                                                        {{-- <input type="date"
+                                                                class="form-control flatpickr flatpickr-input competency_validity"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To"> --}}
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
+                                                <button type="button"
+                                                    class="btn btn-primary"
+                                                    id="verify_competency_btn">
+                                                    Verify
+                                                </button>
+                                            </div>
+
+
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+
+                            <div id="competency_exp_result" class="mt-3"></div>
+
+
+
+                        </div>
+
+
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="row align-items-center">
+
+                                    <div class="col-12 col-md-12 text-md-right">
+                                        <button type="button" class="btn btn-success"
+                                            id="save_director">Save</button>
+
+                                        <button type="button" id="cancel_director"
+                                            class="btn btn-danger ms-2">Cancel</button>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+                <div id="director-container"></div>
+            </div>
+
+            <!-- <div class="row ">
+                        <div class="col-12 col-md-12 text-center">
+                        <p class="text-red">Choose Anyone Ownership and Enter the Details of Proprietor / Partners / Directors Details</p>
+                        </div>
+
+
+                    </div> -->
+
+            @php
+            $application = $application ?? null;
+            @endphp
+
+            <div class="col-md-12">
+                <div class="row align-items-center">
+                    <div class="col-12 col-md-12">
+                        <label for="Name">4. Whether any application for
+                            Contractor's licence was made
+                            previously? If so, details thereof. <span style="color: red;">*</span>
+                        </label>
+                    </div>
+
+                    @php
+                    $previous_contractor_license = old('previous_contractor_license', $application->previous_contractor_license ?? 'no');
+                    @endphp
+                    <div class="col-12 col-md-12">
+
+                        <input style="display:none;" class="form-check-input" type="radio" id="previous_contractor_license" name="previous_contractor_license" value="yes" onclick="togglePreviousLicenseFields(true)">
+
+
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="previous_contractor_license_yes" name="previous_contractor_license" value="yes"
+                                onclick="togglePreviousLicenseFields(true)" {{ $previous_contractor_license == 'yes' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="previous_contractor_license_yes">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="previous_contractor_license_no" name="previous_contractor_license" value="no"
+                                onclick="togglePreviousLicenseFields(false)" {{ $previous_contractor_license == 'no' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="previous_contractor_license_no">No</label>
+                        </div>
+                        <span class="error text-danger" id="previous_contractor_license_error"></span>
+                    </div>
+
+
+                    @php
+                    $showPreviousFields = old('previous_contractor_license', $application->previous_contractor_license ?? '') === 'yes';
+                    @endphp
+
+                    <div class="col-12 col-md-12 previous-license-fields" style="{{ $showPreviousFields ? '' : 'display: none;' }}">
+                        @php
+                        use Carbon\Carbon;
+
+                        $validityValue = '';
+
+                        if (old('previous_application_validity')) {
+                        $validityValue = old('previous_application_validity');
+                        } elseif (!empty($application->previous_application_validity)) {
+                        try {
+                        $validityValue = Carbon::createFromFormat('d/m/Y', $application->previous_application_validity)->format('Y-m-d');
+                        } catch (\Exception $e) {
+                        try {
+                        $validityValue = Carbon::parse($application->previous_application_validity)->format('Y-m-d');
+                        } catch (\Exception $e) {
+                        $validityValue = '';
+                        }
+                        }
+                        }
+
+                        $isVerified = !empty($application) && $application->previous_contractor_license_verify === '1';
+                        $isVerificationSet = !empty($application) && $application->previous_contractor_license_verify !== null;
+
+                        @endphp
+
+                        <div class="row">
+
+                            <!-- License Number -->
+                            <div class="col-3 col-md-3">
+                                <label>Previous License Number <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_number" type="text" id="previous_application_number" name="previous_licence_no" maxlength="15" placeholder="Previous License Number" readonly="">
+
+
+
+                            </div>
+
+                            <!-- License Validity -->
+                            <div class="col-3 col-md-3">
+                                <label>Licence Date of First Issue <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_first_issue" name="previous_validity_first_issue" placeholder="Licence Date of First Issue" value="" title="Select a date up to today" readonly="readonly">
+                            </div>
+
+                            <div class="col-3 col-md-3">
+                                <label>Licence Validity From <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_from" name="previous_validity_from" placeholder="Licence Validity From" readonly="readonly">
+                            </div>
+
+
+                            <div class="col-3 col-md-3">
+                                <label>Licence Validity To <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_to" name="previous_validity_to" placeholder="Licence Validity To" readonly="readonly">
+                            </div>
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+                </div>
+            </div>
+    </div>
+
+
+    <div class="tab" data-name="Staff & Bank Details">
+
+        <div class="row">
+
+            <div class="col-md-12">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label>5A. Details of Eligible QC/QSC Staff appointed on full time basis: <span
+                                style="color: red;">*</span></label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="qc-staff-table">
+                        <thead>
+                            <tr>
+                                <th>S.NO</th>
+                                <th>Category <span class="text-red">*</span></th>
+                                <th>Competency Certificate Number <span class="text-red">*</span></th>
+                                <!-- <th>Qualification <span class="text-red">*</span> </th> -->
+                                <th>Certificate First Issue <span class="text-red">*</span></th>
+                                <th>Certificate Validity From <span class="text-red">*</span></th>
+                                <th>Certificate Validity To <span class="text-red">*</span></th>
+                                <th width="15%">Attachments <span class="text-red">*</span></th>
+                                <th width="10%">
+                                    <button type="button"
+                                        class="btn btn-success"
+                                        id="add_qc_staff">
+                                        + Add
+                                    </button>
+                                </th>
+
+                                <!-- <th>Action</th> -->
+                            </tr>
+                        </thead>
+
+                        @if(!$application)
+
+
+                        <input type="hidden" id="appl_type" name="appl_type" value="D">
+                        <tbody id="staffqc-records"></tbody>
+
+
+                        @else
+                        <tbody id="staffqc-records">
+
+                            @php
+                            $qcStaffs = collect($QCstaffs ?? [])
+                            ->values();
+
+                            $staff_count = $qcStaffs->count();
+
+                            // var_dump($staff_count); die;
+                            @endphp
+
+                            @for ($i = 0; $i < $staff_count; $i++)
+
+                                @php
+                                $staff=$qcStaffs[$i];
+                                @endphp
+
+                                <tr class="staffqc-record">
+
+                                <td>{{ $i + 1 }}</td>
+
+                                {{-- QC / QSC --}}
+                                <td>
+                                    {{ $staff->staff_category ?? '' }}
+                                </td>
+
+                                {{-- Certificate Number --}}
+                                <td>
+                                    {{ $staff->staff_cc_no ?? '' }}
+                                </td>
+
+                                {{-- First Issue --}}
+                                <td>
+                                    {{ !empty($staff->staff_cc_first_issue)
+                                                            ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
+                                                            : '' }}
+                                </td>
+
+                                {{-- Validity From --}}
+                                <td>
+                                    {{ !empty($staff->staff_cc_validity_from)
+                                                            ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
+                                                            : '' }}
+                                </td>
+
+                                {{-- Validity To --}}
+                                <td>
+                                    {{ !empty($staff->staff_cc_validity_to)
+                                                            ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
+                                                            : '' }}
+                                </td>
+
+                                {{-- Attachments --}}
+                                <td>
+                                    <div class="file-link">
+
+                                        @if (!empty($staff->app_doc))
+                                        <a href="#" target="_blank">
+                                            Appointment Letter
+                                        </a>
+                                        @endif
+
+                                        @if (!empty($staff->cons_doc))
+                                        <br>
+                                        <a href="#" target="_blank">
+                                            Consent Letter
+                                        </a>
+                                        @endif
+
+                                    </div>
+                                </td>
+
+                                {{-- Remove --}}
+                                <td>
+                                    <button type="button"
+                                        class="btn btn-danger remove_qc_staff">
+                                        Remove
+                                    </button>
+                                </td>
+
+                                </tr>
+
+                                @endfor
+
+                        </tbody>
+                        @endif
+
+                    </table>
+
+                    <span id="staffqc_error" class="error text-center text-danger d-block mt-2"></span>
+
+                    <div class="border box-shadow-blue p-3 mt-3"
+                        id="staffqc_datasection"
+                        style="display:none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Enter QC/QSC Staff Details </h5>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 col-md-2">
+                                <p>Select Staff Category <span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <select class="form-control staffqc_category" name="staffqc_category[]">
+
+                                    <option value="">Select Category</option>
+
+                                    <option value="QC">QC</option>
+                                    <option value="QSC">QSC</option>
+
+                                </select>
+
+                                <span class="text-danger small staff-category-error"></span>
+                            </div>
+
+                            {{-- ------------------------- --}}
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate Number <span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_no[]" maxlength="20" class="form-control"
+                                    placeholder="CC Number">
+                                <span class="text-danger small staff-cc-error"></span>
+                            </div>
+
+
+                        </div>
+
+                        <div class="row mt-3">
+
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate First Issue <span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_first_issue[]" class="form-control"
+                                    placeholder="CC First Issue">
+                                <span class="text-danger small staff-first-issue-error"></span>
+                            </div>
+
+                            {{-- ---------------------------------- --}}
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate Validity From Date<span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_validity_from[]" class="form-control"
+                                    placeholder="CC Validity From">
+                                <span class="text-danger small staff-validity-from-error"></span>
+                            </div>
+
+
+                        </div>
+
+                        <div class="row mt-3">
+
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate Validity To Date<span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_validity_to[]" class="form-control"
+                                    placeholder="CC Validity To">
+                                <span class="text-danger small staff-validity-to-error"></span>
+                            </div>
+
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 col-lg-2">
+                                <div class="text-center fw-bold">
+                                    Appointment Letter Upload
+                                </div>
+                                <div class="text-center ">
+
+
+
+                                </div>
+
+
+                            </div>
+
+                            <div class="col-md-6 col-lg-2">
+                                <input type="file" class="form-control app-doc-file" name="app_doc[]" accept="application/pdf">
+                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                <br>
+                                <span class="text-danger app_doc_upload_error"></span>
+                                <span class="text-danger upload-error d-block"></span>
+
+                                <div class="file-link">
+
+                                </div>
+
+                            </div>
+                            <div class="col-12 col-md-2 ">
+                                <button type="button" class="btn btn-info upload-btn"
+                                    data-login_id="tnelb_1121" data-module="QC APPOINTMENT DOCUMENT"
+                                    data-document_category="app_doc" data-document_sub_category="QAD"
+                                    data-ownership_type="" data-form_code="8" data-app_doc="1">
+                                    <i class="fa fa-upload"></i> Upload
+                                </button>
+
+                                <input type="hidden"
+                                    name="app_doc[]"
+                                    class="app_doc"
+                                    value="${appDocIndex}">
+
+                                <input type="hidden" name="staffqc_id[]" value="">
+                            </div>
+
+
+
+
+                            <div class="col-md-6 col-lg-2">
+                                <div class="text-center fw-bold">
+                                    Consent Letter Upload
+                                </div>
+                                <div class="text-center ">
+
+
+
+                                </div>
+
+
+                            </div>
+
+                            <div class="col-md-6 col-lg-2 ">
+                                <input type="file" class="form-control cons-doc-file" name="cons_doc[]"
+                                    accept="application/pdf">
+                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                <br>
+                                <span class="text-danger cons_doc_upload_error"></span>
+                                <span class="text-danger upload-error d-block"></span>
+
+                                <div class="file-link">
+
+                                </div>
+
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <button type="button" class="btn btn-info upload-btn"
+                                    data-login_id="tnelb_1121" data-module="QC CONSENT DOCUMENT"
+                                    data-document_category="cons_doc" data-document_sub_category="QCD"
+                                    data-ownership_type="" data-form_code="8" data-cons_doc="1">
+                                    <i class="fa fa-upload"></i> Upload
+                                </button>
+
+                                <input type="hidden"
+                                    name="cons_doc[]"
+                                    class="cons_doc"
+                                    value="${consDocIndex}">
+
+                                <input type="hidden" name="staffqc_id[]" value="">
+                            </div>
+
+
+
+
+                        </div>
+                        <div class="text-center">
+                            <span class="text-danger qc-staff-errors"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="row align-items-center">
+
+                                    <div class="col-12 col-md-12 text-center">
+
+                                        <button type="button" class="btn btn-success" id="save_qc">
+                                            Save
+                                        </button>
+                                        <button type="button" class="btn btn-danger ms-2"
+                                            id="cancel_qc">Cancel</button>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+
+
+                    <p class="text-red note_txt">Note : Maximum 5 QC Staffs are allowed and Mandatory 1 QC
+                    </p>
+
+                </div>
+
+
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="col-md-12">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label>5B. Details of Staff appointed on full time basis: <span
+                                style="color: red;">*</span></label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="staff-table">
+                        <thead>
+                            <tr>
+                                <th>S.NO</th>
+                                <th width="10%">Category <span class="text-red">*</span></th>
+                                <th>Competency Certificate Number <span class="text-red">*</span></th>
+                                <!-- <th>Qualification <span class="text-red">*</span> </th> -->
+                                <th>Certificate First Issue <span class="text-red">*</span></th>
+                                <th>Certificate Validity From <span class="text-red">*</span></th>
+                                <th>Certificate Validity To <span class="text-red">*</span></th>
+
+                            </tr>
+                        </thead>
+
+                        @if(!$application)
+
+                        @php
+                        $staff_count = 2;
+                        @endphp
+
+                        <tbody id="staff-container">
+
+                            @for($i = 0; $i < $staff_count; $i++)
+
+                                <tr class="staff-fields">
+
+                                <td>{{ $i + 1 }}</td>
+
+                                {{-- CATEGORY --}}
+                                <td>
+
+                                    {{-- First 2 staff are always B --}}
+                                    <input type="hidden"
+                                        name="staff_category[{{ $i }}]"
+                                        value="B"
+                                        class="staff_category">
+
+                                    <input type="text"
+                                        class="form-control"
+                                        value="B"
+                                        readonly>
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('staff_category.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- CERTIFICATE NUMBER --}}
+                                <td class="cc-column">
+
+                                    <input type="text"
+                                        class="form-control cc_number"
+                                        name="cc_number[{{ $i }}]"
+                                        placeholder="Certificate No"
+                                        maxlength="15"
+                                        value="{{ old('cc_number.' . $i) }}"
+                                        oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_number.' . $i) }}
+                                    </span>
+
+                                    <div class="competency_verify_result text-danger small mt-1"></div>
+
+                                </td>
+
+
+                                {{-- FIRST ISSUE --}}
+                                <td class="validity-column">
+
+                                    <input type="date"
+                                        class="form-control cc_firstissue"
+                                        name="cc_firstissue[{{ $i }}]"
+                                        value="{{ old('cc_firstissue.' . $i) }}">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_firstissue.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- VALIDITY FROM --}}
+                                <td class="validity-column">
+
+                                    <input type="date"
+                                        class="form-control cc_validity_from"
+                                        name="cc_validity_from[{{ $i }}]"
+                                        value="{{ old('cc_validity_from.' . $i) }}">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_validity_from.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- VALIDITY TO --}}
+                                <td class="validity-column">
+
+                                    <input type="date"
+                                        class="form-control cc_validity_to"
+                                        name="cc_validity_to[{{ $i }}]"
+                                        value="{{ old('cc_validity_to.' . $i) }}">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_validity_to.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- DESIGNATION --}}
+                                <td class="designation-column"
+                                    style="display:none;">
+
+                                    <input type="text"
+                                        class="form-control designation"
+                                        name="designation[{{ $i }}]"
+                                        placeholder="Enter Designation"
+                                        value="{{ old('designation.' . $i) }}">
+
+                                </td>
+
+
+                                {{-- ACTION --}}
+                                <td>
+
+                                    @if($i == $staff_count - 1)
+
+                                    <button type="button"
+                                        class="btn btn-success"
+                                        onclick="addStaffRows()">
+                                        + Add
+                                    </button>
+
+                                    @endif
+
+                                </td>
+
+
+                                {{-- STAFF ID --}}
+                                <input type="hidden"
+                                    name="staff_id[{{ $i }}]"
+                                    value="">
+
+                                </tr>
+
+                                @endfor
+
+                        </tbody>
+
+
+
+                        @else
+
+                        {{-- =========================================================
+                                                        EXISTING APPLICATION
+                                                        REMOVE QC / QSC
+                                                        ========================================================= --}}
+
+                        @php
+
+                        $normalStaffs = collect($staffs ?? [])
+                        ->filter(function ($staff) {
+                        return !in_array(
+                        $staff->staff_category ?? '',
+                        ['QC', 'QSC']
+                        );
+                        })
+                        ->values();
+
+                        $existingCount = $normalStaffs->count();
+
+                        // Minimum 2 staff rows
+                        $staff_count = max(2, $existingCount);
+
+                        @endphp
+
+
+                        <tbody id="staff-container">
+
+                            @for ($i = 0; $i < $staff_count; $i++)
+
+                                @php
+
+                                $staff=$normalStaffs[$i] ?? null;
+
+                                $category=$staff->staff_category ?? '';
+
+                                $isOthers = ($category === 'OTHERS');
+
+                                @endphp
+
+
+                                <tr class="staff-fields">
+
+                                    {{-- =================================================
+                                                                    S.NO
+                                                                    ================================================= --}}
+                                    <td>
+                                        {{ $i + 1 }}
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    CATEGORY
+                                                                    ================================================= --}}
+                                    <td>
+
+                                        @if ($i < 2)
+
+                                            {{-- FIRST TWO STAFF ARE ALWAYS B --}}
+
+                                            <input type="hidden"
+                                            name="staff_category[{{ $i }}]"
+                                            value="B"
+                                            class="staff_category">
+
+                                            {{-- Display only --}}
+                                            <input type="text"
+                                                class="form-control"
+                                                value="B"
+                                                readonly>
+
+                                            @else
+
+                                            <select class="form-control staff_category"
+                                                name="staff_category[{{ $i }}]">
+
+                                                <option value="">Select Category</option>
+
+                                                <option value="B"
+                                                    {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
+                                                    B
+                                                </option>
+
+                                                <option value="C"
+                                                    {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
+                                                    C
+                                                </option>
+
+                                                <option value="OTHERS"
+                                                    {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
+                                                    OTHERS
+                                                </option>
+
+                                            </select>
+
+                                            @endif
+
+
+                                            <span class="error text-danger">
+                                                {{ $errors->first('staff_category.' . $i) }}
+                                            </span>
+
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    CERTIFICATE NUMBER
+                                                                    ================================================= --}}
+                                    <td class="cc-column"
+                                        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                                        <input type="text"
+                                            class="form-control cc_number"
+                                            name="cc_number[{{ $i }}]"
+                                            maxlength="15"
+                                            placeholder="Certificate No"
+                                            value="{{ old(
+                                                                            'cc_number.' . $i,
+                                                                            $staff->staff_cc_no ?? ''
+                                                                        ) }}"
+                                            oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
+
+                                        <span class="error text-danger"></span>
+
+                                        <div class="competency_verify_result text-danger small mt-1"></div>
+
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    FIRST ISSUE
+                                                                    ================================================= --}}
+                                    <td class="validity-column"
+                                        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                                        <input type="date"
+                                            class="form-control cc_firstissue"
+                                            name="cc_firstissue[{{ $i }}]"
+                                            value="{{ old(
+                                                                            'cc_firstissue.' . $i,
+                                                                            isset($staff->staff_cc_first_issue)
+                                                                                ? \Carbon\Carbon::parse(
+                                                                                    $staff->staff_cc_first_issue
+                                                                                )->format('Y-m-d')
+                                                                                : ''
+                                                                        ) }}">
+
+                                        <span class="error text-danger"></span>
+
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    VALIDITY FROM
+                                                                    ================================================= --}}
+                                    <td class="validity-column"
+                                        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                                        <input type="date"
+                                            class="form-control cc_validity_from"
+                                            name="cc_validity_from[{{ $i }}]"
+                                            value="{{ old(
+                                                                            'cc_validity_from.' . $i,
+                                                                            isset($staff->staff_cc_validity_from)
+                                                                                ? \Carbon\Carbon::parse(
+                                                                                    $staff->staff_cc_validity_from
+                                                                                )->format('Y-m-d')
+                                                                                : ''
+                                                                        ) }}">
+
+                                        <span class="error text-danger"></span>
+
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    VALIDITY TO
+                                                                    ================================================= --}}
+                                    <td class="validity-column"
+                                        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                                        <input type="date"
+                                            class="form-control cc_validity_to"
+                                            name="cc_validity_to[{{ $i }}]"
+                                            value="{{ old(
+                                                                            'cc_validity_to.' . $i,
+                                                                            isset($staff->staff_cc_validity_to)
+                                                                                ? \Carbon\Carbon::parse(
+                                                                                    $staff->staff_cc_validity_to
+                                                                                )->format('Y-m-d')
+                                                                                : ''
+                                                                        ) }}">
+
+                                        <span class="error text-danger"></span>
+
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    DESIGNATION
+                                                                    ================================================= --}}
+                                    <td class="designation-column"
+                                        style="{{ $isOthers ? '' : 'display:none;' }}">
+
+                                        <input type="text"
+                                            class="form-control designation"
+                                            name="designation[{{ $i }}]"
+                                            placeholder="Enter Designation"
+                                            value="{{ old(
+                                                                            'designation.' . $i,
+                                                                            $staff->staff_designation ?? ''
+                                                                        ) }}"
+                                            oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')">
+
+                                        <span class="error text-danger"></span>
+
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    ACTION
+                                                                    ================================================= --}}
+                                    <td class="action-column">
+
+                                        @if ($i == $staff_count - 1)
+
+                                        <button type="button"
+                                            class="btn btn-success"
+                                            onclick="addStaffRows()">
+                                            + Add
+                                        </button>
+
+                                        @endif
+
+
+                                        @if ($i >= 2)
+
+                                        <button type="button"
+                                            class="btn btn-danger"
+                                            onclick="removeStaffRow(this)">
+                                            Remove
+                                        </button>
+
+                                        @endif
+
+                                    </td>
+
+
+                                    {{-- =================================================
+                                                                    EXISTING STAFF ID
+                                                                    ================================================= --}}
+                                    <input type="hidden"
+                                        name="staff_id[{{ $i }}]"
+                                        value="{{ $staff->id ?? '' }}">
+
+                                </tr>
+
+                                @endfor
+
+                        </tbody>
+
+                        @endif
+
+
+
+                    </table>
+                    <p class="text-red note_txt">Note : Minimum 20 Staffs are allowed and Mandatory ( 2 B)
+                    </p>
+                    <!-- <div class="row">
+                                    <div class="col-12 col-md-12">
+
+
+                                    </div>
+
+                                </div> -->
+                </div>
+
+
+
+            </div>
+
+        </div>
+
+
+
+        <hr class="mt-1">
+        <div class="row">
+            <div class="col-md-12  ">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label>6. Bank Solvency Certificate Details <span style="color: red;">*</span>
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="phone">(i) Name of the Bank and Address <span
+                                        style="color: red;">*</span></label>
+                            </div>
+
+                            <div class="col-12 col-md-12">
+                                <textarea class="form-control" name="bank_address"
+                                    placeholder="Name of the Bank and Address">{{ $banksolvency->bank_address ?? '' }}</textarea>
+                                <span class="error text-danger" id="bank_address_error"></span>
+                            </div>
+
+                        </div>
+
+
+                    </div>
+                    <div class="col-md-3">
+
+
+
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="comments">(ii). Validity Period <span
+                                        style="color: red;">*</span></label>
+                            </div>
+
+                            <div class="col-12 col-md-12">
+                                <input type="date" class="form-control" name="bank_validity"
+                                    placeholder="Validity"
+                                    value="{{ isset($banksolvency) && $banksolvency->bank_validity ? \Carbon\Carbon::parse($banksolvency->bank_validity)->format('Y-m-d') : '' }}">
+
+
+                                <span class="error text-danger" id="bank_validity_error"></span>
+                            </div>
+
+
+
+                        </div>
+                    </div>
+
+
+                    <!-- -------------------------------------- -->
+                    <div class="col-md-2">
+
+
+
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="comments">(iii). Amount Rs <span
+                                        style="color: red;">*</span></label>
+                            </div>
+
+                            <div class="col-12 col-md-12">
+                                <input type="number" class="form-control" id="bank_amount" max="99999"
+                                    oninput="if(this.value.length > 5) this.value = this.value.slice(0, 5);"
+                                    name="bank_amount" value="{{ $banksolvency->bank_amount ?? '' }}"
+                                    placeholder="Amount Rs">
+                                <span class="error text-danger" id="bank_amount_error"></span>
+                            </div>
+
+                        </div>
+                    </div>
+                    <!-- --------------------------------- -->
+                    <div class="col-md-4">
+
+
+
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="comments">(iv). Proof <span style="color: red;">*</span></label>
+                            </div>
+
+                            <div class="col-12 col-md-12" id="bank_doc_section">
+                                <div class="row">
+                                    <div class="col-12 col-md-8">
+                                        <input type="file" class="form-control" name="bank_doc"
+                                            id="bank_doc" accept="application/pdf">
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="text-danger Doc_upload_error"></span>
+
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <button type="button" class="btn btn-info upload-btn"
+                                            data-login_id="{{ Auth::user()->login_id }}"
+                                            data-module="BANK SOLVENCY DOCUMENT"
+                                            data-document_category="bank_doc"
+                                            data-document_sub_category="BSD" data-ownership_type=""
+                                            data-form_code="{{$form_code->id}}">
+                                            <i class="fa fa-upload"></i> Upload
+                                        </button>
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="col-md-12 mt-3 col-12 {{ empty($banksolvency->bank_doc) ? 'd-none' : '' }} file-link">
+                                    @if(!empty($banksolvency->bank_doc))
+                                    <a href="{{ asset($banksolvency->bank_doc) }}" target="_blank"
+                                        class="text-primary fw-bold">
+                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                    </a>
+                                    @endif
+                                </div>
+
+
+                                <span class="error text-danger" id="bank_doc_error"></span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <p class="text-red note_txt">Note : Minimum 1 years of Validity Period is Mandatory </p>
+                </div>
+
+                <hr class="">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="row align-items-center head_label">
+                            <div class="col-12 col-md-12 title_bar">
+                                <label> 7 and 8 Attachments Points</label>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-7">
+                                <label for="Name">7. Has the applicant or any of his/her
+                                    staff referred to under item 6, been at
+                                    any time convicted in any court of law
+                                    or punished by any other authority for
+                                    criminal offences <span style="color: red;">*</span>
+                                </label>
+                            </div>
+                            @php
+                            $criminal_offence = strtolower(old('criminal_offence', $application->criminal_offence ?? 'no'));
+                            @endphp
+
+                            <div class="col-12 col-md-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="criminal_offence_yes"
+                                        name="criminal_offence" value="yes" {{ $criminal_offence == 'yes' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="criminal_offence_yes">Yes</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="criminal_offence_no"
+                                        name="criminal_offence" value="no" {{ $criminal_offence == 'no' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="criminal_offence_no">No</label>
+                                </div>
+                                <span class="error text-danger" id="criminal_offence_error"></span>
+                            </div>
+
+                            <div class="col-12 col-md-3 mt-3 file_upload criminaloffence_file"
+                                style="{{ $criminal_offence == 'yes' ? '' : 'display:none;' }}">
+
+                                <div class="row">
+                                    <div class="col-12 col-md-8">
+
+                                        <input type="file" class="form-control" name="other_doc"
+                                            accept="application/pdf">
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="text-danger Doc_upload_error"></span>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <button type="button" class="btn btn-info upload-btn"
+                                            data-login_id="{{ Auth::user()->login_id }}"
+                                            data-module="OTHER DOCUMENT" data-document_category="other_doc"
+                                            data-document_sub_category="OHD"
+                                            data-ownership_type="criminaloffence"
+                                            data-form_code="{{$form_code->id}}">
+                                            <i class="fa fa-upload"></i> Upload
+                                        </button>
+                                    </div>
+
+                                </div>
+
+
+                                <span class="error text-danger" id="criminal_offence_doc_error"></span>
+
+                                @php
+                                $criminalOffenceDoc = isset($attachment_doc)
+                                ? $attachment_doc->where('type', 'criminaloffence')->first()
+                                : null;
+                                @endphp
+
+                                @if($criminalOffenceDoc && !empty($criminalOffenceDoc->file_doc))
+                                <div class="col-md-12 mt-1 col-12 file-link">
+                                    <a href="{{ asset($criminalOffenceDoc->file_doc) }}" target="_blank"
+                                        class="text-primary fw-bold">
+                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                    </a>
+                                </div>
+                                @endif
+                            </div>
+
+
+
+
+                        </div>
+                    </div>
+
+                </div>
+                <hr>
+
+
+                <div class="row mt-3">
+
+
+                    <div class="col-md-12">
+                        <div class="row border-right-12">
+                            <div class="col-12">
+                                <label for="Name">
+                                    8. The name of the person/persons whom the applicant has authorised to
+                                    sign if any, on his/their behalf in case of Proprietor or Partnership
+                                    concern
+                                </label>
+                            </div>
+
+                            <div class="col-12">
+                                <table class="table table-bordered" id="authority-names-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name of Signatory</th>
+                                            <th>Age of Signatory</th>
+                                            <th>Qualification of Signatory</th>
+                                            <th>Designation</th>
+                                            <th>Specimen Signature</th>
+                                            <th width="10%">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if(!$application)
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="name_of_authorised_to_sign[]"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="15" max="70" class="form-control"
+                                                    name="age_of_authorised_to_sign[]">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="designation_of_authorised_to_sign[]"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <div class="row">
+                                                    <div class="col-12 col-md-7">
+                                                        <input type="file" class="form-control"
+                                                            name="specimen_sign" id="specimen_sign"
+                                                            accept="application/pdf">
+                                                        <span class="file-limit">PDF only (Max 250
+                                                            KB)</span>
+                                                        <br>
+                                                        <span class="text-danger Doc_upload_error"></span>
+
+                                                    </div>
+                                                    <div class="col-12 col-md-5">
+                                                        <button type="button"
+                                                            class="btn btn-info upload-btn"
+                                                            data-login_id="{{ Auth::user()->login_id }}"
+                                                            data-module="SPECIMEN SIGN"
+                                                            data-document_category="specimen_sign"
+                                                            data-document_sub_category="SS"
+                                                            data-ownership_type=""
+                                                            data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-primary"
+                                                    id="add-more-authority-name">
+                                                    <i class="fa fa-plus"></i> Add More
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @else
+                                        @php
+                                        $authorisedNames = !empty($application->name_of_authorised_to_sign)
+                                        ? json_decode($application->name_of_authorised_to_sign, true)
+                                        : [];
+
+                                        $age_of_authorised_to_sign = !empty($application->age_of_authorised_to_sign)
+                                        ? json_decode($application->age_of_authorised_to_sign, true)
+                                        : [];
+
+                                        $qualification_of_authorised_to_sign = !empty($application->qualification_of_authorised_to_sign)
+                                        ? json_decode($application->qualification_of_authorised_to_sign, true)
+                                        : [];
+                                        @endphp
+
+                                        @if(count($authorisedNames) > 0)
+                                        @foreach($authorisedNames as $index => $name)
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="name_of_authorised_to_sign[]"
+                                                    value="{{ isset($authorisedNames[$index]) && trim($authorisedNames[$index]) !== 'null' ? trim($authorisedNames[$index]) : '' }}"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="15" max="70" class="form-control"
+                                                    name="age_of_authorised_to_sign[]"
+                                                    value="{{ isset($age_of_authorised_to_sign[$index]) ? $age_of_authorised_to_sign[$index] : '' }}">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    value="{{ isset($qualification_of_authorised_to_sign[$index]) && trim($qualification_of_authorised_to_sign[$index]) !== 'null' ? trim($qualification_of_authorised_to_sign[$index]) : '' }}"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                @if($index == 0)
+                                                <button type="button" class="btn btn-primary"
+                                                    id="add-more-authority-name">
+                                                    <i class="fa fa-plus"></i> Add More
+                                                </button>
+                                                @else
+                                                <button type="button"
+                                                    class="btn btn-danger remove-authority-name">
+                                                    <i class="fa fa-minus"></i> Remove
+                                                </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                        @else
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="name_of_authorised_to_sign[]"
+                                                    placeholder="Name of Authority"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="12" max="80" class="form-control"
+                                                    name="age_of_authorised_to_sign[]"
+                                                    placeholder="Age of Authority">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    placeholder="Qualification of Authority"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-primary"
+                                                    id="add-more-authority-name">
+                                                    <i class="fa fa-plus"></i> Add More
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endif
+                                        @endif
+                                    </tbody>
+                                </table>
+                                <p class="text-red note_txt">Note : Maximum 5 Signatories </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+
+
+                </div>
+                <hr>
+                <div class="row" style="display: none;">
+                    <div class="col-12 col-md-6 ">
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-5 ">
+                                <label for="Name">10. (i) Upload Photo
+                                </label>
+                                <br>
+                                <label for="tamil" class="tamil">புகைப்படத்தைப் பதிவேற்றவும்
+                                </label>
+                            </div>
+                            <div class="col-12 col-md-7">
+                                <input autocomplete="off" class="form-control text-box single-line"
+                                    id="upload_photo" name="upload_photo" type="file" value=""
+                                    accept="image/*">
+                                <span class="file-limit"> File type: JPG,PNG (Max 50 KB) </span>
+                                <span class="error text-danger" id="upload_photo_error"></span>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+                </div>
+
+                <hr>
+
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label> 9. Address Proof : GST/ Rental Aggrement/Others </label>
+
+                    </div>
+
+                </div>
+
+                <div class="row mt-2" id="address_proof">
+                    <div class="col-12 col-md-3">
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-5 ">
+                                <label for="Name">(i) Type of Address Proof <span
+                                        style="color: red;">*</span>
+                                </label>
+
+
+                            </div>
+                            <div class="col-12 col-md-7">
+                                @php
+
+                                $Address_proof = $Address_proof ?? null;
+
+                                $typeDoc = optional($Address_proof)->type_doc;
+                                @endphp
+
+                                <select class="custom-select" name="type_doc" id="type_doc">
+                                    <option value="">---Select Type---</option>
+
+                                    <option value="GST" {{ $typeDoc == 'GST' ? 'selected' : '' }}>
+                                        GST
+                                    </option>
+
+                                    <option value="Rental Agreement" {{ $typeDoc == 'Rental Agreement' ? 'selected' : '' }}>
+                                        Rental Agreement
+                                    </option>
+
+                                    <option value="Others" {{ $typeDoc == 'Others' ? 'selected' : '' }}>
+                                        Others
+                                    </option>
+                                </select>
+                                <span class="error text-danger" id="type_error"></span>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                    <!-- -------------------------------------------- -->
+                    <div class="col-12 col-md-4">
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-5 ">
+                                <label for="Name">(ii) GST/ Rental Aggrement/Others No: <span
+                                        style="color: red;">*</span>
+                                </label>
+
+
+                            </div>
+                            <div class="col-12 col-md-7">
+
+                                <input type="text" class="form-control text-box" name="addressproofno"
+                                    maxlength="15" id="addressproofno"
+                                    value="{{ $Address_proof->addressproofno ?? '' }}">
+                                <span class="error text-danger" id="addressproofno_error"></span>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-12 col-md-5">
+                        <div class="row ">
+                            <div class="col-12 col-md-3 ">
+                                <label for="Name">(iii) Upload Document
+                                </label>
+
+
+                            </div>
+                            <div class="col-12 col-md-9">
+
+
+                                <div class="row">
+                                    <div class="col-12 col-md-7">
+                                        <input type="file" class="form-control" name="address_proof"
+                                            id="address_proof" accept="application/pdf">
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="text-danger Doc_upload_error"></span>
+
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <button type="button" class="btn btn-info upload-btn"
+                                            data-login_id="{{ Auth::user()->login_id }}"
+                                            data-module="ADDRESS PROOF DOCUMENT"
+                                            data-document_category="Address_proof"
+                                            data-document_sub_category="APD" data-ownership_type=""
+                                            data-form_code="{{$form_code->id}}">
+                                            <i class="fa fa-upload"></i> Upload
+                                        </button>
+                                    </div>
+
+
+                                </div>
+
+                                <span class="error text-danger" id="gst_doc_error"></span>
+
+                                <div
+                                    class="col-md-12 mt-3 col-12 {{ empty($Address_proof->file_doc) ? 'd-none' : '' }} file-link">
+                                    @if(!empty($Address_proof->file_doc))
+                                    <a href="{{ asset($Address_proof->file_doc) }}" target="_blank"
+                                        class="text-primary fw-bold">
+                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                    </a>
+                                    @endif
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                </div>
+
+
+
+            </div>
+        </div>
+
+
+    </div>
+
+    <div class="tab " data-name="Equipment / Instruments List">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label> Equipment / Instruments : The applicant should possess the following
+                            instruments: <span style="color: red;">*</span></label>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row mt-2">
+
+            <div class="col-md-12">
+
+                @php
+                /*
+                If $equipmentlist is NOT passed (fresh form),
+                treat it as empty collection
+                */
+                $equipmentlist = $equipmentlist ?? collect();
+
+                /*
+                Create map:
+                equip_id => equipment_value
+                */
+                $storedEquipment = collect($equipmentlist)
+                ->pluck('equipment_value', 'equip_id')
+                ->toArray();
+                @endphp
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:2%">S.No</th>
+                                <th style="width:12%">Equipment Name</th>
+                                <th>Equipment Type</th>
+                                <th style="width:15%">Serial Number</th>
+                                <th style="width:15%">Make Model</th>
+
+                                <th>Test Report</th>
+                                <th>Purchase Report </th>
+                                <th style="width:8%">Date of Test </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            @foreach($equiplist as $index => $equip)
+                            @php
+                            $existing = $equipmentDetails[$equip->id] ?? null;
+                            @endphp
+                            @php
+                            /*
+                            If data exists → use DB value
+                            Else → default NO
+                            */
+                            $savedValue = $storedEquipment[$equip->id] ?? 'no';
+                            @endphp
+
+                            <!-- Hidden inputs -->
+                            <input type="hidden" name="equipments[{{ $index }}][equip_id]"
+                                value="{{ $equip->id }}">
+
+                            <input type="hidden" name="equipments[{{ $index }}][licence_id]"
+                                value="{{ $equip->equip_licence_name }}">
+
+                            <tr class="equipment-row">
+                                <td>{{ $index + 1 }}</td>
+
+                                <td>{{ $equip->equip_name }}</td>
+
+                                <td>{{ $equip->equipment_type }}</td>
+
+                                <!-- <td>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input"
+                                                                type="radio"
+                                                                name="equipments[{{ $index }}][value]"
+                                                                value="yes"
+                                                                {{ $savedValue === 'yes' ? 'checked' : '' }}>
+                                                            <label class="form-check-label">Yes</label>
+                                                        </div>
+
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input"
+                                                                type="radio"
+                                                                name="equipments[{{ $index }}][value]"
+                                                                value="no"
+                                                                {{ $savedValue === 'no' ? 'checked' : '' }}>
+                                                            <label class="form-check-label">No</label>
+                                                        </div>
+                                                    </td> -->
+                                <td>
+
+                                    <input class="form-control" type="text" name="serial_no[]"
+                                        value="{{ $existing->serial_no ?? '' }}">
+                                    <span class="error text-danger serial_error"></span>
+
+                                </td>
+
+                                <td>
+
+                                    <input class="form-control" type="text" name="model[]"
+                                        value="{{ $existing->model_no ?? '' }}">
+                                    <span class="error text-danger model_error"></span>
+
+                                </td>
+
+                                <td width="20%">
+                                    <div class="row g-1 align-items-start">
+                                        <div class="col-md-9">
+                                            <input type="file" class="form-control"
+                                                name="instrument_test_report[{{ $index }}]"
+                                                id="instrument_test_report_{{ $index }}"
+                                                accept="application/pdf">
+                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                            <br>
+                                            <span class="text-danger Doc_upload_error"></span>
+
+                                            @if(!empty($existing->testreport_file))
+                                            <div class="mt-1">
+                                                <a href="{{ asset($existing->testreport_file) }}"
+                                                    target="_blank"
+                                                    class="text-primary fw-bold present-test-file uploaded-file">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                    Document
+                                                </a>
+                                            </div>
+                                            @endif
+
+                                            <span class="error text-danger"
+                                                id="instrument_test_report_error_{{ $index }}"></span>
+
+                                            <span
+                                                class="error text-danger instrument_test_report_error"></span>
+
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <button type="button" class="btn btn-info upload-btn"
+                                                data-index="{{ $index }}"
+                                                data-login_id="{{ Auth::user()->login_id }}"
+                                                data-module="EQUIPMENTS DOCUMENT"
+                                                data-document_category="instrument_test_report"
+                                                data-ownership_type="tr" data-document_sub_category="ED"
+                                                data-form_code="{{$form_code->id}}"
+                                                data-equip_code="{{ $equip->id }}">
+                                                <i class="fa fa-upload"></i>
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+
+                                </td>
+
+                                <!-- --------------------------------------- -->
+                                <td width="20%">
+
+                                    <div class="row g-1 align-items-start">
+                                        <div class="col-md-9">
+
+                                            <input type="file" class="form-control"
+                                                name="instrument_purchase_report[{{ $index }}]"
+                                                id="instrument_purchase_report_{{ $index }}"
+                                                accept="application/pdf">
+                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                            <br>
+                                            <span class="text-danger Doc_upload_error"></span>
+                                            <span class="error text-danger"
+                                                id="instrument_purchase_report_error_{{ $index }}"></span>
+                                            <span
+                                                class="error text-danger instrument_purchase_report_error"></span>
+
+                                            @if(!empty($existing->purchasereport_file))
+                                            <div class="mt-1">
+                                                <a href="{{ asset($existing->purchasereport_file) }}"
+                                                    target="_blank"
+                                                    class="text-primary fw-bold present-purchase-file uploaded-file">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                    Document
+                                                </a>
+                                            </div>
+                                            @endif
+                                        </div>
+                                        <div class="col-md-3">
+
+                                            <button type="button" class="btn btn-info upload-btn"
+                                                data-index="{{ $index }}"
+                                                data-login_id="{{ Auth::user()->login_id }}"
+                                                data-module="EQUIPMENTS DOCUMENT" data-ownership_type="pr"
+                                                data-document_category="instrument_purchase_report"
+                                                data-document_sub_category="ED"
+                                                data-form_code="{{$form_code->id}}"
+                                                data-equip_code="{{ $equip->id }}">
+                                                <i class="fa fa-upload"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+
+                                    <input class="form-control" type="date" name="date_of_test[]"
+                                        value="{{ $existing->dateoftest ?? '' }}">
+
+                                    <span class="error text-danger date_error"></span>
+
+                                </td>
+                                <!-- -------------------------------------------- -->
+                            </tr>
+
+                            @endforeach
+
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+
+
+
+
+                <p class="text-danger mt-2">
+                    <strong>Note:</strong>
+                    These instruments should be tested in Government Electrical Standards Laboratory
+                    attached to the office of the Chief Electrical Inspector to Government, Chennai-32
+                    or in the MRT Laboratory of TNEB within 3 months prior to the date of application.
+                </p>
+
+            </div>
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+        <!-- -------------Equip end----------- -->
+
+
+    </div>
+
+
+    <div class="tab" data-name="Enclosures & Declarations">
+
+
+
+
+        <div class="row enclosures">
+            <div class="col-12 col-md-12 title_bar">
+                <label> Enclosures : </label>
+
+            </div>
+            <div class="col-12 col-md-12 ">
+
+                <ul>
+                    <li>1. Bank Demand Draft in favour of the Secretary, Electrical Licensing Board,
+                        Chennai.</li>
+                    <li>2. Consent letters obtained from employees (including self) in the prescribed form.
+                    </li>
+                    <li>3. Detailed experience certificate of the appointed Supervisor (original & attested
+                        copy).</li>
+                    <li>4. Original Competency Certificates of staff (including self).</li>
+                    <li>5. Test reports of instruments from Government Electrical Standards Laboratory or
+                        MRT Laboratory of TNEB.</li>
+                    <li>6. Specimen signature of the contractor and authorized person (in triplicate, on a
+                        separate sheet).</li>
+                    <li>7. Bank Solvency Certificate of Rs.50,000/- in Form ‘G’ (valid for a Maximum of
+                        three years).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="row head_label">
+
+            <div class="col-12 col-md-12 title_bar">
+                <label> Declaration </label>
+
+            </div>
+
+            <label class="container mt-2">
+                <div class="declaration-container">
+                    <input type="checkbox" id="declarationCheckbox" name="declaration1" value="1">
+                    <span class="checkmark"></span>
+                    <div>
+                        I/We hereby declare that the particulars stated above are correct to the best of
+                        my/our knowledge and belief.
+                    </div>
+                </div>
+                <span class="error text-danger" id="declaration3_error"></span>
+                <!-- <p id="declaration1_error" class="error text-danger" style="display: none;">
+                                ⚠ Please check the declaration box before proceeding.
+                            </p> -->
+            </label>
+
+            <label class="container">
+                <div class="declaration-container">
+                    <input type="checkbox" id="declarationCheckbox1" name="declaration2" value="1">
+                    <span class="checkmark"></span>
+                    <div>
+                        I/We hereby declare that I/We have in my/our possession a latest copy of the Indian
+                        Electricity Rules, 1956 and that I/We fully understand the terms and conditions
+                        under which an Electrical
+                        Contractor's licence is granted, breach of which will render the licence liable for
+                        cancellation.
+                    </div>
+                </div>
+                <span class="error text-danger" id="declaration4_error"></span>
+                <!-- <p id="declaration2_error" class="error text-danger" style="display: none;">
+                                ⚠ Please check the declaration box before proceeding.
+                            </p> -->
+            </label>
+
+
+        </div>
+    </div>
+
+
+    <nav class="tab-pag"></nav>
+    </div>
+
+    </form>
+
+
+    </div>
+</section>
+
+
+
+
+
+
+
+
+
+<footer class="main-footer">
+    @include('include.footer')
+    @if (request()->is('apply-form-a_d'))
+    <script src="{{ url('assets/js/digitization_cl.js') }}"></script>
+    @endif
+    <script>
+        $(document).ready(async function() {
+            var modalEl = document.getElementById('rolePop');
+            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+
+            $('.btn-secondary, .btn-close').click(function() {
+
+                window.location.href = "{{ route('dashboard') }}";
+
+            });
+        });
+    </script>
+    <script>
+        // Function to show the draft saved popup
+        function showDraftPopup() {
+            document.getElementById('draftPopup').style.display = 'flex';
+        }
+
+        // Function to close the popup
+        function closeDraftPopup() {
+            document.getElementById('draftPopup').style.display = 'none';
+        }
+
+        // Attach event listener to the "Save As Draft" button
+        document.querySelector('.btn-primary').addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent form submission
+            showDraftPopup(); // Show the popup
+        });
+    </script>
+
+    <script>
+        const hasApplication = {{isset($application) ? 'true' : 'false'}};
+    </script>
+
+    <script>
+        var tabs = function(id) {
+            this.el = document.getElementById(id);
+
+            this.tab = {
+                el: '.tab',
+                list: null
+            };
+
+            this.nav = {
+                el: '.tab-nav',
+                list: null
+            };
+
+            this.pag = {
+                el: '.tab-pag',
+                list: null
+            };
+
+            this.count = null;
+            this.selected = 0;
+
+            this.init = function() {
+                // Create tabs
+                this.tab.list = this.createTabList();
+                this.count = this.tab.list.length;
+
+                // Create nav
+                this.nav.list = this.createNavList();
+                this.renderNavList();
+
+                // Create pag
+                this.pag.list = this.createPagList();
+                this.renderPagList();
+
+                // Load saved data
+                this.loadDraft();
+
+                // Set selected tab
+                this.setSelected(this.selected);
+            };
+
+            this.createTabList = function() {
+                var list = [];
+                this.el.querySelectorAll(this.tab.el).forEach(function(el, i) {
+                    list[i] = el;
+                });
+                return list;
+            };
+
+            this.createNavList = function() {
+                var list = [];
+                this.tab.list.forEach(function(el, i) {
+                    var listitem = document.createElement('a');
+                    listitem.className = 'nav-item';
+                    listitem.innerHTML = el.getAttribute('data-name');
+                    listitem.onclick = function() {
+                        this.setSelected(i);
+                        return false;
+                    }.bind(this);
+                    list[i] = listitem;
+                }.bind(this));
+                return list;
+            };
+
+            this.createPagList = function() {
+                var list = [];
+
+                list.prev = document.createElement('a');
+                list.prev.className = 'pag-item btn btn-primary text-white';
+                list.prev.innerHTML = 'Prev';
+                list.prev.onclick = function() {
+                    this.setSelected(this.selected - 1);
+                    return false;
+                }.bind(this);
+
+                list.next = document.createElement('a');
+                list.next.className = 'pag-item pag-item-next btn btn-primary text-white';
+                list.next.innerHTML = 'Next';
+                list.next.onclick = function() {
+                    this.setSelected(this.selected + 1);
+                    return false;
+                }.bind(this);
+
+                list.saveDraft_draft = document.createElement('button');
+                list.saveDraft_draft.className = 'pag-item btn btn-info text-white save-draft';
+                list.saveDraft_draft.innerHTML = 'Save as Draft';
+
+                // Save as Draft button
+                list.saveDraft = document.createElement('button');
+                list.saveDraft.className = 'pag-item btn btn-info text-white save-draft';
+                list.saveDraft.innerHTML = 'Save as Draft';
+
+                list.saveDraft.type = 'submit';
+                // list.saveDraft.onclick = this.saveDraft.bind(this);
+
+                list.submit = document.createElement('button');
+                list.submit.className = 'pag-item btn btn-success text-white submit-final';
+                list.submit.type = 'submit';
+                list.submit.innerHTML = 'Save & Proceed Payment';
+
+                return list;
+            };
+
+            this.renderNavList = function() {
+                var nav = document.querySelector(this.nav.el);
+                this.nav.list.forEach(function(el) {
+                    nav.appendChild(el);
+                });
+            };
+
+            this.renderPagList = function() {
+                var pag = document.querySelector(this.pag.el);
+                pag.appendChild(this.pag.list.prev);
+                pag.appendChild(this.pag.list.saveDraft_draft);
+                pag.appendChild(this.pag.list.next);
+                pag.appendChild(this.pag.list.saveDraft); // Add "Save as Draft"
+                pag.appendChild(this.pag.list.submit);
+            };
+
+            this.setSelected = function(target) {
+                var min = 0,
+                    max = this.count - 1;
+                if (target > max || target < min) return;
+
+                this.pag.list.prev.classList.toggle('hidden', target === min);
+                this.pag.list.next.classList.toggle('hidden', target === max);
+                this.pag.list.saveDraft_draft.classList.toggle('hidden', target === max);
+                this.pag.list.submit.classList.toggle('hidden', target !== max);
+                this.pag.list.saveDraft.classList.toggle('hidden', target !== max);
+
+                this.tab.list[this.selected].classList.remove('selected');
+                this.nav.list[this.selected].classList.remove('selected');
+
+                this.selected = target;
+                this.tab.list[this.selected].classList.add('selected');
+                this.nav.list[this.selected].classList.add('selected');
+            };
+
+            // Function to save form data as a draft
+            // this.saveDraft = function() {
+            //     let formData = {};
+            //     this.el.querySelectorAll("input, textarea").forEach(field => {
+            //         formData[field.name] = field.value;
+            //     });
+
+            //     localStorage.setItem("draftData", JSON.stringify(formData));
+            //     alert("Draft saved successfully!");
+            // };
+
+            // Load saved draft data
+            this.loadDraft = function() {
+                if (localStorage.getItem("draftData")) {
+                    const savedData = JSON.parse(localStorage.getItem("draftData"));
+                    Object.keys(savedData).forEach(name => {
+                        const field = this.el.querySelector(`[name="${name}"]`);
+                        if (field) field.value = savedData[name];
+                    });
+                }
+            };
+
+        };
+
+        var tabbedForm = new tabs('tabbedForm');
+        tabbedForm.init();
+    </script>
+    <!-- const initialDraftCount = {{ count($proprietors) ?? 0 }};
+let proprietorCount = initialDraftCount || 0;
+
+
+
+
+        // let proprietorCount = typeof initialDraftCount !== "undefined" ? initialDraftCount : 1;
+
+                let maxProprietors;
+            if (!initialDraftCount) {
+                maxProprietors = 3;
+            } else {
+                maxProprietors = 4;
+            } -->
+
+
+    <script>
+        function toggleCompetencyFields(type, show) {
+            let fieldsClass = '';
+            if (type === 'proprietor') {
+                fieldsClass = '.competency-fields-proprietor';
+            } else if (type === 'partner') {
+                fieldsClass = '.competency-fields-partner';
+            } else {
+                fieldsClass = '.competency-fields-director';
+            }
+
+            const fields = document.querySelectorAll(fieldsClass);
+            fields.forEach(field => {
+                field.style.display = show ? '' : 'none';
+
+                const numberInput = field.querySelector('.competency_number');
+                const validityInput = field.querySelector('.competency_validity');
+                const verifyInput = field.querySelector('.proprietor_cc_verify, .partner_cc_verify');
+                const resultDiv = field.querySelector('.competency_verify_result');
+
+                if (show) {
+                    if (numberInput) numberInput.value = '';
+                    if (validityInput) validityInput.value = '';
+                    if (verifyInput) verifyInput.value = '';
+                    if (resultDiv) resultDiv.textContent = '';
+                }
+            });
+        }
+
+
+        function toggleEmploymentFields(type, show) {
+            let fieldsClass = '';
+
+            if (type === 'proprietor') {
+                fieldsClass = '.employment-fields-proprietor';
+            } else if (type === 'partner') {
+                fieldsClass = '.employment-fields-partner';
+            } else {
+                fieldsClass = '.employment-fields-director';
+            }
+
+            const fields = document.querySelectorAll(fieldsClass);
+            fields.forEach(field => {
+                field.style.display = show ? '' : 'none';
+
+                if (show) {
+                    const inputs = field.querySelectorAll('input, textarea, select');
+                    inputs.forEach(input => {
+                        input.value = '';
+                        input.readOnly = false;
+                        input.disabled = false;
+                    });
+                }
+            });
+        }
+
+
+
+
+        function toggleAuthorisedFields(show) {
+            document.querySelectorAll(".authorised-fields").forEach(field => {
+                field.style.display = show ? "block" : "none";
+            });
+
+
+        }
+
+
+        // ------------------radiobutton clicked---------------
+
+        // function toggleAuthorisedFields(show) {
+        //     const section = document.querySelector('.authorised-fields');
+        //     if (show) {
+        //         section.style.display = 'block';
+        //     } else {
+        //         section.style.display = 'none';
+        //         // Optionally clear values:
+        //         document.getElementById('authorised_name').value = '';
+        //         document.getElementById('authorised_designation').value = '';
+        //     }
+        // }
+        // -------------------------------
+
+
+        function toggleExperienceFields(type, show) {
+
+            let fieldsClass = '';
+
+            if (type === 'proprietor') {
+                fieldsClass = '.experience-fields-proprietor';
+            } else if (type === 'partner') {
+                fieldsClass = '.experience-fields-partner';
+            } else {
+                fieldsClass = '.experience-fields-director';
+            }
+
+            const fields = document.querySelectorAll(fieldsClass);
+            // const fields = document.querySelectorAll('.experience-fields');
+
+            fields.forEach(field => {
+                field.style.display = show ? '' : 'none';
+
+                if (show) {
+                    const inputs = field.querySelectorAll('input, textarea, select');
+                    inputs.forEach(input => {
+                        input.value = '';
+                        input.readOnly = false;
+                        input.disabled = false;
+                    });
+                }
+            });
+        }
+        //    function toggleAuthorisedFields(show) {
+        //     const section = document.querySelector('.authorised-fields');
+        //     if (section) {
+        //         section.style.display = show ? 'block' : 'none';
+        //     }
+        // }
+
+        // // On page load, check if old or default value is 'yes'
+        // document.addEventListener("DOMContentLoaded", function () {
+        //     const selected = document.querySelector('input[name="authorised_name_designation"]:checked');
+        //     if (selected) {
+        //         toggleAuthorisedFields(selected.value === 'yes');
+        //     }
+        // });
+        function toggleAuthorisedFields(show) {
+            const section = document.querySelector('.authorised-fields');
+
+            if (section) {
+                if (show) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+
+                    // Clear all input values inside the authorised-fields section
+                    const inputs = section.querySelectorAll('input');
+                    inputs.forEach(input => input.value = '');
+                }
+            }
+        }
+
+        // On page load, show/hide based on previously selected radio
+        document.addEventListener("DOMContentLoaded", function() {
+            const selected = document.querySelector('input[name="authorised_name_designation"]:checked');
+            if (selected) {
+                toggleAuthorisedFields(selected.value === 'yes');
+            }
+        });
+
+        function togglePreviousLicenseFields(show) {
+            const section = document.querySelector(".previous-license-fields");
+
+            if (!section) return;
+
+            section.style.display = show ? "block" : "none";
+
+            if (!show) {
+                // Clear all input values and remove readonly
+                const inputs = section.querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.value = '';
+                    input.removeAttribute('readonly');
+                });
+
+                // Reset verification result display
+                const verifyResult = document.getElementById("verifyea_result");
+                if (verifyResult) verifyResult.innerHTML = '';
+
+                // Reset hidden verification input to 0
+                const verifyInput = section.querySelector('input.previous_contractor_license_verify');
+                if (verifyInput) verifyInput.value = '0';
+
+                // Replace Clear button with Verify button
+                const wrapper = document.getElementById("licenseVerificationBtnWrapper");
+                if (wrapper) {
+                    wrapper.innerHTML = `
+                            <button type="button" class="btn btn-primary" id="verifyLicenseBtn" onclick="verifyeaCertificateprevoius(event, this)">Verify</button>
+                              <input
+                                                type="hidden"
+                                                name="previous_contractor_license_verify"
+                                                class="previous_contractor_license_verify"
+                                                value="{{ $application?->previous_contractor_license_verify ?? '' }}">
+                        `;
+                }
+            }
+        }
+
+
+        // On page load, show/hide section based on saved value
+        document.addEventListener("DOMContentLoaded", function() {
+            const selected = document.querySelector('input[name="previous_contractor_license"]:checked');
+            togglePreviousLicenseFields(selected?.value === 'yes');
+        });
+
+        function setDateRestrictions(input) {
+            input.type = 'date';
+            let currentYear = new Date().getFullYear();
+            input.min = "1970-01-01";
+            input.max = currentYear + "-12-31";
+        }
+
+        function setDateRestrictions(input) {
+            input.type = 'date';
+
+            // Set max as today
+            const today = new Date().toISOString().split('T')[0];
+            input.max = today;
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            let applicantNameInput = document.getElementById("applicant_name");
+            if (applicantNameInput) {
+
+                applicantNameInput.addEventListener("focus", function() {
+                    this.addEventListener("input", function() {
+                        this.value = this.value.replace(/[^A-Za-z\s]/g, ''); // Allow only letters and spaces
+                    });
+                });
+
+            }
+        });
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            let applicantNameInput = document.getElementById("staff_name");
+            if (applicantNameInput) {
+                applicantNameInput.addEventListener("focus", function() {
+                    this.addEventListener("input", function() {
+                        this.value = this.value.replace(/[^A-Za-z\s]/g, ''); // Allow only letters and spaces
+                    });
+                });
+            }
+        });
+
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            let applicantNameInput = document.getElementById("fathers_name");
+
+            if (applicantNameInput) {
+                applicantNameInput.addEventListener("focus", function() {
+                    this.addEventListener("input", function() {
+                        this.value = this.value.replace(/[^A-Za-z\s]/g, ''); // Allow only letters and spaces
+                    });
+                });
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            function restrictInputToLetters(inputElement) {
+                inputElement.addEventListener("input", function() {
+                    this.value = this.value.replace(/[^A-Za-z\s]/g, ''); // Allow only letters and spaces
+                });
+            }
+
+            let staffNameInput = document.getElementById("staff_name");
+            if (staffNameInput) {
+                restrictInputToLetters(staffNameInput);
+            }
+
+
+
+            let proprietorNameInputs = document.querySelectorAll("[name='proprietor_name[]']");
+            proprietorNameInputs.forEach(function(input) {
+                restrictInputToLetters(input);
+            });
+
+            let fathermeInputs = document.querySelectorAll("[name='fathers_name[]']");
+            fathermeInputs.forEach(function(input) {
+                restrictInputToLetters(input);
+            });
+
+
+
+            let presently_employed_nameInputs = document.querySelectorAll("[name='presently_employed_name[]']");
+            presently_employed_nameInputs.forEach(function(input) {
+                restrictInputToLetters(input);
+            });
+
+            let previous_experience_nameInputs = document.querySelectorAll("[name='previous_experience_name[]']");
+            previous_experience_nameInputs.forEach(function(input) {
+                restrictInputToLetters(input);
+            });
+
+            let name_of_authorised_to_sign = document.querySelectorAll("[name='name_of_authorised_to_sign[]']");
+            name_of_authorised_to_sign.forEach(function(input) {
+                restrictInputToLetters(input);
+            });
+        });
+
+
+        // document.addEventListener("DOMContentLoaded", function() {
+        //     let ageInput = document.getElementById("age");
+
+        //     ageInput.addEventListener("input", function() {
+        //         let value = parseInt(this.value, 10);
+        //         if (value >= 50) {
+        //             this.value = 49; // Set max limit to 49
+        //         } else if (value < 0 || isNaN(value)) {
+        //             this.value = ""; // Prevent negative numbers or invalid input
+        //         }
+        //     });
+        // });
+
+
+
+        const authorityTableBody = document.querySelector('#authority-names-table tbody');
+        const authorityMaxRows = 5;
+
+        document.addEventListener('click', function(e) {
+
+            // ============================
+            // REMOVE ROW
+            // ============================
+            const removeBtn = e.target.closest('.remove-authority-name');
+
+            if (removeBtn) {
+                const row = removeBtn.closest('tr');
+
+                if (row) {
+                    row.remove();
+                }
+
+                return;
+            }
+
+            // ============================
+            // ADD NEW ROW
+            // ============================
+            const addBtn = e.target.closest('#add-more-authority-name');
+
+            if (!addBtn) {
+                return;
+            }
+
+            const rows = authorityTableBody.querySelectorAll('tr');
+
+            // Maximum 5 rows
+            if (rows.length >= authorityMaxRows) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Limit Reached',
+                    width: 450,
+                    text: `You can add a maximum of ${authorityMaxRows} authority names.`,
+                    confirmButtonColor: '#3085d6'
+                });
+
+                return;
+            }
+
+            // Get last row
+            const lastRow = rows[rows.length - 1];
+
+            let allFilled = true;
+
+            // Check all text/number inputs in last row
+            lastRow.querySelectorAll(
+                'input[type="text"], input[type="number"]'
+            ).forEach(function(input) {
+
+                if (!input.value.trim()) {
+                    allFilled = false;
+                }
+            });
+
+            // Check specimen file also
+            const specimenFile = lastRow.querySelector(
+                'input[type="file"][name="specimen_sign"]'
+            );
+
+            if (specimenFile && !specimenFile.value) {
+                allFilled = false;
+            }
+
+            if (!allFilled) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Incomplete Row',
+                    width: 450,
+                    text: 'Fill all fields in the last row before adding a new one.',
+                    confirmButtonColor: '#3085d6'
+                });
+
+                return;
+            }
+
+            // ============================
+            // CLONE LAST ROW
+            // ============================
+            const newRow = lastRow.cloneNode(true);
+
+            // Clear input values
+            newRow.querySelectorAll('input').forEach(function(input) {
+
+                if (input.type === 'file') {
+                    input.value = '';
+                } else {
+                    input.value = '';
+                }
+            });
+
+            // Clear upload error
+            newRow.querySelectorAll('.Doc_upload_error').forEach(function(error) {
+                error.textContent = '';
+            });
+
+            // Change button to Remove
+            const newAddButton = newRow.querySelector('#add-more-authority-name');
+
+            if (newAddButton) {
+                newAddButton.removeAttribute('id');
+                newAddButton.className = 'btn btn-danger remove-authority-name';
+                newAddButton.innerHTML = '<i class="fa fa-minus"></i> Remove';
+            }
+
+            // Add new row
+            authorityTableBody.appendChild(newRow);
+        });
+
+
+        // ----license check---------------
+        function clearPreviousLicense() {
+            // alert('111');
+            const numberInput = document.getElementById('previous_application_number');
+            const validityInput = document.getElementById('previous_application_validity');
+            const hiddenInput = document.querySelector('.previous_contractor_license_verify');
+            const statusDiv = document.querySelector('.license-status');
+            const resultDiv = document.getElementById('verifyea_result');
+
+            // Make inputs editable & clear values
+            if (numberInput) {
+                numberInput.removeAttribute('readonly');
+                numberInput.value = '';
+            }
+            if (validityInput) {
+                validityInput.removeAttribute('readonly');
+                validityInput.value = '';
+            }
+
+            // Reset hidden verification field
+            if (hiddenInput) {
+                hiddenInput.value = '0';
+            }
+
+            // Clear the license status (Valid / Invalid)
+            if (statusDiv) {
+                statusDiv.innerHTML = '';
+            }
+
+            // Clear AJAX verification result
+            if (resultDiv) {
+                resultDiv.textContent = '';
+            }
+
+            // Replace Clear with Verify button
+            document.getElementById('licenseVerificationBtnWrapper').innerHTML = `
+        <button type="button" class="btn btn-primary" id="verifyLicenseBtn" onclick="verifyeaCertificateprevoius(event, this)">Verify</button>
+          <input
+                                                type="hidden"
+                                                name="previous_contractor_license_verify"
+                                                class="previous_contractor_license_verify"
+                                                value="{{ $application?->previous_contractor_license_verify ?? '' }}">
+    `;
+        }
+
+
+        // --------------------------proprietorCC check ---------------------
+        function clearCompetencyVerification(button) {
+            const container = button.closest('.row');
+
+            // Target inputs
+            const numberInput = container.querySelector('.competency_number');
+            const validityInput = container.querySelector('.competency_validity');
+            const hiddenVerifyInput = container.querySelector('.proprietor_cc_verify');
+
+            // Enable inputs and clear values
+            if (numberInput) {
+                numberInput.readOnly = false;
+                numberInput.value = ''; // Clear value
+            }
+            if (validityInput) {
+                validityInput.readOnly = false;
+                validityInput.value = ''; // Clear value
+            }
+
+            // Remove "Clear" button
+            button.remove();
+
+            // Create and insert "Verify" button
+            const verifyBtn = document.createElement('button');
+            verifyBtn.type = 'button';
+            verifyBtn.className = 'btn btn-primary mt-3 verify-btn';
+            verifyBtn.innerText = 'Verify';
+            verifyBtn.setAttribute('onclick', 'verifyCompetencyCertificate(event, this)');
+
+            const buttonCol = container.querySelector('.col-md-2');
+            if (buttonCol) {
+                buttonCol.appendChild(verifyBtn);
+            }
+
+            // Reset hidden input (backend flag)
+            if (hiddenVerifyInput) {
+                hiddenVerifyInput.value = '';
+            }
+
+            // Clear result message
+            const resultDiv = container.querySelector('.competency_verify_result');
+            if (resultDiv) {
+                resultDiv.textContent = '';
+            }
+
+            // Clear "Valid/Invalid License" status
+            const statusDiv = container.querySelector('.license-status');
+            if (statusDiv) {
+                statusDiv.innerHTML = ''; // remove both valid & invalid messages
+            }
+        }
+
+
+        // ------------contractor cc verify--------------------------
+        function clearContractorLicenseVerification(button) {
+            const container = button.closest('.row');
+
+            // Target inputs
+            const licenseInput = container.querySelector('.ea_license_number');
+            const validityInput = container.querySelector('.ea_validity');
+            const hiddenVerifyInput = container.querySelector('.proprietor_contractor_verify');
+            const resultDiv = container.querySelector('.competency_verifyea_result');
+
+            // Make inputs editable & clear values
+            if (licenseInput) {
+                licenseInput.readOnly = false;
+                licenseInput.value = ''; // clear value
+            }
+            if (validityInput) {
+                validityInput.readOnly = false;
+                validityInput.value = ''; // clear value
+            }
+
+            // Remove Clear button
+            button.remove();
+
+            // Create and insert Verify button
+            const verifyBtn = document.createElement('button');
+            verifyBtn.type = 'button';
+            verifyBtn.className = 'btn btn-primary mt-3 verify-btn';
+            verifyBtn.innerText = 'Verify';
+            verifyBtn.setAttribute('onclick', 'verifyeaCertificate(event, this)');
+
+            const buttonCol = container.querySelector('.col-md-2');
+            if (buttonCol) {
+                buttonCol.appendChild(verifyBtn);
+            }
+
+            // Clear the hidden verification value
+            if (hiddenVerifyInput) {
+                hiddenVerifyInput.value = '';
+            }
+
+            // Clear result message
+            if (resultDiv) {
+                resultDiv.textContent = '';
+            }
+
+            // Clear "Valid/Invalid License" status
+            const statusDiv = container.querySelector('.license-status');
+            if (statusDiv) {
+                statusDiv.innerHTML = ''; // remove status
+            }
+        }
+
+
+
+
+        // --------------------------
+
+        $(document).on('click', '.clearBtn', function() {
+            let row = $(this).closest('tr');
+
+            // Make inputs editable
+            row.find('.cc_number, .cc_validity').prop('readonly', false);
+
+            // Update hidden input
+            row.find('.staff_cc_verify').val('0');
+
+            // Remove 'Clear' button and add 'Verify' button
+            $(this).replaceWith(`
+            <button type="button" class="btn btn-primary verifyBtn" onclick="validatestaffcertificate(event, this)">Verify</button>
+        `);
+        });
+    </script>
+
+
+    <!-- ------------------aadhaar check-------------------- -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const removeBtn = document.getElementById('remove-aadhaar-doc');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    const existingRow = document.getElementById('aadhaar-existing-row');
+                    const fileRow = document.getElementById('aadhaar-file-row');
+
+                    if (existingRow) existingRow.remove();
+                    if (fileRow) fileRow.style.display = 'flex';
+                });
+            }
+        });
+    </script>
+    <!-- ----------------------aadhaar documents-------------- -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const removeBtn = document.getElementById('remove-aadhaar-doc');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    // Remove the existing row (preview + hidden input)
+                    const existingRow = document.getElementById('aadhaar-existing-row');
+                    if (existingRow) existingRow.remove();
+
+                    // Show the file input row
+                    const fileRow = document.getElementById('aadhaar-file-row');
+                    if (fileRow) fileRow.style.display = 'flex';
+                });
+            }
+
+            const panRemoveBtn = document.getElementById('remove-pan-doc');
+            if (panRemoveBtn) {
+                panRemoveBtn.addEventListener('click', function() {
+                    const existingRow = document.getElementById('pan-existing-row');
+                    if (existingRow) existingRow.remove();
+
+                    const fileRow = document.getElementById('pan-file-row');
+                    if (fileRow) fileRow.style.display = 'flex';
+                });
+            }
+
+            const gstRemoveBtn = document.getElementById('remove-gst-doc');
+            if (gstRemoveBtn) {
+                gstRemoveBtn.addEventListener('click', function() {
+                    const existingRow = document.getElementById('gst-existing-row');
+                    if (existingRow) existingRow.remove();
+
+                    const fileRow = document.getElementById('gst-file-row');
+                    if (fileRow) fileRow.style.display = 'flex';
+                });
+            }
+
+        });
+        // draft---------proprietorCount index--------
+        function toggleEmploymentFieldsdraft(show, index) {
+            const fields = document.querySelectorAll(`.employment-fields-${index}`);
+
+            fields.forEach(field => {
+                field.style.display = show ? 'block' : 'none';
+
+                if (show) {
+                    // Clear all input fields inside the block when toggled back to Yes
+                    const inputs = field.querySelectorAll('input, textarea, select');
+                    inputs.forEach(input => {
+                        input.value = '';
+                        input.readOnly = false;
+                        input.disabled = false;
+                    });
+                }
+            });
+
+
+        }
+
+        function toggleCompetencyFieldsdraft(show, index) {
+            const fields = document.querySelectorAll(`.competency-fields-${index}`);
+
+            fields.forEach(field => {
+                field.style.display = show ? '' : 'none';
+            });
+
+            if (show) {
+                // Clear the inputs when switching back to 'Yes'
+                const row = fields[0]?.closest('.row');
+                if (!row) return;
+
+                const numberInput = row.querySelector('.competency_number');
+                const validityInput = row.querySelector('.competency_validity');
+                const verifyInput = row.querySelector('.proprietor_cc_verify');
+                const resultDiv = row.querySelector('.competency_verify_result');
+
+                if (numberInput) {
+                    numberInput.value = '';
+                    numberInput.readOnly = false;
+                }
+
+                if (validityInput) {
+                    validityInput.value = '';
+                    validityInput.readOnly = false;
+                }
+
+                if (verifyInput) {
+                    verifyInput.value = '';
+                }
+
+                if (resultDiv) {
+                    resultDiv.textContent = '';
+                }
+
+                // Replace Clear button with Verify button if necessary
+                const btnCol = row.querySelector('.col-md-2');
+                const clearBtn = btnCol?.querySelector('.clear-btn');
+                if (clearBtn) {
+                    clearBtn.remove();
+
+                    const verifyBtn = document.createElement('button');
+                    verifyBtn.type = 'button';
+                    verifyBtn.className = 'btn btn-primary mt-3 verify-btn';
+                    verifyBtn.textContent = 'Verify';
+                    verifyBtn.setAttribute('onclick', 'verifyCompetencyCertificate(event, this)');
+                    btnCol.appendChild(verifyBtn);
+                }
+            }
+        }
+
+
+        function toggleExperienceFieldsdraft(show, index) {
+            const block = document.querySelector(`.experience-fields-${index}`);
+
+            if (block) {
+                block.style.display = show ? 'block' : 'none';
+
+                if (show) {
+                    // Clear all input fields inside the block when toggled back to Yes
+                    const inputs = block.querySelectorAll('input, textarea');
+                    inputs.forEach(input => {
+                        input.value = '';
+                        input.readOnly = false;
+                        input.disabled = false;
+                    });
+
+                    // Optional: If there's a verification result or clear button like in competency
+
+                }
+            }
+        }
+
+        // ----remove proprietorCount draft-------------
+        $(document).on('click', '.remove-proprietor-entry', function() {
+            $(this).closest('.proprietor-entry').remove();
+            proprietorCount--;
+
+            if (proprietorCount < maxProprietors) {
+                const last = $('.proprietor-entry').last();
+
+                // Re-add the add button only if not already there
+                if ($('#add-more-proprietor-draft').length === 0 && $('#add-more-proprietor').length === 0) {
+                    last.append(`
+                <div class="text-right mt-3" id="static-add-button-wrapper">
+                    <button id="add-more-proprietor-draft" class="btn btn-primary text-md-right">
+                        <i class="fa fa-plus"></i> Add Draft Proprietor /Partner
+                    </button>
+                </div>
+                <div id="proprietor-container"></div>
+            `);
+                }
+            }
+        });
+
+
+        // ----------------------------ownership change------------------------
+
+        $('#type_of_ea_license').on('change', function() {
+            var selected = $(this).val();
+
+            // Hide all first
+            $('#proprietor-sectionfresh, #partner-section, #directorfill-section').hide();
+
+            if (selected == "1") {
+                $('#proprietor-sectionfresh').show();
+            } else if (selected == "2") {
+                $('#partner-section').show();
+            } else if (selected == "3") {
+                $('#directorfill-section').show();
+            }
+        });
+
+        // -----------------add staff row---------------------
+
+        // ================= ADD STAFF ROW =================
+        $(document).on('change', '.staff_category', function() {
+
+            let row = $(this).closest('tr');
+            let category = $(this).val();
+
+            if (category === 'OTHERS') {
+
+                // Hide certificate fields
+                row.find('.cc-column').hide();
+                row.find('.validity-column').hide();
+
+                // Hide verify
+                row.find('.verifyBtn').hide();
+
+                // Show designation
+                row.find('.designation-column').show();
+
+                // Clear certificate values
+                row.find('.cc_number').val('');
+                row.find('.cc_firstissue').val('');
+                row.find('.cc_validity_from').val('');
+                row.find('.cc_validity_to').val('');
+
+            } else {
+
+                // Show certificate fields
+                row.find('.cc-column').show();
+                row.find('.validity-column').show();
+
+                // Show verify
+                row.find('.verifyBtn').show();
+
+                // Hide designation
+                row.find('.designation-column').hide();
+
+                // Clear designation
+                row.find('.designation').val('');
+            }
+        });
+        // -----------------add staff row---------------------
+
+        function addStaffRows() {
+
+            let $rows = $('#staff-container tr.staff-fields');
+            let rowCount = $rows.length;
+
+            // -------------------------------------------------
+            // Maximum 8 staff members
+            // -------------------------------------------------
+
+            if (rowCount >= 8) {
+                Swal.fire({
+                    icon: 'error',
+                    width: 450,
+                    title: 'Limit Reached',
+                    text: 'You can add a maximum of 8 staff members.',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // -------------------------------------------------
+            // Check first 2 mandatory rows
+            // -------------------------------------------------
+
+            let allFilled = true;
+
+            $rows.slice(0, 2).each(function() {
+
+                let $row = $(this);
+
+                let ccNumber = $row
+                    .find('.cc_number')
+                    .val()
+                    ?.trim();
+
+                let firstIssue = $row
+                    .find('.cc_firstissue')
+                    .val()
+                    ?.trim();
+
+                let validityFrom = $row
+                    .find('.cc_validity_from')
+                    .val()
+                    ?.trim();
+
+                let validityTo = $row
+                    .find('.cc_validity_to')
+                    .val()
+                    ?.trim();
+
+                if (
+                    !ccNumber ||
+                    !firstIssue ||
+                    !validityFrom ||
+                    !validityTo
+                ) {
+                    allFilled = false;
+                    return false;
+                }
+
+            });
+
+            if (!allFilled) {
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fill Required Fields',
+                    text: 'Please fill all certificate details for the first 2 staff members before adding a new one.',
+                    confirmButtonText: 'OK',
+                    width: 500
+                });
+
+                return;
+            }
+
+
+            // -------------------------------------------------
+            // Check last row before adding
+            // -------------------------------------------------
+
+            // -------------------------------------------------
+            // Check last row before adding new row
+            // -------------------------------------------------
+            let $lastRow = $('#staff-container tr.staff-fields').last();
+
+            let category = $lastRow
+                .find('.staff_category')
+                .val();
+
+            let designation = $lastRow
+                .find('.designation')
+                .val()
+                ?.trim();
+
+            let ccNumber = $lastRow
+                .find('.cc_number')
+                .val()
+                ?.trim();
+
+            let firstIssue = $lastRow
+                .find('.cc_firstissue')
+                .val()
+                ?.trim();
+
+            let validityFrom = $lastRow
+                .find('.cc_validity_from')
+                .val()
+                ?.trim();
+
+            let validityTo = $lastRow
+                .find('.cc_validity_to')
+                .val()
+                ?.trim();
+
+
+            // -------------------------------------------------
+            // Validation
+            // -------------------------------------------------
+
+            if (!category) {
+
+                Swal.fire({
+                    icon: 'warning',
+                    width: 450,
+                    title: 'Incomplete Row',
+                    text: 'Please select a staff category.',
+                    confirmButtonText: 'OK'
+                });
+
+                return;
+            }
+
+
+            // OTHERS → only designation is required
+            if (category === 'OTHERS') {
+
+                if (!designation) {
+
+                    Swal.fire({
+                        icon: 'warning',
+                        width: 450,
+                        title: 'Incomplete Row',
+                        text: 'Please enter the designation for OTHERS staff.',
+                        confirmButtonText: 'OK'
+                    });
+
+                    return;
+                }
+
+            } else {
+
+                // B / C → certificate details are required
+                if (
+                    !ccNumber ||
+                    !firstIssue ||
+                    !validityFrom ||
+                    !validityTo
+                ) {
+
+                    Swal.fire({
+                        icon: 'warning',
+                        width: 450,
+                        title: 'Incomplete Row',
+                        text: 'Please fill all certificate details in the last staff row before adding a new one.',
+                        confirmButtonText: 'OK'
+                    });
+
+                    return;
+                }
+            }
+
+            // -------------------------------------------------
+            // Create new row
+            // -------------------------------------------------
+
+            let newRow = `
+<tr class="staff-fields">
+
+    <td>${rowCount + 1}</td>
+
+    <td>
+        <select class="form-control staff_category"
+                name="staff_category[${rowCount}]">
+
+            <option value="">Select Category</option>
+            <option value="C">C</option>
+            <option value="B">B</option>
+            <option value="OTHERS">OTHERS</option>
+
+        </select>
+
+        <span class="error text-danger"></span>
+    </td>
+
+    <td class="cc-column">
+
+        <input type="text"
+               class="form-control cc_number"
+               name="cc_number[${rowCount}]"
+               placeholder="Certificate No"
+               maxlength="15"
+               oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
+
+        <span class="error text-danger"></span>
+
+        <div class="competency_verify_result text-danger small mt-1"></div>
+
+    </td>
+
+    <td class="validity-column">
+
+        <input type="date"
+               class="form-control cc_firstissue"
+               name="cc_firstissue[${rowCount}]">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="validity-column">
+
+        <input type="date"
+               class="form-control cc_validity_from"
+               name="cc_validity_from[${rowCount}]">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="validity-column">
+
+        <input type="date"
+               class="form-control cc_validity_to"
+               name="cc_validity_to[${rowCount}]">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="designation-column"
+        style="display:none;">
+
+        <input type="text"
+               class="form-control designation"
+               name="designation[${rowCount}]"
+               placeholder="Enter Designation"
+               oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="action-column">
+
+        <button type="button"
+                class="btn btn-success"
+                onclick="addStaffRows()">
+            + Add
+        </button>
+
+        <button type="button"
+                class="btn btn-danger"
+                onclick="removeStaffRow(this)">
+            - Remove
+        </button>
+
+    </td>
+
+    <input type="hidden"
+           name="staff_id[${rowCount}]"
+           value="">
+
+</tr>
+`;
+
+
+            $('#staff-container').append(newRow);
+
+
+            // -------------------------------------------------
+            // Remove Add button from previous rows
+            // -------------------------------------------------
+
+            $('#staff-container tr.staff-fields')
+                .not(':last')
+                .find('.btn-success')
+                .remove();
+
+
+            // -------------------------------------------------
+            // Initialize date inputs if using Flatpickr
+            // -------------------------------------------------
+
+            flatpickr(
+                $('#staff-container tr:last input.cc_firstissue, ' +
+                    '#staff-container tr:last input.cc_validity_from, ' +
+                    '#staff-container tr:last input.cc_validity_to'), {
+                    dateFormat: "d-m-Y"
+                }
+            );
+        }
+
+
+        function removeStaffRow(button) {
+
+            let row = $(button).closest('tr');
+
+            row.remove();
+
+
+            // -------------------------------------------------
+            // Re-index S.NO
+            // -------------------------------------------------
+
+            $('#staff-container tr.staff-fields').each(function(index) {
+
+                $(this)
+                    .find('td:first')
+                    .text(index + 1);
+
+            });
+
+
+            // -------------------------------------------------
+            // Add Add-button only to last row
+            // -------------------------------------------------
+
+            $('#staff-container tr.staff-fields .btn-success')
+                .remove();
+
+            let $lastRow = $('#staff-container tr.staff-fields').last();
+
+            if ($lastRow.length) {
+
+                $lastRow
+                    .find('td:last')
+                    .prepend(`
+                <button type="button"
+                        class="btn btn-success"
+                        onclick="addStaffRows()">
+                    + Add
+                </button>
+            `);
+            }
+        }
+
+        // ------instrumrnts report 1----------------------
+        $('input[name="tested_documents"]').on('change', function() {
+            if ($(this).val() === 'yes') {
+                $('#tested_report_row').slideDown();
+            } else {
+                $('#tested_report_row').slideUp();
+                $('#tested_report_id').val('');
+                $('#tested_report_id_error').text('');
+            }
+        });
+
+        // ------instrumrnts report 2----------------------
+
+        $('input[name="equipment1"]').on('change', function() {
+            if ($(this).val() === 'yes') {
+                $('#invoice_row').slideDown();
+            } else {
+                $('#invoice_row').slideUp();
+                $('#invoice_report_id').val('');
+                $('#invoice_report_id_error').text('');
+            }
+        });
+
+
+        $('input[name="instrument3"]').on('change', function() {
+            if ($(this).val() === 'yes') {
+                $('#instrument3_row').slideDown();
+            } else {
+                $('#instrument3_row').slideUp();
+                $('#instrument3_id').val('');
+                $('#instrument3_id_error').text('');
+            }
+        });
+
+
+        // ---------------add proprietor-----------------
+        $(document).on("change", ".working_under", function() {
+
+            let value = $(this).val();
+            let $tr = $(this).closest("tr");
+
+            // Show everything first
+            $tr.find("input[name='previous_experience_name[]']").show();
+            $tr.find("textarea[name='previous_experience_address[]']").show();
+
+            $tr.find("input[name='previous_experience_lnumber[]']").show();
+            $tr.find("input[name='previous_experience_lnumber_validity[]']").show();
+
+            if (value === "BUSINESS") {
+
+                // Hide only Licence Number & Validity inputs
+                $tr.find("input[name='previous_experience_lnumber[]']").hide().val('');
+                $tr.find("input[name='previous_experience_lnumber_validity[]']").hide().val('');
+
+            } else if (value === "NIL") {
+
+                // Hide all input fields
+                $tr.find("input[name='previous_experience_name[]']").hide().val('');
+                $tr.find("textarea[name='previous_experience_address[]']").hide().val('');
+
+                $tr.find("input[name='previous_experience_lnumber[]']").hide().val('');
+                $tr.find("input[name='previous_experience_lnumber_validity[]']").hide().val('');
+            }
+
+            // CONTRACTOR or blank => all fields visible
+        });
+
+        $(document).on("click", "#add_cc_pr", function() {
+
+            let newRow = `
+    <tr class="cc-row">
+        <td>
+            <div class="row">
+                <div class="col-md-6 mt-1">
+                    <input type="text" class="form-control competency_number"
+                        name="competency_certificate_number[]" maxlength="15"
+                        placeholder="CC Number">
+                    <span class="error text-danger competency_number_error"></span>
+                </div>
+
+                <div class="col-md-6 mt-1">
+                    <input type="date" class="form-control competency_validity"
+                        name="competency_certificate_validity[]">
+                    <span class="error text-danger competency_validity_error"></span>
+                </div>
+
+                <div class="col-md-12 text-center mt-1">
+                    <button type="button" class="btn btn-primary"
+                        onclick="verifyCompetencyCertificate(event,this)">
+                        Verify
+                    </button>
+
+                    <input type="hidden"
+                        name="proprietor_cc_verify[]"
+                        class="proprietor_cc_verify"
+                        value="0">
+                </div>
+
+                <div class="col-md-12 mt-1">
+                    <div class="text-danger competency_verify_result"></div>
+                </div>
+            </div>
+        </td>
+
+        <td>
+            <select class="form-control working_under" name="working_under[]">
+                <option value="">Select Anyone</option>
+                <option value="CONTRACTOR">CONTRACTOR</option>
+                <option value="BUSINESS">BUSINESS</option>
+                <option value="NIL">NIL</option>
+            </select>
+            <span class="error text-danger working_under_error"></span>
+        </td>
+
+        <td class="td-name">
+            <input class="form-control"
+                type="text"
+                name="previous_experience_name[]"
+                placeholder="Name">
+            <span class="error text-danger previous_experience_name_error"></span>
+        </td>
+
+        <td class="td-address">
+            <textarea class="form-control"
+                name="previous_experience_address[]"
+                placeholder="Address"></textarea>
+            <span class="error text-danger previous_experience_address_error"></span>
+        </td>
+
+        <td class="td-license">
+            <input class="form-control ea_license_number"
+                type="text"
+                maxlength="15"
+                name="previous_experience_lnumber[]"
+                placeholder="Licence Number">
+            <span class="error text-danger previous_experience_lnumber_error"></span>
+        </td>
+
+        <td class="td-validity">
+            <input class="form-control ea_validity"
+                type="date"
+                name="previous_experience_lnumber_validity[]">
+            <span class="error text-danger previous_experience_lnumber_validity_error"></span>
+        </td>
+
+        <td>
+            <button type="button"
+                class="btn btn-danger remove_cc_row">
+                Remove
+            </button>
+        </td>
+    </tr>
+    `;
+
+            $(".head_label_proprietor_cc tbody").append(newRow);
+        });
+        let proprietorIndex = 0;
+        let proprietoreditIndex = null;
+
+        // Show form on Add Proprietor button click
+        $("#add-proprietor").on("click", function() {
+
+            let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
+
+            if (rowCount > 0) {
+                Swal.fire({
+                    title: "Proprietor Entry Exists!",
+                    width: 450,
+                    text: "Only one proprietor entry is allowed.",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
+                });
+                return;
+            }
+
+            // Reset form before showing
+            resetproprietor(false);
+            $("#proprietor-sectionfresh").slideDown();
+            $("#save_proprietor").text("Save");
+            let $section = $("#proprietor-section");
+
+            $section.find(".upload-btn")
+            // .attr("data-row_index", rowCount)
+            // .data("row_index", rowCount);
+
+            // .attr("data-row-index", rowCount)
+            // .data("rowIndex", rowCount);
+        });
+
+
+
+        // Save or Update Proprietor
+        $("#save_proprietor").on("click", function() {
+
+
+            let $section = $("#proprietor-sectionfresh");
+
+            // alert($section.attr("id"));
+            let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
+            // Basic text inputs
+            let name = $section.find("input[name='proprietor_name[]']").val().trim();
+            let address = $section.find("textarea[name='proprietor_address[]']").val().trim();
+            let dob = $section.find("input[name='dob[]']").val().trim();
+            let age = $section.find("input[name='age[]']").val().trim();
+            // let qualification = $section.find("input[name='qualification[]']").val().trim();
+            let qualification = $section.find("select[name='qualification[]']").val();
+
+            // let qual_text = $section.find("select[name='qual_text[]']").val();
+            let qual_text = $.trim($section.find("input[name='qual_text[]']").val());
+
+            // qual_proof
+            let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
+
+            let age_proof = $section.find("input[name='age_proof[]']").val().trim();
+
+            let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
+            let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
+
+
+
+            // ✅ Ensure a default 'no' is checked if nothing is selected
+            if (!$section.find("input[name^='competency_certificate_holding']:checked").length) {
+                $section.find("input[name^='competency_certificate_holding'][value='no']").prop("checked", true);
+            }
+            if (!$section.find("input[name^='presently_employed']:checked").length) {
+                $section.find("input[name^='presently_employed'][value='no']").prop("checked", true);
+            }
+            if (!$section.find("input[name^='previous_experience']:checked").length) {
+                $section.find("input[name^='previous_experience'][value='no']").prop("checked", true);
+            }
+
+            let $ccHolding = $section.find(
+                "input[name='competency_certificate_holding[]']:checked"
+            );
+
+            let competency = $ccHolding.length ?
+                $ccHolding.val() :
+                "no";
+
+            let $ccNumber = $section.find(
+                "input[name='competency_certificate_number[]']"
+            );
+
+            let $ccFirstIssue = $section.find(
+                "input[name='competency_certificate_first_issue[]']"
+            );
+
+            let $ccValidityFrom = $section.find(
+                "input[name='competency_certificate_validity_from[]']"
+            );
+
+            let $ccValidityTo = $section.find(
+                "input[name='competency_certificate_validity_to[]']"
+            );
+
+            let ccNum = $.trim($ccNumber.val() || "");
+            let ccfirstissue = $.trim($ccFirstIssue.val() || "");
+            let ccvalidityfrom = $.trim($ccValidityFrom.val() || "");
+            let ccvalidityto = $.trim($ccValidityTo.val() || "");
+
+
+
+            // Date format----------------
+            let ccValidityfromFormatted = formatDateToDDMMYYYY(ccvalidityfrom);
+            let ccValiditytoFormatted = formatDateToDDMMYYYY(ccvalidityto);
+            let ccfirstissueFormatted = formatDateToDDMMYYYY(ccfirstissue);
+
+            // ✅ Validation
+            $section.find(".error").text(""); // clear old errors
+            let isValid = true;
+
+            function setError(element, message) {
+                element.closest('.col-12, .col-md-6, .col-md-5, .col-md-4, .col-md-3')
+                    .find('.error')
+                    .text(message);
+                isValid = false;
+            }
+            // NAME
+            if (!name) {
+                setError($section.find("input[name='proprietor_name[]']"),
+                    // let name = $section.find("input[name='proprietor_name[]']").val().trim();
+                    "Proprietor name is required");
+            }
+
+            // ADDRESS
+            if (!address) {
+                setError($section.find("textarea[name='proprietor_address[]']"),
+                    "Address is required");
+            }
+
+            // DOB
+            if (!dob) {
+                setError($section.find("input[name='dob[]']"),
+                    "Date of birth is required");
+            }
+
+            // AGE
+            if (!age) {
+                setError($section.find("input[name='age[]']"),
+                    "Age is required");
+            } else if (parseInt(age) < 25) {
+                setError($section.find("input[name='age[]']"),
+                    "Maximum age should be 25");
+            }
+
+
+
+            if (!qualification) {
+                setError($section.find("select[name='qualification[]']"),
+                    "Qualification is required");
+
+
+            }
+
+            if (qualification && qualification !== '8TH PASS') {
+                // alert(qual_text);
+
+                if (!qual_text) {
+                    setError(
+                        $section.find("input[name='qual_text[]']"),
+                        "Enter Qualification is required"
+                    );
+                    isValid = false;
+                }
+            }
+
+
+            /* ---------------- FILE HANDLING ---------------- */
+
+            let isEditMode = $section.attr("data-edit-id") ? true : false;
+
+            let existingFileUrl = $section.attr("data-existing-file") || "";
+
+            // Present file from table edit
+            let presentFile = $section.attr("data-present-file") || "";
+
+            // alert(presentFile);
+
+            // New uploaded file
+            let fileInput = $section.find("input[name='qual_proof[]']")[0];
+            let hasNewFile = fileInput && fileInput.files && fileInput.files.length > 0;
+
+            // Flags
+            let hasExistingFile = existingFileUrl !== "";
+            let hasPresentFile = presentFile !== "";
+
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingFile && !hasPresentFile) {
+                setError(
+                    $section.find("input[name='qual_proof[]']"),
+                    "Please upload Qualification proof"
+                );
+                isValid = false;
+            }
+
+            // FINAL FILE
+            let uploadedFilePath = window.uploadedFilePath || "";
+            let finalFileUrl = "";
+
+            if (hasNewFile && uploadedFilePath) {
+                finalFileUrl = uploadedFilePath; // new upload
+            } else if (hasExistingFile) {
+                finalFileUrl = existingFileUrl; // edit file
+            } else if (hasPresentFile) {
+                finalFileUrl = presentFile; // table file
+            }
+
+
+            /* ================= AGE PROOF ================= */
+            let existingAgeFile = $section.attr("data-existing-age-file") || "";
+
+            // Present file from table edit
+            let presentAgeFile = $section.attr("data-present-age-file") || "";
+
+            // alert(presentFile);
+
+            // New uploaded file
+            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
+            let hasNewAgeFile = ageFileInput && ageFileInput.files && ageFileInput.files.length > 0;
+
+            // Flags
+            let hasExistingageFile = existingAgeFile !== "";
+            let hasPresentageFile = presentAgeFile !== "";
+
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingageFile && !hasPresentageFile) {
+
+                // alert(hasExistingageFile);
+                setError(
+                    $section.find("input[name='age_proof[]']"),
+                    "Please upload Age proof"
+                );
+                isValid = false;
+            }
+
+            // FINAL FILE
+            let uploadedAgeFilePath = window.uploadedAgeFilePath || "";
+            let finalAgeFileUrl = "";
+
+            if (hasNewAgeFile && uploadedAgeFilePath) {
+                finalAgeFileUrl = uploadedAgeFilePath; // new upload
+            } else if (hasExistingageFile) {
+                // alert('111');
+                finalAgeFileUrl = existingAgeFile; // edit file
+            } else if (hasPresentageFile) {
+                finalAgeFileUrl = presentAgeFile; // table file
+            }
+
+            // alert(finalAgeFileUrl);
+
+
+            // FATHER NAME
+            if (!fathersName) {
+                setError($section.find("input[name='fathers_name[]']"),
+                    "Father/Husband's name is required");
+            }
+
+            // BUSINESS
+            if (!presentBusiness) {
+                setError($section.find("input[name='present_business[]']"),
+                    "Present business is required");
+            }
+
+            // -----------cc details--------------
+
+            if (competency === "yes") {
+
+                if (!ccNum) {
+                    setError(
+                        $section.find("input[name='competency_certificate_number[]']"),
+                        "Competency Certificate Number is required"
+                    );
+                }
+
+                if (!ccfirstissue) {
+                    setError(
+                        $section.find("input[name='competency_certificate_first_issue[]']"),
+                        "Competency Certificate First Issue is required"
+                    );
+                }
+
+                if (!ccvalidityfrom) {
+                    setError(
+                        $section.find("input[name='competency_certificate_validity_from[]']"),
+                        "Competency Certificate Validity From is required"
+                    );
+                }
+
+                if (!ccvalidityto) {
+                    setError(
+                        $section.find("input[name='competency_certificate_validity_to[]']"),
+                        "Competency Certificate Validity To is required"
+                    );
+                }
+
+
+            }
+
+
+
+            // STOP if invalid
+            if (!isValid) {
+
+                Swal.fire({
+                    icon: 'warning',
+                    width: 450,
+                    title: 'Missing Fields',
+                    text: 'Fill all required fields.',
+                    confirmButtonText: 'OK'
+                });
+
+                return;
+            }
+            /* ----------- show PDF icon ----------- */
+            function renderPdfIcon(url) {
+                if (!url) return "";
+                return `<a href="${url}" target="_blank">
+                                <i class="fa fa-file-pdf-o text-danger"></i>
+                            </a>`;
+            }
+
+
+
+            if (editIndex !== null) {
+
+                let $row = $("#proprietor-section .pr_table_count table tbody tr").eq(editIndex);
+
+                if (proprietoreditIndex !== null) {
+                    $row.attr('data-id', proprietoreditIndex);
+                }
+
+                // Name
+                $row.find("td").eq(0).text(name);
+
+                // Father / Husband Name
+                $row.find("td").eq(1).text(fathersName);
+
+                // DOB + Age + Age Proof
+                $row.find("td").eq(2)
+                    .attr({
+                        "data-dob": dob,
+                        "data-age": age,
+                        "data-age_proof": finalAgeFileUrl
+                    })
+                    .html(`
+                        ${dob}, ${age}
+                        ${renderPdfIcon(finalAgeFileUrl)}
+                    `);
+
+                // Address
+                $row.find("td").eq(3).text(address);
+
+                // Qualification + Proof
+                $row.find("td").eq(4)
+                    .attr({
+                        "data-qualification": qualification,
+                        "data-qual_text": qual_text,
+                        "data-qual_proof": finalFileUrl
+                    })
+                    .html(
+                        (qualification === '8TH PASS' ?
+                            qualification :
+                            `${qualification}, ${qual_text}`) +
+                        " " +
+                        renderPdfIcon(finalFileUrl)
+                    );
+
+                // Present Business
+                $row.find("td").eq(5).text(presentBusiness);
+
+
+                // ================= COMPETENCY DETAILS =================
+
+                let ccValidityFormatted = ccvalidityto ?
+                    formatDateToDDMMYYYY(ccvalidityto) :
+                    "";
+
+                let ccValidityFromFormatted = ccvalidityfrom ?
+                    formatDateToDDMMYYYY(ccvalidityfrom) :
+                    "";
+
+                let ccFirstIssueFormatted = ccfirstissue ?
+                    formatDateToDDMMYYYY(ccfirstissue) :
+                    "";
+
+
+
+
+                $row.find("td").eq(6)
+                    .attr({
+                        "data-competency": competency,
+                        "data-certno": ccNum,
+
+                        "data-ccfirstissue": ccFirstIssueFormatted,
+                        "data-ccvalidityfrom": ccValidityFromFormatted,
+                        "data-ccvalidityto": ccValidityFormatted
+                    })
+                    .html(
+                        competency === "yes" ?
+                        `Yes - CC_No: ${ccNum}, First Issue: ${ccFirstIssueFormatted}, Validity: ${ccValidityFromFormatted} - ${ccValidityFormatted}` :
+                        "No"
+                    );
+
+
+                // Reset form
+                resetproForm(true);
+
+                editIndex = null;
+            }
+
+
+            // ================= ADD NEW ROW =================
+            else {
+                // console.log("SweetAlert:", typeof Swal);
+                let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
+
+
+                if (rowCount > 0) {
+
+                    Swal.fire({
+                        title: "Proprietor Entry Exists!",
+                        width: 450,
+                        text: "You can only add Only One Proprietor.",
+                        icon: "warning",
+                        confirmButtonText: "OK",
+                        confirmButtonColor: "#3085d6"
+                    });
+
+                    return;
+                }
+
+
+                // ================= COMPETENCY DISPLAY =================
+
+                let ccValidityFormatted = ccvalidityto ?
+                    formatDateToDDMMYYYY(ccvalidityto) :
+                    "";
+
+                let ccValidityFromFormatted = ccvalidityfrom ?
+                    formatDateToDDMMYYYY(ccvalidityfrom) :
+                    "";
+
+                let ccFirstIssueFormatted = ccfirstissue ?
+                    formatDateToDDMMYYYY(ccfirstissue) :
+                    "";
+                alert('ccValidityFormatted: ' + ccValidityFormatted + ', ccValidityFromFormatted: ' + ccValidityFromFormatted + ', ccFirstIssueFormatted: ' + ccFirstIssueFormatted);
+
+                $("#proprietor-section table tbody").append(`
+                    <tr>
+
+                        <!-- Name -->
+                        <td>${name}</td>
+
+                        <!-- Father / Husband Name -->
+                        <td>${fathersName}</td>
+
+                        <!-- DOB / Age -->
+                        <td
+                            data-dob="${dob}"
+                            data-age="${age}"
+                            data-age_proof="${finalAgeFileUrl}">
+                            ${dob}, ${age}
+                            ${renderPdfIcon(finalAgeFileUrl)}
+                        </td>
+
+                        <!-- Address -->
+                        <td>${address}</td>
+
+                        <!-- Qualification -->
+                        <td
+                            data-qualification="${qualification}"
+                            data-qual_text="${qual_text}"
+                            data-qual_proof="${finalFileUrl}">
+
+                            ${qualification === '8TH PASS'
+                        ? qualification
+                        : `${qualification}, ${qual_text}`}
+
+                            ${renderPdfIcon(finalFileUrl)}
+                        </td>
+
+                        <!-- Present Business -->
+                        <td>${presentBusiness}</td>
+
+
+                        <!-- Competency Certificate -->
+                        <td
+                            data-competency="${competency}"
+                            data-certno="${ccNum}"
+
+                            data-ccfirstissue ="${ccFirstIssueFormatted}"
+                            data-ccvalidityfrom ="${ccValidityFromFormatted}"
+                            data-ccvalidityto ="${ccValidityFormatted}"
+                            >
+
+                            ${competency === "yes"
+                        ? `Yes - CC_No: ${ccNum},
+                                    First Issue: ${ccFirstIssueFormatted},
+                                    Validity: ${ccValidityFromFormatted} - ${ccValidityFormatted}`
+                        : "No"
+                    }
+
+                        </td>
+
+
+                        <!-- Ownership -->
+                        <td
+                            style="display:none;"
+                            data-ownership="${ownership_type}">
+                            ${ownership_type}
+                        </td>
+
+
+                        <!-- Edit -->
+                        <td>
+                            <button
+                                type="button"
+                                class="btn btn-primary btn-sm update-proprietor-row">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                        </td>
+
+
+                        <!-- Delete -->
+                        <td>
+                            <button
+                                type="button"
+                                class="btn btn-danger btn-sm remove-proprietor-row">
+                                <i class="fa fa-trash-o"></i>
+                            </button>
+                        </td>
+
+                    </tr>
+                `);
+
+
+                // Reset form
+                resetproForm(true);
+
+                proprietorIndex++;
+            }
+
+
+
+
+        });
+
+        function resetproForm(hide = false) {
+            let $section = $("#proprietor-sectionfresh");
+
+            // Clear all text/number/textarea inputs
+            $section.find("input[type='text'], input[type='number'], textarea").val("");
+
+            // Clear all radio buttons
+            $section.find("input[type='radio']").prop("checked", false);
+
+            // 🔥 Clear file
+            $section.find(".file-link").html("");
+
+            $section.find(".age-file-link").html("");
+            $section.removeAttr("data-existing-file");
+
+            $section.removeAttr("data-existing-age-file");
+
+
+            $section.removeAttr("data-edit-id");
+
+            // Hide all conditional fields
+            $(".competency-fields-prop, .employment-fields, .experience-fields").hide();
+
+            // Reset Save button text
+            $("#save_proprietor").text("Save");
+
+            // Reset editIndex
+            editIndex = null;
+
+            $section.find(".text-danger").text("");
+
+            // Hide form if needed
+            if (hide) $section.slideUp();
+        }
+
+
+        // Edit row
+        $(document).on("click", ".update-proprietor-row", function() {
+            // alert('111');
+            let $row = $(this).closest("tr");
+            let $tds = $row.find("td");
+            let id = $row.data("id");
+            editIndex = $row.index();
+            // let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
+
+            let ownershipValue = $row.find("td").eq(9).attr("data-ownership");
+            // console.log("Ownership Value:", ownershipValue);
+            // alert(ownershipValue);
+            // exit;
+            let row_indexValue = $row.find("td").eq(10).find("input[name='row_index[]']").val();
+
+
+            let $section = $("#proprietor-sectionfresh");
+
+
+            $section.find(".upload-btn").attr("data-row-index", row_indexValue);
+            // let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
+            // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());
+            // Fill form with row data
+            $section.find("input[name='proprietor_name[]']").val($row.find("td").eq(0).text());
+            $section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text());
+
+            let tdDobAge = $row.find("td").eq(2);
+
+
+            $section.find("input[name='dob[]']").val(tdDobAge.data("dob"));
+            $section.find("input[name='age[]']").val(tdDobAge.data("age"));
+
+
+            $ageproofdata = $row.find("td").eq(2);
+            // alert(tdDobAge.data("age"));
+
+            let age_proof = $ageproofdata.attr("data-age_proof");
+
+            // alert(age_proof);
+
+
+
+            $section.attr("data-existing-age-file", age_proof || "");
+
+            // 🔥 SHOW FILE IN FORM
+            if (age_proof) {
+
+
+                $section.find(".age-file-link").html(`
+                    <a href="${age_proof}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            } else {
+                $section.find(".age-file-link").html("");
+            }
+
+            // Get present file from TABLE (important)
+            let presentFileage = $ageproofdata.attr("data-age_proof");
+
+            $section.attr("data-present-age-file", presentFileage || "");
+            // Show present file below input box (only for table edit)
+            if (presentFileage) {
+                $section.find(".age-file-link").html(`
+                    <a href="${presentFileage}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            }
+
+
+
+
+            // alert($section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text()));
+            // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
+            // let qualification = $section.find("input[name='qualification[]']").val().trim();
+            //  $section.find("select[name='qualification[]']").val();
+
+            // qual_proof
+            // let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
+            // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
+            $section.find("textarea[name='proprietor_address[]']").val($row.find("td").eq(3).text());
+
+            let tdqualification = $row.find("td").eq(4);
+
+            let qualificationValue = tdqualification.attr("data-qualification");
+            let qualTextValue = tdqualification.attr("data-qual_text");
+
+            let $qualificationSelect = $section.find("select[name='qualification[]']");
+            let $qualTextInput = $section.find("input[name='qual_text[]']");
+            let $wrapper = $section.find(".qualTextWrapper");
+
+            // Set select value
+            $qualificationSelect.val(qualificationValue).trigger("change");
+
+            $qualificationSelect.val(qualificationValue);
+
+            // If not selected, try matching manually
+            if ($qualificationSelect.val() === null) {
+                $qualificationSelect.find("option").each(function() {
+                    if ($(this).val().trim().toLowerCase() === qualificationValue.toLowerCase()) {
+                        $(this).prop("selected", true);
+                    }
+                });
+            }
+            // Set text value
+            $qualTextInput.val(qualTextValue);
+
+            // If qualification is not 8TH PASS AND text exists → show wrapper
+            if (qualificationValue && qualificationValue !== '8TH PASS') {
+                $wrapper.show();
+            }
+            // let $tr = $(this).closest("tr");
+
+
+            /////update
+            // Qualification
+            let $qualTd = $tds.eq(4);
+
+            let qualification = $qualTd.attr("data-qualification");
+            let qual_text = $qualTd.attr("data-qual_text");
+            let qual_proof = $qualTd.attr("data-educational_proof");
+
+            // Set qualification
+            $section.find(".qualification").val(qualification).trigger("change");
+            $section.find("input[name='qual_text[]']").val(qual_text);
+
+            // 🔥 STORE FILE URL INSIDE FORM
+            $section.attr("data-existing-file", qual_proof || "");
+
+            // 🔥 SHOW FILE IN FORM
+            if (qual_proof) {
+                $section.find(".file-link").html(`
+                    <a href="${qual_proof}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            } else {
+                $section.find(".file-link").html("");
+            }
+
+            // Get present file from TABLE (important)
+            // let presentFile = $qualTd.attr("data-educational_proof");
+
+            let presentFile = $qualTd.attr("data-educational_proof");
+
+            $section.attr("data-present-file", presentFile || "");
+            // Show present file below input box (only for table edit)
+            if (presentFile) {
+                $section.find(".file-link").html(`
+                    <a href="${presentFile}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            }
+            // Mark edit mode
+            $section.attr("data-edit-id", id);
+
+
+            // $section.find("input[name='qualification[]']").val($row.find("td").eq(4).text());
+            // $section.find("input[name='qual_text[]']").val($row.find("td").eq(4).text());
+            $section.find("input[name='present_business[]']").val($row.find("td").eq(5).text());
+            $section.find("input[name='ownership_type[]']").val(ownershipValue);
+
+
+            // === Competency Section ===
+            // ================= COMPETENCY =================
+
+            let tdCompetency = $row.find("td").eq(6);
+
+            // Get values from row
+            let competency = tdCompetency.attr("data-competency") || "no";
+            let certNo = tdCompetency.attr("data-certno") || "";
+            let ccFirstIssue = tdCompetency.attr("data-ccfirstissue") || "";
+            let ccValidityFrom = tdCompetency.attr("data-ccvalidityfrom") || "";
+            let ccValidityTo = tdCompetency.attr("data-ccvalidityto") || "";
+
+            // Set radio
+            $section.find(
+                "input[name='competency_certificate_holding[]'][value='" + competency + "']"
+            ).prop("checked", true);
+
+            // Show / Hide competency fields
+            toggleCompetencyFields("proprietor", competency === "yes");
+
+            // Fill values
+            $section.find("input[name='competency_certificate_number[]']").val(certNo);
+
+            function convertDDMMYYYYtoYMD(date) {
+
+                if (!date) {
+                    return "";
+                }
+
+                date = $.trim(date);
+
+                // Already YYYY-MM-DD
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    return date;
+                }
+
+                // DD-MM-YYYY
+                if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+
+                    let parts = date.split("-");
+
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+
+                // DD/MM/YYYY
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+
+                    let parts = date.split("/");
+
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+
+                return date;
+            }
+
+            let firstIssueYMD = convertDDMMYYYYtoYMD(ccFirstIssue);
+
+            $section.find("input[name='competency_certificate_first_issue[]']")
+                .val(firstIssueYMD);
+
+            $section.find("input[name='competency_certificate_validity_from[]']")
+                .val(ccValidityFrom);
+
+            $section.find("input[name='competency_certificate_validity_to[]']")
+                .val(ccValidityTo);
+
+            console.log("CC First Issue from table:", ccFirstIssue);
+            console.log("CC First Issue for date input:", firstIssueYMD);
+            console.log("Input actual value:",
+                $section.find("input[name='competency_certificate_first_issue[]']").val()
+            );
+
+            // Clear previous verification result
+            $section.find("#competency_exp_result").empty();
+
+            // Re-check certificate and load experience table
+            if (
+                competency === "yes" &&
+                certNo &&
+                ccFirstIssue &&
+                ccValidityFrom &&
+                ccValidityTo
+            ) {
+                checkCompetencyCertificate();
+            }
+
+            // Show form
+            $section.slideDown();
+
+            // Change Save button to Update + Add Cancel button
+            $("#save_proprietor").text("Update");
+            if ($("#cancel_update").length === 0) {
+                $("#save_proprietor").after(`
+            <button type="button" id="cancel_proprietor" class="btn btn-danger ms-2">Cancel</button>
+        `);
+            }
+        });
+
+        // Delete row
+        $(document).on("click", ".remove-proprietor-row", function() {
+            $(this).closest("tr").remove();
+        });
+
+
+        function formatDateToYMD(dateString) {
+            const parts = dateString.split("/");
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+            }
+            return dateString;
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+
+            if (!dateStr) {
+                return "";
+            }
+
+            // Already DD-MM-YYYY
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                return dateStr;
+            }
+
+            // YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+
+                let parts = dateStr.split("-");
+
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            return dateStr;
+        }
+
+
+        // Cancel update
+        $(document).on("click", "#cancel_update", function() {
+            resetproForm(false); // reset + hide
+        });
+
+
+
+
+        function resetproprietor(hide = false) {
+            let $section = $("#proprietor-sectionfresh");
+
+
+            // $section.find("input[type='text'], input[type='number'], input[type='date'], input[type='file'], textarea").val("");
+
+            $section.find("input[type='text'], input[type='file'], input[type='number'], input[type='date'], textarea, select").val("");
+            // competency_exp_result
+
+            $section.find("#competency_exp_result").empty();
+
+
+            // Hide dependent fields
+            $(".competency-fields, .competency-fields-proprietor, .experience-fields, .competency_exp_result").hide();
+            $("#save_proprietor").text("Save");
+            proprietoreditIndex = null;
+
+            if (hide) $section.slideUp();
+        }
+
+
+
+        $(document).on("click", ".remove-proprietor-row", function() {
+            $(this).closest("tr").remove();
+
+            // Reset indices after deletion
+            proprietorIndex = 0; // allow adding new entry
+            proprietoreditIndex = null; // clear any edit state
+
+            // Optionally hide the form
+            $("#proprietor-sectionfresh").slideUp();
+        });
+
+
+
+
+        // Cancel
+        $(document).on("click", "#cancel_proprietor", function() {
+            resetproForm(true);
+        });
+
+
+
+
+
+        // ------------add new partner--------------
+
+
+
+        // Add partner form on button click
+        // let partnerIndex = 0;
+        let partnerIndex = 0;
+        let editIndex = null;
+
+        // Show partner form
+        $("#add-partner").on("click", function() {
+            let rowCount = $("#partner-section table tbody tr").length;
+
+
+            if (rowCount >= 5) {
+
+                Swal.fire({
+                    title: "Partner Entry Exists!",
+                    width: 450,
+                    text: "You can only add a maximum of 5 partners",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
+                });
+
+                // alert("You can only add a maximum of 6 partners.");
+                return;
+            }
+
+            resetPartnerForm();
+            let $section = $("#partnersfill-section");
+
+
+
+            // $section.find("input, select").val("");
+            $section.find(".qualification").val("").trigger("change");
+            $section.find(".file-link").html("");
+            $("#partnersfill-section").slideDown();
+            // $("#partner-section table tbody").append(newRow);
+            $section.find(".upload-btn")
+                // .attr("data-row_index", rowCount)
+                // .data("row_index", rowCount);
+
+                .attr("data-row-index", rowCount)
+                .data("rowIndex", rowCount);
+            // updatePartnerRowIndex(rowCount);
+        });
+
+
+
+        // $("#add-partner").on("click", function() {
+        //     resetPartnerForm();
+
+        //     let rowCount = $("#partner-section table tbody tr").length;
+        //     if (rowCount >= 6) {
+        //         alert("You can only add a maximum of 6 partners.");
+        //         return; // stop here
+        //     }
+        //     $("#partnersfill-section").slideDown();
+        //     if ($("#cancel_update").length === 0) {
+        //         $("#save_partner").after(`
+        //     <button type="button" id="cancel_update" class="btn btn-danger ms-2">Cancel</button>
+        // `);
+        //     }
+        // });
+
+        // Save or Update Partner
+        $("#save_partner").on("click", function() {
+
+    let $section = $("#partnersfill-section");
+
+    let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
+
+    // Basic text inputs
+    let name = $section.find("input[name='proprietor_name[]']").val().trim();
+    let address = $section.find("textarea[name='proprietor_address[]']").val().trim();
+    let dob = $section.find("input[name='dob[]']").val().trim();
+    let age = $section.find("input[name='age[]']").val().trim();
+
+    let qualification = $section.find("select[name='qualification[]']").val();
+    let qual_text = $.trim($section.find("input[name='qual_text[]']").val());
+
+    let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
+    let age_proof = $section.find("input[name='age_proof[]']").val().trim();
+
+    let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
+    let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
+
+
+    // ================= COMPETENCY =================
+
+    if (!$section.find(
+        "input[name='competency_certificate_holding[]']:checked"
+    ).length) {
+        $section.find(
+            "input[name='competency_certificate_holding[]'][value='no']"
+        ).prop("checked", true);
+    }
+
+    let $ccHolding = $section.find(
+        "input[name='competency_certificate_holding[]']:checked"
+    );
+
+    let competency = $ccHolding.length
+        ? $ccHolding.val()
+        : "no";
+
+    let $ccNumber = $section.find(
+        "input[name='competency_certificate_number[]']"
+    );
+
+    let $ccFirstIssue = $section.find(
+        "input[name='competency_certificate_first_issue[]']"
+    );
+
+    let $ccValidityFrom = $section.find(
+        "input[name='competency_certificate_validity_from[]']"
+    );
+
+    let $ccValidityTo = $section.find(
+        "input[name='competency_certificate_validity_to[]']"
+    );
+
+    let ccNum = $.trim($ccNumber.val() || "");
+    let ccfirstissue = $.trim($ccFirstIssue.val() || "");
+    let ccvalidityfrom = $.trim($ccValidityFrom.val() || "");
+    let ccvalidityto = $.trim($ccValidityTo.val() || "");
+
+
+    // Date formatting
+    let ccFirstIssueFormatted = ccfirstissue
+        ? formatDateToDDMMYYYY(ccfirstissue)
+        : "";
+
+    let ccValidityFromFormatted = ccvalidityfrom
+        ? formatDateToDDMMYYYY(ccvalidityfrom)
+        : "";
+
+    let ccValidityToFormatted = ccvalidityto
+        ? formatDateToDDMMYYYY(ccvalidityto)
+        : "";
+
+
+    // ================= VALIDATION =================
+
+    $section.find(".error").text("");
+
+    let isValid = true;
+
+    function setError(element, message) {
+        element
+            .closest('.col-12, .col-md-6, .col-md-5, .col-md-4, .col-md-3')
+            .find('.error')
+            .text(message);
+
+        isValid = false;
+    }
+
+
+    // NAME
+    if (!name) {
+        setError(
+            $section.find("input[name='proprietor_name[]']"),
+            "Partner name is required"
+        );
+    }
+
+
+    // ADDRESS
+    if (!address) {
+        setError(
+            $section.find("textarea[name='proprietor_address[]']"),
+            "Address is required"
+        );
+    }
+
+
+    // DOB
+    if (!dob) {
+        setError(
+            $section.find("input[name='dob[]']"),
+            "Date of birth is required"
+        );
+    }
+
+
+    // AGE
+    if (!age) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Age is required"
+        );
+    } else if (parseInt(age) < 25) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Maximum age should be 25"
+        );
+    }
+
+
+    // QUALIFICATION
+    if (!qualification) {
+        setError(
+            $section.find("select[name='qualification[]']"),
+            "Qualification is required"
+        );
+    }
+
+
+    if (qualification && qualification !== '8TH PASS') {
+
+        if (!qual_text) {
+            setError(
+                $section.find("input[name='qual_text[]']"),
+                "Enter Qualification is required"
+            );
+        }
+    }
+
+
+    // ================= QUALIFICATION PROOF =================
+
+    let isEditMode = $section.attr("data-edit-id") ? true : false;
+
+    let existingFileUrl =
+        $section.attr("data-existing-file") || "";
+
+    let presentFile =
+        $section.attr("data-present-file") || "";
+
+    let fileInput =
+        $section.find("input[name='qual_proof[]']")[0];
+
+    let hasNewFile =
+        fileInput &&
+        fileInput.files &&
+        fileInput.files.length > 0;
+
+    let hasExistingFile =
+        existingFileUrl !== "";
+
+    let hasPresentFile =
+        presentFile !== "";
+
+
+    if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
+
+        setError(
+            $section.find("input[name='qual_proof[]']"),
+            "Please upload Qualification proof"
+        );
+
+        isValid = false;
+    }
+
+
+    let uploadedFilePath =
+        window.uploadedFilePath || "";
+
+    let finalFileUrl = "";
+
+    if (hasNewFile && uploadedFilePath) {
+
+        finalFileUrl = uploadedFilePath;
+
+    } else if (hasExistingFile) {
+
+        finalFileUrl = existingFileUrl;
+
+    } else if (hasPresentFile) {
+
+        finalFileUrl = presentFile;
+    }
+
+
+    // ================= AGE PROOF =================
+
+    let existingAgeFile =
+        $section.attr("data-existing-age-file") || "";
+
+    let presentAgeFile =
+        $section.attr("data-present-age-file") || "";
+
+    let ageFileInput =
+        $section.find("input[name='age_proof[]']")[0];
+
+    let hasNewAgeFile =
+        ageFileInput &&
+        ageFileInput.files &&
+        ageFileInput.files.length > 0;
+
+    let hasExistingAgeFile =
+        existingAgeFile !== "";
+
+    let hasPresentAgeFile =
+        presentAgeFile !== "";
+
+
+    if (
+        !hasExistingAgeFile &&
+        !hasPresentAgeFile &&
+        !hasNewAgeFile
+    ) {
+
+        setError(
+            $section.find("input[name='age_proof[]']"),
+            "Please upload Age proof"
+        );
+
+        isValid = false;
+    }
+
+
+    let uploadedAgeFilePath =
+        window.uploadedAgeFilePath || "";
+
+    let finalAgeFileUrl = "";
+
+    if (hasNewAgeFile && uploadedAgeFilePath) {
+
+        finalAgeFileUrl = uploadedAgeFilePath;
+
+    } else if (hasExistingAgeFile) {
+
+        finalAgeFileUrl = existingAgeFile;
+
+    } else if (hasPresentAgeFile) {
+
+        finalAgeFileUrl = presentAgeFile;
+    }
+
+
+    // ================= FATHER NAME =================
+
+    if (!fathersName) {
+        setError(
+            $section.find("input[name='fathers_name[]']"),
+            "Father/Husband's name is required"
+        );
+    }
+
+
+    // ================= PRESENT BUSINESS =================
+
+    if (!presentBusiness) {
+        setError(
+            $section.find("input[name='present_business[]']"),
+            "Present business is required"
+        );
+    }
+
+
+    // ================= COMPETENCY VALIDATION =================
+
+    if (competency === "yes") {
+
+        if (!ccNum) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_number[]']"
+                ),
+                "Competency Certificate Number is required"
+            );
+        }
+
+        if (!ccfirstissue) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_first_issue[]']"
+                ),
+                "Competency Certificate First Issue is required"
+            );
+        }
+
+        if (!ccvalidityfrom) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_from[]']"
+                ),
+                "Competency Certificate Validity From is required"
+            );
+        }
+
+        if (!ccvalidityto) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_to[]']"
+                ),
+                "Competency Certificate Validity To is required"
+            );
+        }
+    }
+
+
+    // ================= STOP IF INVALID =================
+
+    if (!isValid) {
+
+        Swal.fire({
+            icon: 'warning',
+            width: 450,
+            title: 'Missing Fields',
+            text: 'Fill all required fields.',
+            confirmButtonText: 'OK'
+        });
+
+        return;
+    }
+
+
+    // ================= PDF ICON =================
+
+    function renderPdfIcon(url) {
+
+        if (!url) return "";
+
+        return `<a href="${url}" target="_blank">
+                    <i class="fa fa-file-pdf-o text-danger"></i>
+                </a>`;
+    }
+
+
+    // ================= UPDATE EXISTING ROW =================
+
+    if (editIndex !== null) {
+
+        let $row =
+            $("#partner-section table tbody tr").eq(editIndex);
+
+        // Name
+        $row.find("td").eq(0).text(name);
+
+        // Father / Husband
+        $row.find("td").eq(1).text(fathersName);
+
+        // DOB + Age + Age Proof
+        $row.find("td").eq(2)
+            .attr({
+                "data-dob": dob,
+                "data-age": age,
+                "data-age_proof": finalAgeFileUrl
+            })
+            .html(`
+                ${dob}, ${age}
+                ${renderPdfIcon(finalAgeFileUrl)}
+            `);
+
+        // Address
+        $row.find("td").eq(3).text(address);
+
+        // Qualification + Proof
+        $row.find("td").eq(4)
+            .attr({
+                "data-qualification": qualification,
+                "data-qual_text": qual_text,
+                "data-qual_proof": finalFileUrl
+            })
+            .html(
+                (qualification === '8TH PASS'
+                    ? qualification
+                    : `${qualification}, ${qual_text}`) +
+                " " +
+                renderPdfIcon(finalFileUrl)
+            );
+
+        // Present Business
+        $row.find("td").eq(5).text(presentBusiness);
+
+
+        // ================= COMPETENCY DETAILS =================
+
+        $row.find("td").eq(6)
+            .attr({
+                "data-competency": competency,
+                "data-certno": ccNum,
+                "data-ccfirstissue": ccFirstIssueFormatted,
+                "data-ccvalidityfrom": ccValidityFromFormatted,
+                "data-ccvalidityto": ccValidityToFormatted
+            })
+            .html(
+                competency === "yes"
+                    ? `Yes - CC_No: ${ccNum},
+                       First Issue: ${ccFirstIssueFormatted},
+                       Validity: ${ccValidityFromFormatted} - ${ccValidityToFormatted}`
+                    : "No"
+            );
+
+
+        // Reset
+        resetPartnerForm(true);
+
+        editIndex = null;
+    }
+
+
+    // ================= ADD NEW ROW =================
+
+    else {
+
+        let rowCount =
+            $("#partner-section table tbody tr").length;
+
+        if (rowCount >= 5) {
+
+            Swal.fire({
+                title: "Partner Entry Exists!",
+                width: 450,
+                text: "You can only add a maximum of 5 partners.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6"
+            });
+
+            return;
+        }
+
+
+        $("#partner-section table tbody").append(`
+            <tr>
+
+                <!-- Name -->
+                <td>${name}</td>
+
+                <!-- Father / Husband Name -->
+                <td>${fathersName}</td>
+
+                <!-- DOB / Age -->
+                <td
+                    data-dob="${dob}"
+                    data-age="${age}"
+                    data-age_proof="${finalAgeFileUrl}">
+                    ${dob}, ${age}
+                    ${renderPdfIcon(finalAgeFileUrl)}
+                </td>
+
+                <!-- Address -->
+                <td>${address}</td>
+
+                <!-- Qualification -->
+                <td
+                    data-qualification="${qualification}"
+                    data-qual_text="${qual_text}"
+                    data-qual_proof="${finalFileUrl}">
+
+                    ${qualification === '8TH PASS'
+                        ? qualification
+                        : `${qualification}, ${qual_text}`}
+
+                    ${renderPdfIcon(finalFileUrl)}
+                </td>
+
+                <!-- Present Business -->
+                <td>${presentBusiness}</td>
+
+                <!-- Competency Certificate -->
+                <td
+                    data-competency="${competency}"
+                    data-certno="${ccNum}"
+                    data-ccfirstissue="${ccFirstIssueFormatted}"
+                    data-ccvalidityfrom="${ccValidityFromFormatted}"
+                    data-ccvalidityto="${ccValidityToFormatted}">
+
+                    ${competency === "yes"
+                        ? `Yes - CC_No: ${ccNum},
+                           First Issue: ${ccFirstIssueFormatted},
+                           Validity: ${ccValidityFromFormatted} - ${ccValidityToFormatted}`
+                        : "No"}
+
+                </td>
+
+                <!-- Ownership -->
+                <td
+                    style="display:none;"
+                    data-ownership="${ownership_type}">
+                    ${ownership_type}
+                </td>
+
+                <!-- Edit -->
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-primary btn-sm update-partner-row">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                </td>
+
+                <!-- Delete -->
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm remove-partner-row">
+                        <i class="fa fa-trash-o"></i>
+                    </button>
+                </td>
+
+            </tr>
+        `);
+
+
+        // Reset
+        resetPartnerForm(true);
+
+        partnerIndex++;
+    }
+
+});
+
+        // Reset form
+
+        function resetPartnerForm(hide = false) {
+            let $section = $("#partnersfill-section");
+
+            // Clear all text/number/textarea inputs
+            $section.find("input[type='text'], input[type='file'], input[type='number'], input[type='date'], textarea, select").val("");
+
+            // Clear all radio buttons
+            $section.find("input[type='radio']").prop("checked", false);
+
+            $section.find(".age-file-link").html("");
+            $section.find(".file-link").html("");
+            // Qualification file attributes
+            $section.removeAttr("data-existing-file");
+            $section.removeAttr("data-present-file");
+
+            // Age proof attributes
+            $section.removeAttr("data-existing-age-file");
+            $section.removeAttr("data-present-age-file");
+
+            $section.removeAttr("data-edit-id");
+
+            // Hide all conditional fields
+            $(".competency-fields-partner, .employment-fields-partner, .experience-fields-partner").hide();
+
+            // Reset Save button text
+            $("#save_partner").text("Save");
+
+            // Reset editIndex
+            editIndex = null;
+
+            $section.find(".text-danger").text("");
+
+            // Hide form if needed
+            if (hide) $section.slideUp();
+        }
+
+        // function resetPartnerForm(hide = false) {
+        //     let $section = $("#partnersfill-section");
+        //     $section.find("input[type='text'], input[type='number'], textarea").val("");
+        //     $section.find("input[type='radio']").prop("checked", false);
+        //     $section.find("input[value='no']").prop("checked", true); // Default “No”
+        //     if (hide) $section.slideUp();
+        // }
+
+        // Cancel update hides form
+        $(document).on("click", "#cancel_update", function() {
+            $("#partnersfill-section").slideUp();
+        });
+
+
+        // Remove partner row
+        $(document).on("click", ".remove-partner-row", function() {
+            $(this).closest("tr").remove();
+            let rowCount = $("#partner-section table tbody tr").length;
+
+
+        });
+
+        // Update partner row
+      $(document).on("click", ".update-partner-row", function() {
+
+    let $row = $(this).closest("tr");
+    let $tds = $row.find("td");
+
+    let id = $row.data("id");
+    editIndex = $row.index();
+
+    let ownershipValue = $row.find("td").eq(7).attr("data-ownership");
+
+    let row_indexValue = $row.find("td").eq(8).find("input[name='row_index[]']").val();
+
+    let $section = $("#partnersfill-section");
+
+    $section.find(".upload-btn").attr("data-row-index", row_indexValue);
+
+
+    // ================= BASIC DETAILS =================
+
+    $section.find("input[name='proprietor_name[]']")
+        .val($row.find("td").eq(0).text().trim());
+
+    $section.find("input[name='fathers_name[]']")
+        .val($row.find("td").eq(1).text().trim());
+
+
+    // ================= DOB / AGE =================
+
+    let tdDobAge = $row.find("td").eq(2);
+
+    let dob = tdDobAge.attr("data-dob") || "";
+    let age = tdDobAge.attr("data-age") || "";
+
+    $section.find("input[name='dob[]']").val(dob);
+    $section.find("input[name='age[]']").val(age);
+
+
+    // ================= AGE PROOF =================
+
+    let age_proof = tdDobAge.attr("data-age_proof") || "";
+
+    $section.attr(
+        "data-existing-age-file",
+        age_proof
+    );
+
+    $section.attr(
+        "data-present-age-file",
+        age_proof
+    );
+
+    if (age_proof) {
+
+        $section.find(".age-file-link").html(`
+            <a href="${age_proof}" target="_blank"
+                class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o" style="color:red;"></i>
+                View Document
+            </a>
+        `);
+
+    } else {
+
+        $section.find(".age-file-link").html("");
+    }
+
+
+    // ================= ADDRESS =================
+
+    $section.find("textarea[name='proprietor_address[]']")
+        .val($row.find("td").eq(3).text().trim());
+
+
+    // ================= QUALIFICATION =================
+
+    let $qualTd = $row.find("td").eq(4);
+
+    let qualification =
+        $qualTd.attr("data-qualification") || "";
+
+    let qual_text =
+        $qualTd.attr("data-qual_text") || "";
+
+    let qual_proof =
+        $qualTd.attr("data-qual_proof") || "";
+
+
+    let $qualificationSelect =
+        $section.find("select[name='qualification[]']");
+
+    let $qualTextInput =
+        $section.find("input[name='qual_text[]']");
+
+    let $wrapper =
+        $section.find(".qualTextWrapper");
+
+
+    $qualificationSelect
+        .val(qualification)
+        .trigger("change");
+
+
+    // Fallback matching
+    if ($qualificationSelect.val() === null) {
+
+        $qualificationSelect.find("option").each(function() {
+
+            if (
+                $.trim($(this).val()).toLowerCase() ===
+                $.trim(qualification).toLowerCase()
+            ) {
+                $(this).prop("selected", true);
+            }
+
+        });
+    }
+
+
+    $qualTextInput.val(qual_text);
+
+
+    if (
+        qualification &&
+        qualification !== "8TH PASS"
+    ) {
+
+        $wrapper.show();
+
+    } else {
+
+        $wrapper.hide();
+    }
+
+
+    // ================= QUALIFICATION PROOF =================
+
+    $section.attr(
+        "data-existing-file",
+        qual_proof
+    );
+
+    $section.attr(
+        "data-present-file",
+        qual_proof
+    );
+
+
+    if (qual_proof) {
+
+        $section.find(".file-link").html(`
+            <a href="${qual_proof}" target="_blank"
+                class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o" style="color:red;"></i>
+                View Document
+            </a>
+        `);
+
+    } else {
+
+        $section.find(".file-link").html("");
+    }
+
+
+    // ================= EDIT ID =================
+
+    $section.attr("data-edit-id", id);
+
+
+    // ================= PRESENT BUSINESS =================
+
+    $section.find("input[name='present_business[]']")
+        .val($row.find("td").eq(5).text().trim());
+
+
+    // ================= OWNERSHIP =================
+
+    $section.find("input[name='ownership_type[]']")
+        .val(ownershipValue || "");
+
+
+    // ================= COMPETENCY =================
+
+    let tdCompetency = $row.find("td").eq(6);
+
+    let competency =
+        tdCompetency.attr("data-competency") || "no";
+
+    let certNo =
+        tdCompetency.attr("data-certno") || "";
+
+    let ccFirstIssue =
+        tdCompetency.attr("data-ccfirstissue") || "";
+
+    let ccValidityFrom =
+        tdCompetency.attr("data-ccvalidityfrom") || "";
+
+    let ccValidityTo =
+        tdCompetency.attr("data-ccvalidityto") || "";
+
+
+    // Radio
+    $section.find(
+        "input[name='competency_certificate_holding[]']"
+    ).prop("checked", false);
+
+    $section.find(
+        "input[name='competency_certificate_holding[]'][value='" +
+        competency +
+        "']"
+    ).prop("checked", true);
+
+
+    // Show / Hide competency fields
+    toggleCompetencyFields(
+        "partner",
+        competency === "yes"
+    );
+
+
+    // Certificate Number
+    $section.find(
+        "input[name='competency_certificate_number[]']"
+    ).val(certNo);
+
+
+    // ================= DATE CONVERSION =================
+
+    function convertDDMMYYYYtoYMD(date) {
+
+        if (!date) {
+            return "";
+        }
+
+        date = $.trim(date);
+
+        // Already YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return date;
+        }
+
+        // DD-MM-YYYY
+        if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+
+            let parts = date.split("-");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        // DD/MM/YYYY
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+
+            let parts = date.split("/");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        return date;
+    }
+
+
+    let firstIssueYMD =
+        convertDDMMYYYYtoYMD(ccFirstIssue);
+
+    let validityFromYMD =
+        convertDDMMYYYYtoYMD(ccValidityFrom);
+
+    let validityToYMD =
+        convertDDMMYYYYtoYMD(ccValidityTo);
+
+
+    $section.find(
+        "input[name='competency_certificate_first_issue[]']"
+    ).val(firstIssueYMD);
+
+    $section.find(
+        "input[name='competency_certificate_validity_from[]']"
+    ).val(validityFromYMD);
+
+    $section.find(
+        "input[name='competency_certificate_validity_to[]']"
+    ).val(validityToYMD);
+
+
+    // ================= CLEAR VERIFICATION RESULT =================
+
+    $section.find("#competency_exp_result").empty();
+
+
+    // ================= CHECK COMPETENCY =================
+
+    if (
+        competency === "yes" &&
+        certNo &&
+        ccFirstIssue &&
+        ccValidityFrom &&
+        ccValidityTo
+    ) {
+        checkCompetencyCertificate();
+    }
+
+
+    // ================= SHOW FORM =================
+
+    $section.slideDown();
+
+
+    // ================= CHANGE BUTTON TO UPDATE =================
+
+    $("#save_partner").text("Update");
+
+
+    if ($("#cancel_update").length === 0) {
+
+        $("#save_partner").after(`
+            <button
+                type="button"
+                id="cancel_update"
+                class="btn btn-danger ms-2">
+                Cancel
+            </button>
+        `);
+    }
+
+});
+
+  $(document).on("click", ".remove-partner-row", function() {
+            $(this).closest("tr").remove();
+        });
+
+       function formatDateToYMD(dateString) {
+            const parts = dateString.split("/");
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+            }
+            return dateString;
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+
+            if (!dateStr) {
+                return "";
+            }
+
+            // Already DD-MM-YYYY
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                return dateStr;
+            }
+
+            // YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+
+                let parts = dateStr.split("-");
+
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            return dateStr;
+        }
+
+
+        // Cancel update
+        $(document).on("click", "#cancel_update", function() {
+            resetPartnerForm(false); // reset + hide
+        });
+
+
+        // ------------------------------save director------------------
+
+        let directorIndex = 0;
+        let directoreditIndex = null;
+
+        // Show partner form
+        $("#add-director").on("click", function() {
+            let rowCount = $("#director-section table tbody tr").length;
+
+            let directorSection = $("#directorfill-section");
+
+            let directorInput = directorSection.find("input[name='proprietor_name[]']");
+
+            if (rowCount == 0) {
+
+                let userName = @json(Auth::user()-> first_name.' '.Auth::user()-> last_name);
+
+
+                $("#proprietor_name")
+                    .val(userName)
+                    .prop("readonly", true);
+
+            } else {
+
+                directorInput
+                    .val("")
+                    .prop("readonly", false);
+            }
+
+            if (rowCount >= 10) {
+
+                Swal.fire({
+                    title: "Directors Entry Exists!",
+                    width: 450,
+                    text: "You can only add a maximum of 10 Directors..",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
+                });
+
+                // alert("You can only add a maximum of 6 partners.");
+                return;
+            }
+
+            /* ===========================
+               CHECK MANAGING DIRECTOR EXISTS
+               ============================ */
+
+            let mdExists = false;
+
+            $("#director-section table tbody tr").each(function() {
+
+                let md = $(this)
+                    .find("td.md-column")
+                    .attr("data-managing_director");
+
+                if (md === "yes") {
+                    mdExists = true;
+                }
+            });
+
+            if (mdExists) {
+
+                $(".managing-director-wrapper").hide();
+
+                $("#is_managing_director")
+                    .prop("checked", false);
+
+            } else {
+
+                $(".managing-director-wrapper").show();
+            }
+
+
+            resetDirectorForm();
+            $("#directorfill-section").slideDown();
+
+            let $section = $("#directorfill-section");
+
+            // $section.find("input, select").val("");
+            $section.find(".qualification").val("").trigger("change");
+            $section.find(".file-link").html("");
+            // $("#directorfill-section").slideDown();
+            // $("#partner-section table tbody").append(newRow);
+            $section.find(".upload-btn")
+                // .attr("data-row_index", rowCount)
+                // .data("row_index", rowCount);
+
+                .attr("data-row-index", rowCount)
+                .data("rowIndex", rowCount);
+
+        });
+
+
+
+
+        // Save or Update Partner
+        $("#save_director").on("click", function() {
+
+    let $section = $("#directorfill-section");
+
+    let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
+
+    // ===========================
+    // BASIC DETAILS
+    // ===========================
+
+    let name = $section.find("input[name='proprietor_name[]']").val().trim();
+
+    let address = $section
+        .find("textarea[name='proprietor_address[]']")
+        .val()
+        .trim();
+
+    let dob = $section
+        .find("input[name='dob[]']")
+        .val()
+        .trim();
+
+    let age = $section
+        .find("input[name='age[]']")
+        .val()
+        .trim();
+
+    let qualification = $section
+        .find("select[name='qualification[]']")
+        .val();
+
+    let qual_text = $.trim(
+        $section.find("input[name='qual_text[]']").val()
+    );
+
+    let qual_proof = $section
+        .find("input[name='qual_proof[]']")
+        .val()
+        .trim();
+
+    let age_proof = $section
+        .find("input[name='age_proof[]']")
+        .val()
+        .trim();
+
+    let fathersName = $section
+        .find("input[name='fathers_name[]']")
+        .val()
+        .trim();
+
+    let presentBusiness = $section
+        .find("input[name='present_business[]']")
+        .val()
+        .trim();
+
+    // ===========================
+    // COMPETENCY
+    // ===========================
+
+    if (
+        !$section.find(
+            "input[name='competency_certificate_holding[]']:checked"
+        ).length
+    ) {
+        $section.find(
+            "input[name='competency_certificate_holding[]'][value='no']"
+        ).prop("checked", true);
+    }
+
+    let competency = $section
+        .find(
+            "input[name='competency_certificate_holding[]']:checked"
+        )
+        .val() || "no";
+
+    let ccNum = $section
+        .find("input[name='competency_certificate_number[]']")
+        .val()
+        .trim();
+
+    let ccFirstIssue = $section
+        .find("input[name='competency_certificate_first_issue[]']")
+        .val()
+        .trim();
+
+    let ccValidityFrom = $section
+        .find("input[name='competency_certificate_validity_from[]']")
+        .val()
+        .trim();
+
+    let ccValidityTo = $section
+        .find("input[name='competency_certificate_validity_to[]']")
+        .val()
+        .trim();
+
+    let ccverifyInput = $section
+        .find("input[name='proprietor_cc_verify[]']")
+        .val();
+
+    let ccverify = (
+        ccverifyInput === null ||
+        $.trim(ccverifyInput) === ""
+    )
+        ? null
+        : parseInt(ccverifyInput, 10);
+
+    // ===========================
+    // MANAGING DIRECTOR
+    // ===========================
+
+    let isManagingDirector = $section
+        .find(".managing-director-checkbox")
+        .is(":checked")
+        ? "yes"
+        : "no";
+
+    // ===========================
+    // VALIDATION
+    // ===========================
+
+    $section.find(".error").text("");
+
+    let isValid = true;
+
+    function setError(element, message) {
+
+        element
+            .closest(
+                ".col-12, .col-md-6, .col-md-5, .col-md-4, .col-md-3"
+            )
+            .find(".error")
+            .text(message);
+
+        isValid = false;
+    }
+
+    // NAME
+    if (!name) {
+        setError(
+            $section.find("input[name='proprietor_name[]']"),
+            "Director name is required"
+        );
+    }
+
+    // ADDRESS
+    if (!address) {
+        setError(
+            $section.find("textarea[name='proprietor_address[]']"),
+            "Address is required"
+        );
+    }
+
+    // DOB
+    if (!dob) {
+        setError(
+            $section.find("input[name='dob[]']"),
+            "Date of birth is required"
+        );
+    }
+
+    // AGE
+    if (!age) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Age is required"
+        );
+    } else if (parseInt(age) < 25) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Maximum age should be 25"
+        );
+    }
+
+    // QUALIFICATION
+    if (!qualification) {
+
+        setError(
+            $section.find("select[name='qualification[]']"),
+            "Qualification is required"
+        );
+
+    }
+
+    if (qualification && qualification !== "8TH PASS") {
+
+        if (!qual_text) {
+
+            setError(
+                $section.find("input[name='qual_text[]']"),
+                "Enter Qualification is required"
+            );
+
+        }
+
+    }
+
+    // ===========================
+    // QUALIFICATION PROOF
+    // ===========================
+
+    let isEditMode = $section.attr("data-edit-id") ? true : false;
+
+    let existingFileUrl =
+        $section.attr("data-existing-file") || "";
+
+    let presentFile =
+        $section.attr("data-present-file") || "";
+
+    let fileInput =
+        $section.find("input[name='qual_proof[]']")[0];
+
+    let hasNewFile =
+        fileInput &&
+        fileInput.files &&
+        fileInput.files.length > 0;
+
+    let hasExistingFile =
+        existingFileUrl !== "";
+
+    let hasPresentFile =
+        presentFile !== "";
+
+    if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
+
+        setError(
+            $section.find("input[name='qual_proof[]']"),
+            "Please upload Qualification proof"
+        );
+
+        isValid = false;
+    }
+
+    let uploadedFilePath =
+        window.uploadedFilePath || "";
+
+    let finalFileUrl = "";
+
+    if (hasNewFile && uploadedFilePath) {
+
+        finalFileUrl = uploadedFilePath;
+
+    } else if (hasExistingFile) {
+
+        finalFileUrl = existingFileUrl;
+
+    } else if (hasPresentFile) {
+
+        finalFileUrl = presentFile;
+
+    }
+
+    // ===========================
+    // AGE PROOF
+    // ===========================
+
+    let existingAgeFile =
+        $section.attr("data-existing-age-file") || "";
+
+    let presentAgeFile =
+        $section.attr("data-present-age-file") || "";
+
+    let ageFileInput =
+        $section.find("input[name='age_proof[]']")[0];
+
+    let hasNewAgeFile =
+        ageFileInput &&
+        ageFileInput.files &&
+        ageFileInput.files.length > 0;
+
+    let hasExistingAgeFile =
+        existingAgeFile !== "";
+
+    let hasPresentAgeFile =
+        presentAgeFile !== "";
+
+    if (
+        !hasExistingAgeFile &&
+        !hasPresentAgeFile &&
+        !hasNewAgeFile
+    ) {
+
+        setError(
+            $section.find("input[name='age_proof[]']"),
+            "Please upload Age proof"
+        );
+
+        isValid = false;
+    }
+
+    let uploadedAgeFilePath =
+        window.uploadedAgeFilePath || "";
+
+    let finalAgeFileUrl = "";
+
+    if (hasNewAgeFile && uploadedAgeFilePath) {
+
+        finalAgeFileUrl = uploadedAgeFilePath;
+
+    } else if (hasExistingAgeFile) {
+
+        finalAgeFileUrl = existingAgeFile;
+
+    } else if (hasPresentAgeFile) {
+
+        finalAgeFileUrl = presentAgeFile;
+
+    }
+
+    // ===========================
+    // FATHER NAME
+    // ===========================
+
+    if (!fathersName) {
+
+        setError(
+            $section.find("input[name='fathers_name[]']"),
+            "Father/Husband's name is required"
+        );
+
+    }
+
+    // ===========================
+    // PRESENT BUSINESS
+    // ===========================
+
+    if (!presentBusiness) {
+
+        setError(
+            $section.find("input[name='present_business[]']"),
+            "Present business is required"
+        );
+
+    }
+
+    // ===========================
+    // COMPETENCY VALIDATION
+    // ===========================
+
+    if (competency === "yes") {
+
+        if (!ccNum) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_number[]']"
+                ),
+                "Competency Certificate Number is required"
+            );
+
+        }
+
+        if (!ccFirstIssue) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_first_issue[]']"
+                ),
+                "Competency Certificate First Issue is required"
+            );
+
+        }
+
+        if (!ccValidityFrom) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_from[]']"
+                ),
+                "Competency Certificate Validity From is required"
+            );
+
+        }
+
+        if (!ccValidityTo) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_to[]']"
+                ),
+                "Competency Certificate Validity To is required"
+            );
+
+        }
+
+    }
+
+    // ===========================
+    // STOP IF INVALID
+    // ===========================
+
+    if (!isValid) {
+
+        Swal.fire({
+            icon: "warning",
+            width: 450,
+            title: "Missing Fields",
+            text: "Fill all required fields.",
+            confirmButtonText: "OK"
+        });
+
+        return;
+    }
+
+    // ===========================
+    // PDF ICON
+    // ===========================
+
+    function renderPdfIcon(url) {
+
+        if (!url) return "";
+
+        return `
+            <a href="${url}" target="_blank">
+                <i class="fa fa-file-pdf-o text-danger"></i>
+            </a>
+        `;
+    }
+
+    // ===========================
+    // DATE FORMAT
+    // ===========================
+
+    let ccFirstIssueFormatted =
+        ccFirstIssue
+            ? formatDateToDDMMYYYY(ccFirstIssue)
+            : "";
+
+    let ccValidityFromFormatted =
+        ccValidityFrom
+            ? formatDateToDDMMYYYY(ccValidityFrom)
+            : "";
+
+    let ccValidityToFormatted =
+        ccValidityTo
+            ? formatDateToDDMMYYYY(ccValidityTo)
+            : "";
+
+    // ===========================
+    // UPDATE EXISTING ROW
+    // ===========================
+
+    if (directoreditIndex !== null) {
+
+        let $row =
+            $("#director-section table tbody tr")
+                .eq(directoreditIndex);
+
+        // NAME
+        $row.find("td").eq(0)
+            .attr({
+                "data-name": name,
+                "data-managing_director": isManagingDirector
+            })
+            .html(`
+                <div class="director-name-wrapper">
+                    <span class="director-name">${name}</span>
+
+                    ${
+                        isManagingDirector === "yes"
+                            ? `<span class="managing-director-tag">
+                                Managing Director
+                               </span>`
+                            : ""
+                    }
+                </div>
+            `);
+
+        // FATHER NAME
+        $row.find("td").eq(1)
+            .text(fathersName);
+
+        // DOB / AGE / AGE PROOF
+        $row.find("td").eq(2)
+            .attr({
+                "data-dob": dob,
+                "data-age": age,
+                "data-age_proof": finalAgeFileUrl
+            })
+            .html(`
+                ${dob}, ${age}
+                ${renderPdfIcon(finalAgeFileUrl)}
+            `);
+
+        // ADDRESS
+        $row.find("td").eq(3)
+            .text(address);
+
+        // QUALIFICATION
+        $row.find("td").eq(4)
+            .attr({
+                "data-qualification": qualification,
+                "data-qual_text": qual_text,
+                "data-qual_proof": finalFileUrl
+            })
+            .html(
+                (
+                    qualification === "8TH PASS"
+                        ? qualification
+                        : `${qualification}, ${qual_text}`
+                ) +
+                " " +
+                renderPdfIcon(finalFileUrl)
+            );
+
+        // PRESENT BUSINESS
+        $row.find("td").eq(5)
+            .text(presentBusiness);
+
+        // MANAGING DIRECTOR
+        $row.find("td.md-column")
+            .attr(
+                "data-managing_director",
+                isManagingDirector
+            )
+            .html(
+                isManagingDirector === "yes"
+                    ? `<span class="badge bg-success">
+                        Managing Director
+                       </span>`
+                    : "-"
+            );
+
+        // HIDE MANAGING DIRECTOR CHECKBOX
+        if (isManagingDirector === "yes") {
+            $(".managing-director-wrapper").hide();
+        }
+
+        // COMPETENCY
+        $row.find("td").eq(6)
+            .text(
+                competency === "yes"
+                    ? `Yes - CC_No: ${ccNum}, First Issue: ${ccFirstIssueFormatted}, Validity: ${ccValidityFromFormatted} to ${ccValidityToFormatted}`
+                    : "No"
+            )
+            .attr({
+                "data-competency": competency,
+                "data-certno": ccNum,
+                "data-ccfirstissue": ccFirstIssue,
+                "data-ccvalidityfrom": ccValidityFrom,
+                "data-ccvalidityto": ccValidityTo,
+                "data-ccverify":
+                    ccverify === null ? "" : ccverify
+            });
+
+        // OWNERSHIP
+        $row.find("td").eq(7)
+            .attr("data-ownership", ownership_type)
+            .text(ownership_type);
+
+        resetDirectorForm(true);
+
+        directoreditIndex = null;
+
+    }
+
+    // ===========================
+    // ADD NEW ROW
+    // ===========================
+
+    else {
+
+        let rowCount =
+            $("#director-section table tbody tr").length;
+
+        if (rowCount >= 10) {
+
+            Swal.fire({
+                title: "Director Entry Exists!",
+                width: 450,
+                text: "You can only add a maximum of 10 directors.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6"
+            });
+
+            return;
+        }
+
+        $("#director-section table tbody").append(`
+            <tr>
+
+                <td
+                    data-name="${name}"
+                    data-managing_director="${isManagingDirector}"
+                >
+                    <div class="director-name-wrapper">
+                        <span class="director-name">
+                            ${name}
+                        </span>
+
+                        ${
+                            isManagingDirector === "yes"
+                                ? `<span class="managing-director-tag">
+                                    Managing Director
+                                   </span>`
+                                : ""
+                        }
+                    </div>
+                </td>
+
+                <td>
+                    ${fathersName}
+                </td>
+
+                <td
+                    data-dob="${dob}"
+                    data-age="${age}"
+                    data-age_proof="${finalAgeFileUrl}"
+                >
+                    ${dob}, ${age}
+                    ${renderPdfIcon(finalAgeFileUrl)}
+                </td>
+
+                <td>
+                    ${address}
+                </td>
+
+                <td
+                    data-qualification="${qualification}"
+                    data-qual_text="${qual_text}"
+                    data-qual_proof="${finalFileUrl}"
+                >
+                    ${
+                        qualification === "8TH PASS"
+                            ? qualification
+                            : `${qualification}, ${qual_text}`
+                    }
+
+                    ${renderPdfIcon(finalFileUrl)}
+                </td>
+
+                <td>
+                    ${presentBusiness}
+                </td>
+
+                <td
+                    data-competency="${competency}"
+                    data-certno="${ccNum}"
+                    data-ccfirstissue="${ccFirstIssue}"
+                    data-ccvalidityfrom="${ccValidityFrom}"
+                    data-ccvalidityto="${ccValidityTo}"
+                    data-ccverify="${
+                        ccverify === null ? "" : ccverify
+                    }"
+                >
+                    ${
+                        competency === "yes"
+                            ? `Yes - CC_No: ${ccNum}, First Issue: ${ccFirstIssueFormatted}, Validity: ${ccValidityFromFormatted} to ${ccValidityToFormatted}`
+                            : "No"
+                    }
+                </td>
+
+                <td
+                    style="display:none;"
+                    data-ownership="${ownership_type}"
+                >
+                    ${ownership_type}
+                </td>
+
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-primary btn-sm update-director-row"
+                    >
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                </td>
+
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm remove-director-row"
+                    >
+                        <i class="fa fa-trash-o"></i>
+                    </button>
+                </td>
+
+            </tr>
+        `);
+
+        // ===========================
+        // HIDE MD CHECKBOX
+        // ===========================
+
+        if (isManagingDirector === "yes") {
+            $(".managing-director-wrapper").hide();
+        }
+
+        resetDirectorForm(true);
+
+        directorIndex++;
+    }
+});
+        // Reset form
+
+        function resetDirectorForm(hide = false) {
+            let $section = $("#directorfill-section");
+
+            // Clear all text/number/textarea inputs
+            $section.find("input[type='text'], input[type='number'], input[type='date'], textarea").val("");
+
+            // Clear all radio buttons
+            $section.find("input[type='radio']").prop("checked", false);
+
+
+            $section.find(".file-link").html("");
+
+            $section.find(".age-file-link").html("");
+
+            $section.removeAttr("data-existing-file");
+            $section.removeAttr("data-present-file");
+
+            // Age proof attributes
+            $section.removeAttr("data-existing-age-file");
+            $section.removeAttr("data-present-age-file");
+
+            $section.removeAttr("data-edit-id");
+
+            $section.find(".managing-director-checkbox")
+                .prop("checked", false);
+
+            // Hide all conditional fields
+            $(".competency-fields-director, .employment-fields-director, .experience-fields-director").hide();
+
+            // Reset Save button text
+            $("#save_director").text("Save");
+
+            // Reset directoreditIndex
+            directoreditIndex = null;
+
+            $section.find(".text-danger").text("");
+
+            // Hide form if needed
+            if (hide) $section.slideUp();
+        }
+
+        // function resetDirectorForm(hide = false) {
+        //     let $section = $("#directorfill-section");
+        //     $section.find("input[type='text'], input[type='number'], textarea").val("");
+        //     $section.find("input[type='radio']").prop("checked", false);
+        //     $section.find("input[value='no']").prop("checked", true); // Default “No”
+        //     if (hide) $section.slideUp();
+        // }
+
+        // Cancel update hides form
+        $(document).on("click", "#cancel_director", function() {
+            $("#directorfill-section").slideUp();
+        });
+
+
+        // Remove partner row
+        $(document).on("click", ".remove-director-row", function() {
+
+            let $row = $(this).closest("tr");
+
+            let isMD = $row
+                .find("td.md-column")
+                .attr("data-managing_director");
+
+            $row.remove();
+
+            /* ===========================
+            SHOW AGAIN IF MD REMOVED
+            ============================ */
+
+            if (isMD === "yes") {
+
+                $(".managing-director-wrapper").show();
+            }
+        });
+
+        // Update partner row
+     $(document).on("click", ".update-director-row", function() {
+
+    let $row = $(this).closest("tr");
+    let $tds = $row.find("td");
+
+    let id = $row.data("id");
+
+    directoreditIndex = $row.index();
+
+    // ===========================
+    // OWNERSHIP
+    // ===========================
+
+    let ownershipValue =
+        $row.find("td").eq(7).attr("data-ownership") || "";
+
+    let row_indexValue =
+        $row.find("td").eq(8)
+            .find("input[name='row_index[]']")
+            .val();
+
+    let $section = $("#directorfill-section");
+
+    $section.find(".upload-btn")
+        .attr("data-row-index", row_indexValue);
+
+    // ===========================
+    // BASIC DETAILS
+    // ===========================
+
+    let directorName =
+        $row.find("td").eq(0).attr("data-name") ||
+        $row.find("td").eq(0).text().trim();
+
+    $section
+        .find("input[name='proprietor_name[]']")
+        .val(directorName);
+
+    $section
+        .find("input[name='fathers_name[]']")
+        .val(
+            $row.find("td").eq(1).text().trim()
+        );
+
+    // ===========================
+    // DOB / AGE / AGE PROOF
+    // ===========================
+
+    let tdDobAge = $row.find("td").eq(2);
+
+    let dob =
+        tdDobAge.attr("data-dob") || "";
+
+    let age =
+        tdDobAge.attr("data-age") || "";
+
+    let age_proof =
+        tdDobAge.attr("data-age_proof") || "";
+
+    $section
+        .find("input[name='dob[]']")
+        .val(dob);
+
+    $section
+        .find("input[name='age[]']")
+        .val(age);
+
+    $section.attr(
+        "data-existing-age-file",
+        age_proof
+    );
+
+    $section.attr(
+        "data-present-age-file",
+        age_proof
+    );
+
+    if (age_proof) {
+
+        $section.find(".age-file-link").html(`
+            <a href="${age_proof}"
+               target="_blank"
+               class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o"
+                   style="color:red;"></i>
+                View Document
+            </a>
+        `);
+
+    } else {
+
+        $section.find(".age-file-link").html("");
+
+    }
+
+    // ===========================
+    // ADDRESS
+    // ===========================
+
+    $section
+        .find("textarea[name='proprietor_address[]']")
+        .val(
+            $row.find("td").eq(3).text().trim()
+        );
+
+    // ===========================
+    // MANAGING DIRECTOR
+    // ===========================
+
+    let managingDirector = (
+        $row.find("td").eq(0)
+            .attr("data-managing_director") || ""
+    ).toUpperCase();
+
+    if (managingDirector === "YES") {
+
+        $(".managing-director-wrapper").show();
+
+        $("#is_managing_director")
+            .prop("checked", true);
+
+    } else {
+
+        $("#is_managing_director")
+            .prop("checked", false);
+    }
+
+    // ===========================
+    // QUALIFICATION
+    // ===========================
+
+    let $qualTd = $row.find("td").eq(4);
+
+    let qualification =
+        $qualTd.attr("data-qualification") || "";
+
+    let qual_text =
+        $qualTd.attr("data-qual_text") || "";
+
+    let qual_proof =
+        $qualTd.attr("data-qual_proof") || "";
+
+    let $qualificationSelect =
+        $section.find(
+            "select[name='qualification[]']"
+        );
+
+    let $qualTextInput =
+        $section.find(
+            "input[name='qual_text[]']"
+        );
+
+    let $wrapper =
+        $section.find(".qualTextWrapper");
+
+    $qualificationSelect
+        .val(qualification)
+        .trigger("change");
+
+    if ($qualificationSelect.val() === null) {
+
+        $qualificationSelect
+            .find("option")
+            .each(function() {
+
+                if (
+                    $.trim($(this).val()).toLowerCase() ===
+                    $.trim(qualification).toLowerCase()
+                ) {
+
+                    $(this).prop(
+                        "selected",
+                        true
+                    );
+
+                }
+
+            });
+    }
+
+    $qualTextInput.val(qual_text);
+
+    if (
+        qualification &&
+        qualification !== "8TH PASS"
+    ) {
+
+        $wrapper.show();
+
+    } else {
+
+        $wrapper.hide();
+
+    }
+
+    // ===========================
+    // QUALIFICATION PROOF
+    // ===========================
+
+    $section.attr(
+        "data-existing-file",
+        qual_proof
+    );
+
+    $section.attr(
+        "data-present-file",
+        qual_proof
+    );
+
+    if (qual_proof) {
+
+        $section.find(".file-link").html(`
+            <a href="${qual_proof}"
+               target="_blank"
+               class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o"
+                   style="color:red;"></i>
+                View Uploaded File
+            </a>
+        `);
+
+    } else {
+
+        $section.find(".file-link").html("");
+
+    }
+
+    // ===========================
+    // EDIT ID
+    // ===========================
+
+    $section.attr(
+        "data-edit-id",
+        id || ""
+    );
+
+    // ===========================
+    // PRESENT BUSINESS
+    // ===========================
+
+    $section
+        .find("input[name='present_business[]']")
+        .val(
+            $row.find("td").eq(5).text().trim()
+        );
+
+    // ===========================
+    // OWNERSHIP
+    // ===========================
+
+    $section
+        .find("input[name='ownership_type[]']")
+        .val(ownershipValue);
+
+    // ===========================
+    // COMPETENCY
+    // ===========================
+
+    let tdCompetency =
+        $row.find("td").eq(6);
+
+    let competency =
+        tdCompetency.attr("data-competency") ||
+        "no";
+
+    let certNo =
+        tdCompetency.attr("data-certno") ||
+        "";
+
+    let ccFirstIssue =
+        tdCompetency.attr("data-ccfirstissue") ||
+        "";
+
+    let ccValidityFrom =
+        tdCompetency.attr("data-ccvalidityfrom") ||
+        "";
+
+    let ccValidityTo =
+        tdCompetency.attr("data-ccvalidityto") ||
+        "";
+
+    $section
+        .find(
+            "input[name='competency_certificate_holding[]']"
+        )
+        .prop("checked", false);
+
+    $section
+        .find(
+            "input[name='competency_certificate_holding[]'][value='" +
+            competency +
+            "']"
+        )
+        .prop("checked", true);
+
+    $section
+        .find(
+            "input[name='competency_certificate_number[]']"
+        )
+        .val(certNo);
+
+    function convertDDMMYYYYtoYMD(date) {
+
+        if (!date) return "";
+
+        date = $.trim(date);
+
+        if (
+            /^\d{4}-\d{2}-\d{2}$/.test(date)
+        ) {
+            return date;
+        }
+
+        if (
+            /^\d{2}-\d{2}-\d{4}$/.test(date)
+        ) {
+
+            let parts = date.split("-");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        if (
+            /^\d{2}\/\d{2}\/\d{4}$/.test(date)
+        ) {
+
+            let parts = date.split("/");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        return date;
+    }
+
+    let firstIssueYMD =
+        convertDDMMYYYYtoYMD(
+            ccFirstIssue
+        );
+
+    let validityFromYMD =
+        convertDDMMYYYYtoYMD(
+            ccValidityFrom
+        );
+
+    let validityToYMD =
+        convertDDMMYYYYtoYMD(
+            ccValidityTo
+        );
+
+    $section
+        .find(
+            "input[name='competency_certificate_first_issue[]']"
+        )
+        .val(firstIssueYMD);
+
+    $section
+        .find(
+            "input[name='competency_certificate_validity_from[]']"
+        )
+        .val(validityFromYMD);
+
+    $section
+        .find(
+            "input[name='competency_certificate_validity_to[]']"
+        )
+        .val(validityToYMD);
+
+    // ===========================
+    // COMPETENCY SHOW / HIDE
+    // ===========================
+
+    toggleCompetencyFields(
+        "director",
+        competency === "yes"
+    );
+
+    // ===========================
+    // COMPETENCY VERIFY
+    // ===========================
+
+    $section
+        .find("#competency_exp_result")
+        .empty();
+
+    if (
+        competency === "yes" &&
+        certNo &&
+        ccFirstIssue &&
+        ccValidityFrom &&
+        ccValidityTo
+    ) {
+
+        checkCompetencyCertificate();
+
+    }
+
+    // ===========================
+    // SHOW FORM
+    // ===========================
+
+    $section.slideDown();
+
+    // ===========================
+    // UPDATE BUTTON
+    // ===========================
+
+    $("#save_director")
+        .text("Update");
+
+    if ($("#cancel_director").length === 0) {
+
+        $("#save_director").after(`
+            <button
+                type="button"
+                id="cancel_director"
+                class="btn btn-danger ms-2">
+                Cancel
+            </button>
+        `);
+
+    }
+
+});
+
+         function formatDateToYMD(dateString) {
+            const parts = dateString.split("/");
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+            }
+            return dateString;
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+
+            if (!dateStr) {
+                return "";
+            }
+
+            // Already DD-MM-YYYY
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                return dateStr;
+            }
+
+            // YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+
+                let parts = dateStr.split("-");
+
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            return dateStr;
+        }
+
+
+        // Cancel update
+        $(document).on("click", "#cancel_director", function() {
+            resetDirectorForm(false); // reset + hide
+        });
+
+
+
+
+
+        // --------------age restriction partner--------------------
+        // document.querySelectorAll('input[name="age[]"]').forEach(input => {
+        //     input.addEventListener('input', function() {
+        //         let val = parseInt(this.value);
+        //         const errorSpan = this.nextElementSibling;
+
+        //         if (val > 80) {
+        //             // errorSpan.textContent = "Age cannot be more than 70";
+        //             this.value = '80'; // clear the input or set to max
+        //         } else if (val < 12 && val !== 0 && this.value !== '') {
+        //             // errorSpan.textContent = "Age cannot be less than 15";
+        //         } else {
+        //             errorSpan.textContent = "";
+        //         }
+        //     });
+        // });
+
+        // ------------------signatory solvency ------------------------------
+        document.querySelectorAll('input[name="age_of_authorised_to_sign[]"]').forEach(input => {
+            input.addEventListener('input', function() {
+                let val = parseInt(this.value);
+                const errorSpan = this.nextElementSibling;
+
+                if (val > 80) {
+                    // errorSpan.textContent = "Age cannot be more than 70";
+                    this.value = ''; // clear the input or set to max
+                } else if (val < 12 && val !== 0 && this.value !== '') {
+                    // errorSpan.textContent = "Age cannot be less than 15";
+                } else {
+                    errorSpan.textContent = "";
+                }
+            });
+        });
+
+        // ------------------------------------------------equipment 14------------------
+        function toggleTestedReport() {
+            if ($("input[name='tested_documents']:checked").val() === "yes") {
+                $("#tested_report_row").show();
+            } else {
+                $("#tested_report_row").hide();
+                // Optional: clear fields when "No" selected
+                $("#tested_report_id").val("");
+                $("#validity_date_eq1").val("");
+            }
+        }
+
+        // Run on page load (for pre-filled "yes")
+        toggleTestedReport();
+
+        // Run when user changes radio
+        $("input[name='tested_documents']").change(function() {
+            toggleTestedReport();
+        });
+
+        $("input[name='equipment1']").on("change", function() {
+            if ($(this).val() === "yes") {
+                $("#invoice_row").slideDown();
+            } else {
+                $("#invoice_row").slideUp();
+            }
+        });
+
+        // Toggle for Instrument 3 section
+        $("input[name='instrument3']").on("change", function() {
+            if ($(this).val() === "yes") {
+                $("#instrument3_row").slideDown();
+            } else {
+                $("#instrument3_row").slideUp();
+            }
+        });
+    </script>
+    <!--
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Get references to the checkboxes and form
+            var checkbox1 = document.getElementById("declarationCheckbox");
+            var checkbox2 = document.getElementById("declarationCheckbox1");
+            var errorMsg1 = checkbox1.parentElement.querySelector("#checkboxError");
+            var errorMsg2 = checkbox2.parentElement.querySelector("#checkboxError");
+            var form = document.getElementById("competency_form_a");
+            var nextButton = document.querySelector(".pag-item-next");
+            var submitButton = document.querySelector(".pag-item.btn-success");
+
+            // Function to validate checkboxes
+            function validateCheckboxes() {
+                var valid = true;
+
+                // Check if checkbox1 is checked
+                if (!checkbox1.checked) {
+                    errorMsg1.style.display = "block";
+                    valid = false;
+                } else {
+                    errorMsg1.style.display = "none";
+                }
+
+                // Check if checkbox2 is checked
+                if (!checkbox2.checked) {
+                    errorMsg2.style.display = "block";
+                    valid = false;
+                } else {
+                    errorMsg2.style.display = "none";
+                }
+
+                return valid;
+            }
+
+            // Validate on "Next" button click if we're on the last tab
+            nextButton.addEventListener("click", function(event) {
+                // Only validate if we're on the last tab with the declarations
+                if (document.querySelector(".tab[data-name='Staff Details']").classList.contains("selected")) {
+                    if (!validateCheckboxes()) {
+                        event.preventDefault();
+                    }
+                }
+            });
+
+            // Validate on "Submit" button click
+            submitButton.addEventListener("click", function(event) {
+                if (!validateCheckboxes()) {
+                    event.preventDefault();
+                }
+            });
+
+            // Validate on form submission
+            form.addEventListener("submit", function(event) {
+                if (!validateCheckboxes()) {
+                    event.preventDefault();
+                }
+            });
+        });
+    </script> -->

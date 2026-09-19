@@ -89,14 +89,38 @@ class ReturnapplicantController extends BaseController
         $document = collect();
 
         if ($application_id) {
-            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+          $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
             $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
             $draftCount = $proprietors->count();
 
-            $staffs = DB::table('tnelb_applicant_cl_staffdetails')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
+            $draftCounts = ProprietorformA::where('application_id', $application_id)
+                ->count();
+
+            $ownershipType = ProprietorformA::where('application_id', $application_id)
+                ->where('proprietor_flag', 1)
+                ->value('ownership_type');
+            // dd($proprietors);exit;
+
+             $QCstaffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
+            ->orderBy('id', 'ASC')
+            ->get();
+
+            $staffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->orderBy('id', 'ASC')
+            ->get();
+
+            // dd($staffs);
+            // exit;
+
+            // $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
             $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status', '1')->first();
 
@@ -129,15 +153,20 @@ class ReturnapplicantController extends BaseController
                 ->orderBy('id')
                 ->first();
 
+                   $returnsection = json_decode($application->return_reason, true);
+
             // var_dump()
-
-            $returnsection = json_decode($application->return_reason, true);
-            // $returnsection = json_decode($application->return_reason, true);
-
         }
 
-        return view('user_login.return.forma', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'returnsection'));
+        // return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency' , 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails','Qcstaffs'));
+
+          return view('user_login.return.forma', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType', 'returnsection'));
     }
+
+    //     return view('user_login.return.forma', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'returnsection'));
+    // }
+
+
 
     // ---------------------form ea   -----------------------------------------------------------------
     public function storereturn(Request $request)
@@ -1178,7 +1207,7 @@ class ReturnapplicantController extends BaseController
                         ['application_id' => $applicationId],
                         [
                             'login_id'            => $request->login_id_store ,
-                            
+
                             'form_name'           => $request->form_name,
                             'license_name'        => $request->license_name,
                             'bank_doc' => $finalPath,
@@ -1221,7 +1250,7 @@ class ReturnapplicantController extends BaseController
                         ['application_id' => $applicationId],
                         [
                             'login_id'            => $request->login_id_store ,
-                            
+
                             'form_name'           => $request->form_name,
                             'license_name'        => $request->license_name,
                             'file_doc' => $finalPath,
@@ -1268,11 +1297,11 @@ class ReturnapplicantController extends BaseController
                    DB::table('tnelb_attachments_cl')->updateOrInsert(
                     [
                         'application_id' => $applicationId,
-                        'type' => $doc->ownership_type 
+                        'type' => $doc->ownership_type
                     ],
                     [
                         'login_id'            => $request->login_id_store,
-                            
+
                         'form_name'           => $request->form_name,
                         'license_name'        => $request->license_name,
                         'file_doc'   => $finalPath,

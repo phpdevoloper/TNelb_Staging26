@@ -241,7 +241,7 @@ $(document).ready(function() {
 
 
         const dobInput = document.getElementById('d_o_b');
-        
+
 
         // Only attach flatpickr + DD-MM-YYYY validation on non-native date inputs.
         // On pages using <input type="date"> we rely on the browser picker and page-specific logic.
@@ -762,7 +762,7 @@ $(document).ready(function() {
                     proprietorValid = false;
                 }
 
-                // Optional fields (only if 'Yes' is selected)   
+                // Optional fields (only if 'Yes' is selected)
                 const index = $(this).index();
                 const competencyYes = $(this).find(
                         'input[name="competency_certificate_holding[${index}]"]:checked')
@@ -837,7 +837,7 @@ $(document).ready(function() {
             });
 
 
-          
+
 
             // Declaration Checkboxes
             const declaration1Checked = $("#declarationCheckbox").is(":checked");
@@ -915,7 +915,7 @@ $(document).ready(function() {
             <div style="text-align: left; max-height: 500px; overflow-y: auto; padding: 0 10px; font-size: 14px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                 <ol class="instruct" style="margin-left: 20px; padding-left: 10px;">
                     <li>
-                      <span style="color: #0d6efd; font-weight: 600;">Fees:</span> 
+                      <span style="color: #0d6efd; font-weight: 600;">Fees:</span>
                       <ol type="i" style="margin-left: 20px; margin-top: 5px;">
                         <li>Fees Issue for <strong> Electrical Contractor/s Licence-Grade "EA"</strong> from <span style="color:#198754;">01.01.2024</span> onwards is <span style="color:#dc3545; font-weight:600;">Rs. 6,000/-</span>.</li>
                         <li>The fee must be paid by <strong>Demand Draft</strong> from any <span style="color:#0d6efd;">Scheduled Bank</span> or <span style="color:#0d6efd;">Co-operative Bank</span>, in favour of <strong>Secretary, Electrical Licensing Board, Chennai – 600 032</strong>, payable at Chennai. <em style="color:#6c757d;">Other methods of payment will not be accepted.</em></li>
@@ -1105,7 +1105,7 @@ $(document).ready(function() {
                 icon: 'success',
                 title: 'Payment Successful',
                 html: `
-                
+
            <div style="font-size: 14px; text-align: left; width: 100%; max-width: 100%;">
         <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
             <div style="
@@ -1135,13 +1135,13 @@ $(document).ready(function() {
             <div style="min-width: 220px;">
             <p><strong>Download Your Payment Receipt:</strong></p>
             <button class="btn btn-info btn-sm mb-2" onclick="paymentreceiptrenew('${application_id}')">
-                <i class="fa fa-file-pdf-o text-danger"></i> 
+                <i class="fa fa-file-pdf-o text-danger"></i>
                 <i class="fa fa-download text-danger"></i>
                 Download Receipt
             </button>
             <p class="mt-3"><strong>Download Your Application PDF:</strong></p>
             <button class="btn btn-primary btn-sm me-1" onclick="downloadPDFformArenew('${loginId}')">English PDF</button>
-            
+
             </div>
         </div>
         </div>
@@ -1156,7 +1156,7 @@ $(document).ready(function() {
             });
         }
 
-     
+
         // ----------------------renew end-----------------------
 
        // ----------------------Form A dependencies-----------------------
@@ -1251,7 +1251,6 @@ $(document).ready(function () {
 
 });
 
-
 $(document).on("change", "#ownership_type_select", function (e, fromDraft = false) {
 
     let type = $(this).val();
@@ -1259,58 +1258,72 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
     console.log("Ownership Type:", type);
     console.log("From Draft:", fromDraft);
 
-    // Clear files + errors
-    $("input[type='file']").val("");
-    $(".ownershipdoc_upload_error").text("");
-
-    // Hide all sections
-    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section").hide();
-
-    // ================= PARTNERSHIP =================
-    if (type === "pt") {
-
-        $("#partnershipdeed").slideDown();
-        $("#partnersfill-section").slideDown();
-        $("#partner-section").slideDown();
-
+    if (!fromDraft) {
+        $("input[type='file']").val("");
+        $(".ownershipdoc_upload_error").text("");
     }
 
-    // ================= DIRECTOR =================
-    else if (
+    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section").hide();
+
+    if (type === "pt") {
+
+        // alert(formDraft);
+
+         if (fromDraft) {
+             $("#partnershipdeed").slideDown();
+             $("#partner-section").slideDown();
+
+
+            }else{
+
+             $("#partner-section").slideDown();
+             $("#partnershipdeed").slideDown();
+             $("#partnersfill-section").slideDown();
+         }
+
+
+
+
+
+    } else if (
         type === "dr" ||
         type === "pvt" ||
         type === "public" ||
         type === "ltd"
     ) {
 
-        $("#directormom").slideDown();
+         if (fromDraft) {
+
+           $("#director-section").slideDown();
+           $("#directormom").slideDown();
+
+        } else {
+
+            $("#directormom").slideDown();
+            $("#director-section").slideDown();
         $("#directorfill-section").slideDown();
-        $("#director-section").slideDown();
 
-    }
+        }
 
-    // ================= PROPRIETOR =================
-    else if (type === "pr") {
+
+
+
+    } else if (type === "pr") {
 
         if (fromDraft) {
 
-           
-
-            // Draft → ONLY saved table
             $("#proprietor-section").slideDown();
 
         } else {
- 
-            // Normal → show input section + table
+
             $("#proprietor-sectionfresh").slideDown();
             $("#proprietor-section").slideDown();
 
         }
     }
-
 });
 
-    
+
     // ------------------------------------------------------------forma 8_11 Attachments open----------------------
     $(document).on("change", "input[name='criminal_offence']", function () {
 
@@ -1424,7 +1437,7 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
             <div style="text-align: left; max-height: 500px; overflow-y: auto; padding: 0 10px; font-size: 14px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                 <ol class="instruct" style="margin-left: 20px; padding-left: 10px;">
                     <li>
-                      <span style="color: #0d6efd; font-weight: 600;">Fees:</span> 
+                      <span style="color: #0d6efd; font-weight: 600;">Fees:</span>
                       <ol type="i" style="margin-left: 20px; margin-top: 5px;">
                         <li>Fees Issue for <strong> Electrical Contractor/s Licence-Grade "EA"</strong> from <span style="color:#198754;">01.01.2024</span> onwards is <span style="color:#dc3545; font-weight:600;">Rs. 12,000/-</span>.</li>
                         <li>The fee must be paid by <strong>Demand Draft</strong> from any <span style="color:#0d6efd;">Scheduled Bank</span> or <span style="color:#0d6efd;">Co-operative Bank</span>, in favour of <strong>Secretary, Electrical Licensing Board, Chennai – 600 032</strong>, payable at Chennai. <em style="color:#6c757d;">Other methods of payment will not be accepted.</em></li>
@@ -1603,7 +1616,7 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
                 icon: 'success',
                 title: 'Payment Successful',
                 html: `
-                
+
             <div style="font-size: 14px; text-align: left; width: 100%; max-width: 100%;">
             <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
             <div style="
@@ -1633,7 +1646,7 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
             <div style="min-width: 220px;">
             <p><strong>Download Your Payment Receipt:</strong></p>
             <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt('${application_id}')">
-                <i class="fa fa-file-pdf-o text-danger"></i> 
+                <i class="fa fa-file-pdf-o text-danger"></i>
                 <i class="fa fa-download text-danger"></i>
                 Download Receipt
             </button>
@@ -1664,7 +1677,7 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
         //     let url = (language === 'tamil') ? `${BASE_URL}/generateTamilPDF/${loginId}` : `${BASE_URL}/generate-pdf/${loginId}`;
         //     window.open(url, '_blank');
         // }
-  
+
         document.addEventListener("DOMContentLoaded", function() {
             let applicantNameInput = document.getElementById("Applicant_Name");
 
@@ -1721,13 +1734,13 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
 
         // Form validation on submit
         // document.getElementById("competency_form_ws").addEventListener("submit", function(event) {
-            
+
         // });
 
     });
 
-  
-    function showDeclarationModal(form_name) {      
+
+    function showDeclarationModal(form_name) {
 
         let appl_types = $('#appl_type').val();
 
@@ -1910,7 +1923,7 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
 
 function getPaymentsService(licence_code,issued_licence,appl_type, options){
         const silent = !!(options && typeof options === 'object' && options.silent);
-        
+
         return new Promise((resolve, reject) => {
 
 
@@ -1925,7 +1938,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         'content')
                 },
                 success: function(response) {
-                    
+
                     if (response.status == 'success') {
                         resolve(response.fees_details);
                     } else {
@@ -1950,16 +1963,16 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 }
             });
         });
-        
+
     }
 
 
-    async function showDeclarationPopup(licence_code, directProceed = false) {   
-        
+    async function showDeclarationPopup(licence_code, directProceed = false) {
+
         try {
-            
+
             let total_fees,renewl_fees,lateFee,lateMonths,form_cost, form_name, licence, renewalAmoutStartson, latefee_amount, latefee_starts,form_instruct,fees_date;
-            
+
             const appl_type = $('#appl_type').val();
             const issued_licence = $('#license_number').val();
             const isDigitization = String(appl_type || '').trim().toUpperCase() === 'D';
@@ -2062,17 +2075,17 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         ? 'No fee (Board Member — fee not applicable)'
                         : ('Rs.' + actual_fees + '/-'));
             }
-            
+
             // Reset state
             agreeCheckbox.checked = false;
             errorText.classList.add('d-none');
-            
+
             // Show modal
             const modalBody = modalEl.querySelector('#instructionContent');
-            
+
 
             const delta = JSON.parse(form_instruct);
-            
+
             const converter = new QuillDeltaToHtmlConverter(delta.ops, {
                 inlineStyles: true,
                 multiLineParagraph: false,
@@ -2086,7 +2099,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
             modalBody.innerHTML = html;
             const el = document.querySelector("#instructionContent");
-            
+
 
             // return false;
 
@@ -2097,10 +2110,10 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             if (!directProceed) {
                 modal.show();
             }
-            
+
             // Remove old listeners
             proceedBtn.replaceWith(proceedBtn.cloneNode(true));
-            
+
             // Re-assign click listener
             modalEl.querySelector('#proceedPayment').addEventListener('click', async function() {
                 window._competencyPaymentProceedActive = true;
@@ -2109,9 +2122,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                     window._competencyPaymentProceedActive = false;
                     return;
                 }
-                
+
                 modal.hide();
-                
+
                 if (typeof window.normalizeIsoDateInputs === 'function') {
                     window.normalizeIsoDateInputs('#competency_form_ws');
                 }
@@ -2125,7 +2138,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 }
                 let applicationId = $('#application_id').val();
                 let formUrl;
-                
+
                 if (applicationId) {
                     if (appl_type === 'R') {
                         formUrl = "{{ route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}"
@@ -2182,10 +2195,10 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                             console.error("Uncaught AJAX Error:", xhr);
                         }
                     });
-                    
+
                     if (saveResponse.status === "success") {
 
-                        
+
                         let form_type = isDigitization
                             ? 'Digitization Application'
                             : (String(appl_type || '').trim().toUpperCase() === 'A'
@@ -2207,7 +2220,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         const feeExemptSubmit = noPaymentApplType || boardMemberFeeExempt;
 
                         //console.log(transactionDate);
-                        
+
                         // const serviceCharge = 10;
                         // let lateFee = typeof lateFee !== "undefined" ? lateFee : 0;
                         // let total_charge = Number(amount) + Number(serviceCharge);
@@ -2220,8 +2233,8 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                                 </tr>
                             `;
                         }
-                        
-                       
+
+
                         const payment_mode = 'UPI';
 
                         const runCompetencyPayment = async function () {
@@ -2412,7 +2425,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         });
                     } else {
                         Swal.fire("Form Submission Failed", "Application not submitted", "error");
-                    }   
+                    }
                 } catch (xhr) {
                     console.error("❌ Form Submit Error:", xhr);
 
@@ -2458,7 +2471,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 } finally {
                     window._competencyPaymentProceedActive = false;
                 }
-                
+
             });
 
             if (directProceed) {
@@ -2475,7 +2488,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             });
         }
     }
-                                            
+
     function showPaymentSuccessPopup(loginId, transactionId, transactionDate, applicantName, amount, form_type, licence_name, isFormP, options) {
         isFormP = (typeof isFormP !== 'undefined' && isFormP === true);
         options = options || {};
@@ -2512,14 +2525,14 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         window.paymentAppId = loginId;
         window.paymentFormType = form_type;
         $modal.modal({
-            backdrop: 'static',   
-            keyboard: false     
+            backdrop: 'static',
+            keyboard: false
         });
 
         // Show bootstrap modal
         $modal.modal("show");
-       
-       
+
+
         // Swal.fire({
         //     title: `<h3 style="color:#198754; font-size:1.5rem;">Payment Successful!</h3>`,
         //     html: `
@@ -2541,28 +2554,28 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
 
         //             <div style="font-weight: bold;">Type of Application:</div>
         //             <div style="word-break: break-word;">${licence_name}</div>
-                    
+
         //             <div style="font-weight: bold;">Transaction ID:</div>
         //             <div style="word-break: break-word;">${transactionId}</div>
-                    
+
         //             <div style="font-weight: bold;">Transaction Date:</div>
         //             <div>${transactionDate}</div>
-                    
-                    
+
+
         //             <div style="font-weight: bold;">Amount Paid:</div>
         //             <div>${amount}</div>
         //             </div>
         //             <div style="min-width: 200px; text-align: center;">
         //                 <p><strong>Download Your Payment Receipt:</strong></p>
         //                 <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt('${loginId}')">
-        //                     <i class="fa fa-file-pdf-o text-danger"></i> 
+        //                     <i class="fa fa-file-pdf-o text-danger"></i>
         //                     <i class="fa fa-download text-danger"></i>
         //                     Download Receipt
         //                     </button>
         //                     <p class="mt-2"><strong>Download Your Application PDF:</strong></p>
-        //                     <button class="btn btn-primary btn-sm me-1" onclick="downloadPDF('english', '${loginId}')"><i class="fa fa-file-pdf-o text-danger"></i> 
+        //                     <button class="btn btn-primary btn-sm me-1" onclick="downloadPDF('english', '${loginId}')"><i class="fa fa-file-pdf-o text-danger"></i>
         //                         English</button>
-        //                         <button class="btn btn-success btn-sm" onclick="downloadPDF('tamil', '${loginId}')"><i class="fa fa-file-pdf-o text-danger"></i> 
+        //                         <button class="btn btn-success btn-sm" onclick="downloadPDF('tamil', '${loginId}')"><i class="fa fa-file-pdf-o text-danger"></i>
         //                             Tamil</button>
         //                             </div>
         //                             </div>
@@ -2583,13 +2596,13 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         //         if (iconEl) {
         //             iconEl.style.display = 'none'; // hide icon if still rendered
         //         }
-                
+
         //         const popup = document.querySelector('.swal2-popup');
         //         if (popup) {
         //             popup.style.marginTop = '10px';
         //             popup.style.padding = '10px 20px';
         //         }
-                
+
         //         const container = document.querySelector('.swal2-container');
         //         if (container) {
         //             container.style.alignItems = 'flex-start';
@@ -2600,11 +2613,11 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         //         window.location.href = BASE_URL + '/dashboard';
         //     }
         // });
-        
+
     }
-                                                                        
-                                                                        
-                                                                    
+
+
+
     // Open Payment Receipt in New Tab
     //  function paymentreceipt(loginId) {
     //     window.open(`/payment-receipt/${loginId}`, '_blank');
@@ -2867,7 +2880,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 console.error(xhr.responseText);
             }
         });
-    });    
+    });
 
     document.addEventListener('DOMContentLoaded', function () {
         const modalElement = document.getElementById('infoModal');
@@ -2908,7 +2921,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             new bootstrap.Modal(modalElement).show();
         }
     });
-    
+
 </script>
 
 </body>

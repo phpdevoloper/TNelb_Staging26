@@ -338,6 +338,7 @@ class FormADigitizationController extends BaseController
              $QCstaffs = DB::table('cl_staff_tbl')
             ->where('application_id', $application_id)
             ->whereIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
             ->orderBy('id', 'ASC')
             ->get();
 

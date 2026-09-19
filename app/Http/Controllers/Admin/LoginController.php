@@ -1661,7 +1661,7 @@ class LoginController extends Controller
             'formSWorkflowAppPk',
             'formSMasterWorkflowAppPk',
             'parentApplicantForAlter',
-            // 'checklist', 
+            // 'checklist',
             'checkedList_1',
             'verifyList'
         ));
@@ -1881,12 +1881,14 @@ class LoginController extends Controller
 
         $staffdetails = DB::table('cl_staff_tbl')
             ->where('application_id', $applicant_id)
+            ->where('staff_flag', '1')
             ->orderBy('id')
             ->get();
 
         $otherstaffdetails = DB::table('cl_staff_tbl')
             ->where('application_id', $applicant_id)
             ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
             ->orderBy('id')
             ->get();
 

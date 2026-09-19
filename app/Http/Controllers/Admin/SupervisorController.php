@@ -964,29 +964,39 @@ class SupervisorController extends Controller
     /*
     * Get the FORM A applications
     */
-    public function view_forma($type)
+    public function view_forma($type, $form_type)
     {
         $staff = Auth::user();
+
         $roleName = $staff->name ?? '';
-
         $role_id = $staff->role_id;
-        // dd($role_id);exit;
 
-        // Base query for Form A contractor applications
+        $type = strtoupper(trim($type));
+        $form_type = strtoupper(trim($form_type));
+
         $query = DB::table('ccl_forma_meta as ta')
-            ->where('ta.form_name', 'A')
+            ->where('ta.form_name', $type)
             ->where('ta.payment_status', 'paid');
 
-        // Optional filter: appl_type = N (New) or R (Renewal), driven by ?form_type=
-        $requestedType = strtoupper((string) request()->query('form_type', ''));
-
-        if (in_array($requestedType, ['N', 'R'], true)) {
-            $query->where('ta.appl_type', $requestedType);
+        /*
+    |--------------------------------------------------------------------------
+    | Filter application type
+    |--------------------------------------------------------------------------
+    */
+        if (in_array($form_type, ['N', 'R', 'D', 'A'], true)) {
+            $query->whereRaw(
+                "TRIM(UPPER(ta.appl_type)) = ?",
+                [$form_type]
+            );
         }
 
-        // Supervisor should see applications that are still with Supervisor
-        // (i.e. processed_by = 'S' and not yet forwarded further, typically P / RE / F)
+        /*
+    |--------------------------------------------------------------------------
+    | Supervisor
+    |--------------------------------------------------------------------------
+    */
         if (in_array($roleName, ['Supervisor', 'Supervisor2'], true)) {
+
             $query->whereIn('ta.application_status', ['P', 'RE'])
                 ->where(function ($q) {
                     $q->whereIn('ta.processed_by', ['A', 'SE', 'S'])
@@ -994,15 +1004,32 @@ class SupervisorController extends Controller
                 });
         }
 
-        // Assistant Secretary should see only applications that have been forwarded
-        // by Supervisor to Assistant Secretary (processed_by = 'A', usually status F/RF)
-        elseif ($roleName === 'Assistant Secretary') {
+        /*
+    |--------------------------------------------------------------------------
+    | Assistant Secretary
+    |--------------------------------------------------------------------------
+    */ elseif ($roleName === 'Assistant Secretary') {
+
             $query->whereIn('ta.application_status', ['F', 'RF'])
                 ->where('ta.processed_by', 'S');
-        } elseif ($roleName === 'Secretary') {
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Secretary
+    |--------------------------------------------------------------------------
+    */ elseif ($roleName === 'Secretary') {
+
             $query->whereIn('ta.application_status', ['F', 'RF', 'RE'])
                 ->whereIn('ta.processed_by', ['A', 'PR']);
-        } elseif ($roleName === 'President') {
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | President
+    |--------------------------------------------------------------------------
+    */ elseif ($roleName === 'President') {
+
             $query->whereIn('ta.application_status', ['F', 'RF'])
                 ->where('ta.processed_by', 'SE');
         }
@@ -1012,10 +1039,10 @@ class SupervisorController extends Controller
             ->select('ta.*')
             ->get();
 
-
-
-
-        return view('admin.supervisor.view_forma', compact('workflows', 'role_id'));
+        return view(
+            'admin.supervisor.view_forma',
+            compact('workflows', 'role_id', 'type', 'form_type')
+        );
     }
 
 
@@ -1839,13 +1866,13 @@ class SupervisorController extends Controller
             /* =========================================================
            CL DIGITISATION MAPPING
            ========================================================= */
-           $digitisationMapping = null;
-           
-           /*
+            $digitisationMapping = null;
+
+            /*
            * Find mapping_digi_cls record using the current
            * application_id.
            */
-        if (trim($application->appl_type) === 'D' ) {
+            if (trim($application->appl_type) === 'D') {
 
                 $digitisationCL = DB::table('mapping_digi_cls')
                     ->where(
