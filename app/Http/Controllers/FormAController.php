@@ -2820,7 +2820,7 @@ class FormAController extends BaseController
             'login_id' => $applicationId,
             'transaction_id' => $isDraft ? 'DRAFT' . rand(100000, 999999) : 'TXN' . rand(100000, 999999),
             'draft_status' => $isDraft,
-            'qcfees'     => $qcFee,
+
         ]);
     }
 
