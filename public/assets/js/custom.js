@@ -492,11 +492,17 @@ $(document).ready(function () {
             if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
                 window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
             }
+            if (typeof window.appendWorkExperienceFilesToFormData === 'function') {
+                window.appendWorkExperienceFilesToFormData(formData, $('#competency_form_ws')[0]);
+            }
             if (typeof window.appendWorkContractorFieldsToFormData === 'function') {
                 window.appendWorkContractorFieldsToFormData(formData, $('#competency_form_ws')[0]);
             }
             if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
                 window.appendWorkBoardMemberFieldsToFormData(formData, $('#competency_form_ws')[0]);
+            }
+            if (typeof window.appendCompetencyPhotoSignToFormData === 'function') {
+                window.appendCompetencyPhotoSignToFormData(formData, $('#competency_form_ws')[0]);
             }
 
             
@@ -516,9 +522,18 @@ $(document).ready(function () {
                     }
                 }
             } else {
-                // New application draft submit route
                 url = BASE_URL + "/form/draft_submit";
-                if (applicationId) {
+                if (typeof window.competencyPersistUrls === 'function') {
+                    const persistUrls = window.competencyPersistUrls();
+                    if (applicationId && persistUrls.draftWithId) {
+                        url = String(persistUrls.draftWithId).replace('__APPL_ID__', applicationId);
+                    } else if (persistUrls.draft) {
+                        url = persistUrls.draft;
+                        if (applicationId) {
+                            url = String(url).replace(/\/$/, '') + '/' + applicationId;
+                        }
+                    }
+                } else if (applicationId) {
                     url += "/" + applicationId;
                 }
             }

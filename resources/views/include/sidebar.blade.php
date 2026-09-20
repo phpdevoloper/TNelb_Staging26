@@ -20,13 +20,14 @@
     $activeFormPDigitization = request()->routeIs('apply_form_p_d');
     $activeFormSDigitization = request()->routeIs('apply-form-s_d');
     $activeContractorDigitization = request()->routeIs('apply-form-a_d');
-    $activeCompetencyAlteration = request()->routeIs(['form_s_alt', 'form_w_alt', 'form_wh_alt']);
+    $activeCompetencyAlteration = request()->routeIs(['form_s_alt', 'form_w_alt', 'form_wh_alt', 'form_p_alt']);
     $activeFormSAlteration = request()->routeIs('form_s_alt') && strtoupper((string) request('form', 'S')) === 'S';
     $activeFormWhAlteration = request()->routeIs('form_wh_alt')
         || (request()->routeIs('form_s_alt') && in_array(strtoupper((string) request('form')), ['H', 'WH'], true));
     $activeFormWAlteration = request()->routeIs('form_w_alt')
         || (request()->routeIs('form_s_alt') && strtoupper((string) request('form')) === 'W');
-    $activeFormPAlteration = request()->routeIs('form_s_alt') && strtoupper((string) request('form')) === 'P';
+    $activeFormPAlteration = request()->routeIs('form_p_alt')
+        || (request()->routeIs('form_s_alt') && strtoupper((string) request('form')) === 'P');
     $activeContractorAlteration = request()->routeIs('alteration_cl');
 @endphp
 @once
@@ -444,7 +445,7 @@
                                     </li>
                                     <li>
                                         <a class="sb-nav__child-link {{ request()->routeIs('apply-form-wh_d') ? 'is-active' : '' }}"
-                                            href="{{ route('apply-form-wh_d') }}">
+                                            href="{{ route('apply-form-wh_d', ['form' => 'WH']) }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Digitisation</span>
                                         </a>
@@ -532,7 +533,7 @@
                                     </li>
                                     <li>
                                         <a class="sb-nav__child-link {{ $activeFormPAlteration ? 'is-active' : '' }}"
-                                            href="{{ route('form_s_alt', ['form' => 'P']) }}">
+                                            href="{{ route('form_p_alt') }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Alteration</span>
                                         </a>

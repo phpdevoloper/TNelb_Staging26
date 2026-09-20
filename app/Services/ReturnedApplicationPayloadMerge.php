@@ -243,19 +243,12 @@ final class ReturnedApplicationPayloadMerge
      */
     private static function decodeFormSContractorEmpCate(?string $stored): array
     {
-        if ($stored === null || $stored === '') {
-            return ['category' => null, 'licence' => null];
-        }
-        if (str_contains($stored, '||')) {
-            $parts = explode('||', $stored, 2);
+        $decoded = form_s_decode_contractor_emp_cate($stored);
 
-            return [
-                'category' => (($parts[0] ?? '') !== '') ? $parts[0] : null,
-                'licence' => (($parts[1] ?? '') !== '') ? $parts[1] : null,
-            ];
-        }
-
-        return ['category' => $stored, 'licence' => null];
+        return [
+            'category' => $decoded['category'] !== '' ? $decoded['category'] : null,
+            'licence' => $decoded['licence'] !== '' ? $decoded['licence'] : null,
+        ];
     }
 
     private static function educationRowsForApplication(string $applicationId): Collection
@@ -339,9 +332,9 @@ final class ReturnedApplicationPayloadMerge
     /**
      * Lock applicant identity / licence fields on partial Form P submit (same rationale as competency merge).
      */
-    public static function mergeFormPApplicantScalarsIntoRequest(Request $request, TnelbFormP $form): void
+    public static function mergeFormPApplicantScalarsIntoRequest(Request $request, object $form): void
     {
-        $aadhaarPlain = safeDecrypt($form->aadhaar) ?? '';
+        $aadhaarPlain = safeDecrypt($form->aadhaar ?? null) ?? '';
 
         $fmtDate = static function ($v): ?string {
             if ($v === null || $v === '') {
@@ -355,23 +348,24 @@ final class ReturnedApplicationPayloadMerge
         };
 
         $request->merge([
-            'applicant_name' => $form->applicant_name,
-            'fathers_name' => $form->fathers_name,
-            'applicants_address' => $form->applicants_address,
+            'applicant_name' => $form->applicant_name ?? null,
+            'fathers_name' => $form->fathers_name ?? null,
+            'applicants_address' => $form->applicants_address ?? $form->applicant_address ?? null,
             'd_o_b' => $fmtDate($form->d_o_b) ?? '',
-            'age' => $form->age,
-            'previously_number' => $form->previously_number,
-            'previously_valid_to' => $fmtDate($form->previously_valid_to ?? $form->previously_date ?? null),
-            'previously_issue_date' => $fmtDate($form->previously_issue_date ?? null),
-            'previously_valid_from' => $fmtDate($form->previously_valid_from ?? null),
-            'wireman_details' => $form->wireman_details ?? null,
+            'age' => $form->age ?? null,
+            'previously_number' => $form->previously_number ?? $form->previous_scc_no ?? null,
+            'previously_valid_to' => $fmtDate($form->previously_valid_to ?? $form->previously_date ?? $form->scc_to_date ?? null),
+            'previously_issue_date' => $fmtDate($form->previously_issue_date ?? $form->first_issue_date ?? null),
+            'previously_valid_from' => $fmtDate($form->previously_valid_from ?? $form->scc_from_date ?? null),
+            'wireman_details' => $form->wireman_details ?? $form->employer_detail ?? null,
+            'employer_name' => $form->employer_detail ?? $form->employer_name ?? null,
             'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
-            'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) (safeDecrypt($form->pancard) ?? ''))),
-            'certificate_no' => $form->certificate_no,
-            'certificate_valid_to' => $fmtDate($form->certificate_valid_to ?? $form->certificate_date ?? null),
-            'certificate_issue_date' => $fmtDate($form->certificate_issue_date ?? null),
-            'certificate_valid_from' => $fmtDate($form->certificate_valid_from ?? null),
-            'license_number' => $form->license_number,
+            'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) (safeDecrypt($form->pancard ?? null) ?? ''))),
+            'certificate_no' => $form->certificate_no ?? $form->wcc_no ?? null,
+            'certificate_valid_to' => $fmtDate($form->certificate_valid_to ?? $form->certificate_date ?? $form->wcc_to ?? null),
+            'certificate_issue_date' => $fmtDate($form->certificate_issue_date ?? $form->wcc_issue_date ?? null),
+            'certificate_valid_from' => $fmtDate($form->certificate_valid_from ?? $form->wcc_from ?? null),
+            'license_number' => $form->license_number ?? null,
             'l_verify' => (string) ($form->license_verify ?? '0'),
             'cert_verify' => (string) ($form->cert_verify ?? '0'),
         ]);

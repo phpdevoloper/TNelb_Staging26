@@ -1,22 +1,4 @@
 @include('include.header')
-
-<!-- <section class="page-title" style="background-image: url(assets/images/slider/slider3.jpg);">
-    <div class="auto-container">
-        <div class="content-box">
-            <div class="content-wrapper">
-                <div class="title">
-                    <h1 class="text-uppercase">Register</h1>
-                </div>
-                <ul class="bread-crumb">
-                    <li><a href="index.php">Home</a></li>
-                    <li>Register </li>
-
-                </ul>
-            </div>
-        </div>
-    </div>
-</section> -->
-
 <!-- About section -->
 
 <style>
@@ -69,6 +51,17 @@
     .swal2-popup li ul {
         margin-left: 15px;
     }
+
+    #license_date_change .is-invalid {
+        border-color: #dc3545;
+    }
+
+    #license_date_change .field-error {
+        display: block;
+        min-height: 18px;
+        font-size: 13px;
+        margin-top: 4px;
+    }
 </style>
 
 <section class="">
@@ -102,20 +95,29 @@
                             <form id="license_date_change" enctype="multipart/form-data">
                                 @csrf
                                 <div class="row align-items-center">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="license_number" class="form-label">Certificate No</label>
-                                        <select class="form-control" name="license_number" id="license_number">
-                                            <option value="0">Select Certificate No</option>
-                                            @foreach ($licensedates as $license)
-                                                <option value="{{ $license->certificate_no }}">
-                                                    {{ $license->certificate_no }}</option>
-                                            @endforeach
+                                    <div class="col-md-4 mb-3">
+                                        <label for="certificate_type" class="form-label">Certificate Type</label>
+                                        <select class="form-control" name="certificate_type" id="certificate_type">
+                                            <option value="">Select Certificate Type</option>
+                                            <option value="S">Certificate C</option>
+                                            <option value="W">Certificate W</option>
+                                            <option value="WH">Certificate WH</option>
+                                            <option value="P">Certificate P</option>
                                         </select>
+                                        <span class="error text-danger field-error" id="certificate_type_error"></span>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="license_number" class="form-label">Certificate No</label>
+                                        <select class="form-control" name="license_number" id="license_number" disabled>
+                                            <option value="">Select Certificate Type first</option>
+                                        </select>
+                                        <span class="error text-danger field-error" id="license_number_error"></span>
                                     </div>
 
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-4 mb-3">
                                         <label for="expiry" class="form-label">Valid To Date</label>
                                         <input type="date" class="form-control" name="expires_at" id="expiry">
+                                        <span class="error text-danger field-error" id="expires_at_error"></span>
                                     </div>
                                 </div>
 
@@ -193,28 +195,115 @@
     <script>
         $(document).ready(function() {
 
-            // ✅ Fetch expiry date when license changes
-            $('#license_number').on('change', function() {
-                const licenseNumber = $(this).val();
+            const $certificateType = $('#certificate_type');
+            const $licenseNumber = $('#license_number');
+            const $expiry = $('#expiry');
 
-                if (licenseNumber && licenseNumber !== '0') {
-                    $.get(BASE_URL + `/get-license-expiry/${licenseNumber}`, function(data) {
-                        if (data.valid_to) {
-                            $('#expiry').val(data.valid_to);
-                        } else {
-                            $('#expiry').val('');
-                        }
-                    }).fail(function() {
-                        $('#expiry').val('');
-                    });
-                } else {
-                    $('#expiry').val('');
+            function clearFieldError($field) {
+                $field.removeClass('is-invalid');
+                $('#' + $field.attr('name') + '_error').text('');
+            }
+
+            function showFieldError(name, message) {
+                const $field = $('[name="' + name + '"]');
+                $field.addClass('is-invalid');
+                $('#' + name + '_error').text(message || '');
+            }
+
+            function clearLicenseFormErrors() {
+                $('#license_date_change .is-invalid').removeClass('is-invalid');
+                $('#license_date_change .field-error').text('');
+            }
+
+            function resetLicenseDropdown(placeholder) {
+                $licenseNumber.html('<option value="">' + placeholder + '</option>').val('').prop('disabled', true);
+                $expiry.val('');
+                clearFieldError($licenseNumber);
+                clearFieldError($expiry);
+            }
+
+            function loadExpiryDate() {
+                const certificateType = $certificateType.val();
+                const licenseNumber = $licenseNumber.val();
+                clearFieldError($licenseNumber);
+                if (!certificateType || !licenseNumber) {
+                    $expiry.val('');
+                    return;
                 }
+
+                $.get(BASE_URL + '/get-license-expiry/' + encodeURIComponent(certificateType) + '/' + encodeURIComponent(licenseNumber), function(data) {
+                    $expiry.val(data.valid_to || '');
+                }).fail(function() {
+                    $expiry.val('');
+                });
+            }
+
+            $certificateType.on('change', function() {
+                clearFieldError($certificateType);
+                const certificateType = $(this).val();
+                if (!certificateType) {
+                    resetLicenseDropdown('Select Certificate Type first');
+                    return;
+                }
+
+                resetLicenseDropdown('Loading...');
+                $.get(BASE_URL + '/get-license-numbers/' + encodeURIComponent(certificateType), function(data) {
+                    const certificates = data.certificates || [];
+                    let options = '<option value="">Select Certificate No</option>';
+                    certificates.forEach(function(item) {
+                        const number = $('<div>').text(item.certificate_no || '').html();
+                        options += '<option value="' + number + '">' + number + '</option>';
+                    });
+                    $licenseNumber.html(options).prop('disabled', certificates.length === 0);
+                    if (certificates.length === 0) {
+                        $licenseNumber.html('<option value="">No certificates found</option>');
+                    }
+                    $expiry.val('');
+                }).fail(function() {
+                    resetLicenseDropdown('Unable to load certificates');
+                    showFieldError('certificate_type', 'Unable to load certificates for this type.');
+                });
             });
+
+            $licenseNumber.on('change', loadExpiryDate);
+            $expiry.on('change input', function() {
+                clearFieldError($expiry);
+            });
+
+            function validateLicenseDateForm() {
+                const errors = {};
+                const certificateType = $certificateType.val();
+                const licenseNumber = $licenseNumber.val();
+                const expiresAt = $expiry.val();
+
+                if (!certificateType) {
+                    errors.certificate_type = 'Please select a certificate type.';
+                }
+                if (!licenseNumber) {
+                    errors.license_number = 'Please select a certificate number.';
+                }
+                if (!expiresAt) {
+                    errors.expires_at = 'Please choose a valid to date.';
+                }
+
+                return errors;
+            }
 
             // ✅ Submit form via AJAX
             $('#license_date_change').on('submit', function(e) {
                 e.preventDefault();
+                clearLicenseFormErrors();
+
+                const clientErrors = validateLicenseDateForm();
+                if (Object.keys(clientErrors).length) {
+                    $.each(clientErrors, function(name, message) {
+                        showFieldError(name, message);
+                    });
+                    return;
+                }
+
+                const $wasDisabled = $licenseNumber.prop('disabled');
+                $licenseNumber.prop('disabled', false);
 
                 $.ajax({
                     url: "{{ route('update-license-expiry') }}",
@@ -233,12 +322,25 @@
                         });
                     },
                     error: function(xhr) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: xhr.responseJSON?.message || 'Something went wrong!',
-                            confirmButtonColor: '#dc3545',
-                        });
+                        const payload = xhr.responseJSON || {};
+                        const errors = payload.errors || {};
+
+                        if (xhr.status === 422 && Object.keys(errors).length) {
+                            $.each(errors, function(name, messages) {
+                                showFieldError(name, Array.isArray(messages) ? messages[0] : messages);
+                            });
+                            return;
+                        }
+
+                        if (xhr.status === 404) {
+                            showFieldError('license_number', payload.message || 'License not found.');
+                            return;
+                        }
+
+                        showFieldError('expires_at', payload.message || 'Something went wrong. Please try again.');
+                    },
+                    complete: function() {
+                        $licenseNumber.prop('disabled', $wasDisabled);
                     }
                 });
             });

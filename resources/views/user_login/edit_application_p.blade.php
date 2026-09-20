@@ -279,12 +279,18 @@
         $cert_type = 'certificate';
     }
 
-    $decryptedaadhar = !empty($application_details->aadhaar)
-        ? Crypt::decryptString($application_details->aadhaar)
-        : null;
+    $decryptedaadhar = null;
+    if (!empty($application_details->aadhaar)) {
+        try {
+            $decryptedaadhar = Crypt::decryptString($application_details->aadhaar);
+        } catch (\Throwable $e) {
+            $decryptedaadhar = $application_details->aadhaar;
+        }
+    }
 
-    $signaturePath  = $applicant_sign?->uploaded_doc ?? null;
-    $signatureSrc   = !empty($signaturePath) ? url($signaturePath) : '';
+    $formPAppPk     = (int) ($application_details->id ?? $application_details->app_id ?? 0);
+    $signaturePath  = $applicant_sign?->uploaded_doc ?? $applicant_sign?->upload_path ?? null;
+    $signatureSrc   = !empty($signaturePath) ? competency_media_url($signaturePath) : '';
 @endphp
 
 {{-- ░░ BREADCRUMB ░░ --}}
@@ -515,7 +521,7 @@
                                                     <td>
                                                         @if (!empty($edu->upload_document))
                                                             <div class="fs-doc-existing">
-                                                                <a href="{{ asset($edu->upload_document) }}" target="_blank">
+                                                                <a href="{{ competency_document_url($edu->upload_document, 'education', (int) ($edu->id ?? $edu->edu_id ?? 0), 'certificate', [$formPAppPk]) }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o"></i> View
                                                                 </a>
                                                                 <button type="button" class="btn-tbl-remove remove-doc_edu py-1 px-2">Remove</button>
@@ -616,10 +622,10 @@
                                                         <textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3" maxlength="255">{{ $institute->institute_name_address ?? '' }}</textarea>
                                                     </td>
                                                     <td>
-                                                        <input autocomplete="off" class="form-control" name="from_date[]" type="date" value="{{ $institute->from_date ?? '' }}">
+                                                        <input autocomplete="off" class="form-control" name="from_date[]" type="date" value="{{ calendar_date_ymd($institute->from_date ?? '') }}">
                                                     </td>
                                                     <td>
-                                                        <input autocomplete="off" class="form-control" name="to_date[]" type="date" value="{{ $institute->to_date ?? '' }}">
+                                                        <input autocomplete="off" class="form-control" name="to_date[]" type="date" value="{{ calendar_date_ymd($institute->to_date ?? '') }}">
                                                     </td>
                                                     <td>
                                                         <input autocomplete="off" class="form-control" name="duration[]" type="text" value="{{ $institute->duration ?? '' }}" readonly>
@@ -627,7 +633,7 @@
                                                     <td>
                                                         @if (!empty($institute->upload_doc))
                                                             <div class="fs-doc-existing">
-                                                                <a href="{{ asset($institute->upload_doc) }}" target="_blank">
+                                                                <a href="{{ competency_document_url($institute->upload_doc, 'experience', (int) ($institute->id ?? 0), 'supporting', [$formPAppPk]) }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o"></i> View
                                                                 </a>
                                                                 <button type="button" class="btn-tbl-remove remove-inst py-1 px-2">Remove</button>
@@ -722,7 +728,7 @@
                                                     <td>
                                                         @if (!empty($exp->upload_document))
                                                             <div class="fs-doc-existing">
-                                                                <a href="{{ asset($exp->upload_document) }}" target="_blank">
+                                                                <a href="{{ competency_document_url($exp->upload_document ?? $exp->support_document ?? null, 'experience', (int) ($exp->id ?? $exp->exp_id ?? 0), 'experience_doc', [$formPAppPk]) }}" target="_blank">
                                                                     <i class="fa fa-file-pdf-o"></i> View
                                                                 </a>
                                                                 <button type="button" class="btn-tbl-remove remove-doc_work py-1 px-2">Remove</button>
@@ -917,7 +923,7 @@
                                             <div class="fs-photo-card">
                                                 <label class="fs-photo-frame fs-photo-frame--photo {{ !empty($applicant_photo->upload_path) ? 'has-image' : '' }}" for="upload_photo" id="photo-input-wrapper" title="Click to {{ !empty($applicant_photo->upload_path) ? 'change' : 'upload' }} photo">
                                                     @if (!empty($applicant_photo->upload_path))
-                                                        <img src="{{ url($applicant_photo->upload_path) }}" id="preview_applicant" alt="Applicant Photo">
+                                                        <img src="{{ competency_media_url($applicant_photo->upload_path) }}" id="preview_applicant" alt="Applicant Photo">
                                                     @else
                                                         <img id="preview_applicant" src="" alt="Photo preview" style="display:none;">
                                                         <div class="fs-photo-placeholder" id="photo_placeholder">
@@ -1462,7 +1468,7 @@
                         <td><input type="date" class="form-control" name="to_date[]"></td>
                         <td><input type="text" class="form-control" name="duration[]" readonly></td>
                         <td class="text-center">
-                            <input type="file" class="form-control" name="institute_document[${newRowIndex}]" accept=".pdf,.png,.jpg,.jpeg">
+                            <input type="file" class="form-control institute-file" name="institute_document[]" accept=".pdf,.png,.jpg,.jpeg">
                         </td>
                         <td class="text-center p-1">
                             <div class="form-s-actions-stack">

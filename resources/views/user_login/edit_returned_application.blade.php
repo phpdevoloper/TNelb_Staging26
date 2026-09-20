@@ -1127,7 +1127,7 @@
                     {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
                     @php
                         $formName = $application_details->form_name ?? '';
-                        $hasApplicantEmail = in_array($formName, ['S', 'W'], true);
+                        $hasApplicantEmail = in_array($formName, ['S', 'W', 'WH'], true);
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
                         $emailVal = '';
@@ -1370,6 +1370,7 @@
                                                                         <option value="DEE" {{ $edu_details->educational_level == 'DEE' ? 'selected' : '' }}>Diploma(Electrical Engineering)</option>
                                                                         <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
                                                                         <option value="MEE" {{ $edu_details->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
+                                                                        <option value="AMIE" {{ $edu_details->educational_level == 'AMIE' ? 'selected' : '' }}>A pass in AMIE</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC" {{ $edu_details->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
                                                                         <option value="Provisional" {{ $edu_details->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
@@ -1487,6 +1488,7 @@
                                                                         <option value="DEE">Diploma(Electrical Engineering)</option>
                                                                         <option value="BEE">B.E(Electrical Engineering)</option>
                                                                         <option value="MEE">M.E(Electrical Engineering)</option>
+                                                                        <option value="AMIE">A pass in AMIE</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC">NTC</option>
                                                                         <option value="Provisional">Provisional</option>

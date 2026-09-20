@@ -8,6 +8,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
+use App\Services\Competency\FormPSchema;
 use App\Services\FormS\FormSAlterationService;
 
 use Illuminate\Http\Request;
@@ -28,7 +29,9 @@ class FormSAlteration extends BaseController
 
         'W' => 'Wireman Competency Certificate [Form W]',
 
-        'H' => 'Wireman Helper Competency Certificate [Form H]',
+        'WH' => 'Wireman Helper Competency Certificate [Form WH]',
+
+        'H' => 'Wireman Helper Competency Certificate [Form WH]',
 
         'P' => 'Power Generating Station Operation & Maintenance Competency Certificate [Form P]',
 
@@ -70,6 +73,10 @@ class FormSAlteration extends BaseController
 
         if (FormWHSchema::isFormWH($formCode)) {
             return redirect()->route('form_wh_alt', $request->query());
+        }
+
+        if (FormPSchema::isFormP($formCode)) {
+            return redirect()->route('form_p_alt', $request->query());
         }
 
         if ($parentId === '') {
@@ -439,7 +446,9 @@ class FormSAlteration extends BaseController
 
         $formCode = strtoupper(trim((string) $request->query('form', $request->input('form', 'S'))));
 
-
+        if ($formCode === 'H') {
+            $formCode = 'WH';
+        }
 
         return array_key_exists($formCode, self::FORM_LABELS) ? $formCode : 'S';
 

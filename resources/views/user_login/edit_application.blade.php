@@ -1115,7 +1115,7 @@
                     {{-- SECTION 1 to 4 — Applicant Details --}}
                     @php
                         $formName = $application_details->form_name ?? '';
-                        $hasApplicantEmail = in_array($formName, ['S', 'W'], true);
+                        $hasApplicantEmail = in_array($formName, ['S', 'W', 'WH'], true);
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
                         $emailVal = '';

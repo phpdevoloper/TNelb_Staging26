@@ -16,8 +16,8 @@
 <h4 class="page-title mb-3"><i class="fa fa-search mr-2"></i>CC Application Inspect</h4>
 <p class="text-muted mb-3">
     Enter a competency <code>application_id</code> (NEW <code>SC26…</code> or alteration <code>ASC26…</code>)
-    to view <code>cc_form_*_meta</code>, <code>cc_edu</code>, <code>cc_exp</code>, and <code>cc_proof_doc</code>.
-    Delete removes this ID, descendant renewal/alteration IDs, and related table rows.
+    to view <code>cc_form_*_meta</code>, <code>cc_edu</code>, <code>cc_exp</code>, <code>cc_proof_doc</code>,
+    and <code>cc_doc_log</code> for that ID. Delete removes this ID, descendant renewal/alteration IDs, and related table rows.
 </p>
 
 <div class="card shadow-sm mb-3">
@@ -124,6 +124,11 @@
         <li class="nav-item">
             <a class="nav-link" data-toggle="tab" href="#panel-proof" role="tab">
                 cc_proof_doc <span class="badge badge-light text-dark ml-1">{{ $proofs->count() }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#panel-doc-log" role="tab">
+                cc_doc_log <span class="badge badge-light text-dark ml-1">{{ $docLogs->count() }}</span>
             </a>
         </li>
     </ul>
@@ -312,6 +317,10 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="tab-pane fade" id="panel-doc-log" role="tabpanel">
+            @include('document-version.sample.partials.cc-doc-log-table')
         </div>
     </div>
 @endif

@@ -365,6 +365,12 @@ if (!function_exists('competency_document_path_url')) {
             return $storedPath;
         }
 
+        $storedPath = preg_replace('#^/?public/#', '', $storedPath) ?? $storedPath;
+        $prefix = \App\Services\Competency\CompetencyDocumentSupport::publicUrlPrefix();
+        if ($prefix !== '' && str_starts_with($storedPath, $prefix.'/')) {
+            $storedPath = substr($storedPath, strlen($prefix) + 1);
+        }
+
         if (preg_match('#^FORM_[A-Z]+/#', $storedPath)) {
             return \App\Services\Competency\CompetencyDocumentSupport::publicUrlForStoredPath($storedPath);
         }
@@ -518,6 +524,57 @@ if (!function_exists('competency_media_url')) {
         return str_starts_with($path, 'http://') || str_starts_with($path, 'https://')
             ? $path
             : url($path);
+    }
+}
+
+if (! function_exists('form_s_encode_contractor_emp_cate')) {
+    /**
+     * Persist Electrical contractor grade + licence in cc_exp.emp_cate as GRADE||LICENCE.
+     */
+    function form_s_encode_contractor_emp_cate(?string $category, ?string $licence): ?string
+    {
+        $category = $category !== null ? trim($category) : '';
+        $licence = $licence !== null ? preg_replace('/\D+/', '', $licence) : '';
+        if ($category === '' && $licence === '') {
+            return null;
+        }
+        if ($licence === '') {
+            return $category;
+        }
+        if ($category === '') {
+            return '||'.$licence;
+        }
+
+        return $category.'||'.$licence;
+    }
+}
+
+if (! function_exists('form_s_decode_contractor_emp_cate')) {
+    /**
+     * @return array{category: string, licence: string}
+     */
+    function form_s_decode_contractor_emp_cate(?string $stored): array
+    {
+        $stored = trim((string) $stored);
+        if ($stored === '') {
+            return ['category' => '', 'licence' => ''];
+        }
+        if (str_contains($stored, '||')) {
+            $parts = explode('||', $stored, 2);
+
+            return [
+                'category' => trim((string) ($parts[0] ?? '')),
+                'licence' => preg_replace('/\D+/', '', (string) ($parts[1] ?? '')),
+            ];
+        }
+        if (preg_match('/^(ESA|EA|ESB|EB)\s*,\s*(\d+)\s*$/i', $stored, $m)) {
+            return [
+                'category' => strtoupper($m[1]),
+                'licence' => $m[2],
+            ];
+        }
+
+        return ['category' => $stored, 'licence' => ''];
     }
 }
 

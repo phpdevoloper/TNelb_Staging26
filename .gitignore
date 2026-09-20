@@ -467,7 +467,11 @@ storage/app/private_documents/license_pdfs/DSC261111215_ta.pdf.enc
 storage/app/private_documents/license_pdfs/DSC261111218_en.pdf.enc
 storage/app/private_documents/license_pdfs/DSC261111218_ta.pdf.enc
 
-# Competency uploads (DOCUMENT_STORAGE_ROOT) — keep folder, ignore files
+# Competency uploads (DOCUMENT_STORAGE_ROOT) ï¿½ keep folder, ignore files
 /competency/*
 !/competency/.gitkeep
 
+database/migrations/2026_09_18_120000_add_employer_detail_to_cc_form_p_meta.php
+*.pdf
+storage/logs/laravel.log
+.env

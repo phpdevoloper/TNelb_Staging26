@@ -142,6 +142,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/digitization/wh/storeDigitization', [FormWHController::class, 'storeDigitization'])->name('digitization.wh.storeDigitization');
     Route::get('/digitization/wh/getContractorDetails', [FormWHController::class, 'fetchContractorDetails'])->name('digitization.wh.getContractorDetails');
     Route::get('/apply_form_p_d', [FormpDigitizationController::class, 'index'])->name('apply_form_p_d');
+    Route::get('/apply-form-p_d', [FormPController::class, 'digitize'])->name('apply-form-p_d');
+    Route::post('/digitization/p/storeDigitization', [FormPController::class, 'storeDigitization'])->name('digitization.p.storeDigitization');
+    Route::get('/digitization/p/getContractorDetails', [FormPController::class, 'fetchContractorDetails'])->name('digitization.p.getContractorDetails');
 
     // CL digitization----------------
      Route::get('/apply-form-a_d', [FormADigitizationController::class, 'index'])->name('apply-form-a_d');
@@ -170,6 +173,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('form_wh_alt/verify', [FormWHController::class, 'verifyParent'])->name('form_wh_alt.verify');
     Route::post('form_wh_alt/store', [FormWHController::class, 'storeAlteration'])->name('form_wh_alt.store');
     Route::post('form_wh_alt/draft', [FormWHController::class, 'saveAlterationDraft'])->name('form_wh_alt.draft');
+
+    Route::get('form_p_alt', [FormPController::class, 'alterIndex'])->name('form_p_alt');
+    Route::get('form_p_alt/certificates', [FormPController::class, 'listCertificates'])->name('form_p_alt.certificates');
+    Route::post('form_p_alt/verify', [FormPController::class, 'verifyParent'])->name('form_p_alt.verify');
+    Route::post('form_p_alt/store', [FormPController::class, 'storeAlteration'])->name('form_p_alt.store');
+    Route::post('form_p_alt/draft', [FormPController::class, 'saveAlterationDraft'])->name('form_p_alt.draft');
 
     // CL Alteration-----------------------------
     Route::get('alteration_cl', [FormCLAlteration::class, 'index'])->name('alteration_cl');
@@ -293,7 +302,9 @@ Route::post('/form_wh/draft_update/{appl_id}', [FormWHController::class, 'draftU
 Route::post('/form/submit_returned_application/{appl_id}', [FormController::class, 'submitReturnedApplication'])->name('form.submit_returned_application');
 Route::post('/form/draft_submit', [FormController::class, 'draft_submit'])->name('form.draft_submit');
 Route::post('/form_w/draft_submit', [FormWController::class, 'draftSubmit'])->name('form_w.draft_submit');
+Route::post('/form_w/draft_submit/{appl_id}', [FormWController::class, 'draftSubmit']);
 Route::post('/form_wh/draft_submit', [FormWHController::class, 'draftSubmit'])->name('form_wh.draft_submit');
+Route::post('/form_wh/draft_submit/{appl_id}', [FormWHController::class, 'draftSubmit']);
 Route::post('/form/draft_renewal_submit/{appl_id}', [FormController::class, 'draft_renewal_submit'])
     ->name('form.draft_renewal_submit');
 Route::post('/form_w/draft_renewal_submit/{appl_id}', [FormWController::class, 'draftRenewalSubmit'])
@@ -417,41 +428,13 @@ Route::get('/get-form-instructions', [FormAController::class, 'getFormInstructio
 
 
 Route::get('/expiry_date_change', [FormAController::class, 'expiry_date_change'])->name('expiry_date_change');
-
-// Route::get('/get-license-expiry/{license_number}', [FormAController::class, 'getLicenseExpiry']);
-
-Route::get('/get-license-expiry/{license_number}', function ($license_number) {
-    $license = DB::table('cc_forms_cert') ->where('certificate_no', $license_number)
-        ->select('valid_to')
-        ->first();
-
-    return response()->json([
-        'valid_to' => optional($license)->valid_to,
-    ]);
-});
-
-
-Route::post('/update-license-expiry', function (Request $request) {
-    $request->validate([
-        'license_number' => 'required|string',
-        'expires_at'     => 'required|date',
-    ]);
-
-    // Try updating original license
-    $updated = DB::table('cc_forms_cert')
-        ->where('certificate_no', $request->license_number)
-        ->update([
-            'valid_to' => $request->expires_at,
-            'updated_at' => now()
-        ]);
-
-
-    if ($updated) {
-        return response()->json(['status' => 'success', 'message' => 'Expiry date updated successfully']);
-    }
-
-    return response()->json(['status' => 'error', 'message' => 'License not found'], 404);
-})->name('update-license-expiry');
+Route::get('/get-license-numbers/{certificate_type}', [FormAController::class, 'getLicenseNumbersByType'])
+    ->where('certificate_type', 'S|W|WH|P|H')
+    ->name('get-license-numbers');
+Route::get('/get-license-expiry/{certificate_type}/{license_number}', [FormAController::class, 'getLicenseExpiry'])
+    ->where('certificate_type', 'S|W|WH|P|H')
+    ->name('get-license-expiry');
+Route::post('/update-license-expiry', [FormAController::class, 'updateLicenseExpiry'])->name('update-license-expiry');
 
 
 
@@ -491,6 +474,7 @@ Route::post('/form_p/saveDraft', [FormPController::class, 'saveDraft'])->name('f
 Route::post('/form_p/update', [FormPController::class, 'update'])->name('form_p.update');
 Route::post('/form_p/draft_renewal_submit/{appl_id?}', [FormPController::class, 'draft_renewal_submit_p'])->name('form_p.draft_renewal_submit');
 Route::get('/editApplication_p/{application_id}', [FormPController::class, 'editApplication'])->name('edit-application_p');
+Route::get('/edit_returned_application_p/{application_id}', [FormPController::class, 'editApplication'])->name('edit_returned_application_p');
 Route::post('/payment/updatePaymentFormP', [PaymentController::class, 'updatePaymentFormP'])->name('payment.updatePaymentFormP');
 Route::post('/delete_institute', [FormPController::class, 'delete_institute'])->name('delete_institute');
 Route::get('/generate-pdf-p/{login_id}', [PDFController::class, 'generateFormPPDF'])->name('generateformP.pdf');

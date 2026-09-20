@@ -18,10 +18,12 @@
     .fs-alt-form .work-entry-block:has(.fs-alt-existing-work) {
         display: none !important;
     }
-    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work input,
-    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work select,
-    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work textarea,
-    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work button {
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-till-toggle,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-date-till,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit input.work-date-to:not([type="hidden"]),
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] input,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] button,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn {
         pointer-events: auto !important;
     }
     /* Keep the expanded till-date card visible after Till date is unchecked
@@ -1326,7 +1328,7 @@
                     {{-- ═══ SECTION 1 to 4 — Applicant Details ═══ --}}
                     @php
                         $formName = $application_details->form_name ?? '';
-                        $hasApplicantEmail = in_array($formName, ['S', 'W'], true);
+                        $hasApplicantEmail = true;
                         $applicantNameVal = isset($application_details) ? $application_details->applicant_name : Auth::user()->name;
                         $fathersNameVal = isset($application_details) ? $application_details->fathers_name : '';
                         $emailVal = '';
@@ -1336,7 +1338,9 @@
                                 $emailVal = trim((string) (Auth::user()->email ?? ''));
                             }
                         }
-                        $addressVal = isset($application_details) ? $application_details->applicant_address : Auth::user()->address;
+                        $addressVal = isset($application_details)
+                            ? trim((string) ($application_details->applicant_address ?? $application_details->applicants_address ?? ''))
+                            : (string) (Auth::user()->address ?? '');
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1387,6 +1391,7 @@
                                         <div class="fs-view-grid-value-box">
                                             <div class="fs-view-value {{ empty($fathersNameVal) ? 'fs-view-value--empty' : '' }}" data-view-for="Fathers_Name">{{ $fathersNameVal ?: 'Not provided' }}</div>
                                         </div>
+                                        <input type="hidden" id="Fathers_Name" name="fathers_name" value="{{ $fathersNameVal }}">
                                     </div>
                                     <div class="col-12 col-md-6 mb-2 mt-2">
                                         <div class="fs-field-head">
@@ -1447,6 +1452,7 @@
                                                 <div class="fs-view-grid-value-box">
                                                     <div class="fs-view-value {{ empty($dobDisplayVal) ? 'fs-view-value--empty' : '' }}" data-view-for="d_o_b" data-view-format="date">{{ $dobDisplayVal ?: 'Not provided' }}</div>
                                                 </div>
+                                                <input type="hidden" id="d_o_b" name="d_o_b" value="{{ $dobIsoVal }}">
                                             </div>
                                             <div class="col-12 col-sm-5">
                                                 <div class="fs-field-label"><span class="fs-field-num-sub">(ii)</span>Age</div>
@@ -1454,6 +1460,7 @@
                                                 <div class="fs-view-grid-value-box">
                                                     <div class="fs-view-value {{ empty($ageVal) ? 'fs-view-value--empty' : '' }}" data-view-for="age">{{ $ageVal ?: 'Not provided' }}</div>
                                                 </div>
+                                                <input type="hidden" id="age" name="age" value="{{ $ageVal }}">
                                             </div>
                                         </div>
                                     </div>

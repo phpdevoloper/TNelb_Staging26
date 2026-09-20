@@ -602,6 +602,12 @@
                         <div class="fs-section-body p-0">
                             <table class="table fs-docs-table mb-0">
                                 <tbody>
+                                    @php
+                                        $hasPhoto = !empty($applicant_photo?->upload_path);
+                                        $photoPreviewSrc = $hasPhoto ? competency_media_url($applicant_photo->upload_path) : '';
+                                        $hasSign = !empty($proof_doc?->uploaded_doc);
+                                        $signPreviewSrc = $hasSign ? competency_media_url($proof_doc->uploaded_doc) : '';
+                                    @endphp
                                     {{-- Photo --}}
                                     <tr>
                                         <td class="doc-serial">(i)</td>
@@ -616,11 +622,11 @@
                                                         <input autocomplete="off" class="form-control" id="upload_photo" name="upload_photo" type="file" accept=".jpg,.jpeg,.png">
                                                     </div>
                                                     <span class="file-limit">File type: JPG, PNG (Max 50 KB)</span>
-                                                    <small id="upload_photo_name" class="fs-upload-file-name">No file selected</small>
+                                                    <small id="upload_photo_name" class="fs-upload-file-name">{{ $hasPhoto ? 'Current photo on file' : 'No file selected' }}</small>
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--photo">
-                                                    <span id="photo_placeholder" class="fs-upload-placeholder">Photo preview</span>
-                                                    <img id="photo_preview" src="" alt="Photo preview">
+                                                    <span id="photo_placeholder" class="fs-upload-placeholder" style="{{ $hasPhoto ? 'display:none;' : '' }}">Photo preview</span>
+                                                    <img id="photo_preview" src="{{ $photoPreviewSrc }}" alt="Photo preview" style="{{ $hasPhoto ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                         </td>
@@ -682,14 +688,14 @@
                                             <div class="fs-upload-card">
                                                 <div class="fs-upload-controls">
                                                     <div class="form-s-file-upload-wrap fs-upload-input">
-                                                        <input autocomplete="off" class="form-control" id="upload_sign" name="upload_sign" type="file" accept=".jpg,.jpeg,.png" required>
+                                                        <input autocomplete="off" class="form-control" id="upload_sign" name="upload_sign" type="file" accept=".jpg,.jpeg,.png">
                                                     </div>
                                                     <span class="file-limit">File type: JPG, PNG (Max 50 KB)</span>
-                                                    <small id="upload_sign_name" class="fs-upload-file-name">No file selected</small>
+                                                    <small id="upload_sign_name" class="fs-upload-file-name">{{ $hasSign ? 'Current signature on file' : 'No file selected' }}</small>
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--sign">
-                                                    <span id="sign_placeholder" class="fs-upload-placeholder">Signature preview</span>
-                                                    <img id="sign_preview" src="" alt="Signature preview">
+                                                    <span id="sign_placeholder" class="fs-upload-placeholder" style="{{ $hasSign ? 'display:none;' : '' }}">Signature preview</span>
+                                                    <img id="sign_preview" src="{{ $signPreviewSrc }}" alt="Signature preview" style="{{ $hasSign ? 'display:block;' : 'display:none;' }}">
                                                 </div>
                                             </div>
                                         </td>

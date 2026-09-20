@@ -27,4 +27,10 @@ class CC_Education extends Model
         'created_at',
     ];
 
+    public function getIdAttribute(): ?int
+    {
+        $key = $this->attributes[$this->primaryKey] ?? null;
+
+        return $key !== null && $key !== '' ? (int) $key : null;
+    }
 }

@@ -45,7 +45,15 @@ class FormSDocumentUploadHandler
             'Education document upload'
         );
 
-        return $this->resolveMasterPathAfterUpload($log, $masterEducation);
+        $path = $this->resolveMasterPathAfterUpload($log, $masterEducation);
+        $stored = trim((string) ($log->fresh()->file_path ?? $log->file_path ?? ''));
+        if ($stored !== ''
+            && (string) ($masterEducation->application_id ?? '') === (string) ($workflowApp->application_id ?? '')
+        ) {
+            return $stored;
+        }
+
+        return $path;
     }
 
     /**
@@ -74,8 +82,31 @@ class FormSDocumentUploadHandler
     }
 
     /**
-     * @return string|null Approved path for master relieve_document
+     * Form P institute/training PDF → cc_doc_log (FORM_P/.../QC_QSC supporting).
+     *
+     * @return string|null Stored relative path
      */
+    public function handleInstituteDocumentUpload(
+        CC_CompetencyMeta $workflowApp,
+        int $instituteRowId,
+        UploadedFile $file,
+        ?string $replacementReason = null
+    ): ?string {
+        $log = $this->storeVersionedUpload(
+            $workflowApp,
+            $file,
+            'experience',
+            'supporting',
+            $instituteRowId,
+            $replacementReason,
+            'Institute training document upload'
+        );
+
+        $path = trim((string) ($log->file_path ?? ''));
+
+        return $path !== '' ? $path : null;
+    }
+
     public function handleExperienceRelieveUpload(
         CC_CompetencyMeta $workflowApp,
         CC_Experience $masterExperience,

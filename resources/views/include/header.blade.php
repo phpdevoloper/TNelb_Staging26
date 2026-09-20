@@ -1427,9 +1427,9 @@ use Illuminate\Support\Facades\Auth;
                                         } elseif (Request::is('apply-form-wh_d')) {
                                         $cert_name = 'H';
                                         $form_name = 'WH';
-                                        } elseif (Request::is('apply-form-p_d')) {
-                                        $cert_name = 'B';
-                                        $form_name = 'W';
+                                        } elseif (Request::is('apply-form-p_d') || Request::is('apply_form_p_d')) {
+                                        $cert_name = 'P';
+                                        $form_name = 'P';
                                         }
 
                                         @endphp
@@ -1584,7 +1584,10 @@ use Illuminate\Support\Facades\Auth;
                             </section>
 
                             @php
-                            $showCl = Request::is('apply-form-w_d') || Request::is('apply-form-wh_d');
+                            $showCl = Request::is('apply-form-w_d')
+                                || Request::is('apply-form-wh_d')
+                                || Request::is('apply-form-p_d')
+                                || Request::is('apply_form_p_d');
                             @endphp
 
                             <section class="digi-section" id="cl_section" {{ !$showCl ? 'style=display:none;' : '' }} aria-label="Current Contractor Licence Details">
@@ -1922,7 +1925,7 @@ use Illuminate\Support\Facades\Auth;
                                             <option value="0">---Select Type---</option>
                                             <option value="S">Supervisor Competency Certificate [Form S]</option>
                                             <option value="W">Wireman Competency Certificate [Form W]</option>
-                                            <option value="W">Wireman Helper Competency Certificate [Form H]</option>
+                                            <option value="WH">Wireman Helper Competency Certificate [Form WH]</option>
                                             <option value="P">Power Generating Station Operation & Maintenance Competency Certificate [Form P]</option>
 
                                         </select>
@@ -2249,39 +2252,6 @@ use Illuminate\Support\Facades\Auth;
             </div>
         </div>
     </div>
-    <!-- --------------------------------------------- -->
-
-    <div class="modal fade" id="competencyInstructionsModalP" tabindex="-1" aria-labelledby="competencyInstructionsModalLabelP" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header" style="background-color: white;">
-                    <h5 class="modal-title" id="competencyInstructionsModalLabelP">📋 Instructions & Declaration</h5>
-                    <button type="button" class="btn-close btn-close-white" data-dismiss="modal" aria-label="Close">X</button>
-                </div>
-                <div class="modal-body" style="padding: 30px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.8; color: #333;">
-                    <div class="show-list-numbers">
-                        1) (i) Fees Issue for <span id="p_certificate_name"></span> from <span id="p_fees_starts_from"></span> onwards is <span id="p_form_fees" style="color:#1f6920; font-weight:600;"></span>
-                    </div>
-                    <div id="instructionContentP" class="show-list-numbers"></div>
-
-                    <div class="form-check mt-4">
-                        <input type="checkbox" class="form-check-input" id="declaration-agree-renew-p">
-                        <label for="declaration-agree-renew-p" class="form-check-label" style="font-weight: 600;">
-                            I have read and agree to the above instructions.
-                        </label>
-                        <div class="text-danger mt-2 d-none" id="declaration-error-renew-p">
-                            Please agree the above instructions.
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer" style="justify-content: center;">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="proceedtoPayment">Proceed</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- --------------------------------------------- -->
     <!-- payment success modal for contractor License -->
     <div class="modal fade" id="paymentSuccessModalcontractor" tabindex="-1">

@@ -32,14 +32,9 @@
     $contractorCat = '';
     $licenceNo = '';
     if ($empType === 'electrical_contractor') {
-        $stored = (string) ($expRow->emp_cate ?? '');
-        if ($stored !== '' && str_contains($stored, '||')) {
-            $parts = explode('||', $stored, 2);
-            $contractorCat = $parts[0] ?? '';
-            $licenceNo = $parts[1] ?? '';
-        } elseif ($stored !== '') {
-            $contractorCat = $stored;
-        }
+        $decoded = form_s_decode_contractor_emp_cate((string) ($expRow->emp_cate ?? ''));
+        $contractorCat = $decoded['category'];
+        $licenceNo = $decoded['licence'];
     }
 
     $orgName = (string) ($expRow->org_name ?? $expRow->company_name ?? '');

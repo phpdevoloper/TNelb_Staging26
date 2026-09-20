@@ -132,7 +132,8 @@ class PaymentController extends BaseController
 
         
         if ($request->application_id) {
-            $form = TnelbFormP::where('application_id', $validated['application_id'])->first();
+            $form = CC_Forms_Meta::findByApplicationId($validated['application_id'])
+                ?: TnelbFormP::where('application_id', $validated['application_id'])->first();
         }      
 
         if (!$form) {
@@ -143,6 +144,19 @@ class PaymentController extends BaseController
         }
 
 
+        $applType = strtoupper(trim((string) ($form->appl_type ?? $request->input('form_type') ?? '')));
+        if ($applType === 'FRESH' || $applType === 'NEW') {
+            $applType = 'N';
+        } elseif ($applType === 'RENEWAL') {
+            $applType = 'R';
+        }
+        if ($applType === '') {
+            $applType = 'N';
+        }
+
+        $amountPaid = (int) round((float) $validated['amount']);
+        $lateFee = (int) ($validated['lateFee'] ?? 0);
+
         $payment = CC_Payments::updateOrCreate(
             [
                 'login_id'        => $validated['login_id'],
@@ -151,13 +165,15 @@ class PaymentController extends BaseController
             [
                 'transaction_id'    => $validated['transaction_id'],
                 'payment_status'    => 'success',
-                'amount_paid'       => (int) round((float) $validated['amount']),
-                'form_name'         => $form->form_name,
-                'cert_name'      => $form->license_name,
+                'amount_paid'       => $amountPaid,
+                'application_fee'   => max(0, $amountPaid - $lateFee),
+                'app_type'          => $applType,
+                'form_name'         => $form->form_name ?: 'P',
+                'cert_name'         => $form->license_name ?? $form->certificate_name ?? 'P',
                 'payment_mode'      => $validated['payment_mode'],
-                'late_fee'         => (int) ($validated['lateFee'] ?? 0),
+                'late_fee'          => $lateFee,
                 'late_months'       => (int) ($validated['lateMonths'] ?? 0),
-                'transaction_date'  => $validated['transactionDate'] 
+                'transaction_date'  => $validated['transactionDate'],
             ]
         );
 
@@ -169,7 +185,10 @@ class PaymentController extends BaseController
             if (empty($form->submitted_date)) {
                 $formUpdate['submitted_date'] = $this->dbNow;
             }
-            TnelbFormP::where('application_id', $validated['application_id'])->update($formUpdate);
+            $form->update($formUpdate);
+            if (! $form instanceof \App\Models\TnelbFormP) {
+                TnelbFormP::where('application_id', $validated['application_id'])->update($formUpdate);
+            }
         }
 
         return response()->json([

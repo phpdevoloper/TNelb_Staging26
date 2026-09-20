@@ -20,7 +20,7 @@ class CompetencyDocumentSupport
      */
     public static function versionedFormCodes(): array
     {
-        $codes = config('document_versioning.versioned_form_codes', ['S', 'W', 'WH']);
+        $codes = config('document_versioning.versioned_form_codes', ['S', 'W', 'WH', 'P']);
 
         return array_values(array_unique(array_map(
             static fn ($code) => strtoupper(trim((string) $code)),

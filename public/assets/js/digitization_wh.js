@@ -1,6 +1,5 @@
 // Form WH (Wireman Helper) Certificate Digitization modal logic.
-// Mirrors digitization.js but posts to the dedicated Form W routes and has no
-// Qualified Supervisor (QC) step — that section is specific to Form S.
+// Posts to dedicated Form WH routes. No Qualified Supervisor (QC) step (Form S only).
 
 function hasCcDigitizationTempId() {
     var $field = $("#cc_digitization_temp_id");
@@ -438,6 +437,7 @@ $(document).on("click", "#digitizationSubmit", function () {
             if (response.status == 200) {
                 if (response.temp_app_id) {
                     $("#cc_digitization_temp_id").val(response.temp_app_id);
+                    $("#appl_type").val("D");
                     sessionStorage.setItem(
                         "cc_digitization_temp_id",
                         response.temp_app_id,

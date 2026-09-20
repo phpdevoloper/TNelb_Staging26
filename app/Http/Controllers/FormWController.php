@@ -72,8 +72,16 @@ class FormWController extends BaseController
             'applicant_name' => $authUser->first_name.' '.$authUser->last_name,
         ];
         $contractorDetails = $this->getContractorDetails($authUser->login_id);
+        $applicant_photo = null;
+        $proof_doc = null;
 
-        return view('user_login.digitization.apply-form-w_d', compact('user', 'form', 'contractorDetails'));
+        return view('user_login.digitization.apply-form-w_d', compact(
+            'user',
+            'form',
+            'contractorDetails',
+            'applicant_photo',
+            'proof_doc'
+        ));
     }
 
     public function getContractorDetails($loginId, $tempAppId = null, $applicationId = null)
@@ -307,7 +315,7 @@ class FormWController extends BaseController
         $parentId = trim((string) $request->query('parent', ''));
 
         if ($parentId === '') {
-            return view('user_login.alteration.form_s_launcher', [
+            return view('user_login.alteration.form_w_launcher', [
                 'form_code' => FormWSchema::FORM_NAME,
                 'form_label' => self::FORM_LABEL,
                 'alterVerifyUrl' => route('form_w_alt.verify'),
@@ -341,7 +349,7 @@ class FormWController extends BaseController
         $viewData['alterStoreUrl'] = route('form_w_alt.store');
         $viewData['alterDraftUrl'] = route('form_w_alt.draft');
 
-        return view('user_login.alteration.form_s', $viewData);
+        return view('user_login.alteration.form_w', $viewData);
     }
 
     public function listCertificates(Request $request)
