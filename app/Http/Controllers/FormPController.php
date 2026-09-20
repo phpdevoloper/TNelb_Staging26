@@ -78,12 +78,12 @@ class FormPController extends BaseController
             ? DB::table('mst_documents')->where('application_id', $appl_id)->get()
             : collect([]);
 
-        $license_details = DB::table('tnelb_license')
+        $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $appl_id)
             ->first();
 
         if (!$license_details && !empty($application_details->license_number)) {
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
                 ->where('license_number', $application_details->license_number)
                 ->first();
         }
@@ -224,7 +224,7 @@ class FormPController extends BaseController
         } elseif (!empty($original->license_number)) {
             $issuedForRenew = trim((string) $original->license_number);
         } else {
-            $licRow = DB::table('tnelb_license')->where('application_id', $appl_id)->first();
+            $licRow = DB::table('cl_forma_lic')->where('application_id', $appl_id)->first();
             $issuedForRenew = trim((string) ($licRow->license_number ?? ''));
         }
 
@@ -1348,7 +1348,7 @@ class FormPController extends BaseController
             : collect([]);
 
 
-        $license_details = DB::table('tnelb_license')
+        $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $appl_id)
             ->select('*')
             ->first();
@@ -1492,9 +1492,9 @@ class FormPController extends BaseController
         $request->validate([
             'application_id' => 'nullable|string|max:50',
             // 'pancard'              => 'required|string|size:10',
-            
+
         ]);
-        
+
         // var_dump($request->application_id);die;
 
         $id = $request->application_id;

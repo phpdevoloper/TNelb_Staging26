@@ -56,20 +56,20 @@ class generateLicencepdfController extends Controller
         // ---------------------------------------
         if ($appltype === 'N') {
 
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
+            $applicant = DB::table('cl_forma_lic')
+                ->join($table_name, 'cl_forma_lic.application_id', '=', $table_name . '.application_id')
+                ->where('cl_forma_lic.application_id', $application_id)
                 ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
+                    'cl_forma_lic.application_id',
+                    'cl_forma_lic.issued_by',
+                    'cl_forma_lic.issued_at',
+                    'cl_forma_lic.expires_at',
 
                     $table_name . '.applicant_name AS name',
                     $table_name . '.license_name',
                     $table_name . '.form_name',
 
-                    'tnelb_license.license_number'
+                    'cl_forma_lic.license_number'
                 )
                 ->first();
 
@@ -168,7 +168,7 @@ class generateLicencepdfController extends Controller
         .text-uppercase{text-transform:uppercase;}
         .font-size-16{font-size:16px;}
         .font-weight-n{font-weight:normal}
-        
+
     </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
         $grade_name = $applicant->license_name;
         // dd($grade_name);
@@ -215,15 +215,15 @@ class generateLicencepdfController extends Controller
 
          <!-- RIGHT QR -->
         <td width="10%" style="text-align:right; vertical-align:top; padding-top:10px;">
-            <barcode 
-                code="' . htmlspecialchars($qrData) . '" 
-                type="QR" 
+            <barcode
+                code="' . htmlspecialchars($qrData) . '"
+                type="QR"
                 size="1"
                 error="H"
             />
         </td>
 
-  
+
     </tr>
 </table>';
 
@@ -273,7 +273,7 @@ class generateLicencepdfController extends Controller
         <td>: ' . $proprietorNames . '</td>
     </tr>
 
-  
+
 
 </table>';
 
@@ -401,7 +401,7 @@ class generateLicencepdfController extends Controller
             <tr>
                 <td style="text-align:left;">TNELB</td>
                 <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-                
+
             </tr>
         </table>
         ');
@@ -460,20 +460,20 @@ class generateLicencepdfController extends Controller
         // ---------------------------------------
         if ($appltype === 'N') {
 
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
+            $applicant = DB::table('cl_forma_lic')
+                ->join($table_name, 'cl_forma_lic.application_id', '=', $table_name . '.application_id')
+                ->where('cl_forma_lic.application_id', $application_id)
                 ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
+                    'cl_forma_lic.application_id',
+                    'cl_forma_lic.issued_by',
+                    'cl_forma_lic.issued_at',
+                    'cl_forma_lic.expires_at',
 
                     $table_name . '.applicant_name AS name',
                     $table_name . '.license_name',
                     $table_name . '.form_name',
 
-                    'tnelb_license.license_number'
+                    'cl_forma_lic.license_number'
                 )
                 ->first();
 
@@ -527,7 +527,7 @@ class generateLicencepdfController extends Controller
             'margin_right' => 10,
             'margin_top' => 10,
             'margin_bottom' => 10,
-            
+
             'mode' => 'utf-8',
 
             'fontDir' => array_merge($fontDirs, [
@@ -545,7 +545,7 @@ class generateLicencepdfController extends Controller
             'autoScriptToLang' => true,
             'autoLangToFont'   => true,
         ]);
-  
+
 
         $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
 
@@ -597,7 +597,7 @@ class generateLicencepdfController extends Controller
         font-size:18px;
         }
         .ft-wt-18{font-size:18px;}
-        
+
     </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
         $grade_name = $applicant->license_name;
         // dd($grade_name);
@@ -644,15 +644,15 @@ class generateLicencepdfController extends Controller
 
          <!-- RIGHT QR -->
         <td width="10%" style="text-align:right; vertical-align:top; padding-top:10px;">
-            <barcode 
-                code="' . htmlspecialchars($qrData) . '" 
-                type="QR" 
+            <barcode
+                code="' . htmlspecialchars($qrData) . '"
+                type="QR"
                 size="1"
                 error="H"
             />
         </td>
 
-  
+
     </tr>
 </table>';
 
@@ -702,7 +702,7 @@ class generateLicencepdfController extends Controller
         <td>: ' . $proprietorNames . '</td>
     </tr>
 
-  
+
 
 </table>';
 
@@ -830,7 +830,7 @@ class generateLicencepdfController extends Controller
             <tr>
                 <td style="text-align:left;">TNELB</td>
                 <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-                
+
             </tr>
         </table>
         ');

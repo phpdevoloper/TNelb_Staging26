@@ -9,7 +9,7 @@
         text-align:left;
     }
     table th{
-        font-weight:800!important;    
+        font-weight:800!important;
     }
     .officers_section{
         background: #4361ee;
@@ -149,13 +149,13 @@
 
                                                             <p class="text-info"><strong>Type of Ownership:</strong></p>
 
-                                                            
+
 
                                                         </div>
                                                         <div class="col-lg-8">
 
-                                                            <p> 
-                                                                @if($applicant->application_ownershiptype == 'pr') 
+                                                            <p>
+                                                                @if($applicant->application_ownershiptype == 'pr')
                                                                 Proprietor
                                                                 @elseif($applicant->application_ownershiptype == 'pt')
                                                                 Partnership
@@ -184,7 +184,7 @@
                                                             <th>Age</th>
                                                             <th>Address </th>
                                                             <th>Qualifications</th>
-                                                             
+
 
                                                             <th>Present business of
                                                                 the applicant</th>
@@ -204,13 +204,13 @@
                                                     </thead>
                                                     <tbody>
                                                         @php
-                                                
+
                                                             $sortedProprietors = collect($proprietordetailsform_A)
                                                                 ->sortBy(function($item) {
                                                                     return match($item->ownership_type) {
-                                                                        'pr' => 1, 
-                                                                        'pt' => 2, 
-                                                                        'dr' => 3, 
+                                                                        'pr' => 1,
+                                                                        'pt' => 2,
+                                                                        'dr' => 3,
                                                                         default => 4,
                                                                     };
                                                                 });
@@ -220,7 +220,7 @@
                                                             <td>
                                                                 <!-- {{$proprietor->id}} -->
                                                                 @if($proprietor->ownership_type == 'pr' )
-                                                              Proprietor  
+                                                              Proprietor
                                                                 @elseif($proprietor->ownership_type == 'pt')
                                                                 Partner
                                                                 @else
@@ -233,15 +233,15 @@
                                                             <td>{{ $proprietor->age }} </td>
                                                             <td>{{ $proprietor->proprietor_address }} </td>
                                                              <td> {{ $proprietor->qualification }}</td>
-                                                           
+
                                                             <td> {{ $proprietor->present_business }}</td>
 
                                                            <td>
                                                             {{ $proprietor->competency_certificate_number }}
 
-                                                            {{ $proprietor->competency_certificate_validity 
-                                                                ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y') 
-                                                                : ''  
+                                                            {{ $proprietor->competency_certificate_validity
+                                                                ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y')
+                                                                : ''
                                                             }}
 
                                                             @if(!empty($proprietor->competency_certificate_number))
@@ -251,14 +251,14 @@
                                                                     <p class="text-danger">Invalid License</p>
                                                                 @endif -->
 
-                                                                <button type="button" 
-                                                                    class="btn btn-primary verify-license" 
+                                                                <button type="button"
+                                                                    class="btn btn-primary verify-license"
                                                                     data-id="{{ $proprietor->id }}"
                                                                     data-license="{{ $proprietor->competency_certificate_number }}"
                                                                     data-date="{{ $proprietor->competency_certificate_validity ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y') : '' }}">
                                                                     Verify
                                                                 </button>
-                                                            @endif 
+                                                            @endif
 
                                                             <div id="verify-result-{{ $proprietor->id }}"></div>
                                                         </td>
@@ -270,15 +270,15 @@
 
                                                             </td>
 
-                                                            
+
                                                           <td>
                                                             {{ $proprietor->previous_experience_lnumber }}
-                                                            {{ $proprietor->previous_experience_lnumber_validity 
-                                                                ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                                : '' 
+                                                            {{ $proprietor->previous_experience_lnumber_validity
+                                                                ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
+                                                                : ''
                                                             }}
 
-                                                          
+
 
                                                             @if(!empty($proprietor->previous_experience_lnumber))
                                                           <!--     @switch($proprietor->proprietor_contractor_verify ?? null)
@@ -291,9 +291,9 @@
                                                             @endswitch -->
                                                                 <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                     data-license="{{ $proprietor->previous_experience_lnumber }}"
-                                                                    data-date="{{ $proprietor->previous_experience_lnumber_validity 
-                                                                        ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                                        : '' 
+                                                                    data-date="{{ $proprietor->previous_experience_lnumber_validity
+                                                                        ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
+                                                                        : ''
                                                                     }}">
                                                                     Verify
                                                                 </button>
@@ -337,7 +337,7 @@
 
 
                                                     </div>
-                                            
+
                                                 </div>
                                             </div>
                                             <div class="row">
@@ -349,11 +349,11 @@
                                                         <div class="col-lg-4">
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
-                                                                 - {{$applicant->previous_application_number}}, 
+                                                                 - {{$applicant->previous_application_number}},
                                                                     {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }}
 
                                                                                      <div class="row">
-                                                               
+
 
 
                                                            <div class="col-lg-12 col-12 d-flex align-items-center">
@@ -370,11 +370,11 @@
                                                              </div>
                                                                 @endif
                                                                 </p>
-                                                            
-                                            
-                                                             
-                                                              
-                                                                
+
+
+
+
+
                                                         </div>
                                                     </div>
                                                 </div>
@@ -391,7 +391,7 @@
                                                     use Illuminate\Support\Str;
                                                     use Illuminate\Support\Facades\Crypt;
 
-                                                 
+
 
                                                     // Aadhaar
                                                     $decryptedaadhar = Crypt::decryptString($applicant->aadhaar);
@@ -424,7 +424,7 @@
                                                         ? str_repeat('X', 6) . substr($decryptedgst, -4)
                                                         : 'Invalid GST';
                                                     @endphp
- 
+
                                                 <div class="col-lg-4 col-4 aadhaar_doc_file">
                                                     <div class="row">
                                                           <div class="col-lg-6 col-6">
@@ -455,7 +455,7 @@
                                                              <a href="{{asset($decryptedgst_doc) }}" target="_blank"><i class="fa fa-file-pdf-o text-red"></i> View </a>
                                                           </div>
                                                     </div>
-                                                   
+
 
                                                 </div>
                                             </div>
@@ -510,9 +510,9 @@
 
                                                 @foreach($checkboxes as $id => $label)
                                                     <div class="form-check">
-                                                        <input type="checkbox" 
-                                                            id="{{ $id }}" 
-                                                            name="{{ $id }}" 
+                                                        <input type="checkbox"
+                                                            id="{{ $id }}"
+                                                            name="{{ $id }}"
                                                             class="form-check-input"
                                                             @if($isVerified) checked disabled @endif>
                                                         <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
@@ -530,7 +530,7 @@
                                                 <thead>
                                                     <tr>
                                                         <th>Staff Name</th>
-                                                        
+
                                                         <th>Staff <br> Qualification</th>
                                                          <th>Staff Category</th>
                                                         <th>Competency Certificate Number <br>
@@ -539,7 +539,7 @@
 
                                                         <th>History of Staff
                                                         </th>
-                                                                                                                
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -548,17 +548,17 @@
                                                          <td>{{ $staff->staff_name }}</td>
                                                         <td>{{ $staff->staff_qualification }}</td>
                                                         <td>{{ $staff->staff_category }}</td>
-                                                        <td>{{ $staff->cc_number }},{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }} 
-                                                            
+                                                        <td>{{ $staff->cc_number }},{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}
+
                                                             <button class="btn btn-primary verify-btn_staff"
                                                                 data-license="{{ $staff->cc_number }}"
                                                                 data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}">
-                                                                Verify 
+                                                                Verify
                                                             </button>
                                                               <span class="verify-result_staff"></span>
                                                         </td>
-                                                     
-                                                    
+
+
                                                     <td>
                                                         <button class="btn btn-info history-btn_staff"
                                                             data-license="{{ $staff->cc_number }}"
@@ -566,18 +566,18 @@
                                                             data-application_id="{{ $staff->application_id }}"
                                                             data-bs-toggle="modal" data-bs-target="#showlicense"
                                                             >
-                                                            
+
                                                             View History
                                                         </button>
                                                         <div class="history-result_staff mt-2"></div>
                                                     </td>
 
-                   
-                                                
-<!-- 
+
+
+<!--
 <button class="btn btn-info history-btn_staff" data-license="{{ $staff->cc_number }}"
                                                             data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}" data-application_id="{{ $staff->application_id }}">Check History</button>
-                                                                <span class="history-result_staff"></span>       
+                                                                <span class="history-result_staff"></span>
                                                     @php
                                                         $history = DB::table('tnelb_applicant_formA_staffdetails as s')
                                                             ->leftJoin('ccl_forma_meta as a', 's.application_id', '=', 'a.application_id')
@@ -591,14 +591,14 @@
 
                                                     @if($history->count() > 0)
                                                         <div class="staff-history mt-2">
-                                                            
+
                                                            <ul>
                                                                 @foreach($history as $h)
                                                                     @php
                                                                         $today = \Carbon\Carbon::today();
 
                                                                         // Get original license
-                                                                        $license = DB::table('tnelb_license')
+                                                                        $license = DB::table('cl_forma_lic')
                                                                             ->where('application_id', $h->application_id)
                                                                             ->first();
 
@@ -644,13 +644,13 @@
                                                                         </li>
                                                                     @endif
                                                                 @endforeach
-                                                            </ul>                   
+                                                            </ul>
                                                         </div>
                                                     @else
                                                         <span class="text-muted">No history found</span>
                                                     @endif -->
-                                                    
-                                                        
+
+
 
 
                                                     </tr>
@@ -702,13 +702,13 @@
                          <!-- ---------------------------License End--------------- -->
 
                                         <div class="row mt-3">
-                                           
+
                                             <div class="row ">
                                                 <div class="col-lg-12">
                                                     <p class="text-info"><strong>10.Bank Solvency Certificate Details</strong></p>
                                                 </div>
                                             </div>
-                                        
+
                                             <div class="row">
                                                 <div class="col-lg-2">
                                                     <p><strong>Bank Name</strong></p>
@@ -805,13 +805,13 @@
                                                         <th>Name of Signatory</th>
                                                         <th>Age of Signatory</th>
                                                         <th>Qualification of Signatory</th>
-                                                                                                                
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                             @php
                                             $authorizedPersons = json_decode($applicant->name_of_authorised_to_sign, true);
-                                            
+
                                             $authorizedage = json_decode($applicant->age_of_authorised_to_sign, true);
 
                                             $authorizedqualify = json_decode($applicant->qualification_of_authorised_to_sign, true);
@@ -819,12 +819,12 @@
                                              @if(!empty($authorizedPersons))
                                                  @foreach($authorizedPersons as $index => $person)
                                                     <tr>
-                                                       
+
                                                         <td>{{ strtoupper($person) }}</td>
                                                         <td>{{$authorizedage[$index] ?? '' }}</td>
-                                                        
+
                                                          <td>{{ strtoupper($authorizedqualify[$index] ?? '') }}</td>
-                                                     
+
                                                     </tr>
                                                 @endforeach
                                             @else
@@ -835,7 +835,7 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                           
+
 
                                         </div>
 
@@ -955,7 +955,7 @@
                                                         <p class="badge text-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
                                                     </div>
 
-                                                   
+
 
                                                      <div class="col-lg-6">
                                                         <p><strong>Appication Fees</strong></p>
@@ -977,7 +977,7 @@
                                                         <p>{{ $applicant->late_fee }}.00</p>
                                                     </div>
                                                     @endif
-                                                    
+
 
                                                      <div class="col-lg-6">
                                                         <p><strong>Amount Paid</strong></p>
@@ -985,9 +985,9 @@
                                                     <div class="col-lg-6">
                                                         <p>{{ $applicant->amount }}.00</p>
                                                     </div>
-                                                    
-                                                   
-                                                 
+
+
+
                                                 </div>
                                             </div>
                                              <div class="col-lg-6">
@@ -1031,8 +1031,8 @@
                                                 </div>
                                             </div>
 
-                                        
-                                        
+
+
                                     </div>
                                 </div>
 
@@ -1056,16 +1056,16 @@
              <div class="statbox widget officers_section mb-2">
                 <div class="col-lg-12 col-12 text-center">
                     <h6>Officers Handling Functions </h6>
-                </div> 
-                                            </div>   
-            
-            
+                </div>
+                                            </div>
+
+
          </div>
         <div class="row">
             <div id="tabsSimple" class="col-xl-6 col-12 layout-spacing">
-                
+
                 <div class="row align-items-center">
-                    
+
                     <div class="col-lg-12">
                        <div class="statbox widget box box-shadow mb-2">
                             <div class="row align-items-center">
@@ -1091,7 +1091,7 @@
                                 <div class="row mt-2">
                                     <div class="col-lg-12">
                                        <div class="form-group">
-                                         
+
                                             {{-- <label class="fw-bold">Select Query Type:</label> --}}
                                             <select class="form-control" id="queryType" name="queryType[]" multiple>
                                                 <option value="general">General Query</option>
@@ -1144,11 +1144,11 @@
 
                                 @elseif ($role == 'Secretary')
 
-                                   
+
                                         <button class="btn btn-success" id="confirmForwardPres">
                                             Forward to {{ $workflow[$role] }}
                                         </button>
-                          
+
 
                                     <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Supervisor
@@ -1192,11 +1192,11 @@
                     <div class="mt-container mx-auto">
                         <div class="timeline-line">
                                             @foreach ($workflows as $row)
-                                            
+
                                             <div class="item-timeline">
                                                 <p class="t-time">{{ format_date_other($row->created_at) }}</p>
-                                                
-                                                <div class="t-dot 
+
+                                                <div class="t-dot
                                                     {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
                                                 </div>
                                                 <div class="t-text">
@@ -1412,7 +1412,7 @@
 
        //forwardbtn
         var approveButton = $('#confirmApprovalBtn');
-        var confirmApproval = $('#confirmApproval'); 
+        var confirmApproval = $('#confirmApproval');
         confirmApproval.change(function () {
             approveButton.prop('disabled', !this.checked);
         });
@@ -1494,7 +1494,7 @@
                 focusConfirm: false,
             }).then((result) => {
                 if (result.isConfirmed) {
-                  
+
                     $.ajax({
                         url: '{{ route('admin.approveApplicationFormsa') }}',
                         type: 'POST',
@@ -1516,7 +1516,7 @@
                             //     $('#licenseNumber').text(response.license_number);
 
                             //     $('#finalsuccessModal').modal('show');
-                
+
                             //     $('#finalsuccessModal').on('hidden.bs.modal', function () {
                             //         window.location.href = '/admin/dashboard';
                             //     });
@@ -1524,7 +1524,7 @@
 
                             if (response.status == "success") {
                                 Swal.fire({
-                                    
+
                                     title: "Success",
                                     html: `
                                         <p>${response.message}</p>
@@ -1562,7 +1562,7 @@
             var queryType = null;
             var query_status = "No";
 
-            
+
             if (queryswitch) {
                 queryType = $("#queryType").val() || null;
                 query_status = 'Yes';
@@ -1583,7 +1583,7 @@
                 focusConfirm: false,
             }).then((result) => {
                 if (result.isConfirmed) {
-                    
+
                     $.ajax({
                         url: '{{ route('admin.forwardApplicationformsa',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
                         type: 'POST',
@@ -1598,7 +1598,7 @@
                             remarks: remarks || "No remarks provided",
                             checkboxes: checkboxStatus, // Only "Yes" or "No"
                             queryswitch: query_status, // Only "Yes" or "No"
-                            "queryType[]": queryType 
+                            "queryType[]": queryType
                         },
                         success: function (response) {
 
@@ -1617,7 +1617,7 @@
 
                             if (response.status == "success") {
                                 Swal.fire({
-                                    
+
                                     title: "Success",
                                     text: response.message,
                                     confirmButtonText: "OK",
@@ -1641,7 +1641,7 @@
                     });
                 }
             });
-    
+
         });
 
 //  $('#confirmReturnBtn').on('click', function () {
@@ -1649,7 +1649,7 @@
 //             // alert('111');
 //             var applicationId   = @json($applicant->application_id);
 //             var returnBy        = @json(Auth::user()->name);
-           
+
 //             var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
 //             //    alert(forwardedTo);
 //             //    exit;
@@ -1673,7 +1673,7 @@
 //             // }
 
 //             var checkboxStatus = "Yes";
-            
+
 //             let queryswitch = $("#Queryswitch").prop("checked");
 //             queryType = $("#queryType").val();
 //             let errorBox = $("#query_error");
@@ -1681,7 +1681,7 @@
 //             Swal.fire({
 //                 title: "Return",
 //                 html: 'You want to return this!',
-//                 
+//
 //                 showCancelButton: true,
 //                 confirmButtonText: "Forward to {{ $applicant->application_status == 'RE' ? 'Secretary' : 'Supervisor' }}",
 //                 cancelButtonText: "Cancel",
@@ -1701,7 +1701,7 @@
 //                             remarks         : remarks || "No remarks provided",
 //                             checkboxes      : checkboxStatus,
 //                             queryswitch     : queryswitch,
-//                             "queryType[]": queryType 
+//                             "queryType[]": queryType
 //                         },
 //                         success: function (response) {
 //                             // if (response.status == "success") {
@@ -1718,7 +1718,7 @@
 //                             // }
 //                             if (response.status == "success") {
 //                                 Swal.fire({
-//                                     
+//
 //                                     title: "Success",
 //                                     text: response.message,
 //                                     confirmButtonText: "OK",
@@ -1742,7 +1742,7 @@
 
  $('#confirmReturnBtn').on('click', function () {
 
-            
+
             var applicationId   = @json($applicant->application_id);
             var returnBy        = @json(Auth::user()->name);
             var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
@@ -1768,7 +1768,7 @@
             // }
 
             var checkboxStatus = "Yes";
-            
+
             let queryswitch = $("#Queryswitch").prop("checked");
             queryType = $("#queryType").val();
             let errorBox = $("#query_error");
@@ -1776,7 +1776,7 @@
             Swal.fire({
               title: "Return",
     html: 'You want to return this application!',
-    
+
     showCancelButton: true,
      confirmButtonText: "Return to @if($role == 'Secretary' || $role == 'President') Supervisor @elseif($role == 'Accountant') Supervisor @elseif($role == 'Supervisor' || $role == 'Supervisor2') Secretary @endif",
     cancelButtonText: "Cancel",
@@ -1796,7 +1796,7 @@
                             remarks         : remarks || "No remarks provided",
                             checkboxes      : checkboxStatus,
                             queryswitch     : queryswitch,
-                            "queryType[]": queryType 
+                            "queryType[]": queryType
                         },
                         success: function (response) {
                             // if (response.status == "success") {
@@ -1813,7 +1813,7 @@
                             // }
                             if (response.status == "success") {
                                 Swal.fire({
-                                    
+
                                     title: "Success",
                                     text: response.message,
                                     confirmButtonText: "OK",
@@ -1834,7 +1834,7 @@
 
         });
  forwardbtn.click(function() {
- 
+
             Swal.fire({
                 title: "Declaration",
                 html: `
@@ -1904,7 +1904,7 @@
                         success: function (response) {
                             if (response.status == "success") {
                                 Swal.fire({
-                                    
+
                                     title: "Success",
                                     text: response.message,
                                     confirmButtonText: "OK",
@@ -1967,7 +1967,7 @@
                 headers: {
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
                 },
-               
+
                data: {
             application_id: applicationId,
             processed_by: processedBy,
@@ -2011,7 +2011,7 @@
     let proprietorId = $(this).data("id");
 
     $.ajax({
-        url: "{{ route('admin.verify.license.formAccc_admin') }}", 
+        url: "{{ route('admin.verify.license.formAccc_admin') }}",
         method: "POST",
         data: {
             _token: "{{ csrf_token() }}",

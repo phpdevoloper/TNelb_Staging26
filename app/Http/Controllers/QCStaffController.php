@@ -45,9 +45,9 @@ class QCStaffController extends Controller
 
 
 
-      
+
         $query1 = DB::table('scert')->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
-        $query2 = DB::table('tnelb_license')->selectRaw("CAST(license_number AS VARCHAR) AS license_number, expires_at");
+        $query2 = DB::table('cl_forma_lic')->selectRaw("CAST(license_number AS VARCHAR) AS license_number, expires_at");
 
         $exists = DB::query()
             ->fromSub(

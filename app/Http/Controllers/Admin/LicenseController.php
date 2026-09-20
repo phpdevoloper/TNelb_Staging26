@@ -49,9 +49,9 @@ class LicenseController extends Controller
         ];
 
 
-        $table = $tableMap[$licensePrefix] ?? 'tnelb_license';
+        $table = $tableMap[$licensePrefix] ?? 'cl_forma_lic';
 
-        if($table == 'tnelb_license'){
+        if($table == 'cl_forma_lic'){
             $licenseNum = $licenseNumber;
             $column_name = 'license_number';
         }
@@ -59,22 +59,22 @@ class LicenseController extends Controller
 
         // ✅ Correct column names for each table
         $query = DB::table($table)
-        ->selectRaw($table === 'tnelb_license'
+        ->selectRaw($table === 'cl_forma_lic'
             ? "CAST(license_number AS VARCHAR) AS license_number, expires_at"
             : "CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at"
         )
-        ->where($column_name ?? 'certno', $licenseNum) // or license_number for tnelb_license
-        ->whereDate($table === 'tnelb_license' ? 'expires_at' : 'vdate', $request->date)
+        ->where($column_name ?? 'certno', $licenseNum) // or license_number for cl_forma_lic
+        ->whereDate($table === 'cl_forma_lic' ? 'expires_at' : 'vdate', $request->date)
         ->exists();
 
         return response()->json(['exists' => $query]);
     }
 
 
-    
+
     public function verifylicenseformAcc(Request $request)
     {
-      
+
         $request->validate([
             'license_number' => 'required|string|max:12',
             'date' => 'required|date|before:today',
@@ -89,7 +89,7 @@ class LicenseController extends Controller
         $query1 = DB::table('wcert')->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
         $query2 = DB::table('whcert')->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
         $query3 = DB::table('scert')->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
-        $query4 = DB::table('tnelb_license')->selectRaw("CAST(license_number AS VARCHAR) AS license_number, expires_at");
+        $query4 = DB::table('cl_forma_lic')->selectRaw("CAST(license_number AS VARCHAR) AS license_number, expires_at");
 
         $exists = DB::query()
             ->fromSub(
@@ -123,7 +123,7 @@ class LicenseController extends Controller
     $date = $request->date;
 
     $query1 = DB::table('ealicense')->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
-    $query4 = DB::table('tnelb_license')->selectRaw("CAST(license_number AS VARCHAR) AS license_number, expires_at");
+    $query4 = DB::table('cl_forma_lic')->selectRaw("CAST(license_number AS VARCHAR) AS license_number, expires_at");
 
     $exists = DB::query()
         ->fromSub(

@@ -238,7 +238,7 @@
                                                             $completedDigize = (int) ($summary['completed_digi_count'] ?? 0);
                                                             $completedAlteration = (int) ($summary['completed_alteration_count'] ?? 0);
                                                         @endphp
-                                                        
+
                                                         <a href="#"
                                                             class="badge outline-badge-info fw-semibold text-decoration-none js-completed-badge @if ($loop->first) js-completed-badge-default @endif"
                                                             data-form-id="{{ $summary['id'] ?? '' }}"
@@ -282,7 +282,7 @@
                         </div>
                     </div>
                 @endif
-                
+
                 @if(!empty($contractorCards))
                 <div class="col-xl-4 col-lg-12 mb-4">
                     <div class="card h-100 shadow-none rounded-3 overflow-hidden president-dashboard-card">
@@ -302,14 +302,53 @@
                                     $isFormAContractor = str_contains(mb_strtolower($summary['licence_name'] ?? ''), 'contractor')
                                         && strtoupper($summary['form_name'] ?? '') === 'FORM A';
 
-                                    $newHref = $isFormAContractor
-                                        ? route('admin.view_form', ['type' => 'A'])
-                                        : route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'N']);
-                                    $renewHref = $isFormAContractor
-                                        ? route('admin.view_form', ['type' => 'A'])
-                                        : route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'R']);
+                                     $newHref = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'N'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'N'
+                            ]);
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | RENEWAL
+                        |--------------------------------------------------------------------------
+                        */
+                        $renewHref = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'R'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'R'
+                            ]);
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | DIGITISATION
+                        |--------------------------------------------------------------------------
+                        */
+                        $digitize = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'D'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'D'
+                            ]);
+
+
+
                                 @endphp
                                 @php
+                                // var_dump($summary); exit;
                                     $rawCode = strtoupper((string) ($summary['form_name'] ?? ''));
                                     $compactCode = preg_replace('/[^A-Z0-9]/', '', $rawCode);
                                     $formCode = $compactCode !== '' ? substr($compactCode, -1) : '?';
@@ -328,6 +367,8 @@
                                                 @php
                                                     $completedNew = (int) ($summary['completed_new_count'] ?? 0);
                                                     $completedRenewal = (int) ($summary['completed_renewal_count'] ?? 0);
+
+                                                    $completedDigi = (int) ($summary['completed_digi_count'] ?? 0);
                                                 @endphp
                                                 <span class="fw-semibold text-muted me-1">Completed :</span>
                                                 <a href="#"
@@ -346,6 +387,17 @@
                                                     Renewal
                                                     <span class="ms-1 fw-bold text-danger">{{ $completedRenewal }}</span>
                                                 </a>
+
+                                                     <a href="#"
+                                                    class="badge outline-badge-info fw-semibold text-decoration-none js-completed-badge"
+                                                    data-form-id="{{ $summary['id'] ?? '' }}"
+                                                    data-form-type="D"
+                                                    data-licence-name="{{ $summary['licence_name'] ?? '' }}">
+                                                    Digitisation
+                                                    <span class="ms-1 fw-bold text-danger">{{ $completedDigi }}</span>
+                                                </a>
+
+
                                             </div>
                                         </div>
                                     </div>
@@ -417,7 +469,7 @@
                     $completedApplicationsDefaultTitleSuffix = $ln !== '' ? ($ln . ' - New Application') : 'New Application';
                 }
             @endphp
-            
+
             <div class="row">
                 <div class="col-12">
                     <div class="card shadow-sm">
@@ -448,7 +500,7 @@
                     </div>
                 </div>
             </div>
-            
+
         </div>
     </div>
 
@@ -585,7 +637,7 @@
                                 <i class="fa fa-file-pdf-o text-danger"></i> ENG
                             </a>
 
-                             
+
                         `
                         : effectiveCode === 'P'
                         ? `
@@ -600,12 +652,12 @@
                             <a href="${enUrl}" class="text-decoration-none me-2" target="_blank" title="English PDF">
                                 <i class="fa fa-file-pdf-o text-danger"></i> Download
                             </a>
-                           
+
                         `
                 )
                 : '';
 
-              
+
 
              const appltypeMap = {
                     N: 'New',

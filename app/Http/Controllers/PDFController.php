@@ -830,7 +830,7 @@ class PDFController extends Controller
 
         $mpdf->WriteHTML('
         <style>
-            body { 
+            body {
                 font-family: helvetica;
                 font-size: 10pt;
                 line-height: 1.6;
@@ -850,7 +850,7 @@ class PDFController extends Controller
             .value {
                 line-height: 1.6;
             }
-            
+
         </style>', HTMLParserMode::HEADER_CSS);
 
         $certificateText = match ($form->form_name) {
@@ -927,7 +927,7 @@ class PDFController extends Controller
         }
         $html .= '</table>';
 
-        // Experience 
+        // Experience
         $html .= '<h4 class="ta">(ii). விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் காலம்</h4>
         <table class="tbl-bordered">
         <tr>
@@ -1610,7 +1610,7 @@ class PDFController extends Controller
                         <td width="70%" valign="top">
 
                             <table class="info-table">
-                            
+
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
                                     <td class="colon">:</td>
@@ -1679,7 +1679,7 @@ class PDFController extends Controller
                                     </td>
                                 </tr>
 
-                            
+
 
                                 <!-- BOTTOM SAFE SPACE -->
                                 <tr>
@@ -1689,7 +1689,7 @@ class PDFController extends Controller
                         </td>
                     </tr>
                 </table>
-            
+
         ';
 
         if ($payment) {
@@ -1708,12 +1708,12 @@ class PDFController extends Controller
                             <th>PAYMENT TYPE</th>
                             <td>' . e($paymentType)   . '</td>
                         </tr>
-                        
+
                         <tr>
                             <th>TRANSACTION NUMBER</th>
                             <td>' . e($transactionNo) . '</td>
                         </tr>
-                       
+
                         <tr>
                         <th>PAYMENT DATE</th>
                          <td>' . e($paymentDate)   . '</td>
@@ -1727,7 +1727,7 @@ class PDFController extends Controller
                             <td>' . e($statusValue)   . '</td>
                         </tr>
                     </thead>
-                   
+
                     </table>
                 </div>
 
@@ -1735,7 +1735,7 @@ class PDFController extends Controller
 
             <div class="footer-spacer"></div>
 
-          
+
 
         </div>';
         }
@@ -2948,9 +2948,9 @@ class PDFController extends Controller
                     margin: 3px;
                     line-height: 1.3;
                 }
-                .table-border td, 
+                .table-border td,
                 .table-border th {
-                    
+
                     padding: 6px;
                     font-size: 14px;
                     text-align:left;
@@ -3056,7 +3056,7 @@ class PDFController extends Controller
     //                     margin: 3px;
     //                     line-height: 1.3;
     //                 }
-    //                 .table-border td, 
+    //                 .table-border td,
     //                 .table-border th {
 
     //                     padding: 6px;
@@ -3140,7 +3140,7 @@ class PDFController extends Controller
         if ($form->appl_type == 'R') {
             $license_details = DB::table('tnelb_renewal_license')->where('application_id', $newApplicationId)->first();
         } else {
-            $license_details = DB::table('tnelb_license')->where('application_id', $newApplicationId)->first();
+            $license_details = DB::table('cl_forma_lic')->where('application_id', $newApplicationId)->first();
         }
 
 

@@ -184,7 +184,7 @@ class RegisterController extends BaseController
 
     public function cc_renew_form($appl_id)
     {
-        
+
         if (! Auth::check()) {
             return redirect()->route('logout');
         }
@@ -469,22 +469,22 @@ class RegisterController extends BaseController
             ->first();
         // $cert_licence_code = $form_code ? $form_code->cert_licence_code : null;
 
-   
+
 
         $loginId = Auth::user()->login_id;
 
 
-    
+
 
         $applicationIds = EA_Application_model::where('login_id', $loginId)
             ->pluck('application_id');
 
 
-    
+
 
         $today = Carbon::today();
 
-        $activeLicense = DB::table('tnelb_license')
+        $activeLicense = DB::table('cl_forma_lic')
             ->whereIn('application_id', $applicationIds)
             ->whereDate('issued_at', '<=', $today)
             ->whereDate('expires_at', '>=', $today)
@@ -492,7 +492,7 @@ class RegisterController extends BaseController
             ->first();
 
 
-   
+
 
         $previousLicenceNo = '';
         $previousValidityFirstIssue = '';
@@ -500,7 +500,7 @@ class RegisterController extends BaseController
         $previousValidityTo = '';
 
 
-    
+
 
         if ($activeLicense) {
 

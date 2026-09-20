@@ -667,7 +667,7 @@ class ApplicationController extends Controller
         // Insert data into tnelb_workflow table
         $workflow = WorkflowA::create([ // Ensure this is the correct model
             'application_id' => $request->application_id,
-            'appl_status'    => 'RE', // Forwarded
+            'appl_status'    => 'PRE', // Forwarded
             'processed_by'   => $request->return_by,
             'forwarded_to'   => $forwarded_to,
             'role_id'        => $staffID,
@@ -712,7 +712,7 @@ class ApplicationController extends Controller
 
         EA_Application_model::where('application_id', $request->application_id)
             ->update([
-                'application_status' =>  'RE',
+                'application_status' =>  'PRE',
                 'processed_by'  => $processed_by,
                 'updated_at' => DB::raw('NOW()'),
             ]);

@@ -855,7 +855,7 @@ class SupervisorController extends Controller
         if (isset($contractorTablesByCode[$formCode]) && \Illuminate\Support\Facades\Schema::hasTable($contractorTablesByCode[$formCode])) {
             $tbl = $contractorTablesByCode[$formCode];
             $query = DB::table($tbl . ' as ta')
-                ->leftJoin('tnelb_license as tl', 'tl.application_id', '=', 'ta.application_id')
+                ->leftJoin('cl_forma_lic as tl', 'tl.application_id', '=', 'ta.application_id')
                 ->leftJoin('tnelb_renewal_license as tr', 'tr.application_id', '=', 'ta.application_id')
                 ->whereIn('ta.application_status', ['F', 'RF', 'A'])
                 ->select(
@@ -889,7 +889,7 @@ class SupervisorController extends Controller
         // Legacy competency / amendments still on tnelb_application_tbl
         $query = DB::table('tnelb_application_tbl as ta')
             ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
-            ->leftJoin('tnelb_license as tl', 'tl.application_id', '=', 'ta.application_id')
+            ->leftJoin('cl_forma_lic as tl', 'tl.application_id', '=', 'ta.application_id')
             ->leftJoin('tnelb_renewal_license as tr', 'tr.application_id', '=', 'ta.application_id')
             ->where('ta.form_id', $selectedFormId)
             ->where('ta.status', 'A')
@@ -1020,7 +1020,7 @@ class SupervisorController extends Controller
     |--------------------------------------------------------------------------
     */ elseif ($roleName === 'Secretary') {
 
-            $query->whereIn('ta.application_status', ['F', 'RF', 'RE'])
+            $query->whereIn('ta.application_status', ['F', 'RF', 'RE','PRE'])
                 ->whereIn('ta.processed_by', ['A', 'PR']);
         }
 
@@ -1067,7 +1067,7 @@ class SupervisorController extends Controller
         $applicationIds = $workflows->pluck('application_id');
 
 
-        $licenses = DB::table('tnelb_license')
+        $licenses = DB::table('cl_forma_lic')
             ->whereIn('application_id', $applicationIds)
             ->select('application_id', 'license_number')
             ->get()
@@ -1696,13 +1696,19 @@ class SupervisorController extends Controller
 
             $processed = Auth::user()->name === 'President' ? 'PR' : 'SE';
 
-            DB::table('ccl_forma_meta')
+
+
+           $dataupdate = DB::table('ccl_forma_meta')
                 ->where('application_id', $request->application_id)
                 ->update([
                     'application_status' => 'A',
                     'processed_by'       => $processed,
                     'updated_at'         => now(),
                 ]);
+
+
+
+                // dd($dataupdate); exit;
 
             $appl_type = trim($application->appl_type); // R or N
 
@@ -1768,6 +1774,8 @@ class SupervisorController extends Controller
                 $expiresAt = now()
                     ->addMonths($monthsToAdd)
                     ->toDateString();
+
+                    // dd($expiresAt); exit;
             }
 
 
@@ -1824,7 +1832,7 @@ class SupervisorController extends Controller
                 $yearMonth = now()->format('Ym');
 
 
-                $lastSerial = DB::table('tnelb_license')
+                $lastSerial = DB::table('cl_forma_lic')
                     ->where(
                         'license_number',
                         'LIKE',
@@ -1846,18 +1854,27 @@ class SupervisorController extends Controller
 
                 $newSerial = "L{$prefix}{$yearMonth}{$next}";
 
+                
 
-                DB::table('tnelb_license')->insert([
+
+                DB::table('cl_forma_lic')->insert([
 
                     'application_id' => $request->application_id,
 
                     'license_number' => $newSerial,
 
-                    'issued_by'      => $request->processed_by,
+                    'issued_by'      => $request->roleid,
 
-                    'issued_at'      => $issuedAt,
+                    'dateof_issue'      => $issuedAt,
+                    
+                    'valid_from'      => $issuedAt,
 
-                    'expires_at'     => $expiresAt,
+                    'valid_to'     => $expiresAt,
+                    'cert_status' => 'A',
+                    'cert_pdf' => '',
+                    'created_at' => now(),
+                    'updated_at' => now()
+
 
                 ]);
             }
@@ -1961,7 +1978,11 @@ class SupervisorController extends Controller
 
             DB::commit();
 
+//   $datacheck = DB::table('ccl_forma_meta')
+//                 ->where('application_id', $request->application_id)
+//                 ->first();
 
+//                 dd($datacheck); exit;
             /* -------------------- SUCCESS RESPONSE -------------------- */
 
             return response()->json([

@@ -78,13 +78,13 @@ class SecretaryController extends Controller
             ->get();
 
         return view('admin.auditor.view', compact('new_applications','renewal_applications'));
-        
+
     }
     public function completed_secratary(Request $request)
     {
 
         $formId = $request->query('form_id');
-        
+
         $workflows = DB::table('tnelb_application_tbl as ta')
         ->whereIn('ta.status', ['F','A'])
             ->where('ta.form_id', $formId)
@@ -95,11 +95,11 @@ class SecretaryController extends Controller
     }
     public function completed_pres(Request $request)
     {
-        
+
         $formId = $request->query('form_id');
 
         $workflows = DB::table('tnelb_application_tbl as ta')
-            ->leftJoin('tnelb_license as l', 'l.application_id', '=', 'ta.application_id')
+            ->leftJoin('cl_forma_lic as l', 'l.application_id', '=', 'ta.application_id')
             ->leftJoin('tnelb_renewal_license as rl', 'rl.application_id', '=', 'ta.application_id')
             ->where('ta.status', 'A')
             ->where('ta.processed_by','PR')
@@ -107,10 +107,10 @@ class SecretaryController extends Controller
             ->select(
                 'ta.*',
                 DB::raw("
-                    CASE 
-                        WHEN l.application_id IS NOT NULL 
-                          OR rl.application_id IS NOT NULL 
-                        THEN 1 ELSE 0 
+                    CASE
+                        WHEN l.application_id IS NOT NULL
+                          OR rl.application_id IS NOT NULL
+                        THEN 1 ELSE 0
                     END AS has_licence
                 "),
 
@@ -120,7 +120,7 @@ class SecretaryController extends Controller
                 DB::raw("COALESCE(l.expires_at, rl.expires_at) AS licence_expires_at"),
                 DB::raw("COALESCE(l.issued_by, rl.issued_by) AS licence_issued_by"),
                 DB::raw("
-                    CASE 
+                    CASE
                         WHEN l.application_id IS NOT NULL THEN 'NEW'
                         WHEN rl.application_id IS NOT NULL THEN 'RENEWAL'
                         ELSE NULL
@@ -136,22 +136,22 @@ class SecretaryController extends Controller
 
             return view('admin.secretary.completed', compact('workflows'));
     }
-    
+
     public function view_sec_forma_pending(Request $request, $type)
     {
 
         // return $type;
- 
+
         // $formId = $request->query('form_id');
      $workflows = DB::table('ccl_forma_meta as ta')
           ->whereIn('ta.application_status', ['F', 'RF','RE'])
-        ->whereIn('ta.processed_by', ['A', 'SPRE', 'RSA', 'PR']) 
+        ->whereIn('ta.processed_by', ['A', 'SPRE', 'RSA', 'PR'])
 
-           
+
             ->orderByDesc('updated_at')
             // ->where('ta.form_id', $formId)
             ->select('ta.*')
-           
+
             ->get();
 
 
@@ -177,12 +177,12 @@ class SecretaryController extends Controller
         // dd($workflows->first()->form_name);
         // exit;
 
-        
+
     return view('admin.secretary.view_pending_forma', compact('workflows'));
-        
-    
-       
-    
+
+
+
+
     }
 
     public function view_sec_forma_completed(Request $request)
@@ -195,9 +195,9 @@ class SecretaryController extends Controller
             ->select('ta.*')
             ->get();
         // $formId = $request->query('form_id');
-    
+
        // $workflows = DB::table('ccl_forma_meta as ta')
-       //      ->whereIn('ta.processed_by', ['A', 'SPRE']) 
+       //      ->whereIn('ta.processed_by', ['A', 'SPRE'])
        //      ->orWhere('ta.application_status', 'RF')
        //      // ->where('ta.form_id', $formId)
        //      ->select('ta.*')
@@ -206,7 +206,7 @@ class SecretaryController extends Controller
     $applicationIds = $workflows->pluck('application_id');
 
     // Fetch from both tables
-    $licenses = DB::table('tnelb_license')
+    $licenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()
@@ -217,13 +217,13 @@ class SecretaryController extends Controller
         ->select('application_id', 'license_number')
         ->get()
         ->keyBy('application_id');
-    
+
         return view('admin.secretary.view_completed_forma', compact(
         'workflows',
         'licenses',
         'renewalLicenses'
     ));
-    
+
     }
 
     public function secratary_completed(Request $request)
@@ -243,7 +243,7 @@ class SecretaryController extends Controller
             ->select('ta.*')
             ->orderByDesc('ta.updated_at')
             ->get();
-            
+
         } else {
             $workflows = DB::table('tnelb_application_tbl as ta')
             ->whereIn('ta.processed_by', ['SE','PR'])
@@ -255,7 +255,7 @@ class SecretaryController extends Controller
             ->select('ta.*')
             ->orderByDesc('ta.updated_at')
             ->get();
-            
+
         }
 
 

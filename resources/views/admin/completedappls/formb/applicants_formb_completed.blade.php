@@ -243,9 +243,9 @@
                                                             <td>
                                                                 {{ $proprietor->competency_certificate_number }}
 
-                                                                {{ $proprietor->competency_certificate_validity 
-                                                                ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y') 
-                                                                : ''  
+                                                                {{ $proprietor->competency_certificate_validity
+                                                                ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y')
+                                                                : ''
                                                             }}
 
                                                                 @if(!empty($proprietor->competency_certificate_number))
@@ -277,9 +277,9 @@
 
                                                             <td>
                                                                 {{ $proprietor->previous_experience_lnumber }}
-                                                                {{ $proprietor->previous_experience_lnumber_validity 
-                                                                ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                                : '' 
+                                                                {{ $proprietor->previous_experience_lnumber_validity
+                                                                ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
+                                                                : ''
                                                             }}
 
 
@@ -295,9 +295,9 @@
                                                             @endswitch -->
                                                                 <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                     data-license="{{ $proprietor->previous_experience_lnumber }}"
-                                                                    data-date="{{ $proprietor->previous_experience_lnumber_validity 
-                                                                        ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                                        : '' 
+                                                                    data-date="{{ $proprietor->previous_experience_lnumber_validity
+                                                                        ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
+                                                                        : ''
                                                                     }}">
                                                                     Verify
                                                                 </button>
@@ -467,7 +467,7 @@
                                     </div>
 
                                     <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
-                                        <?php //var_dump($workflows->first()->is_verified);die; 
+                                        <?php //var_dump($workflows->first()->is_verified);die;
                                         ?>
                                         @php
                                         $workflow = $workflows?->first();
@@ -585,10 +585,10 @@
 
 
 
-                                                        <!-- 
+                                                        <!--
 <button class="btn btn-info history-btn_staff" data-license="{{ $staff->cc_number }}"
                                                             data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}" data-application_id="{{ $staff->application_id }}">Check History</button>
-                                                                <span class="history-result_staff"></span>       
+                                                                <span class="history-result_staff"></span>
                                                     @php
                                                         $history = DB::table('tnelb_applicant_cl_staffdetails as s')
                                                             ->leftJoin('ccl_forma_meta as a', 's.application_id', '=', 'a.application_id')
@@ -602,14 +602,14 @@
 
                                                     @if($history->count() > 0)
                                                         <div class="staff-history mt-2">
-                                                            
+
                                                            <ul>
                                                                 @foreach($history as $h)
                                                                     @php
                                                                         $today = \Carbon\Carbon::today();
 
                                                                         // Get original license
-                                                                        $license = DB::table('tnelb_license')
+                                                                        $license = DB::table('cl_forma_lic')
                                                                             ->where('application_id', $h->application_id)
                                                                             ->first();
 
@@ -655,7 +655,7 @@
                                                                         </li>
                                                                     @endif
                                                                 @endforeach
-                                                            </ul>                   
+                                                            </ul>
                                                         </div>
                                                     @else
                                                         <span class="text-muted">No history found</span>
@@ -1098,9 +1098,9 @@
         </div>
 
         <!-- -------------------------------------------- -->
-     
+
         <div class="row">
-           
+
             <!-- ------------------------------------ -->
             <div id="timelineMinimal" class="col-lg-12 layout-spacing">
                 <div class="statbox widget box box-shadow">
@@ -1119,7 +1119,7 @@
                                 <div class="item-timeline">
                                     <p class="t-time">{{ format_date_other($row->created_at) }}</p>
 
-                                    <div class="t-dot 
+                                    <div class="t-dot
                                                     {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
                                     </div>
                                     <div class="t-text">

@@ -5017,7 +5017,45 @@ let proprietorCount = initialDraftCount || 0;
 
 
 
+ $(document).on('change', '.staff_category', function() {
 
+            let row = $(this).closest('tr');
+            let category = $(this).val();
+
+            if (category === 'OTHERS') {
+
+                // Hide certificate fields
+                row.find('.cc-column').hide();
+                row.find('.validity-column').hide();
+
+                // Hide verify
+                row.find('.verifyBtn').hide();
+
+                // Show designation
+                row.find('.designation-column').show();
+
+                // Clear certificate values
+                row.find('.cc_number').val('');
+                row.find('.cc_firstissue').val('');
+                row.find('.cc_validity_from').val('');
+                row.find('.cc_validity_to').val('');
+
+            } else {
+
+                // Show certificate fields
+                row.find('.cc-column').show();
+                row.find('.validity-column').show();
+
+                // Show verify
+                row.find('.verifyBtn').show();
+
+                // Hide designation
+                row.find('.designation-column').hide();
+
+                // Clear designation
+                row.find('.designation').val('');
+            }
+        });
 
 
         // -----------------add staff row---------------------

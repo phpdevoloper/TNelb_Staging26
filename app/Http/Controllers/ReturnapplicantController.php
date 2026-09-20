@@ -939,196 +939,205 @@ class ReturnapplicantController extends BaseController
             // LOOP CURRENT B / C / OTHERS STAFF
             // ==========================================================
 
-            foreach ($request->input('cc_number', []) as $index => $ccNumber) {
+            foreach ($request->input('staff_category', []) as $index => $category) {
 
-                $category = $request->input("staff_category.$index");
+    // ----------------------------------------------------------
+    // CATEGORY
+    // ----------------------------------------------------------
 
-                $category = is_array($category)
-                    ? ($category[0] ?? null)
-                    : $category;
+    $category = is_array($category)
+        ? ($category[0] ?? null)
+        : $category;
 
-                $category = strtoupper(
-                    trim((string) $category)
-                );
-
-
-                // ======================================================
-                // ONLY B / C / OTHERS
-                // NEVER PROCESS QC / QSC
-                // ======================================================
-
-                if (!in_array($category, ['B', 'C', 'OTHERS'], true)) {
-                    continue;
-                }
+    $category = strtoupper(trim((string) $category));
 
 
-                $ccNumber =
-                    $request->input("cc_number.$index");
+    // ----------------------------------------------------------
+    // ONLY B / C / OTHERS
+    // QC / QSC WILL NOT BE PROCESSED HERE
+    // ----------------------------------------------------------
 
-                $firstIssue =
-                    $request->input("cc_firstissue.$index");
-
-                $validityFrom =
-                    $request->input("cc_validity_from.$index");
-
-                $validityTo =
-                    $request->input("cc_validity_to.$index");
-
-                $designation =
-                    $request->input("designation.$index");
-
-                $staffId =
-                    $staffIdsFromForm[$index] ?? null;
-
-                $rowIndex =
-                    $rowIndexesFromForm[$index] ?? null;
+    if (!in_array($category, ['B', 'C', 'OTHERS'], true)) {
+        continue;
+    }
 
 
-                // ======================================================
-                // SKIP EMPTY ROW
-                // ======================================================
+    // ----------------------------------------------------------
+    // GET VALUES USING SAME INDEX
+    // ----------------------------------------------------------
 
-                if (
-                    empty($category) &&
-                    empty($ccNumber) &&
-                    empty($firstIssue) &&
-                    empty($validityFrom) &&
-                    empty($validityTo) &&
-                    empty($designation)
-                ) {
-                    continue;
-                }
+    $ccNumber = $request->input("cc_number.$index");
 
+    $firstIssue = $request->input("cc_firstissue.$index");
 
-                // ======================================================
-                // EXISTING ROW INDEX
-                // ======================================================
+    $validityFrom = $request->input("cc_validity_from.$index");
 
-                if (
-                    $rowIndex !== null &&
-                    $rowIndex !== '' &&
-                    strtolower(trim((string) $rowIndex)) !== 'undefined' &&
-                    strtolower(trim((string) $rowIndex)) !== 'null'
-                ) {
-                    $rowIndex = (int) $rowIndex;
-                }
+    $validityTo = $request->input("cc_validity_to.$index");
+
+    $designation = $request->input("designation.$index");
+
+    $staffId = $staffIdsFromForm[$index] ?? null;
+
+    $rowIndex = $rowIndexesFromForm[$index] ?? null;
 
 
-                // ======================================================
-                // STAFF DATA
-                // ======================================================
+    // ----------------------------------------------------------
+    // NORMALIZE STAFF ID
+    // ----------------------------------------------------------
 
-                $staffData = [
-
-                    'application_id' =>
-                    $applicationId,
-
-                    'login_id' =>
-                    $request->input('login_id_store'),
-
-                    'staff_category' =>
-                    $category,
-
-                    'staff_cc_no' =>
-                    strtoupper(
-                        trim((string) ($ccNumber ?? ''))
-                    ),
-
-                    'staff_cc_first_issue' =>
-                    $firstIssue,
-
-                    'staff_cc_validity_from' =>
-                    $validityFrom,
-
-                    'staff_cc_validity_to' =>
-                    $validityTo,
-
-                    'staff_status' =>
-                    'N',
-
-                    'staff_flag' =>
-                    '1',
-
-                    'staff_designation' =>
-                    !empty($designation)
-                        ? trim((string) $designation)
-                        : null,
-
-                    'updated_at' =>
-                    now(),
-                ];
+    if (
+        $staffId !== null &&
+        $staffId !== '' &&
+        strtolower(trim((string) $staffId)) !== 'undefined' &&
+        strtolower(trim((string) $staffId)) !== 'null'
+    ) {
+        $staffId = (int) $staffId;
+    } else {
+        $staffId = null;
+    }
 
 
-                // ======================================================
-                // OTHERS
-                // ======================================================
+    // ----------------------------------------------------------
+    // NORMALIZE ROW INDEX
+    // ----------------------------------------------------------
 
-                if ($category === 'OTHERS') {
-
-                    $staffData['staff_designation'] =
-                        trim((string) ($designation ?? ''));
-
-                    $staffData['staff_cc_no'] = null;
-                    $staffData['staff_cc_first_issue'] = null;
-                    $staffData['staff_cc_validity_from'] = null;
-                    $staffData['staff_cc_validity_to'] = null;
-                }
-
-
-                // ======================================================
-                // EXISTING B / C / OTHERS -> UPDATE
-                // ======================================================
-
-                if (
-                    !empty($staffId) &&
-                    in_array($staffId, $existingStaffIds)
-                ) {
-
-                    $staffData['row_index'] =
-                        $rowIndex;
-
-                    DB::table('cl_staff_tbl')
-                        ->where('id', $staffId)
-                        ->where('application_id', $applicationId)
-                        ->whereIn(
-                            'staff_category',
-                            ['B', 'C', 'OTHERS']
-                        )
-                        ->update($staffData);
-
-                    $processedStaffIds[] =
-                        $staffId;
-                }
+    if (
+        $rowIndex !== null &&
+        $rowIndex !== '' &&
+        strtolower(trim((string) $rowIndex)) !== 'undefined' &&
+        strtolower(trim((string) $rowIndex)) !== 'null'
+    ) {
+        $rowIndex = (int) $rowIndex;
+    } else {
+        $rowIndex = null;
+    }
 
 
-                // ======================================================
-                // NEW B / C / OTHERS -> INSERT
-                // ======================================================
+    // ----------------------------------------------------------
+    // SKIP COMPLETELY EMPTY ROW
+    // ----------------------------------------------------------
 
-                else {
+    if (
+        empty($category) &&
+        empty($ccNumber) &&
+        empty($firstIssue) &&
+        empty($validityFrom) &&
+        empty($validityTo) &&
+        empty($designation)
+    ) {
+        continue;
+    }
 
-                    $staffData['row_index'] =
-                        $nextRowIndex;
 
-                    $staffData['staff_flag'] =
-                        '1';
+    // ----------------------------------------------------------
+    // STAFF DATA
+    // ----------------------------------------------------------
 
-                    $staffData['staff_status'] =
-                        'NA';
+    $staffData = [
 
-                    $staffData['created_at'] =
-                        now();
+        'application_id' =>
+            $applicationId,
 
-                    $newStaffId =
-                        DB::table('cl_staff_tbl')
-                        ->insertGetId($staffData);
+        'login_id' =>
+            $request->input('login_id_store'),
 
-                    $processedStaffIds[] =
-                        $newStaffId;
+        'staff_category' =>
+            $category,
 
-                    $nextRowIndex++;
-                }
-            }
+        'staff_cc_no' =>
+            strtoupper(trim((string) ($ccNumber ?? ''))),
+
+        'staff_cc_first_issue' =>
+            $firstIssue,
+
+        'staff_cc_validity_from' =>
+            $validityFrom,
+
+        'staff_cc_validity_to' =>
+            $validityTo,
+
+        'staff_status' =>
+            'N',
+
+        'staff_flag' =>
+            '1',
+
+        'staff_designation' =>
+            !empty($designation)
+                ? trim((string) $designation)
+                : null,
+
+        'updated_at' =>
+            now(),
+    ];
+
+
+    // ----------------------------------------------------------
+    // OTHERS
+    // ----------------------------------------------------------
+
+    if ($category === 'OTHERS') {
+
+        $staffData['staff_designation'] =
+            trim((string) ($designation ?? ''));
+
+        $staffData['staff_cc_no'] = null;
+
+        $staffData['staff_cc_first_issue'] = null;
+
+        $staffData['staff_cc_validity_from'] = null;
+
+        $staffData['staff_cc_validity_to'] = null;
+    }
+
+
+    // ----------------------------------------------------------
+    // EXISTING STAFF -> UPDATE
+    // ----------------------------------------------------------
+
+    if (
+        !empty($staffId) &&
+        in_array($staffId, $existingStaffIds, true)
+    ) {
+
+        // Existing row MUST retain its own row_index
+        $staffData['row_index'] = $rowIndex;
+
+        DB::table('cl_staff_tbl')
+            ->where('id', $staffId)
+            ->where('application_id', $applicationId)
+            ->whereIn(
+                'staff_category',
+                ['B', 'C', 'OTHERS']
+            )
+            ->update($staffData);
+
+        $processedStaffIds[] = $staffId;
+    }
+
+
+    // ----------------------------------------------------------
+    // NEW STAFF -> INSERT
+    // ----------------------------------------------------------
+
+    else {
+
+        $staffData['row_index'] = $nextRowIndex;
+
+        $staffData['staff_flag'] = '1';
+
+        $staffData['staff_status'] = 'NA';
+
+        $staffData['created_at'] = now();
+
+        $newStaffId = DB::table('cl_staff_tbl')
+            ->insertGetId($staffData);
+
+        $processedStaffIds[] = $newStaffId;
+
+        $nextRowIndex++;
+    }
+}
         }
 
 

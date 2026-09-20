@@ -764,7 +764,7 @@ $(document).ready(function () {
 
 });
 
-$("#competency_form_a").on("submit", function (e) {
+$("#competency_form_a").on("submit",async function (e) {
 
     e.preventDefault();
 
@@ -2290,80 +2290,70 @@ directors.forEach((p, index) => {
     // WAIT FOR ALL B + C CERTIFICATE CHECKS
     // ======================================================
 
-    Promise.all(staffValidationRequests)
-        .then(function (results) {
 
-            console.log(
-                "ALL STAFF CERTIFICATE RESULTS:",
-                results
-            );
+let results = await Promise.all(staffValidationRequests);
+
+console.log(
+    "ALL STAFF CERTIFICATE RESULTS:",
+    results
+);
 
 
-            // ==================================================
-            // CHECK ALL CERTIFICATES
-            // ==================================================
+// ======================================================
+// CHECK ALL CERTIFICATES
+// ======================================================
 
-            let allCertificatesValid = results.every(function (result) {
-                return result === true;
+let allCertificatesValid = results.every(function (result) {
+    return result === true;
+});
+
+
+// ======================================================
+// CERTIFICATE VALIDATION FAILED
+// ======================================================
+
+if (!allCertificatesValid) {
+
+    isValid = false;
+
+    console.log("Certificate validation failed");
+    console.log("isValid:", isValid);
+
+    Swal.fire({
+        icon: "warning",
+        title: "Invalid Staff Certificate",
+        text: "Please correct the invalid B/C staff certificate details.",
+        confirmButtonText: "OK",
+        width: 500
+    });
+
+    $(".nav-item").each(function () {
+
+        if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+            $(this).addClass("tab-error-bg");
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+                behavior: "smooth",
+                block: "center"
             });
+        }
 
+    }, 300);
 
-            if (!allCertificatesValid) {
-
-                isValid = false;
-
-                Swal.fire({
-                    icon: "warning",
-                    title: "Invalid Staff Certificate",
-                    text: "Please correct the invalid B/C staff certificate details.",
-                    confirmButtonText: "OK",
-                    width: 500
-                });
-
-                $(".nav-item").each(function () {
-
-                    if ($(this).text().trim().includes("Staff & Bank Details")) {
-
-                        $(this).addClass("tab-error-bg");
-                        $(this).trigger("click");
-
-                        return false;
-                    }
-
-                });
-
-                setTimeout(function () {
-
-                    if ($("#staff-table").length) {
-
-                        $("#staff-table")[0].scrollIntoView({
-                            behavior: "smooth",
-                            block: "center"
-                        });
-
-                    }
-
-                }, 300);
-
-                return;
-            }
-
-
-            // ==================================================
-            // ALL B/C CERTIFICATES VALID
-            // ==================================================
-
-            console.log(
-                "All B/C staff certificates verified successfully."
-            );
-
-            // Continue remaining form validation here
-
-        });
-
-    console.log(
-        "next function check:",
-    );
+    // VERY IMPORTANT
+    return false;
+}
 
     // ======================================================
     // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
@@ -4281,7 +4271,7 @@ function fillProprietorForm(data) {
 
 // -------------------------form a Return---------------------------------------------------
 
-$("#competency_form_a_return").on("submit", function (e) {
+$("#competency_form_a_return").on("submit",async function (e) {
     e.preventDefault();
 
 
@@ -5792,7 +5782,7 @@ directors.forEach((p, index) => {
 
         }, 300);
 
-        return;
+            return false;
     }
 
 
@@ -5800,80 +5790,69 @@ directors.forEach((p, index) => {
     // WAIT FOR ALL B + C CERTIFICATE CHECKS
     // ======================================================
 
-    Promise.all(staffValidationRequests)
-        .then(function (results) {
+let results = await Promise.all(staffValidationRequests);
 
-            console.log(
-                "ALL STAFF CERTIFICATE RESULTS:",
-                results
-            );
+console.log(
+    "ALL STAFF CERTIFICATE RESULTS:",
+    results
+);
 
 
-            // ==================================================
-            // CHECK ALL CERTIFICATES
-            // ==================================================
+// ======================================================
+// CHECK ALL CERTIFICATES
+// ======================================================
 
-            let allCertificatesValid = results.every(function (result) {
-                return result === true;
+let allCertificatesValid = results.every(function (result) {
+    return result === true;
+});
+
+
+// ======================================================
+// CERTIFICATE VALIDATION FAILED
+// ======================================================
+
+if (!allCertificatesValid) {
+
+    isValid = false;
+
+    console.log("Certificate validation failed");
+    console.log("isValid:", isValid);
+
+    Swal.fire({
+        icon: "warning",
+        title: "Invalid Staff Certificate",
+        text: "Please correct the invalid B/C staff certificate details.",
+        confirmButtonText: "OK",
+        width: 500
+    });
+
+    $(".nav-item").each(function () {
+
+        if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+            $(this).addClass("tab-error-bg");
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+                behavior: "smooth",
+                block: "center"
             });
+        }
 
+    }, 300);
 
-            if (!allCertificatesValid) {
-
-                isValid = false;
-
-                Swal.fire({
-                    icon: "warning",
-                    title: "Invalid Staff Certificate",
-                    text: "Please correct the invalid B/C staff certificate details.",
-                    confirmButtonText: "OK",
-                    width: 500
-                });
-
-                $(".nav-item").each(function () {
-
-                    if ($(this).text().trim().includes("Staff & Bank Details")) {
-
-                        $(this).addClass("tab-error-bg");
-                        $(this).trigger("click");
-
-                        return false;
-                    }
-
-                });
-
-                setTimeout(function () {
-
-                    if ($("#staff-table").length) {
-
-                        $("#staff-table")[0].scrollIntoView({
-                            behavior: "smooth",
-                            block: "center"
-                        });
-
-                    }
-
-                }, 300);
-
-                return;
-            }
-
-
-            // ==================================================
-            // ALL B/C CERTIFICATES VALID
-            // ==================================================
-
-            console.log(
-                "All B/C staff certificates verified successfully."
-            );
-
-            // Continue remaining form validation here
-
-        });
-
-    console.log(
-        "next function check:",
-    );
+    // VERY IMPORTANT
+    return false;
+}
 
     // ======================================================
     // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
@@ -6316,6 +6295,7 @@ directors.forEach((p, index) => {
 
         return false;
     }
+
 
     // -------------------------------------
 

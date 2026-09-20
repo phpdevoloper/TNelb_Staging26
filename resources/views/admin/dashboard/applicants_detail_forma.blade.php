@@ -2183,9 +2183,9 @@
                                         @if(trim($applicant->appl_type) !='D')
 
 
-                                    <button id="confirmReturnBtn" class="btn btn-warning">
+                                    {{-- <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Supervisor
-                                    </button>
+                                    </button> --}}
 
                                      <button class="btn btn-info" id="returntoapplicant">
                                             Return to Applicant
@@ -2630,6 +2630,10 @@
             // alert(qc_validity_date);
             var bank_validity = @json($banksolvency->bank_validity);
 
+             var role_id         = @json(Auth::user()->roles_id);
+
+             
+
              var checklistStatus = [];
 
             var maxQcCertNo = @json($maxQcCertNo);
@@ -2676,7 +2680,8 @@
                     returnapp : returnapp,
                     checklists: checklists,
                     status: status,
-                    check_id: check_id
+                    check_id: check_id,
+                  
 
                 },
                 success: function (res) {
@@ -2961,7 +2966,8 @@
                                     qc_validity_date: qc_validity_date,
                                     bank_validity: bank_validity,
                                     appl_type: appl_type,
-                                    old_issuedat : old_issuedat
+                                    old_issuedat : old_issuedat,
+                                      role_id : role_id
                             },
                           success: function (response) {
 

@@ -9,7 +9,7 @@
         text-align:left;
     }
     table th{
-        font-weight:800!important;    
+        font-weight:800!important;
     }
     .officers_section{
         background: #4361ee;
@@ -160,13 +160,13 @@
 
                                                             <p class="text-info"><strong>Type of Ownership:</strong></p>
 
-                                                            
+
 
                                                         </div>
                                                         <div class="col-lg-3">
 
-                                                           <p> 
-                                                                @if($applicant->application_ownershiptype == 'pr') 
+                                                           <p>
+                                                                @if($applicant->application_ownershiptype == 'pr')
                                                                 Proprietor
                                                                 @elseif($applicant->application_ownershiptype == 'pt')
                                                                 Partnership
@@ -183,8 +183,8 @@
                                                         </div>
 
                                                         <!-- ------------------------ownership doc--------- -->
-                                                         @if($applicant->application_ownershiptype == 'pt' || $applicant->application_ownershiptype == 'pvt' || $applicant->application_ownershiptype == 'ltd') 
-                                                       
+                                                         @if($applicant->application_ownershiptype == 'pt' || $applicant->application_ownershiptype == 'pvt' || $applicant->application_ownershiptype == 'ltd')
+
                                                         <div class="col-lg-3">
 
                                                           <a href="{{asset($applicant->ownership_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View Ownership Document</a>
@@ -205,7 +205,7 @@
                                                             <th>D.O.B, Age</th>
                                                             <th>Address </th>
                                                             <th>Qualifications and Proof</th>
-                                                             
+
 
                                                             <th>Present business of
                                                                 the applicant</th>
@@ -225,13 +225,13 @@
                                                     </thead>
                                                     <tbody>
                                                         @php
-                                                
+
                                                             $sortedProprietors = collect($proprietordetailsform_A)
                                                                 ->sortBy(function($item) {
                                                                     return match($item->ownership_type) {
-                                                                        'pr' => 1, 
-                                                                        'pt' => 2, 
-                                                                        'dr' => 3, 
+                                                                        'pr' => 1,
+                                                                        'pt' => 2,
+                                                                        'dr' => 3,
                                                                         default => 4,
                                                                     };
                                                                 });
@@ -241,7 +241,7 @@
                                                             <td>
                                                                 <!-- {{$proprietor->id}} -->
                                                                 @if($proprietor->ownership_type == 'pr' )
-                                                              Proprietor  
+                                                              Proprietor
                                                                 @elseif($proprietor->ownership_type == 'pt')
                                                                 Partner
                                                                 @else
@@ -251,19 +251,19 @@
                                                             </td>
                                                             <td>{{ $proprietor->proprietor_name }} </td>
                                                             <td> {{ $proprietor->fathers_name }}</td>
-                                                            <td>{{ \Carbon\Carbon::parse($proprietor->dob)->format('d-m-Y') 
+                                                            <td>{{ \Carbon\Carbon::parse($proprietor->dob)->format('d-m-Y')
                                                                  }}, {{ $proprietor->age }} </td>
                                                             <td>{{ $proprietor->proprietor_address }} </td>
                                                              <td> {{ $proprietor->qualification }}, {{ $proprietor->qualification_text }} <a href="{{asset($proprietor->educational_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
-                                                           
+
                                                             <td> {{ $proprietor->present_business }}</td>
 
                                                            <td>
                                                             {{ $proprietor->competency_certificate_number }}
 
-                                                            {{ $proprietor->competency_certificate_validity 
-                                                                ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y') 
-                                                                : ''  
+                                                            {{ $proprietor->competency_certificate_validity
+                                                                ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y')
+                                                                : ''
                                                             }}
 
                                                             @if(!empty($proprietor->competency_certificate_number))
@@ -273,14 +273,14 @@
                                                                     <p class="text-danger">Invalid License</p>
                                                                 @endif -->
 
-                                                                <button type="button" 
-                                                                    class="btn btn-primary verify-license" 
+                                                                <button type="button"
+                                                                    class="btn btn-primary verify-license"
                                                                     data-id="{{ $proprietor->id }}"
                                                                     data-license="{{ $proprietor->competency_certificate_number }}"
                                                                     data-date="{{ $proprietor->competency_certificate_validity ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y') : '' }}">
                                                                     Verify
                                                                 </button>
-                                                            @endif 
+                                                            @endif
 
                                                             <div id="verify-result-{{ $proprietor->id }}"></div>
                                                         </td>
@@ -292,15 +292,15 @@
 
                                                             </td>
 
-                                                            
+
                                                           <td>
                                                             {{ $proprietor->previous_experience_lnumber }}
-                                                            {{ $proprietor->previous_experience_lnumber_validity 
-                                                                ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                                : '' 
+                                                            {{ $proprietor->previous_experience_lnumber_validity
+                                                                ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
+                                                                : ''
                                                             }}
 
-                                                          
+
 
                                                             @if(!empty($proprietor->previous_experience_lnumber))
                                                           <!--     @switch($proprietor->proprietor_contractor_verify ?? null)
@@ -313,9 +313,9 @@
                                                             @endswitch -->
                                                                 <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                     data-license="{{ $proprietor->previous_experience_lnumber }}"
-                                                                    data-date="{{ $proprietor->previous_experience_lnumber_validity 
-                                                                        ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                                        : '' 
+                                                                    data-date="{{ $proprietor->previous_experience_lnumber_validity
+                                                                        ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
+                                                                        : ''
                                                                     }}">
                                                                     Verify
                                                                 </button>
@@ -359,7 +359,7 @@
 
 
                                                     </div>
-                                            
+
                                                 </div>
                                             </div>
                                             <div class="row">
@@ -371,11 +371,11 @@
                                                         <div class="col-lg-4">
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
-                                                                 - {{$applicant->previous_application_number}}, 
+                                                                 - {{$applicant->previous_application_number}},
                                                                     {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }}
 
                                                                                      <div class="row">
-                                                               
+
 
 
                                                            <div class="col-lg-12 col-12 d-flex align-items-center">
@@ -392,19 +392,19 @@
                                                              </div>
                                                                 @endif
                                                                 </p>
-                                                            
-                                            
-                                                             
-                                                              
-                                                                
+
+
+
+
+
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
                                     </div>
-<!-- ALTER TABLE tnelb_ea_applications 
+<!-- ALTER TABLE tnelb_ea_applications
 ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                     <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
                                         <?php //var_dump($workflows->first()->is_verified);die; ?>
@@ -412,7 +412,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                             $workflow = $workflows?->first();
                                             $isVerified = trim($workflow?->is_verified, '"') === 'Yes';
 
-                                            
+
                                         @endphp
 
 
@@ -456,9 +456,9 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
                                                 @foreach($checkboxes as $id => $label)
                                                     <div class="form-check">
-                                                        <input type="checkbox" 
-                                                            id="{{ $id }}" 
-                                                            name="{{ $id }}" 
+                                                        <input type="checkbox"
+                                                            id="{{ $id }}"
+                                                            name="{{ $id }}"
                                                             class="form-check-input"
                                                             @if($isVerified) checked disabled @endif>
                                                         <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
@@ -476,8 +476,8 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                 <thead>
                                                     <tr>
                                                         <th>Staff Name</th>
-                                                        
-                                                        
+
+
                                                          <th>Staff Category</th>
                                                         <th>Competency Certificate Number <br>
                                                             Competency Certificate Validity
@@ -485,24 +485,24 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
                                                         <th>History of Staff
                                                         </th>
-                                                                                                                
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     @forelse ($staffdetails as $index => $staff)
                                                     <tr>
                                                          <td>{{ $staff->staff_name }}</td>
-                                                        
+
                                                         <td>{{ $staff->staff_category }}</td>
-                                                        <td>{{ $staff->cc_number }},{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }} 
-                                                            
+                                                        <td>{{ $staff->cc_number }},{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}
+
                                                             <button class="btn btn-primary verify-btn_staff"
                                                                 data-license="{{ $staff->cc_number }}"
                                                                 data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}">
-                                                                Verify 
+                                                                Verify
                                                             </button>
                                                               <span class="verify-result_staff"></span>
-                                                              
+
                                                                <!-- Warning only for FIRST QC ------------ -->
                                                                @if($index === 0 && $showQcWarning)
                                                                     <p class="text-danger fw-bold mt-1">
@@ -510,8 +510,8 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                                     </p>
                                                                 @endif
                                                         </td>
-                                                     
-                                                    
+
+
                                                     <td>
                                                         <button class="btn btn-info history-btn_staff"
                                                             data-license="{{ $staff->cc_number }}"
@@ -519,18 +519,18 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                             data-application_id="{{ $staff->application_id }}"
                                                             data-bs-toggle="modal" data-bs-target="#showlicense"
                                                             >
-                                                            
+
                                                             View History
                                                         </button>
                                                         <div class="history-result_staff mt-2"></div>
                                                     </td>
 
-                   
-                                                
-<!-- 
+
+
+<!--
 <button class="btn btn-info history-btn_staff" data-license="{{ $staff->cc_number }}"
                                                             data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}" data-application_id="{{ $staff->application_id }}">Check History</button>
-                                                                <span class="history-result_staff"></span>       
+                                                                <span class="history-result_staff"></span>
                                                     @php
                                                         $history = DB::table('tnelb_applicant_cl_staffdetails as s')
                                                             ->leftJoin('tnelb_ea_applications as a', 's.application_id', '=', 'a.application_id')
@@ -544,14 +544,14 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
                                                     @if($history->count() > 0)
                                                         <div class="staff-history mt-2">
-                                                            
+
                                                            <ul>
                                                                 @foreach($history as $h)
                                                                     @php
                                                                         $today = \Carbon\Carbon::today();
 
                                                                         // Get original license
-                                                                        $license = DB::table('tnelb_license')
+                                                                        $license = DB::table('cl_forma_lic')
                                                                             ->where('application_id', $h->application_id)
                                                                             ->first();
 
@@ -597,13 +597,13 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                                         </li>
                                                                     @endif
                                                                 @endforeach
-                                                            </ul>                   
+                                                            </ul>
                                                         </div>
                                                     @else
                                                         <span class="text-muted">No history found</span>
                                                     @endif -->
-                                                    
-                                                        
+
+
 
 
                                                     </tr>
@@ -655,13 +655,13 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                          <!-- ---------------------------License End--------------- -->
 
                                         <div class="row mt-3">
-                                           
+
                                             <div class="row ">
                                                 <div class="col-lg-12">
                                                     <p class="text-info"><strong>7. Bank Solvency Certificate Details</strong></p>
                                                 </div>
                                             </div>
-                                        
+
                                             <div class="row">
                                                 <div class="col-lg-2">
                                                     <p><strong>Bank Name</strong></p>
@@ -681,7 +681,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                             @if($showbankWarning)
                                                                      <p class="text-left fw-bold text-danger">Bank validity period is less than EA licence period</p>
                                                                 @endif
-                                                  
+
                                                 </div>
                                             </div>
                                             <div class="row">
@@ -701,7 +701,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                     <a href="{{asset($banksolvency->bank_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View </a>
                                                 </div>
                                             </div>
-                                         
+
                                     </div>
                                 </div>
 
@@ -720,7 +720,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                             <p>{{ strtoupper($applicant->criminal_offence) }}</p>
                                         </div>
 
-                                        
+
 
                                                  @php
                                                     $criminaloffence = $attachments_cl->where('type', 'criminaloffence')->first();
@@ -741,7 +741,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                         <div class="col-lg-2">
                                             <p>{{ strtoupper($applicant->consent_letter_enclose) }}</p>
                                         </div>
-                                    
+
                                                  @php
                                                     $consentletter = $attachments_cl->where('type', 'consentletter')->first();
                                                 @endphp
@@ -751,7 +751,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                         <a href="{{asset($consentletter->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View</a>
                                                     </div>
                                                 @endif
-                                        
+
 
 
                                         <div class="col-lg-8">
@@ -819,13 +819,13 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                         <th>Name of Signatory</th>
                                                         <th>Age of Signatory</th>
                                                         <th>Qualification of Signatory</th>
-                                                                                                                
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                             @php
                                             $authorizedPersons = json_decode($applicant->name_of_authorised_to_sign, true);
-                                            
+
                                             $authorizedage = json_decode($applicant->age_of_authorised_to_sign, true);
 
                                             $authorizedqualify = json_decode($applicant->qualification_of_authorised_to_sign, true);
@@ -833,12 +833,12 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                              @if(!empty($authorizedPersons))
                                                  @foreach($authorizedPersons as $index => $person)
                                                     <tr>
-                                                       
+
                                                         <td>{{ strtoupper($person) }}</td>
                                                         <td>{{$authorizedage[$index] ?? '' }}</td>
-                                                        
+
                                                          <td>{{ strtoupper($authorizedqualify[$index] ?? '') }}</td>
-                                                     
+
                                                     </tr>
                                                 @endforeach
                                             @else
@@ -849,7 +849,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                 </tbody>
                                             </table>
                                         </div>
-                                           
+
 
                                         </div>
 
@@ -874,13 +874,13 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                     </div>
 
                                     <div class="row mt-3">
-                                           
+
                                             <div class="row ">
                                                 <div class="col-lg-12">
                                                     <p class="text-info"><strong>12. Address Proof  </strong></p>
                                                 </div>
                                             </div>
-                                        
+
                                             <div class="row">
                                                 <div class="col-lg-3">
                                                     <p><strong>Type of Address Proof</strong></p>
@@ -896,9 +896,9 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                 <div class="col-lg-4">
                                                     <p>{{$addressproof->addressproofno ?? ''}}</p>
                                                 </div>
-                                                  
+
                                             </div>
-                                            
+
 
                                               <div class="row">
                                                 <div class="col-lg-3">
@@ -908,11 +908,11 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                     <a href="{{asset($addressproof->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View </a>
                                                 </div>
                                             </div>
-                                         
+
                                     </div>
                                 </div>
 
-                                
+
 
                                 <!-- ----------------equipment-tab--------------------- -->
                                    <div class="tab-pane fade" id="equipment-tab-panel" role="tabpanel" aria-labelledby="equipment-tab" tabindex="0">
@@ -927,7 +927,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                             Create map:
                                             equip_id => equipment_value
 
-                                            
+
                                             */
                                            $equipmentMap = collect($equipmentlist)->keyBy('equipment_id');
 
@@ -985,7 +985,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                             <td>{{ strtoupper($serial) }}</td>
 
                                                             <td>{{ strtoupper($model) }}</td>
-                                                          
+
 
                                                             <td><a href="{{asset($testfile)}}" target="_blank" class="file_view fw-bold"><i class="fa fa-file-pdf-o"></i> View </a> </td>
                                                             <td><a href="{{asset($purchasefile)}}" target="_blank" class="file_view fw-bold"><i class="fa fa-file-pdf-o"></i> View </a> </td>
@@ -1035,7 +1035,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                         <p class="badge text-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
                                                     </div>
 
-                                                   
+
                                                      <div class="col-lg-6">
                                                         <p><strong>Appication Fees</strong></p>
                                                     </div>
@@ -1056,7 +1056,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                         <p>{{ $applicant->late_fee }}.00</p>
                                                     </div>
                                                     @endif
-                                                    
+
 
                                                      <div class="col-lg-6">
                                                         <p><strong>Amount Paid</strong></p>
@@ -1064,9 +1064,9 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                     <div class="col-lg-6">
                                                         <p>{{ $applicant->amount }}.00</p>
                                                     </div>
-                                                    
-                                                   
-                                                   
+
+
+
 
                                                 </div>
                                             </div>
@@ -1111,8 +1111,8 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                 </div>
                                             </div>
 
-                                        
-                                        
+
+
                                     </div>
                                 </div>
 
@@ -1136,19 +1136,19 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
              <div class="statbox widget officers_section mb-2">
                 <div class="col-lg-12 col-12 text-center">
                     <h6>Officers Handling Functions </h6>
-                </div> 
-                                            </div>   
-            
-            
+                </div>
+                                            </div>
+
+
          </div>
         <div class="row">
             <div id="tabsSimple" class="col-xl-6 col-12 layout-spacing">
-                
-             
+
+
 
         </div>
          <!-- ------------------------------------ -->
-           
+
                 <!-- ------------------------------------- -->
          <div id="timelineMinimal" class="col-lg-12 layout-spacing">
             <div class="statbox widget box box-shadow">
@@ -1163,11 +1163,11 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                     <div class="mt-container mx-auto">
                         <div class="timeline-line">
                                     @foreach ($workflows as $row)
-                                            
+
                                             <div class="item-timeline">
                                                 <p class="t-time">{{ format_date_other($row->created_at) }}</p>
-                                                
-                                                <div class="t-dot 
+
+                                                <div class="t-dot
                                                     {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
                                                 </div>
                                                 <div class="t-text">
@@ -1179,14 +1179,14 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                             }
                                         @endphp
 
-                                   
+
 
                                         @if ($row->appl_status == 'RE')
 
                                             @if($row->processed_by == 'AP')
                                                 <p>Resubmitted by Applicant </p>
                                             @else
-                                            
+
                                             <p>Returned by {{ $row->processed_by }}</p>
                                             @endif
                                         @elseif ($row->appl_status == 'RET')
@@ -1203,38 +1203,38 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                             <br>
                                          Remarks: {{ $row->remarks }}
                                          <br>
-                                           
+
                                             @php
                                                  $reasons = json_decode($row->return_reason, true);
                                             @endphp
-                                            
+
 
 
                                        <span class="text-return">
                                         @if(!empty($reasons))
                                             Return Reason :
-                                            
+
                                                 {{ collect($reasons)->map(fn($r) => Str::upper($r))->implode(', ') }}
                                                 <br>
 
-                                            Return Remarks : 
+                                            Return Remarks :
                                                 @if($row->remarks_return)
                                                       {{ $row->remarks_return }}
                                                 @else
                                                     No Remraks
                                                 @endif
                                             @endif
-                                            
+
                                         </span>
                                         <br>
-                                       
+
 
                                         @else
 
                                             @if (!$row->name)
                                                 Approved by {{ $row->processed_by }}
                                             @else
-                                            
+
 
                                                  @if($row->processed_by !== 'AP')
 
@@ -1244,9 +1244,9 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                      Forwarded to {{ $displayName }} <br>
 
                                                      @endif
-                                                    
+
                                                     Remarks: {{ $row->remarks }}
-                                                
+
                                                 @endif
                                             @endif
                                         @endif
@@ -1274,7 +1274,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
                                             </div>
                                             @endforeach
-                                            
+
                                             <div class="item-timeline">
                                                 <p class="t-time">{{ format_date_other($user_entry->dt_submit) }}</p>
                                                 <div class="t-dot t-dot-warning"></div>
@@ -1419,7 +1419,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
     let proprietorId = $(this).data("id");
 
     $.ajax({
-        url: "{{ route('admin.verify.license.formAccc_admin') }}", 
+        url: "{{ route('admin.verify.license.formAccc_admin') }}",
         method: "POST",
         data: {
             _token: "{{ csrf_token() }}",

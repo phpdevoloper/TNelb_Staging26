@@ -254,7 +254,7 @@ class EA_RenewalController extends BaseController
 
         // $application = EA_Application_model::where('application_id', $application_id)->first();
 
-        $old_license_number= DB::table('tnelb_license')->where('application_id', $application_id)->first();
+        $old_license_number= DB::table('cl_forma_lic')->where('application_id', $application_id)->first();
 
         // var_dump($license_deatails->license_number);die;
 
@@ -279,7 +279,7 @@ class EA_RenewalController extends BaseController
             // dd($today);
             // exit;
 
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
             ->where('expires_at','<', $today)
             ->select('*')
@@ -422,7 +422,7 @@ class EA_RenewalController extends BaseController
             $staffs = DB::table('tnelb_applicant_cl_staffdetails')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
 
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
             ->select('*')
             ->first();
@@ -467,7 +467,7 @@ class EA_RenewalController extends BaseController
 
         $application = EA_Application_model::where('application_id', $appl_id)->first();
 
-        $license_deatails = DB::table('tnelb_license')->where('application_id', $appl_id)->first();
+        $license_deatails = DB::table('cl_forma_lic')->where('application_id', $appl_id)->first();
 
         // var_dump($license_deatails->license_number);die;
 
