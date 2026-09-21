@@ -56,15 +56,8 @@ use App\Http\Controllers\FormAController;
 // use App\Models\Admin;
 
 
-<<<<<<< HEAD
-    Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])
-        ->where('filename', '.+')
-        ->name('document.show');
-    Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
-=======
 Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])->name('document.show');
 Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
->>>>>>> 253a221a (form A president approval)
 
     // ----------licensepdf-----------------
     Route::get('/generateForma-pdf/{application_id}', [LicensepdfController::class, 'generateFormaPDF'])->name('generateForma.pdf');

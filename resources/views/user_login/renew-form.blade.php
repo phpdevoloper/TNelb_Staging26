@@ -1539,11 +1539,12 @@
                                 $previouslyIssueDate = !empty($application_details->first_issue_date)
                                     ? \Carbon\Carbon::parse($application_details->first_issue_date)->format('Y-m-d')
                                     : '';
-                                $previouslyValidFrom = !empty($application_details->ssc_from_date)
-                                    ? \Carbon\Carbon::parse($application_details->ssc_from_date)->format('Y-m-d')
+                                $previouslyValidFrom = !empty($application_details->scc_from_date)
+                                    ? \Carbon\Carbon::parse($application_details->scc_from_date)->format('Y-m-d')
                                     : '';
-                                $previouslyValidTo = !empty($application_details->ssc_to_date) 
-                                    ? \Carbon\Carbon::parse($application_details->ssc_to_date)->format('Y-m-d')
+                                    
+                                $previouslyValidTo = !empty($application_details->scc_to_date) 
+                                    ? \Carbon\Carbon::parse($application_details->scc_to_date)->format('Y-m-d')
                                     : '';
                                 $hasPrevScc = $prevSccNo !== '';
 

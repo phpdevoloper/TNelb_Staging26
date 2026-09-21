@@ -201,11 +201,6 @@ class FormAController extends BaseController
     }
     public function checkQCCertificate(Request $request)
     {
-<<<<<<< HEAD
-
-    
-=======
->>>>>>> 253a221a (form A president approval)
         // $dateofIssue = Carbon::createFromFormat(
         //     'd-m-Y',
         //     $request->dateof_issue
