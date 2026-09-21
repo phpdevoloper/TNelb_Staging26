@@ -952,7 +952,9 @@
             }
 
             $.ajax({
-                url: "{{ route('forma.store') }}",
+                // Renewal forms provide their own endpoint.  All other Form A
+                // pages continue to use the normal new-application endpoint.
+                url: $(this).data("submit-url") || "{{ route('forma.store') }}",
                 type: "POST",
                 data: formData,
                 processData: false,

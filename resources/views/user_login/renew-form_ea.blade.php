@@ -83,6 +83,7 @@
     <div class="auto-container_a">
         <ul id="breadcrumb">
             <li><a href="{{ route('dashboard')}}"><span class="fa fa-home"> </span> Dashboard</a></li>
+            <li><a href="#"> Renewal Application</a></li>
             <li><a href="#"><span class=" fa fa-info-circle"> </span> Form A</a></li>
 
         </ul>
@@ -106,28 +107,29 @@ exit; -->
                     <!-- <h6 class="card-title_apply text-white text-center">(Read the Instructions overleaf before filling the form)</h6> -->
                 </div>
 
-           
-               
+
+
 
             </div>
 
            <div class="row">
-           
+
 
                 <div class="col-12 col-lg-12 text-md-right">
                     <a href="{{url('assets/pdf/form_a_notes.pdf')}}" class="text-white" target="_blank">
                         <span class="text-white font-weight-bold"> &nbsp; Instructions  </span>
-                        
+
                         English <i class="fa fa-file-pdf-o"></i> (74 KB)</a>
 
                 </div>
 
-               
+
 
             </div>
         </div>
 
-        <form id="competency_form_a" enctype="multipart/form-data">
+        <form id="competency_form_a" enctype="multipart/form-data"
+            data-submit-url="{{ route('forma.storerenewal') }}">
 
             @csrf
              <input type="hidden" class="form-control text-box single-line" id="login_id_store" name="login_id_store"
@@ -154,7 +156,7 @@ exit; -->
             <input type="hidden" id="appl_type" name="appl_type" value="R">
 
 
-            <input type="hidden" name="record_id" id="record_id" value="{{ $application->application_id ?? '' }}">
+
 
             <div class="tabs" id="tabbedForm">
                 <div class="row">
@@ -230,41 +232,27 @@ exit; -->
                                     <td>
                                         @if ($prop->competency_certificate_holding === 'yes')
                                         Number: {{ $prop->competency_certificate_number }}<br>
-                                        Validity: {{ $prop->competency_certificate_validity }}
+                                        First Issue: {{ $prop->competency_certificate_first_issue }}<br>
+                                        Validity: {{ $prop->competency_certificate_validity_from }} to {{ $prop->competency_certificate_validity_to }}
                                         @else
                                         No
                                         @endif
                                     </td>
+
                                     <td>
-                                        @if ($prop->presently_employed === 'yes')
-                                        {{ $prop->presently_employed_name }}<br>
-                                        {{ $prop->presently_employed_address }}
-                                        @else
-                                        No
-                                        @endif
+                                        <button class="btn btn-primary" type="button"> <i class="fa fa-pencil"></i>
+                                        </button>
                                     </td>
                                     <td>
-                                        @if ($prop->previous_experience === 'yes')
-                                        {{ $prop->previous_experience_name }}<br>
-                                        {{ $prop->previous_experience_address }}<br>
-                                        License No: {{ $prop->previous_experience_lnumber }}<br>
-                                        License Validity: {{ $prop->previous_experience_lnumber_validity }}
-                                        @else
-                                        No
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-primary" type="button"> <i class="fa fa-pencil"></i> </button>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-danger" type="button"> <i class="fa fa-trash-o"></i> </button>
+                                        <button class="btn btn-danger" type="button"> <i class="fa fa-trash-o"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
-                    @else
+                      @else
                     <!-- <p class="text-muted mt-4">No proprietor/partner details found.</p> -->
                     @endif
 
@@ -272,38 +260,139 @@ exit; -->
 
 
 
-                    <div class="row align-items-center head_label mt-2">
+                <div class="row align-items-center head_label mt-2">
                         <div class="col-12 col-md-12 title_bar">
-                            <label>3) Ownership Type - Proprietor / Partners / Directors Details<span style="color: red;">*</span></label>
+                            <label>3) Ownership Type - Proprietor / Partners / Directors Details<span
+                                    style="color: red;">*</span></label>
 
                         </div>
 
                     </div>
+
+                    {{-- Detect draft --}}
+                    <!-- <script>
+                    const IS_DRAFT = {{ isset($application) ? 'true' : 'false' }};
+                    const SAVED_OWNERSHIP = "{{ $application->application_ownershiptype ?? '' }}";
+                </script> -->
 
                     <div class="row mt-3">
-                        <div class="offset-md-2 col-lg-3 mt-2 text-right ">
-                            <h6 class="fw-bold">Type of Ownership</h6>
+                        <div class=" col-lg-3 mt-2 text-right">
+                            <h6 class="">Type of Ownership <span class="text-danger">*</span></h6>
                         </div>
-                        <div class="col-lg-2 ">
-                   <select class="custom-select" id="ownership_type_select" disabled>
-                            <option value="0">Select Ownership Type</option>
-                            <option value="pt"  {{ isset($application) && $application->application_ownershiptype == 'pr' ? 'selected' : '' }}>Proprietorship</option>
-                            <option value="pnt" {{ isset($application) && $application->application_ownershiptype == 'pt' ? 'selected' : '' }}>Partnership</option>
-                            <option value="pvt" {{ isset($application) && $application->application_ownershiptype == 'pvt' ? 'selected' : '' }}>Private Limited (Pvt LTD)</option>
 
-                            <option value="pvt" {{ isset($application) && $application->application_ownershiptype == 'ltd' ? 'selected' : '' }}>Limited (LTD)</option>
-                        </select>
+                        <div class="col-lg-3">
+                            <select class="custom-select" name="application_ownershiptype" id="ownership_type_select">
+                                <option value="">---Select Ownership Type---</option>
+                                <option value="pr" {{ isset($application) && $application->application_ownershiptype == 'pr' ? 'selected' : '' }}>Proprietorship
+                                </option>
+                                <option value="pt" {{ isset($application) && $application->application_ownershiptype == 'pt' ? 'selected' : '' }}>Partnership
+                                </option>
+                                <option value="pvt" {{ isset($application) && $application->application_ownershiptype == 'pvt' ? 'selected' : '' }}>Private Limited
+                                </option>
+                                <option value="public" {{ isset($application) && $application->application_ownershiptype == 'public' ? 'selected' : '' }}>Public
+                                    Limited </option>
+                                <option value="ltd" {{ isset($application) && $application->application_ownershiptype == 'ltd' ? 'selected' : '' }}>Limited
+                                </option>
 
-<!-- Hidden input ensures value goes to DB -->
-<input type="hidden" name="application_ownershiptype" value="{{ $application->application_ownershiptype }}">
 
 
-
-                    
-                        <span class="error text-danger" id="ownership_type_error"></span>
-
+                            </select>
+                            <span class="error text-danger" id="ownership_type_error"></span>
                         </div>
                     </div>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6 offset-md-1 col-12">
+                            <div class="row  mt-3" id="partnershipdeed" style="display:none;">
+                                <div class="col-lg-4 mt-2 text-right">
+                                    <h6 class="">Upload Partnership Deed <span class="text-danger">*</span></h6>
+                                </div>
+
+                                <div class="col-md-5">
+                                    <input type="file" class="form-control" name="partnership_deed"
+                                        accept="application/pdf">
+
+                                    <input type="hidden" name="module" value="OWNERSHIP DOCUMENT">
+
+
+
+                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                    <br>
+                                    <span class="text-danger Doc_upload_error"></span>
+
+
+                                </div>
+
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-info upload-btn"
+                                        data-login_id="{{ Auth::user()->login_id }}" data-module="OWNERSHIP DOCUMENT"
+                                        data-document_category="ownership_doc" data-ownership_type="pt"
+                                        data-document_sub_category="OD" data-ownership_type="pt"
+                                        data-form_code="{{$form_code->id}}">
+                                        <i class="fa fa-upload"></i> Upload
+                                    </button>
+                                    <br>
+                                    <span class="error text-danger" id="partnership_deed_error"></span>
+                                </div>
+
+
+                            </div>
+
+
+
+                            <div class="row mt-3" id="directormom" style="display:none;">
+                                <div class="col-lg-4 mt-2 text-right">
+                                    <h6 class="">Upload Director AOA/MOM <span class="text-danger">*</span></h6>
+                                </div>
+
+                                <div class="col-md-5">
+                                    <input type="file" class="form-control" name="director_mom"
+                                        accept="application/pdf">
+
+
+                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                    <br>
+                                    <span class="text-danger Doc_upload_error"></span>
+
+                                </div>
+
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-info upload-btn"
+                                        data-login_id="{{ Auth::user()->login_id }}" data-module="OWNERSHIP DOCUMENT"
+                                        data-document_category="ownership_doc" data-ownership_type="dr"
+                                        data-document_sub_category="OD" data-ownership_type="pt"
+                                        data-form_code="{{$form_code->id}}">
+                                        <i class="fa fa-upload"></i> Upload
+                                    </button>
+                                    <br>
+                                    <span class="error text-danger" id="director_mom_error"></span>
+                                </div>
+
+
+
+                            </div>
+
+                        </div>
+
+                        <div
+                            class="col-md-4 mt-3 col-12 {{ empty($application->ownership_doc) ? 'd-none' : '' }} file-link">
+                            @if(!empty($application->ownership_doc))
+                            <a href="{{ asset($application->ownership_doc) }}" target="_blank"
+                                class="text-primary fw-bold">
+                                <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                            </a>
+                            @endif
+                        </div>
+
+                    </div>
+
+
+
+
+
+
                     <!-- ----------------enter type ------------------ -->
                     <!-- Ownership Type -->
                     <div class="row mt-2" style="display: none;">
@@ -322,13 +411,6 @@ exit; -->
                     </div>
 
 
-
-
-
-
-
-
-
                     <!-- ----------------enter type ------------------ -->
 
 
@@ -337,7 +419,7 @@ exit; -->
                     @endphp
                     <!-- Partner Section Template -->
                     <!-- Proprietor Details -->
-                    <div id="proprietor-section" class="mt-3">
+                    <div id="proprietor-section" class="mt-3" style="display: none;">
                         <div class="row mt-2">
                             <!-- <div class="col-md-12 col-12 text-md-right pb-20">
                                 <button type="button" class="btn btn-primary" id="add-partner">
@@ -351,99 +433,107 @@ exit; -->
 
                             </div>
 
-                            <div class="table-responsive">
-                                <table class="table table-bordered head_label_proprietor">
+                            <div class="table-responsive pr_table_count">
+                                <table class="table table-bordered head_label_proprietor" id="proprietor-table">
                                     <thead>
                                         <tr>
                                             <th>Name </th>
                                             <th>Father/s
                                                 Husband/s
                                                 Name</th>
-                                            <th>Age</th>
+                                            <th>D.O.B and Age</th>
                                             <th>Address </th>
-                                            <th>Qualifications</th>
+                                            <th>Qualifications and Proof </th>
 
 
                                             <th>Present business of
                                                 the applicant</th>
-                                            <th>Competency
+                                            <th>If holding a Supervisor Competency
                                                 Certificate and
                                                 Validity </th>
-                                            <th>Presently
-                                                Employed
-                                                and Address </th>
-                                            <th>If holding a
-                                                contractor
-                                                certificate </th>
+
+                                            <!-- <th>Proof</th> -->
                                             <!-- <input type="hidden" value="proprietor" name="ownership_type"> -->
-                                            <!-- <th colspan="2" style="width: 100px;"> <button type="button" class="btn btn-primary" id="add-proprietor">
+                                            <th colspan="2" style="width: 100px;"> <button type="button"
+                                                    class="btn btn-primary" id="add-proprietor">
                                                     <i class="fa fa-plus"></i> Add
                                                 </button>
-                                            </th> -->
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
 
                                         @foreach ($proprietors as $p)
-                                       @if($p->ownership_type === 'pr')
+                                        @if($p->ownership_type === 'pr')
                                         <tr data-id="{{ $p->id }}">
                                             <td>{{ $p->proprietor_name }}</td>
                                             <td>{{ $p->fathers_name }}</td>
-                                            <td>{{ $p->age }}</td>
+                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}"
+                                                data-age_proof="{{ asset($p->age_proof) }}">
+                                                {{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                                <a href="{{ asset($p->age_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
                                             <td>{{ $p->proprietor_address }}</td>
-                                            <td>{{ $p->qualification }}</td>
+                                            <td data-qualification="{{ $p->qualification }}"
+                                                data-qual_text="{{ $p->qualification_text }}"
+                                                data-educational_proof="{{ asset($p->educational_proof) }}">
+                                                {{ $p->qualification }}, {{ $p->qualification_text }}
+                                                <a href="{{ asset($p->educational_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
                                             <td>{{ $p->present_business }}</td>
-                                            <td data-competency="{{ $p->competency_certificate_holding }}" data-certno="{{ $p->competency_certificate_number }}" data-validity="{{ $p->competency_certificate_validity }}">
-                                                @if($p->competency_certificate_holding == 'yes')
-                                                    Yes - CC_No: {{ $p->competency_certificate_number }}, 
-                                                    Validity: {{ \Carbon\Carbon::parse($p->competency_certificate_validity)->format('d-m-Y') }}
-                                                @else
-                                                    No
-                                                @endif
-                                            </td>
-                                            <td data-employed="{{ $p->presently_employed }}" data-employer="{{ $p->presently_employed_name }}" data-empaddress="{{ $p->presently_employed_address }}">
-                                                {{ $p->presently_employed == 'yes' ? "Yes - {$p->presently_employed_name}, {$p->presently_employed_address}" : "No" }}
-                                            </td>
-                                            <td data-experience="{{ $p->previous_experience }}" data-expname="{{ $p->previous_experience_name }}" data-expaddress="{{ $p->previous_experience_address }}" data-explicense="{{ $p->previous_experience_lnumber }}" data-expvalidity="{{ $p->previous_experience_lnumber_validity }}">
-                                                
-                                               {{ 
-                                                    $p->previous_experience == 'yes' 
-                                                        ? "Yes - {$p->previous_experience_name}, {$p->previous_experience_address}, Lic No: {$p->previous_experience_lnumber}, Validity: " . \Carbon\Carbon::parse($p->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                        : "No" 
-                                                }}
+                                            <td
+                                                data-competency="{{ $p->competency_certificate_holding }}"
+                                                data-certno="{{ $p->competency_certificate_number }}"
+                                                data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
+                                                data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
+                                                data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
 
+                                                @if($p->competency_certificate_holding == 'yes')
+                                                Yes - CC_No: {{ $p->competency_certificate_number }},
+                                                First Issue:{{ \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('d-m-Y') }},
+                                                Validity From:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') }},
+                                                Validity To:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') }} @else
+                                                No
+                                                @endif
+
+                                            </td>
+
+
+
+
+                                            <td style="display: none;">
+                                                <input type="hidden" name="ownership_type[]"
+                                                    value="{{ $p->ownership_type }}">
                                             </td>
                                             <td style="display: none;">
-                                                <input type="hidden" name="ownership_type[]" value="{{ $p->ownership_type }}">
+                                                <input type="hidden" name="row_index[]" value="{{ $p->row_index }}">
                                             </td>
 
 
-                                           <!-- <td>
-                                                <button type="button" class="btn btn-primary btn-sm update-proprietor-row-new" data-id="{{ $p->id }}">
+                                            <td>
+                                                <button type="button"
+                                                    class="btn btn-primary btn-sm update-proprietor-row"
+                                                    data-id="{{ $p->id }}">
                                                     <i class="fa fa-pencil"></i>
                                                 </button>
                                             </td>
                                             <td>
-                                                <button type="button" class="btn btn-danger btn-sm remove-proprietor-row" data-id="{{ $p->id }}">
+                                                <button type="button"
+                                                    class="btn btn-danger btn-sm remove-proprietor-row"
+                                                    data-id="{{ $p->id }}">
                                                     <i class="fa fa-trash"></i>
                                                 </button>
-                                            </td> -->
+                                            </td>
                                         </tr>
-                                      
                                         @endif
                                         @endforeach
-                                        
+
                                     </tbody>
                                 </table>
-                                  <p class=" text-danger"> Note : Incase change of Proprietor new application has to be Submitted </p>
                             </div>
-                            <!-- <div class="col-12 col-md-5  text-md-right">
-                                <h5>Number of Partners? (Min 2, Max 6)</h5>
-                            </div>
-                            <div class="col-12 col-md-3">
-                                <input type="number" class="form-control" id="partner-count-input" min="2" max="6" />
-                                <span class="error text-danger" id="partner-count-error"></span>
-                            </div> -->
+
 
 
                         </div>
@@ -451,10 +541,9 @@ exit; -->
                         <!-- style="display:none;" -->
                         <div class="border box-shadow-blue p-3 mt-3" id="proprietor-sectionfresh" style="display:none;">
 
-                            <!-- <h4 class="text-center">---------Proprietor Details --------------</h4> -->
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h5>Proprietor Details fresh 1</h5>
+                                    <h5>Proprietor Details </h5>
                                 </div>
                             </div>
                             <div class="row mt-3">
@@ -463,46 +552,205 @@ exit; -->
                                 <div class="col-md-6">
                                     <div class="row align-items-center">
                                         <div class="col-12 col-md-12">
-                                            <label for="Name">(i) Full name and house address of proprietor <span style="color: red;">*</span><br><span class="text-label" style="color: #023466;">(If it is partnership concern, partnership deed should be enclosed)</span></label>
+                                            <label for="Name">(i) Full name and house address of proprietor <span
+                                                    style="color: red;">*</span><br><span class="text-label"
+                                                    style="color: #023466;">(If it is partnership concern, partnership
+                                                    deed should be enclosed)</span></label>
                                         </div>
-                                        <div class="col-12 col-md-6">
+                                        <div class="col-12 col-md-4">
                                             <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
                                             <label>Proprietor Name <span class="text-red">*</span></label>
-                                            <input type="text" class="form-control mb-2 proprietor_name" maxlength="50" id="proprietor_name" name="proprietor_name[]" placeholder="Name">
+
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <input type="text" class="form-control mb-2 proprietor_name" maxlength="50"
+                                                id="proprietor_name" name="proprietor_name[]"
+                                                placeholder="Proprietor Name">
 
                                             <span class="error text-danger" id="proprietor_name_error"></span>
                                         </div>
-                                        <div class="col-12 col-md-6">
+                                        <div class="col-12 col-md-4">
                                             <label>Proprietor Address <span class="text-red">*</span></label>
-                                            <textarea rows="3" class="form-control" name="proprietor_address[]" placeholder="Address"></textarea>
+
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <textarea rows="3" class="form-control" name="proprietor_address[]"
+                                                placeholder="Proprietor Address"></textarea>
                                             <span class="error text-danger" id="proprietor_address_error"></span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <div class="row align-items-center">
+                                    <div class="row">
                                         <div class="col-12 col-md-12">
                                             <label for="Name">(ii) Age and qualification along with
                                                 evidence <span style="color: red;">*</span></label>
                                         </div>
-                                        <div class="col-12 col-md-4">
-                                            <label>Age <span class="text-red">*</span></label>
-                                            <input type="number" class="form-control" id="age" name="age[]" maxlength="2" min="15" max="70" placeholder="Age" value="">
-                                            <span class="error text-danger" id="age_error"></span>
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label>Qualification <span class="text-red">*</span></label>
-                                            <input type="text" class="form-control" id="qualification" name="qualification[]" placeholder="Qualification" value="">
-                                            <!-- <input type="text"
-                                        class="form-control" id="validity" name="validity"
-                                        placeholder="Validity"
-                                        onfocus="(this.type='date')"
-                                        onblur="(this.type='text')"> -->
-                                            <span class="error text-danger" id="qualification_error"></span>
 
+                                    </div>
+
+
+
+                                    <div class="row">
+                                        <div class="col-12 col-md-3">
+                                            <label>Date Of Birth <span class="text-red">*</span></label>
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <input type="date" class="form-control dob" name="dob[]">
+                                            <span class="error text-danger dob_error"></span>
+                                        </div>
+
+                                        <div class="col-12 col-md-2">
+                                            <label>Age <span class="text-red">*</span></label>
+                                        </div>
+
+                                        <div class="col-12 col-md-3">
+                                            <input type="number" class="form-control age" name="age[]" readonly>
+                                            <span class="error text-danger age_error"></span>
                                         </div>
                                     </div>
+
+
+                                    <div class="row mt-2">
+                                        <div class="col-12 col-md-3 ">
+                                            <label>Qualification <span class="text-red">*</span></label>
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <select class="form-control qualification" name="qualification[]">
+                                                <option value="">Select Qualification</option>
+                                                <option value="8TH PASS">8TH PASS</option>
+                                                <option value="DEGREE">DEGREE</option>
+                                                <option value="DIPLOMA">DIPLOMA</option>
+                                                <option value="MASTER DEGREE">MASTER DEGREE</option>
+                                            </select>
+                                            <span class="error text-danger qualification_error"></span>
+                                        </div>
+
+
+                                        <div class="col-12 col-md-5 qualTextWrapper" id="qualTextWrapper"
+                                            style="display:none;">
+                                            <div class="row">
+                                                <div class="col-12 col-md-5">
+                                                    <label>Enter Qualification <span class="text-red">*</span></label>
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <input type="text" class="form-control" id="qual_text"
+                                                        name="qual_text[]">
+                                                    <span class="error text-danger qual_text_error"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mt-2">
+
+                                        <div class="col-12 col-md-3">
+                                            <label>Age Proof <span class="text-red">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-7">
+                                            <div class="row">
+                                                <div class="col-12 col-md-8">
+                                                    <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                    <input type="file" class="form-control" name="age_proof[]"
+                                                        accept="application/pdf">
+
+
+
+                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                    <br>
+                                                    <span class="text-danger Doc_upload_error"></span>
+                                                    <span class="error text-danger age_proof_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-4">
+                                                    <button type="button" class="btn btn-info upload-btn"
+                                                        data-login_id="{{ Auth::user()->login_id }}"
+                                                        data-module="AGE PROOF" data-document_category="age_proof"
+                                                        data-ownership_type="pr" data-row-index=""
+                                                        data-document_sub_category="AP"
+                                                        data-form_code="{{$form_code->id}}">
+                                                        <i class="fa fa-upload"></i> Upload
+                                                    </button>
+
+
+                                                </div>
+
+                                                <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-12 col-12 age-file-link">
+
+                                        </div>
+
+
+
+
+
+                                    </div>
+
+
+                                    <div class="row mt-2">
+
+                                        <div class="col-12 col-md-3">
+                                            <label>Qualification Proof <span class="text-red">*</span></label>
+                                        </div>
+                                        <div class="col-12 col-md-7">
+                                            <div class="row">
+                                                <div class="col-12 col-md-8">
+                                                    <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                    <input type="file" class="form-control" name="qual_proof[]"
+                                                        accept="application/pdf">
+
+
+
+                                                    <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                    <br>
+                                                    <span class="text-danger Doc_upload_error"></span>
+                                                    <span class="error text-danger qual_proof_error"></span>
+                                                </div>
+
+                                                <div class="col-12 col-md-4">
+                                                    <button type="button" class="btn btn-info upload-btn"
+                                                        data-login_id="{{ Auth::user()->login_id }}"
+                                                        data-module="OWNERSHIP EDUCATIONAL DOCUMENT"
+                                                        data-document_category="educ_qual_proof"
+                                                        data-ownership_type="pr" data-row-index=""
+                                                        data-document_sub_category="OED"
+                                                        data-form_code="{{$form_code->id}}">
+                                                        <i class="fa fa-upload"></i> Upload
+                                                    </button>
+
+
+                                                </div>
+
+                                                <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-12 col-12  file-link">
+                                            <!-- @if(!empty($application->educational_proof))
+                                                <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                                </a>
+                                            @endif -->
+                                        </div>
+
+
+
+                                        <!-- <div class="col-12 col-md-3">
+                                            <button class="btn btn-info"> <i class="fa fa-upload"></i> Upload </button>
+                                        </div> -->
+
+                                    </div>
+
+
+
+
                                 </div>
 
                             </div>
@@ -511,11 +759,13 @@ exit; -->
                             <div class="row mt-2">
                                 <div class="col-md-6">
                                     <div class="row align-items-center">
-                                        <div class="col-12 col-md-12">
-                                            <label for="Name">(iii) Father/Husband's name <span style="color: red;">*</span></label>
+                                        <div class="col-12 col-md-4">
+                                            <label for="Name">(iii) Father/Husband's name <span
+                                                    style="color: red;">*</span></label>
                                         </div>
-                                        <div class="col-12 col-md-12">
-                                            <input type="text" class="form-control" id="fathers_name" maxlength="50" name="fathers_name[]" value="" placeholder="Father/Husband's name">
+                                        <div class="col-12 col-md-6">
+                                            <input type="text" class="form-control" id="fathers_name" maxlength="50"
+                                                name="fathers_name[]" value="" placeholder="Father/Husband's name">
                                             <span class="error text-danger" id="fathers_name_error"></span>
                                         </div>
                                     </div>
@@ -523,11 +773,14 @@ exit; -->
 
                                 <div class="col-md-6">
                                     <div class="row align-items-center">
-                                        <div class="col-12 col-md-12">
-                                            <label for="Name">(iv) Present business of the applicant <span style="color: red;">*</span></label>
+                                        <div class="col-12 col-md-5">
+                                            <label for="Name">(iv) Present business of the applicant <span
+                                                    style="color: red;">*</span></label>
                                         </div>
-                                        <div class="col-12 col-md-12">
-                                            <input type="text" class="form-control" id="present_business" name="present_business[]" value="" maxlength="50" placeholder="Present business of the applicant">
+                                        <div class="col-12 col-md-6">
+                                            <input type="text" class="form-control" id="present_business"
+                                                name="present_business[]" value="" maxlength="50"
+                                                placeholder="Present business of the applicant">
                                             <span class="error text-danger" id="present_business_error"></span>
                                         </div>
 
@@ -537,158 +790,131 @@ exit; -->
                             </div>
                             <!-- ---------------------- -->
                             <div class="row mt-2">
-                                <!-- <div class="col-md-6">
+
+
+                                <div class="col-md-12">
                                     <div class="row align-items-center">
                                         <div class="col-12 col-md-12">
-                                            <label for="competency_certificate_holding">(v) Whether holding a competency certificate and if so, the number and validity of the competency certificate</label>
+                                            <label>(v) Whether holding a Supervisor Competency Certificate and if so,
+                                                the Number and Validity</label>
                                         </div>
+
+
                                         <div class="col-12 col-md-12">
                                             <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="competency_yes" name="competency_certificate_holding[]" value="yes" onclick="toggleCompetencyFields(true)">
-                                                <label class="form-check-label" for="competency_yes">Yes</label>
+                                                <input class="form-check-input" type="radio" id="competency_yes"
+                                                    name="competency_certificate_holding[]" value="yes"
+                                                    onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                <label class="form-check-label"
+                                                    for="competency_yes_proprietor">Yes</label>
                                             </div>
                                             <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio"
-                                                    id="competency_no"
-                                                    name="competency_certificate_holding[]"
-                                                    value="no"
-                                                    onclick="toggleCompetencyFields(false)"
+                                                <input class="form-check-input" type="radio" id="competency_no"
+                                                    name="competency_certificate_holding[]" value="no"
+                                                    onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
                                                     checked>
-                                                <label class="form-check-label" for="competency_no">No</label>
-                                            </div>
-                                            <span class="text-danger competency_certificate_holding_error_radio" style="font-size: 0.875rem; display: none;"></span>
-                                            <span class="text-danger competency_certificate_holding_error ms-3"></span>
-                                        </div>
-
-
-                                        <div class="col-12 col-md-5 mt-1  competency-fields" style="display: none;">
-                                            <label>Competency Certificate No <span style="color: red;">*</span></label>
-                                            <input type="text" class="form-control mt-1 competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="Certificate Number">
-                                            <span class="error text-danger competency_number_error"></span>
-                                        </div>
-                                        <div class="col-12 col-md-5 mt-1 competency-fields" style="display: none;">
-                                            <label> Validity <span style="color: red;">*</span></label>
-                                            <input type="date"
-                                                class="form-control competency_validity"
-                                                name="competency_certificate_validity[]"
-                                                placeholder="Validity">
-
-                                            <span class="error text-danger competency_validity_error"></span>
-
-
-
-                                        </div>
-
-                                        <div class="col-12 col-md-2 mt-3  competency-fields" style="display: none;">
-                                            <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
-                                            <input type="hidden" name="proprietor_cc_verify[]" class="competency_status" value="0">
-
-                                            <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
-
-
-                                        </div>
-
-                                        <div class="col-12 mt-1">
-                                            <div class="text-danger competency_verify_result"></div>
-                                        </div>
-                                    </div>
-                                </div> -->
-
-                                <div class="col-md-6">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-12">
-                                            <label>(v) Whether holding a competency certificate and if so, the number and validity</label>
-                                        </div>
-
-                                        <div class="col-12 col-md-12">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio"
-                                                    id="competency_yes"
-                                                   name="competency_certificate_holding[]"
-                                                    value="yes"
-                                                    onclick="toggleCompetencyFields('proprietor', true)">
-                                                <label class="form-check-label" for="competency_yes_proprietor">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio"
-                                                    id="competency_no"
-                                                    name="competency_certificate_holding[]"
-                                                    value="no"
-                                                    onclick="toggleCompetencyFields('proprietor', false)"
-                                                    checked>
-                                                <label class="form-check-label" for="competency_no_proprietor">No</label>
+                                                <label class="form-check-label"
+                                                    for="competency_no_proprietor">No</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 col-md-5 mt-1 competency-fields-proprietor" style="display: none;">
-                                            <label>Competency Certificate No <span style="color: red;">*</span></label>
-                                            <input type="text" class="form-control mt-1 competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="Certificate Number">
-                                            <span class="error text-danger competency_number_error"></span>
+                                        <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                            style="display: none;">
+                                            <div class="row">
+                                                <div class="col-12 col-md-3">
+                                                    <div class="row">
+
+                                                        <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                            <label>CC Number <span style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-8 mt-1">
+                                                            <input type="text"
+                                                                class="form-control competency_number"
+                                                                name="competency_certificate_number[]"
+                                                                maxlength="15"
+                                                                placeholder="CC Number">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_number_error"></span>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-md-4">
+                                                    <div class="row">
+
+                                                        <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                            <label>Date of First Issue <span
+                                                                    style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-6 mt-1">
+                                                            <input type="date"
+                                                                class="form-control competency_validity_first_issue"
+                                                                name="competency_certificate_first_issue[]"
+                                                                placeholder="Date of First Issue">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_first_issue_error"></span>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-md-5">
+                                                    <div class="row">
+
+                                                        <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                            <label>Validity From <span
+                                                                    style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-4 mt-1">
+                                                            <input type="text"
+                                                                class="form-control competency_validity_from"
+                                                                name="competency_certificate_validity_from[]"
+                                                                placeholder="Validity From">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_validity_from_error"></span>
+                                                        </div>
+                                                        <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                            <label>Validity <br>To <span
+                                                                    style="color: red;">*</span></label>
+                                                        </div>
+                                                        <div class="col-12 col-md-4 mt-1">
+                                                            <input type="text"
+                                                                class="form-control competency_validity_to"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To">
+                                                            <span class="error text-danger"
+                                                                id="competency_certificate_validity_to_error"></span>
+                                                            {{-- <input type="date"
+                                                                class="form-control flatpickr flatpickr-input competency_validity"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To"> --}}
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
+                                                    <button type="button"
+                                                        class="btn btn-primary"
+                                                        id="verify_competency_btn">
+                                                        Verify
+                                                    </button>
+                                                </div>
+
+
+                                            </div>
+
                                         </div>
 
-                                        <div class="col-12 col-md-5 mt-1 competency-fields-proprietor" style="display: none;">
-                                             <label> Validity Date <span style="color: red;">*</span></label>
-                                            <input type="date"
-                                                class="form-control competency_validity"
-                                                name="competency_certificate_validity[]"
-                                                placeholder="Validity">
 
-                                            <span class="error text-danger competency_validity_error"></span>
-                                        </div>
-
-                                        <div class="col-12 col-md-2 mt-3 competency-fields-proprietor" style="display: none;">
-                                              <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
-                                            <!-- <input type="hidden" name="proprietor_cc_verify[]" class="competency_status" value="0"> -->
-
-                                            <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
-
-                                        </div>
-
-                                        <div class="col-12 mt-1">
-                                            <div class="text-danger competency_verify_result"></div>
-                                        </div>
                                     </div>
                                 </div>
 
 
-                                <div class="col-md-6">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-12">
-                                            <label for="Name">(vi) Whether he is presently employed
-                                                anywhere, If so the name and
-                                                address of the employer.<br>
-                                                If not details of the Present
-                                                business.
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-12">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="employed_yes" name="presently_employed[]" value="yes" onclick="toggleEmploymentFields('proprietor', true)">
-                                                <label class="form-check-label" for="employed_yes">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="employed_no" name="presently_employed[]" value="no" onclick="toggleEmploymentFields('proprietor', false)" checked>
-                                                <label class="form-check-label" for="employed_no">No</label>
-                                            </div>
-                                            <span class="error text-danger presently_employed_error" id="presently_employed_error"></span>
-                                        </div>
-
-                                        <div class="col-12 col-md-6 mt-1 employment-fields-proprietor" style="display: none;">
-                                            <label>Name of the Employer <span class="text-red">*</span></label>
-                                            <input type="text" class="form-control" id="presently_employed_name" name="presently_employed_name[]" maxlength="50" placeholder="Name">
-                                            <span class="error text-danger presently_employed_name_error"></span>
-                                        </div>
-                                        <div class="col-12 col-md-6 mt-1  employment-fields-proprietor" style="display: none;">
-                                            <label>Address of the Employer <span class="text-red">*</span></label>
-                                            <textarea class="form-control" id="presently_employed_address" name="presently_employed_address[]" placeholder="Address"></textarea>
-
-                                            <span class="error text-danger presently_employed_address_error"></span>
-                                        </div>
+                                <div id="competency_exp_result" class="mt-3"></div>
 
 
-
-                                    </div>
-                                </div>
 
                             </div>
 
@@ -696,105 +922,27 @@ exit; -->
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="row align-items-center">
-                                        <div class="col-12 col-md-12">
-                                            <label for="Name">(vii) If holding a competency certificate, details of previous experience with
-                                                period. If the applicant has worked under a contractor, licensed by this
-                                                Licensing Board, the name, address, and licence No. of the contractor.<br>
-                                                <span style="color: #023466;">(Note: Details should be furnished for each partner/Director) </span>
-                                            </label>
-                                        </div>
-
-                                        <div class="col-12 col-md-12">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[]" value="yes" onclick="toggleExperienceFields('proprietor', true)">
-                                                <label class="form-check-label" for="previous_experience">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[]" value="no" onclick="toggleExperienceFields('proprietor', false)" checked>
-                                                <label class="form-check-label" for="previous_experience">No</label>
-                                            </div>
-
-
-                                            <span class="error text-danger previous_experience_error" id="previous_experience_error"></span>
-                                        </div>
-
-
-                                        <div class="col-12 col-md-12  experience-fields-proprietor" style="display: none;">
-                                            <div class="row">
-                                                <div class="col-12 col-md-5 mt-1">
-                                                    <label>Name of the Contractor <span class="text-red">*</span></label>
-                                                    <input class="form-control" type="text" id="previous_experience_name" name="previous_experience_name[]" placeholder="Name">
-
-                                                    <span class="error text-danger previous_experience_name_error"></span>
-                                                </div>
-                                                <div class="col-12 col-md-5 mt-1">
-                                                    <label>Address of the Contractor <span class="text-red">*</span></label>
-                                                    <textarea class="form-control" id="previous_experience_address" name="previous_experience_address[]" placeholder="Address"></textarea>
-
-                                                    <span class="error text-danger previous_experience_address_error"></span>
-                                                </div>
-
-                                                <div class="col-12 col-md-5 mt-1">
-                                                    <label>Previous EA Licence A Grade License Number <span class="text-red">*</span></label>
-                                                    <input class="form-control ea_license_number" type="text" id="previous_experience_lnumber" maxlength="15" name="previous_experience_lnumber[]" placeholder="License Number">
-
-                                                    <span class="error text-danger previous_experience_lnumber_error"></span>
-                                                </div>
-
-                                                <div class="col-12 col-md-5 mt-1">
-                                                    <label>Previous EA Licence A Grade Validity Date <span class="text-red">*</span></label>
-                                                    <input class="form-control ea_validity" type="date" 
-                                                        onfocus="(this.type='date')"
-                                                        id="previous_experience_lnumber_validity" name="previous_experience_lnumber_validity[]" placeholder="License Number Validity">
-
-                                                    <span class="error text-danger previous_experience_lnumber_validity_error"></span>
-                                                </div>
-
-                                                <div class="col-12 col-md-2 mt-5">
-                                                    <button type="button" class="btn btn-primary" onclick="verifyeaCertificate(event, this)">Verify</button>
-                                                    <!-- <input type="text" name="proprietor_contractor_verify[]" class="contactor_license_verify" value="0"> -->
-                                                    <input type="hidden" name="proprietor_contractor_verify[]" class="proprietor_contractor_verify" value="0">
-
-                                                </div>
-
-
-
-                                                <div class="col-12 mt-1">
-                                                    <div class="text-danger competency_verifyea_result"></div>
-                                                </div>
-                                            </div>
-
-                                        </div>
 
                                         <div class="col-12 col-md-12 text-md-right">
 
-                                            <button type="button" class="btn btn-success" id="save_proprietor">Save</button>
-                                            <button type="button" class="btn btn-danger ms-2" id="cancel_proprietor">Cancel</button>
+                                            <button type="button" class="btn btn-success"
+                                                id="save_proprietor">Save</button>
+                                            <button type="button" class="btn btn-danger ms-2"
+                                                id="cancel_proprietor">Cancel</button>
 
 
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- <div class=" mt-4 ">
-                       <h3>Proprietor/Partner Details</h3> 
-                        <div class="col-12 col-md-12 text-md-right" id="static-add-button-wrapper">
-                            <button id="add-more-proprietor" class="btn btn-primary text-md-right"><i class="fa fa-plus"></i> Add Proprietor /Partner</button>
-                        </div>
-                        <div id="proprietor-container"></div> 
-                    </div> -->
+
                         </div>
                     </div>
                     <!-- style="display:none;" -->
-                    <div id="partner-section" class="mt-3">
+                   <div id="partner-section" class="mt-3" style="display: none;">
 
                         <div class="row mt-2">
-                            <!-- <div class="col-md-12 col-12 text-md-right pb-20">
-                                <button type="button" class="btn btn-primary" id="add-partner">
-                                    <i class="fa fa-plus"></i> Add Partner
-                                </button>
 
-                            </div> -->
 
                             <div class="col-md-12 col-12  pb-20">
                                 <h5 class="card-title_apply">Partners Details (if any)</h5>
@@ -805,89 +953,104 @@ exit; -->
                                 <table class="table table-bordered head_label_partner">
                                     <thead>
                                         <tr>
-                                            <th>Name </th>
-                                            <th>Father/s
-                                                Husband/s
-                                                Name</th>
-                                            <th>Age</th>
-                                            <th>Address </th>
-                                            <th>Qualifications</th>
+                                         <th>Name </th>
+                                    <th>Father/s
+                                        Husband/s
+                                        Name</th>
+                                    <th>D.O.B and Age</th>
+                                    <th>Address </th>
+                                    <th>Qualifications and Proof </th>
 
 
-                                            <th>Present business of
-                                                the applicant</th>
-                                            <th>Competency
-                                                Certificate and
-                                                Validity </th>
-                                            <th>Presently
-                                                Employed
-                                                and Address </th>
-                                            <th>If holding a
-                                                contractor
-                                                certificate </th>
+                                    <th>Present business of
+                                        the applicant</th>
+                                    <th>If holding a Supervisor Competency
+                                        Certificate and
+                                        Validity </th>
 
-                                            <!-- <th colspan="2" style="width: 100px;">
-                                                <button type="button" class="btn btn-primary" id="add-partner">
+                                            <th colspan="2" style="width: 100px;">
+                                                <button type="button" class="btn btn-primary add-partner"
+                                                    id="add-partner">
                                                     <i class="fa fa-plus"></i> Add
                                                 </button>
-                                            </th> -->
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
 
                                         @foreach ($proprietors as $p)
-                                        @if($p->ownership_type === 'pt')
-                                        <tr data-id="{{ $p->id }}">
+                                            @if($p->ownership_type === 'pt')
+                                      <tr data-id="{{ $p->id }}">
                                             <td>{{ $p->proprietor_name }}</td>
                                             <td>{{ $p->fathers_name }}</td>
-                                            <td>{{ $p->age }}</td>
+                                            <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}"
+                                                data-age_proof="{{ asset($p->age_proof) }}">
+                                                {{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                                <a href="{{ asset($p->age_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
                                             <td>{{ $p->proprietor_address }}</td>
-                                            <td>{{ $p->qualification }}</td>
+                                            <td data-qualification="{{ $p->qualification }}"
+                                                data-qual_text="{{ $p->qualification_text }}"
+                                                data-educational_proof="{{ asset($p->educational_proof) }}">
+                                                {{ $p->qualification }}, {{ $p->qualification_text }}
+                                                <a href="{{ asset($p->educational_proof) }}" target="_blank"><i
+                                                        class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                            </td>
                                             <td>{{ $p->present_business }}</td>
-                                            <td data-competency="{{ $p->competency_certificate_holding }}" data-certno="{{ $p->competency_certificate_number }}" data-validity="{{ $p->competency_certificate_validity }}">
-                                               @if($p->competency_certificate_holding == 'yes')
-                                                    Yes - CC_No: {{ $p->competency_certificate_number }}, 
-                                                    Validity: {{ \Carbon\Carbon::parse($p->competency_certificate_validity)->format('d-m-Y') }}
-                                                @else
-                                                    No
+                                            <td
+                                                data-competency="{{ $p->competency_certificate_holding }}"
+                                                data-certno="{{ $p->competency_certificate_number }}"
+                                                data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
+                                                data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
+                                                data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+
+                                                @if($p->competency_certificate_holding == 'yes')
+                                                Yes - CC_No: {{ $p->competency_certificate_number }},
+                                                First Issue:{{ \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('d-m-Y') }},
+                                                Validity From:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') }},
+                                                Validity To:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') }} @else
+                                                No
                                                 @endif
+
                                             </td>
-                                            <td data-employed="{{ $p->presently_employed }}" data-employer="{{ $p->presently_employed_name }}" data-empaddress="{{ $p->presently_employed_address }}">
-                                                {{ $p->presently_employed == 'yes' ? "Yes - {$p->presently_employed_name}, {$p->presently_employed_address}" : "No" }}
-                                            </td>
-                                            <td data-experience="{{ $p->previous_experience }}" data-expname="{{ $p->previous_experience_name }}" data-expaddress="{{ $p->previous_experience_address }}" data-explicense="{{ $p->previous_experience_lnumber }}" data-expvalidity="{{ $p->previous_experience_lnumber_validity }}">
-                                               {{ 
-                                                $p->previous_experience == 'yes' 
-                                                    ? "Yes - {$p->previous_experience_name}, {$p->previous_experience_address}, Lic No: {$p->previous_experience_lnumber}, Validity: " . \Carbon\Carbon::parse($p->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                    : "No" 
-                                            }}
+
+
+
+
+                                            <td style="display: none;">
+                                                <input type="hidden" name="ownership_type[]"
+                                                    value="{{ $p->ownership_type }}">
                                             </td>
                                             <td style="display: none;">
-                                                <input type="hidden" name="ownership_type[]" value="{{ $p->ownership_type }}">
+                                                <input type="hidden" name="row_index[]" value="{{ $p->row_index }}">
                                             </td>
+                                                                                <td>
+                                                                                    <button type="button" class="btn btn-primary btn-sm update-partner-row"
+                                                                                        data-id="{{ $p->id }}">
+                                                                                        <i class="fa fa-pencil"></i>
+                                                                                    </button>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <button type="button" class="btn btn-danger btn-sm remove-partner-row"
+                                                                                        data-id="{{ $p->id }}">
+                                                                                        <i class="fa fa-trash"></i>
+                                                                                    </button>
+                                                                                </td>
+                                                                            </tr>
 
 
-                                            <!-- <td>
-                                                <button type="button" class="btn btn-primary btn-sm update-partner-row" data-id="{{ $p->id }}">
-                                                    <i class="fa fa-pencil"></i>
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <button type="button" class="btn btn-danger btn-sm remove-partner-row" data-id="{{ $p->id }}">
-                                                    <i class="fa fa-trash"></i>
-                                                </button>
-                                            </td> -->
-                                        </tr>
-                                        
-                                        @endif
+                                            @endif
                                         @endforeach
-                                       
 
                                     </tbody>
                                 </table>
 
-                                <p class=" text-danger"> Note : Incase change of Partner new application has to be Submitted </p>
+
                             </div>
+
+
+
                             <!-- <div class="col-12 col-md-5  text-md-right">
                                 <h5>Number of Partners? (Min 2, Max 6)</h5>
                             </div>
@@ -899,7 +1062,10 @@ exit; -->
 
                         </div>
 
-                        <div class="border box-shadow-blue card p-3 mt-2" id="partnersfill-section" style="display:none;">
+
+
+                        <div class="partner-row border box-shadow-blue card p-3 mt-2" id="partnersfill-section"
+                            style="display:none;">
 
                             <h5>Partner Details</h5>
                             <div class="p-3">
@@ -907,49 +1073,216 @@ exit; -->
 
 
                                     <div class="col-md-6">
+                                        <input type="hidden" name="ownership_type[]" value="pt">
                                         <div class="row align-items-center">
                                             <div class="col-12 col-md-12">
-                                                <label for="Name">(i) Full name and house address of partners <span style="color: red;">*</span><br><span class="text-label" style="color: #023466;">(If it is partnership concern, partnership deed should be enclosed)</span></label>
+                                                <label for="Name">(i) Full name and house address of partners <span
+                                                        style="color: red;">*</span><br><span class="text-label"
+                                                        style="color: #023466;">(If it is partnership concern,
+                                                        partnership deed should be enclosed)</span></label>
                                             </div>
-                                            <div class="col-12 col-md-6">
-                                                <input type="hidden" class="form-control mb-2 ownership_type" maxlength="20" id="ownership_type" name="ownership_type[]" value="pt">
+
+                                            <div class="col-12 col-md-4">
                                                 <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
                                                 <label>Partner's Name <span class="text-red">*</span></label>
-                                                <input type="text" class="form-control mb-2 proprietor_name" maxlength="50" id="proprietor_name" name="proprietor_name[]" placeholder="Name">
+
+                                            </div>
+
+
+                                            <div class="col-12 col-md-6">
+                                                <input type="hidden" class="form-control mb-2 ownership_type"
+                                                    maxlength="20" id="ownership_type" name="ownership_type[]"
+                                                    value="pt">
+                                                <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+
+                                                <input type="text" class="form-control mb-2 proprietor_name"
+                                                    maxlength="50" id="proprietor_name" name="proprietor_name[]"
+                                                    placeholder="Partner's Name">
 
                                                 <span class="error text-danger" id="proprietor_name_error"></span>
                                             </div>
-                                            <div class="col-12 col-md-6">
+
+                                            <div class="col-12 col-md-4">
                                                 <label>Partner's Address <span class="text-red">*</span></label>
-                                                <textarea rows="3" class="form-control" name="proprietor_address[]" placeholder="Address"></textarea>
+
+                                            </div>
+                                            <div class="col-12 col-md-6">
+
+                                                <textarea rows="3" class="form-control" name="proprietor_address[]"
+                                                    placeholder="Partner's Address"></textarea>
                                                 <span class="error text-danger" id="proprietor_address_error"></span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <div class="row align-items-center">
+                                        <div class="row">
                                             <div class="col-12 col-md-12">
-                                                <label for="Name">(ii) Partner's Age and qualification along with
+                                                <label for="Name">(ii) Age and qualification along with
                                                     evidence <span style="color: red;">*</span></label>
                                             </div>
-                                            <div class="col-12 col-md-4">
-                                                <label>Partner Age <span class="text-red">*</span></label>
-                                                <input type="number" class="form-control" min="12" max="80" id="age" name="age[]" placeholder="Age" value="">
-                                                <span class="error text-danger" id="age_error"></span>
-                                            </div>
-                                            <div class="col-12 col-md-6">
-                                                <label>Partner Qualification <span class="text-red">*</span></label>
-                                                <input type="text" class="form-control" id="qualification" name="qualification[]" placeholder="Qualification" value="">
-                                                <!-- <input type="text"
-                                        class="form-control" id="validity" name="validity"
-                                        placeholder="Validity"
-                                        onfocus="(this.type='date')"
-                                        onblur="(this.type='text')"> -->
-                                                <span class="error text-danger" id="qualification_error"></span>
 
+                                        </div>
+
+
+
+                                        <div class="row">
+                                            <div class="col-12 col-md-3">
+                                                <label>Date Of Birth <span class="text-red">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <input type="date" class="form-control dob" name="dob[]">
+                                                <span class="error text-danger dob_error"></span>
+                                            </div>
+
+                                            <div class="col-12 col-md-2">
+                                                <label>Age <span class="text-red">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-3">
+                                                <input type="number" class="form-control age" name="age[]" readonly>
+                                                <span class="error text-danger age_error"></span>
                                             </div>
                                         </div>
+
+
+                                        <div class="row mt-2">
+                                            <div class="col-12 col-md-3 ">
+                                                <label>Qualification <span class="text-red">*</span></label>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <select class="form-control qualification" name="qualification[]">
+                                                    <option value="">Select Qualification</option>
+                                                    <option value="8TH PASS">8TH PASS</option>
+                                                    <option value="DEGREE">DEGREE</option>
+                                                    <option value="DIPLOMA">DIPLOMA</option>
+                                                    <option value="MASTER DEGREE">MASTER DEGREE</option>
+                                                </select>
+                                                <span class="error text-danger qualification_error"></span>
+                                            </div>
+
+
+                                            <div class="col-12 col-md-5 qualTextWrapper" id="qualTextWrapper"
+                                                style="display:none;">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-5">
+                                                        <label>Enter Qualification <span
+                                                                class="text-red">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-7">
+                                                        <input type="text" class="form-control" id="qual_text"
+                                                            name="qual_text[]">
+                                                        <span class="error text-danger qual_text_error"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mt-2">
+
+                                            <div class="col-12 col-md-3">
+                                                <label>Age Proof <span class="text-red">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                        <input type="file" class="form-control" name="age_proof[]"
+                                                            accept="application/pdf">
+
+
+
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger Doc_upload_error"></span>
+                                                        <span class="error text-danger age_proof_error"></span>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn"
+                                                            data-login_id="{{ Auth::user()->login_id }}"
+                                                            data-module="AGE PROOF" data-document_category="age_proof"
+                                                            data-ownership_type="pt" data-row-index=""
+                                                            data-document_sub_category="AP"
+                                                            data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+
+
+                                                    </div>
+
+                                                    <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12 col-12 age-file-link">
+
+                                            </div>
+
+
+
+
+
+                                        </div>
+
+
+                                        <div class="row mt-2">
+
+                                            <div class="col-12 col-md-3">
+                                                <label>Qualification Proof <span class="text-red">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-8">
+                                                        <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                        <input type="file" class="form-control" name="qual_proof[]"
+                                                            accept="application/pdf">
+
+
+
+                                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                        <br>
+                                                        <span class="text-danger Doc_upload_error"></span>
+                                                        <span class="error text-danger qual_proof_error"></span>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <button type="button" class="btn btn-info upload-btn"
+                                                            data-login_id="{{ Auth::user()->login_id }}"
+                                                            data-module="OWNERSHIP EDUCATIONAL DOCUMENT"
+                                                            data-document_category="educ_qual_proof"
+                                                            data-ownership_type="pt" data-row-index=""
+                                                            data-document_sub_category="OED"
+                                                            data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12 col-12  file-link">
+                                                <!-- @if(!empty($application->educational_proof))
+                                                <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                                </a>
+                                            @endif -->
+                                            </div>
+
+
+
+                                            <!-- <div class="col-12 col-md-3">
+                                            <button class="btn btn-info"> <i class="fa fa-upload"></i> Upload </button>
+                                        </div> -->
+
+                                        </div>
+
+
+
+
                                     </div>
 
                                 </div>
@@ -958,11 +1291,14 @@ exit; -->
                                 <div class="row mt-2">
                                     <div class="col-md-6">
                                         <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(iii) Partner's Father/Husband's name <span style="color: red;">*</span></label>
+                                            <div class="col-12 col-md-4">
+                                                <label for="Name">(iii) Partner's Father/Husband's name <span
+                                                        style="color: red;">*</span></label>
                                             </div>
-                                            <div class="col-12 col-md-12">
-                                                <input type="text" class="form-control" id="fathers_name" maxlength="50" name="fathers_name[]" value="" placeholder="Father/Husband's name">
+                                            <div class="col-12 col-md-6">
+                                                <input type="text" class="form-control" id="fathers_name" maxlength="50"
+                                                    name="fathers_name[]" value=""
+                                                    placeholder="Partner's Father/Husband's name">
                                                 <span class="error text-danger" id="fathers_name_error"></span>
                                             </div>
                                         </div>
@@ -970,11 +1306,14 @@ exit; -->
 
                                     <div class="col-md-6">
                                         <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(iv) Partner's Present business of the applicant <span style="color: red;">*</span></label>
+                                            <div class="col-12 col-md-6">
+                                                <label for="Name">(iv) Partner's Present business of the applicant <span
+                                                        style="color: red;">*</span></label>
                                             </div>
-                                            <div class="col-12 col-md-12">
-                                                <input type="text" class="form-control" id="present_business" name="present_business[]" value="" maxlength="50" placeholder="Present business of the applicant">
+                                            <div class="col-12 col-md-6">
+                                                <input type="text" class="form-control" id="present_business"
+                                                    name="present_business[]" value="" maxlength="50"
+                                                    placeholder="Partner's Present business of the applicant">
                                                 <span class="error text-danger" id="present_business_error"></span>
                                             </div>
 
@@ -983,239 +1322,150 @@ exit; -->
 
                                 </div>
                                 <!-- ---------------------- -->
-                                <div class="row mt-2">
-                                    <!-- <div class="col-md-6">
+                                 <div class="row mt-2">
+
+
+                                    <div class="col-md-12">
                                         <div class="row align-items-center">
                                             <div class="col-12 col-md-12">
-                                                <label for="competency_certificate_holding">(v) Whether holding a competency certificate and if so, the number and validity of the competency certificate</label>
-                                            </div>
-                                            <div class="col-12 col-md-12">
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="competency_yes" name="competency_certificate_holding[0]" value="yes" onclick="toggleCompetencyFields_partners(true)">
-                                                    <label class="form-check-label" for="competency_yes">Yes</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="competency_no" name="competency_certificate_holding[0]" value="no" onclick="toggleCompetencyFields_partners(false)">
-                                                    <label class="form-check-label" for="competency_no">No</label>
-                                                </div>
-                                              
-                                                <span class="text-danger competency_certificate_holding_error ms-3"></span>
+                                                <label>(v) Whether holding a Supervisor Competency Certificate and if so,
+                                                    the Number and Validity</label>
                                             </div>
 
-
-                                            <div class="col-12 col-md-5 mt-1  competency-fields_partners" style="display: none;">
-                                                <label>Competency Certificate No <span style="color: red;">*</span></label>
-                                                <input type="text" class="form-control mt-1 competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="Certificate Number">
-                                                <span class="error text-danger competency_number_error"></span>
-                                            </div>
-                                            <div class="col-12 col-md-5 mt-1 competency-fields_partners" style="display: none;">
-                                                <label> Validity Date (DD/MM/YYYY) <span style="color: red;">*</span></label>
-                                                <input type="text" 
-                                                    onfocus="(this.type='date')"
-                                                    class="form-control competency_validity"
-                                                    name="competency_certificate_validity[]"
-                                                    placeholder="License Number Validity">
-
-                                                <span class="error text-danger competency_validity_error"></span>
-
-
-
-                                            </div>
-
-                                            <div class="col-12 col-md-2 mt-3  competency-fields_partners" style="display: none;">
-                                                <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
-                                               
-
-                                                <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
-
-
-                                            </div>
-
-                                            <div class="col-12 mt-1">
-                                                <div class="text-danger competency_verify_result"></div>
-                                            </div>
-                                        </div>
-                                    </div> -->
-
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label>(v) Whether holding a competency certificate and if so, the number and validity</label>
-                                            </div>
 
                                             <div class="col-12 col-md-12">
                                                 <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio"
-                                                        id="competency_yes_partner"
-                                                        name="competency_certificate_holding[0]"
-                                                        value="yes"
-                                                        onclick="toggleCompetencyFields('partner', true)">
-                                                    <label class="form-check-label" for="competency_yes_partner">Yes</label>
+                                                    <input class="form-check-input" type="radio" id="competency_yes"
+                                                        name="competency_certificate_holding[]" value="yes"
+                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                    <label class="form-check-label"
+                                                        for="competency_yes_proprietor">Yes</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio"
-                                                        id="competency_no_partner"
-                                                        name="competency_certificate_holding[0]"
-                                                        value="no"
-                                                        onclick="toggleCompetencyFields('partner', false)"
+                                                    <input class="form-check-input" type="radio" id="competency_no"
+                                                        name="competency_certificate_holding[]" value="no"
+                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
                                                         checked>
-                                                    <label class="form-check-label" for="competency_no_partner">No</label>
+                                                    <label class="form-check-label"
+                                                        for="competency_no_proprietor">No</label>
                                                 </div>
                                             </div>
 
-                                            <div class="col-12 col-md-5 mt-1 competency-fields-partner" style="display: none;">
-                                                  <label>Competency Certificate No <span style="color: red;">*</span></label>
-                                                <input type="text" class="form-control mt-1 competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="Certificate Number">
-                                                <span class="error text-danger competency_number_error"></span>
+                                            <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                                style="display: none;">
+                                                <div class="row">
+                                                    <div class="col-12 col-md-3">
+                                                        <div class="row">
+
+                                                            <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                                <label>CC Number <span style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-8 mt-1">
+                                                                <input type="text"
+                                                                    class="form-control competency_number"
+                                                                    name="competency_certificate_number[]"
+                                                                    maxlength="15"
+                                                                    placeholder="CC Number">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_number_error"></span>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-4">
+                                                        <div class="row">
+
+                                                            <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                                <label>Date of First Issue <span
+                                                                        style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-6 mt-1">
+                                                                <input type="date"
+                                                                    class="form-control competency_validity_first_issue"
+                                                                    name="competency_certificate_first_issue[]"
+                                                                    placeholder="Date of First Issue">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_first_issue_error"></span>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-5">
+                                                        <div class="row">
+
+                                                            <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                                <label>Validity From <span
+                                                                        style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-4 mt-1">
+                                                                <input type="text"
+                                                                    class="form-control competency_validity_from"
+                                                                    name="competency_certificate_validity_from[]"
+                                                                    placeholder="Validity From">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_validity_from_error"></span>
+                                                            </div>
+                                                            <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                                <label>Validity <br>To <span
+                                                                        style="color: red;">*</span></label>
+                                                            </div>
+                                                            <div class="col-12 col-md-4 mt-1">
+                                                                <input type="text"
+                                                                    class="form-control competency_validity_to"
+                                                                    name="competency_certificate_validity_to[]"
+                                                                    placeholder="Validity To">
+                                                                <span class="error text-danger"
+                                                                    id="competency_certificate_validity_to_error"></span>
+                                                                {{-- <input type="date"
+                                                                class="form-control flatpickr flatpickr-input competency_validity"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To"> --}}
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
+                                                        <button type="button"
+                                                            class="btn btn-primary"
+                                                            id="verify_competency_btn">
+                                                            Verify
+                                                        </button>
+                                                    </div>
+
+
+                                                </div>
+
                                             </div>
 
-                                            <div class="col-12 col-md-5 mt-1 competency-fields-partner" style="display: none;">
-                                                <label> Validity Date (DD/MM/YYYY) <span style="color: red;">*</span></label>
-                                                <input type="date" 
-                                                    onfocus="(this.type='date')"
-                                                    class="form-control competency_validity"
-                                                    name="competency_certificate_validity[]"
-                                                    placeholder="License Number Validity">
 
-                                                <span class="error text-danger competency_validity_error"></span>
-                                            </div>
-
-                                            <div class="col-12 col-md-2 mt-3 competency-fields-partner" style="display: none;">
-                                                <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
-                                               
-
-                                                <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
-                                            </div>
-
-                                            <div class="col-12 mt-1">
-                                                <div class="text-danger competency_verify_result"></div>
-                                            </div>
                                         </div>
                                     </div>
 
 
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(vi) Whether he is presently employed
-                                                    anywhere, If so the name and
-                                                    address of the employer.<br>
-                                                    If not details of the Present
-                                                    business.
-                                                </label>
-                                            </div>
-                                            <div class="col-12 col-md-12">
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="employed_yes" name="presently_employed[0]" value="yes" onclick="toggleEmploymentFields('partner', true)">
-                                                    <label class="form-check-label" for="employed_yes">Yes</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="employed_no" name="presently_employed[0]" value="no" onclick="toggleEmploymentFields('partner', false)">
-                                                    <label class="form-check-label" for="employed_no">No</label>
-                                                </div>
-                                                <span class="error text-danger presently_employed_error" id="presently_employed_error"></span>
-                                            </div>
-
-                                            <div class="col-12 col-md-6 mt-1 employment-fields-partner" style="display: none;">
-                                                <label>Name of the Employer <span class="text-red">*</span></label>
-                                                <input type="text" class="form-control" id="presently_employed_name" name="presently_employed_name[]" maxlength="50" placeholder="Name">
-                                                <span class="error text-danger presently_employed_name_error"></span>
-                                            </div>
-                                            <div class="col-12 col-md-6 mt-1  employment-fields-partner" style="display: none;">
-                                                <label>Address of the Employer <span class="text-red">*</span></label>
-                                                <textarea class="form-control" id="presently_employed_address" name="presently_employed_address[]" placeholder="Address"></textarea>
-
-                                                <span class="error text-danger presently_employed_address_error"></span>
-                                            </div>
+                                    <div id="competency_exp_result" class="mt-3"></div>
 
 
-
-                                        </div>
-                                    </div>
 
                                 </div>
+
 
 
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(vii) If holding a competency certificate, details of previous experience with
-                                                    period. If the applicant has worked under a contractor, licensed by this
-                                                    Licensing Board, the name, address, and licence No. of the contractor.<br>
-                                                    <span style="color: #023466;">(Note: Details should be furnished for each partner/Director) </span>
-                                                </label>
-                                            </div>
-
-                                            <div class="col-12 col-md-12">
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[0]" value="yes" onclick="toggleExperienceFields('partner', true)">
-                                                    <label class="form-check-label" for="previous_experience">Yes</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[0]" value="no" onclick="toggleExperienceFields('partner', false)">
-                                                    <label class="form-check-label" for="previous_experience">No</label>
-                                                </div>
-
-
-                                                <span class="error text-danger previous_experience_error" id="previous_experience_error"></span>
-                                            </div>
-
-
-                                            <div class="col-12 col-md-12  experience-fields-partner" style="display: none;">
-                                                <div class="row">
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Name of the Contractor <span class="text-red">*</span></label>
-                                                        <input class="form-control" type="text" id="previous_experience_name" name="previous_experience_name[]" placeholder="Name">
-
-                                                        <span class="error text-danger previous_experience_name_error"></span>
-                                                    </div>
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Address of the Contractor <span class="text-red">*</span></label>
-                                                        <textarea class="form-control" id="previous_experience_address" name="previous_experience_address[]" placeholder="Address"></textarea>
-
-                                                        <span class="error text-danger previous_experience_address_error"></span>
-                                                    </div>
-
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Previous EA Licence A Grade Number <span class="text-red">*</span></label>
-                                                        <input class="form-control ea_license_number" type="text" id="previous_experience_lnumber" maxlength="15" name="previous_experience_lnumber[]" placeholder="License Number">
-
-                                                        <span class="error text-danger previous_experience_lnumber_error"></span>
-                                                    </div>
-
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Previous EA Licence A Grade Validity Date (DD/MM/YYYY) <span class="text-red">*</span></label>
-                                                        <input class="form-control ea_validity" type="date" 
-                                                            onfocus="(this.type='date')"
-                                                            id="previous_experience_lnumber_validity" name="previous_experience_lnumber_validity[]" placeholder="License Number Validity">
-
-                                                        <span class="error text-danger previous_experience_lnumber_validity_error"></span>
-                                                    </div>
-
-                                                    <div class="col-12 col-md-2 mt-5">
-                                                        <button type="button" class="btn btn-primary" onclick="verifyeaCertificate(event, this)">Verify</button>
-                                                        <!-- <input type="text" name="proprietor_contractor_verify[]" class="contactor_license_verify" value="0"> -->
-                                                        <input type="hidden" name="proprietor_contractor_verify[]" class="proprietor_contractor_verify" value="0">
-
-                                                    </div>
-
-
-
-                                                    <div class="col-12 mt-1">
-                                                        <div class="text-danger competency_verifyea_result"></div>
-                                                    </div>
-                                                </div>
-
-                                            </div>
 
                                             <div class="col-12 col-md-12 text-md-right">
-                                                <button type="button" class="btn btn-success" id="save_partner">Save</button>
+                                                <button type="button" class="btn btn-success"
+                                                    id="save_partner">Save</button>
 
-                                                <button type="button" id="cancel_update" class="btn btn-danger ms-2">Cancel</button>
+                                                <button type="button" id="cancel_update"
+                                                    class="btn btn-danger ms-2">Cancel</button>
 
                                             </div>
-                                            
+
                                         </div>
                                     </div>
                                 </div>
@@ -1226,105 +1476,122 @@ exit; -->
                         <div id="partner-container"></div>
                     </div>
 
-                    <!-- Directorsstyle="display:none;" -->
-                    <div id="director-section" class="mt-3">
-                        <div class="row mt-2">
-                            <!-- <div class="col-md-12 col-12 text-md-right pb-20">
+            <!-- Directorsstyle="display:none;" -->
+            <div id="director-section" class="mt-3" style="display: none;">
+                <div class="row mt-2">
+                    <!-- <div class="col-md-12 col-12 text-md-right pb-20">
                                 <button type="button" class="btn btn-primary" id="add-partner">
                                     <i class="fa fa-plus"></i> Add Partner
                                 </button>
 
                             </div> -->
 
-                            <div class="col-md-12 col-12  pb-20">
-                                <h5 class="card-title_apply">Directors Details (if any)</h5>
+                    <div class="col-md-12 col-12  pb-20">
+                        <h5 class="card-title_apply">Directors Details (if any)</h5>
 
-                            </div>
+                    </div>
 
-                            <div class="table-responsive">
-                                <table class="table table-bordered head_label_director">
-                                    <thead>
-                                        <tr>
-                                            <th>Name </th>
-                                            <th>Father/s
-                                                Husband/s
-                                                Name</th>
-                                            <th>Age</th>
-                                            <th>Address </th>
-                                            <th>Qualifications</th>
-
-
-                                            <th>Present business of
-                                                the applicant</th>
-                                            <th>Competency
-                                                Certificate and
-                                                Validity </th>
-                                            <th>Presently
-                                                Employed
-                                                and Address </th>
-                                            <th>If holding a
-                                                contractor
-                                                certificate </th>
-
-                                            <th colspan="2" style="width: 100px;">
-                                                <button type="button" class="btn btn-primary" id="add-director">
-                                                    <i class="fa fa-plus"></i> Add
-                                                </button>
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                   <tbody>
-
-                                        @foreach ($proprietors as $p)
-                                        @if($p->ownership_type === 'dr')
-                                        <tr data-id="{{ $p->id }}">
-                                            <td>{{ $p->proprietor_name }}</td>
-                                            <td>{{ $p->fathers_name }}</td>
-                                            <td>{{ $p->age }}</td>
-                                            <td>{{ $p->proprietor_address }}</td>
-                                            <td>{{ $p->qualification }}</td>
-                                            <td>{{ $p->present_business }}</td>
-                                            <td data-competency="{{ $p->competency_certificate_holding }}" data-certno="{{ $p->competency_certificate_number }}" data-validity="{{ $p->competency_certificate_validity }}">
-                                               @if($p->competency_certificate_holding == 'yes')
-                                                    Yes - CC_No: {{ $p->competency_certificate_number }}, 
-                                                    Validity: {{ \Carbon\Carbon::parse($p->competency_certificate_validity)->format('d-m-Y') }}
-                                                @else
-                                                    No
-                                                @endif
-                                            </td>
-                                            <td data-employed="{{ $p->presently_employed }}" data-employer="{{ $p->presently_employed_name }}" data-empaddress="{{ $p->presently_employed_address }}">
-                                                {{ $p->presently_employed == 'yes' ? "Yes - {$p->presently_employed_name}, {$p->presently_employed_address}" : "No" }}
-                                            </td>
-                                            <td data-experience="{{ $p->previous_experience }}" data-expname="{{ $p->previous_experience_name }}" data-expaddress="{{ $p->previous_experience_address }}" data-explicense="{{ $p->previous_experience_lnumber }}" data-expvalidity="{{ $p->previous_experience_lnumber_validity }}">
-                                               {{ 
-                                                $p->previous_experience == 'yes' 
-                                                    ? "Yes - {$p->previous_experience_name}, {$p->previous_experience_address}, Lic No: {$p->previous_experience_lnumber}, Validity: " . \Carbon\Carbon::parse($p->previous_experience_lnumber_validity)->format('d-m-Y') 
-                                                    : "No" 
-                                            }}
-                                            </td>
-                                            <td style="display: none;">
-                                                <input type="hidden" name="ownership_type[]" value="{{ $p->ownership_type }}">
-                                            </td>
+                    <div class="table-responsive">
+                        <table class="table table-bordered head_label_director">
+                            <thead>
+                                <tr>
+                                    <th>Name </th>
+                                    <th>Father/s
+                                        Husband/s
+                                        Name</th>
+                                    <th>D.O.B and Age</th>
+                                    <th>Address </th>
+                                    <th>Qualifications and Proof </th>
 
 
-                                            <td>
-                                                <button type="button" class="btn btn-primary btn-sm update-director-row" data-id="{{ $p->id }}">
-                                                    <i class="fa fa-pencil"></i>
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <button type="button" class="btn btn-danger btn-sm remove-director-row" data-id="{{ $p->id }}">
-                                                    <i class="fa fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
+                                    <th>Present business of
+                                        the applicant</th>
+                                    <th>If holding a Supervisor Competency
+                                        Certificate and
+                                        Validity </th>
+
+                                    <th colspan="2" style="width: 100px;">
+                                        <button type="button" class="btn btn-primary" id="add-director">
+                                            <i class="fa fa-plus"></i> Add
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                            <tbody>
+
+                                @foreach ($proprietors as $p)
+                                @if($p->ownership_type === 'dr')
+                                <tr data-id="{{ $p->id }}">
+                                    <td>{{ $p->proprietor_name }}</td>
+                                    <td>{{ $p->fathers_name }}</td>
+                                    <td data-dob="{{ $p->dob }}" data-age="{{ $p->age }}"
+                                        data-age_proof="{{ asset($p->age_proof) }}">
+                                        {{ \Carbon\Carbon::parse($p->dob)->format('d-m-Y') }},{{ $p->age }}
+                                        <a href="{{ asset($p->age_proof) }}" target="_blank"><i
+                                                class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                    </td>
+                                    <td>{{ $p->proprietor_address }}</td>
+                                    <td data-qualification="{{ $p->qualification }}"
+                                        data-qual_text="{{ $p->qualification_text }}"
+                                        data-educational_proof="{{ asset($p->educational_proof) }}">
+                                        {{ $p->qualification }}, {{ $p->qualification_text }}
+                                        <a href="{{ asset($p->educational_proof) }}" target="_blank"><i
+                                                class="fa fa-file-pdf-o" style="color: red;"></i></a>
+                                    </td>
+                                    <td>{{ $p->present_business }}</td>
+                                    <td
+                                        data-competency="{{ $p->competency_certificate_holding }}"
+                                        data-certno="{{ $p->competency_certificate_number }}"
+                                        data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
+                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
+                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+
+                                        @if($p->competency_certificate_holding == 'yes')
+                                        Yes - CC_No: {{ $p->competency_certificate_number }},
+                                        First Issue:{{ \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('d-m-Y') }},
+                                        Validity From:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') }},
+                                        Validity To:{{ \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') }} @else
+                                        No
                                         @endif
-                                        @endforeach
 
-                                    </tbody>
-                                </table>
-                            </div>
-                            <!-- <div class="col-12 col-md-5  text-md-right">
+                                    </td>
+
+
+
+
+                                    <td style="display: none;">
+                                        <input type="hidden" name="ownership_type[]"
+                                            value="{{ $p->ownership_type }}">
+                                    </td>
+                                    <td style="display: none;">
+                                        <input type="hidden" name="row_index[]" value="{{ $p->row_index }}">
+                                    </td>
+
+
+
+
+                                    <td>
+                                        <button type="button" class="btn btn-primary btn-sm update-director-row"
+                                            data-id="{{ $p->id }}">
+                                            <i class="fa fa-pencil"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm remove-director-row"
+                                            data-id="{{ $p->id }}">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endif
+                                @endforeach
+
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- <div class="col-12 col-md-5  text-md-right">
                                 <h5>Number of Partners? (Min 2, Max 6)</h5>
                             </div>
                             <div class="col-12 col-md-3">
@@ -1333,476 +1600,541 @@ exit; -->
                             </div> -->
 
 
+                </div>
+                <div class="border box-shadow-blue card p-3 mt-2" id="directorfill-section"
+                    style="display:none;">
+                    <h5>Director Details</h5>
+                    <div class=" p-3 ">
+                        <div class="row mt-2 managing-director-wrapper">
+                            <div class="col-md-12">
+                                <div class="form-check">
+                                    <input class="form-check-input managing-director-checkbox" type="checkbox"
+                                        id="is_managing_director">
+
+                                    <label class="form-check-label" for="is_managing_director">
+                                        Is this person Managing Director?
+                                    </label>
+                                </div>
+                            </div>
                         </div>
-                        <div class="border box-shadow-blue card p-3 mt-2" id="directorfill-section" style="display:none;">
-                            <h5>Director Details</h5>
-                            <div class=" p-3 ">
-                                <div class="row  ">
+                        <div class="row mt-1 ">
 
 
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(i) Full name and house address of Directors <span style="color: red;">*</span><br><span class="text-label" style="color: #023466;">(If it is partnership concern, partnership deed should be enclosed)</span></label>
-                                            </div>
-                                            <div class="col-12 col-md-6">
-                                                <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
-                                                  <input type="hidden" class="form-control mb-2 ownership_type" maxlength="20" id="ownership_type" name="ownership_type[]" value="dr">
-                                                <label>Director's Name <span class="text-red">*</span></label>
-                                                <input type="text" class="form-control mb-2 proprietor_name" maxlength="50" id="proprietor_name" name="proprietor_name[]" placeholder="Name">
-
-                                                <span class="error text-danger" id="proprietor_name_error"></span>
-                                            </div>
-                                            <div class="col-12 col-md-6">
-                                                <label>Director's Address <span class="text-red">*</span></label>
-                                                <textarea rows="3" class="form-control" name="proprietor_address[]" placeholder="Address"></textarea>
-                                                <span class="error text-danger" id="proprietor_address_error"></span>
-                                            </div>
-                                        </div>
+                            <div class="col-md-6">
+                                <input type="hidden" name="ownership_type[]" value="dr">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(i) Full name and house address of directors <span
+                                                style="color: red;">*</span><br><span class="text-label"
+                                                style="color: #023466;">(If it is partnership concern,
+                                                partnership deed should be enclosed)</span></label>
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(ii) Director's Age and qualification along with
-                                                    evidence <span style="color: red;">*</span></label>
-                                            </div>
-                                            <div class="col-12 col-md-4">
-                                                <label>Director's Age <span class="text-red">*</span></label>
-                                                <input type="number" class="form-control" id="age" name="age[]" maxlength="2" min="15" max="70" placeholder="Age" value="">
-                                                <span class="error text-danger" id="age_error"></span>
-                                            </div>
-                                            <div class="col-12 col-md-6">
-                                                <label> Director's Qualification <span class="text-red">*</span></label>
-                                                <input type="text" class="form-control" id="qualification" name="qualification[]" placeholder="Qualification" value="">
-                                                <!-- <input type="text"
-                                        class="form-control" id="validity" name="validity"
-                                        placeholder="Validity"
-                                        onfocus="(this.type='date')"
-                                        onblur="(this.type='text')"> -->
-                                                <span class="error text-danger" id="qualification_error"></span>
+                                    <div class="col-12 col-md-4">
+                                        <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+                                        <label>Director's Name <span class="text-red">*</span></label>
 
-                                            </div>
-                                        </div>
+                                    </div>
+
+
+                                    <div class="col-12 col-md-6">
+                                        <input type="hidden" class="form-control mb-2 ownership_type"
+                                            maxlength="20" id="ownership_type" name="ownership_type[]"
+                                            value="dr">
+                                        <!-- <textarea rows="3" class="form-control" name="proprietor_name"></textarea> -->
+
+                                        <input type="text" class="form-control mb-2 proprietor_name"
+                                            maxlength="50" id="proprietor_name" name="proprietor_name[]"
+                                            placeholder="Director's Name">
+
+
+
+                                        <span class="error text-danger" id="proprietor_name_error"></span>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <label>Director's Address <span class="text-red">*</span></label>
+
+                                    </div>
+                                    <div class="col-12 col-md-6">
+
+                                        <textarea rows="3" class="form-control" name="proprietor_address[]"
+                                            placeholder="Director's Address"></textarea>
+                                        <span class="error text-danger" id="proprietor_address_error"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(ii) Age and qualification along with
+                                            evidence <span style="color: red;">*</span></label>
                                     </div>
 
                                 </div>
 
-                                <!-- ------------------------------------------ -->
-                                <div class="row mt-2">
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(iii) Director's Father/Husband's name <span style="color: red;">*</span></label>
-                                            </div>
-                                            <div class="col-12 col-md-12">
-                                                <input type="text" class="form-control" id="fathers_name" maxlength="50" name="fathers_name[]" value="" placeholder="Father/Husband's name">
-                                                <span class="error text-danger" id="fathers_name_error"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(iv) Director's Present business of the applicant <span style="color: red;">*</span></label>
-                                            </div>
-                                            <div class="col-12 col-md-12">
-                                                <input type="text" class="form-control" id="present_business" name="present_business[]" value="" maxlength="50" placeholder="Present business of the applicant">
-                                                <span class="error text-danger" id="present_business_error"></span>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                </div>
-                                <!-- ---------------------- -->
-                             <div class="row mt-2">
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label>(v) Whether holding a competency certificate and if so, the number and validity</label>
-                                            </div>
-
-                                            <div class="col-12 col-md-12">
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio"
-                                                        id="competency_yes_director"
-                                                        name="competency_certificate_holding[0]"
-                                                        value="yes"
-                                                        onclick="toggleCompetencyFields('director', true)">
-                                                    <label class="form-check-label" for="competency_yes_director">Yes</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio"
-                                                        id="competency_no_director"
-                                                        name="competency_certificate_holding[0]"
-                                                        value="no"
-                                                        onclick="toggleCompetencyFields('director', false)"
-                                                        checked>
-                                                    <label class="form-check-label" for="competency_no_director">No</label>
-                                                </div>
-                                            </div>
-
-                                            <div class="col-12 col-md-5 mt-1 competency-fields-director" style="display: none;">
-                                                  <label>Competency Certificate No <span style="color: red;">*</span></label>
-                                                <input type="text" class="form-control mt-1 competency_number" name="competency_certificate_number[]" maxlength="15" placeholder="Certificate Number">
-                                                <span class="error text-danger competency_number_error"></span>
-                                            </div>
-
-                                            <div class="col-12 col-md-5 mt-1 competency-fields-director" style="display: none;">
-                                                <label> Validity Date (DD/MM/YYYY) <span style="color: red;">*</span></label>
-                                                <input type="date" 
-                                                    onfocus="(this.type='date')"
-                                                    class="form-control competency_validity"
-                                                    name="competency_certificate_validity[]"
-                                                    placeholder="License Number Validity">
-
-                                                <span class="error text-danger competency_validity_error"></span>
-                                            </div>
-
-                                            <div class="col-12 col-md-2 mt-3 competency-fields-director" style="display: none;">
-                                                <button type="button" class="btn btn-primary" onclick="verifyCompetencyCertificate(event, this)">Verify</button>
-                                               
-
-                                                <input type="hidden" name="proprietor_cc_verify[]" class="proprietor_cc_verify" value="0">
-                                            </div>
-
-                                            <div class="col-12 mt-1">
-                                                <div class="text-danger competency_verify_result"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                    <div class="col-md-6">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(vi) Whether he is presently employed
-                                                    anywhere, If so the name and
-                                                    address of the employer.<br>
-                                                    If not details of the Present
-                                                    business.
-                                                </label>
-                                            </div>
-                                            <div class="col-12 col-md-12">
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="employed_yes" name="presently_employed[0]" value="yes" onclick="toggleEmploymentFields('director', true)">
-                                                    <label class="form-check-label" for="employed_yes">Yes</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="employed_no" name="presently_employed[0]" value="no" onclick="toggleEmploymentFields('director', false)">
-                                                    <label class="form-check-label" for="employed_no">No</label>
-                                                </div>
-                                                <span class="error text-danger presently_employed_error" id="presently_employed_error"></span>
-                                            </div>
-
-                                            <div class="col-12 col-md-6 mt-1 employment-fields-director" style="display: none;">
-                                                <label>Name of the Employer <span class="text-red">*</span></label>
-                                                <input type="text" class="form-control" id="presently_employed_name" name="presently_employed_name[]" maxlength="50" placeholder="Name">
-                                                <span class="error text-danger presently_employed_name_error"></span>
-                                            </div>
-                                            <div class="col-12 col-md-6 mt-1  employment-fields-director" style="display: none;">
-                                                <label>Address of the Employer <span class="text-red">*</span></label>
-                                                <textarea class="form-control" id="presently_employed_address" name="presently_employed_address[]" placeholder="Address"></textarea>
-
-                                                <span class="error text-danger presently_employed_address_error"></span>
-                                            </div>
-
-
-
-                                        </div>
-                                    </div>
-
-                                </div>
 
 
                                 <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="row align-items-center">
-                                            <div class="col-12 col-md-12">
-                                                <label for="Name">(vii) If holding a competency certificate, details of previous experience with
-                                                    period. If the applicant has worked under a contractor, licensed by this
-                                                    Licensing Board, the name, address, and licence No. of the contractor.<br>
-                                                    <span style="color: #023466;">(Note: Details should be furnished for each partner/Director) </span>
-                                                </label>
-                                            </div>
+                                    <div class="col-12 col-md-3">
+                                        <label>Date Of Birth <span class="text-red">*</span></label>
+                                    </div>
 
-                                            <div class="col-12 col-md-12">
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[0]" value="yes" onclick="toggleExperienceFields('director', true)">
-                                                    <label class="form-check-label" for="previous_experience">Yes</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio" id="previous_experience" name="previous_experience[0]" value="no" onclick="toggleExperienceFields('director', false)">
-                                                    <label class="form-check-label" for="previous_experience">No</label>
-                                                </div>
+                                    <div class="col-12 col-md-4">
+                                        <input type="date" class="form-control dob" name="dob[]">
+                                        <span class="error text-danger dob_error"></span>
+                                    </div>
 
+                                    <div class="col-12 col-md-2">
+                                        <label>Age <span class="text-red">*</span></label>
+                                    </div>
 
-                                                <span class="error text-danger previous_experience_error" id="previous_experience_error"></span>
-                                            </div>
-
-
-                                            <div class="col-12 col-md-12  experience-fields-director" style="display: none;">
-                                                <div class="row">
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Name of the Contractor <span class="text-red">*</span></label>
-                                                        <input class="form-control" type="text" id="previous_experience_name" name="previous_experience_name[]" placeholder="Name">
-
-                                                        <span class="error text-danger previous_experience_name_error"></span>
-                                                    </div>
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Address of the Contractor <span class="text-red">*</span></label>
-                                                        <textarea class="form-control" id="previous_experience_address" name="previous_experience_address[]" placeholder="Address"></textarea>
-
-                                                        <span class="error text-danger previous_experience_address_error"></span>
-                                                    </div>
-
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Previous EA Licence A Grade Number <span class="text-red">*</span></label>
-                                                        <input class="form-control ea_license_number" type="text" id="previous_experience_lnumber" maxlength="15" name="previous_experience_lnumber[]" placeholder="License Number">
-
-                                                        <span class="error text-danger previous_experience_lnumber_error"></span>
-                                                    </div>
-
-                                                    <div class="col-12 col-md-5 mt-1">
-                                                        <label>Previous EA Licence A Grade Validity Date (DD/MM/YYYY) <span class="text-red">*</span></label>
-                                                        <input class="form-control ea_validity" type="date" 
-                                                            onfocus="(this.type='date')"
-                                                            id="previous_experience_lnumber_validity" name="previous_experience_lnumber_validity[]" placeholder="License Number Validity">
-
-                                                        <span class="error text-danger previous_experience_lnumber_validity_error"></span>
-                                                    </div>
-
-                                                    <div class="col-12 col-md-2 mt-5">
-                                                        <button type="button" class="btn btn-primary" onclick="verifyeaCertificate(event, this)">Verify</button>
-                                                        <!-- <input type="text" name="proprietor_contractor_verify[]" class="contactor_license_verify" value="0"> -->
-                                                        <input type="hidden" name="proprietor_contractor_verify[]" class="proprietor_contractor_verify" value="0">
-
-                                                    </div>
-
-
-
-                                                    <div class="col-12 mt-1">
-                                                        <div class="text-danger competency_verifyea_result"></div>
-                                                    </div>
-                                                </div>
-
-                                            </div>
-
-                                            <div class="col-12 col-md-12 text-md-right">
-                                                <button type="button" class="btn btn-success" id="save_director">Save</button>
-
-                                                <button type="button" id="cancel_director" class="btn btn-danger ms-2">Cancel</button>
-
-                                            </div>
-                                            
-                                        </div>
+                                    <div class="col-12 col-md-3">
+                                        <input type="number" class="form-control age" name="age[]" readonly>
+                                        <span class="error text-danger age_error"></span>
                                     </div>
                                 </div>
 
 
+                                <div class="row mt-2">
+                                    <div class="col-12 col-md-3 ">
+                                        <label>Qualification <span class="text-red">*</span></label>
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+                                        <select class="form-control qualification" name="qualification[]">
+                                            <option value="">Select Qualification</option>
+                                            <option value="8TH PASS">8th PASS</option>
+                                            <option value="DEGREE">DEGREE</option>
+                                            <option value="DIPLOMA">DIPLOMA</option>
+                                            <option value="MASTER DEGREE">MASTER DEGREE</option>
+                                        </select>
+                                        <span class="error text-danger qualification_error"></span>
+                                    </div>
+
+
+                                    <div class="col-12 col-md-5 qualTextWrapper" id="qualTextWrapper"
+                                        style="display:none;">
+                                        <div class="row">
+                                            <div class="col-12 col-md-5">
+                                                <label>Enter Qualification <span
+                                                        class="text-red">*</span></label>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <input type="text" class="form-control" id="qual_text"
+                                                    name="qual_text[]">
+                                                <span class="error text-danger qual_text_error"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-2">
+
+                                    <div class="col-12 col-md-3">
+                                        <label>Age Proof <span class="text-red">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-7">
+                                        <div class="row">
+                                            <div class="col-12 col-md-8">
+                                                <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                <input type="file" class="form-control" name="age_proof[]"
+                                                    accept="application/pdf">
+
+
+
+                                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                <br>
+                                                <span class="text-danger Doc_upload_error"></span>
+                                                <span class="error text-danger age_proof_error"></span>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <button type="button" class="btn btn-info upload-btn"
+                                                    data-login_id="{{ Auth::user()->login_id }}"
+                                                    data-module="AGE PROOF" data-document_category="age_proof"
+                                                    data-ownership_type="dr" data-row-index=""
+                                                    data-document_sub_category="AP"
+                                                    data-form_code="{{$form_code->id}}">
+                                                    <i class="fa fa-upload"></i> Upload
+                                                </button>
+
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 col-12 age-file-link">
+
+                                    </div>
+
+
+
+
+
+                                </div>
+
+
+                                <div class="row mt-2">
+
+                                    <div class="col-12 col-md-3">
+                                        <label>Qualification Proof <span class="text-red">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-7">
+                                        <div class="row">
+                                            <div class="col-12 col-md-8">
+                                                <!-- <input type="file" class="form-control" name="qual_proof[]"> -->
+                                                <input type="file" class="form-control" name="qual_proof[]"
+                                                    accept="application/pdf">
+
+
+
+                                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                                <br>
+                                                <span class="text-danger Doc_upload_error"></span>
+                                                <span class="error text-danger qual_proof_error"></span>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <button type="button" class="btn btn-info upload-btn"
+                                                    data-login_id="{{ Auth::user()->login_id }}"
+                                                    data-module="OWNERSHIP EDUCATIONAL DOCUMENT"
+                                                    data-document_category="educ_qual_proof"
+                                                    data-ownership_type="dr" data-row-index=""
+                                                    data-document_sub_category="OED"
+                                                    data-form_code="{{$form_code->id}}">
+                                                    <i class="fa fa-upload"></i> Upload
+                                                </button>
+                                            </div>
+
+                                            <!-- <span class="text-danger Doc_upload_error"></span> -->
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 col-12  file-link">
+                                        <!-- @if(!empty($application->educational_proof))
+                                                <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                                </a>
+                                            @endif -->
+                                    </div>
+
+
+
+                                    <!-- <div class="col-12 col-md-3">
+                                            <button class="btn btn-info"> <i class="fa fa-upload"></i> Upload </button>
+                                        </div> -->
+
+                                </div>
+
+
+
+
+                            </div>
+
+                        </div>
+
+                        <!-- ------------------------------------------ -->
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(iii) Director's Father/Husband's name <span
+                                                style="color: red;">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-12">
+                                        <input type="text" class="form-control" id="fathers_name" maxlength="50"
+                                            name="fathers_name[]" value=""
+                                            placeholder="Director's Father/Husband's name">
+                                        <span class="error text-danger" id="fathers_name_error"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label for="Name">(iv) Director's Present business of the applicant
+                                            <span style="color: red;">*</span></label>
+                                    </div>
+                                    <div class="col-12 col-md-12">
+                                        <input type="text" class="form-control" id="present_business"
+                                            name="present_business[]" value="" maxlength="50"
+                                            placeholder="Director's Present business of the applicant">
+                                        <span class="error text-danger" id="present_business_error"></span>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                        <!-- ---------------------- -->
+                        <div class="row mt-2">
+
+
+                            <div class="col-md-12">
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-12">
+                                        <label>(v) Whether holding a Supervisor Competency Certificate and if so,
+                                            the Number and Validity</label>
+                                    </div>
+
+
+                                    <div class="col-12 col-md-12">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="competency_yes"
+                                                name="competency_certificate_holding[]" value="yes"
+                                                onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                            <label class="form-check-label"
+                                                for="competency_yes_proprietor">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="competency_no"
+                                                name="competency_certificate_holding[]" value="no"
+                                                onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                checked>
+                                            <label class="form-check-label"
+                                                for="competency_no_proprietor">No</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                        style="display: none;">
+                                        <div class="row">
+                                            <div class="col-12 col-md-3">
+                                                <div class="row">
+
+                                                    <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                        <label>CC Number <span style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-8 mt-1">
+                                                        <input type="text"
+                                                            class="form-control competency_number"
+                                                            name="competency_certificate_number[]"
+                                                            maxlength="15"
+                                                            placeholder="CC Number">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_number_error"></span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <div class="row">
+
+                                                    <div class="col-12 col-md-4 mt-1 text-md-right">
+                                                        <label>Date of First Issue <span
+                                                                style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-6 mt-1">
+                                                        <input type="date"
+                                                            class="form-control competency_validity_first_issue"
+                                                            name="competency_certificate_first_issue[]"
+                                                            placeholder="Date of First Issue">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_first_issue_error"></span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-5">
+                                                <div class="row">
+
+                                                    <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                        <label>Validity From <span
+                                                                style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-4 mt-1">
+                                                        <input type="text"
+                                                            class="form-control competency_validity_from"
+                                                            name="competency_certificate_validity_from[]"
+                                                            placeholder="Validity From">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_validity_from_error"></span>
+                                                    </div>
+                                                    <div class="col-12 col-md-2 mt-1 text-md-right">
+                                                        <label>Validity <br>To <span
+                                                                style="color: red;">*</span></label>
+                                                    </div>
+                                                    <div class="col-12 col-md-4 mt-1">
+                                                        <input type="text"
+                                                            class="form-control competency_validity_to"
+                                                            name="competency_certificate_validity_to[]"
+                                                            placeholder="Validity To">
+                                                        <span class="error text-danger"
+                                                            id="competency_certificate_validity_to_error"></span>
+                                                        {{-- <input type="date"
+                                                                class="form-control flatpickr flatpickr-input competency_validity"
+                                                                name="competency_certificate_validity_to[]"
+                                                                placeholder="Validity To"> --}}
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
+                                                <button type="button"
+                                                    class="btn btn-primary"
+                                                    id="verify_competency_btn">
+                                                    Verify
+                                                </button>
+                                            </div>
+
+
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+
+                            <div id="competency_exp_result" class="mt-3"></div>
+
+
+
+                        </div>
+
+
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="row align-items-center">
+
+                                    <div class="col-12 col-md-12 text-md-right">
+                                        <button type="button" class="btn btn-success"
+                                            id="save_director">Save</button>
+
+                                        <button type="button" id="cancel_director"
+                                            class="btn btn-danger ms-2">Cancel</button>
+
+                                    </div>
+
+                                </div>
                             </div>
                         </div>
-                        <div id="director-container"></div>
+
+
                     </div>
+                </div>
+                <div id="director-container"></div>
+            </div>
 
                     <!-- <div class="row ">
                         <div class="col-12 col-md-12 text-center">
                         <p class="text-red">Choose Anyone Ownership and Enter the Details of Proprietor / Partners / Directors Details</p>
                         </div>
-                     
+
 
                     </div> -->
 
+                   @php
+            $application = $application ?? null;
+            @endphp
+
+            <div class="col-md-12">
+                <div class="row align-items-center">
+                    <div class="col-12 col-md-12">
+                        <label for="Name">4. Whether any application for
+                            Contractor's licence was made
+                            previously? If so, details thereof. <span style="color: red;">*</span>
+                        </label>
+                    </div>
+
                     @php
-                    $application = $application ?? null;
+                    $previous_contractor_license = old('previous_contractor_license', $application->previous_contractor_license ?? 'no');
+                    @endphp
+                    <div class="col-12 col-md-12">
+
+                        <input style="display:none;" class="form-check-input" type="radio" id="previous_contractor_license" name="previous_contractor_license" value="yes" onclick="togglePreviousLicenseFields(true)">
+
+
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="previous_contractor_license_yes" name="previous_contractor_license" value="yes"
+                                onclick="togglePreviousLicenseFields(true)" {{ $previous_contractor_license == 'yes' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="previous_contractor_license_yes">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="previous_contractor_license_no" name="previous_contractor_license" value="no"
+                                onclick="togglePreviousLicenseFields(false)" {{ $previous_contractor_license == 'no' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="previous_contractor_license_no">No</label>
+                        </div>
+                        <span class="error text-danger" id="previous_contractor_license_error"></span>
+                    </div>
+
+
+                    @php
+                    $showPreviousFields = old('previous_contractor_license', $application->previous_contractor_license ?? '') === 'yes';
                     @endphp
 
-                    <div class="row mt-4">
+                    <div class="col-12 col-md-12 previous-license-fields" style="{{ $showPreviousFields ? '' : 'display: none;' }}">
                         @php
-                        $authorisedValue = old('authorised_name_designation', $application->authorised_name_designation ?? '');
-                        $showAuthFields = $authorisedValue === 'yes';
+                        use Carbon\Carbon;
+
+                        $validityValue = '';
+
+                        if (old('previous_application_validity')) {
+                        $validityValue = old('previous_application_validity');
+                        } elseif (!empty($application->previous_application_validity)) {
+                        try {
+                        $validityValue = Carbon::createFromFormat('d/m/Y', $application->previous_application_validity)->format('Y-m-d');
+                        } catch (\Exception $e) {
+                        try {
+                        $validityValue = Carbon::parse($application->previous_application_validity)->format('Y-m-d');
+                        } catch (\Exception $e) {
+                        $validityValue = '';
+                        }
+                        }
+                        }
+
+                        $isVerified = !empty($application) && $application->previous_contractor_license_verify === '1';
+                        $isVerificationSet = !empty($application) && $application->previous_contractor_license_verify !== null;
+
                         @endphp
 
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <div class="col-12 col-md-12">
-                                    <label for="Name">
-                                        4. Name and designation of authorised signatory if any in the case of limited company.
-                                        <span style="color: red;">*</span>
-                                    </label>
-                                </div>
-                                @php
-                                // Use old input > application value > default to 'no'
-                                $authorisedValue = old('authorised_name_designation', $application->authorised_name_designation ?? 'no');
-                                @endphp
-                                <div class="col-12 col-md-12">
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="authorised_yes" name="authorised_name_designation" value="yes"
-                                            onclick="toggleAuthorisedFields(true)" {{ $authorisedValue == 'yes' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="authorised_yes">Yes</label>
-                                    </div>
+                        <div class="row">
 
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="authorised_no" name="authorised_name_designation" value="no"
-                                            onclick="toggleAuthorisedFields(false)" {{ $authorisedValue == 'no' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="authorised_no">No</label>
-                                    </div>
-                                    <span class="error text-danger" id="authorised_name_designation_error"></span>
-                                </div>
+                            <!-- License Number -->
+                            <div class="col-3 col-md-3">
+                                <label>Previous License Number <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_number" type="text" id="previous_application_number" name="previous_licence_no" maxlength="15" placeholder="Previous License Number" readonly="">
 
-                                <div class="col-12 col-md-12 authorised-fields" style="{{ $showAuthFields ? '' : 'display: none;' }}">
-                                    <div class="row mt-2">
-                                        <div class="col-12 col-md-6">
-                                            <label>Name of authorised signatory <span class="text-red">*</span></label>
-                                            <input class="form-control" type="text" maxlength="50" id="authorised_name" name="authorised_name"
-                                                placeholder="Name"
-                                                value="{{ old('authorised_name', $application->authorised_name ?? '') }}">
-                                        </div>
-                                        <div class="col-12 col-md-6">
-                                            <label>Designation of authorised signatory <span class="text-red">*</span></label>
-                                            <input class="form-control" type="text" maxlength="50" id="authorised_designation" name="authorised_designation"
-                                                placeholder="Designation"
-                                                value="{{ old('authorised_designation', $application->authorised_designation ?? '') }}">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <div class="col-12 col-md-12">
-                                    <label for="Name">5. Whether any application for
-                                        Contractor's licence was made
-                                        previously? If so, details thereof. <span style="color: red;">*</span>
-                                    </label>
-                                </div>
-
-                                @php
-                                $previous_contractor_license = old('previous_contractor_license', $application->previous_contractor_license ?? 'no');
-                                @endphp
-                                <div class="col-12 col-md-12">
-
-                                    <input style="display:none;" class="form-check-input" type="radio" id="previous_contractor_license" name="previous_contractor_license" value="yes" onclick="togglePreviousLicenseFields(true)">
-
-
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="previous_contractor_license_yes" name="previous_contractor_license" value="yes"
-                                            onclick="togglePreviousLicenseFields(true)" {{ $previous_contractor_license == 'yes' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="previous_contractor_license_yes">Yes</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="previous_contractor_license_no" name="previous_contractor_license" value="no"
-                                            onclick="togglePreviousLicenseFields(false)" {{ $previous_contractor_license == 'no' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="previous_contractor_license_no">No</label>
-                                    </div>
-                                    <span class="error text-danger" id="previous_contractor_license_error"></span>
-                                </div>
-
-
-                                @php
-                                $showPreviousFields = old('previous_contractor_license', $application->previous_contractor_license ?? '') === 'yes';
-                                @endphp
-
-                                <div class="col-12 col-md-12 previous-license-fields" style="{{ $showPreviousFields ? '' : 'display: none;' }}">
-                                    @php
-                                    use Carbon\Carbon;
-
-                                    $validityValue = '';
-
-                                    if (old('previous_application_validity')) {
-                                    $validityValue = old('previous_application_validity');
-                                    } elseif (!empty($application->previous_application_validity)) {
-                                    try {
-                                    $validityValue = Carbon::createFromFormat('d/m/Y', $application->previous_application_validity)->format('Y-m-d');
-                                    } catch (\Exception $e) {
-                                    try {
-                                    $validityValue = Carbon::parse($application->previous_application_validity)->format('Y-m-d');
-                                    } catch (\Exception $e) {
-                                    $validityValue = '';
-                                    }
-                                    }
-                                    }
-
-                                    $isVerified = !empty($application) && $application->previous_contractor_license_verify === '1';
-                                    $isVerificationSet = !empty($application) && $application->previous_contractor_license_verify !== null;
-
-                                    @endphp
-
-                                    <div class="row">
-                                        <!-- License Number -->
-                                        <div class="col-6 col-md-5">
-                                            <label>Previous License Number <span class="text-red">*</span></label>
-                                            <input
-                                                class="form-control previous_application_number"
-                                                type="text"
-                                                id="previous_application_number"
-                                                name="previous_application_number"
-                                                maxlength="15"
-                                                placeholder="Previous License Number"
-                                                value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}"
-                                                @if($isVerified) readonly @endif>
-
-                                            <div class="license-status">
-                                                @if($isVerificationSet)
-                                                @if($isVerified)
-                                                <span class="text-success text-center"><i class="fa fa-check"></i> Valid License</span>
-                                                @else
-                                                <span class="text-danger text-center"><i class="fa fa-close"></i> Invalid License</span>
-                                                @endif
-                                                @endif
-                                            </div>
-
-                                        </div>
-
-                                        <!-- License Validity -->
-                                        <div class="col-6 col-md-5">
-                                            <label>Previous License Validity <span class="text-red">*</span></label>
-                                            <input
-                                                class="form-control previous_application_validity"
-                                                type="text"
-                                                id="previous_application_validity"
-                                                name="previous_application_validity"
-                                                
-                                                onfocus="(this.type='date')"
-                                                placeholder="Previous License Validity"
-                                                value="{{ $validityValue ? Carbon::parse($validityValue)->format('d-m-Y') : '' }}"
-                                                title="Select a date up to today"
-                                                @if($isVerified) readonly @endif>
-                                        </div>
-
-                                        <!-- Verify / Clear Buttons -->
-                                        <div class="col-12 col-md-2 mt-1">
-                                            <br>
-                                            <div id="licenseVerificationBtnWrapper">
-                                                @if($isVerified)
-                                                <button type="button" class="btn btn-danger" id="clearLicenseBtn" onclick="clearPreviousLicense()">Clear</button>
-                                                @else
-                                                <button type="button" class="btn btn-primary" id="verifyLicenseBtn" onclick="verifyeaCertificateprevoius(event, this)">Verify</button>
-                                                @endif
-                                                <input
-                                                    type="hidden"
-                                                    name="previous_contractor_license_verify"
-                                                    class="previous_contractor_license_verify"
-                                                    value="{{ $application?->previous_contractor_license_verify ?? '' }}">
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                    <div class="col-12 mt-1">
-                                        <div id="verifyea_result" class="text-danger"></div>
-                                    </div>
-                                </div>
 
 
                             </div>
+
+                            <!-- License Validity -->
+                            <div class="col-3 col-md-3">
+                                <label>Licence Date of First Issue <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_first_issue" name="previous_validity_first_issue" placeholder="Licence Date of First Issue" value="" title="Select a date up to today" readonly="readonly">
+                            </div>
+
+                            <div class="col-3 col-md-3">
+                                <label>Licence Validity From <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_from" name="previous_validity_from" placeholder="Licence Validity From" readonly="readonly">
+                            </div>
+
+
+                            <div class="col-3 col-md-3">
+                                <label>Licence Validity To <span class="text-red">*</span></label>
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_to" name="previous_validity_to" placeholder="Licence Validity To" readonly="readonly">
+                            </div>
+
+
                         </div>
+
+
 
                     </div>
+
+
+                </div>
+            </div>
                 </div>
 
 
@@ -1810,1169 +2142,1774 @@ exit; -->
 
                     <div class="row">
 
-                        <div class="col-md-12">
-                            <div class="row align-items-center head_label">
-                                <div class="col-12 col-md-12 title_bar">
-                                    <label>6. Details of Staff appointed on full time basis: <span style="color: red;">*</span></label>
+            <div class="col-md-12">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label>5A. Details of Eligible QC/QSC Staff appointed on full time basis: <span
+                                style="color: red;">*</span></label>
 
-                                </div>
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+
+    <table class="table table-bordered" id="qc-staff-table">
+
+        <thead>
+            <tr>
+                <th>S.NO</th>
+
+                <th>
+                    Category <span class="text-red">*</span>
+                </th>
+
+                <th>
+                    Competency Certificate Number
+                    <span class="text-red">*</span>
+                </th>
+
+                <th>
+                    Certificate First Issue
+                    <span class="text-red">*</span>
+                </th>
+
+                <th>
+                    Certificate Validity From
+                    <span class="text-red">*</span>
+                </th>
+
+                <th>
+                    Certificate Validity To
+                    <span class="text-red">*</span>
+                </th>
+
+                <th width="15%">
+                    Attachments <span class="text-red">*</span>
+                </th>
+
+                <th width="10%">
+                    <button type="button"
+                        class="btn btn-success"
+                        id="add_qc_staff">
+                        + Add
+                    </button>
+                </th>
+            </tr>
+        </thead>
+
+
+        @if(!$application)
+
+            {{-- NEW APPLICATION --}}
+
+            <input type="hidden"
+                id="appl_type"
+                name="appl_type"
+                value="R">
+
+            <tbody id="staffqc-records">
+
+                {{-- New QC/QSC rows will be added by JavaScript --}}
+
+            </tbody>
+
+
+        @else
+
+            {{-- DRAFT / EXISTING APPLICATION --}}
+
+            <input type="hidden"
+                id="appl_type"
+                name="appl_type"
+                value="{{ $application->appl_type ?? 'R' }}">
+
+            <tbody id="staffqc-records">
+
+                @php
+                    $qcStaffs = collect($QCstaffs ?? [])->values();
+
+                    $staff_count = $qcStaffs->count();
+                @endphp
+
+
+                {{-- EXISTING QC/QSC STAFF --}}
+
+                @for ($i = 0; $i < $staff_count; $i++)
+
+                    @php
+                        $staff = $qcStaffs[$i];
+                    @endphp
+
+                    <tr class="staffqc-record"
+                        data-id="{{ $staff->id }}"
+                        data-row-index="{{ $staff->row_index }}">
+
+                        {{-- S.NO --}}
+                        <td>
+                            {{ $i + 1 }}.
+                        </td>
+
+
+                        {{-- CATEGORY --}}
+                        <td>
+
+                            <input type="hidden"
+                                name="row_index[]"
+                                value="{{ $staff->row_index }}">
+
+                            <input type="hidden"
+                                name="staffqc_id[]"
+                                value="{{ $staff->id }}">
+
+                            <input type="hidden"
+                                name="staffqc_category[]"
+                                value="{{ $staff->staff_category }}">
+
+                            <input type="hidden"
+                                name="staff_cc_no[]"
+                                value="{{ $staff->staff_cc_no }}">
+
+                            {{ $staff->staff_category ?? '' }}
+
+                        </td>
+
+
+                        {{-- CERTIFICATE NUMBER --}}
+                        <td>
+
+                            {{ $staff->staff_cc_no ?? '' }}
+
+                        </td>
+
+
+                        {{-- FIRST ISSUE --}}
+                        <td>
+
+                            <input type="text"
+                                name="staff_cc_first_issue[]"
+                                value="{{ $staff->staff_cc_first_issue }}"
+                                readonly>
+
+                        </td>
+
+
+                        {{-- VALIDITY FROM --}}
+                        <td>
+
+                            <input type="text"
+                                name="staff_cc_validity_from[]"
+                                value="{{ $staff->staff_cc_validity_from }}"
+                                readonly>
+
+                        </td>
+
+
+                        {{-- VALIDITY TO --}}
+                        <td>
+
+                            <input type="text"
+                                name="staff_cc_validity_to[]"
+                                value="{{ $staff->staff_cc_validity_to }}">
+
+                        </td>
+
+
+                        {{-- ATTACHMENTS --}}
+                        <td>
+
+                            <div class="file-link">
+
+                                <a href="#"
+                                    target="_blank"
+                                    class="app-doc-link">
+
+                                    <i class="fa fa-file-pdf-o"
+                                        style="color:red;"></i>
+
+                                    Appointment Letter
+
+                                </a>
+
+                                <br>
+
+                                <a href="#"
+                                    target="_blank"
+                                    class="cons-doc-link">
+
+                                    <i class="fa fa-file-pdf-o"
+                                        style="color:red;"></i>
+
+                                    Consent Letter
+
+                                </a>
 
                             </div>
 
-
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="staff-table">
-                                    <thead>
-                                        <tr>
-                                            <th>S.NO</th>
-                                            <th>Name of the Person <span class="text-red">*</span></th>
-                                            <th>Qualification <span class="text-red">*</span> </th>
-                                            <th>Category <span class="text-red">*</span></th>
-                                            <th colspan="2">Competency Certificate Number and Validity <span class="text-red">*</span></th>
-                                            <th>Verify License </th>
-
-                                            <!-- <th>Action</th> -->
-                                        </tr>
-                                    </thead>
-
-                                    @if(!$application)
-                                    <tbody id="staff-container">
-                                        @php $staff_count = 4; @endphp
-                                        @for ($i = 0; $i < $staff_count; $i++)
-                                            <tr class="staff-fields">
-                                            <td>{{ $i + 1 }}</td>
-                                            <td>
-                                                <input type="text" name="staff_name[]" maxlength="30"
-                                                    class="form-control"
-                                                    value="{{ old('staff_name.' . $i) }}"
-                                                    placeholder="Name of the Person"
-                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                <span class="error text-danger">{{ $errors->first('staff_name.' . $i) }}</span>
-                                            </td>
-
-                                            <td>
-                                                <select class="form-control" name="staff_qualification[]">
-                                                    <option disabled selected>Qualification</option>
-                                                    @foreach (['PG', 'UG', 'Diploma', '+2', '10'] as $qual)
-                                                    <option value="{{ $qual }}" {{ old('staff_qualification.' . $i) == $qual ? 'selected' : '' }}>{{ $qual }}</option>
-                                                    @endforeach
-                                                </select>
-                                              <span class="error text-danger">{{ $errors->first('staff_qualification.' . $i) }}</span>
-                                            </td>
-                                            <td>
-                                                @if ($i === 0)
-                                                <input type="text" class="form-control" name="staff_category[]" value="QC" readonly>
-                                                @else
-                                                <select class="form-control" name="staff_category[]">
-                                                    <option disabled {{ old('staff_category.' . $i) ? '' : 'selected' }}>Select Category</option>
-                                                    @foreach (['QC', 'BC', 'B'] as $cat)
-                                                    <option value="{{ $cat }}" {{ old('staff_category.' . $i) == $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @endif
-                                                <span class="error text-danger">{{ $errors->first('staff_category.' . $i) }}</span>
-                                            </td>
-                                            <td>
-                                                <input type="text" class="form-control cc_number" name="cc_number[]" placeholder="Certificate No" maxlength="15" value="{{ old('cc_number.' . $i) }}">
-                                                <span class="error text-danger">{{ $errors->first('cc_number.' . $i) }}</span>
-                                                <div class="text-white competency_verify_result mt-1"></div>
-                                            </td>
-                                            <td>
-                                                <input type="date" class="form-control cc_validity" name="cc_validity[]" placeholder="Validity" 
-                                                    onfocus="this.type='date'" value="{{ old('cc_validity.' . $i) }}">
-                                                <span class="error text-danger">{{ $errors->first('cc_validity.' . $i) }}</span>
-
-                                            </td>
-                                            <td>
-                                                <button type="button" class="btn btn-primary" onclick="validatestaffcertificate(event, this)">Verify</button>
-                                                <input type="hidden" name="staff_cc_verify[]" class="staff_cc_verify" value="">
+                        </td>
 
 
-                                                @if ($i === $staff_count - 1)
-                                                <!-- Show Add button only in 4th row -->
-                                                <button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add</button>
-                                                @endif
-                                            </td>
+                        {{-- REMOVE --}}
+                        <td>
+
+                            <button type="button"
+                                class="btn btn-danger remove-qc-staff">
+
+                                &#128465; Remove
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+
+                @endfor
 
 
-                                            </tr>
-                                            @endfor
-                                    </tbody>
-                                    @else
-                                    <tbody id="staff-container">
-                                        @php
-                                        $staff_count = max(4, count($staffs ?? []));
-                                        @endphp
+                {{-- IMPORTANT:
+                     DO NOT PUT FEE ROW HERE.
+                     JavaScript will create it as the LAST row.
+                --}}
 
-                                        @for ($i = 0; $i < $staff_count; $i++)
-                                            @php $staff=$staffs[$i] ?? null; @endphp
-                                            <tr class="staff-fields">
-                                            <td>{{ $i + 1 }}</td>
+            </tbody>
 
-                                            <td>
-                                                <input type="text" name="staff_name[]" maxlength="30" class="form-control"
-                                                    value="{{ old('staff_name.' . $i, $staff->staff_name ?? '') }}"
-                                                    placeholder="Name of the Person"
-                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                <span class="error text-danger">{{ $errors->first('staff_name.' . $i) }}</span>
-                                            </td>
+        @endif
 
-                                            <td>
-                                                <select class="form-control" name="staff_qualification[]">
-                                                    <option disabled {{ old('staff_qualification.' . $i, $staff->staff_qualification ?? '') == '' ? 'selected' : '' }}>Qualification </option>
-                                                    @foreach (['PG ', 'UG', 'DIPLOMA', '+2', '10'] as $qual)
-                                                    <option value="{{ $qual }}" {{ old('staff_qualification.' . $i, $staff->staff_qualification ?? '') == $qual ? 'selected' : '' }}>{{ $qual }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <span class="error text-danger">{{ $errors->first('staff_qualification.' . $i) }}</span>
-                                            </td>
-
-                                            <td>
-                                                @if ($i === 0)
-                                                <input type="text" class="form-control" name="staff_category[]" value="QC" readonly>
-                                                @else
-                                                <select class="form-control" name="staff_category[]">
-                                                    <option disabled {{ old('staff_category.' . $i, $staff->staff_category ?? '') == '' ? 'selected' : '' }}>Select Category</option>
-                                                    @foreach (['QC ', 'BC', 'B'] as $cat)
-                                                    <option value="{{ $cat }}" {{ old('staff_category.' . $i, $staff->staff_category ?? '') == $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @endif
-                                                <span class="error text-danger">{{ $errors->first('staff_category.' . $i) }}</span>
-                                            </td>
-
-                                            <td>
-                                                <input type="text"
-                                                    class="form-control cc_number"
-                                                    name="cc_number[]"
-                                                    placeholder="Certificate No"
-                                                    maxlength="15"
-                                                    value="{{ old('cc_number.' . $i, $staff->cc_number ?? '') }}"
-                                                    @if(isset($staff) && $staff->staff_cc_verify === '1') readonly @endif>
-                                                <span class="error text-danger">{{ $errors->first('cc_number.' . $i) }}</span>
-                                                <div class="competency_verify_result text-danger small mt-1"></div>
-                                                @if(isset($staff) && $staff->staff_cc_verify === '1')
-                                                <span class="license-status text-success small">
-                                                    <i class="fa fa-check"></i> License Verified
-                                                </span>
-                                                @elseif(isset($staff) && $staff->staff_cc_verify === '0')
-                                                <span class="license-status text-danger small"> Invalid License</span>
-                                                @endif
-                                            </td>
-
-                                            <td>
-                                                <input type="date"
-                                                    class="form-control cc_validity"
-                                                    name="cc_validity[]"
-                                                    
-                                                    value="{{ old('cc_validity.' . $i, isset($staff->cc_validity) ? \Carbon\Carbon::parse($staff->cc_validity)->format('Y-m-d') : '') }}"
-                                                    @if(isset($staff) && $staff->staff_cc_verify === '1') readonly @endif>
-                                                <span class="error text-danger">{{ $errors->first('cc_validity.' . $i) }}</span>
-                                            </td>
-
-                                            <td>
-                                                <input type="hidden" name="staff_cc_verify[]" class="staff_cc_verify"
-                                                    @if(isset($staff) && $staff->staff_cc_verify !== null)
-                                                value="{{ $staff->staff_cc_verify }}"
-                                                @endif>
-
-                                                @if(isset($staff) && $staff->staff_cc_verify === '1')
-                                                <button type="button" class="btn btn-danger clearBtn">Clear</button>
-                                                @else
-                                                <button type="button" class="btn btn-primary verifyBtn" onclick="validatestaffcertificate(event, this)">Verify</button>
-                                                @endif
-
-                                                @if ($i === $staff_count - 1)
-                                                <!-- Show Add button only in 4th row -->
-                                                <button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add</button>
-                                                @endif
-                                            </td>
-
-
-                                            <input type="hidden" name="staff_id[]" value="{{ $staff->id ?? '' }}">
+    </table>
 
 
 
-                                            </tr>
-                                            @endfor
+                    <span id="staffqc_error" class="error text-center text-danger d-block mt-2"></span>
 
-                                    </tbody>
-
-
-
-                                    @endif
-
-                                </table>
-                                <p class="text-red">Note : Minimum 4 Staff Details are Mandatory and one QC Detail is Mandatory</p>
-                                <!-- <div class="row">
-                                    <div class="col-12 col-md-12">
-                                      
-
-                                    </div>
-
-                                </div> -->
+                    <div class="border box-shadow-blue p-3 mt-3"
+                        id="staffqc_datasection"
+                        style="display:none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Enter QC/QSC Staff Details </h5>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 col-md-2">
+                                <p>Select Staff Category <span class="text-red">*</span></p>
                             </div>
 
+                            <div class="col-12 col-md-3">
+                                <select class="form-control staffqc_category" name="staffqc_category[]">
+
+                                    <option value="">Select Category</option>
+
+                                    <option value="QC">QC</option>
+                                    <option value="QSC">QSC</option>
+
+                                </select>
+
+                                <span class="text-danger small staff-category-error"></span>
+                            </div>
+
+                            {{-- ------------------------- --}}
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate Number <span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_no[]" maxlength="20" class="form-control"
+                                    placeholder="CC Number">
+                                <span class="text-danger small staff-cc-error"></span>
+                            </div>
 
 
                         </div>
 
+                        <div class="row mt-3">
+
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate First Issue <span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_first_issue[]" class="form-control"
+                                    placeholder="CC First Issue">
+                                <span class="text-danger small staff-first-issue-error"></span>
+                            </div>
+
+                            {{-- ---------------------------------- --}}
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate Validity From Date<span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_validity_from[]" class="form-control"
+                                    placeholder="CC Validity From">
+                                <span class="text-danger small staff-validity-from-error"></span>
+                            </div>
+
+
+                        </div>
+
+                        <div class="row mt-3">
+
+                            <div class="col-12 col-md-2">
+                                <p>Enter Certificate Validity To Date<span class="text-red">*</span></p>
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                                <input type="text" name="staff_cc_validity_to[]" class="form-control"
+                                    placeholder="CC Validity To">
+                                <span class="text-danger small staff-validity-to-error"></span>
+                            </div>
+
+
+                        </div>
+
+                        <div class="row">
+
+                            <div class="col-md-6 col-lg-2">
+                                <div class="text-center fw-bold">
+                                    Appointment Letter Upload
+                                </div>
+                                <div class="text-center ">
+
+
+
+                                </div>
+
+
+                            </div>
+
+                            <div class="col-md-6 col-lg-2">
+                                <input type="file" class="form-control app-doc-file" name="app_doc[]" accept="application/pdf">
+                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                <br>
+                                <span class="text-danger app_doc_upload_error"></span>
+                                <span class="text-danger upload-error d-block"></span>
+
+                                <div class="file-link">
+
+                                </div>
+
+                            </div>
+                            <div class="col-12 col-md-2 ">
+                                <button type="button" class="btn btn-info upload-btn"
+                                    data-login_id="tnelb_1121" data-module="QC APPOINTMENT DOCUMENT"
+                                    data-document_category="app_doc" data-document_sub_category="QAD"
+                                    data-ownership_type="" data-form_code="8" data-app_doc="1">
+                                    <i class="fa fa-upload"></i> Upload
+                                </button>
+
+                                <input type="hidden"
+                                    name="app_doc[]"
+                                    class="app_doc"
+                                    value="${appDocIndex}">
+
+                                <input type="hidden" name="staffqc_id[]" value="">
+                            </div>
+
+
+
+
+                            <div class="col-md-6 col-lg-2">
+                                <div class="text-center fw-bold">
+                                    Consent Letter Upload
+                                </div>
+                                <div class="text-center ">
+
+
+
+                                </div>
+
+
+                            </div>
+
+                            <div class="col-md-6 col-lg-2 ">
+                                <input type="file" class="form-control cons-doc-file" name="cons_doc[]"
+                                    accept="application/pdf">
+                                <span class="file-limit">PDF only (Max 250 KB)</span>
+                                <br>
+                                <span class="text-danger cons_doc_upload_error"></span>
+                                <span class="text-danger upload-error d-block"></span>
+
+                                <div class="file-link">
+
+                                </div>
+
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <button type="button" class="btn btn-info upload-btn"
+                                    data-login_id="tnelb_1121" data-module="QC CONSENT DOCUMENT"
+                                    data-document_category="cons_doc" data-document_sub_category="QCD"
+                                    data-ownership_type="" data-form_code="8" data-cons_doc="1">
+                                    <i class="fa fa-upload"></i> Upload
+                                </button>
+
+                                <input type="hidden"
+                                    name="cons_doc[]"
+                                    class="cons_doc"
+                                    value="${consDocIndex}">
+
+                                <input type="hidden" name="staffqc_id[]" value="">
+                            </div>
+
+
+
+
+                        </div>
+                        <div class="text-center">
+                            <span class="text-danger qc-staff-errors"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="row align-items-center">
+
+                                    <div class="col-12 col-md-12 text-center">
+
+                                        <button type="button" class="btn btn-success" id="save_qc">
+                                            Save
+                                        </button>
+                                        <button type="button" class="btn btn-danger ms-2"
+                                            id="cancel_qc">Cancel</button>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
+
+
+
+
+                    <p class="text-red note_txt">Note : Maximum 5 QC Staffs are allowed and Mandatory 1 QC
+                    </p>
+
+                </div>
+
+
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="col-md-12">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label>5B. Details of Staff appointed on full time basis: <span
+                                style="color: red;">*</span></label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="staff-table">
+                        <thead>
+                            <tr>
+                                <th>S.NO</th>
+                                <th width="10%">Category <span class="text-red">*</span></th>
+                                <th>Competency Certificate Number <span class="text-red">*</span></th>
+                                <!-- <th>Qualification <span class="text-red">*</span> </th> -->
+                                <th>Certificate First Issue <span class="text-red">*</span></th>
+                                <th>Certificate Validity From <span class="text-red">*</span></th>
+                                <th>Certificate Validity To <span class="text-red">*</span></th>
+
+                            </tr>
+                        </thead>
+
+                        @if(!$application)
+
+                        @php
+                        $staff_count = 2;
+                        @endphp
+
+                        <tbody id="staff-container">
+
+                            @for($i = 0; $i < $staff_count; $i++)
+
+                                <tr class="staff-fields">
+
+                                <td>{{ $i + 1 }}</td>
+
+                                {{-- CATEGORY --}}
+                                <td>
+
+                                    {{-- First 2 staff are always B --}}
+                                    <input type="hidden"
+                                        name="staff_category[{{ $i }}]"
+                                        value="B"
+                                        class="staff_category">
+
+                                    <input type="text"
+                                        class="form-control"
+                                        value="B"
+                                        readonly>
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('staff_category.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- CERTIFICATE NUMBER --}}
+                                <td class="cc-column">
+
+                                    <input type="text"
+                                        class="form-control cc_number"
+                                        name="cc_number[{{ $i }}]"
+                                        placeholder="Certificate No"
+                                        maxlength="15"
+                                        value="{{ old('cc_number.' . $i) }}"
+                                        oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_number.' . $i) }}
+                                    </span>
+
+                                    <div class="competency_verify_result text-danger small mt-1"></div>
+
+                                </td>
+
+
+                                {{-- FIRST ISSUE --}}
+                                <td class="validity-column">
+
+                                    <input type="date"
+                                        class="form-control cc_firstissue"
+                                        name="cc_firstissue[{{ $i }}]"
+                                        value="{{ old('cc_firstissue.' . $i) }}">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_firstissue.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- VALIDITY FROM --}}
+                                <td class="validity-column">
+
+                                    <input type="date"
+                                        class="form-control cc_validity_from"
+                                        name="cc_validity_from[{{ $i }}]"
+                                        value="{{ old('cc_validity_from.' . $i) }}">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_validity_from.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- VALIDITY TO --}}
+                                <td class="validity-column">
+
+                                    <input type="date"
+                                        class="form-control cc_validity_to"
+                                        name="cc_validity_to[{{ $i }}]"
+                                        value="{{ old('cc_validity_to.' . $i) }}">
+
+                                    <span class="error text-danger">
+                                        {{ $errors->first('cc_validity_to.' . $i) }}
+                                    </span>
+
+                                </td>
+
+
+                                {{-- DESIGNATION --}}
+                                <td class="designation-column"
+                                    style="display:none;">
+
+                                    <input type="text"
+                                        class="form-control designation"
+                                        name="designation[{{ $i }}]"
+                                        placeholder="Enter Designation"
+                                        value="{{ old('designation.' . $i) }}">
+
+                                </td>
+
+
+                                {{-- ACTION --}}
+                                <td>
+
+                                    @if($i == $staff_count - 1)
+
+                                    <button type="button"
+                                        class="btn btn-success"
+                                        onclick="addStaffRows()">
+                                        + Add
+                                    </button>
+
+                                    @endif
+
+                                </td>
+
+
+                                {{-- STAFF ID --}}
+                                <input type="hidden"
+                                    name="staff_id[{{ $i }}]"
+                                    value="">
+
+                                </tr>
+
+                                @endfor
+
+                        </tbody>
+
+
+
+                        @else
+
+                        {{-- =========================================================
+                                                        EXISTING APPLICATION
+                                                        REMOVE QC / QSC
+                                                        ========================================================= --}}
+
+                       @php
+    $normalStaffs = collect($staffs ?? [])
+        ->filter(function ($staff) {
+            return !in_array(
+                $staff->staff_category ?? '',
+                ['QC', 'QSC']
+            ) && ($staff->staff_flag ?? '1') == '1';
+        })
+        ->values();
+
+    $existingCount = $normalStaffs->count();
+    $staff_count = max(2, $existingCount);
+@endphp
+
+<tbody id="staff-container">
+
+    @for ($i = 0; $i < $staff_count; $i++)
+
+        @php
+            $staff = $normalStaffs[$i] ?? null;
+            $category = $staff->staff_category ?? '';
+            $isOthers = ($category === 'OTHERS');
+
+            $rowIndex = $staff->row_index ?? ($i + 1);
+        @endphp
+
+        <tr class="staff-fields"
+    data-id="{{ $staff->id ?? '' }}"
+    data-row-index="{{ $rowIndex }}">
+
+    <td>
+        {{ $i + 1 }}
+
+        <input type="hidden"
+               name="row_index[{{ $i }}]"
+               value="{{ $staff->row_index ?? $rowIndex }}"
+               class="form-control row_index">
+    </td>
+
+    <td>
+
+        @if ($i < 2)
+
+            <input type="hidden"
+                   name="staff_category[{{ $i }}]"
+                   value="B"
+                   class="staff_category">
+
+            <input type="text"
+                   class="form-control"
+                   value="B"
+                   readonly>
+
+        @else
+
+            <select class="form-control staff_category"
+                    name="staff_category[{{ $i }}]">
+
+                <option value="">Select Category</option>
+
+                <option value="B"
+                    {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
+                    B
+                </option>
+
+                <option value="C"
+                    {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
+                    C
+                </option>
+
+                <option value="OTHERS"
+                    {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
+                    OTHERS
+                </option>
+
+            </select>
+
+        @endif
+
+        <span class="error text-danger">
+            {{ $errors->first('staff_category.' . $i) }}
+        </span>
+
+    </td>
+
+    <td class="cc-column"
+        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+        <input type="text"
+               class="form-control cc_number"
+               name="cc_number[{{ $i }}]"
+               maxlength="15"
+               placeholder="Certificate No"
+               value="{{ old('cc_number.' . $i, $staff->staff_cc_no ?? '') }}"
+               oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
+
+        <span class="error text-danger"></span>
+
+        <div class="competency_verify_result text-danger small mt-1"></div>
+
+    </td>
+
+    <td class="validity-column"
+        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+        <input type="date"
+               class="form-control cc_firstissue"
+               name="cc_firstissue[{{ $i }}]"
+               value="{{ old(
+                   'cc_firstissue.' . $i,
+                   isset($staff->staff_cc_first_issue)
+                       ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('Y-m-d')
+                       : ''
+               ) }}">
+
+    </td>
+
+    <td class="validity-column"
+        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+        <input type="date"
+               class="form-control cc_validity_from"
+               name="cc_validity_from[{{ $i }}]"
+               value="{{ old(
+                   'cc_validity_from.' . $i,
+                   isset($staff->staff_cc_validity_from)
+                       ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('Y-m-d')
+                       : ''
+               ) }}">
+
+    </td>
+
+    <td class="validity-column"
+        style="{{ $isOthers ? 'display:none;' : '' }}">
+
+        <input type="date"
+               class="form-control cc_validity_to"
+               name="cc_validity_to[{{ $i }}]"
+               value="{{ old(
+                   'cc_validity_to.' . $i,
+                   isset($staff->staff_cc_validity_to)
+                       ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('Y-m-d')
+                       : ''
+               ) }}">
+
+    </td>
+
+    <td class="designation-column"
+        style="{{ $isOthers ? '' : 'display:none;' }}">
+
+        <input type="text"
+               class="form-control designation"
+               name="designation[{{ $i }}]"
+               placeholder="Enter Designation"
+               value="{{ old(
+                   'designation.' . $i,
+                   $staff->staff_designation ?? ''
+               ) }}"
+               oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="action-column">
+
+        @if ($i == $staff_count - 1)
+
+            <button type="button"
+                    class="btn btn-success"
+                    onclick="addStaffRows()">
+                + Add
+            </button>
+
+        @endif
+
+        @if ($i >= 2)
+
+            <button type="button"
+                    class="btn btn-danger"
+                    onclick="removeStaffRow(this)">
+                Remove
+            </button>
+
+        @endif
+
+    </td>
+
+    <input type="hidden"
+           name="staff_id[{{ $i }}]"
+           value="{{ $staff->id ?? '' }}">
+
+    <input type="hidden"
+           name="staff_flag[{{ $i }}]"
+           value="1">
+
+</tr>
+
+    @endfor
+
+</tbody>
+
+                        @endif
+
+
+
+                    </table>
+                    <p class="text-red note_txt">Note : Minimum 20 Staffs are allowed and Mandatory ( 2 B)
+                    </p>
+                    <!-- <div class="row">
+                                    <div class="col-12 col-md-12">
+
+
+                                    </div>
+
+                                </div> -->
+                </div>
+
+
+
+            </div>
+
+        </div>
+
 
 
 
                     <hr class="mt-1">
                     <div class="row">
-                        <div class="col-md-12  ">
-                            <div class="row align-items-center head_label">
-                                <div class="col-12 col-md-12 title_bar">
-                                    <label>7. Bank Solvency Certificate Details <span style="color: red;">*</span> </label>
+            <div class="col-md-12  ">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label>6. Bank Solvency Certificate Details <span style="color: red;">*</span>
+                        </label>
 
-                                </div>
+                    </div>
 
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="phone">(i) Name of the Bank and Address <span
+                                        style="color: red;">*</span></label>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="row">
-                                        <div class="col-12 col-md-12">
-                                            <label for="phone">(i) Name of the Bank and Address <span style="color: red;">*</span></label>
-                                        </div>
-
-                                        <div class="col-12 col-md-12">
-                                            <textarea class="form-control" name="bank_address" placeholder="Name of the Bank and Address">{{ $banksolvency->bank_address ?? '' }}</textarea>
-                                            <span class="error text-danger" id="bank_address_error"></span>
-                                        </div>
-
-                                    </div>
-
-
-                                </div>
-                                <div class="col-md-4">
-
-
-
-                                    <div class="row">
-                                        <div class="col-12 col-md-12">
-                                            <label for="comments">(ii). Validity Period <span style="color: red;">*</span></label>
-                                        </div>
-
-                                        <div class="col-12 col-md-12">
-                                            <input type="date"
-                                                class="form-control"
-                                                name="bank_validity"
-                                                placeholder="Validity"
-                                                value="{{ isset($banksolvency) && $banksolvency->bank_validity ? \Carbon\Carbon::parse($banksolvency->bank_validity)->format('Y-m-d') : '' }}">
-
-
-                                            <span class="error text-danger" id="bank_validity_error"></span>
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-
-
-
-                                    <div class="row">
-                                        <div class="col-12 col-md-12">
-                                            <label for="comments">(iii). Amount Rs <span style="color: red;">*</span></label>
-                                        </div>
-
-                                        <div class="col-12 col-md-12">
-                                            <input type="number" class="form-control" id="bank_amount" max="99999"
-                                                oninput="if(this.value.length > 5) this.value = this.value.slice(0, 5);" name="bank_amount" value="{{ $banksolvency->bank_amount ?? '' }}">
-                                            <span class="error text-danger" id="bank_amount_error"></span>
-                                        </div>
-
-                                    </div>
-                                </div>
+                            <div class="col-12 col-md-12">
+                                <textarea class="form-control" name="bank_address"
+                                    placeholder="Name of the Bank and Address">{{ $banksolvency->bank_address ?? '' }}</textarea>
+                                <span class="error text-danger" id="bank_address_error"></span>
                             </div>
 
-                            <hr class="mt-3">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="row align-items-center head_label">
-                                        <div class="col-12 col-md-12 title_bar">
-                                            <label> [ 8 to 11 ] Attachments Points</label>
-
-                                        </div>
-
-                                    </div>
+                        </div>
 
 
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-8">
-                                            <label for="Name">8. Has the applicant or any of his/her
-                                                staff referred to under item 6, been at
-                                                any time convicted in any court of law
-                                                or punished by any other authority for
-                                                criminal offences <span style="color: red;">*</span>
-                                            </label>
-                                        </div>
-                                        @php
-                                        $criminal_offence = strtolower(old('criminal_offence', $application->criminal_offence ?? 'no'));
-                                        @endphp
-
-                                        <div class="col-12 col-md-4">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="criminal_offence_yes" name="criminal_offence" value="yes" {{ $criminal_offence == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="criminal_offence_yes">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="criminal_offence_no" name="criminal_offence" value="no" {{ $criminal_offence == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="criminal_offence_no">No</label>
-                                            </div>
-                                            <span class="error text-danger" id="criminal_offence_error"></span>
-                                        </div>
+                    </div>
+                    <div class="col-md-3">
 
 
 
-
-                                    </div>
-                                </div>
-
-                            </div>
-                            <hr>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-8">
-                                            <label for="Name">9. (i) Whether consent letter, of the
-                                                competency certificate holder are
-                                                enclosed. (including for self) <span style="color: red;">*</span>
-                                            </label>
-                                        </div>
-
-                                        @php
-                                        $consent_letter_enclose = strtolower(old('consent_letter_enclose', $application->consent_letter_enclose ?? 'no'));
-                                        @endphp
-                                        <div class="col-12 col-md-4">
-                                            <input style="display: none;" class="form-check-input" type="radio" id="consent_letter_enclose" name="consent_letter_enclose" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="consent_letter_enclose" name="consent_letter_enclose" value="yes"
-                                                    {{ $consent_letter_enclose == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="consent_letter">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="consent_letter_enclose" name="consent_letter_enclose" value="no"
-                                                    {{ $consent_letter_enclose == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="consent_letter_enclose">No</label>
-                                            </div>
-                                            <span class="error text-danger" id="consent_letter_enclose_error"></span>
-                                        </div>
-
-
-
-                                    </div>
-                                </div>
-
-                                <div class="col-md-12 mt-2">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-8">
-                                            <label for="Name">(ii) Whether original booklet of
-                                                competency certificate holders are
-                                                enclosed? (including for self) <span style="color: red;">*</span>
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-4">
-                                            @php
-                                            $cc_holders_enclosed = strtolower(old('cc_holders_enclosed', $application->cc_holders_enclosed ?? 'no'));
-                                            @endphp
-                                            <input style="display: none;" class="form-check-input" type="radio" id="cc_holders_enclosed" name="cc_holders_enclosed" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="cc_holders_enclosed" name="cc_holders_enclosed" value="yes" {{ $cc_holders_enclosed == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="cc_enclosed">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="cc_holders_enclosed" name="cc_holders_enclosed" value="no" {{ $cc_holders_enclosed == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="cc_enclosed">No</label>
-                                            </div>
-                                            <span class="error text-danger" id="cc_holders_enclosed_error"></span>
-                                        </div>
-
-
-
-                                    </div>
-                                </div>
-
-
-                            </div>
-                            <hr>
-                            <!-- ------------------------------------------------------- -->
-                            <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-8">
-                                            <label for="Name">10. (i)Whether purchase bill for all the
-                                                instruments are enclosed in Original <span style="color: red;">*</span>
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-4">
-                                            @php
-                                            $purchase_bill_enclose = strtolower(old('purchase_bill_enclose', $application->purchase_bill_enclose ?? 'no'));
-                                            @endphp
-                                            <input style="display: none;" class="form-check-input" type="radio" id="purchase_bill_enclose" name="purchase_bill_enclose" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="purchase_bill_enclose" name="purchase_bill_enclose" value="yes" {{ $purchase_bill_enclose == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="purchase_bill_enclose">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="purchase_bill_enclose" name="purchase_bill_enclose" value="no" {{ $purchase_bill_enclose == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="purchase_bill_enclose">No</label>
-                                            </div>
-                                            <span class="error text-danger" id="purchase_bill_enclose_error"></span>
-                                        </div>
-
-
-
-                                    </div>
-                                </div>
-
-                                <div class="col-md-12 mt-3">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-8">
-                                            <label for="Name">(ii) Whether the test reports for
-                                                instruments and deeds for possess
-                                                of the instruments are enclosed in
-                                                original? <span style="color: red;">*</span>
-
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-4">
-                                            @php
-                                            $test_reports_enclose = strtolower(old('test_reports_enclose', $application->test_reports_enclose ?? 'no'));
-                                            @endphp
-                                            <input style="display: none;" class="form-check-input" type="radio" id="test_reports_enclose" name="test_reports_enclose" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="test_reports_enclose" name="test_reports_enclose" value="yes" {{ $test_reports_enclose == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="test_reports">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="test_reports_enclose" name="test_reports_enclose" value="no" {{ $test_reports_enclose == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="test_reports">No</label>
-                                            </div>
-                                            <span class="error text-danger" id="test_reports_enclose_error"></span>
-                                        </div>
-
-
-
-                                    </div>
-                                </div>
-
-
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="comments">(ii). Validity Period <span
+                                        style="color: red;">*</span></label>
                             </div>
 
-                            <hr>
+                            <div class="col-12 col-md-12">
+                                <input type="date" class="form-control" name="bank_validity"
+                                    placeholder="Validity"
+                                    value="{{ isset($banksolvency) && $banksolvency->bank_validity ? \Carbon\Carbon::parse($banksolvency->bank_validity)->format('Y-m-d') : '' }}">
 
-                            <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <div class="row align-items-center border-right-12">
-                                        <div class="col-12 col-md-8">
-                                            <label for="Name">11. (i) Whether specimen signature of
-                                                the Proprietor or of the authorised
-                                                signatory (in case of limited
-                                                company in triplicate is enclosed) <span style="color: red;">*</span>
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-4 ">
-                                            @php
-                                            $specimen_signature_enclose = strtolower(old('specimen_signature_enclose', $application->specimen_signature_enclose ?? 'no'));
-                                            @endphp
-                                            <input style="display: none;" class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="yes" {{ $specimen_signature_enclose == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="specimen_signature">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="specimen_signature_enclose" name="specimen_signature_enclose" value="no" {{ $specimen_signature_enclose == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="specimen_signature">No</label>
-                                            </div>
 
-                                        </div>
-                                        <span class="error text-danger" id="specimen_signature_enclose_error"></span>
-
-
-                                    </div>
-                                </div>
-
-                                <div class="col-md-12">
-                                    <div class="row border-right-12">
-                                        <div class="col-12">
-                                            <label for="Name">
-                                                (ii) The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern
-                                            </label>
-                                        </div>
-
-                                        <div class="col-12">
-                                            <table class="table table-bordered" id="authority-names-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Name of Signatory</th>
-                                                        <th>Age of Signatory</th>
-                                                        <th>Qualification of Signatory</th>
-                                                        <th>Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @if(!$application)
-                                                    <tr>
-                                                        <td>
-                                                            <input type="text" class="form-control" name="name_of_authorised_to_sign[]"
-                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                        </td>
-                                                        <td>
-                                                            <input type="number" min="15" max="70" class="form-control" name="age_of_authorised_to_sign[]">
-                                                        </td>
-                                                        <td>
-                                                            <input type="text" class="form-control" name="qualification_of_authorised_to_sign[]"
-                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                        </td>
-                                                        <td>
-                                                            <button type="button" class="btn btn-primary" id="add-more-authority-name">
-                                                                <i class="fa fa-plus"></i> Add More
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    @else
-                                                    @php
-                                                    $authorisedNames = !empty($application->name_of_authorised_to_sign)
-                                                    ? json_decode($application->name_of_authorised_to_sign, true)
-                                                    : [];
-
-                                                    $age_of_authorised_to_sign = !empty($application->age_of_authorised_to_sign)
-                                                    ? json_decode($application->age_of_authorised_to_sign, true)
-                                                    : [];
-
-                                                    $qualification_of_authorised_to_sign = !empty($application->qualification_of_authorised_to_sign)
-                                                    ? json_decode($application->qualification_of_authorised_to_sign, true)
-                                                    : [];
-                                                    @endphp
-
-                                                    @if(count($authorisedNames) > 0)
-                                                    @foreach($authorisedNames as $index => $name)
-                                                    <tr>
-                                                        <td>
-                                                            <input type="text" class="form-control" name="name_of_authorised_to_sign[]"
-                                                                value="{{ isset($authorisedNames[$index]) && trim($authorisedNames[$index]) !== 'null' ? trim($authorisedNames[$index]) : '' }}"
-                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                        </td>
-                                                        <td>
-                                                            <input type="number" min="15" max="70" class="form-control"
-                                                                name="age_of_authorised_to_sign[]"
-                                                                value="{{ isset($age_of_authorised_to_sign[$index]) ? $age_of_authorised_to_sign[$index] : '' }}">
-                                                        </td>
-                                                        <td>
-                                                            <input type="text" class="form-control" name="qualification_of_authorised_to_sign[]"
-                                                                value="{{ isset($qualification_of_authorised_to_sign[$index]) && trim($qualification_of_authorised_to_sign[$index]) !== 'null' ? trim($qualification_of_authorised_to_sign[$index]) : '' }}"
-                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                        </td>
-                                                        <td>
-                                                            @if($index == 0)
-                                                            <button type="button" class="btn btn-primary" id="add-more-authority-name">
-                                                                <i class="fa fa-plus"></i> Add More
-                                                            </button>
-                                                            @else
-                                                            <button type="button" class="btn btn-danger remove-authority-name">
-                                                                <i class="fa fa-minus"></i> Remove
-                                                            </button>
-                                                            @endif
-                                                        </td>
-                                                    </tr>
-                                                    @endforeach
-                                                    @else
-                                                    <tr>
-                                                        <td>
-                                                            <input type="text" class="form-control" name="name_of_authorised_to_sign[]" placeholder="Name of Authority"
-                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                        </td>
-                                                        <td>
-                                                            <input type="number" min="12" max="80" class="form-control" name="age_of_authorised_to_sign[]" placeholder="Age of Authority">
-                                                        </td>
-                                                        <td>
-                                                            <input type="text" class="form-control" name="qualification_of_authorised_to_sign[]" placeholder="Qualification of Authority"
-                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
-                                                        </td>
-                                                        <td>
-                                                            <button type="button" class="btn btn-primary" id="add-more-authority-name">
-                                                                <i class="fa fa-plus"></i> Add More
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    @endif
-                                                    @endif
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-12">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-8">
-                                            <label for="Name">(iii) Whether the applicant enclosed
-                                                the specimen signature of the
-                                                above person/ persons in triplicate
-                                                in a separate sheet of paper<span style="color: red;">*</span>
-
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-4 ">
-                                            @php
-                                            $separate_sheet = strtolower(old('separate_sheet', $application->separate_sheet ?? 'no'));
-                                            @endphp
-                                            <input style="display: none;" class="form-check-input" type="radio" id="separate_sheet" name="separate_sheet" value="yes">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="separate_sheet" name="separate_sheet" value="yes" {{ $separate_sheet == 'yes' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="separate_sheet">Yes</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" id="separate_sheet" name="separate_sheet" value="no" {{ $separate_sheet == 'no' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="separate_sheet">No</label>
-                                            </div>
-                                            <span class="error text-danger" id="separate_sheet_error"></span>
-                                        </div>
-
-
-
-                                    </div>
-                                </div>
-
-
-                            </div>
-                            <hr>
-                            <div class="row" style="display: none;">
-                                <div class="col-12 col-md-6 ">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-5 ">
-                                            <label for="Name">12. (i) Upload Photo
-                                            </label>
-                                            <br>
-                                            <label for="tamil" class="tamil">புகைப்படத்தைப் பதிவேற்றவும்
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-7">
-                                            <input autocomplete="off" class="form-control text-box single-line" id="upload_photo" name="upload_photo" type="file" value="" accept="image/*">
-                                            <span class="file-limit"> File type: JPG,PNG (Max 50 KB) </span>
-                                            <span class="error text-danger" id="upload_photo_error"></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-
-
-                            </div>
-
-                            <hr>
-
-                            <div class="row align-items-center head_label">
-                                <div class="col-12 col-md-12 title_bar">
-                                    <label> 12) Upload Documents </label>
-
-                                </div>
-
-                            </div>
-
-                            <div class="row">
-
-                                <div class="col-12 col-md-6 ">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-5 ">
-                                            <label for="Name">(i) Aadhaar Number <span style="color: red;">*</span>
-                                            </label>
-                                            <br>
-                                            <label for="tamil" class="tamil">ஆதார் எண்
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-7">
-                                            @php
-                                            use Illuminate\Support\Facades\Crypt;
-
-                                            try {
-                                            $decryptedAadhaar = Crypt::decryptString($application->aadhaar);
-
-                                            if (strlen($decryptedAadhaar) >= 4) {
-                                            $maskedAadhaar = str_repeat('X', strlen($decryptedAadhaar) - 4) . substr($decryptedAadhaar, -4);
-                                            } else {
-                                            $maskedAadhaar = 'Invalid Aadhaar';
-                                            }
-                                            } catch (\Exception $e) {
-                                            $maskedAadhaar = 'Invalid or corrupted Aadhaar';
-                                            $decryptedAadhaar = '';
-                                            }
-                                            @endphp
-                                            <input type="text" class="form-control text-box" maxlength="14" name="aadhaar" id="aadhaar" value="{{ $decryptedAadhaar ?? '' }}">
-
-                                            <span class="error text-danger" id="aadhaar_error"></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-
-                                <div class="col-12 col-md-6">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-5">
-                                            <label for="aadhaar_doc">(ii) Upload Aadhaar Document</label>
-                                            <br>
-                                            <label for="aadhaar_doc" class="tamil">ஆதார் ஆவணத்தை பதிவேற்றவும்</label>
-                                        </div>
-                                        <div class="col-12 col-md-7">
-                                            @php
-
-
-                                            $decryptedAadhaardoc = null;
-                                            $maskedAadhaardoc = null;
-
-                                            if (!empty($document->aadhaar_doc)) {
-                                            try {
-                                            $decryptedAadhaardoc = Crypt::decryptString($document->aadhaar_doc);
-                                            $maskedAadhaardoc = str_repeat('X', strlen($decryptedAadhaardoc) - 4) . substr($decryptedAadhaardoc, -4);
-                                            } catch (\Exception $e) {
-                                            $maskedAadhaardoc = 'Invalid or corrupted Aadhaar';
-                                            }
-                                            }
-                                            @endphp
-
-                                            <div id="aadhaar-upload-wrapper">
-                                                @if (!empty($decryptedAadhaardoc))
-                                                <div class="row mt-2" id="aadhaar-existing-row">
-                                                    <div class="col-12 col-md-7">
-                                                        <a href="{{ asset($decryptedAadhaardoc) }}" target="_blank">
-                                                            <i class="fa fa-file-pdf-o fa-lg text-danger"></i> View
-                                                        </a>
-                                                        {{-- Hidden input with the same name for server fallback --}}
-                                                        <input type="hidden" name="aadhaar_doc" id="aadhaar_doc" value="{{ $decryptedAadhaardoc }}">
-                                                    </div>
-                                                    <div class="col-12 col-md-5">
-                                                        <button type="button" class="btn btn-danger" id="remove-aadhaar-doc">
-                                                            <i class="fa fa-trash-o"></i> Remove
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {{-- File input (initially hidden) --}}
-                                                <div class="row mt-2" id="aadhaar-file-row" style="display: none;">
-                                                    <div class="col-12">
-                                                        <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept="application/pdf">
-                                                        <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                    </div>
-                                                </div>
-                                                @else
-                                                {{-- No existing doc: show file input --}}
-                                                <div class="row mt-2" id="aadhaar-file-row">
-                                                    <div class="col-12">
-                                                        <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept="application/pdf">
-                                                        <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                    </div>
-                                                </div>
-                                                @endif
-                                            </div>
-
-                                            <span class="error text-danger aadhaar_doc_error" id="aadhaar_doc_error"></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-
-
-                            </div>
-                            <hr>
-
-                            <div class="row">
-                                <div class="col-12 col-md-6 ">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-5 ">
-                                            <label for="Name">(iii) Pan Card Number <span style="color: red;">*</span>
-                                            </label>
-                                            <br>
-                                            <label for="tamil" class="tamil">பான் கார்டு எண்
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-7">
-                                            @php
-                                            try {
-                                            $decryptedpan = Crypt::decryptString($application->pancard);
-
-                                            if (strlen($decryptedpan) >= 4) {
-                                            $maskpan = str_repeat('X', strlen($decryptedpan) - 4) . substr($decryptedpan, -4);
-                                            } else {
-                                            $maskpan = 'Invalid Pancard';
-                                            }
-                                            } catch (\Exception $e) {
-                                            $maskpan = 'Invalid or corrupted Pancard';
-                                            $decryptedpan = '';
-                                            }
-                                            @endphp
-
-                                            <input type="text" class="form-control text-box " name="pancard" maxlength="10" id="pancard" value="{{ $decryptedpan ?? '' }}">
-                                            <span class="error text-danger" id="pancard_error"></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-
-                                <div class="col-12 col-md-6 ">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-5 ">
-                                            <label for="Name">(iv) Upload Pan Card Document
-                                            </label>
-                                            <br>
-                                            <label for="tamil" class="tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-7">
-                                            @php
-                                            $decryptedPandoc = null;
-                                            $maskedPandoc = null;
-
-                                            if (!empty($document->pancard_doc)) {
-                                            try {
-                                            $decryptedPandoc = Crypt::decryptString($document->pancard_doc);
-                                            $maskedPandoc = str_repeat('X', strlen($decryptedPandoc) - 4) . substr($decryptedPandoc, -4);
-                                            } catch (\Exception $e) {
-                                            $maskedPandoc = 'Invalid or corrupted PAN';
-                                            }
-                                            }
-                                            @endphp
-
-                                            <div id="pan-upload-wrapper">
-                                                @if (!empty($decryptedPandoc))
-                                                <div class="row mt-2" id="pan-existing-row">
-                                                    <div class="col-12 col-md-7">
-                                                        <a href="{{ asset($decryptedPandoc) }}" target="_blank">
-                                                            <i class="fa fa-file-pdf-o fa-lg text-danger"></i> View
-                                                        </a>
-                                                        <input type="hidden" name="pancard_doc" value="{{ $decryptedPandoc }}" id="pancard_doc">
-                                                    </div>
-                                                    <div class="col-12 col-md-5">
-                                                        <button type="button" class="btn btn-danger" id="remove-pan-doc">
-                                                            <i class="fa fa-trash-o"></i> Remove
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div class="row mt-2" id="pan-file-row" style="display: none;">
-                                                    <div class="col-12">
-                                                        <input autocomplete="off" class="form-control" id="pancard_doc" name="pancard_doc" type="file" accept="application/pdf">
-                                                        <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                    </div>
-                                                </div>
-                                                @else
-                                                <div class="row mt-2" id="pan-file-row">
-                                                    <div class="col-12">
-                                                        <input autocomplete="off" class="form-control" id="pancard_doc" name="pancard_doc" type="file" accept="application/pdf">
-                                                        <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                    </div>
-                                                </div>
-                                                @endif
-                                            </div>
-                                            <span class="error text-danger" id="pancard_doc_error"></span>
-                                        </div>
-
-
-                                    </div>
-                                </div>
-
-                            </div>
-                            <hr>
-
-                            <div class="row">
-                                <div class="col-12 col-md-6">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-5 ">
-                                            <label for="Name">(v) GST Number <span style="color: red;">*</span>
-                                            </label>
-                                            <br>
-                                            <label for="tamil" class="tamil">ஜிஎஸ்டி எண்
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-7">
-                                            @php
-                                            $decryptedGST = null;
-                                            $maskgst = null;
-
-                                            if (!empty($application->gst_number)) {
-                                            try {
-                                            $decryptedGST = Crypt::decryptString($application->gst_number);
-
-                                            } catch (\Exception $e) {
-
-                                            }
-                                            }
-                                            @endphp
-
-                                            <input type="text" class="form-control text-box" name="gst_number" maxlength="15" id="gst_number" value="{{ $decryptedGST ?? '' }}">
-                                            <span class="error text-danger" id="gst_number_error"></span>
-                                        </div>
-
-
-                                    </div>
-                                </div>
-
-
-
-                                <div class="col-12 col-md-6 ">
-                                    <div class="row align-items-center">
-                                        <div class="col-12 col-md-5 ">
-                                            <label for="Name">(vi) Upload GST Document
-                                            </label>
-                                            <br>
-                                            <label for="tamil" class="tamil">ஜிஎஸ்டி ஆவணத்தைப் பதிவேற்றவும்
-                                            </label>
-                                        </div>
-                                        <div class="col-12 col-md-7">
-                                            @php
-                                            $decryptedGSTDoc = null;
-                                            $maskedGSTDoc = null;
-
-                                            if (!empty($document->gst_doc)) {
-                                            try {
-                                            $decryptedGSTDoc = Crypt::decryptString($document->gst_doc);
-                                            $maskedGSTDoc = str_repeat('X', strlen($decryptedGSTDoc) - 4) . substr($decryptedGSTDoc, -4);
-                                            } catch (\Exception $e) {
-                                            $maskedGSTDoc = 'Invalid or corrupted GST';
-                                            }
-                                            }
-                                            @endphp
-
-                                            <div id="gst-upload-wrapper">
-                                                @if (!empty($decryptedGSTDoc))
-                                                <div class="row mt-2" id="gst-existing-row">
-                                                    <div class="col-12 col-md-7">
-                                                        <a href="{{ asset($decryptedGSTDoc) }}" target="_blank">
-                                                            <i class="fa fa-file-pdf-o fa-lg text-danger"></i> View
-                                                        </a>
-                                                        <input type="hidden" name="gst_doc" id="gst_doc" value="{{ $decryptedGSTDoc }}">
-                                                    </div>
-                                                    <div class="col-12 col-md-5">
-                                                        <button type="button" class="btn btn-danger" id="remove-gst-doc">
-                                                            <i class="fa fa-trash-o"></i> Remove
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div class="row mt-2" id="gst-file-row" style="display: none;">
-                                                    <div class="col-12">
-                                                        <input autocomplete="off" class="form-control" id="gst_doc" name="gst_doc" type="file" accept="application/pdf">
-                                                        <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                    </div>
-                                                </div>
-                                                @else
-                                                <div class="row mt-2" id="gst-file-row">
-                                                    <div class="col-12">
-                                                        <input autocomplete="off" class="form-control" id="gst_doc" name="gst_doc" type="file" accept="application/pdf">
-                                                        <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                    </div>
-                                                </div>
-                                                @endif
-                                            </div>
-
-                                            <span class="error text-danger" id="gst_doc_error"></span>
-                                        </div>
-
-
-                                    </div>
-                                </div>
-
+                                <span class="error text-danger" id="bank_validity_error"></span>
                             </div>
 
 
 
                         </div>
                     </div>
+
+
+                    <!-- -------------------------------------- -->
+                    <div class="col-md-2">
+
+
+
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="comments">(iii). Amount Rs <span
+                                        style="color: red;">*</span></label>
+                            </div>
+
+                            <div class="col-12 col-md-12">
+                                <input type="number" class="form-control" id="bank_amount" max="99999"
+                                    oninput="if(this.value.length > 5) this.value = this.value.slice(0, 5);"
+                                    name="bank_amount" value="{{ $banksolvency->bank_amount ?? '' }}"
+                                    placeholder="Amount Rs">
+                                <span class="error text-danger" id="bank_amount_error"></span>
+                            </div>
+
+                        </div>
+                    </div>
+                    <!-- --------------------------------- -->
+                    <div class="col-md-4">
+
+
+
+                        <div class="row">
+                            <div class="col-12 col-md-12">
+                                <label for="comments">(iv). Proof <span style="color: red;">*</span></label>
+                            </div>
+
+                            <div class="col-12 col-md-12" id="bank_doc_section">
+                                <div class="row">
+                                    <div class="col-12 col-md-8">
+                                        <input type="file" class="form-control" name="bank_doc"
+                                            id="bank_doc" accept="application/pdf">
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="text-danger Doc_upload_error"></span>
+
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <button type="button" class="btn btn-info upload-btn"
+                                            data-login_id="{{ Auth::user()->login_id }}"
+                                            data-module="BANK SOLVENCY DOCUMENT"
+                                            data-document_category="bank_doc"
+                                            data-document_sub_category="BSD" data-ownership_type=""
+                                            data-form_code="{{$form_code->id}}">
+                                            <i class="fa fa-upload"></i> Upload
+                                        </button>
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="col-md-12 mt-3 col-12 {{ empty($banksolvency->bank_doc) ? 'd-none' : '' }} file-link">
+                                    @if(!empty($banksolvency->bank_doc))
+                                    <a href="{{ asset($banksolvency->bank_doc) }}" target="_blank"
+                                        class="text-primary fw-bold">
+                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                    </a>
+                                    @endif
+                                </div>
+
+
+                                <span class="error text-danger" id="bank_doc_error"></span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <p class="text-red note_txt">Note : Minimum 1 years of Validity Period is Mandatory </p>
+                </div>
+
+                <hr class="">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="row align-items-center head_label">
+                            <div class="col-12 col-md-12 title_bar">
+                                <label> 7 and 8 Attachments Points</label>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-7">
+                                <label for="Name">7. Has the applicant or any of his/her
+                                    staff referred to under item 6, been at
+                                    any time convicted in any court of law
+                                    or punished by any other authority for
+                                    criminal offences <span style="color: red;">*</span>
+                                </label>
+                            </div>
+                            @php
+                            $criminal_offence = strtolower(old('criminal_offence', $application->criminal_offence ?? 'no'));
+                            @endphp
+
+                            <div class="col-12 col-md-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="criminal_offence_yes"
+                                        name="criminal_offence" value="yes" {{ $criminal_offence == 'yes' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="criminal_offence_yes">Yes</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="criminal_offence_no"
+                                        name="criminal_offence" value="no" {{ $criminal_offence == 'no' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="criminal_offence_no">No</label>
+                                </div>
+                                <span class="error text-danger" id="criminal_offence_error"></span>
+                            </div>
+
+                            <div class="col-12 col-md-3 mt-3 file_upload criminaloffence_file"
+                                style="{{ $criminal_offence == 'yes' ? '' : 'display:none;' }}">
+
+                                <div class="row">
+                                    <div class="col-12 col-md-8">
+
+                                        <input type="file" class="form-control" name="other_doc"
+                                            accept="application/pdf">
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="text-danger Doc_upload_error"></span>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <button type="button" class="btn btn-info upload-btn"
+                                            data-login_id="{{ Auth::user()->login_id }}"
+                                            data-module="OTHER DOCUMENT" data-document_category="other_doc"
+                                            data-document_sub_category="OHD"
+                                            data-ownership_type="criminaloffence"
+                                            data-form_code="{{$form_code->id}}">
+                                            <i class="fa fa-upload"></i> Upload
+                                        </button>
+                                    </div>
+
+                                </div>
+
+
+                                <span class="error text-danger" id="criminal_offence_doc_error"></span>
+
+                                @php
+                                $criminalOffenceDoc = isset($attachment_doc)
+                                ? $attachment_doc->where('type', 'criminaloffence')->first()
+                                : null;
+                                @endphp
+
+                                @if($criminalOffenceDoc && !empty($criminalOffenceDoc->file_doc))
+                                <div class="col-md-12 mt-1 col-12 file-link">
+                                    <a href="{{ asset($criminalOffenceDoc->file_doc) }}" target="_blank"
+                                        class="text-primary fw-bold">
+                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                    </a>
+                                </div>
+                                @endif
+                            </div>
+
+
+
+
+                        </div>
+                    </div>
+
+                </div>
+                <hr>
+
+
+                <div class="row mt-3">
+
+
+                    <div class="col-md-12">
+                        <div class="row border-right-12">
+                            <div class="col-12">
+                                <label for="Name">
+                                    8. The name of the person/persons whom the applicant has authorised to
+                                    sign if any, on his/their behalf in case of Proprietor or Partnership
+                                    concern
+                                </label>
+                            </div>
+
+                            <div class="col-12">
+                                <table class="table table-bordered" id="authority-names-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name of Signatory</th>
+                                            <th>Age of Signatory</th>
+                                            <th>Qualification of Signatory</th>
+                                            <th>Designation</th>
+                                            <th>Specimen Signature</th>
+                                            <th width="10%">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if(!$application)
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="name_of_authorised_to_sign[]"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="15" max="70" class="form-control"
+                                                    name="age_of_authorised_to_sign[]">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="designation_of_authorised_to_sign[]"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <div class="row">
+                                                    <div class="col-12 col-md-7">
+                                                        <input type="file" class="form-control"
+                                                            name="specimen_sign" id="specimen_sign"
+                                                            accept="application/pdf">
+                                                        <span class="file-limit">PDF only (Max 250
+                                                            KB)</span>
+                                                        <br>
+                                                        <span class="text-danger Doc_upload_error"></span>
+
+                                                    </div>
+                                                    <div class="col-12 col-md-5">
+                                                        <button type="button"
+                                                            class="btn btn-info upload-btn"
+                                                            data-login_id="{{ Auth::user()->login_id }}"
+                                                            data-module="SPECIMEN SIGN"
+                                                            data-document_category="specimen_sign"
+                                                            data-document_sub_category="SS"
+                                                            data-ownership_type=""
+                                                            data-form_code="{{$form_code->id}}">
+                                                            <i class="fa fa-upload"></i> Upload
+                                                        </button>
+                                                    </div>
+
+
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-primary"
+                                                    id="add-more-authority-name">
+                                                    <i class="fa fa-plus"></i> Add More
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @else
+                                        @php
+                                        $authorisedNames = !empty($application->name_of_authorised_to_sign)
+                                        ? json_decode($application->name_of_authorised_to_sign, true)
+                                        : [];
+
+                                        $age_of_authorised_to_sign = !empty($application->age_of_authorised_to_sign)
+                                        ? json_decode($application->age_of_authorised_to_sign, true)
+                                        : [];
+
+                                        $qualification_of_authorised_to_sign = !empty($application->qualification_of_authorised_to_sign)
+                                        ? json_decode($application->qualification_of_authorised_to_sign, true)
+                                        : [];
+                                        @endphp
+
+                                        @if(count($authorisedNames) > 0)
+                                        @foreach($authorisedNames as $index => $name)
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="name_of_authorised_to_sign[]"
+                                                    value="{{ isset($authorisedNames[$index]) && trim($authorisedNames[$index]) !== 'null' ? trim($authorisedNames[$index]) : '' }}"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="15" max="70" class="form-control"
+                                                    name="age_of_authorised_to_sign[]"
+                                                    value="{{ isset($age_of_authorised_to_sign[$index]) ? $age_of_authorised_to_sign[$index] : '' }}">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    value="{{ isset($qualification_of_authorised_to_sign[$index]) && trim($qualification_of_authorised_to_sign[$index]) !== 'null' ? trim($qualification_of_authorised_to_sign[$index]) : '' }}"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                              <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    value="{{ isset($designation_of_authorised_to_sign[$index]) && trim($designation_of_authorised_to_sign[$index]) !== 'null' ? trim($designation_of_authorised_to_sign[$index]) : '' }}"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+
+                                               <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    value="{{ isset($specimen_sign[$index]) && trim($specimen_sign[$index]) !== 'null' ? trim($specimen_sign[$index]) : '' }}"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                @if($index == 0)
+                                                <button type="button" class="btn btn-primary"
+                                                    id="add-more-authority-name">
+                                                    <i class="fa fa-plus"></i> Add More
+                                                </button>
+                                                @else
+                                                <button type="button"
+                                                    class="btn btn-danger remove-authority-name">
+                                                    <i class="fa fa-minus"></i> Remove
+                                                </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                        @else
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="name_of_authorised_to_sign[]"
+                                                    placeholder="Name of Authority"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <input type="number" min="12" max="80" class="form-control"
+                                                    name="age_of_authorised_to_sign[]"
+                                                    placeholder="Age of Authority">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control"
+                                                    name="qualification_of_authorised_to_sign[]"
+                                                    placeholder="Qualification of Authority"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                              <td>
+                                                <input type="text" class="form-control"
+                                                    name="designation_of_authorised_to_sign[]"
+                                                    placeholder="Designation"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+
+                                              <td>
+                                                <input type="text" class="form-control"
+                                                    name="specimen_sign[]"
+                                                    placeholder="Specimen Signature"
+                                                    oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-primary"
+                                                    id="add-more-authority-name">
+                                                    <i class="fa fa-plus"></i> Add More
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endif
+                                        @endif
+                                    </tbody>
+                                </table>
+                                <p class="text-red note_txt">Note : Maximum 5 Signatories </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+
+
+                </div>
+                <hr>
+                <div class="row" style="display: none;">
+                    <div class="col-12 col-md-6 ">
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-5 ">
+                                <label for="Name">10. (i) Upload Photo
+                                </label>
+                                <br>
+                                <label for="tamil" class="tamil">புகைப்படத்தைப் பதிவேற்றவும்
+                                </label>
+                            </div>
+                            <div class="col-12 col-md-7">
+                                <input autocomplete="off" class="form-control text-box single-line"
+                                    id="upload_photo" name="upload_photo" type="file" value=""
+                                    accept="image/*">
+                                <span class="file-limit"> File type: JPG,PNG (Max 50 KB) </span>
+                                <span class="error text-danger" id="upload_photo_error"></span>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+                </div>
+
+                <hr>
+
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label> 9. Address Proof : GST/ Rental Aggrement/Others </label>
+
+                    </div>
+
+                </div>
+
+                <div class="row mt-2" id="address_proof">
+                    <div class="col-12 col-md-3">
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-5 ">
+                                <label for="Name">(i) Type of Address Proof <span
+                                        style="color: red;">*</span>
+                                </label>
+
+
+                            </div>
+                            <div class="col-12 col-md-7">
+                                @php
+
+                                $Address_proof = $Address_proof ?? null;
+
+                                $typeDoc = optional($Address_proof)->type_doc;
+                                @endphp
+
+                                <select class="custom-select" name="type_doc" id="type_doc">
+                                    <option value="">---Select Type---</option>
+
+                                    <option value="GST" {{ $typeDoc == 'GST' ? 'selected' : '' }}>
+                                        GST
+                                    </option>
+
+                                    <option value="Rental Agreement" {{ $typeDoc == 'Rental Agreement' ? 'selected' : '' }}>
+                                        Rental Agreement
+                                    </option>
+
+                                    <option value="Others" {{ $typeDoc == 'Others' ? 'selected' : '' }}>
+                                        Others
+                                    </option>
+                                </select>
+                                <span class="error text-danger" id="type_error"></span>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                    <!-- -------------------------------------------- -->
+                    <div class="col-12 col-md-4">
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-5 ">
+                                <label for="Name">(ii) GST/ Rental Aggrement/Others No: <span
+                                        style="color: red;">*</span>
+                                </label>
+
+
+                            </div>
+                            <div class="col-12 col-md-7">
+
+                                <input type="text" class="form-control text-box" name="addressproofno"
+                                    maxlength="15" id="addressproofno"
+                                    value="{{ $Address_proof->addressproofno ?? '' }}">
+                                <span class="error text-danger" id="addressproofno_error"></span>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-12 col-md-5">
+                        <div class="row ">
+                            <div class="col-12 col-md-3 ">
+                                <label for="Name">(iii) Upload Document
+                                </label>
+
+
+                            </div>
+                            <div class="col-12 col-md-9">
+
+
+                                <div class="row">
+                                    <div class="col-12 col-md-7">
+                                        <input type="file" class="form-control" name="address_proof"
+                                            id="address_proof" accept="application/pdf">
+                                        <span class="file-limit">PDF only (Max 250 KB)</span>
+                                        <br>
+                                        <span class="text-danger Doc_upload_error"></span>
+
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <button type="button" class="btn btn-info upload-btn"
+                                            data-login_id="{{ Auth::user()->login_id }}"
+                                            data-module="ADDRESS PROOF DOCUMENT"
+                                            data-document_category="Address_proof"
+                                            data-document_sub_category="APD" data-ownership_type=""
+                                            data-form_code="{{$form_code->id}}">
+                                            <i class="fa fa-upload"></i> Upload
+                                        </button>
+                                    </div>
+
+
+                                </div>
+
+                                <span class="error text-danger" id="gst_doc_error"></span>
+
+                                <div
+                                    class="col-md-12 mt-3 col-12 {{ empty($Address_proof->file_doc) ? 'd-none' : '' }} file-link">
+                                    @if(!empty($Address_proof->file_doc))
+                                    <a href="{{ asset($Address_proof->file_doc) }}" target="_blank"
+                                        class="text-primary fw-bold">
+                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                    </a>
+                                    @endif
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                </div>
+
+
+
+            </div>
+        </div>
 
 
                 </div>
 
                 <div class="tab " data-name="Equipment / Instruments List">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="row align-items-center head_label">
-                                <div class="col-12 col-md-12 title_bar">
-                                    <label> Equipment / Instruments : The applicant should possess the following instruments: <span style="color: red;">*</span></label>
-
-                                </div>
-
-                            </div>
-                        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="row align-items-center head_label">
+                    <div class="col-12 col-md-12 title_bar">
+                        <label> Equipment / Instruments : The applicant should possess the following
+                            instruments: <span style="color: red;">*</span></label>
 
                     </div>
 
-                    <div class="row mt-2">
+                </div>
+            </div>
 
-                        <div class="col-md-12">
+        </div>
 
+        <div class="row mt-2">
+
+            <div class="col-md-12">
+
+                @php
+                /*
+                If $equipmentlist is NOT passed (fresh form),
+                treat it as empty collection
+                */
+                $equipmentlist = $equipmentlist ?? collect();
+
+                /*
+                Create map:
+                equip_id => equipment_value
+                */
+                $storedEquipment = collect($equipmentlist)
+                ->pluck('equipment_value', 'equip_id')
+                ->toArray();
+                @endphp
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:2%">S.No</th>
+                                <th style="width:12%">Equipment Name</th>
+                                <th>Equipment Type</th>
+                                <th style="width:15%">Serial Number</th>
+                                <th style="width:15%">Make Model</th>
+
+                                <th>Test Report</th>
+                                <th>Purchase Report </th>
+                                <th style="width:8%">Date of Test </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            @foreach($equiplist as $index => $equip)
                             @php
-                            // Convert rows into equip_id => value map
-                            $storedEquipment = collect($equipmentlist)
-                            ->pluck('equipment_value', 'equip_id')
-                            ->toArray();
+                            $existing = $equipmentDetails[$equip->id] ?? null;
+                            @endphp
+                            @php
+                            /*
+                            If data exists → use DB value
+                            Else → default NO
+                            */
+                            $savedValue = $storedEquipment[$equip->id] ?? 'no';
                             @endphp
 
-                            <div class="table-responsive">
-                                <table class="table table-bordered align-middle">
-                                    <thead class="">
-                                        <tr>
-                                            <th style="width:5%">S.No</th>
-                                            <th>Equipment Name</th>
-                                            <th>Equipment Type</th>
-                                            <th>Availability</th>
+                            <!-- Hidden inputs -->
+                            <input type="hidden" name="equipments[{{ $index }}][equip_id]"
+                                value="{{ $equip->id }}">
 
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                            <input type="hidden" name="equipments[{{ $index }}][licence_id]"
+                                value="{{ $equip->equip_licence_name }}">
 
-                                        @foreach($equiplist as $index => $equip)
+                            <tr class="equipment-row">
+                                <td>{{ $index + 1 }}</td>
 
-                                        @php
-                                        $savedValue = $storedEquipment[$equip->id] ?? 'no';
-                                        @endphp
+                                <td>{{ $equip->equip_name }}</td>
 
-                                        <!-- Hidden inputs -->
-                                        <input type="hidden" name="equipments[{{ $index }}][equip_id]" value="{{ $equip->id }}">
-                                        <input type="hidden" name="equipments[{{ $index }}][licence_id]" value="{{ $equip->equip_licence_name }}">
+                                <td>{{ $equip->equipment_type }}</td>
 
-                                        <tr>
-                                            <td>{{ $index + 1 }}</td>
+                                <!-- <td>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input"
+                                                                type="radio"
+                                                                name="equipments[{{ $index }}][value]"
+                                                                value="yes"
+                                                                {{ $savedValue === 'yes' ? 'checked' : '' }}>
+                                                            <label class="form-check-label">Yes</label>
+                                                        </div>
 
-                                            <td>
-                                                {{ $equip->equip_name }}
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input"
+                                                                type="radio"
+                                                                name="equipments[{{ $index }}][value]"
+                                                                value="no"
+                                                                {{ $savedValue === 'no' ? 'checked' : '' }}>
+                                                            <label class="form-check-label">No</label>
+                                                        </div>
+                                                    </td> -->
+                                <td>
 
-                                                <!-- <small class="text-muted">
-                                Type: {{ $equip->equipment_type }}
-                            </small> -->
-                                            </td>
+                                    <input class="form-control" type="text" name="serial_no[]"
+                                        value="{{ $existing->serial_no ?? '' }}">
+                                    <span class="error text-danger serial_error"></span>
 
-                                            <td>
-                                                {{ $equip->equipment_type }}
+                                </td>
 
-                                                <!-- <small class="text-muted">
-                                Type: {{ $equip->equipment_type }}
-                            </small> -->
-                                            </td>
+                                <td>
 
-                                            <td>
+                                    <input class="form-control" type="text" name="model[]"
+                                        value="{{ $existing->model_no ?? '' }}">
+                                    <span class="error text-danger model_error"></span>
 
+                                </td>
 
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio"
-                                                        name="equipments[{{ $index }}][value]"
-                                                        value="yes"
-                                                        {{ $savedValue === 'yes' ? 'checked' : '' }}>
+                                <td width="20%">
+                                    <div class="row g-1 align-items-start">
+                                        <div class="col-md-9">
+                                            <input type="file" class="form-control"
+                                                name="instrument_test_report[{{ $index }}]"
+                                                id="instrument_test_report_{{ $index }}"
+                                                accept="application/pdf">
+                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                            <br>
+                                            <span class="text-danger Doc_upload_error"></span>
 
-                                                    <label class="form-check-label" for="equipments">Yes</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="radio"
-                                                        name="equipments[{{ $index }}][value]"
-                                                        value="no"
-                                                        {{ $savedValue === 'no' ? 'checked' : '' }}>
+                                            @if(!empty($existing->testreport_file))
+                                            <div class="mt-1">
+                                                <a href="{{ asset($existing->testreport_file) }}"
+                                                    target="_blank"
+                                                    class="text-primary fw-bold present-test-file uploaded-file">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                    Document
+                                                </a>
+                                            </div>
+                                            @endif
 
-                                                    <label class="form-check-label" for="equipments">No</label>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                            <span class="error text-danger"
+                                                id="instrument_test_report_error_{{ $index }}"></span>
 
-                                        @endforeach
+                                            <span
+                                                class="error text-danger instrument_test_report_error"></span>
 
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </div>
 
-                            <p class="text-danger mt-2">
-                                <strong>Note:</strong>
-                                These instruments should be tested in Government Electrical Standards Laboratory
-                                attached to the office of the Chief Electrical Inspector to Government, Chennai-32
-                                or in the MRT Laboratory of TNEB within 3 months prior to the date of application.
-                            </p>
+                                        <div class="col-md-3">
+                                            <button type="button" class="btn btn-info upload-btn"
+                                                data-index="{{ $index }}"
+                                                data-login_id="{{ Auth::user()->login_id }}"
+                                                data-module="EQUIPMENTS DOCUMENT"
+                                                data-document_category="instrument_test_report"
+                                                data-ownership_type="tr" data-document_sub_category="ED"
+                                                data-form_code="{{$form_code->id}}"
+                                                data-equip_code="{{ $equip->id }}">
+                                                <i class="fa fa-upload"></i>
+                                            </button>
 
-                        </div>
+                                        </div>
 
-
-
-
-
-                    </div>
-
-
-
-
-
-                    <!-- -------------Equip end----------- -->
+                                    </div>
 
 
+                                </td>
+
+                                <!-- --------------------------------------- -->
+                                <td width="20%">
+
+                                    <div class="row g-1 align-items-start">
+                                        <div class="col-md-9">
+
+                                            <input type="file" class="form-control"
+                                                name="instrument_purchase_report[{{ $index }}]"
+                                                id="instrument_purchase_report_{{ $index }}"
+                                                accept="application/pdf">
+                                            <span class="file-limit">PDF only (Max 250 KB)</span>
+                                            <br>
+                                            <span class="text-danger Doc_upload_error"></span>
+                                            <span class="error text-danger"
+                                                id="instrument_purchase_report_error_{{ $index }}"></span>
+                                            <span
+                                                class="error text-danger instrument_purchase_report_error"></span>
+
+                                            @if(!empty($existing->purchasereport_file))
+                                            <div class="mt-1">
+                                                <a href="{{ asset($existing->purchasereport_file) }}"
+                                                    target="_blank"
+                                                    class="text-primary fw-bold present-purchase-file uploaded-file">
+                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View
+                                                    Document
+                                                </a>
+                                            </div>
+                                            @endif
+                                        </div>
+                                        <div class="col-md-3">
+
+                                            <button type="button" class="btn btn-info upload-btn"
+                                                data-index="{{ $index }}"
+                                                data-login_id="{{ Auth::user()->login_id }}"
+                                                data-module="EQUIPMENTS DOCUMENT" data-ownership_type="pr"
+                                                data-document_category="instrument_purchase_report"
+                                                data-document_sub_category="ED"
+                                                data-form_code="{{$form_code->id}}"
+                                                data-equip_code="{{ $equip->id }}">
+                                                <i class="fa fa-upload"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+
+                                    <input class="form-control" type="date" name="date_of_test[]"
+                                        value="{{ $existing->dateoftest ?? '' }}">
+
+                                    <span class="error text-danger date_error"></span>
+
+                                </td>
+                                <!-- -------------------------------------------- -->
+                            </tr>
+
+                            @endforeach
+
+                        </tbody>
+                    </table>
                 </div>
 
 
-                <div class="tab" data-name="Enclosures & Declarations">
 
 
 
 
-                    <div class="row enclosures">
-                        <div class="col-12 col-md-12 title_bar">
-                            <label> Enclosures : </label>
-
-                        </div>
-                        <div class="col-12 col-md-12 ">
-
-                            <ul>
-                                <li>1. Bank Demand Draft in favour of the Secretary, Electrical Licensing Board, Chennai.</li>
-                                <li>2. Consent letters obtained from employees (including self) in the prescribed form.</li>
-                                <li>3. Detailed experience certificate of the appointed Supervisor (original & attested copy).</li>
-                                <li>4. Original Competency Certificates of staff (including self).</li>
-                                <li>5. Test reports of instruments from Government Electrical Standards Laboratory or MRT Laboratory of TNEB.</li>
-                                <li>6. Specimen signature of the contractor and authorized person (in triplicate, on a separate sheet).</li>
-                                <li>7. Bank Solvency Certificate of Rs.50,000/- in Form ‘G’ (valid for a minimum of three years).</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="row head_label">
-
-                        <div class="col-12 col-md-12 title_bar">
-                            <label> Declaration </label>
-
-                        </div>
-
-                        <label class="container mt-2">
-                            <div class="declaration-container">
-                                <input type="checkbox" id="declarationCheckbox" name="declaration1" value="1">
-                                <span class="checkmark"></span>
-                                <div>
-                                    I/We hereby declare that the particulars stated above are correct to the best of my/our knowledge and belief.
-                                </div>
-                            </div>
-                            <span class="error text-danger" id="declaration3_error"></span>
-                            <!-- <p id="declaration1_error" class="error text-danger" style="display: none;">
-                                ⚠ Please check the declaration box before proceeding.
-                            </p> -->
-                        </label>
-
-                        <label class="container">
-                            <div class="declaration-container">
-                                <input type="checkbox" id="declarationCheckbox1" name="declaration2" value="1">
-                                <span class="checkmark"></span>
-                                <div>
-                                    I/We hereby declare that I/We have in my/our possession a latest copy of the Indian
-                                    Electricity Rules, 1956 and that I/We fully understand the terms and conditions under which an Electrical
-                                    Contractor's licence is granted, breach of which will render the licence liable for cancellation.
-                                </div>
-                            </div>
-                            <span class="error text-danger" id="declaration4_error"></span>
-                            <!-- <p id="declaration2_error" class="error text-danger" style="display: none;">
-                                ⚠ Please check the declaration box before proceeding.
-                            </p> -->
-                        </label>
 
 
+                <p class="text-danger mt-2">
+                    <strong>Note:</strong>
+                    These instruments should be tested in Government Electrical Standards Laboratory
+                    attached to the office of the Chief Electrical Inspector to Government, Chennai-32
+                    or in the MRT Laboratory of TNEB within 3 months prior to the date of application.
+                </p>
+
+            </div>
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+        <!-- -------------Equip end----------- -->
+
+
+    </div>
+
+
+               <div class="tab" data-name="Enclosures & Declarations">
+
+
+
+
+        <div class="row enclosures">
+            <div class="col-12 col-md-12 title_bar">
+                <label> Enclosures : </label>
+
+            </div>
+            <div class="col-12 col-md-12 ">
+
+                <ul>
+                    <li>1. Bank Demand Draft in favour of the Secretary, Electrical Licensing Board,
+                        Chennai.</li>
+                    <li>2. Consent letters obtained from employees (including self) in the prescribed form.
+                    </li>
+                    <li>3. Detailed experience certificate of the appointed Supervisor (original & attested
+                        copy).</li>
+                    <li>4. Original Competency Certificates of staff (including self).</li>
+                    <li>5. Test reports of instruments from Government Electrical Standards Laboratory or
+                        MRT Laboratory of TNEB.</li>
+                    <li>6. Specimen signature of the contractor and authorized person (in triplicate, on a
+                        separate sheet).</li>
+                    <li>7. Bank Solvency Certificate of Rs.50,000/- in Form ‘G’ (valid for a Maximum of
+                        three years).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="row head_label">
+
+            <div class="col-12 col-md-12 title_bar">
+                <label> Declaration </label>
+
+            </div>
+
+            <label class="container mt-2">
+                <div class="declaration-container">
+                    <input type="checkbox" id="declarationCheckbox" name="declaration1" value="1">
+                    <span class="checkmark"></span>
+                    <div>
+                        I/We hereby declare that the particulars stated above are correct to the best of
+                        my/our knowledge and belief.
                     </div>
                 </div>
+                <span class="error text-danger" id="declaration3_error"></span>
+                <!-- <p id="declaration1_error" class="error text-danger" style="display: none;">
+                                ⚠ Please check the declaration box before proceeding.
+                            </p> -->
+            </label>
+
+            <label class="container">
+                <div class="declaration-container">
+                    <input type="checkbox" id="declarationCheckbox1" name="declaration2" value="1">
+                    <span class="checkmark"></span>
+                    <div>
+                        I/We hereby declare that I/We have in my/our possession a latest copy of the Indian
+                        Electricity Rules, 1956 and that I/We fully understand the terms and conditions
+                        under which an Electrical
+                        Contractor's licence is granted, breach of which will render the licence liable for
+                        cancellation.
+                    </div>
+                </div>
+                <span class="error text-danger" id="declaration4_error"></span>
+                <!-- <p id="declaration2_error" class="error text-danger" style="display: none;">
+                                ⚠ Please check the declaration box before proceeding.
+                            </p> -->
+            </label>
+
+
+        </div>
+    </div>
 
 
                 <nav class="tab-pag"></nav>
@@ -2991,11 +3928,21 @@ exit; -->
 
 
 
-
-
 <footer class="main-footer">
     @include('include.footer')
 
+    <script>
+        $(document).ready(async function() {
+            var modalEl = document.getElementById('rolePop');
+            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+
+            $('.btn-secondary, .btn-close').click(function() {
+
+                window.location.href = "{{ route('dashboard') }}";
+
+            });
+        });
+    </script>
     <script>
         // Function to show the draft saved popup
         function showDraftPopup() {
@@ -3187,11 +4134,11 @@ exit; -->
     <!-- const initialDraftCount = {{ count($proprietors) ?? 0 }};
 let proprietorCount = initialDraftCount || 0;
 
- 
+
 
 
         // let proprietorCount = typeof initialDraftCount !== "undefined" ? initialDraftCount : 1;
-        
+
                 let maxProprietors;
             if (!initialDraftCount) {
                 maxProprietors = 3;
@@ -3201,61 +4148,60 @@ let proprietorCount = initialDraftCount || 0;
 
 
     <script>
-        
-    function toggleCompetencyFields(type, show) {
-    let fieldsClass = '';
-    if (type === 'proprietor') {
-        fieldsClass = '.competency-fields-proprietor';
-    } else if (type === 'partner') {
-        fieldsClass = '.competency-fields-partner';
-    } else{
-        fieldsClass = '.competency-fields-director';
-    }
+        function toggleCompetencyFields(type, show) {
+            let fieldsClass = '';
+            if (type === 'proprietor') {
+                fieldsClass = '.competency-fields-proprietor';
+            } else if (type === 'partner') {
+                fieldsClass = '.competency-fields-partner';
+            } else {
+                fieldsClass = '.competency-fields-director';
+            }
 
-    const fields = document.querySelectorAll(fieldsClass);
-    fields.forEach(field => {
-        field.style.display = show ? '' : 'none';
+            const fields = document.querySelectorAll(fieldsClass);
+            fields.forEach(field => {
+                field.style.display = show ? '' : 'none';
 
-        const numberInput = field.querySelector('.competency_number');
-        const validityInput = field.querySelector('.competency_validity');
-        const verifyInput = field.querySelector('.proprietor_cc_verify, .partner_cc_verify');
-        const resultDiv = field.querySelector('.competency_verify_result');
+                const numberInput = field.querySelector('.competency_number');
+                const validityInput = field.querySelector('.competency_validity');
+                const verifyInput = field.querySelector('.proprietor_cc_verify, .partner_cc_verify');
+                const resultDiv = field.querySelector('.competency_verify_result');
 
-        if (show) {
-            if (numberInput) numberInput.value = '';
-            if (validityInput) validityInput.value = '';
-            if (verifyInput) verifyInput.value = '';
-            if (resultDiv) resultDiv.textContent = '';
-        }
-    });
-}
-
-
-      function toggleEmploymentFields(type, show) {
-    let fieldsClass = '';
-
-    if (type === 'proprietor') {
-        fieldsClass = '.employment-fields-proprietor';
-    } else if (type === 'partner') {
-        fieldsClass = '.employment-fields-partner';
-    } else{
-        fieldsClass = '.employment-fields-director';
-    }
-
-    const fields = document.querySelectorAll(fieldsClass);
-    fields.forEach(field => {
-        field.style.display = show ? '' : 'none';
-
-        if (show) {
-            const inputs = field.querySelectorAll('input, textarea, select');
-            inputs.forEach(input => {
-                input.value = '';
-                input.readOnly = false;
-                input.disabled = false;
+                if (show) {
+                    if (numberInput) numberInput.value = '';
+                    if (validityInput) validityInput.value = '';
+                    if (verifyInput) verifyInput.value = '';
+                    if (resultDiv) resultDiv.textContent = '';
+                }
             });
         }
-    });
-}
+
+
+        function toggleEmploymentFields(type, show) {
+            let fieldsClass = '';
+
+            if (type === 'proprietor') {
+                fieldsClass = '.employment-fields-proprietor';
+            } else if (type === 'partner') {
+                fieldsClass = '.employment-fields-partner';
+            } else {
+                fieldsClass = '.employment-fields-director';
+            }
+
+            const fields = document.querySelectorAll(fieldsClass);
+            fields.forEach(field => {
+                field.style.display = show ? '' : 'none';
+
+                if (show) {
+                    const inputs = field.querySelectorAll('input, textarea, select');
+                    inputs.forEach(input => {
+                        input.value = '';
+                        input.readOnly = false;
+                        input.disabled = false;
+                    });
+                }
+            });
+        }
 
 
 
@@ -3287,17 +4233,17 @@ let proprietorCount = initialDraftCount || 0;
 
         function toggleExperienceFields(type, show) {
 
-    let fieldsClass = '';
+            let fieldsClass = '';
 
-    if (type === 'proprietor') {
-        fieldsClass = '.experience-fields-proprietor';
-    } else if (type === 'partner') {
-        fieldsClass = '.experience-fields-partner';
-    } else{
-        fieldsClass = '.experience-fields-director';
-    }
+            if (type === 'proprietor') {
+                fieldsClass = '.experience-fields-proprietor';
+            } else if (type === 'partner') {
+                fieldsClass = '.experience-fields-partner';
+            } else {
+                fieldsClass = '.experience-fields-director';
+            }
 
-    const fields = document.querySelectorAll(fieldsClass);
+            const fields = document.querySelectorAll(fieldsClass);
             // const fields = document.querySelectorAll('.experience-fields');
 
             fields.forEach(field => {
@@ -3379,9 +4325,9 @@ let proprietorCount = initialDraftCount || 0;
                 if (wrapper) {
                     wrapper.innerHTML = `
                             <button type="button" class="btn btn-primary" id="verifyLicenseBtn" onclick="verifyeaCertificateprevoius(event, this)">Verify</button>
-                              <input 
-                                                type="hidden" 
-                                                name="previous_contractor_license_verify" 
+                              <input
+                                                type="hidden"
+                                                name="previous_contractor_license_verify"
                                                 class="previous_contractor_license_verify"
                                                 value="{{ $application?->previous_contractor_license_verify ?? '' }}">
                         `;
@@ -3493,77 +4439,132 @@ let proprietorCount = initialDraftCount || 0;
         });
 
 
-        document.addEventListener("DOMContentLoaded", function() {
-            let ageInput = document.getElementById("age");
+        // document.addEventListener("DOMContentLoaded", function() {
+        //     let ageInput = document.getElementById("age");
 
-            ageInput.addEventListener("input", function() {
-                let value = parseInt(this.value, 10);
-                if (value >= 50) {
-                    this.value = 49; // Set max limit to 49
-                } else if (value < 0 || isNaN(value)) {
-                    this.value = ""; // Prevent negative numbers or invalid input
-                }
-            });
-        });
+        //     ageInput.addEventListener("input", function() {
+        //         let value = parseInt(this.value, 10);
+        //         if (value >= 50) {
+        //             this.value = 49; // Set max limit to 49
+        //         } else if (value < 0 || isNaN(value)) {
+        //             this.value = ""; // Prevent negative numbers or invalid input
+        //         }
+        //     });
+        // });
 
 
 
-        const tableBody = document.querySelector('#authority-names-table tbody');
-        const maxRows = 3;
+        const authorityTableBody = document.querySelector('#authority-names-table tbody');
+        const authorityMaxRows = 5;
 
         document.addEventListener('click', function(e) {
-            // -------------------
-            // Remove row first
-            // -------------------
-            if (e.target && e.target.closest('.remove-authority-name')) {
-                const row = e.target.closest('tr');
-                row.remove();
-                return; // Important! Stop execution so it doesn't run the add logic
+
+            // ============================
+            // REMOVE ROW
+            // ============================
+            const removeBtn = e.target.closest('.remove-authority-name');
+
+            if (removeBtn) {
+                const row = removeBtn.closest('tr');
+
+                if (row) {
+                    row.remove();
+                }
+
+                return;
             }
 
-            // -------------------
-            // Add new row
-            // -------------------
-            if (e.target && e.target.id === 'add-more-authority-name') {
-                const rows = tableBody.querySelectorAll('tr');
-                const lastRow = rows[rows.length - 1];
-                let allFilled = true;
+            // ============================
+            // ADD NEW ROW
+            // ============================
+            const addBtn = e.target.closest('#add-more-authority-name');
 
-                // Check if all inputs in last row are filled
-                lastRow.querySelectorAll('input').forEach(input => {
-                    if (!input.value.trim()) allFilled = false;
+            if (!addBtn) {
+                return;
+            }
+
+            const rows = authorityTableBody.querySelectorAll('tr');
+
+            // Maximum 5 rows
+            if (rows.length >= authorityMaxRows) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Limit Reached',
+                    width: 450,
+                    text: `You can add a maximum of ${authorityMaxRows} authority names.`,
+                    confirmButtonColor: '#3085d6'
                 });
 
-                if (!allFilled) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Incomplete Row',
-                        width: 450,
-                        text: 'Please fill all fields in the last row before adding a new one.',
-                        confirmButtonColor: '#3085d6',
-                    });
-                    return;
-                }
-
-                if (rows.length >= maxRows) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Limit Reached',
-                        width: 450,
-                        text: `You can add a maximum of ${maxRows} authority names.`,
-                        confirmButtonColor: '#3085d6',
-                    });
-                    return;
-                }
-
-                // Clone the first row as a template
-                const newRow = rows[0].cloneNode(true);
-                newRow.querySelectorAll('input').forEach(input => input.value = '');
-                const btn = newRow.querySelector('button');
-                btn.className = 'btn btn-danger remove-authority-name';
-                btn.innerHTML = '<i class="fa fa-minus"></i> Remove';
-                tableBody.appendChild(newRow);
+                return;
             }
+
+            // Get last row
+            const lastRow = rows[rows.length - 1];
+
+            let allFilled = true;
+
+            // Check all text/number inputs in last row
+            lastRow.querySelectorAll(
+                'input[type="text"], input[type="number"]'
+            ).forEach(function(input) {
+
+                if (!input.value.trim()) {
+                    allFilled = false;
+                }
+            });
+
+            // Check specimen file also
+            const specimenFile = lastRow.querySelector(
+                'input[type="file"][name="specimen_sign"]'
+            );
+
+            if (specimenFile && !specimenFile.value) {
+                allFilled = false;
+            }
+
+            if (!allFilled) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Incomplete Row',
+                    width: 450,
+                    text: 'Fill all fields in the last row before adding a new one.',
+                    confirmButtonColor: '#3085d6'
+                });
+
+                return;
+            }
+
+            // ============================
+            // CLONE LAST ROW
+            // ============================
+            const newRow = lastRow.cloneNode(true);
+
+            // Clear input values
+            newRow.querySelectorAll('input').forEach(function(input) {
+
+                if (input.type === 'file') {
+                    input.value = '';
+                } else {
+                    input.value = '';
+                }
+            });
+
+            // Clear upload error
+            newRow.querySelectorAll('.Doc_upload_error').forEach(function(error) {
+                error.textContent = '';
+            });
+
+            // Change button to Remove
+            const newAddButton = newRow.querySelector('#add-more-authority-name');
+
+            if (newAddButton) {
+                newAddButton.removeAttribute('id');
+                newAddButton.className = 'btn btn-danger remove-authority-name';
+                newAddButton.innerHTML = '<i class="fa fa-minus"></i> Remove';
+            }
+
+            // Add new row
+            authorityTableBody.appendChild(newRow);
         });
 
 
@@ -3604,9 +4605,9 @@ let proprietorCount = initialDraftCount || 0;
             // Replace Clear with Verify button
             document.getElementById('licenseVerificationBtnWrapper').innerHTML = `
         <button type="button" class="btn btn-primary" id="verifyLicenseBtn" onclick="verifyeaCertificateprevoius(event, this)">Verify</button>
-          <input 
-                                                type="hidden" 
-                                                name="previous_contractor_license_verify" 
+          <input
+                                                type="hidden"
+                                                name="previous_contractor_license_verify"
                                                 class="previous_contractor_license_verify"
                                                 value="{{ $application?->previous_contractor_license_verify ?? '' }}">
     `;
@@ -3929,156 +4930,359 @@ let proprietorCount = initialDraftCount || 0;
             }
         });
 
-
-
-
-
-
-
         // -----------------add staff row---------------------
 
-        function addStaffRow() {
-            let rowCount = $('#staff-container tr').length;
+        // ================= ADD STAFF ROW =================
+        $(document).on('change', '.staff_category', function() {
 
-            // ✅ Check if first 4 staff rows are filled before adding a new one
-            let allFilled = true;
-            $('#staff-container tr').slice(0, 4).each(function(index, tr) {
-                let name = $(tr).find('input[name="staff_name[]"]').val().trim();
-                let qualification = $(tr).find('select[name="staff_qualification[]"]').val();
-                let category = $(tr).find('select[name="staff_category[]"]').val() || $(tr).find('input[name="staff_category[]"]').val();
-                let ccNumber = $(tr).find('input[name="cc_number[]"]').val().trim();
-                let ccValidity = $(tr).find('input[name="cc_validity[]"]').val().trim();
+            let row = $(this).closest('tr');
+            let category = $(this).val();
 
-                // If any required field is missing, block adding
-                if (!name || !qualification || !category || !ccNumber || !ccValidity) {
-                    allFilled = false;
-                    return false; // stop the loop
-                }
+            if (category === 'OTHERS') {
+
+                // Hide certificate fields
+                row.find('.cc-column').hide();
+                row.find('.validity-column').hide();
+
+                // Hide verify
+                row.find('.verifyBtn').hide();
+
+                // Show designation
+                row.find('.designation-column').show();
+
+                // Clear certificate values
+                row.find('.cc_number').val('');
+                row.find('.cc_firstissue').val('');
+                row.find('.cc_validity_from').val('');
+                row.find('.cc_validity_to').val('');
+
+            } else {
+
+                // Show certificate fields
+                row.find('.cc-column').show();
+                row.find('.validity-column').show();
+
+                // Show verify
+                row.find('.verifyBtn').show();
+
+                // Hide designation
+                row.find('.designation-column').hide();
+
+                // Clear designation
+                row.find('.designation').val('');
+            }
+        });
+        // -----------------add staff row---------------------
+
+      function addStaffRows() {
+
+    let $rows = $('#staff-container tr.staff-fields');
+    let rowCount = $rows.length;
+
+    if (rowCount >= 8) {
+        Swal.fire({
+            icon: 'error',
+            width: 450,
+            title: 'Limit Reached',
+            text: 'You can add a maximum of 8 staff members.',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    let allFilled = true;
+
+    $rows.slice(0, 2).each(function() {
+
+        let $row = $(this);
+
+        let ccNumber = $row.find('.cc_number').val()?.trim();
+        let firstIssue = $row.find('.cc_firstissue').val()?.trim();
+        let validityFrom = $row.find('.cc_validity_from').val()?.trim();
+        let validityTo = $row.find('.cc_validity_to').val()?.trim();
+
+        if (!ccNumber || !firstIssue || !validityFrom || !validityTo) {
+            allFilled = false;
+            return false;
+        }
+    });
+
+    if (!allFilled) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Fill Required Fields',
+            text: 'Please fill all certificate details for the first 2 staff members before adding a new one.',
+            confirmButtonText: 'OK',
+            width: 500
+        });
+        return;
+    }
+
+    let $lastRow = $('#staff-container tr.staff-fields').last();
+
+    let category = $lastRow.find('.staff_category').val();
+    let designation = $lastRow.find('.designation').val()?.trim();
+    let ccNumber = $lastRow.find('.cc_number').val()?.trim();
+    let firstIssue = $lastRow.find('.cc_firstissue').val()?.trim();
+    let validityFrom = $lastRow.find('.cc_validity_from').val()?.trim();
+    let validityTo = $lastRow.find('.cc_validity_to').val()?.trim();
+
+    if (!category) {
+        Swal.fire({
+            icon: 'warning',
+            width: 450,
+            title: 'Incomplete Row',
+            text: 'Please select a staff category.',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    if (category === 'OTHERS') {
+
+        if (!designation) {
+            Swal.fire({
+                icon: 'warning',
+                width: 450,
+                title: 'Incomplete Row',
+                text: 'Please enter the designation for OTHERS staff.',
+                confirmButtonText: 'OK'
             });
-
-            if (!allFilled) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Fill Required Fields',
-                    text: 'Please fill all details for the first 4 staff members before adding a new one.',
-                    confirmButtonText: 'OK',
-                    width: 500
-                });
-                return;
-            }
-
-
-
-            let lastRow = $('#staff-container tr').last();
-
-            // ✅ Step 3: Get field values from the last row
-            let name = lastRow.find('input[name="staff_name[]"]').val()?.trim();
-            let qualification = lastRow.find('select[name="staff_qualification[]"]').val();
-            let category = lastRow.find('select[name="staff_category[]"]').val();
-            let ccNumber = lastRow.find('input[name="cc_number[]"]').val()?.trim();
-            let ccValidity = lastRow.find('input[name="cc_validity[]"]').val()?.trim();
-
-            // ✅ Step 4: Check if any required field is empty
-            if (!name || !qualification || !category || !ccNumber || !ccValidity) {
-                Swal.fire({
-                    icon: 'warning',
-                    width: 450,
-                    title: 'Incomplete Row',
-                    text: 'Please fill all fields in the last staff row before adding a new one.',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-
-            // ✅ Limit check
-            if (rowCount >= 8) {
-                Swal.fire({
-                    icon: 'error',
-                    width: 450,
-                    title: 'Limit Reached',
-                    text: 'You can add a maximum of 8 staff members.',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            // ✅ Append new row
-            let newRow = `
-        <tr class="staff-fields">
-            <td>${rowCount + 1}</td>
-            <td>
-                <input type="text" name="staff_name[]" maxlength="30" 
-                    class="form-control"
-                    placeholder="Name of the Person"
-                    oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
-                <span class="error text-danger"></span>
-            </td>
-            <td>
-                <select class="form-control" name="staff_qualification[]">
-                    <option disabled selected>Qualification</option>
-                    <option value="PG">PG</option>
-                    <option value="UG">UG</option>
-                    <option value="Diploma">Diploma</option>
-                    <option value="+2">+2</option>
-                    <option value="10">10</option>
-                </select>
-                <span class="error text-danger"></span>
-            </td>
-            <td>
-                <select class="form-control" name="staff_category[]">
-                    <option disabled selected>Select Category</option>
-                    <option value="QC">QC</option>
-                    <option value="BC">BC</option>
-                    <option value="B">B</option>
-                </select>
-                <span class="error text-danger"></span>
-            </td>
-            <td>
-                <input type="text" class="form-control cc_number" name="cc_number[]" placeholder="Certificate No" maxlength="15">
-                <span class="error text-danger"></span>
-                <div class="text-white competency_verify_result mt-1"></div>
-            </td>
-            <td>
-                <input type="date" class="form-control cc_validity" name="cc_validity[]" placeholder="Validity" 
-                    onfocus="this.type='date'" >
-                <span class="error text-danger"></span>
-            </td>
-           <td>
-                <button type="button" class="btn btn-primary" onclick="validatestaffcertificate(event, this)">Verify</button>
-                <input type="hidden" name="staff_cc_verify[]" class="staff_cc_verify" value="">
-                <br><br>
-                <button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add Staff</button> 
-                <button type="button" class="btn btn-danger" onclick="removeStaffRow(this)">- Remove</button>
-            </td>
-        </tr>
-    `;
-
-            $('#staff-container').append(newRow);
-
-            // Remove Add button from all previous rows
-            $('#staff-container tr').each(function(index, tr) {
-                $(tr).find('.btn-success').remove();
-            });
-
-            // Add Add button only to the last row
-            $('#staff-container tr:last td:last').append('<button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add</button>');
+            return;
         }
 
-        // -----------------// removeStaffRow----------------------------------
-        function removeStaffRow(button) {
-            let row = $(button).closest('tr');
-            row.remove();
+    } else {
 
-            // Re-index remaining rows
-            $('#staff-container tr').each(function(index, tr) {
-                $(tr).find('td:first').text(index + 1);
-                // Add Add button to last row if missing
-                if (index === $('#staff-container tr').length - 1 && $(tr).find('.btn-success').length === 0) {
-                    $(tr).find('td:last').append('<button type="button" class="btn btn-success" onclick="addStaffRow()">+ Add</button>');
-                }
+        if (!ccNumber || !firstIssue || !validityFrom || !validityTo) {
+            Swal.fire({
+                icon: 'warning',
+                width: 450,
+                title: 'Incomplete Row',
+                text: 'Please fill all certificate details in the last staff row before adding a new one.',
+                confirmButtonText: 'OK'
             });
+            return;
         }
+    }
+
+    // Get next row_index from existing rows
+    let maxRowIndex = 0;
+
+    $('#staff-container tr.staff-fields').each(function() {
+
+        let rowIndex = parseInt(
+            $(this).find('input[name^="row_index["]').val()
+        );
+
+        if (!isNaN(rowIndex) && rowIndex > maxRowIndex) {
+            maxRowIndex = rowIndex;
+        }
+    });
+
+    let nextRowIndex = maxRowIndex + 1;
+
+    // If no row_index exists, use row count + 1
+    if (maxRowIndex === 0) {
+        nextRowIndex = rowCount + 1;
+    }
+
+    let newRow = `
+<tr class="staff-fields">
+
+    <td>${rowCount + 1}</td>
+
+    <td>
+        <select class="form-control staff_category"
+                name="staff_category[${rowCount}]">
+
+            <option value="">Select Category</option>
+            <option value="C">C</option>
+            <option value="B">B</option>
+            <option value="OTHERS">OTHERS</option>
+
+        </select>
+
+        <span class="error text-danger"></span>
+    </td>
+
+    <td class="cc-column">
+
+        <input type="text"
+               class="form-control cc_number"
+               name="cc_number[${rowCount}]"
+               placeholder="Certificate No"
+               maxlength="15"
+               oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
+
+        <span class="error text-danger"></span>
+
+        <div class="competency_verify_result text-danger small mt-1"></div>
+
+    </td>
+
+    <td class="validity-column">
+
+        <input type="date"
+               class="form-control cc_firstissue"
+               name="cc_firstissue[${rowCount}]">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="validity-column">
+
+        <input type="date"
+               class="form-control cc_validity_from"
+               name="cc_validity_from[${rowCount}]">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="validity-column">
+
+        <input type="date"
+               class="form-control cc_validity_to"
+               name="cc_validity_to[${rowCount}]">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="designation-column"
+        style="display:none;">
+
+        <input type="text"
+               class="form-control designation"
+               name="designation[${rowCount}]"
+               placeholder="Enter Designation"
+               oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')">
+
+        <span class="error text-danger"></span>
+
+    </td>
+
+    <td class="action-column">
+
+        <button type="button"
+                class="btn btn-success"
+                onclick="addStaffRows()">
+            + Add
+        </button>
+
+        <button type="button"
+                class="btn btn-danger"
+                onclick="removeStaffRow(this)">
+            - Remove
+        </button>
+
+    </td>
+
+    <input type="hidden"
+           name="staff_id[${rowCount}]"
+           value="">
+
+    <input type="hidden"
+           name="row_index[${rowCount}]"
+           value="${nextRowIndex}">
+
+    <input type="hidden"
+           name="staff_flag[${rowCount}]"
+           value="1">
+
+</tr>
+`;
+
+    $('#staff-container').append(newRow);
+
+    $('#staff-container tr.staff-fields')
+        .not(':last')
+        .find('.btn-success')
+        .remove();
+
+    flatpickr(
+        $('#staff-container tr:last input.cc_firstissue, ' +
+          '#staff-container tr:last input.cc_validity_from, ' +
+          '#staff-container tr:last input.cc_validity_to'), {
+            dateFormat: "d-m-Y"
+        }
+    );
+}
+
+
+function removeStaffRow(button) {
+
+    let $row = $(button).closest('tr');
+
+    let staffId = $row.find('input[name^="staff_id["]').val() || '';
+    let rowIndex = $row.find('input[name^="row_index["]').val() || '';
+
+    // Existing database record
+    if (staffId && rowIndex) {
+
+        if ($('#deleted_staff_ids').length === 0) {
+
+            $('#staff-container').after(`
+                <input type="hidden"
+                       id="deleted_staff_ids"
+                       name="deleted_staff_ids"
+                       value="">
+            `);
+        }
+
+        let deletedStaff = [];
+
+        let existingValue =
+            $('#deleted_staff_ids').val();
+
+        if (existingValue) {
+            try {
+                deletedStaff = JSON.parse(existingValue);
+            } catch (e) {
+                deletedStaff = [];
+            }
+        }
+
+        deletedStaff.push({
+            id: staffId,
+            row_index: rowIndex
+        });
+
+        $('#deleted_staff_ids').val(
+            JSON.stringify(deletedStaff)
+        );
+    }
+
+    // Remove row from UI
+    $row.remove();
+
+    // Re-index display S.NO only
+    $('#staff-container tr.staff-fields').each(function(index) {
+
+        $(this)
+            .find('td:first')
+            .text(index + 1);
+    });
+
+    // Add button only to last row
+    $('#staff-container tr.staff-fields .btn-success')
+        .remove();
+
+    let $lastRow =
+        $('#staff-container tr.staff-fields').last();
+
+    if ($lastRow.length) {
+
+        $lastRow.find('td:last').prepend(`
+            <button type="button"
+                    class="btn btn-success"
+                    onclick="addStaffRows()">
+                + Add
+            </button>
+        `);
+    }
+}
 
         // ------instrumrnts report 1----------------------
         $('input[name="tested_documents"]').on('change', function() {
@@ -4093,7 +5297,7 @@ let proprietorCount = initialDraftCount || 0;
 
         // ------instrumrnts report 2----------------------
 
-        $('input[name="original_invoice_instr"]').on('change', function() {
+        $('input[name="equipment1"]').on('change', function() {
             if ($(this).val() === 'yes') {
                 $('#invoice_row').slideDown();
             } else {
@@ -4116,23 +5320,143 @@ let proprietorCount = initialDraftCount || 0;
 
 
         // ---------------add proprietor-----------------
-    
+        $(document).on("change", ".working_under", function() {
+
+            let value = $(this).val();
+            let $tr = $(this).closest("tr");
+
+            // Show everything first
+            $tr.find("input[name='previous_experience_name[]']").show();
+            $tr.find("textarea[name='previous_experience_address[]']").show();
+
+            $tr.find("input[name='previous_experience_lnumber[]']").show();
+            $tr.find("input[name='previous_experience_lnumber_validity[]']").show();
+
+            if (value === "BUSINESS") {
+
+                // Hide only Licence Number & Validity inputs
+                $tr.find("input[name='previous_experience_lnumber[]']").hide().val('');
+                $tr.find("input[name='previous_experience_lnumber_validity[]']").hide().val('');
+
+            } else if (value === "NIL") {
+
+                // Hide all input fields
+                $tr.find("input[name='previous_experience_name[]']").hide().val('');
+                $tr.find("textarea[name='previous_experience_address[]']").hide().val('');
+
+                $tr.find("input[name='previous_experience_lnumber[]']").hide().val('');
+                $tr.find("input[name='previous_experience_lnumber_validity[]']").hide().val('');
+            }
+
+            // CONTRACTOR or blank => all fields visible
+        });
+
+        $(document).on("click", "#add_cc_pr", function() {
+
+            let newRow = `
+    <tr class="cc-row">
+        <td>
+            <div class="row">
+                <div class="col-md-6 mt-1">
+                    <input type="text" class="form-control competency_number"
+                        name="competency_certificate_number[]" maxlength="15"
+                        placeholder="CC Number">
+                    <span class="error text-danger competency_number_error"></span>
+                </div>
+
+                <div class="col-md-6 mt-1">
+                    <input type="date" class="form-control competency_validity"
+                        name="competency_certificate_validity[]">
+                    <span class="error text-danger competency_validity_error"></span>
+                </div>
+
+                <div class="col-md-12 text-center mt-1">
+                    <button type="button" class="btn btn-primary"
+                        onclick="verifyCompetencyCertificate(event,this)">
+                        Verify
+                    </button>
+
+                    <input type="hidden"
+                        name="proprietor_cc_verify[]"
+                        class="proprietor_cc_verify"
+                        value="0">
+                </div>
+
+                <div class="col-md-12 mt-1">
+                    <div class="text-danger competency_verify_result"></div>
+                </div>
+            </div>
+        </td>
+
+        <td>
+            <select class="form-control working_under" name="working_under[]">
+                <option value="">Select Anyone</option>
+                <option value="CONTRACTOR">CONTRACTOR</option>
+                <option value="BUSINESS">BUSINESS</option>
+                <option value="NIL">NIL</option>
+            </select>
+            <span class="error text-danger working_under_error"></span>
+        </td>
+
+        <td class="td-name">
+            <input class="form-control"
+                type="text"
+                name="previous_experience_name[]"
+                placeholder="Name">
+            <span class="error text-danger previous_experience_name_error"></span>
+        </td>
+
+        <td class="td-address">
+            <textarea class="form-control"
+                name="previous_experience_address[]"
+                placeholder="Address"></textarea>
+            <span class="error text-danger previous_experience_address_error"></span>
+        </td>
+
+        <td class="td-license">
+            <input class="form-control ea_license_number"
+                type="text"
+                maxlength="15"
+                name="previous_experience_lnumber[]"
+                placeholder="Licence Number">
+            <span class="error text-danger previous_experience_lnumber_error"></span>
+        </td>
+
+        <td class="td-validity">
+            <input class="form-control ea_validity"
+                type="date"
+                name="previous_experience_lnumber_validity[]">
+            <span class="error text-danger previous_experience_lnumber_validity_error"></span>
+        </td>
+
+        <td>
+            <button type="button"
+                class="btn btn-danger remove_cc_row">
+                Remove
+            </button>
+        </td>
+    </tr>
+    `;
+
+            $(".head_label_proprietor_cc tbody").append(newRow);
+        });
         let proprietorIndex = 0;
         let proprietoreditIndex = null;
 
         // Show form on Add Proprietor button click
         $("#add-proprietor").on("click", function() {
-            let rowCount = $("#proprietor-section table tbody tr").length;
+
+            let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
+
             if (rowCount > 0) {
-                     Swal.fire({
-                        title: "Proprietor Entry Exists!",
-                        width:450,
-                        text: "Only one proprietor entry is allowed!.",
-                        icon: "warning",
-                        confirmButtonText: "OK",
-                        confirmButtonColor: "#3085d6"
+                Swal.fire({
+                    title: "Proprietor Entry Exists!",
+                    width: 450,
+                    text: "Only one proprietor entry is allowed.",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
                 });
-                // alert("Only one proprietor entry is allowed!");
                 return;
             }
 
@@ -4140,21 +5464,42 @@ let proprietorCount = initialDraftCount || 0;
             resetproprietor(false);
             $("#proprietor-sectionfresh").slideDown();
             $("#save_proprietor").text("Save");
+            let $section = $("#proprietor-section");
+
+            $section.find(".upload-btn")
+            // .attr("data-row_index", rowCount)
+            // .data("row_index", rowCount);
+
+            // .attr("data-row-index", rowCount)
+            // .data("rowIndex", rowCount);
         });
+
+
 
         // Save or Update Proprietor
         $("#save_proprietor").on("click", function() {
-            
+
 
             let $section = $("#proprietor-sectionfresh");
-           
 
+            // alert($section.attr("id"));
             let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
             // Basic text inputs
             let name = $section.find("input[name='proprietor_name[]']").val().trim();
             let address = $section.find("textarea[name='proprietor_address[]']").val().trim();
+            let dob = $section.find("input[name='dob[]']").val().trim();
             let age = $section.find("input[name='age[]']").val().trim();
-            let qualification = $section.find("input[name='qualification[]']").val().trim();
+            // let qualification = $section.find("input[name='qualification[]']").val().trim();
+            let qualification = $section.find("select[name='qualification[]']").val();
+
+            // let qual_text = $section.find("select[name='qual_text[]']").val();
+            let qual_text = $.trim($section.find("input[name='qual_text[]']").val());
+
+            // qual_proof
+            let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
+
+            let age_proof = $section.find("input[name='age_proof[]']").val().trim();
+
             let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
             let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
 
@@ -4171,161 +5516,483 @@ let proprietorCount = initialDraftCount || 0;
                 $section.find("input[name^='previous_experience'][value='no']").prop("checked", true);
             }
 
-            // ✅ Radio button values
-            let competency = $section.find("input[name^='competency_certificate_holding']:checked").val() || "no";
-            let ccNum = $section.find("input[name='competency_certificate_number[]']").val().trim();
-            let ccValidity = $section.find("input[name='competency_certificate_validity[]']").val().trim();
+            let $ccHolding = $section.find(
+                "input[name='competency_certificate_holding[]']:checked"
+            );
 
-            // let ccverify = $section.find("input[name='proprietor_cc_verify[]']").val().trim();
-            let ccverifyInput = $section.find("input[name='proprietor_cc_verify[]']").val();
-            let ccverify = (ccverifyInput === null || ccverifyInput.trim() === "") ?
-                null :
-                parseInt(ccverifyInput, 10);
+            let competency = $ccHolding.length ?
+                $ccHolding.val() :
+                "no";
 
-            let competencyDetails = competency === "yes" ? `Yes - CC_No: ${ccNum}, Validity: ${ccValidity}` : "No";
+            let $ccNumber = $section.find(
+                "input[name='competency_certificate_number[]']"
+            );
 
-            let employed = $section.find("input[name^='presently_employed']:checked").val() || "no";
-            let empName = $section.find("input[name='presently_employed_name[]']").val().trim();
-            let empAddress = $section.find("textarea[name='presently_employed_address[]']").val().trim();
-            let employedDetails = employed === "yes" ? `Yes - ${empName}, ${empAddress}` : "No";
+            let $ccFirstIssue = $section.find(
+                "input[name='competency_certificate_first_issue[]']"
+            );
 
-            let experience = $section.find("input[name^='previous_experience']:checked").val() || "no";
-            let expName = $section.find("input[name='previous_experience_name[]']").val().trim();
-            let expAddress = $section.find("textarea[name='previous_experience_address[]']").val().trim();
-            let expLicense = $section.find("input[name='previous_experience_lnumber[]']").val().trim();
-            let expValidity = $section.find("input[name='previous_experience_lnumber_validity[]']").val().trim();
+            let $ccValidityFrom = $section.find(
+                "input[name='competency_certificate_validity_from[]']"
+            );
 
-            // let expverify = $section.find("input[name='proprietor_contractor_verify[]']").val().trim();
-            let expverifyInput = $section.find("input[name='proprietor_contractor_verify[]']").val();
-            let expverify = (expverifyInput === null || expverifyInput.trim() === "") ?
-                null :
-                parseInt(expverifyInput, 10);
+            let $ccValidityTo = $section.find(
+                "input[name='competency_certificate_validity_to[]']"
+            );
 
-            let experienceDetails = experience === "yes" ?
-                `Yes - ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidity}` :
-                "No";
+            let ccNum = $.trim($ccNumber.val() || "");
+            let ccfirstissue = $.trim($ccFirstIssue.val() || "");
+            let ccvalidityfrom = $.trim($ccValidityFrom.val() || "");
+            let ccvalidityto = $.trim($ccValidityTo.val() || "");
+
+
+
             // Date format----------------
-            let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
-            let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
+            let ccValidityfromFormatted = formatDateToDDMMYYYY(ccvalidityfrom);
+            let ccValiditytoFormatted = formatDateToDDMMYYYY(ccvalidityto);
+            let ccfirstissueFormatted = formatDateToDDMMYYYY(ccfirstissue);
+
             // ✅ Validation
-            if (!name || !address || !age || !qualification || !fathersName || !presentBusiness) {
-                alert("Please fill all proprietor required fields!");
+            $section.find(".error").text(""); // clear old errors
+            let isValid = true;
+
+            function setError(element, message) {
+                element.closest('.col-12, .col-md-6, .col-md-5, .col-md-4, .col-md-3')
+                    .find('.error')
+                    .text(message);
+                isValid = false;
+            }
+            // NAME
+            if (!name) {
+                setError($section.find("input[name='proprietor_name[]']"),
+                    // let name = $section.find("input[name='proprietor_name[]']").val().trim();
+                    "Proprietor name is required");
+            }
+
+            // ADDRESS
+            if (!address) {
+                setError($section.find("textarea[name='proprietor_address[]']"),
+                    "Address is required");
+            }
+
+            // DOB
+            if (!dob) {
+                setError($section.find("input[name='dob[]']"),
+                    "Date of birth is required");
+            }
+
+            // AGE
+            if (!age) {
+                setError($section.find("input[name='age[]']"),
+                    "Age is required");
+            } else if (parseInt(age) < 25) {
+                setError($section.find("input[name='age[]']"),
+                    "Maximum age should be 25");
+            }
+
+
+
+            if (!qualification) {
+                setError($section.find("select[name='qualification[]']"),
+                    "Qualification is required");
+
+
+            }
+
+            if (qualification && qualification !== '8TH PASS') {
+                // alert(qual_text);
+
+                if (!qual_text) {
+                    setError(
+                        $section.find("input[name='qual_text[]']"),
+                        "Enter Qualification is required"
+                    );
+                    isValid = false;
+                }
+            }
+
+
+            /* ---------------- FILE HANDLING ---------------- */
+
+            let isEditMode = $section.attr("data-edit-id") ? true : false;
+
+            let existingFileUrl = $section.attr("data-existing-file") || "";
+
+            // Present file from table edit
+            let presentFile = $section.attr("data-present-file") || "";
+
+            // alert(presentFile);
+
+            // New uploaded file
+            let fileInput = $section.find("input[name='qual_proof[]']")[0];
+            let hasNewFile = fileInput && fileInput.files && fileInput.files.length > 0;
+
+            // Flags
+            let hasExistingFile = existingFileUrl !== "";
+            let hasPresentFile = presentFile !== "";
+
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingFile && !hasPresentFile) {
+                setError(
+                    $section.find("input[name='qual_proof[]']"),
+                    "Please upload Qualification proof"
+                );
+                isValid = false;
+            }
+
+            // FINAL FILE
+            let uploadedFilePath = window.uploadedFilePath || "";
+            let finalFileUrl = "";
+
+            if (hasNewFile && uploadedFilePath) {
+                finalFileUrl = uploadedFilePath; // new upload
+            } else if (hasExistingFile) {
+                finalFileUrl = existingFileUrl; // edit file
+            } else if (hasPresentFile) {
+                finalFileUrl = presentFile; // table file
+            }
+
+
+            /* ================= AGE PROOF ================= */
+            let existingAgeFile = $section.attr("data-existing-age-file") || "";
+
+            // Present file from table edit
+            let presentAgeFile = $section.attr("data-present-age-file") || "";
+
+            // alert(presentFile);
+
+            // New uploaded file
+            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
+            let hasNewAgeFile = ageFileInput && ageFileInput.files && ageFileInput.files.length > 0;
+
+            // Flags
+            let hasExistingageFile = existingAgeFile !== "";
+            let hasPresentageFile = presentAgeFile !== "";
+
+            // ❗ VALIDATION → only if ALL missing
+            if (!hasExistingageFile && !hasPresentageFile) {
+
+                // alert(hasExistingageFile);
+                setError(
+                    $section.find("input[name='age_proof[]']"),
+                    "Please upload Age proof"
+                );
+                isValid = false;
+            }
+
+            // FINAL FILE
+            let uploadedAgeFilePath = window.uploadedAgeFilePath || "";
+            let finalAgeFileUrl = "";
+
+            if (hasNewAgeFile && uploadedAgeFilePath) {
+                finalAgeFileUrl = uploadedAgeFilePath; // new upload
+            } else if (hasExistingageFile) {
+                // alert('111');
+                finalAgeFileUrl = existingAgeFile; // edit file
+            } else if (hasPresentageFile) {
+                finalAgeFileUrl = presentAgeFile; // table file
+            }
+
+            // alert(finalAgeFileUrl);
+
+
+            // FATHER NAME
+            if (!fathersName) {
+                setError($section.find("input[name='fathers_name[]']"),
+                    "Father/Husband's name is required");
+            }
+
+            // BUSINESS
+            if (!presentBusiness) {
+                setError($section.find("input[name='present_business[]']"),
+                    "Present business is required");
+            }
+
+            // -----------cc details--------------
+
+            if (competency === "yes") {
+
+                if (!ccNum) {
+                    setError(
+                        $section.find("input[name='competency_certificate_number[]']"),
+                        "Competency Certificate Number is required"
+                    );
+                }
+
+                if (!ccfirstissue) {
+                    setError(
+                        $section.find("input[name='competency_certificate_first_issue[]']"),
+                        "Competency Certificate First Issue is required"
+                    );
+                }
+
+                if (!ccvalidityfrom) {
+                    setError(
+                        $section.find("input[name='competency_certificate_validity_from[]']"),
+                        "Competency Certificate Validity From is required"
+                    );
+                }
+
+                if (!ccvalidityto) {
+                    setError(
+                        $section.find("input[name='competency_certificate_validity_to[]']"),
+                        "Competency Certificate Validity To is required"
+                    );
+                }
+
+
+            }
+
+
+
+            // STOP if invalid
+            if (!isValid) {
+
+                Swal.fire({
+                    icon: 'warning',
+                    width: 450,
+                    title: 'Missing Fields',
+                    text: 'Fill all required fields.',
+                    confirmButtonText: 'OK'
+                });
+
                 return;
             }
+            /* ----------- show PDF icon ----------- */
+            function renderPdfIcon(url) {
+                if (!url) return "";
+                return `<a href="${url}" target="_blank">
+                                <i class="fa fa-file-pdf-o text-danger"></i>
+                            </a>`;
+            }
 
-            // ✅ Update existing row
+
+
             if (editIndex !== null) {
 
-                // alert('not null');
+                let $row = $("#proprietor-section .pr_table_count table tbody tr").eq(editIndex);
 
-                let $row = $("#proprietor-section table tbody tr").eq(editIndex);
+                if (proprietoreditIndex !== null) {
+                    $row.attr('data-id', proprietoreditIndex);
+                }
 
-                  if (proprietoreditIndex !== null) {
-                        $row.attr('data-id', proprietoreditIndex);
-                        // alert(proprietoreditIndex);
-                    }
+                // Name
                 $row.find("td").eq(0).text(name);
+
+                // Father / Husband Name
                 $row.find("td").eq(1).text(fathersName);
-                $row.find("td").eq(2).text(age);
+
+                // DOB + Age + Age Proof
+                $row.find("td").eq(2)
+                    .attr({
+                        "data-dob": dob,
+                        "data-age": age,
+                        "data-age_proof": finalAgeFileUrl
+                    })
+                    .html(`
+                        ${dob}, ${age}
+                        ${renderPdfIcon(finalAgeFileUrl)}
+                    `);
+
+                // Address
                 $row.find("td").eq(3).text(address);
-                $row.find("td").eq(4).text(qualification);
+
+                // Qualification + Proof
+                $row.find("td").eq(4)
+                    .attr({
+                        "data-qualification": qualification,
+                        "data-qual_text": qual_text,
+                        "data-qual_proof": finalFileUrl
+                    })
+                    .html(
+                        (qualification === '8TH PASS' ?
+                            qualification :
+                            `${qualification}, ${qual_text}`) +
+                        " " +
+                        renderPdfIcon(finalFileUrl)
+                    );
+
+                // Present Business
                 $row.find("td").eq(5).text(presentBusiness);
-                let ccValidityYMD = formatDateToYMD(ccValidity); // for data-attributes
-                let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
-                let expValidityYMD = formatDateToYMD(expValidity);
-                let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-                // alert(ccValidityFormatted);
+
+
+                // ================= COMPETENCY DETAILS =================
+
+                let ccValidityFormatted = ccvalidityto ?
+                    formatDateToDDMMYYYY(ccvalidityto) :
+                    "";
+
+                let ccValidityFromFormatted = ccvalidityfrom ?
+                    formatDateToDDMMYYYY(ccvalidityfrom) :
+                    "";
+
+                let ccFirstIssueFormatted = ccfirstissue ?
+                    formatDateToDDMMYYYY(ccfirstissue) :
+                    "";
+
+
+
+
                 $row.find("td").eq(6)
-                    .text(competencyDetails)
                     .attr({
-                        'data-competency': competency,
-                        'data-certno': ccNum,
-                        'data-validity': ccValidity,
-                        'data-validityverify': ccverify
+                        "data-competency": competency,
+                        "data-certno": ccNum,
 
-                    });
+                        "data-ccfirstissue": ccFirstIssueFormatted,
+                        "data-ccvalidityfrom": ccValidityFromFormatted,
+                        "data-ccvalidityto": ccValidityFormatted
+                    })
+                    .html(
+                        competency === "yes" ?
+                        `Yes - CC_No: ${ccNum}, First Issue: ${ccFirstIssueFormatted}, Validity: ${ccValidityFromFormatted} - ${ccValidityFormatted}` :
+                        "No"
+                    );
 
-                $row.find("td").eq(7)
-                    .text(employedDetails)
-                    .attr({
-                        'data-employed': employed,
-                        'data-employer': empName,
-                        'data-empaddress': empAddress
-                    });
 
-                $row.find("td").eq(8)
-                    .text(experienceDetails)
-                    .attr({
-                        'data-experience': experience,
-                        'data-expname': expName,
-                        'data-expaddress': expAddress,
-                        'data-explicense': expLicense,
-                        'data-expvalidity': expValidity,
-                        'data-expverify': expverify
-                    });
-
+                // Reset form
                 resetproForm(true);
+
                 editIndex = null;
             }
-            // ✅ Add new row
-            else {
 
-                // alert('null');
-                let rowCount = $("#proprietor-section table tbody tr").length;
+
+            // ================= ADD NEW ROW =================
+            else {
+                // console.log("SweetAlert:", typeof Swal);
+                let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
+
+
                 if (rowCount > 0) {
-                     Swal.fire({
+
+                    Swal.fire({
                         title: "Proprietor Entry Exists!",
-                        width:450,
-                        text: "Only one proprietor entry is allowed!.",
+                        width: 450,
+                        text: "You can only add Only One Proprietor.",
                         icon: "warning",
                         confirmButtonText: "OK",
                         confirmButtonColor: "#3085d6"
-                });
-                    // alert("You can only add a maximum of 6 partners.");
+                    });
+
                     return;
                 }
 
+
+                // ================= COMPETENCY DISPLAY =================
+
+                let ccValidityFormatted = ccvalidityto ?
+                    formatDateToDDMMYYYY(ccvalidityto) :
+                    "";
+
+                let ccValidityFromFormatted = ccvalidityfrom ?
+                    formatDateToDDMMYYYY(ccvalidityfrom) :
+                    "";
+
+                let ccFirstIssueFormatted = ccfirstissue ?
+                    formatDateToDDMMYYYY(ccfirstissue) :
+                    "";
+                alert('ccValidityFormatted: ' + ccValidityFormatted + ', ccValidityFromFormatted: ' + ccValidityFromFormatted + ', ccFirstIssueFormatted: ' + ccFirstIssueFormatted);
+
                 $("#proprietor-section table tbody").append(`
                     <tr>
+
+                        <!-- Name -->
                         <td>${name}</td>
+
+                        <!-- Father / Husband Name -->
                         <td>${fathersName}</td>
-                        <td>${age}</td>
+
+                        <!-- DOB / Age -->
+                        <td
+                            data-dob="${dob}"
+                            data-age="${age}"
+                            data-age_proof="${finalAgeFileUrl}">
+                            ${dob}, ${age}
+                            ${renderPdfIcon(finalAgeFileUrl)}
+                        </td>
+
+                        <!-- Address -->
                         <td>${address}</td>
-                        <td>${qualification}</td>
+
+                        <!-- Qualification -->
+                        <td
+                            data-qualification="${qualification}"
+                            data-qual_text="${qual_text}"
+                            data-qual_proof="${finalFileUrl}">
+
+                            ${qualification === '8TH PASS'
+                        ? qualification
+                        : `${qualification}, ${qual_text}`}
+
+                            ${renderPdfIcon(finalFileUrl)}
+                        </td>
+
+                        <!-- Present Business -->
                         <td>${presentBusiness}</td>
-                          <td 
-                            data-competency="${competency}" 
-                            data-certno="${ccNum}" 
-                            data-validity="${ccValidity}"  
-                            data-ccverify="${ccverify === null ? '' : ccverify}">
-                            ${competency === 'yes' 
-                                ? `Yes - CC_No: ${ccNum}, Validity: ${ccValidityFormatted}` 
-                                : 'No'}, 
-                            Verify: ${ccverify === null ? '' : ccverify}
-                            </td>
-
-                        <td data-employed="${employed}" data-employer="${empName}" data-empaddress="${empAddress}">${employed === 'yes' ? `Yes - ${empName}, ${empAddress}` : 'No'}</td>
 
 
-                        <td data-experience="${experience}" data-expname="${expName}" data-expaddress="${expAddress}" data-explicense="${expLicense}" data-expvalidity="${expValidity}"  data-expverify="${expverify === null ? '' : expverify}">${experience === 'yes' ? `Yes - ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidityFormatted}` : 'No'},Verify: ${expverify === null ? '' : expverify}</td>
-                         <td style="display:none;" data-ownership="${ownership_type}">${ownership_type}</td>
-                        <td>
-                            <button type="button" class="btn btn-primary btn-sm update-proprietor-row"><i class="fa fa-pencil"></i></button>
+                        <!-- Competency Certificate -->
+                        <td
+                            data-competency="${competency}"
+                            data-certno="${ccNum}"
+
+                            data-ccfirstissue ="${ccFirstIssueFormatted}"
+                            data-ccvalidityfrom ="${ccValidityFromFormatted}"
+                            data-ccvalidityto ="${ccValidityFormatted}"
+                            >
+
+                            ${competency === "yes"
+                        ? `Yes - CC_No: ${ccNum},
+                                    First Issue: ${ccFirstIssueFormatted},
+                                    Validity: ${ccValidityFromFormatted} - ${ccValidityFormatted}`
+                        : "No"
+                    }
+
                         </td>
-                        <td>
-                            <button type="button" class="btn btn-danger btn-sm remove-proprietor-row"><i class="fa fa-trash-o"></i></button>
+
+
+                        <!-- Ownership -->
+                        <td
+                            style="display:none;"
+                            data-ownership="${ownership_type}">
+                            ${ownership_type}
                         </td>
+
+
+                        <!-- Edit -->
+                        <td>
+                            <button
+                                type="button"
+                                class="btn btn-primary btn-sm update-proprietor-row">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                        </td>
+
+
+                        <!-- Delete -->
+                        <td>
+                            <button
+                                type="button"
+                                class="btn btn-danger btn-sm remove-proprietor-row">
+                                <i class="fa fa-trash-o"></i>
+                            </button>
+                        </td>
+
                     </tr>
                 `);
 
+
+                // Reset form
                 resetproForm(true);
-                partnerIndex++;
+
+                proprietorIndex++;
             }
 
-            
+
+
+
         });
 
-         function resetproForm(hide = false) {
+        function resetproForm(hide = false) {
             let $section = $("#proprietor-sectionfresh");
 
             // Clear all text/number/textarea inputs
@@ -4333,6 +6000,17 @@ let proprietorCount = initialDraftCount || 0;
 
             // Clear all radio buttons
             $section.find("input[type='radio']").prop("checked", false);
+
+            // 🔥 Clear file
+            $section.find(".file-link").html("");
+
+            $section.find(".age-file-link").html("");
+            $section.removeAttr("data-existing-file");
+
+            $section.removeAttr("data-existing-age-file");
+
+
+            $section.removeAttr("data-edit-id");
 
             // Hide all conditional fields
             $(".competency-fields-prop, .employment-fields, .experience-fields").hide();
@@ -4348,112 +6026,258 @@ let proprietorCount = initialDraftCount || 0;
             // Hide form if needed
             if (hide) $section.slideUp();
         }
-       
-        // ----------------proprietor new application----------------
 
-        $(document).on('click', '.update-proprietor-row-new', function() {
-            // alert('111');
-            Swal.fire({
-                title: "Notice",
-                width:600,
-                text: "If you want to change proprietor details, you have to apply as a new application.",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: "Go to New Application",
-                cancelButtonText: "Cancel",
-                confirmButtonColor: "#3085d6",
-                cancelButtonColor: "#d33",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = "{{ route('apply-form-a') }}";
-                }
-            });
-        });
-        // -----------------------------------------
-    
+
         // Edit row
         $(document).on("click", ".update-proprietor-row", function() {
             // alert('111');
-          let $row = $(this).closest("tr");
+            let $row = $(this).closest("tr");
+            let $tds = $row.find("td");
+            let id = $row.data("id");
             editIndex = $row.index();
-            let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
-            // console.log("Ownership Value:", ownershipValue); 
+            // let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
+
+            let ownershipValue = $row.find("td").eq(9).attr("data-ownership");
+            // console.log("Ownership Value:", ownershipValue);
             // alert(ownershipValue);
             // exit;
+            let row_indexValue = $row.find("td").eq(10).find("input[name='row_index[]']").val();
 
 
             let $section = $("#proprietor-sectionfresh");
+
+
+            $section.find(".upload-btn").attr("data-row-index", row_indexValue);
             // let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
-            // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());    
+            // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());
             // Fill form with row data
             $section.find("input[name='proprietor_name[]']").val($row.find("td").eq(0).text());
             $section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text());
-            $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
+
+            let tdDobAge = $row.find("td").eq(2);
+
+
+            $section.find("input[name='dob[]']").val(tdDobAge.data("dob"));
+            $section.find("input[name='age[]']").val(tdDobAge.data("age"));
+
+
+            $ageproofdata = $row.find("td").eq(2);
+            // alert(tdDobAge.data("age"));
+
+            let age_proof = $ageproofdata.attr("data-age_proof");
+
+            // alert(age_proof);
+
+
+
+            $section.attr("data-existing-age-file", age_proof || "");
+
+            // 🔥 SHOW FILE IN FORM
+            if (age_proof) {
+
+
+                $section.find(".age-file-link").html(`
+                    <a href="${age_proof}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            } else {
+                $section.find(".age-file-link").html("");
+            }
+
+            // Get present file from TABLE (important)
+            let presentFileage = $ageproofdata.attr("data-age_proof");
+
+            $section.attr("data-present-age-file", presentFileage || "");
+            // Show present file below input box (only for table edit)
+            if (presentFileage) {
+                $section.find(".age-file-link").html(`
+                    <a href="${presentFileage}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            }
+
+
+
+
+            // alert($section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text()));
+            // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
+            // let qualification = $section.find("input[name='qualification[]']").val().trim();
+            //  $section.find("select[name='qualification[]']").val();
+
+            // qual_proof
+            // let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
+            // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
             $section.find("textarea[name='proprietor_address[]']").val($row.find("td").eq(3).text());
-            $section.find("input[name='qualification[]']").val($row.find("td").eq(4).text());
+
+            let tdqualification = $row.find("td").eq(4);
+
+            let qualificationValue = tdqualification.attr("data-qualification");
+            let qualTextValue = tdqualification.attr("data-qual_text");
+
+            let $qualificationSelect = $section.find("select[name='qualification[]']");
+            let $qualTextInput = $section.find("input[name='qual_text[]']");
+            let $wrapper = $section.find(".qualTextWrapper");
+
+            // Set select value
+            $qualificationSelect.val(qualificationValue).trigger("change");
+
+            $qualificationSelect.val(qualificationValue);
+
+            // If not selected, try matching manually
+            if ($qualificationSelect.val() === null) {
+                $qualificationSelect.find("option").each(function() {
+                    if ($(this).val().trim().toLowerCase() === qualificationValue.toLowerCase()) {
+                        $(this).prop("selected", true);
+                    }
+                });
+            }
+            // Set text value
+            $qualTextInput.val(qualTextValue);
+
+            // If qualification is not 8TH PASS AND text exists → show wrapper
+            if (qualificationValue && qualificationValue !== '8TH PASS') {
+                $wrapper.show();
+            }
+            // let $tr = $(this).closest("tr");
+
+
+            /////update
+            // Qualification
+            let $qualTd = $tds.eq(4);
+
+            let qualification = $qualTd.attr("data-qualification");
+            let qual_text = $qualTd.attr("data-qual_text");
+            let qual_proof = $qualTd.attr("data-educational_proof");
+
+            // Set qualification
+            $section.find(".qualification").val(qualification).trigger("change");
+            $section.find("input[name='qual_text[]']").val(qual_text);
+
+            // 🔥 STORE FILE URL INSIDE FORM
+            $section.attr("data-existing-file", qual_proof || "");
+
+            // 🔥 SHOW FILE IN FORM
+            if (qual_proof) {
+                $section.find(".file-link").html(`
+                    <a href="${qual_proof}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            } else {
+                $section.find(".file-link").html("");
+            }
+
+            // Get present file from TABLE (important)
+            // let presentFile = $qualTd.attr("data-educational_proof");
+
+            let presentFile = $qualTd.attr("data-educational_proof");
+
+            $section.attr("data-present-file", presentFile || "");
+            // Show present file below input box (only for table edit)
+            if (presentFile) {
+                $section.find(".file-link").html(`
+                    <a href="${presentFile}" target="_blank" class="text-primary fw-bold">
+                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                    </a>
+                `);
+            }
+            // Mark edit mode
+            $section.attr("data-edit-id", id);
+
+
+            // $section.find("input[name='qualification[]']").val($row.find("td").eq(4).text());
+            // $section.find("input[name='qual_text[]']").val($row.find("td").eq(4).text());
             $section.find("input[name='present_business[]']").val($row.find("td").eq(5).text());
             $section.find("input[name='ownership_type[]']").val(ownershipValue);
 
 
             // === Competency Section ===
+            // ================= COMPETENCY =================
+
             let tdCompetency = $row.find("td").eq(6);
-            let competency = tdCompetency.attr('data-competency') || "no";
-            let certNo = tdCompetency.attr('data-certno') || "";
-            let validity = tdCompetency.attr('data-validity') || "";
-            let ccValidityFormatted = formatDateToDDMMYYYY(validity);
-            let formattedValidity = formatDateToYMD(validity);
-            // alert(ccValidityFormatted);
 
-            $section.find("input[name^='competency_certificate_holding'][value='" + competency + "']").prop("checked", true);
+            // Get values from row
+            let competency = tdCompetency.attr("data-competency") || "no";
+            let certNo = tdCompetency.attr("data-certno") || "";
+            let ccFirstIssue = tdCompetency.attr("data-ccfirstissue") || "";
+            let ccValidityFrom = tdCompetency.attr("data-ccvalidityfrom") || "";
+            let ccValidityTo = tdCompetency.attr("data-ccvalidityto") || "";
+
+            // Set radio
+            $section.find(
+                "input[name='competency_certificate_holding[]'][value='" + competency + "']"
+            ).prop("checked", true);
+
+            // Show / Hide competency fields
+            toggleCompetencyFields("proprietor", competency === "yes");
+
+            // Fill values
             $section.find("input[name='competency_certificate_number[]']").val(certNo);
-            $section.find("input[name='competency_certificate_validity[]']").val(formattedValidity);
 
-            // Show/hide related inputs
-            if (competency === "yes") {
-                $(".competency-fields-proprietor").slideDown();
-            } else {
-                $(".competency-fields-proprietor").slideUp();
+            function convertDDMMYYYYtoYMD(date) {
+
+                if (!date) {
+                    return "";
+                }
+
+                date = $.trim(date);
+
+                // Already YYYY-MM-DD
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    return date;
+                }
+
+                // DD-MM-YYYY
+                if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+
+                    let parts = date.split("-");
+
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+
+                // DD/MM/YYYY
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+
+                    let parts = date.split("/");
+
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+
+                return date;
             }
 
-            // === Presently Employed Section ===
-            let tdEmployed = $row.find("td").eq(7);
-            let employed = tdEmployed.attr('data-employed') || "no";
-            let empName = tdEmployed.attr('data-employer') || "";
-            let empAddress = tdEmployed.attr('data-empaddress') || "";
+            let firstIssueYMD = convertDDMMYYYYtoYMD(ccFirstIssue);
 
-            $section.find("input[name^='presently_employed'][value='" + employed + "']").prop("checked", true);
-            $section.find("input[name='presently_employed_name[]']").val(empName);
-            $section.find("textarea[name='presently_employed_address[]']").val(empAddress);
+            $section.find("input[name='competency_certificate_first_issue[]']")
+                .val(firstIssueYMD);
 
-            if (employed === "yes") {
-                $(".employment-fields-proprietor").slideDown();
-            } else {
-                $(".employment-fields-proprietor").slideUp();
+            $section.find("input[name='competency_certificate_validity_from[]']")
+                .val(ccValidityFrom);
+
+            $section.find("input[name='competency_certificate_validity_to[]']")
+                .val(ccValidityTo);
+
+            console.log("CC First Issue from table:", ccFirstIssue);
+            console.log("CC First Issue for date input:", firstIssueYMD);
+            console.log("Input actual value:",
+                $section.find("input[name='competency_certificate_first_issue[]']").val()
+            );
+
+            // Clear previous verification result
+            $section.find("#competency_exp_result").empty();
+
+            // Re-check certificate and load experience table
+            if (
+                competency === "yes" &&
+                certNo &&
+                ccFirstIssue &&
+                ccValidityFrom &&
+                ccValidityTo
+            ) {
+                checkCompetencyCertificate();
             }
-
-            // === Previous Experience Section ===
-            let tdExperience = $row.find("td").eq(8);
-            let experience = tdExperience.attr('data-experience') || "no";
-            let expName = tdExperience.attr('data-expname') || "";
-            let expAddress = tdExperience.attr('data-expaddress') || "";
-            let expLicense = tdExperience.attr('data-explicense') || "";
-            let expValidity = tdExperience.attr('data-expvalidity') || "";
-            let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-            let formattedexpValidity = formatDateToYMD(expValidity);
-
-
-            $section.find("input[name^='previous_experience'][value='" + experience + "']").prop("checked", true);
-            $section.find("input[name='previous_experience_name[]']").val(expName);
-            $section.find("textarea[name='previous_experience_address[]']").val(expAddress);
-            $section.find("input[name='previous_experience_lnumber[]']").val(expLicense);
-            $section.find("input[name='previous_experience_lnumber_validity[]']").val(formattedexpValidity);
-
-            if (experience === "yes") {
-                $(".experience-fields-proprietor").slideDown();
-            } else {
-                $(".experience-fields-proprietor").slideUp();
-            }
-
 
             // Show form
             $section.slideDown();
@@ -4469,11 +6293,11 @@ let proprietorCount = initialDraftCount || 0;
 
         // Delete row
         $(document).on("click", ".remove-proprietor-row", function() {
-             $(this).closest("tr").remove();
-            });
+            $(this).closest("tr").remove();
+        });
 
 
-             function formatDateToYMD(dateString) {
+        function formatDateToYMD(dateString) {
             const parts = dateString.split("/");
             if (parts.length === 3) {
                 return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
@@ -4482,12 +6306,25 @@ let proprietorCount = initialDraftCount || 0;
         }
 
         function formatDateToDDMMYYYY(dateStr) {
-            if (!dateStr) return "";
-            const d = new Date(dateStr);
-            const day = String(d.getDate()).padStart(2, "0");
-            const month = String(d.getMonth() + 1).padStart(2, "0");
-            const year = d.getFullYear();
-            return `${day}-${month}-${year}`;
+
+            if (!dateStr) {
+                return "";
+            }
+
+            // Already DD-MM-YYYY
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                return dateStr;
+            }
+
+            // YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+
+                let parts = dateStr.split("-");
+
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            return dateStr;
         }
 
 
@@ -4502,13 +6339,17 @@ let proprietorCount = initialDraftCount || 0;
         function resetproprietor(hide = false) {
             let $section = $("#proprietor-sectionfresh");
 
-      
-            $section.find("input[type='text'], input[type='number'], input[type='date'], input[type='file'], textarea").val("");
 
-      
+            // $section.find("input[type='text'], input[type='number'], input[type='date'], input[type='file'], textarea").val("");
+
+            $section.find("input[type='text'], input[type='file'], input[type='number'], input[type='date'], textarea, select").val("");
+            // competency_exp_result
+
+            $section.find("#competency_exp_result").empty();
+
 
             // Hide dependent fields
-            $(".competency-fields, .employment-fields, .experience-fields").hide();
+            $(".competency-fields, .competency-fields-proprietor, .experience-fields, .competency_exp_result").hide();
             $("#save_proprietor").text("Save");
             proprietoreditIndex = null;
 
@@ -4516,7 +6357,7 @@ let proprietorCount = initialDraftCount || 0;
         }
 
 
-    
+
         $(document).on("click", ".remove-proprietor-row", function() {
             $(this).closest("tr").remove();
 
@@ -4538,6 +6379,8 @@ let proprietorCount = initialDraftCount || 0;
 
 
 
+
+
         // ------------add new partner--------------
 
 
@@ -4550,21 +6393,42 @@ let proprietorCount = initialDraftCount || 0;
         // Show partner form
         $("#add-partner").on("click", function() {
             let rowCount = $("#partner-section table tbody tr").length;
-            if (rowCount >= 6) {
-                      Swal.fire({
-                        title: "Partner Entry Exists!",
-                        width:450,
-                        text: "You can only add a maximum of 6 Partners.",
-                        icon: "warning",
-                        confirmButtonText: "OK",
-                        confirmButtonColor: "#3085d6"
-                    });
+
+
+            if (rowCount >= 5) {
+
+                Swal.fire({
+                    title: "Partner Entry Exists!",
+                    width: 450,
+                    text: "You can only add a maximum of 5 partners",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
+                });
+
                 // alert("You can only add a maximum of 6 partners.");
                 return;
             }
+
             resetPartnerForm();
+            let $section = $("#partnersfill-section");
+
+
+
+            // $section.find("input, select").val("");
+            $section.find(".qualification").val("").trigger("change");
+            $section.find(".file-link").html("");
             $("#partnersfill-section").slideDown();
+            // $("#partner-section table tbody").append(newRow);
+            $section.find(".upload-btn")
+                // .attr("data-row_index", rowCount)
+                // .data("row_index", rowCount);
+
+                .attr("data-row-index", rowCount)
+                .data("rowIndex", rowCount);
+            // updatePartnerRowIndex(rowCount);
         });
+
 
 
         // $("#add-partner").on("click", function() {
@@ -4585,176 +6449,544 @@ let proprietorCount = initialDraftCount || 0;
 
         // Save or Update Partner
         $("#save_partner").on("click", function() {
-            let $section = $("#partnersfill-section");
 
-            let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
-            // Basic text inputs
-            let name = $section.find("input[name='proprietor_name[]']").val().trim();
-            let address = $section.find("textarea[name='proprietor_address[]']").val().trim();
-            let age = $section.find("input[name='age[]']").val().trim();
-            let qualification = $section.find("input[name='qualification[]']").val().trim();
-            let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
-            let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
+    let $section = $("#partnersfill-section");
 
+    let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
 
+    // Basic text inputs
+    let name = $section.find("input[name='proprietor_name[]']").val().trim();
+    let address = $section.find("textarea[name='proprietor_address[]']").val().trim();
+    let dob = $section.find("input[name='dob[]']").val().trim();
+    let age = $section.find("input[name='age[]']").val().trim();
 
-            // ✅ Ensure a default 'no' is checked if nothing is selected
-            if (!$section.find("input[name^='competency_certificate_holding']:checked").length) {
-                $section.find("input[name^='competency_certificate_holding'][value='no']").prop("checked", true);
-            }
-            if (!$section.find("input[name^='presently_employed']:checked").length) {
-                $section.find("input[name^='presently_employed'][value='no']").prop("checked", true);
-            }
-            if (!$section.find("input[name^='previous_experience']:checked").length) {
-                $section.find("input[name^='previous_experience'][value='no']").prop("checked", true);
-            }
+    let qualification = $section.find("select[name='qualification[]']").val();
+    let qual_text = $.trim($section.find("input[name='qual_text[]']").val());
 
-            // ✅ Radio button values
-            let competency = $section.find("input[name^='competency_certificate_holding']:checked").val() || "no";
-            let ccNum = $section.find("input[name='competency_certificate_number[]']").val().trim();
-            let ccValidity = $section.find("input[name='competency_certificate_validity[]']").val().trim();
+    let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
+    let age_proof = $section.find("input[name='age_proof[]']").val().trim();
 
-            // let ccverify = $section.find("input[name='proprietor_cc_verify[]']").val().trim();
-            let ccverifyInput = $section.find("input[name='proprietor_cc_verify[]']").val();
-            let ccverify = (ccverifyInput === null || ccverifyInput.trim() === "") ?
-                null :
-                parseInt(ccverifyInput, 10);
-
-            let competencyDetails = competency === "yes" ? `Yes - CC_No: ${ccNum}, Validity: ${ccValidity}` : "No";
-
-            let employed = $section.find("input[name^='presently_employed']:checked").val() || "no";
-            let empName = $section.find("input[name='presently_employed_name[]']").val().trim();
-            let empAddress = $section.find("textarea[name='presently_employed_address[]']").val().trim();
-            let employedDetails = employed === "yes" ? `Yes - ${empName}, ${empAddress}` : "No";
-
-            let experience = $section.find("input[name^='previous_experience']:checked").val() || "no";
-            let expName = $section.find("input[name='previous_experience_name[]']").val().trim();
-            let expAddress = $section.find("textarea[name='previous_experience_address[]']").val().trim();
-            let expLicense = $section.find("input[name='previous_experience_lnumber[]']").val().trim();
-            let expValidity = $section.find("input[name='previous_experience_lnumber_validity[]']").val().trim();
-
-            // let expverify = $section.find("input[name='proprietor_contractor_verify[]']").val().trim();
-            let expverifyInput = $section.find("input[name='proprietor_contractor_verify[]']").val();
-            let expverify = (expverifyInput === null || expverifyInput.trim() === "") ?
-                null :
-                parseInt(expverifyInput, 10);
-
-            let experienceDetails = experience === "yes" ?
-                `Yes - ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidity}` :
-                "No";
-            // Date format----------------
-            let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
-            let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-            // ✅ Validation
-            if (!name || !address || !age || !qualification || !fathersName || !presentBusiness) {
-                alert("Please fill all proprietor required fields!");
-                return;
-            }
-
-            // ✅ Update existing row
-            if (editIndex !== null) {
-
-                // alert('not null');
-
-                let $row = $("#partner-section table tbody tr").eq(editIndex);
-                $row.find("td").eq(0).text(name);
-                $row.find("td").eq(1).text(fathersName);
-                $row.find("td").eq(2).text(age);
-                $row.find("td").eq(3).text(address);
-                $row.find("td").eq(4).text(qualification);
-                $row.find("td").eq(5).text(presentBusiness);
-                let ccValidityYMD = formatDateToYMD(ccValidity); // for data-attributes
-                let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
-                let expValidityYMD = formatDateToYMD(expValidity);
-                let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-                // alert(ccValidityFormatted);
-                $row.find("td").eq(6)
-                    .text(competencyDetails)
-                    .attr({
-                        'data-competency': competency,
-                        'data-certno': ccNum,
-                        'data-validity': ccValidity,
-                        'data-validityverify': ccverify
-
-                    });
-
-                $row.find("td").eq(7)
-                    .text(employedDetails)
-                    .attr({
-                        'data-employed': employed,
-                        'data-employer': empName,
-                        'data-empaddress': empAddress
-                    });
-
-                $row.find("td").eq(8)
-                    .text(experienceDetails)
-                    .attr({
-                        'data-experience': experience,
-                        'data-expname': expName,
-                        'data-expaddress': expAddress,
-                        'data-explicense': expLicense,
-                        'data-expvalidity': expValidity,
-                        'data-expverify': expverify
-                    });
-
-                resetPartnerForm(true);
-                editIndex = null;
-            }
-            // ✅ Add new row
-            else {
-
-                // alert('null');
-                let rowCount = $("#partner-section table tbody tr").length;
-                if (rowCount >= 6) {
-                     Swal.fire({
-                        title: "Partner Entry Exists!",
-                        width:450,
-                        text: "You can only add a maximum of 6 Partners.",
-                        icon: "warning",
-                        confirmButtonText: "OK",
-                        confirmButtonColor: "#3085d6"
-                    });
-                    // alert("You can only add a maximum of 6 partners.");
-                    return;
-                }
-
-                $("#partner-section table tbody").append(`
-                    <tr>
-                        <td>${name}</td>
-                        <td>${fathersName}</td>
-                        <td>${age}</td>
-                        <td>${address}</td>
-                        <td>${qualification}</td>
-                        <td>${presentBusiness}</td>
-                          <td 
-                            data-competency="${competency}" 
-                            data-certno="${ccNum}" 
-                            data-validity="${ccValidity}"  
-                            data-ccverify="${ccverify === null ? '' : ccverify}">
-                            ${competency === 'yes' 
-                                ? `Yes - CC_No: ${ccNum}, Validity: ${ccValidityFormatted}` 
-                                : 'No'}, 
-                            Verify: ${ccverify === null ? '' : ccverify}
-                            </td>
-
-                        <td data-employed="${employed}" data-employer="${empName}" data-empaddress="${empAddress}">${employed === 'yes' ? `Yes - ${empName}, ${empAddress}` : 'No'}</td>
+    let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
+    let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
 
 
-                        <td data-experience="${experience}" data-expname="${expName}" data-expaddress="${expAddress}" data-explicense="${expLicense}" data-expvalidity="${expValidity}"  data-expverify="${expverify === null ? '' : expverify}">${experience === 'yes' ? `Yes - ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidityFormatted}` : 'No'},Verify: ${expverify === null ? '' : expverify}</td>
-                         <td style="display:none;" data-ownership="${ownership_type}">${ownership_type}</td>
-                        <td>
-                            <button type="button" class="btn btn-primary btn-sm update-partner-row"><i class="fa fa-pencil"></i></button>
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-danger btn-sm remove-partner-row"><i class="fa fa-trash-o"></i></button>
-                        </td>
-                    </tr>
-                `);
+    // ================= COMPETENCY =================
 
-                resetPartnerForm(true);
-                partnerIndex++;
-            }
+    if (!$section.find(
+        "input[name='competency_certificate_holding[]']:checked"
+    ).length) {
+        $section.find(
+            "input[name='competency_certificate_holding[]'][value='no']"
+        ).prop("checked", true);
+    }
+
+    let $ccHolding = $section.find(
+        "input[name='competency_certificate_holding[]']:checked"
+    );
+
+    let competency = $ccHolding.length
+        ? $ccHolding.val()
+        : "no";
+
+    let $ccNumber = $section.find(
+        "input[name='competency_certificate_number[]']"
+    );
+
+    let $ccFirstIssue = $section.find(
+        "input[name='competency_certificate_first_issue[]']"
+    );
+
+    let $ccValidityFrom = $section.find(
+        "input[name='competency_certificate_validity_from[]']"
+    );
+
+    let $ccValidityTo = $section.find(
+        "input[name='competency_certificate_validity_to[]']"
+    );
+
+    let ccNum = $.trim($ccNumber.val() || "");
+    let ccfirstissue = $.trim($ccFirstIssue.val() || "");
+    let ccvalidityfrom = $.trim($ccValidityFrom.val() || "");
+    let ccvalidityto = $.trim($ccValidityTo.val() || "");
+
+
+    // Date formatting
+    let ccFirstIssueFormatted = ccfirstissue
+        ? formatDateToDDMMYYYY(ccfirstissue)
+        : "";
+
+    let ccValidityFromFormatted = ccvalidityfrom
+        ? formatDateToDDMMYYYY(ccvalidityfrom)
+        : "";
+
+    let ccValidityToFormatted = ccvalidityto
+        ? formatDateToDDMMYYYY(ccvalidityto)
+        : "";
+
+
+    // ================= VALIDATION =================
+
+    $section.find(".error").text("");
+
+    let isValid = true;
+
+    function setError(element, message) {
+        element
+            .closest('.col-12, .col-md-6, .col-md-5, .col-md-4, .col-md-3')
+            .find('.error')
+            .text(message);
+
+        isValid = false;
+    }
+
+
+    // NAME
+    if (!name) {
+        setError(
+            $section.find("input[name='proprietor_name[]']"),
+            "Partner name is required"
+        );
+    }
+
+
+    // ADDRESS
+    if (!address) {
+        setError(
+            $section.find("textarea[name='proprietor_address[]']"),
+            "Address is required"
+        );
+    }
+
+
+    // DOB
+    if (!dob) {
+        setError(
+            $section.find("input[name='dob[]']"),
+            "Date of birth is required"
+        );
+    }
+
+
+    // AGE
+    if (!age) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Age is required"
+        );
+    } else if (parseInt(age) < 25) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Maximum age should be 25"
+        );
+    }
+
+
+    // QUALIFICATION
+    if (!qualification) {
+        setError(
+            $section.find("select[name='qualification[]']"),
+            "Qualification is required"
+        );
+    }
+
+
+    if (qualification && qualification !== '8TH PASS') {
+
+        if (!qual_text) {
+            setError(
+                $section.find("input[name='qual_text[]']"),
+                "Enter Qualification is required"
+            );
+        }
+    }
+
+
+    // ================= QUALIFICATION PROOF =================
+
+    let isEditMode = $section.attr("data-edit-id") ? true : false;
+
+    let existingFileUrl =
+        $section.attr("data-existing-file") || "";
+
+    let presentFile =
+        $section.attr("data-present-file") || "";
+
+    let fileInput =
+        $section.find("input[name='qual_proof[]']")[0];
+
+    let hasNewFile =
+        fileInput &&
+        fileInput.files &&
+        fileInput.files.length > 0;
+
+    let hasExistingFile =
+        existingFileUrl !== "";
+
+    let hasPresentFile =
+        presentFile !== "";
+
+
+    if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
+
+        setError(
+            $section.find("input[name='qual_proof[]']"),
+            "Please upload Qualification proof"
+        );
+
+        isValid = false;
+    }
+
+
+    let uploadedFilePath =
+        window.uploadedFilePath || "";
+
+    let finalFileUrl = "";
+
+    if (hasNewFile && uploadedFilePath) {
+
+        finalFileUrl = uploadedFilePath;
+
+    } else if (hasExistingFile) {
+
+        finalFileUrl = existingFileUrl;
+
+    } else if (hasPresentFile) {
+
+        finalFileUrl = presentFile;
+    }
+
+
+    // ================= AGE PROOF =================
+
+    let existingAgeFile =
+        $section.attr("data-existing-age-file") || "";
+
+    let presentAgeFile =
+        $section.attr("data-present-age-file") || "";
+
+    let ageFileInput =
+        $section.find("input[name='age_proof[]']")[0];
+
+    let hasNewAgeFile =
+        ageFileInput &&
+        ageFileInput.files &&
+        ageFileInput.files.length > 0;
+
+    let hasExistingAgeFile =
+        existingAgeFile !== "";
+
+    let hasPresentAgeFile =
+        presentAgeFile !== "";
+
+
+    if (
+        !hasExistingAgeFile &&
+        !hasPresentAgeFile &&
+        !hasNewAgeFile
+    ) {
+
+        setError(
+            $section.find("input[name='age_proof[]']"),
+            "Please upload Age proof"
+        );
+
+        isValid = false;
+    }
+
+
+    let uploadedAgeFilePath =
+        window.uploadedAgeFilePath || "";
+
+    let finalAgeFileUrl = "";
+
+    if (hasNewAgeFile && uploadedAgeFilePath) {
+
+        finalAgeFileUrl = uploadedAgeFilePath;
+
+    } else if (hasExistingAgeFile) {
+
+        finalAgeFileUrl = existingAgeFile;
+
+    } else if (hasPresentAgeFile) {
+
+        finalAgeFileUrl = presentAgeFile;
+    }
+
+
+    // ================= FATHER NAME =================
+
+    if (!fathersName) {
+        setError(
+            $section.find("input[name='fathers_name[]']"),
+            "Father/Husband's name is required"
+        );
+    }
+
+
+    // ================= PRESENT BUSINESS =================
+
+    if (!presentBusiness) {
+        setError(
+            $section.find("input[name='present_business[]']"),
+            "Present business is required"
+        );
+    }
+
+
+    // ================= COMPETENCY VALIDATION =================
+
+    if (competency === "yes") {
+
+        if (!ccNum) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_number[]']"
+                ),
+                "Competency Certificate Number is required"
+            );
+        }
+
+        if (!ccfirstissue) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_first_issue[]']"
+                ),
+                "Competency Certificate First Issue is required"
+            );
+        }
+
+        if (!ccvalidityfrom) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_from[]']"
+                ),
+                "Competency Certificate Validity From is required"
+            );
+        }
+
+        if (!ccvalidityto) {
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_to[]']"
+                ),
+                "Competency Certificate Validity To is required"
+            );
+        }
+    }
+
+
+    // ================= STOP IF INVALID =================
+
+    if (!isValid) {
+
+        Swal.fire({
+            icon: 'warning',
+            width: 450,
+            title: 'Missing Fields',
+            text: 'Fill all required fields.',
+            confirmButtonText: 'OK'
         });
+
+        return;
+    }
+
+
+    // ================= PDF ICON =================
+
+    function renderPdfIcon(url) {
+
+        if (!url) return "";
+
+        return `<a href="${url}" target="_blank">
+                    <i class="fa fa-file-pdf-o text-danger"></i>
+                </a>`;
+    }
+
+
+    // ================= UPDATE EXISTING ROW =================
+
+    if (editIndex !== null) {
+
+        let $row =
+            $("#partner-section table tbody tr").eq(editIndex);
+
+        // Name
+        $row.find("td").eq(0).text(name);
+
+        // Father / Husband
+        $row.find("td").eq(1).text(fathersName);
+
+        // DOB + Age + Age Proof
+        $row.find("td").eq(2)
+            .attr({
+                "data-dob": dob,
+                "data-age": age,
+                "data-age_proof": finalAgeFileUrl
+            })
+            .html(`
+                ${dob}, ${age}
+                ${renderPdfIcon(finalAgeFileUrl)}
+            `);
+
+        // Address
+        $row.find("td").eq(3).text(address);
+
+        // Qualification + Proof
+        $row.find("td").eq(4)
+            .attr({
+                "data-qualification": qualification,
+                "data-qual_text": qual_text,
+                "data-qual_proof": finalFileUrl
+            })
+            .html(
+                (qualification === '8TH PASS'
+                    ? qualification
+                    : `${qualification}, ${qual_text}`) +
+                " " +
+                renderPdfIcon(finalFileUrl)
+            );
+
+        // Present Business
+        $row.find("td").eq(5).text(presentBusiness);
+
+
+        // ================= COMPETENCY DETAILS =================
+
+        $row.find("td").eq(6)
+            .attr({
+                "data-competency": competency,
+                "data-certno": ccNum,
+                "data-ccfirstissue": ccFirstIssueFormatted,
+                "data-ccvalidityfrom": ccValidityFromFormatted,
+                "data-ccvalidityto": ccValidityToFormatted
+            })
+            .html(
+                competency === "yes"
+                    ? `Yes - CC_No: ${ccNum},
+                       First Issue: ${ccFirstIssueFormatted},
+                       Validity: ${ccValidityFromFormatted} - ${ccValidityToFormatted}`
+                    : "No"
+            );
+
+
+        // Reset
+        resetPartnerForm(true);
+
+        editIndex = null;
+    }
+
+
+    // ================= ADD NEW ROW =================
+
+    else {
+
+        let rowCount =
+            $("#partner-section table tbody tr").length;
+
+        if (rowCount >= 5) {
+
+            Swal.fire({
+                title: "Partner Entry Exists!",
+                width: 450,
+                text: "You can only add a maximum of 5 partners.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6"
+            });
+
+            return;
+        }
+
+
+        $("#partner-section table tbody").append(`
+            <tr>
+
+                <!-- Name -->
+                <td>${name}</td>
+
+                <!-- Father / Husband Name -->
+                <td>${fathersName}</td>
+
+                <!-- DOB / Age -->
+                <td
+                    data-dob="${dob}"
+                    data-age="${age}"
+                    data-age_proof="${finalAgeFileUrl}">
+                    ${dob}, ${age}
+                    ${renderPdfIcon(finalAgeFileUrl)}
+                </td>
+
+                <!-- Address -->
+                <td>${address}</td>
+
+                <!-- Qualification -->
+                <td
+                    data-qualification="${qualification}"
+                    data-qual_text="${qual_text}"
+                    data-qual_proof="${finalFileUrl}">
+
+                    ${qualification === '8TH PASS'
+                        ? qualification
+                        : `${qualification}, ${qual_text}`}
+
+                    ${renderPdfIcon(finalFileUrl)}
+                </td>
+
+                <!-- Present Business -->
+                <td>${presentBusiness}</td>
+
+                <!-- Competency Certificate -->
+                <td
+                    data-competency="${competency}"
+                    data-certno="${ccNum}"
+                    data-ccfirstissue="${ccFirstIssueFormatted}"
+                    data-ccvalidityfrom="${ccValidityFromFormatted}"
+                    data-ccvalidityto="${ccValidityToFormatted}">
+
+                    ${competency === "yes"
+                        ? `Yes - CC_No: ${ccNum},
+                           First Issue: ${ccFirstIssueFormatted},
+                           Validity: ${ccValidityFromFormatted} - ${ccValidityToFormatted}`
+                        : "No"}
+
+                </td>
+
+                <!-- Ownership -->
+                <td
+                    style="display:none;"
+                    data-ownership="${ownership_type}">
+                    ${ownership_type}
+                </td>
+
+                <!-- Edit -->
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-primary btn-sm update-partner-row">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                </td>
+
+                <!-- Delete -->
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm remove-partner-row">
+                        <i class="fa fa-trash-o"></i>
+                    </button>
+                </td>
+
+            </tr>
+        `);
+
+
+        // Reset
+        resetPartnerForm(true);
+
+        partnerIndex++;
+    }
+
+});
 
         // Reset form
 
@@ -4762,10 +6994,22 @@ let proprietorCount = initialDraftCount || 0;
             let $section = $("#partnersfill-section");
 
             // Clear all text/number/textarea inputs
-            $section.find("input[type='text'], input[type='number'], textarea").val("");
+            $section.find("input[type='text'], input[type='file'], input[type='number'], input[type='date'], textarea, select").val("");
 
             // Clear all radio buttons
             $section.find("input[type='radio']").prop("checked", false);
+
+            $section.find(".age-file-link").html("");
+            $section.find(".file-link").html("");
+            // Qualification file attributes
+            $section.removeAttr("data-existing-file");
+            $section.removeAttr("data-present-file");
+
+            // Age proof attributes
+            $section.removeAttr("data-existing-age-file");
+            $section.removeAttr("data-present-age-file");
+
+            $section.removeAttr("data-edit-id");
 
             // Hide all conditional fields
             $(".competency-fields-partner, .employment-fields-partner, .experience-fields-partner").hide();
@@ -4799,104 +7043,360 @@ let proprietorCount = initialDraftCount || 0;
         // Remove partner row
         $(document).on("click", ".remove-partner-row", function() {
             $(this).closest("tr").remove();
+            let rowCount = $("#partner-section table tbody tr").length;
+
+
         });
 
         // Update partner row
-        $(document).on("click", ".update-partner-row", function() {
-            let $row = $(this).closest("tr");
-            editIndex = $row.index();
-            let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
-            // console.log("Ownership Value:", ownershipValue); 
-            // alert(ownershipValue);
-            // exit;
+     $(document).on("click", ".update-partner-row", function() {
+
+    let $row = $(this).closest("tr");
+    let $tds = $row.find("td");
+
+    let id = $row.data("id");
+    editIndex = $row.index();
+
+    let ownershipValue =
+        $tds.eq(7).attr("data-ownership") ||
+        $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+        "";
+
+    let row_indexValue =
+        $tds.eq(8).find("input[name='row_index[]']").val() || "";
+
+    let $section = $("#partnersfill-section");
+
+    $section.find(".upload-btn")
+        .attr("data-row-index", row_indexValue);
 
 
-            let $section = $("#partnersfill-section");
-            // let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
-            // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());    
-            // Fill form with row data
-            $section.find("input[name='proprietor_name[]']").val($row.find("td").eq(0).text());
-            $section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text());
-            $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
-            $section.find("textarea[name='proprietor_address[]']").val($row.find("td").eq(3).text());
-            $section.find("input[name='qualification[]']").val($row.find("td").eq(4).text());
-            $section.find("input[name='present_business[]']").val($row.find("td").eq(5).text());
-            $section.find("input[name='ownership_type[]']").val(ownershipValue);
+    // ================= BASIC DETAILS =================
+
+    $section.find("input[name='proprietor_name[]']")
+        .val($tds.eq(0).text().trim());
+
+    $section.find("input[name='fathers_name[]']")
+        .val($tds.eq(1).text().trim());
 
 
-            // === Competency Section ===
-            let tdCompetency = $row.find("td").eq(6);
-            let competency = tdCompetency.attr('data-competency') || "no";
-            let certNo = tdCompetency.attr('data-certno') || "";
-            let validity = tdCompetency.attr('data-validity') || "";
-            let ccValidityFormatted = formatDateToDDMMYYYY(validity);
-            let formattedValidity = formatDateToYMD(validity);
-            // alert(ccValidityFormatted);
+    // ================= DOB / AGE =================
 
-            $section.find("input[name^='competency_certificate_holding'][value='" + competency + "']").prop("checked", true);
-            $section.find("input[name='competency_certificate_number[]']").val(certNo);
-            $section.find("input[name='competency_certificate_validity[]']").val(formattedValidity);
+    let $tdDobAge = $tds.eq(2);
 
-            // Show/hide related inputs
-            if (competency === "yes") {
-                $(".competency-fields-partner").slideDown();
-            } else {
-                $(".competency-fields-partner").slideUp();
-            }
+    let dob = $tdDobAge.attr("data-dob") || "";
+    let age = $tdDobAge.attr("data-age") || "";
+    let age_proof = $tdDobAge.attr("data-age_proof") || "";
 
-            // === Presently Employed Section ===
-            let tdEmployed = $row.find("td").eq(7);
-            let employed = tdEmployed.attr('data-employed') || "no";
-            let empName = tdEmployed.attr('data-employer') || "";
-            let empAddress = tdEmployed.attr('data-empaddress') || "";
+    $section.find("input[name='dob[]']").val(dob);
+    $section.find("input[name='age[]']").val(age);
 
-            $section.find("input[name^='presently_employed'][value='" + employed + "']").prop("checked", true);
-            $section.find("input[name='presently_employed_name[]']").val(empName);
-            $section.find("textarea[name='presently_employed_address[]']").val(empAddress);
+    $section.attr("data-existing-age-file", age_proof);
+    $section.attr("data-present-age-file", age_proof);
 
-            if (employed === "yes") {
-                $(".employment-fields-partner").slideDown();
-            } else {
-                $(".employment-fields-partner").slideUp();
-            }
-
-            // === Previous Experience Section ===
-            let tdExperience = $row.find("td").eq(8);
-            let experience = tdExperience.attr('data-experience') || "no";
-            let expName = tdExperience.attr('data-expname') || "";
-            let expAddress = tdExperience.attr('data-expaddress') || "";
-            let expLicense = tdExperience.attr('data-explicense') || "";
-            let expValidity = tdExperience.attr('data-expvalidity') || "";
-            let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-            let formattedexpValidity = formatDateToYMD(expValidity);
-
-
-            $section.find("input[name^='previous_experience'][value='" + experience + "']").prop("checked", true);
-            $section.find("input[name='previous_experience_name[]']").val(expName);
-            $section.find("textarea[name='previous_experience_address[]']").val(expAddress);
-            $section.find("input[name='previous_experience_lnumber[]']").val(expLicense);
-            $section.find("input[name='previous_experience_lnumber_validity[]']").val(formattedexpValidity);
-
-            if (experience === "yes") {
-                $(".experience-fields-partner").slideDown();
-            } else {
-                $(".experience-fields-partner").slideUp();
-            }
-
-
-            // Show form
-            $section.slideDown();
-
-            // Change Save button to Update + Add Cancel button
-            $("#save_partner").text("Update");
-            if ($("#cancel_update").length === 0) {
-                $("#save_partner").after(`
-            <button type="button" id="cancel_update" class="btn btn-danger ms-2">Cancel</button>
+    if (age_proof) {
+        $section.find(".age-file-link").html(`
+            <a href="${age_proof}" target="_blank"
+                class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o" style="color:red;"></i>
+                View Document
+            </a>
         `);
+    } else {
+        $section.find(".age-file-link").html("");
+    }
+
+
+    // ================= ADDRESS =================
+
+    $section.find("textarea[name='proprietor_address[]']")
+        .val($tds.eq(3).text().trim());
+
+
+    // ================= QUALIFICATION =================
+
+    let $qualTd = $tds.eq(4);
+
+    let qualification =
+        $qualTd.attr("data-qualification") || "";
+
+    let qual_text =
+        $qualTd.attr("data-qual_text") || "";
+
+    let qual_proof =
+        $qualTd.attr("data-educational_proof") || "";
+
+    let $qualificationSelect =
+        $section.find("select[name='qualification[]']");
+
+    let $qualTextInput =
+        $section.find("input[name='qual_text[]']");
+
+    let $wrapper =
+        $section.find(".qualTextWrapper");
+
+    $qualificationSelect
+        .val(qualification)
+        .trigger("change");
+
+    if ($qualificationSelect.val() === null) {
+
+        $qualificationSelect.find("option").each(function() {
+
+            if (
+                $.trim($(this).val()).toLowerCase() ===
+                $.trim(qualification).toLowerCase()
+            ) {
+                $(this).prop("selected", true);
             }
+
+        });
+    }
+
+    $qualTextInput.val(qual_text);
+
+    if (
+        qualification &&
+        qualification.toUpperCase() !== "8TH PASS"
+    ) {
+        $wrapper.show();
+    } else {
+        $wrapper.hide();
+    }
+
+
+    // ================= QUALIFICATION PROOF =================
+
+    $section.attr("data-existing-file", qual_proof);
+    $section.attr("data-present-file", qual_proof);
+
+    if (qual_proof) {
+
+        $section.find(".file-link").html(`
+            <a href="${qual_proof}" target="_blank"
+                class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o" style="color:red;"></i>
+                View Uploaded File
+            </a>
+        `);
+
+    } else {
+
+        $section.find(".file-link").html("");
+    }
+
+
+    // ================= EDIT ID =================
+
+    $section.attr("data-edit-id", id || "");
+
+
+    // ================= PRESENT BUSINESS =================
+
+    $section.find("input[name='present_business[]']")
+        .val($tds.eq(5).text().trim());
+
+
+    // ================= OWNERSHIP =================
+
+    $section.find("input[name='ownership_type[]']")
+        .val(ownershipValue);
+
+
+    // ================= COMPETENCY =================
+
+    let $tdCompetency = $tds.eq(6);
+
+    let competency =
+        ($tdCompetency.attr("data-competency") || "no").toLowerCase();
+
+    let certNo =
+        $tdCompetency.attr("data-certno") || "";
+
+    let ccFirstIssue =
+        $tdCompetency.attr("data-ccfirstissue") || "";
+
+    let ccValidityFrom =
+        $tdCompetency.attr("data-ccvalidityfrom") || "";
+
+    let ccValidityTo =
+        $tdCompetency.attr("data-ccvalidityto") || "";
+
+    let ccVerify =
+        $tdCompetency.attr("data-ccverify") || "";
+
+
+    // ================= RADIO =================
+
+    $section.find(
+        "input[name='competency_certificate_holding[]']"
+    ).prop("checked", false);
+
+    $section.find(
+        "input[name='competency_certificate_holding[]'][value='" +
+        competency +
+        "']"
+    ).prop("checked", true);
+
+
+    // ================= CERTIFICATE NUMBER =================
+
+    $section.find(
+        "input[name='competency_certificate_number[]']"
+    ).val(certNo);
+
+
+    // ================= DATE CONVERSION =================
+
+    function convertDDMMYYYYtoYMD(date) {
+
+        if (!date) {
+            return "";
+        }
+
+        date = $.trim(date);
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return date;
+        }
+
+        if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+
+            let parts = date.split("-");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+
+            let parts = date.split("/");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        return date;
+    }
+
+
+    let firstIssueYMD =
+        convertDDMMYYYYtoYMD(ccFirstIssue);
+
+    let validityFromYMD =
+        convertDDMMYYYYtoYMD(ccValidityFrom);
+
+    let validityToYMD =
+        convertDDMMYYYYtoYMD(ccValidityTo);
+
+
+    // ================= SET COMPETENCY DATES =================
+
+    let $firstIssue =
+        $section.find(
+            "input[name='competency_certificate_first_issue[]']"
+        );
+
+    let $validityFrom =
+        $section.find(
+            "input[name='competency_certificate_validity_from[]']"
+        );
+
+    let $validityTo =
+        $section.find(
+            "input[name='competency_certificate_validity_to[]']"
+        );
+
+
+    if ($firstIssue[0] && $firstIssue[0]._flatpickr) {
+        $firstIssue[0]._flatpickr.setDate(
+            firstIssueYMD,
+            true,
+            "Y-m-d"
+        );
+    } else {
+        $firstIssue.val(firstIssueYMD);
+    }
+
+
+    if ($validityFrom[0] && $validityFrom[0]._flatpickr) {
+        $validityFrom[0]._flatpickr.setDate(
+            validityFromYMD,
+            true,
+            "Y-m-d"
+        );
+    } else {
+        $validityFrom.val(validityFromYMD);
+    }
+
+
+    if ($validityTo[0] && $validityTo[0]._flatpickr) {
+        $validityTo[0]._flatpickr.setDate(
+            validityToYMD,
+            true,
+            "Y-m-d"
+        );
+    } else {
+        $validityTo.val(validityToYMD);
+    }
+
+
+    // ================= SHOW / HIDE COMPETENCY =================
+
+    toggleCompetencyFields(
+        "partner",
+        competency === "yes"
+    );
+
+
+    // ================= VERIFICATION RESULT =================
+
+    $section.find("#competency_exp_result").empty();
+
+    if (ccVerify) {
+        $section.attr("data-ccverify", ccVerify);
+    }
+
+
+    // ================= CHECK COMPETENCY =================
+
+    if (
+        competency === "yes" &&
+        certNo &&
+        firstIssueYMD &&
+        validityFromYMD &&
+        validityToYMD
+    ) {
+        checkCompetencyCertificate();
+    }
+
+
+    // ================= SHOW FORM =================
+
+    $section.slideDown();
+
+
+    // ================= CHANGE BUTTON =================
+
+    $("#save_partner").text("Update");
+
+    if ($("#cancel_update").length === 0) {
+
+        $("#save_partner").after(`
+            <button
+                type="button"
+                id="cancel_update"
+                class="btn btn-danger ms-2">
+                Cancel
+            </button>
+        `);
+    }
+
+});
+
+  $(document).on("click", ".remove-partner-row", function() {
+            $(this).closest("tr").remove();
         });
 
-        function formatDateToYMD(dateString) {
+       function formatDateToYMD(dateString) {
             const parts = dateString.split("/");
             if (parts.length === 3) {
                 return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
@@ -4905,12 +7405,25 @@ let proprietorCount = initialDraftCount || 0;
         }
 
         function formatDateToDDMMYYYY(dateStr) {
-            if (!dateStr) return "";
-            const d = new Date(dateStr);
-            const day = String(d.getDate()).padStart(2, "0");
-            const month = String(d.getMonth() + 1).padStart(2, "0");
-            const year = d.getFullYear();
-            return `${day}-${month}-${year}`;
+
+            if (!dateStr) {
+                return "";
+            }
+
+            // Already DD-MM-YYYY
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                return dateStr;
+            }
+
+            // YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+
+                let parts = dateStr.split("-");
+
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            return dateStr;
         }
 
 
@@ -4920,7 +7433,7 @@ let proprietorCount = initialDraftCount || 0;
         });
 
 
-         // ------------------------------save director------------------
+        // ------------------------------save director------------------
 
         let directorIndex = 0;
         let directoreditIndex = null;
@@ -4928,22 +7441,89 @@ let proprietorCount = initialDraftCount || 0;
         // Show partner form
         $("#add-director").on("click", function() {
             let rowCount = $("#director-section table tbody tr").length;
-            if (rowCount >= 6) {
 
-                       Swal.fire({
-                        title: "Directors Entry Exists!",
-                        width:450,
-                        text: "You can only add a maximum of 6 Directors..",
-                        icon: "warning",
-                        confirmButtonText: "OK",
-                        confirmButtonColor: "#3085d6"
+            let directorSection = $("#directorfill-section");
+
+            let directorInput = directorSection.find("input[name='proprietor_name[]']");
+
+            if (rowCount == 0) {
+
+                let userName = @json(Auth::user()-> first_name.' '.Auth::user()-> last_name);
+
+
+                $("#proprietor_name")
+                    .val(userName)
+                    .prop("readonly", true);
+
+            } else {
+
+                directorInput
+                    .val("")
+                    .prop("readonly", false);
+            }
+
+            if (rowCount >= 10) {
+
+                Swal.fire({
+                    title: "Directors Entry Exists!",
+                    width: 450,
+                    text: "You can only add a maximum of 10 Directors..",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
                 });
-                
+
                 // alert("You can only add a maximum of 6 partners.");
                 return;
             }
+
+            /* ===========================
+               CHECK MANAGING DIRECTOR EXISTS
+               ============================ */
+
+            let mdExists = false;
+
+            $("#director-section table tbody tr").each(function() {
+
+                let md = $(this)
+                    .find("td.md-column")
+                    .attr("data-managing_director");
+
+                if (md === "yes") {
+                    mdExists = true;
+                }
+            });
+
+            if (mdExists) {
+
+                $(".managing-director-wrapper").hide();
+
+                $("#is_managing_director")
+                    .prop("checked", false);
+
+            } else {
+
+                $(".managing-director-wrapper").show();
+            }
+
+
             resetDirectorForm();
             $("#directorfill-section").slideDown();
+
+            let $section = $("#directorfill-section");
+
+            // $section.find("input, select").val("");
+            $section.find(".qualification").val("").trigger("change");
+            $section.find(".file-link").html("");
+            // $("#directorfill-section").slideDown();
+            // $("#partner-section table tbody").append(newRow);
+            $section.find(".upload-btn")
+                // .attr("data-row_index", rowCount)
+                // .data("row_index", rowCount);
+
+                .attr("data-row-index", rowCount)
+                .data("rowIndex", rowCount);
+
         });
 
 
@@ -4951,187 +7531,725 @@ let proprietorCount = initialDraftCount || 0;
 
         // Save or Update Partner
         $("#save_director").on("click", function() {
-            let $section = $("#directorfill-section");
 
-            let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
-            // Basic text inputs
-            let name = $section.find("input[name='proprietor_name[]']").val().trim();
-            let address = $section.find("textarea[name='proprietor_address[]']").val().trim();
-            let age = $section.find("input[name='age[]']").val().trim();
-            let qualification = $section.find("input[name='qualification[]']").val().trim();
-            let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
-            let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
+    let $section = $("#directorfill-section");
 
+    let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
 
+    // ===========================
+    // BASIC DETAILS
+    // ===========================
 
-            // ✅ Ensure a default 'no' is checked if nothing is selected
-            if (!$section.find("input[name^='competency_certificate_holding']:checked").length) {
-                $section.find("input[name^='competency_certificate_holding'][value='no']").prop("checked", true);
-            }
-            if (!$section.find("input[name^='presently_employed']:checked").length) {
-                $section.find("input[name^='presently_employed'][value='no']").prop("checked", true);
-            }
-            if (!$section.find("input[name^='previous_experience']:checked").length) {
-                $section.find("input[name^='previous_experience'][value='no']").prop("checked", true);
-            }
+    let name = $section.find("input[name='proprietor_name[]']").val().trim();
 
-            // ✅ Radio button values
-            let competency = $section.find("input[name^='competency_certificate_holding']:checked").val() || "no";
-            let ccNum = $section.find("input[name='competency_certificate_number[]']").val().trim();
-            let ccValidity = $section.find("input[name='competency_certificate_validity[]']").val().trim();
+    let address = $section
+        .find("textarea[name='proprietor_address[]']")
+        .val()
+        .trim();
 
-            // let ccverify = $section.find("input[name='proprietor_cc_verify[]']").val().trim();
-            let ccverifyInput = $section.find("input[name='proprietor_cc_verify[]']").val();
-            let ccverify = (ccverifyInput === null || ccverifyInput.trim() === "") ?
-                null :
-                parseInt(ccverifyInput, 10);
+    let dob = $section
+        .find("input[name='dob[]']")
+        .val()
+        .trim();
 
-            let competencyDetails = competency === "yes" ? `Yes - CC_No: ${ccNum}, Validity: ${ccValidity}` : "No";
+    let age = $section
+        .find("input[name='age[]']")
+        .val()
+        .trim();
 
-            let employed = $section.find("input[name^='presently_employed']:checked").val() || "no";
-            let empName = $section.find("input[name='presently_employed_name[]']").val().trim();
-            let empAddress = $section.find("textarea[name='presently_employed_address[]']").val().trim();
-            let employedDetails = employed === "yes" ? `Yes - ${empName}, ${empAddress}` : "No";
+    let qualification = $section
+        .find("select[name='qualification[]']")
+        .val();
 
-            let experience = $section.find("input[name^='previous_experience']:checked").val() || "no";
-            let expName = $section.find("input[name='previous_experience_name[]']").val().trim();
-            let expAddress = $section.find("textarea[name='previous_experience_address[]']").val().trim();
-            let expLicense = $section.find("input[name='previous_experience_lnumber[]']").val().trim();
-            let expValidity = $section.find("input[name='previous_experience_lnumber_validity[]']").val().trim();
+    let qual_text = $.trim(
+        $section.find("input[name='qual_text[]']").val()
+    );
 
-            // let expverify = $section.find("input[name='proprietor_contractor_verify[]']").val().trim();
-            let expverifyInput = $section.find("input[name='proprietor_contractor_verify[]']").val();
-            let expverify = (expverifyInput === null || expverifyInput.trim() === "") ?
-                null :
-                parseInt(expverifyInput, 10);
+    let qual_proof = $section
+        .find("input[name='qual_proof[]']")
+        .val()
+        .trim();
 
-            let experienceDetails = experience === "yes" ?
-                `Yes - ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidity}` :
-                "No";
-            // Date format----------------
-            let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
-            let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-            // ✅ Validation
-            if (!name || !address || !age || !qualification || !fathersName || !presentBusiness) {
-                alert("Please fill all director required fields!");
-                return;
-            }
+    let age_proof = $section
+        .find("input[name='age_proof[]']")
+        .val()
+        .trim();
 
-            // ✅ Update existing row
-            if (directoreditIndex !== null) {
+    let fathersName = $section
+        .find("input[name='fathers_name[]']")
+        .val()
+        .trim();
 
-                // alert('not null');
+    let presentBusiness = $section
+        .find("input[name='present_business[]']")
+        .val()
+        .trim();
 
-                let $row = $("#director-section table tbody tr").eq(directoreditIndex);
-                $row.find("td").eq(0).text(name);
-                $row.find("td").eq(1).text(fathersName);
-                $row.find("td").eq(2).text(age);
-                $row.find("td").eq(3).text(address);
-                $row.find("td").eq(4).text(qualification);
-                $row.find("td").eq(5).text(presentBusiness);
-                let ccValidityYMD = formatDateToYMD(ccValidity); // for data-attributes
-                let ccValidityFormatted = formatDateToDDMMYYYY(ccValidity);
-                let expValidityYMD = formatDateToYMD(expValidity);
-                let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-                // alert(ccValidityFormatted);
-                $row.find("td").eq(6)
-                    .text(competencyDetails)
-                    .attr({
-                        'data-competency': competency,
-                        'data-certno': ccNum,
-                        'data-validity': ccValidity,
-                        'data-validityverify': ccverify
+    // ===========================
+    // COMPETENCY
+    // ===========================
 
-                    });
+    if (
+        !$section.find(
+            "input[name='competency_certificate_holding[]']:checked"
+        ).length
+    ) {
+        $section.find(
+            "input[name='competency_certificate_holding[]'][value='no']"
+        ).prop("checked", true);
+    }
 
-                $row.find("td").eq(7)
-                    .text(employedDetails)
-                    .attr({
-                        'data-employed': employed,
-                        'data-employer': empName,
-                        'data-empaddress': empAddress
-                    });
+    let competency = $section
+        .find(
+            "input[name='competency_certificate_holding[]']:checked"
+        )
+        .val() || "no";
 
-                $row.find("td").eq(8)
-                    .text(experienceDetails)
-                    .attr({
-                        'data-experience': experience,
-                        'data-expname': expName,
-                        'data-expaddress': expAddress,
-                        'data-explicense': expLicense,
-                        'data-expvalidity': expValidity,
-                        'data-expverify': expverify
-                    });
+    let ccNum = $section
+        .find("input[name='competency_certificate_number[]']")
+        .val()
+        .trim();
 
-                resetDirectorForm(true);
-                directoreditIndex = null;
-            }
-            // ✅ Add new row
-            else {
+    let ccFirstIssue = $section
+        .find("input[name='competency_certificate_first_issue[]']")
+        .val()
+        .trim();
 
-                // alert('null');
-                let rowCount = $("#director-section table tbody tr").length;
-                if (rowCount >= 6) {
-                           Swal.fire({
-                        title: "Partner Entry Exists!",
-                        width:450,
-                        text: "You can only add a maximum of 6 partners..",
-                        icon: "warning",
-                        confirmButtonText: "OK",
-                        confirmButtonColor: "#3085d6"
-                });
-                    alert("You can only add a maximum of 6 partners.");
-                    return;
-                }
+    let ccValidityFrom = $section
+        .find("input[name='competency_certificate_validity_from[]']")
+        .val()
+        .trim();
 
-                $("#director-section table tbody").append(`
-                    <tr>
-                        <td>${name}</td>
-                        <td>${fathersName}</td>
-                        <td>${age}</td>
-                        <td>${address}</td>
-                        <td>${qualification}</td>
-                        <td>${presentBusiness}</td>
-                          <td 
-                            data-competency="${competency}" 
-                            data-certno="${ccNum}" 
-                            data-validity="${ccValidity}"  
-                            data-ccverify="${ccverify === null ? '' : ccverify}">
-                            ${competency === 'yes' 
-                                ? `Yes - CC_No: ${ccNum}, Validity: ${ccValidityFormatted}` 
-                                : 'No'}, 
-                            Verify: ${ccverify === null ? '' : ccverify}
-                            </td>
+    let ccValidityTo = $section
+        .find("input[name='competency_certificate_validity_to[]']")
+        .val()
+        .trim();
 
-                        <td data-employed="${employed}" data-employer="${empName}" data-empaddress="${empAddress}">${employed === 'yes' ? `Yes - ${empName}, ${empAddress}` : 'No'}</td>
+    let ccverifyInput = $section
+        .find("input[name='proprietor_cc_verify[]']")
+        .val();
 
+    let ccverify = (
+        ccverifyInput === null ||
+        $.trim(ccverifyInput) === ""
+    )
+        ? null
+        : parseInt(ccverifyInput, 10);
 
-                        <td data-experience="${experience}" data-expname="${expName}" data-expaddress="${expAddress}" data-explicense="${expLicense}" data-expvalidity="${expValidity}"  data-expverify="${expverify === null ? '' : expverify}">${experience === 'yes' ? `Yes - ${expName}, ${expAddress}, Lic No: ${expLicense}, Validity: ${expValidityFormatted}` : 'No'},Verify: ${expverify === null ? '' : expverify}</td>
-                         <td style="display:none;" data-ownership="${ownership_type}">${ownership_type}</td>
-                        <td>
-                            <button type="button" class="btn btn-primary btn-sm update-director-row"><i class="fa fa-pencil"></i></button>
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-danger btn-sm remove-director-row"><i class="fa fa-trash-o"></i></button>
-                        </td>
-                    </tr>
-                `);
+    // ===========================
+    // MANAGING DIRECTOR
+    // ===========================
 
-                resetDirectorForm(true);
-                directorIndex++;
-            }
+    let isManagingDirector = $section
+        .find(".managing-director-checkbox")
+        .is(":checked")
+        ? "yes"
+        : "no";
+
+    // ===========================
+    // VALIDATION
+    // ===========================
+
+    $section.find(".error").text("");
+
+    let isValid = true;
+
+    function setError(element, message) {
+
+        element
+            .closest(
+                ".col-12, .col-md-6, .col-md-5, .col-md-4, .col-md-3"
+            )
+            .find(".error")
+            .text(message);
+
+        isValid = false;
+    }
+
+    // NAME
+    if (!name) {
+        setError(
+            $section.find("input[name='proprietor_name[]']"),
+            "Director name is required"
+        );
+    }
+
+    // ADDRESS
+    if (!address) {
+        setError(
+            $section.find("textarea[name='proprietor_address[]']"),
+            "Address is required"
+        );
+    }
+
+    // DOB
+    if (!dob) {
+        setError(
+            $section.find("input[name='dob[]']"),
+            "Date of birth is required"
+        );
+    }
+
+    // AGE
+    if (!age) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Age is required"
+        );
+    } else if (parseInt(age) < 25) {
+        setError(
+            $section.find("input[name='age[]']"),
+            "Maximum age should be 25"
+        );
+    }
+
+    // QUALIFICATION
+    if (!qualification) {
+
+        setError(
+            $section.find("select[name='qualification[]']"),
+            "Qualification is required"
+        );
+
+    }
+
+    if (qualification && qualification !== "8TH PASS") {
+
+        if (!qual_text) {
+
+            setError(
+                $section.find("input[name='qual_text[]']"),
+                "Enter Qualification is required"
+            );
+
+        }
+
+    }
+
+    // ===========================
+    // QUALIFICATION PROOF
+    // ===========================
+
+    let isEditMode = $section.attr("data-edit-id") ? true : false;
+
+    let existingFileUrl =
+        $section.attr("data-existing-file") || "";
+
+    let presentFile =
+        $section.attr("data-present-file") || "";
+
+    let fileInput =
+        $section.find("input[name='qual_proof[]']")[0];
+
+    let hasNewFile =
+        fileInput &&
+        fileInput.files &&
+        fileInput.files.length > 0;
+
+    let hasExistingFile =
+        existingFileUrl !== "";
+
+    let hasPresentFile =
+        presentFile !== "";
+
+    if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
+
+        setError(
+            $section.find("input[name='qual_proof[]']"),
+            "Please upload Qualification proof"
+        );
+
+        isValid = false;
+    }
+
+    let uploadedFilePath =
+        window.uploadedFilePath || "";
+
+    let finalFileUrl = "";
+
+    if (hasNewFile && uploadedFilePath) {
+
+        finalFileUrl = uploadedFilePath;
+
+    } else if (hasExistingFile) {
+
+        finalFileUrl = existingFileUrl;
+
+    } else if (hasPresentFile) {
+
+        finalFileUrl = presentFile;
+
+    }
+
+    // ===========================
+    // AGE PROOF
+    // ===========================
+
+    let existingAgeFile =
+        $section.attr("data-existing-age-file") || "";
+
+    let presentAgeFile =
+        $section.attr("data-present-age-file") || "";
+
+    let ageFileInput =
+        $section.find("input[name='age_proof[]']")[0];
+
+    let hasNewAgeFile =
+        ageFileInput &&
+        ageFileInput.files &&
+        ageFileInput.files.length > 0;
+
+    let hasExistingAgeFile =
+        existingAgeFile !== "";
+
+    let hasPresentAgeFile =
+        presentAgeFile !== "";
+
+    if (
+        !hasExistingAgeFile &&
+        !hasPresentAgeFile &&
+        !hasNewAgeFile
+    ) {
+
+        setError(
+            $section.find("input[name='age_proof[]']"),
+            "Please upload Age proof"
+        );
+
+        isValid = false;
+    }
+
+    let uploadedAgeFilePath =
+        window.uploadedAgeFilePath || "";
+
+    let finalAgeFileUrl = "";
+
+    if (hasNewAgeFile && uploadedAgeFilePath) {
+
+        finalAgeFileUrl = uploadedAgeFilePath;
+
+    } else if (hasExistingAgeFile) {
+
+        finalAgeFileUrl = existingAgeFile;
+
+    } else if (hasPresentAgeFile) {
+
+        finalAgeFileUrl = presentAgeFile;
+
+    }
+
+    // ===========================
+    // FATHER NAME
+    // ===========================
+
+    if (!fathersName) {
+
+        setError(
+            $section.find("input[name='fathers_name[]']"),
+            "Father/Husband's name is required"
+        );
+
+    }
+
+    // ===========================
+    // PRESENT BUSINESS
+    // ===========================
+
+    if (!presentBusiness) {
+
+        setError(
+            $section.find("input[name='present_business[]']"),
+            "Present business is required"
+        );
+
+    }
+
+    // ===========================
+    // COMPETENCY VALIDATION
+    // ===========================
+
+    if (competency === "yes") {
+
+        if (!ccNum) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_number[]']"
+                ),
+                "Competency Certificate Number is required"
+            );
+
+        }
+
+        if (!ccFirstIssue) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_first_issue[]']"
+                ),
+                "Competency Certificate First Issue is required"
+            );
+
+        }
+
+        if (!ccValidityFrom) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_from[]']"
+                ),
+                "Competency Certificate Validity From is required"
+            );
+
+        }
+
+        if (!ccValidityTo) {
+
+            setError(
+                $section.find(
+                    "input[name='competency_certificate_validity_to[]']"
+                ),
+                "Competency Certificate Validity To is required"
+            );
+
+        }
+
+    }
+
+    // ===========================
+    // STOP IF INVALID
+    // ===========================
+
+    if (!isValid) {
+
+        Swal.fire({
+            icon: "warning",
+            width: 450,
+            title: "Missing Fields",
+            text: "Fill all required fields.",
+            confirmButtonText: "OK"
         });
 
+        return;
+    }
+
+    // ===========================
+    // PDF ICON
+    // ===========================
+
+    function renderPdfIcon(url) {
+
+        if (!url) return "";
+
+        return `
+            <a href="${url}" target="_blank">
+                <i class="fa fa-file-pdf-o text-danger"></i>
+            </a>
+        `;
+    }
+
+    // ===========================
+    // DATE FORMAT
+    // ===========================
+
+    let ccFirstIssueFormatted =
+        ccFirstIssue
+            ? formatDateToDDMMYYYY(ccFirstIssue)
+            : "";
+
+    let ccValidityFromFormatted =
+        ccValidityFrom
+            ? formatDateToDDMMYYYY(ccValidityFrom)
+            : "";
+
+    let ccValidityToFormatted =
+        ccValidityTo
+            ? formatDateToDDMMYYYY(ccValidityTo)
+            : "";
+
+    // ===========================
+    // UPDATE EXISTING ROW
+    // ===========================
+
+    if (directoreditIndex !== null) {
+
+        let $row =
+            $("#director-section table tbody tr")
+                .eq(directoreditIndex);
+
+        // NAME
+        $row.find("td").eq(0)
+            .attr({
+                "data-name": name,
+                "data-managing_director": isManagingDirector
+            })
+            .html(`
+                <div class="director-name-wrapper">
+                    <span class="director-name">${name}</span>
+
+                    ${
+                        isManagingDirector === "yes"
+                            ? `<span class="managing-director-tag">
+                                Managing Director
+                               </span>`
+                            : ""
+                    }
+                </div>
+            `);
+
+        // FATHER NAME
+        $row.find("td").eq(1)
+            .text(fathersName);
+
+        // DOB / AGE / AGE PROOF
+        $row.find("td").eq(2)
+            .attr({
+                "data-dob": dob,
+                "data-age": age,
+                "data-age_proof": finalAgeFileUrl
+            })
+            .html(`
+                ${dob}, ${age}
+                ${renderPdfIcon(finalAgeFileUrl)}
+            `);
+
+        // ADDRESS
+        $row.find("td").eq(3)
+            .text(address);
+
+        // QUALIFICATION
+        $row.find("td").eq(4)
+            .attr({
+                "data-qualification": qualification,
+                "data-qual_text": qual_text,
+                "data-qual_proof": finalFileUrl
+            })
+            .html(
+                (
+                    qualification === "8TH PASS"
+                        ? qualification
+                        : `${qualification}, ${qual_text}`
+                ) +
+                " " +
+                renderPdfIcon(finalFileUrl)
+            );
+
+        // PRESENT BUSINESS
+        $row.find("td").eq(5)
+            .text(presentBusiness);
+
+        // MANAGING DIRECTOR
+        $row.find("td.md-column")
+            .attr(
+                "data-managing_director",
+                isManagingDirector
+            )
+            .html(
+                isManagingDirector === "yes"
+                    ? `<span class="badge bg-success">
+                        Managing Director
+                       </span>`
+                    : "-"
+            );
+
+        // HIDE MANAGING DIRECTOR CHECKBOX
+        if (isManagingDirector === "yes") {
+            $(".managing-director-wrapper").hide();
+        }
+
+        // COMPETENCY
+        $row.find("td").eq(6)
+            .text(
+                competency === "yes"
+                    ? `Yes - CC_No: ${ccNum}, First Issue: ${ccFirstIssueFormatted}, Validity: ${ccValidityFromFormatted} to ${ccValidityToFormatted}`
+                    : "No"
+            )
+            .attr({
+                "data-competency": competency,
+                "data-certno": ccNum,
+                "data-ccfirstissue": ccFirstIssue,
+                "data-ccvalidityfrom": ccValidityFrom,
+                "data-ccvalidityto": ccValidityTo,
+                "data-ccverify":
+                    ccverify === null ? "" : ccverify
+            });
+
+        // OWNERSHIP
+        $row.find("td").eq(7)
+            .attr("data-ownership", ownership_type)
+            .text(ownership_type);
+
+        resetDirectorForm(true);
+
+        directoreditIndex = null;
+
+    }
+
+    // ===========================
+    // ADD NEW ROW
+    // ===========================
+
+    else {
+
+        let rowCount =
+            $("#director-section table tbody tr").length;
+
+        if (rowCount >= 10) {
+
+            Swal.fire({
+                title: "Director Entry Exists!",
+                width: 450,
+                text: "You can only add a maximum of 10 directors.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6"
+            });
+
+            return;
+        }
+
+        $("#director-section table tbody").append(`
+            <tr>
+
+                <td
+                    data-name="${name}"
+                    data-managing_director="${isManagingDirector}"
+                >
+                    <div class="director-name-wrapper">
+                        <span class="director-name">
+                            ${name}
+                        </span>
+
+                        ${
+                            isManagingDirector === "yes"
+                                ? `<span class="managing-director-tag">
+                                    Managing Director
+                                   </span>`
+                                : ""
+                        }
+                    </div>
+                </td>
+
+                <td>
+                    ${fathersName}
+                </td>
+
+                <td
+                    data-dob="${dob}"
+                    data-age="${age}"
+                    data-age_proof="${finalAgeFileUrl}"
+                >
+                    ${dob}, ${age}
+                    ${renderPdfIcon(finalAgeFileUrl)}
+                </td>
+
+                <td>
+                    ${address}
+                </td>
+
+                <td
+                    data-qualification="${qualification}"
+                    data-qual_text="${qual_text}"
+                    data-qual_proof="${finalFileUrl}"
+                >
+                    ${
+                        qualification === "8TH PASS"
+                            ? qualification
+                            : `${qualification}, ${qual_text}`
+                    }
+
+                    ${renderPdfIcon(finalFileUrl)}
+                </td>
+
+                <td>
+                    ${presentBusiness}
+                </td>
+
+                <td
+                    data-competency="${competency}"
+                    data-certno="${ccNum}"
+                    data-ccfirstissue="${ccFirstIssue}"
+                    data-ccvalidityfrom="${ccValidityFrom}"
+                    data-ccvalidityto="${ccValidityTo}"
+                    data-ccverify="${
+                        ccverify === null ? "" : ccverify
+                    }"
+                >
+                    ${
+                        competency === "yes"
+                            ? `Yes - CC_No: ${ccNum}, First Issue: ${ccFirstIssueFormatted}, Validity: ${ccValidityFromFormatted} to ${ccValidityToFormatted}`
+                            : "No"
+                    }
+                </td>
+
+                <td
+                    style="display:none;"
+                    data-ownership="${ownership_type}"
+                >
+                    ${ownership_type}
+                </td>
+
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-primary btn-sm update-director-row"
+                    >
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                </td>
+
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm remove-director-row"
+                    >
+                        <i class="fa fa-trash-o"></i>
+                    </button>
+                </td>
+
+            </tr>
+        `);
+
+        // ===========================
+        // HIDE MD CHECKBOX
+        // ===========================
+
+        if (isManagingDirector === "yes") {
+            $(".managing-director-wrapper").hide();
+        }
+
+        resetDirectorForm(true);
+
+        directorIndex++;
+    }
+});
         // Reset form
 
         function resetDirectorForm(hide = false) {
             let $section = $("#directorfill-section");
 
             // Clear all text/number/textarea inputs
-            $section.find("input[type='text'], input[type='number'], textarea").val("");
+            $section.find("input[type='text'], input[type='number'], input[type='date'], textarea").val("");
 
             // Clear all radio buttons
             $section.find("input[type='radio']").prop("checked", false);
+
+
+            $section.find(".file-link").html("");
+
+            $section.find(".age-file-link").html("");
+
+            $section.removeAttr("data-existing-file");
+            $section.removeAttr("data-present-file");
+
+            // Age proof attributes
+            $section.removeAttr("data-existing-age-file");
+            $section.removeAttr("data-present-age-file");
+
+            $section.removeAttr("data-edit-id");
+
+            $section.find(".managing-director-checkbox")
+                .prop("checked", false);
 
             // Hide all conditional fields
             $(".competency-fields-director, .employment-fields-director, .experience-fields-director").hide();
@@ -5164,121 +8282,434 @@ let proprietorCount = initialDraftCount || 0;
 
         // Remove partner row
         $(document).on("click", ".remove-director-row", function() {
-            $(this).closest("tr").remove();
-        });
 
-        // Update partner row
-        $(document).on("click", ".update-director-row", function() {
             let $row = $(this).closest("tr");
-            directoreditIndex = $row.index();
-            let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
-            // console.log("Ownership Value:", ownershipValue); 
-            // alert(ownershipValue);
-            // exit;
 
+            let isMD = $row
+                .find("td.md-column")
+                .attr("data-managing_director");
 
-            let $section = $("#directorfill-section");
-            // let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
-            // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());    
-            // Fill form with row data
-            $section.find("input[name='proprietor_name[]']").val($row.find("td").eq(0).text());
-            $section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text());
-            $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
-            $section.find("textarea[name='proprietor_address[]']").val($row.find("td").eq(3).text());
-            $section.find("input[name='qualification[]']").val($row.find("td").eq(4).text());
-            $section.find("input[name='present_business[]']").val($row.find("td").eq(5).text());
-            $section.find("input[name='ownership_type[]']").val(ownershipValue);
+            $row.remove();
 
+            /* ===========================
+            SHOW AGAIN IF MD REMOVED
+            ============================ */
 
-            // === Competency Section ===
-            let tdCompetency = $row.find("td").eq(6);
-            let competency = tdCompetency.attr('data-competency') || "no";
-            let certNo = tdCompetency.attr('data-certno') || "";
-            let validity = tdCompetency.attr('data-validity') || "";
-            let ccValidityFormatted = formatDateToDDMMYYYY(validity);
-            let formattedValidity = formatDateToYMD(validity);
-            // alert(ccValidityFormatted);
+            if (isMD === "yes") {
 
-            $section.find("input[name^='competency_certificate_holding'][value='" + competency + "']").prop("checked", true);
-            $section.find("input[name='competency_certificate_number[]']").val(certNo);
-            $section.find("input[name='competency_certificate_validity[]']").val(formattedValidity);
-
-            // Show/hide related inputs
-            if (competency === "yes") {
-                $(".competency-fields-director").slideDown();
-            } else {
-                $(".competency-fields-director").slideUp();
-            }
-
-            // === Presently Employed Section ===
-            let tdEmployed = $row.find("td").eq(7);
-            let employed = tdEmployed.attr('data-employed') || "no";
-            let empName = tdEmployed.attr('data-employer') || "";
-            let empAddress = tdEmployed.attr('data-empaddress') || "";
-
-            $section.find("input[name^='presently_employed'][value='" + employed + "']").prop("checked", true);
-            $section.find("input[name='presently_employed_name[]']").val(empName);
-            $section.find("textarea[name='presently_employed_address[]']").val(empAddress);
-
-            if (employed === "yes") {
-                $(".employment-fields-director").slideDown();
-            } else {
-                $(".employment-fields-director").slideUp();
-            }
-
-            // === Previous Experience Section ===
-            let tdExperience = $row.find("td").eq(8);
-            let experience = tdExperience.attr('data-experience') || "no";
-            let expName = tdExperience.attr('data-expname') || "";
-            let expAddress = tdExperience.attr('data-expaddress') || "";
-            let expLicense = tdExperience.attr('data-explicense') || "";
-            let expValidity = tdExperience.attr('data-expvalidity') || "";
-            let expValidityFormatted = formatDateToDDMMYYYY(expValidity);
-            let formattedexpValidity = formatDateToYMD(expValidity);
-
-
-            $section.find("input[name^='previous_experience'][value='" + experience + "']").prop("checked", true);
-            $section.find("input[name='previous_experience_name[]']").val(expName);
-            $section.find("textarea[name='previous_experience_address[]']").val(expAddress);
-            $section.find("input[name='previous_experience_lnumber[]']").val(expLicense);
-            $section.find("input[name='previous_experience_lnumber_validity[]']").val(formattedexpValidity);
-
-            if (experience === "yes") {
-                $(".experience-fields-director").slideDown();
-            } else {
-                $(".experience-fields-director").slideUp();
-            }
-
-
-            // Show form
-            $section.slideDown();
-
-            // Change Save button to Update + Add Cancel button
-            $("#save_director").text("Update");
-            if ($("#cancel_director").length === 0) {
-                $("#save_director").after(`
-            <button type="button" id="cancel_director" class="btn btn-danger ms-2">Cancel</button>
-        `);
+                $(".managing-director-wrapper").show();
             }
         });
+
+ $(document).on("click", ".update-director-row", function () {
+
+    let $row = $(this).closest("tr");
+    let $tds = $row.find("td");
+
+    let id = $row.data("id");
+
+    directoreditIndex = $row.index();
+
+    let ownershipValue =
+        $tds.eq(7).attr("data-ownership") ||
+        $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+        "";
+
+    let row_indexValue =
+        $tds.eq(8).find("input[name='row_index[]']").val() || "";
+
+    let $section = $("#directorfill-section");
+
+    $section.find(".upload-btn")
+        .attr("data-row-index", row_indexValue);
+
+    // ================= BASIC DETAILS =================
+
+    let directorName =
+        $tds.eq(0).attr("data-name") ||
+        $tds.eq(0).text().trim();
+
+    $section.find("input[name='proprietor_name[]']")
+        .val(directorName);
+
+    $section.find("input[name='fathers_name[]']")
+        .val($tds.eq(1).text().trim());
+
+    // ================= DOB / AGE / AGE PROOF =================
+
+    let $tdDobAge = $tds.eq(2);
+
+    let dob =
+        $tdDobAge.attr("data-dob") || "";
+
+    let age =
+        $tdDobAge.attr("data-age") || "";
+
+    let age_proof =
+        $tdDobAge.attr("data-age_proof") || "";
+
+    $section.find("input[name='dob[]']")
+        .val(dob);
+
+    $section.find("input[name='age[]']")
+        .val(age);
+
+    $section.attr(
+        "data-existing-age-file",
+        age_proof
+    );
+
+    $section.attr(
+        "data-present-age-file",
+        age_proof
+    );
+
+    if (age_proof) {
+
+        $section.find(".age-file-link").html(`
+            <a href="${age_proof}"
+               target="_blank"
+               class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o"
+                   style="color:red;"></i>
+                View Document
+            </a>
+        `);
+
+    } else {
+
+        $section.find(".age-file-link").html("");
+    }
+
+    // ================= ADDRESS =================
+
+    $section.find("textarea[name='proprietor_address[]']")
+        .val($tds.eq(3).text().trim());
+
+    // ================= MANAGING DIRECTOR =================
+
+    let managingDirector =
+        ($tds.eq(0).attr("data-managing_director") || "no")
+        .toLowerCase();
+
+    if (managingDirector === "yes") {
+
+        $(".managing-director-wrapper").show();
+
+        $("#is_managing_director")
+            .prop("checked", true);
+
+    } else {
+
+        $("#is_managing_director")
+            .prop("checked", false);
+
+        $(".managing-director-wrapper").show();
+    }
+
+    // ================= QUALIFICATION =================
+
+    let $qualTd = $tds.eq(4);
+
+    let qualification =
+        $qualTd.attr("data-qualification") || "";
+
+    let qual_text =
+        $qualTd.attr("data-qual_text") || "";
+
+    let qual_proof =
+        $qualTd.attr("data-educational_proof") || "";
+
+    let $qualificationSelect =
+        $section.find("select[name='qualification[]']");
+
+    let $qualTextInput =
+        $section.find("input[name='qual_text[]']");
+
+    let $wrapper =
+        $section.find(".qualTextWrapper");
+
+    $qualificationSelect
+        .val(qualification)
+        .trigger("change");
+
+    if ($qualificationSelect.val() === null) {
+
+        $qualificationSelect.find("option").each(function () {
+
+            if (
+                $.trim($(this).val()).toLowerCase() ===
+                $.trim(qualification).toLowerCase()
+            ) {
+                $(this).prop("selected", true);
+            }
+
+        });
+    }
+
+    $qualTextInput.val(qual_text);
+
+    if (
+        qualification &&
+        qualification !== "8TH PASS"
+    ) {
+        $wrapper.show();
+    } else {
+        $wrapper.hide();
+    }
+
+    // ================= QUALIFICATION PROOF =================
+
+    $section.attr(
+        "data-existing-file",
+        qual_proof
+    );
+
+    $section.attr(
+        "data-present-file",
+        qual_proof
+    );
+
+    if (qual_proof) {
+
+        $section.find(".file-link").html(`
+            <a href="${qual_proof}"
+               target="_blank"
+               class="text-primary fw-bold">
+                <i class="fa fa-file-pdf-o"
+                   style="color:red;"></i>
+                View Uploaded File
+            </a>
+        `);
+
+    } else {
+
+        $section.find(".file-link").html("");
+    }
+
+    // ================= EDIT ID =================
+
+    $section.attr(
+        "data-edit-id",
+        id || ""
+    );
+
+    // ================= PRESENT BUSINESS =================
+
+    $section.find("input[name='present_business[]']")
+        .val($tds.eq(5).text().trim());
+
+    // ================= OWNERSHIP =================
+
+    $section.find("input[name='ownership_type[]']")
+        .val(ownershipValue);
+
+    // ================= COMPETENCY =================
+
+    let $tdCompetency = $tds.eq(6);
+
+    let competency =
+        ($tdCompetency.attr("data-competency") || "no")
+        .toLowerCase();
+
+    let certNo =
+        $tdCompetency.attr("data-certno") || "";
+
+    let ccFirstIssue =
+        $tdCompetency.attr("data-ccfirstissue") || "";
+
+    let ccValidityFrom =
+        $tdCompetency.attr("data-ccvalidityfrom") || "";
+
+    let ccValidityTo =
+        $tdCompetency.attr("data-ccvalidityto") || "";
+
+    let ccVerify =
+        $tdCompetency.attr("data-ccverify") || "";
+
+    // ================= COMPETENCY RADIO =================
+
+    $section
+        .find("input[name='competency_certificate_holding[]']")
+        .prop("checked", false);
+
+    $section
+        .find(
+            "input[name='competency_certificate_holding[]'][value='" +
+            competency +
+            "']"
+        )
+        .prop("checked", true);
+
+    // ================= COMPETENCY DATA =================
+
+    $section
+        .find(
+            "input[name='competency_certificate_number[]']"
+        )
+        .val(certNo);
+
+    function convertDDMMYYYYtoYMD(date) {
+
+        if (!date) {
+            return "";
+        }
+
+        date = $.trim(date);
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return date;
+        }
+
+        if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+
+            let parts = date.split("-");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+
+            let parts = date.split("/");
+
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        return date;
+    }
+
+    let firstIssueYMD =
+        convertDDMMYYYYtoYMD(ccFirstIssue);
+
+    let validityFromYMD =
+        convertDDMMYYYYtoYMD(ccValidityFrom);
+
+    let validityToYMD =
+        convertDDMMYYYYtoYMD(ccValidityTo);
+
+    // ================= DATE VALUES =================
+
+    $section
+        .find(
+            "input[name='competency_certificate_first_issue[]']"
+        )
+        .val(firstIssueYMD);
+
+    $section
+        .find(
+            "input[name='competency_certificate_validity_from[]']"
+        )
+        .val(validityFromYMD);
+
+    $section
+        .find(
+            "input[name='competency_certificate_validity_to[]']"
+        )
+        .val(validityToYMD);
+
+    // ================= SHOW / HIDE COMPETENCY =================
+
+    toggleCompetencyFields(
+        "director",
+        competency === "yes"
+    );
+
+    // ================= VERIFY DATA =================
+
+    $section
+        .find("#competency_exp_result")
+        .empty();
+
+    if (
+        competency === "yes" &&
+        certNo &&
+        firstIssueYMD &&
+        validityFromYMD &&
+        validityToYMD
+    ) {
+
+        checkCompetencyCertificate();
+    }
+
+    // ================= SHOW FORM =================
+
+    $section.slideDown();
+
+    // ================= UPDATE BUTTON =================
+
+    $("#save_director")
+        .text("Update");
+
+    if ($("#cancel_director").length === 0) {
+
+        $("#save_director").after(`
+            <button
+                type="button"
+                id="cancel_director"
+                class="btn btn-danger ms-2">
+                Cancel
+            </button>
+        `);
+    }
+
+});
+
+         function formatDateToYMD(dateString) {
+            const parts = dateString.split("/");
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+            }
+            return dateString;
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+
+            if (!dateStr) {
+                return "";
+            }
+
+            // Already DD-MM-YYYY
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                return dateStr;
+            }
+
+            // YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+
+                let parts = dateStr.split("-");
+
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            return dateStr;
+        }
+
+
+        // Cancel update
+        $(document).on("click", "#cancel_director", function() {
+            resetDirectorForm(false); // reset + hide
+        });
+
+
+
 
 
         // --------------age restriction partner--------------------
-        document.querySelectorAll('input[name="age[]"]').forEach(input => {
-            input.addEventListener('input', function() {
-                let val = parseInt(this.value);
-                const errorSpan = this.nextElementSibling;
+        // document.querySelectorAll('input[name="age[]"]').forEach(input => {
+        //     input.addEventListener('input', function() {
+        //         let val = parseInt(this.value);
+        //         const errorSpan = this.nextElementSibling;
 
-                if (val > 80) {
-                    // errorSpan.textContent = "Age cannot be more than 70";
-                    this.value = ''; // clear the input or set to max
-                } else if (val < 12 && val !== 0 && this.value !== '') {
-                    // errorSpan.textContent = "Age cannot be less than 15";
-                } else {
-                    errorSpan.textContent = "";
-                }
-            });
-        });
+        //         if (val > 80) {
+        //             // errorSpan.textContent = "Age cannot be more than 70";
+        //             this.value = '80'; // clear the input or set to max
+        //         } else if (val < 12 && val !== 0 && this.value !== '') {
+        //             // errorSpan.textContent = "Age cannot be less than 15";
+        //         } else {
+        //             errorSpan.textContent = "";
+        //         }
+        //     });
+        // });
 
         // ------------------signatory solvency ------------------------------
         document.querySelectorAll('input[name="age_of_authorised_to_sign[]"]').forEach(input => {
@@ -5299,44 +8730,42 @@ let proprietorCount = initialDraftCount || 0;
 
         // ------------------------------------------------equipment 14------------------
         function toggleTestedReport() {
-        if ($("input[name='tested_documents']:checked").val() === "yes") {
-            $("#tested_report_row").show();
-        } else {
-            $("#tested_report_row").hide();
-            // Optional: clear fields when "No" selected
-            $("#tested_report_id").val("");
-            $("#validity_date_eq1").val("");
+            if ($("input[name='tested_documents']:checked").val() === "yes") {
+                $("#tested_report_row").show();
+            } else {
+                $("#tested_report_row").hide();
+                // Optional: clear fields when "No" selected
+                $("#tested_report_id").val("");
+                $("#validity_date_eq1").val("");
+            }
         }
-    }
 
         // Run on page load (for pre-filled "yes")
         toggleTestedReport();
 
         // Run when user changes radio
-        $("input[name='tested_documents']").change(function () {
+        $("input[name='tested_documents']").change(function() {
             toggleTestedReport();
         });
 
-         $("input[name='original_invoice_instr']").on("change", function () {
-        if ($(this).val() === "yes") {
-            $("#invoice_row").slideDown();
-        } else {
-            $("#invoice_row").slideUp();
-        }
-    });
+        $("input[name='equipment1']").on("change", function() {
+            if ($(this).val() === "yes") {
+                $("#invoice_row").slideDown();
+            } else {
+                $("#invoice_row").slideUp();
+            }
+        });
 
-    // Toggle for Instrument 3 section
-    $("input[name='instrument3']").on("change", function () {
-        if ($(this).val() === "yes") {
-            $("#instrument3_row").slideDown();
-        } else {
-            $("#instrument3_row").slideUp();
-        }
-    });
-
-    
+        // Toggle for Instrument 3 section
+        $("input[name='instrument3']").on("change", function() {
+            if ($(this).val() === "yes") {
+                $("#instrument3_row").slideDown();
+            } else {
+                $("#instrument3_row").slideUp();
+            }
+        });
     </script>
-    <!-- 
+    <!--
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             // Get references to the checkboxes and form

@@ -240,7 +240,7 @@ exit; -->
             <input type="hidden" class="form-control text-box single-line" id="appl_type" name="appl_type" value="N">
 
             <input type="hidden" class="form-control text-box single-line" id="form_id" name="form_id" value="8">
-            <input type="hidden" class="form-control text-box single-line" id="amount" name="amount" value="12000">
+            <input type="hidden" class="form-control text-box single-line" id="amount" name="amount" value="">
 
 
             <input type="hidden" name="record_id" id="record_id" value="{{ $application->application_id ?? '' }}">
