@@ -219,74 +219,185 @@
                         </div>
                     @endif
 
-                    @if(!empty($contractorCards))
-                    <div class="col-xl-4 col-lg-12 mb-4">
-                        <div class="card h-100 shadow-none rounded-3 overflow-hidden president-dashboard-card">
-                            <div class="card-header d-flex justify-content-between align-items-center border-0 border-bottom bg-info">
-                                <h5 class="mb-0 text-white">Contractor Licences</h5>
-                            </div>
-                            <div class="card-body" style="padding: 7px 10px;">
-                                @foreach(collect($contractorCards) as $summary)
-                                  @php
-                                            $badgeClass = $formColors[$summary['color_code'] ?? ''] ?? 'bg-secondary';
-                                        @endphp
-                                <div class="d-flex align-items-center px-3 py-2 mb-1 rounded-3 bg-custom-card">
-                                    @php
-                                        // For contractor Form A cards, clicking "New" should go to the
-                                        // existing Form A applications list (/admin/view_form/A).
-                                        $isFormAContractor = str_contains(mb_strtolower($summary['licence_name'] ?? ''), 'contractor')
-                                            && strtoupper($summary['form_name'] ?? '') === 'FORM A';
+                   @if(!empty($contractorCards))
+    <div class="col-xl-4 col-lg-12 mb-4">
+        <div class="card h-100 shadow-none rounded-3 overflow-hidden president-dashboard-card">
 
-                                        $newHref = $isFormAContractor
-                                            ? route('admin.view_form', ['type' => 'A'])
-                                            : route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'N']);
-                                        $renewHref = $isFormAContractor
-                                            ? route('admin.view_form', ['type' => 'A'])
-                                            : route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'R']);
+            <div class="card-header d-flex justify-content-between align-items-center border-0 border-bottom bg-info">
+                <h5 class="mb-0 text-white">Contractor Licences</h5>
+            </div>
 
-                                        $digitize = $isFormAContractor
-                                            ? route('admin.view_form', ['type' => 'A'])
-                                            : route('admin.view_applications', ['form_id' => $summary['id'], 'form_type' => 'D']);
-                                    @endphp
-                                    @php
-                                        $rawCode = strtoupper((string) ($summary['form_name'] ?? ''));
-                                        $compactCode = preg_replace('/[^A-Z0-9]/', '', $rawCode);
-                                        $formCode = $compactCode !== '' ? substr($compactCode, -1) : '?';
-                                    @endphp
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center">
-                                            <div class="me-3">
-                                                <div class="rounded-3 d-flex align-items-center justify-content-center {{ $badgeClass }}" style="width: 44px; height: 44px;">
-                                                    <span class="fw-bold text-white">{{ $summary['form_code'] }}</span>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <div class="fw-semibold">{{ $summary['licence_name'] ?? 'Unknown Licence' }}</div>
-                                                <small class="text-muted d-block mb-1">{{ $summary['form_name'] ?? '-' }}</small>
-                                                <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
-                                                    <a href="{{ $newHref }}"
-                                                       class="badge outline-badge-info fw-semibold text-decoration-none">
-                                                        NEW <span class="ms-1 fw-bold text-danger">{{ $summary['new_count'] ?? 0 }}</span>
-                                                    </a>
-                                                    <a href="{{ $renewHref }}"
-                                                       class="badge outline-badge-info fw-semibold text-decoration-none">
-                                                        RENEWAL <span class="ms-1 fw-bold text-danger">{{ $summary['renewal_count'] ?? 0 }}</span>
-                                                    </a>
+            <div class="card-body" style="padding: 7px 10px;">
 
-                                                     <a href="{{ $digitize }}"
-                                                       class="badge outline-badge-info fw-semibold text-decoration-none">
-                                                        Digitisation <span class="ms-1 fw-bold text-danger">{{ $summary['digi_count'] ?? 0 }}</span>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
+                @foreach(collect($contractorCards) as $summary)
+
+                    @php
+                        $badgeClass = $formColors[$summary['color_code'] ?? ''] ?? 'bg-secondary';
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Check whether this is Contractor Form A
+                        |--------------------------------------------------------------------------
+                        */
+                        $isFormAContractor =
+                            str_contains(
+                                mb_strtolower($summary['licence_name'] ?? ''),
+                                'contractor'
+                            )
+                            && strtoupper(trim($summary['form_name'] ?? '')) === 'FORM A';
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | NEW
+                        |--------------------------------------------------------------------------
+                        */
+                        $newHref = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'N'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'N'
+                            ]);
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | RENEWAL
+                        |--------------------------------------------------------------------------
+                        */
+                        $renewHref = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'R'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'R'
+                            ]);
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | DIGITISATION
+                        |--------------------------------------------------------------------------
+                        */
+                        $digitize = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'D'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'D'
+                            ]);
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Form Code
+                        |--------------------------------------------------------------------------
+                        */
+                        $rawCode = strtoupper(
+                            (string) ($summary['form_name'] ?? '')
+                        );
+
+                        $compactCode = preg_replace(
+                            '/[^A-Z0-9]/',
+                            '',
+                            $rawCode
+                        );
+
+                        $formCode = $compactCode !== ''
+                            ? substr($compactCode, -1)
+                            : '?';
+                    @endphp
+
+
+                    <div class="d-flex align-items-center px-3 py-2 mb-1 rounded-3 bg-custom-card">
+
+                        <div class="flex-grow-1">
+
+                            <div class="d-flex align-items-center">
+
+                                <div class="me-3">
+                                    <div
+                                        class="rounded-3 d-flex align-items-center justify-content-center {{ $badgeClass }}"
+                                        style="width: 44px; height: 44px;"
+                                    >
+                                        <span class="fw-bold text-white">
+                                            {{ $summary['form_code'] ?? $formCode }}
+                                        </span>
                                     </div>
                                 </div>
-                                @endforeach
+
+
+                                <div class="flex-grow-1">
+
+                                    <div class="fw-semibold">
+                                        {{ $summary['licence_name'] ?? 'Unknown Licence' }}
+                                    </div>
+
+                                    <small class="text-muted d-block mb-1">
+                                        {{ $summary['form_name'] ?? '-' }}
+                                    </small>
+
+
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+
+                                        {{-- NEW --}}
+                                        <a
+                                            href="{{ $newHref }}"
+                                            class="badge outline-badge-info fw-semibold text-decoration-none"
+                                        >
+                                            NEW
+                                            <span class="ms-1 fw-bold text-danger">
+                                                {{ $summary['new_count'] ?? 0 }}
+                                            </span>
+                                        </a>
+
+
+                                        {{-- RENEWAL --}}
+                                        <a
+                                            href="{{ $renewHref }}"
+                                            class="badge outline-badge-info fw-semibold text-decoration-none"
+                                        >
+                                            RENEWAL
+                                            <span class="ms-1 fw-bold text-danger">
+                                                {{ $summary['renewal_count'] ?? 0 }}
+                                            </span>
+                                        </a>
+
+
+                                        {{-- DIGITISATION --}}
+                                        <a
+                                            href="{{ $digitize }}"
+                                            class="badge outline-badge-info fw-semibold text-decoration-none"
+                                        >
+                                            Digitisation
+                                            <span class="ms-1 fw-bold text-danger">
+                                                {{ $summary['digi_count'] ?? 0 }}
+                                            </span>
+                                        </a>
+
+                                    </div>
+
+                                </div>
+
                             </div>
+
                         </div>
+
                     </div>
-                    @endif
+
+                @endforeach
+
+            </div>
+        </div>
+    </div>
+@endif
 
                     @if(!empty($amendmentCards))
                     <div class="col-xl-4 col-lg-12 mb-4">

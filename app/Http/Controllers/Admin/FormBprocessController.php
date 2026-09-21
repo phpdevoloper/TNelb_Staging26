@@ -51,9 +51,9 @@ class FormBprocessController extends Controller
             ->select('*')
             ->get();
 
-            
+
         return view('admin.supervisor.formb.view_formb', compact('pendinglist_sa'));
-        
+
         // return view('admin.supervisor.view_forma', compact('workflows'));
     }
 
@@ -65,13 +65,13 @@ class FormBprocessController extends Controller
             ->whereIn('processed_by', ['A', 'SE', 'PR', 'SPRE'])
             ->orderby('updated_at', 'DESC')
             ->select('*')
-            
+
             ->get();
 
            $applicationIds = $workflows->pluck('application_id');
 
-    
-        $licenses = DB::table('tnelb_license')
+
+        $licenses = DB::table('cl_forma_lic')
             ->whereIn('application_id', $applicationIds)
             ->select('application_id', 'license_number')
             ->get()
@@ -83,7 +83,7 @@ class FormBprocessController extends Controller
             ->get()
             ->keyBy('application_id');
 
-           
+
         return view('admin.auditor.formb.completed_formb',compact('workflows','licenses',
         'renewalLicenses'));
     }
@@ -94,7 +94,7 @@ class FormBprocessController extends Controller
      public function applicants_detail_formb($applicant_id)
     {
 
-        
+
         $returnForwardUser = null;
 
         $staff = Auth::user();
@@ -106,7 +106,7 @@ class FormBprocessController extends Controller
 
 
 
-  
+
 
     $applicant = DB::table('tnelb_eb_applications')
         ->leftJoin('payments', 'tnelb_eb_applications.application_id', '=', 'payments.application_id')
@@ -121,18 +121,18 @@ class FormBprocessController extends Controller
                 'payments.created_at as payment_date',
                 'payments.application_fee',
                 'payments.late_fee',
-                
+
         )->orderByDesc('dt_submit')
         ->first();
 
- 
+
 
 
         $formname = $applicant->form_name;
 
         $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
-      
-      
+
+
 
         if (!$applicant) {
             return abort(404, 'Applicant not found');
@@ -153,7 +153,7 @@ class FormBprocessController extends Controller
                 // $nextForwardUser = DB::table('mst__staffs__tbls')
                 //     ->where('name', $processed_by)
                 //     ->select('name', 'roles_id')
-                //     ->first(); 
+                //     ->first();
 
                 $nextForwardUser = DB::table('mst__staffs__tbls')
                     ->where('name', 'Secretary')
@@ -300,13 +300,13 @@ class FormBprocessController extends Controller
         $user_entry = DB::table('tnelb_eb_applications')
             ->where('application_id', $applicant_id)
             ->select('*')
-        
+
         ->first();
 
         $documents = DB::table('tnelb_applicant_doc_A')
             ->where('application_id', $applicant_id)
             ->select('*')
-          
+
             ->first();
 
 
@@ -381,7 +381,7 @@ class FormBprocessController extends Controller
 
                     default      => abort(403, 'Unauthorized'),
                 };
-            
+
 
         return view($view, compact(
             'applicant',
@@ -406,7 +406,7 @@ class FormBprocessController extends Controller
       public function forwardApplicationformb(Request $request, $role)
     {
 
-     
+
 
         $staff = Auth::user();
 
@@ -424,18 +424,18 @@ class FormBprocessController extends Controller
         ]);
 
 
-        
+
 
 
         $applicant = B_Application::where('application_id', $request->application_id)
             ->select('*')
-          
+
             ->first();
 
         $queryTypeJson = $request->queryType && is_array($request->queryType) && count($request->queryType) > 0
             ? json_encode($request->queryType) : null;
 
-      
+
 
         if ($request->application_status === 'RE') {
             $processed_by = match ($staff->name) {
@@ -460,7 +460,7 @@ class FormBprocessController extends Controller
 
         $query_status = ($request->queryswitch === 'Yes') ? 'P' : null;
         $raised_by    = ($request->queryswitch === 'Yes') ? $processed_by : $staffID;
-    
+
 
         if ($processed_by == 'A') {
             $last_workflow = WorkflowA::where('application_id', $request->application_id)
@@ -528,7 +528,7 @@ class FormBprocessController extends Controller
         // exit;
 
 
-        
+
              WorkflowA::where('application_id', $request->application_id)
               ->where('processed_by', $request->processed_by)
               ->where('role_id', $request->role_id)
@@ -537,7 +537,7 @@ class FormBprocessController extends Controller
                 ->update([
                     'created_at' => DB::raw('NOW()'),
                 ]);
-        
+
 
         B_Application::where('application_id', $request->application_id)
             ->update([
@@ -549,7 +549,7 @@ class FormBprocessController extends Controller
 
 
 
-        
+
 
         if ($request->application_status === 'RE') {
             $role1 = 'Secretary';
@@ -702,7 +702,7 @@ class FormBprocessController extends Controller
                 $prefix    = $application->license_name;
                 $yearMonth = now()->format('Ym');
 
-                $lastSerial = DB::table('tnelb_license')
+                $lastSerial = DB::table('cl_forma_lic')
                     ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
                     ->orderByDesc('license_number')
                     ->value('license_number');
@@ -711,7 +711,7 @@ class FormBprocessController extends Controller
 
                 $newSerial = "L{$prefix}{$yearMonth}{$next}";
 
-                DB::table('tnelb_license')->insert([
+                DB::table('cl_forma_lic')->insert([
                     'application_id' => $request->application_id,
                     'license_number' => $newSerial,
                     'issued_by'      => $request->processed_by,
@@ -736,7 +736,7 @@ class FormBprocessController extends Controller
             //   ->where('processed_by', $request->processed_by)
             //   ->where('role_id', Auth::user()->roles_id)
             //     ->update([
-                
+
             //         'created_at' => DB::raw('NOW()'),
             //     ]);
 
@@ -775,7 +775,7 @@ class FormBprocessController extends Controller
     public function returntoSupervisorformb(Request $request){
 
         $staff = Auth::user();
-        
+
         $staffID = Auth::user()->id;
 
 // dd($request->forwaded_to);
@@ -789,20 +789,20 @@ class FormBprocessController extends Controller
             'queryType'      => 'array',
             'remarks'        => 'nullable|string'
         ]);
-        
-        
+
+
              $query_status = null;
         $queryTypeJson = json_encode($request->queryType);
 
-        
+
     if ($request->queryswitch == 'Yes' && !empty($request->queryType) || ($request->queryswitch == 'true')) {
             $query_status = "P";
         }
-        
+
 
         $formType = DB::table('tnelb_eb_applications')
                         ->where('application_id', $request->application_id)
-                       
+
                         ->first();
 
 // dd($formType->form_name);
@@ -815,7 +815,7 @@ class FormBprocessController extends Controller
         //     'Auditor'    => 'F',
         //     default      => abort(403, 'Unauthorized'),
         // };
-                      
+
         $processed_by = match ($staff->name) {
             'President'  => 'PR',
             'Secretary'  => 'SE',
@@ -846,7 +846,7 @@ class FormBprocessController extends Controller
 
 
         // Update application status
-       
+
               WorkflowA::where('application_id', $request->application_id)
                  ->where('processed_by', $request->return_by)
                  ->where('role_id', $staffID)
@@ -855,23 +855,23 @@ class FormBprocessController extends Controller
                 ->update([
                     'created_at' => DB::raw('NOW()'),
                 ]);
-        
+
 
         B_Application::where('application_id', $request->application_id)
             ->update([
-                'application_status' =>  'RE', 
-                'processed_by'  => $processed_by, 
+                'application_status' =>  'RE',
+                'processed_by'  => $processed_by,
                 'updated_at' => DB::raw('NOW()'),
             ]);
 
 
-        //Get Role 
+        //Get Role
         $role = DB::table('mst__roles')
         ->where('id', $request->forwarded_to)
         ->select('name')
         ->first();
         // var_dump($role->name);die;
-        
+
 
         return response()->json([
             'status' => "success",
@@ -883,7 +883,7 @@ class FormBprocessController extends Controller
     public function completed_formb()
     {
 
-   
+
         $userRole = Auth::user()->roles_id;
 
         // $assignedForms = DB::table('tnelb_eb_applications as ta')
@@ -902,8 +902,8 @@ class FormBprocessController extends Controller
 
          $applicationIds = $workflows->pluck('application_id');
 
-            
-            $licenses = DB::table('tnelb_license')
+
+            $licenses = DB::table('cl_forma_lic')
                 ->whereIn('application_id', $applicationIds)
                 ->select('application_id', 'license_number')
                 ->get()
@@ -925,11 +925,11 @@ class FormBprocessController extends Controller
       public function view_formb_pending()
     {
 
-        
+
 // dd('111');exit;
         $userRole = Auth::user()->roles_id;
 
-    
+
 
         // ESA Applications Query
         $unionQuery = DB::table('tnelb_eb_applications')
@@ -945,7 +945,7 @@ class FormBprocessController extends Controller
             );
 
         // Combine both queries
-      
+
 
         // Execute the union and order globally
         $workflows = DB::query()
@@ -953,22 +953,22 @@ class FormBprocessController extends Controller
             ->orderBy('dt_submit', 'DESC')
             ->get();
 
-     
+
 
         // Identify source (EA or ESA) using the alias we added
         $sourceTable = $workflows->first()->source_table ?? null;
-    
+
 
         $workflows_esa = DB::table('tnelb_eb_applications')
             ->whereIn('application_status', ['F'])
             ->whereIn('processed_by', ['S'])
             ->orderBy('dt_submit', 'DESC')
             ->get();
-    
+
         // Load view based on type
-        
+
         return view('admin.auditor.formb.view_formb', compact('workflows_esa'));
-       
+
     }
 
 
@@ -983,16 +983,16 @@ class FormBprocessController extends Controller
             ->select('ta.*')
             ->get();
         // $formId = $request->query('form_id');
-    
+
        // $workflows = DB::table('tnelb_eb_applications as ta')
-       //      ->whereIn('ta.processed_by', ['A', 'SPRE']) 
+       //      ->whereIn('ta.processed_by', ['A', 'SPRE'])
        //      ->orWhere('ta.application_status', 'RF')
        //      // ->where('ta.form_id', $formId)
        //      ->select('ta.*')
        //      ->get();
-    
+
         return view('admin.secretary.formsa.view_completed_formsa', compact('workflows'));
-    
+
     }
 
 
@@ -1000,23 +1000,23 @@ class FormBprocessController extends Controller
     {
 
         // return $type;
- 
+
       $workflows_esa = DB::table('tnelb_eb_applications as ta')
-            ->whereIn('ta.processed_by', ['A', 'SPRE']) 
+            ->whereIn('ta.processed_by', ['A', 'SPRE'])
             // ->orWhere('ta.application_status', 'F')
             ->orderByDesc('updated_at')
             // ->where('ta.form_id', $formId)
             ->select('ta.*')
-           
+
             ->get();
 
     // $workflows_esa = DB::table('tnelb_eb_applications as ta')
-    //         ->whereIn('ta.processed_by', ['A', 'SPRE']) 
+    //         ->whereIn('ta.processed_by', ['A', 'SPRE'])
     //         ->orWhere('ta.application_status', 'F')
     //         ->orderByDesc('updated_at')
     //         // ->where('ta.form_id', $formId)
     //         ->select('ta.*')
-           
+
     //         ->get();
 
             // ---------------
@@ -1041,13 +1041,13 @@ class FormBprocessController extends Controller
         // dd($workflows->first()->form_name);
         // exit;
 
-         
+
     return view('admin.secretary.formb.view_pending_formb', compact('workflows_esa'));
-            
-            
-    
-       
-    
+
+
+
+
+
     }
 
 
@@ -1060,9 +1060,9 @@ class FormBprocessController extends Controller
             ->select('ta.*')
             ->get();
         // $formId = $request->query('form_id');
-    
+
        // $workflows = DB::table('tnelb_eb_applications as ta')
-       //      ->whereIn('ta.processed_by', ['A', 'SPRE']) 
+       //      ->whereIn('ta.processed_by', ['A', 'SPRE'])
        //      ->orWhere('ta.application_status', 'RF')
        //      // ->where('ta.form_id', $formId)
        //      ->select('ta.*')
@@ -1071,7 +1071,7 @@ class FormBprocessController extends Controller
        $applicationIds = $workflows->pluck('application_id');
 
     // Fetch from both tables
-    $licenses = DB::table('tnelb_license')
+    $licenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()
@@ -1082,16 +1082,16 @@ class FormBprocessController extends Controller
         ->select('application_id', 'license_number')
         ->get()
         ->keyBy('application_id');
-    
+
         return view('admin.secretary.formb.view_completed_formb', compact('workflows',
         'licenses',
         'renewalLicenses'));
-    
+
     }
 
 
     // ---------------president----------------
-    
+
      public function president_completed_formb(Request $request)
     {
         // dd($request->application_id);
@@ -1108,7 +1108,7 @@ class FormBprocessController extends Controller
                  $applicationIds = $workflows->pluck('application_id');
 
     // Fetch from both tables
-    $licenses = DB::table('tnelb_license')
+    $licenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()
@@ -1123,7 +1123,7 @@ class FormBprocessController extends Controller
         return view('admin.president.formb.formb_completed', compact( 'workflows',
         'licenses',
         'renewalLicenses'));
-     
+
     }
 
         public function president_pending_formb(Request $request)
@@ -1138,9 +1138,9 @@ class FormBprocessController extends Controller
             ->orderBy('updated_at', 'DESC')
             ->get();
 
-       
+
             return view('admin.president.formb.formb_pendings', compact('workflows_esa'));
-       
+
     }
 
 
@@ -1159,7 +1159,7 @@ class FormBprocessController extends Controller
 
 
 
-  
+
 
     $applicant = DB::table('tnelb_eb_applications')
         ->leftJoin('payments', 'tnelb_eb_applications.application_id', '=', 'payments.application_id')
@@ -1174,18 +1174,18 @@ class FormBprocessController extends Controller
                 'payments.created_at as payment_date',
                 'payments.application_fee',
                 'payments.late_fee',
-                
+
         )->orderByDesc('dt_submit')
         ->first();
 
- 
+
 
 
         $formname = $applicant->form_name;
 
         $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
-      
-      
+
+
 
         if (!$applicant) {
             return abort(404, 'Applicant not found');
@@ -1206,7 +1206,7 @@ class FormBprocessController extends Controller
                 // $nextForwardUser = DB::table('mst__staffs__tbls')
                 //     ->where('name', $processed_by)
                 //     ->select('name', 'roles_id')
-                //     ->first(); 
+                //     ->first();
 
                 $nextForwardUser = DB::table('mst__staffs__tbls')
                     ->where('name', 'Secretary')
@@ -1343,7 +1343,7 @@ class FormBprocessController extends Controller
         }
 
 
-       
+
 
 
         $staff = Auth::user();
@@ -1355,13 +1355,13 @@ class FormBprocessController extends Controller
         $user_entry = DB::table('tnelb_eb_applications')
             ->where('application_id', $applicant_id)
             ->select('*')
-        
+
         ->first();
 
         $documents = DB::table('tnelb_applicant_doc_A')
             ->where('application_id', $applicant_id)
             ->select('*')
-          
+
             ->first();
 
 
@@ -1423,7 +1423,7 @@ class FormBprocessController extends Controller
 
                     default      => abort(403, 'Unauthorized'),
                 };
-            
+
 
         return view($view, compact(
             'applicant',

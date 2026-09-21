@@ -726,8 +726,49 @@ $(document).on("click", ".upload-btn", function () {
 
 // ------------------------Submit form---------------------------------------
 
-$("#competency_form_a").on("submit", function (e) {
+$(document).ready(function () {
+
+    let ownershipType = $("#ownership_type_select").val();
+
+    console.log("Saved Ownership Type:", ownershipType);
+
+    // Hide all sections first
+    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section").hide();
+
+    // Partnership
+    if (ownershipType === "pt") {
+
+        $("#partnershipdeed").slideDown();
+        $("#partner-section").slideDown();
+
+    }
+
+    // Private / Public / Limited / Director
+    else if (
+        ownershipType === "pvt" ||
+        ownershipType === "public" ||
+        ownershipType === "ltd"
+    ) {
+
+        $("#directormom").slideDown();
+        $("#director-section").slideDown();
+
+    }
+
+    // Proprietorship
+    else if (ownershipType === "pr") {
+
+        $("#proprietor-section").slideDown();
+
+    }
+
+});
+
+$("#competency_form_a").on("submit",async function (e) {
+
     e.preventDefault();
+
+
     console.log($('input[name="staff_name[]"]').length);
     console.log($('input[name="cc_number[]"]').length);
     //     console.log($('input[name="staff_name[]"]').length);
@@ -751,7 +792,7 @@ $("#competency_form_a").on("submit", function (e) {
     let businessAddress = $("textarea[name='business_address']").val().trim();
 
     formData.append("module", $("input[name='module']").val());
-    // formData.append("appl_type", $("input[name='appl_type']").val());
+    formData.append("appl_type", $("input[name='appl_type']").val());
     // formData.append("license_name", $("input[name='upload_license_name']").val());
 
     if ((applicantName === "") | (businessAddress === "")) {
@@ -888,223 +929,323 @@ $("#competency_form_a").on("submit", function (e) {
 
     let partners = [];
 
-    // ✅ Collect all rows data first
-    $("#partner-section table tbody tr").each(function () {
-        let $tr = $(this);
-        let $tds = $tr.find("td");
+// Collect all partner rows
+$("#partner-section table tbody tr").each(function () {
 
-        let id = $tr.data("id") || null;
-        //  alert($tds.eq(9).data("ownership")) ;
-        //         exit;
-        partners.push({
-            id: id,
-            proprietor_name: $tds.eq(0).text().trim(),
-            fathers_name: $tds.eq(1).text().trim(),
-            dob: $tds.eq(2).attr("data-dob"),
-            age: $tds.eq(2).attr("data-age"),
+    let $tr = $(this);
+    let $tds = $tr.find("td");
 
-            proprietor_address: $tds.eq(3).text().trim(),
-            // qualification: $tds.eq(4).text().trim(),
+    let id = $tr.data("id") || null;
 
-            qualification: $tds.eq(4).attr("data-qualification"),
-            qualification_text: $tds.eq(4).attr("data-qual_text"),
+    partners.push({
 
-            present_business: $tds.eq(5).text().trim(),
-            competency: $tds.eq(6).data("competency") || "",
-            competency_certno: $tds.eq(6).data("certno") || "",
-            competency_validity: $tds.eq(6).data("validity") || "",
-            ccverify: $tds.eq(6).data("ccverify") ?? "",
+        id: id,
 
-            employed: $tds.eq(7).data("employed") || "",
-            employer_name: $tds.eq(7).data("employer") || "",
-            employer_address: $tds.eq(7).data("empaddress") || "",
-            experience: $tds.eq(8).data("experience") || "",
-            exp_name: $tds.eq(8).data("expname") || "",
-            exp_address: $tds.eq(8).data("expaddress") || "",
-            exp_license: $tds.eq(8).data("explicense") || "",
-            exp_validity: $tds.eq(8).data("expvalidity") || "",
+        proprietor_name:
+            $tds.eq(0).text().trim(),
 
-            expverify: $tds.eq(8).data("expverify") ?? "",
+        fathers_name:
+            $tds.eq(1).text().trim(),
 
-            ownership_type:
-                $tds.eq(9).find("input[name='ownership_type[]']").val() ||
-                $tds.eq(9).data("ownership") ||
-                "",
-        });
+        dob:
+            $tds.eq(2).attr("data-dob") || "",
+
+        age:
+            $tds.eq(2).attr("data-age") || "",
+
+        proprietor_address:
+            $tds.eq(3).text().trim(),
+
+        qualification:
+            $tds.eq(4).attr("data-qualification") || "",
+
+        qualification_text:
+            $tds.eq(4).attr("data-qual_text") || "",
+
+        present_business:
+            $tds.eq(5).text().trim(),
+
+        competency:
+            $tds.eq(6).attr("data-competency") || "",
+
+        competency_certno:
+            $tds.eq(6).attr("data-certno") || "",
+
+        ccfirstissue:
+            $tds.eq(6).attr("data-ccfirstissue") || "",
+
+        ccvalidityfrom:
+            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+
+        ccvalidityto:
+            $tds.eq(6).attr("data-ccvalidityto") || "",
+
+        ccverify:
+            $tds.eq(6).attr("data-ccverify") ?? "",
+
+        ownership_type:
+            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+            $tds.eq(7).attr("data-ownership") ||
+            ""
+
     });
+});
 
-    // ✅ Append partners JSON to FormData
-    formData.append("partners", JSON.stringify(partners));
+// Append partners JSON
+formData.append(
+    "partners",
+    JSON.stringify(partners)
+);
 
-    // ✅ (Optional) Also append individually indexed data if needed
-    partners.forEach((p, index) => {
-        formData.append(`partner_id[${index}]`, p.id ?? "");
+// Append individually indexed partner data
+partners.forEach((p, index) => {
 
-        formData.append(`partner_name[${index}]`, p.proprietor_name);
-        formData.append(`partner_fathers_name[${index}]`, p.fathers_name);
-        formData.append(`partner_ownership_type[${index}]`, p.ownership_type);
-        // formData.append(`partner_age[${index}]`, p.age);
+    formData.append(
+        `partner_id[${index}]`,
+        p.id ?? ""
+    );
 
-        //   formData.append(`ownership_type[${index}]`, p.ownership_type);
-        formData.append(`partner_age[${index}]`, p.age);
-        formData.append(`partner_dob[${index}]`, p.dob);
-        formData.append(
-            `partner_proprietor_address[${index}]`,
-            p.proprietor_address,
-        );
-        formData.append(`partner_qualification[${index}]`, p.qualification);
-        formData.append(`partner_qual_text[${index}]`, p.qualification_text);
+    formData.append(
+        `partner_name[${index}]`,
+        p.proprietor_name
+    );
 
-        // formData.append(
-        //     `partner_proprietor_address[${index}]`,
-        //     p.proprietor_address,
-        // );
-        // formData.append(`partner_qualification[${index}]`, p.qualification);
-        formData.append(
-            `partner_present_business[${index}]`,
-            p.present_business,
-        );
-        formData.append(`partner_competency[${index}]`, p.competency);
-        formData.append(
-            `partner_competency_certno[${index}]`,
-            p.competency_certno,
-        );
-        formData.append(
-            `partner_competency_validity[${index}]`,
-            p.competency_validity,
-        );
+    formData.append(
+        `partner_fathers_name[${index}]`,
+        p.fathers_name
+    );
 
-        formData.append(`partner_ccverify[${index}]`, p.ccverify);
+    formData.append(
+        `partner_ownership_type[${index}]`,
+        p.ownership_type
+    );
 
-        formData.append(`partner_employed[${index}]`, p.employed);
-        formData.append(`partner_employer_name[${index}]`, p.employer_name);
-        formData.append(
-            `partner_employer_address[${index}]`,
-            p.employer_address,
-        );
-        formData.append(`partner_experience[${index}]`, p.experience);
-        formData.append(`partner_exp_name[${index}]`, p.exp_name);
-        formData.append(`partner_exp_address[${index}]`, p.exp_address);
-        formData.append(`partner_exp_license[${index}]`, p.exp_license);
-        formData.append(`partner_exp_validity[${index}]`, p.exp_validity);
+    formData.append(
+        `partner_age[${index}]`,
+        p.age
+    );
 
-        formData.append(`partner_expverify[${index}]`, p.expverify);
-        // console.log(p.ccverify, p.expverify);
+    formData.append(
+        `partner_dob[${index}]`,
+        p.dob
+    );
 
-        // formData.append(`exp_validity[${index}]`, p.exp_validity);
-    });
+    formData.append(
+        `partner_proprietor_address[${index}]`,
+        p.proprietor_address
+    );
 
+    formData.append(
+        `partner_qualification[${index}]`,
+        p.qualification
+    );
+
+    formData.append(
+        `partner_qual_text[${index}]`,
+        p.qualification_text
+    );
+
+    formData.append(
+        `partner_present_business[${index}]`,
+        p.present_business
+    );
+
+    formData.append(
+        `partner_competency[${index}]`,
+        p.competency
+    );
+
+    formData.append(
+        `partner_competency_certno[${index}]`,
+        p.competency_certno
+    );
+
+    formData.append(
+        `partner_ccfirstissue[${index}]`,
+        p.ccfirstissue
+    );
+
+    formData.append(
+        `partner_ccvalidityfrom[${index}]`,
+        p.ccvalidityfrom
+    );
+
+    formData.append(
+        `partner_ccvalidityto[${index}]`,
+        p.ccvalidityto
+    );
+
+    formData.append(
+        `partner_ccverify[${index}]`,
+        p.ccverify
+    );
+
+});
     // ------------director push--------------
 
-    let directors = [];
+   let directors = [];
 
-    // ✅ Collect all rows data first
-    $("#director-section table tbody tr").each(function () {
-        let $tr = $(this);
-        let $tds = $tr.find("td");
+// Collect all director rows
+$("#director-section table tbody tr").each(function () {
 
-        let id = $tr.data("id") || null;
-        //  alert($tds.eq(9).data("ownership")) ;
-        //         exit;
-        directors.push({
-            id: id,
-            proprietor_name: $tds.eq(0).attr("data-name") || "",
+    let $tr = $(this);
+    let $tds = $tr.find("td");
 
-            managing_director:
-                $tds.eq(0).attr("data-managing_director") || "no",
-            fathers_name: $tds.eq(1).text().trim(),
+    let id = $tr.data("id") || null;
 
-            dob: $tds.eq(2).attr("data-dob"),
-            age: $tds.eq(2).attr("data-age"),
+    directors.push({
 
-            proprietor_address: $tds.eq(3).text().trim(),
-            // qualification: $tds.eq(4).text().trim(),
+        id: id,
 
-            qualification: $tds.eq(4).attr("data-qualification"),
-            qualification_text: $tds.eq(4).attr("data-qual_text"),
+        proprietor_name:
+            $tds.eq(0).attr("data-name") || "",
 
-            present_business: $tds.eq(5).text().trim(),
-            competency: $tds.eq(6).data("competency") || "",
-            competency_certno: $tds.eq(6).data("certno") || "",
-            competency_validity: $tds.eq(6).data("validity") || "",
-            ccverify: $tds.eq(6).data("ccverify") ?? "",
+        managing_director:
+            $tds.eq(0).attr("data-managing_director") || "no",
 
-            employed: $tds.eq(7).data("employed") || "",
-            employer_name: $tds.eq(7).data("employer") || "",
-            employer_address: $tds.eq(7).data("empaddress") || "",
-            experience: $tds.eq(8).data("experience") || "",
-            exp_name: $tds.eq(8).data("expname") || "",
-            exp_address: $tds.eq(8).data("expaddress") || "",
-            exp_license: $tds.eq(8).data("explicense") || "",
-            exp_validity: $tds.eq(8).data("expvalidity") || "",
+        fathers_name:
+            $tds.eq(1).text().trim(),
 
-            expverify: $tds.eq(8).data("expverify") ?? "",
+        dob:
+            $tds.eq(2).attr("data-dob") || "",
 
-            ownership_type:
-                $tds.eq(9).find("input[name='ownership_type[]']").val() ||
-                $tds.eq(9).data("ownership") ||
-                "",
-        });
+        age:
+            $tds.eq(2).attr("data-age") || "",
+
+        proprietor_address:
+            $tds.eq(3).text().trim(),
+
+        qualification:
+            $tds.eq(4).attr("data-qualification") || "",
+
+        qualification_text:
+            $tds.eq(4).attr("data-qual_text") || "",
+
+        present_business:
+            $tds.eq(5).text().trim(),
+
+        competency:
+            $tds.eq(6).attr("data-competency") || "",
+
+        competency_certno:
+            $tds.eq(6).attr("data-certno") || "",
+
+        ccfirstissue:
+            $tds.eq(6).attr("data-ccfirstissue") || "",
+
+        ccvalidityfrom:
+            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+
+        ccvalidityto:
+            $tds.eq(6).attr("data-ccvalidityto") || "",
+
+        ccverify:
+            $tds.eq(6).attr("data-ccverify") ?? "",
+
+        ownership_type:
+            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+            $tds.eq(7).attr("data-ownership") ||
+            ""
+
     });
+});
 
-    // ✅ Append partners JSON to FormData
-    formData.append("directors", JSON.stringify(directors));
+// Append directors JSON
+formData.append(
+    "directors",
+    JSON.stringify(directors)
+);
 
-    // ✅ (Optional) Also append individually indexed data if needed
-    directors.forEach((p, index) => {
-        formData.append(`director_id[${index}]`, p.id ?? "");
+// Append individually indexed data
+directors.forEach((p, index) => {
 
-        formData.append(`director_name[${index}]`, p.proprietor_name);
+    formData.append(
+        `director_id[${index}]`,
+        p.id ?? ""
+    );
 
-        formData.append(
-            `director_managing_director[${index}]`,
-            p.managing_director
-        );
-        formData.append(`director_fathers_name[${index}]`, p.fathers_name);
-        formData.append(`director_ownership_type[${index}]`, p.ownership_type);
+    formData.append(
+        `director_name[${index}]`,
+        p.proprietor_name
+    );
 
-        formData.append(`director_age[${index}]`, p.age);
-        formData.append(`director_dob[${index}]`, p.dob);
-        formData.append(
-            `director_proprietor_address[${index}]`,
-            p.proprietor_address,
-        );
-        formData.append(`director_qualification[${index}]`, p.qualification);
-        formData.append(`director_qual_text[${index}]`, p.qualification_text);
+    // Managing Director - keep unchanged
+    formData.append(
+        `director_managing_director[${index}]`,
+        p.managing_director
+    );
 
-        formData.append(
-            `director_present_business[${index}]`,
-            p.present_business,
-        );
-        formData.append(`director_competency[${index}]`, p.competency);
-        formData.append(
-            `director_competency_certno[${index}]`,
-            p.competency_certno,
-        );
-        formData.append(
-            `director_competency_validity[${index}]`,
-            p.competency_validity,
-        );
+    formData.append(
+        `director_fathers_name[${index}]`,
+        p.fathers_name
+    );
 
-        formData.append(`director_ccverify[${index}]`, p.ccverify);
+    formData.append(
+        `director_ownership_type[${index}]`,
+        p.ownership_type
+    );
 
-        formData.append(`director_employed[${index}]`, p.employed);
-        formData.append(`director_employer_name[${index}]`, p.employer_name);
-        formData.append(
-            `director_employer_address[${index}]`,
-            p.employer_address,
-        );
-        formData.append(`director_experience[${index}]`, p.experience);
-        formData.append(`director_exp_name[${index}]`, p.exp_name);
-        formData.append(`director_exp_address[${index}]`, p.exp_address);
-        formData.append(`director_exp_license[${index}]`, p.exp_license);
-        formData.append(`director_exp_validity[${index}]`, p.exp_validity);
+    formData.append(
+        `director_age[${index}]`,
+        p.age
+    );
 
-        formData.append(`director_expverify[${index}]`, p.expverify);
-        // console.log(p.ccverify, p.expverify);
+    formData.append(
+        `director_dob[${index}]`,
+        p.dob
+    );
 
-        // formData.append(`exp_validity[${index}]`, p.exp_validity);
-    });
+    formData.append(
+        `director_proprietor_address[${index}]`,
+        p.proprietor_address
+    );
+
+    formData.append(
+        `director_qualification[${index}]`,
+        p.qualification
+    );
+
+    formData.append(
+        `director_qual_text[${index}]`,
+        p.qualification_text
+    );
+
+    formData.append(
+        `director_present_business[${index}]`,
+        p.present_business
+    );
+
+    formData.append(
+        `director_competency[${index}]`,
+        p.competency
+    );
+
+    formData.append(
+        `director_competency_certno[${index}]`,
+        p.competency_certno
+    );
+
+    formData.append(
+        `director_ccfirstissue[${index}]`,
+        p.ccfirstissue
+    );
+
+    formData.append(
+        `director_ccvalidityfrom[${index}]`,
+        p.ccvalidityfrom
+    );
+
+    formData.append(
+        `director_ccvalidityto[${index}]`,
+        p.ccvalidityto
+    );
+
+    formData.append(
+        `director_ccverify[${index}]`,
+        p.ccverify
+    );
+
+});
     // --------------------------------------
 
     //     let proprietor_name = $("input[name='proprietor_name[]']").val();
@@ -1699,7 +1840,7 @@ $("#competency_form_a").on("submit", function (e) {
         isValid = false;
 
         // Add red border
-        $("#staff-table").addClass("qc-table-error");
+        $("#qc-staff-table").addClass("qc-table-error");
 
 
         Swal.fire({
@@ -1747,7 +1888,7 @@ $("#competency_form_a").on("submit", function (e) {
 
 
     // Remove previous error border
-    $("#staff-table").removeClass("qc-table-error");
+    $("#qc-staff-table").removeClass("qc-table-error");
 
 
     // Remove tab error
@@ -2149,80 +2290,70 @@ $("#competency_form_a").on("submit", function (e) {
     // WAIT FOR ALL B + C CERTIFICATE CHECKS
     // ======================================================
 
-    Promise.all(staffValidationRequests)
-        .then(function (results) {
 
-            console.log(
-                "ALL STAFF CERTIFICATE RESULTS:",
-                results
-            );
+let results = await Promise.all(staffValidationRequests);
+
+console.log(
+    "ALL STAFF CERTIFICATE RESULTS:",
+    results
+);
 
 
-            // ==================================================
-            // CHECK ALL CERTIFICATES
-            // ==================================================
+// ======================================================
+// CHECK ALL CERTIFICATES
+// ======================================================
 
-            let allCertificatesValid = results.every(function (result) {
-                return result === true;
+let allCertificatesValid = results.every(function (result) {
+    return result === true;
+});
+
+
+// ======================================================
+// CERTIFICATE VALIDATION FAILED
+// ======================================================
+
+if (!allCertificatesValid) {
+
+    isValid = false;
+
+    console.log("Certificate validation failed");
+    console.log("isValid:", isValid);
+
+    Swal.fire({
+        icon: "warning",
+        title: "Invalid Staff Certificate",
+        text: "Please correct the invalid B/C staff certificate details.",
+        confirmButtonText: "OK",
+        width: 500
+    });
+
+    $(".nav-item").each(function () {
+
+        if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+            $(this).addClass("tab-error-bg");
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+                behavior: "smooth",
+                block: "center"
             });
+        }
 
+    }, 300);
 
-            if (!allCertificatesValid) {
-
-                isValid = false;
-
-                Swal.fire({
-                    icon: "warning",
-                    title: "Invalid Staff Certificate",
-                    text: "Please correct the invalid B/C staff certificate details.",
-                    confirmButtonText: "OK",
-                    width: 500
-                });
-
-                $(".nav-item").each(function () {
-
-                    if ($(this).text().trim().includes("Staff & Bank Details")) {
-
-                        $(this).addClass("tab-error-bg");
-                        $(this).trigger("click");
-
-                        return false;
-                    }
-
-                });
-
-                setTimeout(function () {
-
-                    if ($("#staff-table").length) {
-
-                        $("#staff-table")[0].scrollIntoView({
-                            behavior: "smooth",
-                            block: "center"
-                        });
-
-                    }
-
-                }, 300);
-
-                return;
-            }
-
-
-            // ==================================================
-            // ALL B/C CERTIFICATES VALID
-            // ==================================================
-
-            console.log(
-                "All B/C staff certificates verified successfully."
-            );
-
-            // Continue remaining form validation here
-
-        });
-
-    console.log(
-        "next function check:",
-    );
+    // VERY IMPORTANT
+    return false;
+}
 
     // ======================================================
     // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
@@ -2820,7 +2951,7 @@ function checkvaliditydatesformA(formData, actionType = "") {
                      <hr>
                     <div style="text-align:left;font-size:15px;">
                         <p>QC Certificate No:<b> ${firstCertNo} </b> Validity:<b> ${formatDDMMYYYY(firstCertValidity)} </b></p>
-                        
+
                         <p>Bank Solvency Validity:<b> ${formatDDMMYYYY(bankValidity)} </b></p>
                         <hr>
                         <h6 style="font-weight:bold;line-height:30px;text-align:center;color:red;">
@@ -2953,14 +3084,14 @@ function showDeclarationPopupformA(formData) {
             }
 
             // Insert instructions only (not replacing values above)
-           
 
-                
+
+
 
                 submitFormAFinal(formData, "submit");
-            
 
-            
+
+
         },
 
         error: function () {
@@ -3008,6 +3139,7 @@ function submitFormAFinal(formData, actionType) {
             $(".save-draft, .submit-payment").prop("disabled", true);
         },
         success: function (response) {
+
             const loginId = response.login_id;
             const transactionId = response.transaction_id || "TXN123456";
 
@@ -3017,6 +3149,7 @@ function submitFormAFinal(formData, actionType) {
             const applicantName = $("#applicant_name").val() || "Applicant";
 
             const licence_name = $("#license_name").val();
+            // const qcfees = parseFloat(response.qcfees) || 0;
 
             let form_type = $("#appl_type").val();
 
@@ -3033,8 +3166,11 @@ function submitFormAFinal(formData, actionType) {
 
             let dbNow = formData.get("dbNow");
 
-            let qcfees = formData.get("qcfee");
 
+            const qcfees = parseFloat(response.qcfees) || 0;
+            const totalfee = parseFloat(formData.get("total_fees")) || 0;
+
+            const amount = totalfee + qcfees;
 
 
             let licenseName = formData.get("licenseName");
@@ -3189,7 +3325,7 @@ function showPaymentInitiationPopupformA(
                                                 <th style="text-align: left; padding: 6px 10px; color: #555;">Date</th>
                                                 <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${dbNow}</td>
                                             </tr>
-                                           
+
                                              <tr>
                                             <th style="text-align: left; padding: 10px; color: #333;">QC Staff Fee</th>
                                                 <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${qcfees} </td>
@@ -3204,22 +3340,22 @@ function showPaymentInitiationPopupformA(
                                                     <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${amount}</td>
                                             </tr>
 
-                                            
-                                          
 
-                                        
-                                         
+
+
+
+
                                         </tbody>
                                     </table>
-                                  
-                                    
 
-                                   
+
+
+
                                 </div>
                             `,
         footer: `
                 <div class="text-start" style="font-size: 13px;">
-                    
+
                     <strong>Note:</strong>
                     <span ">The total amount is exclusive of payment gateway service charges.</span>
                 </div>
@@ -4135,8 +4271,9 @@ function fillProprietorForm(data) {
 
 // -------------------------form a Return---------------------------------------------------
 
-$("#competency_form_a_return").on("submit", function (e) {
+$("#competency_form_a_return").on("submit",async function (e) {
     e.preventDefault();
+
 
     let formData = new FormData(this);
     let submitter = e.originalEvent?.submitter;
@@ -4155,7 +4292,7 @@ $("#competency_form_a_return").on("submit", function (e) {
     let businessAddress = $("textarea[name='business_address']").val().trim();
 
     formData.append("module", $("input[name='module']").val());
-    // formData.append("appl_type", $("input[name='appl_type']").val());
+    formData.append("appl_type", $("input[name='appl_type']").val());
     // formData.append("license_name", $("input[name='upload_license_name']").val());
 
     if ((applicantName === "") | (businessAddress === "")) {
@@ -4213,7 +4350,7 @@ $("#competency_form_a_return").on("submit", function (e) {
     let proprietor = [];
 
     // ✅ Collect all rows data first
-    $("#proprietor-section table tbody tr").each(function () {
+    $("#proprietor-section tbody tr").each(function () {
         let $tr = $(this);
         let $tds = $tr.find("td");
 
@@ -4247,19 +4384,9 @@ $("#competency_form_a_return").on("submit", function (e) {
             present_business: $tds.eq(5).text().trim(),
             competency: $tds.eq(6).data("competency") || "",
             competency_certno: $tds.eq(6).data("certno") || "",
-            competency_validity: $tds.eq(6).data("validity") || "",
-            ccverify: $tds.eq(6).data("ccverify") ?? "",
-
-            employed: $tds.eq(7).data("employed") || "",
-            employer_name: $tds.eq(7).data("employer") || "",
-            employer_address: $tds.eq(7).data("empaddress") || "",
-            experience: $tds.eq(8).data("experience") || "",
-            exp_name: $tds.eq(8).data("expname") || "",
-            exp_address: $tds.eq(8).data("expaddress") || "",
-            exp_license: $tds.eq(8).data("explicense") || "",
-            exp_validity: $tds.eq(8).data("expvalidity") || "",
-
-            expverify: $tds.eq(8).data("expverify") ?? "",
+            ccfirstissue: $tds.eq(6).data("ccfirstissue") || "",
+            ccvalidityfrom: $tds.eq(6).data("ccvalidityfrom") || "",
+            ccvalidityto: $tds.eq(6).data("ccvalidityto") || "",
 
             ownership_type:
                 $tds.eq(9).find("input[name='ownership_type[]']").val() ||
@@ -4288,18 +4415,10 @@ $("#competency_form_a_return").on("submit", function (e) {
         formData.append(`present_business[${index}]`, p.present_business);
         formData.append(`competency[${index}]`, p.competency);
         formData.append(`competency_certno[${index}]`, p.competency_certno);
-        formData.append(`competency_validity[${index}]`, p.competency_validity);
+        formData.append(`ccfirstissue[${index}]`, p.ccfirstissue);
+        formData.append(`ccvalidityfrom[${index}]`, p.ccvalidityfrom);
+        formData.append(`ccvalidityto[${index}]`, p.ccvalidityto);
 
-        formData.append(`ccverify[${index}]`, p.ccverify);
-
-        formData.append(`employed[${index}]`, p.employed);
-        formData.append(`employer_name[${index}]`, p.employer_name);
-        formData.append(`employer_address[${index}]`, p.employer_address);
-        formData.append(`experience[${index}]`, p.experience);
-        formData.append(`exp_name[${index}]`, p.exp_name);
-        formData.append(`exp_address[${index}]`, p.exp_address);
-        formData.append(`exp_license[${index}]`, p.exp_license);
-        formData.append(`exp_validity[${index}]`, p.exp_validity);
 
         formData.append(`expverify[${index}]`, p.expverify);
         // console.log(p.ccverify, p.expverify);
@@ -4310,223 +4429,323 @@ $("#competency_form_a_return").on("submit", function (e) {
 
     let partners = [];
 
-    // ✅ Collect all rows data first
-    $("#partner-section table tbody tr").each(function () {
-        let $tr = $(this);
-        let $tds = $tr.find("td");
+// Collect all partner rows
+$("#partner-section table tbody tr").each(function () {
 
-        let id = $tr.data("id") || null;
-        //  alert($tds.eq(9).data("ownership")) ;
-        //         exit;
-        partners.push({
-            id: id,
-            proprietor_name: $tds.eq(0).text().trim(),
-            fathers_name: $tds.eq(1).text().trim(),
-            dob: $tds.eq(2).attr("data-dob"),
-            age: $tds.eq(2).attr("data-age"),
+    let $tr = $(this);
+    let $tds = $tr.find("td");
 
-            proprietor_address: $tds.eq(3).text().trim(),
-            // qualification: $tds.eq(4).text().trim(),
+    let id = $tr.data("id") || null;
 
-            qualification: $tds.eq(4).attr("data-qualification"),
-            qualification_text: $tds.eq(4).attr("data-qual_text"),
+    partners.push({
 
-            present_business: $tds.eq(5).text().trim(),
-            competency: $tds.eq(6).data("competency") || "",
-            competency_certno: $tds.eq(6).data("certno") || "",
-            competency_validity: $tds.eq(6).data("validity") || "",
-            ccverify: $tds.eq(6).data("ccverify") ?? "",
+        id: id,
 
-            employed: $tds.eq(7).data("employed") || "",
-            employer_name: $tds.eq(7).data("employer") || "",
-            employer_address: $tds.eq(7).data("empaddress") || "",
-            experience: $tds.eq(8).data("experience") || "",
-            exp_name: $tds.eq(8).data("expname") || "",
-            exp_address: $tds.eq(8).data("expaddress") || "",
-            exp_license: $tds.eq(8).data("explicense") || "",
-            exp_validity: $tds.eq(8).data("expvalidity") || "",
+        proprietor_name:
+            $tds.eq(0).text().trim(),
 
-            expverify: $tds.eq(8).data("expverify") ?? "",
+        fathers_name:
+            $tds.eq(1).text().trim(),
 
-            ownership_type:
-                $tds.eq(9).find("input[name='ownership_type[]']").val() ||
-                $tds.eq(9).data("ownership") ||
-                "",
-        });
+        dob:
+            $tds.eq(2).attr("data-dob") || "",
+
+        age:
+            $tds.eq(2).attr("data-age") || "",
+
+        proprietor_address:
+            $tds.eq(3).text().trim(),
+
+        qualification:
+            $tds.eq(4).attr("data-qualification") || "",
+
+        qualification_text:
+            $tds.eq(4).attr("data-qual_text") || "",
+
+        present_business:
+            $tds.eq(5).text().trim(),
+
+        competency:
+            $tds.eq(6).attr("data-competency") || "",
+
+        competency_certno:
+            $tds.eq(6).attr("data-certno") || "",
+
+        ccfirstissue:
+            $tds.eq(6).attr("data-ccfirstissue") || "",
+
+        ccvalidityfrom:
+            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+
+        ccvalidityto:
+            $tds.eq(6).attr("data-ccvalidityto") || "",
+
+        ccverify:
+            $tds.eq(6).attr("data-ccverify") ?? "",
+
+        ownership_type:
+            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+            $tds.eq(7).attr("data-ownership") ||
+            ""
+
     });
+});
 
-    // ✅ Append partners JSON to FormData
-    formData.append("partners", JSON.stringify(partners));
+// Append partners JSON
+formData.append(
+    "partners",
+    JSON.stringify(partners)
+);
 
-    // ✅ (Optional) Also append individually indexed data if needed
-    partners.forEach((p, index) => {
-        formData.append(`partner_id[${index}]`, p.id ?? "");
+// Append individually indexed partner data
+partners.forEach((p, index) => {
 
-        formData.append(`partner_name[${index}]`, p.proprietor_name);
-        formData.append(`partner_fathers_name[${index}]`, p.fathers_name);
-        formData.append(`partner_ownership_type[${index}]`, p.ownership_type);
-        // formData.append(`partner_age[${index}]`, p.age);
+    formData.append(
+        `partner_id[${index}]`,
+        p.id ?? ""
+    );
 
-        //   formData.append(`ownership_type[${index}]`, p.ownership_type);
-        formData.append(`partner_age[${index}]`, p.age);
-        formData.append(`partner_dob[${index}]`, p.dob);
-        formData.append(
-            `partner_proprietor_address[${index}]`,
-            p.proprietor_address,
-        );
-        formData.append(`partner_qualification[${index}]`, p.qualification);
-        formData.append(`partner_qual_text[${index}]`, p.qualification_text);
+    formData.append(
+        `partner_name[${index}]`,
+        p.proprietor_name
+    );
 
-        // formData.append(
-        //     `partner_proprietor_address[${index}]`,
-        //     p.proprietor_address,
-        // );
-        // formData.append(`partner_qualification[${index}]`, p.qualification);
-        formData.append(
-            `partner_present_business[${index}]`,
-            p.present_business,
-        );
-        formData.append(`partner_competency[${index}]`, p.competency);
-        formData.append(
-            `partner_competency_certno[${index}]`,
-            p.competency_certno,
-        );
-        formData.append(
-            `partner_competency_validity[${index}]`,
-            p.competency_validity,
-        );
+    formData.append(
+        `partner_fathers_name[${index}]`,
+        p.fathers_name
+    );
 
-        formData.append(`partner_ccverify[${index}]`, p.ccverify);
+    formData.append(
+        `partner_ownership_type[${index}]`,
+        p.ownership_type
+    );
 
-        formData.append(`partner_employed[${index}]`, p.employed);
-        formData.append(`partner_employer_name[${index}]`, p.employer_name);
-        formData.append(
-            `partner_employer_address[${index}]`,
-            p.employer_address,
-        );
-        formData.append(`partner_experience[${index}]`, p.experience);
-        formData.append(`partner_exp_name[${index}]`, p.exp_name);
-        formData.append(`partner_exp_address[${index}]`, p.exp_address);
-        formData.append(`partner_exp_license[${index}]`, p.exp_license);
-        formData.append(`partner_exp_validity[${index}]`, p.exp_validity);
+    formData.append(
+        `partner_age[${index}]`,
+        p.age
+    );
 
-        formData.append(`partner_expverify[${index}]`, p.expverify);
-        // console.log(p.ccverify, p.expverify);
+    formData.append(
+        `partner_dob[${index}]`,
+        p.dob
+    );
 
-        // formData.append(`exp_validity[${index}]`, p.exp_validity);
-    });
+    formData.append(
+        `partner_proprietor_address[${index}]`,
+        p.proprietor_address
+    );
 
+    formData.append(
+        `partner_qualification[${index}]`,
+        p.qualification
+    );
+
+    formData.append(
+        `partner_qual_text[${index}]`,
+        p.qualification_text
+    );
+
+    formData.append(
+        `partner_present_business[${index}]`,
+        p.present_business
+    );
+
+    formData.append(
+        `partner_competency[${index}]`,
+        p.competency
+    );
+
+    formData.append(
+        `partner_competency_certno[${index}]`,
+        p.competency_certno
+    );
+
+    formData.append(
+        `partner_ccfirstissue[${index}]`,
+        p.ccfirstissue
+    );
+
+    formData.append(
+        `partner_ccvalidityfrom[${index}]`,
+        p.ccvalidityfrom
+    );
+
+    formData.append(
+        `partner_ccvalidityto[${index}]`,
+        p.ccvalidityto
+    );
+
+    formData.append(
+        `partner_ccverify[${index}]`,
+        p.ccverify
+    );
+
+});
     // ------------director push--------------
 
-    let directors = [];
+   let directors = [];
 
-    // ✅ Collect all rows data first
-    $("#director-section table tbody tr").each(function () {
-        let $tr = $(this);
-        let $tds = $tr.find("td");
+// Collect all director rows
+$("#director-section table tbody tr").each(function () {
 
-        let id = $tr.data("id") || null;
-        //  alert($tds.eq(9).data("ownership")) ;
-        //         exit;
-        directors.push({
-            id: id,
-            proprietor_name: $tds.eq(0).attr("data-name") || "",
+    let $tr = $(this);
+    let $tds = $tr.find("td");
 
-            managing_director:
-                $tds.eq(0).attr("data-managing_director") || "no",
-            fathers_name: $tds.eq(1).text().trim(),
+    let id = $tr.data("id") || null;
 
-            dob: $tds.eq(2).attr("data-dob"),
-            age: $tds.eq(2).attr("data-age"),
+    directors.push({
 
-            proprietor_address: $tds.eq(3).text().trim(),
-            // qualification: $tds.eq(4).text().trim(),
+        id: id,
 
-            qualification: $tds.eq(4).attr("data-qualification"),
-            qualification_text: $tds.eq(4).attr("data-qual_text"),
+        proprietor_name:
+            $tds.eq(0).attr("data-name") || "",
 
-            present_business: $tds.eq(5).text().trim(),
-            competency: $tds.eq(6).data("competency") || "",
-            competency_certno: $tds.eq(6).data("certno") || "",
-            competency_validity: $tds.eq(6).data("validity") || "",
-            ccverify: $tds.eq(6).data("ccverify") ?? "",
+        managing_director:
+            $tds.eq(0).attr("data-managing_director") || "no",
 
-            employed: $tds.eq(7).data("employed") || "",
-            employer_name: $tds.eq(7).data("employer") || "",
-            employer_address: $tds.eq(7).data("empaddress") || "",
-            experience: $tds.eq(8).data("experience") || "",
-            exp_name: $tds.eq(8).data("expname") || "",
-            exp_address: $tds.eq(8).data("expaddress") || "",
-            exp_license: $tds.eq(8).data("explicense") || "",
-            exp_validity: $tds.eq(8).data("expvalidity") || "",
+        fathers_name:
+            $tds.eq(1).text().trim(),
 
-            expverify: $tds.eq(8).data("expverify") ?? "",
+        dob:
+            $tds.eq(2).attr("data-dob") || "",
 
-            ownership_type:
-                $tds.eq(9).find("input[name='ownership_type[]']").val() ||
-                $tds.eq(9).data("ownership") ||
-                "",
-        });
+        age:
+            $tds.eq(2).attr("data-age") || "",
+
+        proprietor_address:
+            $tds.eq(3).text().trim(),
+
+        qualification:
+            $tds.eq(4).attr("data-qualification") || "",
+
+        qualification_text:
+            $tds.eq(4).attr("data-qual_text") || "",
+
+        present_business:
+            $tds.eq(5).text().trim(),
+
+        competency:
+            $tds.eq(6).attr("data-competency") || "",
+
+        competency_certno:
+            $tds.eq(6).attr("data-certno") || "",
+
+        ccfirstissue:
+            $tds.eq(6).attr("data-ccfirstissue") || "",
+
+        ccvalidityfrom:
+            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+
+        ccvalidityto:
+            $tds.eq(6).attr("data-ccvalidityto") || "",
+
+        ccverify:
+            $tds.eq(6).attr("data-ccverify") ?? "",
+
+        ownership_type:
+            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+            $tds.eq(7).attr("data-ownership") ||
+            ""
+
     });
+});
 
-    // ✅ Append partners JSON to FormData
-    formData.append("directors", JSON.stringify(directors));
+// Append directors JSON
+formData.append(
+    "directors",
+    JSON.stringify(directors)
+);
 
-    // ✅ (Optional) Also append individually indexed data if needed
-    directors.forEach((p, index) => {
-        formData.append(`director_id[${index}]`, p.id ?? "");
+// Append individually indexed data
+directors.forEach((p, index) => {
 
-        formData.append(`director_name[${index}]`, p.proprietor_name);
+    formData.append(
+        `director_id[${index}]`,
+        p.id ?? ""
+    );
 
-        formData.append(
-            `director_managing_director[${index}]`,
-            p.managing_director
-        );
-        formData.append(`director_fathers_name[${index}]`, p.fathers_name);
-        formData.append(`director_ownership_type[${index}]`, p.ownership_type);
+    formData.append(
+        `director_name[${index}]`,
+        p.proprietor_name
+    );
 
-        formData.append(`director_age[${index}]`, p.age);
-        formData.append(`director_dob[${index}]`, p.dob);
-        formData.append(
-            `director_proprietor_address[${index}]`,
-            p.proprietor_address,
-        );
-        formData.append(`director_qualification[${index}]`, p.qualification);
-        formData.append(`director_qual_text[${index}]`, p.qualification_text);
+    // Managing Director - keep unchanged
+    formData.append(
+        `director_managing_director[${index}]`,
+        p.managing_director
+    );
 
-        formData.append(
-            `director_present_business[${index}]`,
-            p.present_business,
-        );
-        formData.append(`director_competency[${index}]`, p.competency);
-        formData.append(
-            `director_competency_certno[${index}]`,
-            p.competency_certno,
-        );
-        formData.append(
-            `director_competency_validity[${index}]`,
-            p.competency_validity,
-        );
+    formData.append(
+        `director_fathers_name[${index}]`,
+        p.fathers_name
+    );
 
-        formData.append(`director_ccverify[${index}]`, p.ccverify);
+    formData.append(
+        `director_ownership_type[${index}]`,
+        p.ownership_type
+    );
 
-        formData.append(`director_employed[${index}]`, p.employed);
-        formData.append(`director_employer_name[${index}]`, p.employer_name);
-        formData.append(
-            `director_employer_address[${index}]`,
-            p.employer_address,
-        );
-        formData.append(`director_experience[${index}]`, p.experience);
-        formData.append(`director_exp_name[${index}]`, p.exp_name);
-        formData.append(`director_exp_address[${index}]`, p.exp_address);
-        formData.append(`director_exp_license[${index}]`, p.exp_license);
-        formData.append(`director_exp_validity[${index}]`, p.exp_validity);
+    formData.append(
+        `director_age[${index}]`,
+        p.age
+    );
 
-        formData.append(`director_expverify[${index}]`, p.expverify);
-        // console.log(p.ccverify, p.expverify);
+    formData.append(
+        `director_dob[${index}]`,
+        p.dob
+    );
 
-        // formData.append(`exp_validity[${index}]`, p.exp_validity);
-    });
+    formData.append(
+        `director_proprietor_address[${index}]`,
+        p.proprietor_address
+    );
+
+    formData.append(
+        `director_qualification[${index}]`,
+        p.qualification
+    );
+
+    formData.append(
+        `director_qual_text[${index}]`,
+        p.qualification_text
+    );
+
+    formData.append(
+        `director_present_business[${index}]`,
+        p.present_business
+    );
+
+    formData.append(
+        `director_competency[${index}]`,
+        p.competency
+    );
+
+    formData.append(
+        `director_competency_certno[${index}]`,
+        p.competency_certno
+    );
+
+    formData.append(
+        `director_ccfirstissue[${index}]`,
+        p.ccfirstissue
+    );
+
+    formData.append(
+        `director_ccvalidityfrom[${index}]`,
+        p.ccvalidityfrom
+    );
+
+    formData.append(
+        `director_ccvalidityto[${index}]`,
+        p.ccvalidityto
+    );
+
+    formData.append(
+        `director_ccverify[${index}]`,
+        p.ccverify
+    );
+
+});
     // --------------------------------------
 
     //     let proprietor_name = $("input[name='proprietor_name[]']").val();
@@ -4833,208 +5052,851 @@ $("#competency_form_a_return").on("submit", function (e) {
         return;
     }
 
-    // Proprietor - table --------------------------------
-    let tableValid = true;
-    let errorRowData = null;
-    let errorRowIndex = null;
 
-    $(".head_label_proprietor tbody tr").each(function (index) {
-        const tds = $(this).find("td");
-
-        const rowData = {
-            name: tds.eq(0).text().trim(),
-            father: tds.eq(1).text().trim(),
-            age: tds.eq(2).text().trim(),
-            addr: tds.eq(3).text().trim(),
-            qual: tds.eq(4).text().trim(),
-            bus: tds.eq(5).text().trim(),
-
-            competency: tds.eq(6).data("competency") || "no",
-            certno: tds.eq(6).data("certno") || "",
-            validity: tds.eq(6).data("validity") || "",
-
-            employed: tds.eq(7).data("employed") || "no",
-            empname: tds.eq(7).data("employer") || "",
-            empaddr: tds.eq(7).data("empaddress") || "",
-
-            experience: tds.eq(8).data("experience") || "no",
-            expname: tds.eq(8).data("expname") || "",
-            expaddr: tds.eq(8).data("expaddress") || "",
-            explic: tds.eq(8).data("explicense") || "",
-            expval: tds.eq(8).data("expvalidity") || "",
-        };
-
-        if (
-            rowData.name !== "" &&
-            (!rowData.father ||
-                !rowData.age ||
-                !rowData.addr ||
-                !rowData.qual ||
-                !rowData.bus)
-        ) {
-            tableValid = false;
-            errorRowData = rowData;
-            errorRowIndex = index; // 🔑 STORE INDEX
-            return false;
-        }
-    });
-
-    if (!tableValid) {
-        Swal.fire({
-            icon: "error",
-            width: 450,
-            title: "Incomplete Proprietor Details",
-            text: "Proprietor details are incomplete. Please correct the highlighted fields.",
-        });
-
-        // Switch to Basic Details tab
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Basic Details") {
-                $(this).addClass("tab-error-bg").trigger("click");
-            }
-        });
-
-        // 🔑 SET EDIT MODE
-        editIndex = errorRowIndex;
-
-        // OPEN SECTION
-        const $section = $("#proprietor-sectionfresh");
-        $section.slideDown();
-
-        // PREFILL FORM + SHOW ERRORS
-        fillProprietorForm(errorRowData);
-
-        // 🔁 SWITCH BUTTON TO UPDATE MODE
-        $("#save_proprietor")
-            .text("Update")
-            .removeClass("btn-success")
-            .addClass("btn-warning");
-
-        if (!$("#cancel_proprietor").length) {
-            $("#save_proprietor").after(`
-            <button type="button" id="cancel_proprietor"
-                class="btn btn-danger ms-2">
-                Cancel
-            </button>
-        `);
-        }
-
-        // Scroll to form
-        $section[0].scrollIntoView({ behavior: "smooth", block: "start" });
-
-        return false; // ⛔ STOP SUBMIT
-    }
-
-    // ----------------------------------------------------
-
-    let authorisedSelected = $(
-        'input[name="authorised_name_designation"]:checked',
-    ).val();
-    if (!authorisedSelected) {
-        $("#authorised_name_designation_error").text(
-            " select Yes or No for authorised signatory.",
-        );
-        isValid = false;
-    } else if (authorisedSelected === "yes") {
-        let authName = $("#authorised_name").val().trim();
-        let authDesig = $("#authorised_designation").val().trim();
-
-        if (authName === "") {
-            $("#authorised_name").after(
-                '<span class="error text-danger d-block">Authorised Name is required.</span>',
-            );
-            isValid = false;
-        }
-
-        if (authDesig === "") {
-            $("#authorised_designation").after(
-                '<span class="error text-danger d-block">Authorised Designation is required.</span>',
-            );
-            isValid = false;
-        }
-    }
-
-    $('input[name="authorised_name_designation"]').on("change", function () {
-        $("#authorised_name_designation_error").text("");
-    });
-
-    // Authorised Name & Designation Inputs
-    $("#authorised_name, #authorised_designation").on("keyup", function () {
-        $(this).next(".error").remove(); // remove dynamically appended span
-    });
 
     // ------------------ 3. Previous Contractor License ------------------
     let previousSelected = $(
-        'input[name="previous_contractor_license"]:checked',
+        'input[name="previous_contractor_license"]:checked'
     ).val();
 
     if (!previousSelected) {
+
         $("#previous_contractor_license_error").text(
-            "Select Yes or No for previous application.",
+            "Select Yes or No for previous application."
         );
+
         isValid = false;
+
+        showBasicDetailsTab();
+
     } else if (previousSelected === "yes") {
+
         let prevAppNo = $("#previous_application_number").val().trim();
+
         $("#previous_application_number").next(".error").remove();
+        $("#previous_application_number_error").remove();
 
         if (prevAppNo === "") {
+
             $("#previous_application_number").after(
-                '<span class="error text-danger d-block">Previous License Number is required.</span>',
+                '<span class="error text-danger d-block">' +
+                'Previous Licence Number is required.' +
+                '</span>'
             );
+
             isValid = false;
-        }
-        // ✅ Check if starts with EA
-        else if (!/^EA|L/i.test(prevAppNo)) {
-            // Remove existing error (optional cleanup)
-            $("#previous_application_number_error").remove();
 
-            // Add error message under input
+            showBasicDetailsTab();
+
+        } else if (!/^(EA|L)/i.test(prevAppNo)) {
+
             $("#previous_application_number").after(
-                '<span id="previous_application_number_error" class="error text-danger d-block">License number must start with "EA or L".</span>',
+                '<span id="previous_application_number_error" class="error text-danger d-block">' +
+                'License number must start with "EA" or "L".' +
+                '</span>'
             );
 
-            // Add red border highlight
             $("#previous_application_number").addClass("input-error");
 
-            // Switch to tab "Basic Details"
-            $(".nav-item").each(function () {
-                if ($(this).text().trim() === "Basic Details") {
-                    $(this).addClass("tab-error-bg");
-                    $(this).trigger("click");
-                }
-            });
+            isValid = false;
 
-            // Smooth scroll to the input field
+            showBasicDetailsTab();
+
             document
                 .getElementById("previous_application_number")
-                .scrollIntoView({ behavior: "smooth", block: "center" });
+                .scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
 
-            isValid = false;
             return;
         }
 
-        let prevAppNoval = $("#previous_application_validity").val().trim();
-        $("#previous_application_validity").next(".error").remove();
+        // First Issue
+        let firstIssue = $("#previous_validity_first_issue").val().trim();
 
-        if (prevAppNoval === "") {
-            $("#previous_application_validity").after(
-                '<span class="error text-danger d-block">Previous License Validity is required.</span>',
+        $("#previous_validity_first_issue").next(".error").remove();
+
+        if (firstIssue === "") {
+
+            $("#previous_validity_first_issue").after(
+                '<span class="error text-danger d-block">' +
+                'Licence Date of First Issue is required.' +
+                '</span>'
             );
+
             isValid = false;
+
+            showBasicDetailsTab();
+        }
+
+        // Validity From
+        let validityFrom = $("#previous_validity_from").val().trim();
+
+        $("#previous_validity_from").next(".error").remove();
+
+        if (validityFrom === "") {
+
+            $("#previous_validity_from").after(
+                '<span class="error text-danger d-block">' +
+                'Licence Validity From is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+
+            showBasicDetailsTab();
+        }
+
+        // Validity To
+        let validityTo = $("#previous_validity_to").val().trim();
+
+        $("#previous_validity_to").next(".error").remove();
+
+        if (validityTo === "") {
+
+            $("#previous_validity_to").after(
+                '<span class="error text-danger d-block">' +
+                'Licence Validity To is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+
+            showBasicDetailsTab();
         }
     }
 
-    // Clear errors on input change
     $('input[name="previous_contractor_license"]').on("change", function () {
         $("#previous_contractor_license_error").text("");
     });
+
     $("#previous_application_number").on("keyup", function () {
         $(this).next(".error").remove();
+        $("#previous_application_number_error").remove();
+        $(this).removeClass("input-error");
     });
-    $("#previous_application_validity").on("change", function () {
+
+    $("#previous_validity_first_issue").on("change", function () {
         $(this).next(".error").remove();
     });
 
+    $("#previous_validity_from").on("change", function () {
+        $(this).next(".error").remove();
+    });
+
+    $("#previous_validity_to").on("change", function () {
+        $(this).next(".error").remove();
+    });
+
+    function showBasicDetailsTab() {
+        $(".nav-item").each(function () {
+
+            if ($(this).text().trim() === "Basic Details") {
+
+                $(this).addClass("tab-error-bg");
+
+                $(this).trigger("click");
+
+                return false;
+            }
+
+        });
+    }
+    // ======================================================
+    // 5A STAFF QC/QSC VALIDATION - FIRST PRIORITY
+    // ======================================================
+
+    // ======================================================
+    // QC / QSC STAFF VALIDATION
+    // ======================================================
+    let qcStaffRecords = [];
+
+
+    // ----------------------------------------------------------
+    // GET ALL QC / QSC STAFF ROWS
+    // ----------------------------------------------------------
+
+    $("#staffqc-records tr").each(function (index) {
+
+        let $tr = $(this);
+
+        // Skip rows that are not actual QC/QSC staff rows
+        if (
+            !$tr.hasClass("staffqc-record") &&
+            !$tr.hasClass("staffqc-fields")
+        ) {
+            return;
+        }
+
+        let record = {
+
+            // Existing database ID
+            id: $tr.data("id") || null,
+
+            // Category
+            staffqc_category:
+                $tr.find(".staffqc_category").val()
+                ||
+                $tr.find('input[name="staffqc_category[]"]').val()
+                ||
+                $tr.find('input[name^="staffqc_category["]').val()
+                ||
+                $tr.find("td:eq(1)").text().trim()
+                ||
+                "",
+
+            // Certificate Number
+            staff_cc_no:
+                $tr.find(".staff_cc_no").val()
+                ||
+                $tr.find(".cc_number").val()
+                ||
+                $tr.find('input[name="staff_cc_no[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_no["]').val()
+                ||
+                $tr.find("td:eq(2)").text().trim()
+                ||
+                "",
+
+            // First Issue
+            staff_cc_first_issue:
+                $tr.find(".staff_cc_first_issue").val()
+                ||
+                $tr.find(".cc_firstissue").val()
+                ||
+                $tr.find('input[name="staff_cc_first_issue[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_first_issue["]').val()
+                ||
+                "",
+
+            // Validity From
+            staff_cc_validity_from:
+                $tr.find(".staff_cc_validity_from").val()
+                ||
+                $tr.find(".cc_validity_from").val()
+                ||
+                $tr.find('input[name="staff_cc_validity_from[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_validity_from["]').val()
+                ||
+                "",
+
+            // Validity To
+            staff_cc_validity_to:
+                $tr.find(".staff_cc_validity_to").val()
+                ||
+                $tr.find(".cc_validity_to").val()
+                ||
+                $tr.find('input[name="staff_cc_validity_to[]"]').val()
+                ||
+                $tr.find('input[name^="staff_cc_validity_to["]').val()
+                ||
+                "",
+
+            // Appointment document
+            app_doc:
+                $tr.find('input[name="app_doc[]"]').val()
+                ||
+                $tr.find('input[name^="app_doc["]').val()
+                ||
+                "",
+
+            // Consent document
+            cons_doc:
+                $tr.find('input[name="cons_doc[]"]').val()
+                ||
+                $tr.find('input[name^="cons_doc["]').val()
+                ||
+                ""
+        };
+
+
+        qcStaffRecords.push(record);
+
+    });
+
+
+    // ----------------------------------------------------------
+    // DEBUG
+    // ----------------------------------------------------------
+
+    console.log("QC/QSC row count:",
+        $("#staffqc-records tr").length
+    );
+
+    console.log("QC/QSC records:",
+        qcStaffRecords);
+
+
+    // ----------------------------------------------------------
+    // MINIMUM ONE QC / QSC STAFF
+    // ----------------------------------------------------------
+
+    if (qcStaffRecords.length === 0) {
+
+        isValid = false;
+
+        // Add red border
+        $("#qc-staff-table").addClass("qc-table-error");
+
+
+        Swal.fire({
+            icon: "warning",
+            title: "Staff Details Required",
+            text: "Please enter minimum one QC/QSC staff.",
+            confirmButtonText: "OK",
+            width: 450
+        });
+
+
+        // Open Staff & Bank Details tab
+        $(".nav-item").each(function () {
+
+            if (
+                $(this)
+                    .text()
+                    .trim()
+                    .includes("Staff & Bank Details")
+            ) {
+
+                $(this).addClass("tab-error-bg");
+
+                $(this).trigger("click");
+
+                return false;
+            }
+
+        });
+
+
+        return;
+    }
+
+
+    // ----------------------------------------------------------
+    // QC/QSC STAFF EXISTS
+    // ----------------------------------------------------------
+
+    console.log(
+        "Minimum QC/QSC requirement satisfied.",
+        qcStaffRecords.length,
+        "record(s) found."
+    );
+
+
+    // Remove previous error border
+    $("#qc-staff-table").removeClass("qc-table-error");
+
+
+    // Remove tab error
+    $(".nav-item").each(function () {
+
+        if (
+            $(this)
+                .text()
+                .trim()
+                .includes("Staff & Bank Details")
+        ) {
+
+            $(this).removeClass("tab-error-bg");
+
+            return false;
+        }
+
+    });
+
+    // ----------------------------------------
+    // ADD QC RECORDS TO FORMDATA
+    // ----------------------------------------
+
+    formData.set(
+        "qc_staff_records",
+        JSON.stringify(qcStaffRecords)
+    );
+
+
+    console.log(
+        "FINAL QC STAFF:",
+        formData.get("qc_staff_records")
+    );
+
+    // ======================================================
+    // STAFF B VALIDATION - SECOND PRIORITY
+    // FIRST 2 STAFF MUST BE CATEGORY B
+    // ALL CERTIFICATE FIELDS ARE MANDATORY
+    // ======================================================
+    // ======================================================
+    // MANDATORY STAFF VALIDATION
+    // ======================================================
+
+    let $mandatoryStaffRows =
+        $("#staff-container tr.staff-fields");
+
+    let mandatoryStaffRowCount =
+        $mandatoryStaffRows.length;
+
+    $("#staff-container .staff-validation-error").remove();
+
+    let staffValidationPassed = true;
+
+
+    // ======================================================
+    // CHECK MINIMUM 2 STAFF
+    // ======================================================
+
+    if (mandatoryStaffRowCount < 2) {
+
+        isValid = false;
+        staffValidationPassed = false;
+
+        Swal.fire({
+            icon: "warning",
+            title: "Staff Details Required",
+            text: "Minimum 2 B staff members are mandatory.",
+            confirmButtonText: "OK",
+            width: 450
+        });
+
+
+        // Open Staff & Bank Details tab
+        $(".nav-item").each(function () {
+
+            if (
+                $(this)
+                    .text()
+                    .trim()
+                    .includes("Staff & Bank Details")
+            ) {
+
+                $(this).addClass("tab-error-bg");
+
+                $(this).trigger("click");
+
+                return false;
+            }
+        });
+
+
+        $("#staff-container").after(
+
+            '<span class="staff-validation-error error text-danger d-block">' +
+
+            'Minimum 2 B staff members are mandatory.' +
+
+            '</span>'
+        );
+
+        return;
+    }
+
+
+    // ======================================================
+    // VALIDATE FIRST 2 B STAFF
+    // ======================================================
+    let staffValidationRequests = [];
+    let staffBasicValidationPassed = true;
+
+    // ======================================================
+    // VALIDATE ALL STAFF ROWS
+    // B + C = CERTIFICATE VALIDATION
+    // OTHERS = SKIP CERTIFICATE VALIDATION
+    // ======================================================
+
+    $mandatoryStaffRows.each(function (index) {
+
+        let $row = $(this);
+
+        // ==================================================
+        // CATEGORY
+        // ==================================================
+
+        let category = ($row.find(".staff_category").val() || "").trim();
+
+        // First 2 rows are mandatory B
+        if (index < 2) {
+            category = "B";
+        }
+
+        console.log("====================================");
+        console.log("STAFF " + (index + 1));
+        console.log("CATEGORY:", category);
+
+
+        // ==================================================
+        // OTHERS
+        // No certificate validation required
+        // ==================================================
+
+        if (category === "OTHERS") {
+
+            console.log(
+                "STAFF " + (index + 1) +
+                ": OTHERS - Certificate validation skipped"
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // ONLY B AND C REQUIRE CERTIFICATE DETAILS
+        // ==================================================
+
+        if (category !== "B" && category !== "C") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".staff_category").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Please select a valid staff category.' +
+                '</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // CERTIFICATE NUMBER
+        // ==================================================
+
+        let ccNumber = ($row.find(".cc_number").val() || "").trim();
+
+        // ==================================================
+        // FIRST ISSUE
+        // ==================================================
+
+        let firstIssue = ($row.find(".cc_firstissue").val() || "").trim();
+
+        // ==================================================
+        // VALIDITY FROM
+        // ==================================================
+
+        let validityFrom = ($row.find(".cc_validity_from").val() || "").trim();
+
+        // ==================================================
+        // VALIDITY TO
+        // ==================================================
+
+        let validityTo = ($row.find(".cc_validity_to").val() || "").trim();
+
+
+        console.log("Certificate No:", ccNumber);
+        console.log("First Issue:", firstIssue);
+        console.log("Validity From:", validityFrom);
+        console.log("Validity To:", validityTo);
+
+
+        // ==================================================
+        // CERTIFICATE NUMBER REQUIRED
+        // ==================================================
+
+        if (ccNumber === "") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".cc_number").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate Number is required.</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // FIRST ISSUE REQUIRED
+        // ==================================================
+
+        if (firstIssue === "") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".cc_firstissue").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate First Issue is required.</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // VALIDITY FROM REQUIRED
+        // ==================================================
+
+        if (validityFrom === "") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".cc_validity_from").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate Validity From is required.</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // VALIDITY TO REQUIRED
+        // ==================================================
+
+        if (validityTo === "") {
+
+            staffBasicValidationPassed = false;
+
+            $row.find(".cc_validity_to").after(
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Certificate Validity To is required.</span>'
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // SEND B / C CERTIFICATE TO CONTROLLER
+        // ==================================================
+
+        let request = validateStaffCertificate(
+            category,
+            ccNumber,
+            firstIssue,
+            validityFrom,
+            validityTo
+        )
+
+
+            .then(function (response) {
+
+                console.log(
+                    "STAFF " + (index + 1) +
+                    " CERTIFICATE RESPONSE:",
+                    response
+                );
+
+
+                // ==================================================
+                // CERTIFICATE INVALID
+                // ==================================================
+
+                if (response.status !== true) {
+
+                    staffValidationPassed = false;
+
+                    $row.find(".cc_number").after(
+                        '<span class="staff-validation-error error text-danger d-block">' +
+                        (response.message || "Certificate validation failed.") +
+                        '</span>'
+                    );
+
+                    return false;
+                }
+
+
+                // ==================================================
+                // CERTIFICATE VALID
+                // ==================================================
+
+                console.log(
+                    "STAFF " + (index + 1) +
+                    " certificate verified successfully."
+                );
+
+                return true;
+
+            })
+            .catch(function (xhr) {
+
+                staffValidationPassed = false;
+
+                console.log(
+                    "STAFF " + (index + 1) +
+                    " CERTIFICATE ERROR"
+                );
+
+                console.log("HTTP STATUS:", xhr.status);
+                console.log("RESPONSE:", xhr.responseText);
+                console.log("JSON:", xhr.responseJSON);
+
+
+                $row.find(".cc_number").after(
+                    '<span class="staff-validation-error error text-danger d-block">' +
+                    'Unable to verify certificate. Please try again.' +
+                    '</span>'
+                );
+
+                return false;
+            });
+        console.log(request);
+
+        staffValidationRequests.push(request);
+
+    });
+
+
+    // ======================================================
+    // BASIC VALIDATION FAILED
+    // ======================================================
+
+    if (!staffBasicValidationPassed) {
+
+
+
+        isValid = false;
+
+        Swal.fire({
+            icon: "warning",
+            title: "Staff Details Incomplete",
+            text: "Please complete all mandatory staff certificate details.",
+            confirmButtonText: "OK",
+            width: 500
+        });
+
+        $(".nav-item").each(function () {
+
+            if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+                $(this).addClass("tab-error-bg");
+                $(this).trigger("click");
+
+                return false;
+            }
+
+        });
+
+        setTimeout(function () {
+
+            if ($("#staff-table").length) {
+
+                $("#staff-table")[0].scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+
+            }
+
+        }, 300);
+
+            return false;
+    }
+
+
+    // ======================================================
+    // WAIT FOR ALL B + C CERTIFICATE CHECKS
+    // ======================================================
+
+let results = await Promise.all(staffValidationRequests);
+
+console.log(
+    "ALL STAFF CERTIFICATE RESULTS:",
+    results
+);
+
+
+// ======================================================
+// CHECK ALL CERTIFICATES
+// ======================================================
+
+let allCertificatesValid = results.every(function (result) {
+    return result === true;
+});
+
+
+// ======================================================
+// CERTIFICATE VALIDATION FAILED
+// ======================================================
+
+if (!allCertificatesValid) {
+
+    isValid = false;
+
+    console.log("Certificate validation failed");
+    console.log("isValid:", isValid);
+
+    Swal.fire({
+        icon: "warning",
+        title: "Invalid Staff Certificate",
+        text: "Please correct the invalid B/C staff certificate details.",
+        confirmButtonText: "OK",
+        width: 500
+    });
+
+    $(".nav-item").each(function () {
+
+        if ($(this).text().trim().includes("Staff & Bank Details")) {
+
+            $(this).addClass("tab-error-bg");
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+        }
+
+    }, 300);
+
+    // VERY IMPORTANT
+    return false;
+}
+
+    // ======================================================
+    // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
+    // ======================================================
+
+    $(document).on("input change", "#staff-container .cc_number", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("input change", "#staff-container .cc_firstissue", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("input change", "#staff-container .cc_validity_from", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("input change", "#staff-container .cc_validity_to", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
+
+    $(document).on("change", "#staff-container .staff_category", function () {
+
+        $(this)
+            .siblings(".staff-validation-error")
+            .remove();
+
+    });
     // ---------------- 7 Bank------------------------
 
     let bankAddress = $("textarea[name='bank_address']").val().trim();
@@ -5087,6 +5949,7 @@ $("#competency_form_a_return").on("submit", function (e) {
     }
 
     if ((bankValidity === "") | (bankAmount === "") | (bankAddress === "")) {
+
         if (bankValidity === "") {
             $("#bank_validity_error").text("Validity period is required.");
         }
@@ -5123,7 +5986,7 @@ $("#competency_form_a_return").on("submit", function (e) {
     let hasUploadedFile = $("#bank_doc_section .file-link a").length > 0;
 
     if (!hasUploadedFile) {
-        // alert("empty");
+
 
         $("#bank_doc_error").text("Bank Solvency Document must be uploaded.");
 
@@ -5210,6 +6073,7 @@ $("#competency_form_a_return").on("submit", function (e) {
 
     // ❌ IF INVALID
     if (!addressValid) {
+
         $(".nav-item").each(function () {
             if ($(this).text().trim() === "Staff & Bank Details") {
                 $(this).addClass("tab-error-bg");
@@ -5240,355 +6104,7 @@ $("#competency_form_a_return").on("submit", function (e) {
     });
 
 
-    // ------------------ Document Validation ------------------
-    const allowedTypes = ["application/pdf"];
-    const maxSize = 250 * 1024;
 
-    function validateDoc(inputId, errorId, name) {
-        const input = document.getElementById(inputId);
-        if (input && input.type === "file") {
-            const file = input.files[0];
-            if (!file) {
-                $(`#${errorId}`).text(`${name} document is Mandatory.`);
-                isValid = false;
-            } else if (!allowedTypes.includes(file.type)) {
-                $(`#${errorId}`).text("Only PDF files are allowed.");
-                isValid = false;
-            } else if (file.size > maxSize) {
-                $(`#${errorId}`).text("File size Permitted Only 5 to 250 KB");
-                isValid = false;
-            } else {
-                $(`#${errorId}`).text("");
-            }
-        }
-    }
-
-    validateDoc("aadhaar_doc", "aadhaar_doc_error", "Aadhaar");
-    validateDoc("pancard_doc", "pancard_doc_error", "Pan Card");
-    validateDoc("gst_doc", "gst_doc_error", "GST");
-
-    // ------------------ If Any Error Found ------------------
-    if (!isValid) {
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click"); // switch to Staff & Bank Details tab
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return; // stop further submission
-    }
-
-    // ------------------ Live Input Handlers ------------------
-    $("#aadhaar").on("keyup", function () {
-        let val = $(this).val().replace(/\D/g, "");
-        let formatted = val.replace(/(.{4})/g, "$1 ").trim();
-        $(this).val(formatted);
-
-        if (val.length === 12 && /^[2-9]/.test(val)) {
-            $("#aadhaar_error").text("");
-        } else {
-            $("#aadhaar_error").text(
-                "Enter a valid 12-digit Aadhaar number (should not start with 0 or 1).",
-            );
-        }
-    });
-
-    $("#pancard").on("keyup", function () {
-        const value = $(this).val().toUpperCase();
-        $(this).val(value);
-
-        if (panPattern.test(value)) {
-            $("#pancard_error").text("");
-        } else {
-            $("#pancard_error").text("Invalid PAN format (e.g., ABCDE1234F)");
-        }
-    });
-
-    $("#gst_number").on("keyup", function () {
-        // alert('script');
-        const value = $(this).val().toUpperCase();
-        $(this).val(value);
-        if (/^[A-Z0-9]{15}$/.test(value)) {
-            $("#gst_number_error").text("");
-        } else {
-            $("#gst_number_error").text(
-                "Enter 15-character alphanumeric GST Number.",
-            );
-        }
-    });
-
-    // ------------------ Clear Errors on File Change ------------------
-    $("#aadhaar_doc").on("change", function () {
-        $("#aadhaar_doc_error").text("");
-    });
-    $("#pancard_doc").on("change", function () {
-        $("#pancard_doc_error").text("");
-    });
-    $("#gst_doc").on("change", function () {
-        $("#gst_doc_error").text("");
-    });
-
-    // ----------document------------------------
-
-    // -------------------end doc--------------------
-
-    // -------------------- 1. Proprietor Validation --------------------
-    // let proprietorValid = true;
-
-    // $(".border.box-shadow-blue, .proprietor-block").each(function (index) {
-    //     const block = $(this);
-
-    //     // Basic required fields
-    //     const name = block.find('input[name="proprietor_name[]"]');
-    //     const address = block.find('textarea[name="proprietor_address[]"]');
-    //     const age = block.find('input[name="age[]"]');
-    //     const qualification = block.find('input[name="qualification[]"]');
-    //     const fatherName = block.find('input[name="fathers_name[]"]');
-    //     const present_business = block.find('input[name="present_business[]"]');
-
-    //     if (name.val().trim() === "") {
-    //         block.find("#proprietor_name_error").text("Name is required.");
-    //         proprietorValid = false;
-    //     } else {
-    //         block.find("#proprietor_name_error").text("");
-    //     }
-
-    //     if (address.val().trim() === "") {
-    //         block
-    //             .find("#proprietor_address_error")
-    //             .text("Address is required.");
-    //         proprietorValid = false;
-    //     } else {
-    //         block.find("#proprietor_address_error").text("");
-    //     }
-
-    //     if (age.val().trim() === "") {
-    //         block.find("#age_error").text("Age is required.");
-    //         proprietorValid = false;
-    //          isValid = false;
-    //     } else {
-    //         block.find("#age_error").text("");
-    //     }
-
-    //     if (qualification.val().trim() === "") {
-    //         block
-    //             .find("#qualification_error")
-    //             .text("Qualification is required.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find("#qualification_error").text("");
-    //     }
-
-    //     if (fatherName.val().trim() === "") {
-    //         block
-    //             .find("#fathers_name_error")
-    //             .text("Father/Husband's name is required.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find("#fathers_name_error").text("");
-    //     }
-
-    //     if (present_business.val().trim() === "") {
-    //         block
-    //             .find("#present_business_error")
-    //             .text("Present business is required.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find("#present_business_error").text("");
-    //     }
-
-    //     // --- (v) Competency Certificate Validation ---
-    //     const compSelected = block.find(
-    //         `input[name="competency_certificate_holding[${index}]"]:checked`
-    //     );
-    //     if (compSelected.length === 0) {
-    //         block
-    //             .find(".competency_certificate_holding_error")
-    //             .text("Please select Yes or No.");
-    //         proprietorValid = false;
-    //         isValid = false;
-    //     } else {
-    //         block.find(".competency_certificate_holding_error").text("");
-    //         if (compSelected.val() === "yes") {
-    //             const certNo = block.find(
-    //                 'input[name="competency_certificate_number[]"]'
-    //             );
-    //             const certValid = block.find(
-    //                 'input[name="competency_certificate_validity[]"]'
-    //             );
-
-    //             if (certNo.val().trim() === "") {
-    //                 block
-    //                     .find(".competency_number_error")
-    //                     .text("Certificate Number is required.");
-    //                 proprietorValid = false;
-    //             } else if (!/^[HBCL]/i.test(certNo.val().trim())) {
-    //                 block
-    //                     .find(".competency_number_error")
-    //                     .text("Certificate Number must start with H, B, C, L.");
-    //                 proprietorValid = false;
-
-    //                 isValid = false;
-    //             } else {
-    //                 block.find(".competency_number_error").text("");
-    //             }
-
-    //             if (certValid.val().trim() === "") {
-    //                 block
-    //                     .find(".competency_validity_error")
-    //                     .text("Certificate Validity is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 block.find(".competency_validity_error").text("");
-    //             }
-    //         }
-    //     }
-
-    //     // --- (vi) Presently Employed ---
-    //     const empSelected = block.find(
-    //         `input[name="presently_employed[${index}]"]:checked`
-    //     );
-    //     if (empSelected.length === 0) {
-    //         block
-    //             .find(".presently_employed_error")
-    //             .text("Please select Yes or No.");
-    //         proprietorValid = false;
-
-    //     } else {
-    //         block.find(".presently_employed_error").text("");
-    //         if (empSelected.val() === "yes") {
-    //             const empName = block.find(
-    //                 'input[name="presently_employed_name[]"]'
-    //             );
-    //             const empAddr = block.find(
-    //                 'textarea[name="presently_employed_address[]"]'
-    //             );
-
-    //             if (empName.val().trim() === "") {
-    //                 empName
-    //                     .next(".presently_employed_name_error")
-    //                     .text("Employer name is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 empName.next(".presently_employed_name_error").text("");
-    //             }
-
-    //             if (empAddr.val().trim() === "") {
-    //                 empAddr
-    //                     .next(".presently_employed_address_error")
-    //                     .text("Employer address is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 empAddr.next(".presently_employed_address_error").text("");
-    //             }
-    //         }
-    //     }
-
-    //     // --- (vii) Previous Experience ---
-    //     const expSelected = block.find(
-    //         `input[name="previous_experience[${index}]"]:checked`
-    //     );
-    //     if (expSelected.length === 0) {
-    //         block
-    //             .find(".previous_experience_error")
-    //             .text("Please select Yes or No.");
-    //         proprietorValid = false;
-    //     } else {
-    //         block.find(".previous_experience_error").text("");
-    //         if (expSelected.val() === "yes") {
-    //             const expName = block.find(
-    //                 'input[name="previous_experience_name[]"]'
-    //             );
-    //             const expAddr = block.find(
-    //                 'textarea[name="previous_experience_address[]"]'
-    //             );
-    //             const expLic = block.find(
-    //                 'input[name="previous_experience_lnumber[]"]'
-    //             );
-
-    //             const expLicensevalid = block.find(
-    //                 'input[name="previous_experience_lnumber_validity[]"]'
-    //             );
-
-    //             if (expName.val().trim() === "") {
-    //                 expName
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_name_error")
-    //                     .text("Contractor name is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 expName
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_name_error")
-    //                     .text("");
-    //             }
-
-    //             if (expAddr.val().trim() === "") {
-    //                 expAddr
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_address_error")
-    //                     .text("Contractor address is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 expAddr
-    //                     .closest(".col-md-5")
-    //                     .find(".previous_experience_address_error")
-    //                     .text("");
-    //             }
-
-    //             // License Number
-    //             if (expLic.val().trim() === "") {
-    //                 block
-    //                     .find(".previous_experience_lnumber_error")
-    //                     .text("License number is required.");
-    //                 proprietorValid = false;
-    //             } else if (!/^EA|L/i.test(expLic.val().trim())) {
-    //                 block
-    //                     .find(".previous_experience_lnumber_error")
-    //                     .text("License number must start with EA or L.");
-    //                 proprietorValid = false;
-    //                 isValid = false;
-    //             } else {
-    //                 block.find(".previous_experience_lnumber_error").text("");
-    //             }
-
-    //             // License Validity
-    //             if (expLicensevalid.val().trim() === "") {
-    //                 block
-    //                     .find(".previous_experience_lnumber_validity_error")
-    //                     .text("License Validity is required.");
-    //                 proprietorValid = false;
-    //             } else {
-    //                 block
-    //                     .find(".previous_experience_lnumber_validity_error")
-    //                     .text("");
-    //             }
-    //         }
-    //     }
-    // });
-
-    // $(document).on(
-    //     "keyup change input",
-    //     'input[name="proprietor_name[]"], textarea[name="proprietor_address[]"], input[name="age[]"], input[name="qualification[]"], input[name="fathers_name[]"], input[name="present_business[]"], input[name="competency_certificate_number[]"], input[name="competency_certificate_validity[]"], input[name="presently_employed_name[]"], textarea[name="presently_employed_address[]"], input[name="previous_experience_name[]"], textarea[name="previous_experience_address[]"], input[name="previous_experience_lnumber[]"], input[name="previous_experience_lnumber_validity[]"] ',
-    //     function () {
-    //         $(this).siblings(".error").text(""); // Remove existing error text
-    //         $(this).next(".error").remove(); // Remove appended span errors
-    //     }
-    // );
 
     // Declaration Checkboxes
     const declaration1Checked = $("#declarationCheckbox").is(":checked");
@@ -5621,6 +6137,8 @@ $("#competency_form_a_return").on("submit", function (e) {
         }
     });
 
+
+
     // let bankValidity = $("input[name='bank_validity']").val().trim();
     if (!checkBankValidity(bankValidity)) {
         $(".nav-item").each(function () {
@@ -5631,7 +6149,7 @@ $("#competency_form_a_return").on("submit", function (e) {
         });
 
         $("#bank_validity_error").text(
-            "Minimum 3 year is required for Bank Solvency Validity Period.",
+            "Minimum 1 year is required for Bank Solvency Validity Period.",
         );
 
         const bankValidityInput = $("input[name='bank_validity']")[0];
@@ -5646,155 +6164,6 @@ $("#competency_form_a_return").on("submit", function (e) {
         return false;
     }
 
-    function checkCertificateValidity(
-        ccNumVal,
-        ccValidVal,
-        ccNumInput,
-        rowIndex,
-    ) {
-        // console.log(ccNumVal, ccValidVal, ccNumInput, rowIndex);
-
-        let resultStatus = { valid: true };
-
-        // ✅ SAFETY: ensure number
-        const certOrder = Number(rowIndex) + 1;
-
-        if (isNaN(certOrder)) {
-            ccNumInput
-                .closest("td")
-                .find(".error")
-                .text("Internal error: invalid row order.");
-            return { valid: false };
-        }
-
-        $.ajax({
-            url: BASE_URL + "/checkCertificateValidity",
-            type: "POST",
-            async: false,
-            data: {
-                _token: $('meta[name="csrf-token"]').attr("content"),
-                validity_date: ccValidVal,
-                l_number: ccNumVal,
-                cert_order: certOrder, // ✅ 1,2,3,4
-            },
-            success: function (res) {
-                if (res.status === "invalid_license") {
-                    ccNumInput.closest("td").find(".error").text(res.msg);
-                    resultStatus.valid = false;
-                } else if (res.status === "expired") {
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .text("Expired Certificate Not Allowed.");
-                    resultStatus.valid = false;
-                } else if (res.status === "less_than_one_year") {
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .text(
-                            "Minimum 1 year validity is required for QC Category certificate.",
-                        );
-                    resultStatus.valid = false;
-                } else if (res.status === "invalid_wcert") {
-                    ccNumInput
-                        // .siblings(".error")
-                        .closest("td")
-                        .find(".error")
-                        .text(
-                            "Certificate must exist in Wireman Certificate register.",
-                        );
-                    resultStatus.valid = false;
-                } else if (res.status === "error") {
-                    // ✅ IMPORTANT
-                    ccNumInput
-                        .closest("td")
-                        .find(".error")
-                        .html(
-                            "Certificate is active with Contractor Licence: <b>" +
-                            res.form_name +
-                            "</b>",
-                        );
-                    resultStatus.valid = false;
-                } else {
-                    ccNumInput.closest("td").find(".error").text("");
-                    resultStatus.valid = true;
-                }
-            },
-        });
-
-        return resultStatus;
-    }
-
-    // 🚨 If LC age > 75 detected → Stop here (do NOT show global popup)
-    if (stopValidation) return;
-
-    if (!staffValid) {
-        // Swal.fire({
-        //     icon: 'warning',
-        //     width:450,
-        //     title: 'Incomplete Staff Details',
-        //     text: 'Fill all 4 staff details Properly in staff Section.',
-        //     confirmButtonText: 'OK'
-        // });
-
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return false;
-    }
-
-    if (staffCount < 4) {
-        Swal.fire({
-            icon: "warning",
-            width: 450,
-            title: "Incomplete Staff Details",
-            text: "Fill all 4 staff details correctly before adding another one.",
-            confirmButtonText: "OK",
-        });
-
-        $(".nav-item").each(function () {
-            if ($(this).text().trim() === "Staff & Bank Details") {
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
-            }
-        });
-
-        const ownershipNotice = document.querySelector(".text-red");
-        if (ownershipNotice) {
-            ownershipNotice.style.color = "red";
-            ownershipNotice.style.fontWeight = "bold";
-            ownershipNotice.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
-        }
-
-        return false;
-    }
-
-    if (duplicateFound) {
-        Swal.fire({
-            icon: "error",
-            title: "Duplicate License Number",
-            html: "Two or more staff members have the same CC Number.<br>Please correct it before submitting.",
-            width: "450px",
-        });
-        isValid = false;
-    }
 
     // --------------------equipment data--------------------
     let equipmentValid = true;
@@ -5927,11 +6296,12 @@ $("#competency_form_a_return").on("submit", function (e) {
         return false;
     }
 
+
     // -------------------------------------
 
     if (isValid) {
         // alert('111');
-        checkvaliditydatesformA_return(formData);
+        submitFormAFinal_return(formData);
         // showDeclarationPopupformA(formData);
     }
     // if (staffCount < 4) {
@@ -6093,7 +6463,7 @@ function checkvaliditydatesformA_return(formData, actionType = "") {
                      <hr>
                     <div style="text-align:left;font-size:15px;">
                         <p>QC Certificate No:<b> ${firstCertNo} </b> Validity:<b> ${formatDDMMYYYY(firstCertValidity)} </b></p>
-                        
+
                         <p>Bank Solvency Validity:<b> ${formatDDMMYYYY(bankValidity)} </b></p>
                         <hr>
                         <h6 style="font-weight:bold;line-height:30px;text-align:center;color:red;">
@@ -6160,6 +6530,7 @@ function formatDDMMYYYY(dateStr) {
 }
 
 function submitFormAFinal_return(formData, actionType) {
+
     if (!formData.has("check_value")) {
         formData.append("check_value", "NO");
     }
@@ -7013,19 +7384,19 @@ flatpickr(
 
 
 flatpickr('input[name="competency_certificate_first_issue[]"]', {
-    dateFormat: "Y-m-d"
+    dateFormat: "d-m-Y"
 });
 
 flatpickr('input[name="competency_certificate_validity_from[]"]', {
-    dateFormat: "Y-m-d"
+    dateFormat: "d-m-Y"
 });
 
 flatpickr('input[name="dob[]"]', {
-    dateFormat: "Y-m-d"
+     dateFormat: "d-m-Y"
 });
 
 flatpickr('input[name="competency_certificate_validity_to[]"]', {
-    dateFormat: "Y-m-d",
+    dateFormat: "d-m-Y",
 
     onChange: function (selectedDates, dateStr) {
 
@@ -7046,6 +7417,10 @@ flatpickr('input[name="competency_certificate_validity_to[]"]', {
     }
 });
 // qcstaff-----------
+// ============================================================
+// ADD QC / QSC STAFF BUTTON
+// ============================================================
+
 $(document).on("click", "#add_qc_staff", function () {
 
     let $section = $("#staffqc_datasection");
@@ -7054,19 +7429,20 @@ $(document).on("click", "#add_qc_staff", function () {
     let staffRowIndex =
         $("#staffqc-records tr.staffqc-record").length + 1;
 
-    // Set document number for current staff
+    // Set document number
     $section.find(".app_doc").val(staffRowIndex);
     $section.find(".cons_doc").val(staffRowIndex);
 
-    // Also store it in upload buttons
+    // Store row index in upload buttons
     $section.find(".upload-btn").attr(
         "data-row-index",
         staffRowIndex
     );
 
-    // Clear other fields
+    // Clear category
     $section.find(".staffqc_category").val("");
 
+    // Clear staff fields
     $section.find(
         'input[name="staff_cc_no[]"],' +
         'input[name="staff_cc_first_issue[]"],' +
@@ -7074,19 +7450,31 @@ $(document).on("click", "#add_qc_staff", function () {
         'input[name="staff_cc_validity_to[]"]'
     ).val("");
 
-    $section.find(".app-doc-file, .cons-doc-file").val("");
+    // Clear document inputs
+    $section.find(
+        ".app-doc-file, .cons-doc-file"
+    ).val("");
 
+    // Clear file links
     $section.find(".file-link").empty();
 
+    // Clear errors
     $section.find(".text-danger").text("");
 
+    // Show section
     $section.slideDown();
 
+    // Scroll to section
     $("html, body").animate({
         scrollTop: $section.offset().top - 100
     }, 500);
 
 });
+
+
+// ============================================================
+// SAVE QC / QSC STAFF
+// ============================================================
 
 $(document).on("click", "#save_qc", function () {
 
@@ -7097,11 +7485,13 @@ $(document).on("click", "#save_qc", function () {
 
     let hasError = false;
 
-    // -----------------------------
-    // CATEGORY
-    // -----------------------------
 
-    let category = $section.find(".staffqc_category").val();
+    // ========================================================
+    // CATEGORY
+    // ========================================================
+
+    let category =
+        $section.find(".staffqc_category").val();
 
     if (!category) {
 
@@ -7112,10 +7502,17 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // -----------------------------
-    // CC NUMBER
-    // -----------------------------
-    let appl_type = $("#appl_type").val().trim();
+    // ========================================================
+    // APPLICATION TYPE
+    // ========================================================
+
+    let appl_type =
+        ($("#appl_type").val() || "").trim();
+
+
+    // ========================================================
+    // CERTIFICATE NUMBER
+    // ========================================================
 
     let ccNo = $section
         .find('input[name="staff_cc_no[]"]')
@@ -7131,9 +7528,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // -----------------------------
+    // ========================================================
     // FIRST ISSUE
-    // -----------------------------
+    // ========================================================
 
     let firstIssue = $section
         .find('input[name="staff_cc_first_issue[]"]')
@@ -7149,9 +7546,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // -----------------------------
+    // ========================================================
     // VALIDITY FROM
-    // -----------------------------
+    // ========================================================
 
     let validityFrom = $section
         .find('input[name="staff_cc_validity_from[]"]')
@@ -7167,9 +7564,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // -----------------------------
+    // ========================================================
     // VALIDITY TO
-    // -----------------------------
+    // ========================================================
 
     let validityTo = $section
         .find('input[name="staff_cc_validity_to[]"]')
@@ -7185,9 +7582,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // -----------------------------
+    // ========================================================
     // APPOINTMENT DOCUMENT
-    // -----------------------------
+    // ========================================================
 
     let appFileLink = $section
         .find(".app-doc-file")
@@ -7204,9 +7601,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // -----------------------------
+    // ========================================================
     // CONSENT DOCUMENT
-    // -----------------------------
+    // ========================================================
 
     let consFileLink = $section
         .find(".cons-doc-file")
@@ -7222,57 +7619,76 @@ $(document).on("click", "#save_qc", function () {
         hasError = true;
     }
 
-    // -----------------------------
+
+    // ========================================================
     // STOP IF ERROR
-    // -----------------------------
+    // ========================================================
 
     if (hasError) {
         return;
     }
 
 
-    // -----------------------------
-    // CALCULATE FEE
-    // -----------------------------
+    // ========================================================
+    // CATEGORY FEE
+    // ========================================================
 
-    let fee = category === "QC"
-        ? 15000
-        : 25000;
+    let fee =
+        category === "QC"
+            ? 15000
+            : 25000;
 
-    // -----------------------------
-    // CHECK CERTIFICATE IN DATABASE
-    // -----------------------------
+
+    // ========================================================
+    // CHECK CERTIFICATE
+    // ========================================================
 
     $.ajax({
-        // url: "{{ route('check-qc-certificate') }}",
-        url: BASE_URL + "/check-qc-certificate",
-        type: "POST",
-        data: {
-            _token: $('meta[name="csrf-token"]').attr("content"),
 
-            staffcategory: category,
-            certificate_no: ccNo,
-            dateof_issue: firstIssue,
-            valid_from: validityFrom,
-            valid_to: validityTo
+        url: BASE_URL + "/check-qc-certificate",
+
+        type: "POST",
+
+        data: {
+
+            _token:
+                $('meta[name="csrf-token"]').attr("content"),
+
+            staffcategory:
+                category,
+
+            certificate_no:
+                ccNo,
+
+            dateof_issue:
+                firstIssue,
+
+            valid_from:
+                validityFrom,
+
+            valid_to:
+                validityTo
         },
+
 
         success: function (response) {
 
             if (response.status === true) {
 
-                // -----------------------------
-                // CALCULATE FEE
-                // -----------------------------
 
-                let fee = category === "QC"
-                    ? 15000
-                    : 25000;
+                // ============================================
+                // FEE
+                // ============================================
+
+                let fee =
+                    category === "QC"
+                        ? 15000
+                        : 25000;
 
 
-                // -----------------------------
-                // GET APPOINTMENT DOCUMENT
-                // -----------------------------
+                // ============================================
+                // APPOINTMENT DOCUMENT
+                // ============================================
 
                 let appDocLink = $section
                     .find(".app-doc-file")
@@ -7280,17 +7696,10 @@ $(document).on("click", "#save_qc", function () {
                     .find("a")
                     .attr("href") || "";
 
-                let appDocName = $section
-                    .find(".app-doc-file")
-                    .siblings(".file-link")
-                    .find("a")
-                    .text()
-                    .trim() || "Appointment Letter";
 
-
-                // -----------------------------
-                // GET CONSENT DOCUMENT
-                // -----------------------------
+                // ============================================
+                // CONSENT DOCUMENT
+                // ============================================
 
                 let consDocLink = $section
                     .find(".cons-doc-file")
@@ -7298,102 +7707,157 @@ $(document).on("click", "#save_qc", function () {
                     .find("a")
                     .attr("href") || "";
 
-                let consDocName = $section
-                    .find(".cons-doc-file")
-                    .siblings(".file-link")
-                    .find("a")
-                    .text()
-                    .trim() || "Consent Letter";
 
-
-                // -----------------------------
-                // ADD RECORD
-                // -----------------------------
+                // ============================================
+                // ADD STAFF ROW
+                // ============================================
 
                 addQCStaffRecord(
+
                     category,
+
                     ccNo,
+
                     firstIssue,
+
                     validityFrom,
+
                     validityTo,
+
                     fee,
+
                     appl_type,
+
                     appDocLink,
+
                     "Appointment Letter",
+
                     consDocLink,
+
                     "Consent Letter"
+
                 );
 
 
-                // -----------------------------
+                // ============================================
                 // HIDE FORM
-                // -----------------------------
+                // ============================================
 
                 $section.slideUp();
 
-                // Reset form
+
+                // ============================================
+                // RESET FORM
+                // ============================================
+
                 resetQCStaffForm();
 
-            } else {
 
-                // Certificate not valid / inactive
-                $section.find(".qc-staff-errors")
+            }
+            else {
+
+                $section
+                    .find(".qc-staff-errors")
                     .text(response.message);
 
             }
+
         },
+
 
         error: function (xhr) {
 
             console.log(xhr.responseText);
 
-            $section.find(".qc-staff-errors")
-                .text("Unable to verify certificate. Please try again.");
+            $section
+                .find(".qc-staff-errors")
+                .text(
+                    "Unable to verify certificate. Please try again."
+                );
 
         }
 
     });
 
 });
-function addQCStaffRecord(
-    category,
-    ccNo,
-    firstIssue,
-    validityFrom,
-    validityTo,
-    fee,
-    appl_type,
-    appDocLink = "",
-    appDocName = "",
-    consDocLink = "",
-    consDocName = ""
-) {
-    // alert(appl_type);
 
+
+// ============================================================
+// ADD QC / QSC STAFF ROW
+// ============================================================
+
+function addQCStaffRecord(
+
+    category,
+
+    ccNo,
+
+    firstIssue,
+
+    validityFrom,
+
+    validityTo,
+
+    fee,
+
+    appl_type,
+
+    appDocLink = "",
+
+    appDocName = "",
+
+    consDocLink = "",
+
+    consDocName = ""
+
+) {
+
+
+    // ========================================================
+    // NEXT ROW NUMBER
+    // ========================================================
 
     let rowCount =
         $("#staffqc-records tr.staffqc-record").length + 1;
 
-    // Auto increment document indexes
+
+    // ========================================================
+    // DOCUMENT INDEX
+    // ========================================================
+
     let appDocIndex =
         $("#staffqc-records input.app_doc").length + 1;
 
     let consDocIndex =
         $("#staffqc-records input.cons_doc").length + 1;
 
-    let categoryText = category === "QC"
-        ? "QC"
-        : "QSC";
+
+    // ========================================================
+    // CATEGORY TEXT
+    // ========================================================
+
+    let categoryText =
+        category === "QC"
+            ? "QC"
+            : "QSC";
 
 
-    // Fee based on category
-    fee = category === "QC"
-        ? 15000
-        : 25000;
+    // ========================================================
+    // FEE
+    // ========================================================
+
+    fee =
+        category === "QC"
+            ? 15000
+            : 25000;
 
 
-    // Appointment Document
+    // ========================================================
+    // APPOINTMENT DOCUMENT
+    // ========================================================
+
     let appointmentDocument = appDocLink
+
         ? `
             <i class="fa fa-file-pdf-o"
                style="color:red;"></i>
@@ -7406,6 +7870,7 @@ function addQCStaffRecord(
 
             </a>
         `
+
         : `
             <span class="text-danger">
                 Appointment Letter Not Available
@@ -7413,8 +7878,12 @@ function addQCStaffRecord(
         `;
 
 
-    // Consent Document
+    // ========================================================
+    // CONSENT DOCUMENT
+    // ========================================================
+
     let consentDocument = consDocLink
+
         ? `
             <i class="fa fa-file-pdf-o"
                style="color:red;"></i>
@@ -7427,6 +7896,7 @@ function addQCStaffRecord(
 
             </a>
         `
+
         : `
             <span class="text-danger">
                 Consent Letter Not Available
@@ -7434,57 +7904,81 @@ function addQCStaffRecord(
         `;
 
 
-    // --------------------------------------------------
-    // STAFF ROW ONLY
-    // --------------------------------------------------
+    // ========================================================
+    // STAFF ROW
+    // ========================================================
 
     let row = `
+
         <tr class="staffqc-record">
 
+            {{-- S.NO --}}
             <td>
                 ${rowCount}.
             </td>
 
+
+            {{-- CATEGORY --}}
             <td>
+
                 ${categoryText}
 
                 <input type="hidden"
                        name="staffqc_category[]"
                        value="${category}">
+
             </td>
 
+
+            {{-- CERTIFICATE NUMBER --}}
             <td>
+
                 ${ccNo}
 
                 <input type="hidden"
                        name="staff_cc_no[]"
                        value="${ccNo}">
+
             </td>
 
+
+            {{-- FIRST ISSUE --}}
             <td>
+
                 ${firstIssue}
 
                 <input type="hidden"
                        name="staff_cc_first_issue[]"
                        value="${firstIssue}">
+
             </td>
 
+
+            {{-- VALIDITY FROM --}}
             <td>
+
                 ${validityFrom}
 
                 <input type="hidden"
                        name="staff_cc_validity_from[]"
                        value="${validityFrom}">
+
             </td>
 
+
+            {{-- VALIDITY TO --}}
             <td>
+
                 ${validityTo}
 
                 <input type="hidden"
                        name="staff_cc_validity_to[]"
                        value="${validityTo}">
+
             </td>
 
+
+            {{-- ATTACHMENTS --}}
             <td>
 
                 ${appointmentDocument}
@@ -7493,13 +7987,13 @@ function addQCStaffRecord(
 
                 ${consentDocument}
 
-                <!-- Appointment Document Index -->
+
                 <input type="hidden"
                        name="app_doc[]"
                        class="app_doc"
                        value="${appDocIndex}">
 
-                <!-- Consent Document Index -->
+
                 <input type="hidden"
                        name="cons_doc[]"
                        class="cons_doc"
@@ -7507,6 +8001,8 @@ function addQCStaffRecord(
 
             </td>
 
+
+            {{-- REMOVE --}}
             <td>
 
                 <button type="button"
@@ -7519,19 +8015,38 @@ function addQCStaffRecord(
             </td>
 
         </tr>
+
     `;
 
+
+    // ========================================================
+    // APPEND STAFF ROW
+    // ========================================================
 
     $("#staffqc-records").append(row);
 
 
-    // Update single total fee row
-    updateQCStaffTotalFee(appl_type);
+    // ========================================================
+    // RECALCULATE FEE
+    // ========================================================
+
+    updateQCStaffTotalFee();
+
 }
 
-function updateQCStaffTotalFee(appl_type) {
+
+// ============================================================
+// CALCULATE TOTAL QC/QSC FEE
+// ============================================================
+
+function updateQCStaffTotalFee() {
 
     let totalFee = 0;
+
+
+    // ========================================================
+    // LOOP ONLY STAFF ROWS
+    // ========================================================
 
     $("#staffqc-records tr.staffqc-record").each(function () {
 
@@ -7539,88 +8054,181 @@ function updateQCStaffTotalFee(appl_type) {
             .find('input[name="staffqc_category[]"]')
             .val();
 
-        // appl_type is NOT D
-        if (appl_type !== "D") {
 
-            if (category === "QC") {
+        category =
+            $.trim(category).toUpperCase();
 
-                totalFee += 15000;
 
-            } else if (category === "QSC") {
+        // QC = 15000
+        if (category === "QC") {
 
-                totalFee += 25000;
-            }
+            totalFee += 15000;
+
+        }
+
+
+        // QSC = 25000
+        else if (category === "QSC") {
+
+            totalFee += 25000;
+
         }
 
     });
 
-    // Remove old fee row
+
+    // ========================================================
+    // REMOVE OLD FEE ROW
+    // ========================================================
+
     $("#staffqc-records tr.staffqc-total-fee").remove();
 
-    // If no fee, don't show
+
+    // ========================================================
+    // NO STAFF = NO FEE ROW
+    // ========================================================
+
     if (totalFee <= 0) {
+
         return;
+
     }
 
+
+    // ========================================================
+    // CREATE FEE ROW
+    // ========================================================
+
     let feeRow = `
+
         <tr class="staffqc-total-fee">
 
-            <td colspan="7" class="fw-bold">
+            <td colspan="7"
+                class="fw-bold text-end">
+
                 Fees
+
             </td>
 
             <td>
+
                 <span class="btn btn-primary">
+
                     ₹ ${totalFee.toLocaleString("en-IN")}
+
                 </span>
+
             </td>
 
         </tr>
+
     `;
 
+
+    // ========================================================
+    // ALWAYS APPEND FEE AS LAST ROW
+    // ========================================================
+
     $("#staffqc-records").append(feeRow);
+
 }
 
-$(document).on("click", ".remove-qc-staff", function () {
 
-    $(this)
-        .closest("tr.staffqc-record")
-        .remove();
+// ============================================================
+// REMOVE QC / QSC STAFF
+// ============================================================
 
-
-    // Re-number staff rows
-    $("#staffqc-records tr.staffqc-record")
-        .each(function (index) {
-
-            $(this)
-                .find("td:first")
-                .text((index + 1) + ".");
-
-        });
+$(document).on(
+    "click",
+    ".remove-qc-staff",
+    function () {
 
 
-    // Recalculate total
+        // Remove only staff row
+        $(this)
+            .closest("tr.staffqc-record")
+            .remove();
+
+
+        // ====================================================
+        // RE-NUMBER STAFF ROWS
+        // ====================================================
+
+        $("#staffqc-records tr.staffqc-record")
+            .each(function (index) {
+
+                $(this)
+                    .find("td:first")
+                    .text((index + 1) + ".");
+
+            });
+
+
+        // ====================================================
+        // RECALCULATE TOTAL
+        // ====================================================
+
+        updateQCStaffTotalFee();
+
+    }
+);
+
+
+// ============================================================
+// PAGE LOAD
+// ============================================================
+
+$(document).ready(function () {
+
+    // Calculate fee for existing draft QC/QSC records
     updateQCStaffTotalFee();
 
 });
 
+
+// ============================================================
+// RESET QC/QSC FORM
+// ============================================================
+
 function resetQCStaffForm() {
 
-    let $section = $("#staffqc_datasection");
+    let $section =
+        $("#staffqc_datasection");
 
-    $section.find("input[type='text']").val("");
 
-    $section.find("select").val("");
+    // Clear text fields
+    $section
+        .find("input[type='text']")
+        .val("");
 
-    // Reset upload values
-    $section.find(".app_doc").val("");
-    $section.find(".cons_doc").val("");
+
+    // Clear select
+    $section
+        .find("select")
+        .val("");
+
+
+    // Clear document indexes
+    $section
+        .find(".app_doc")
+        .val("");
+
+
+    $section
+        .find(".cons_doc")
+        .val("");
+
 
     // Clear errors
-    $section.find(".text-danger").text("");
+    $section
+        .find(".text-danger")
+        .text("");
 
-    // Reset file inputs
-    $section.find('input[type="file"]').val("");
+
+    // Clear file inputs
+    $section
+        .find('input[type="file"]')
+        .val("");
 
 }
 // ------------------------
@@ -7841,4 +8449,40 @@ function checkCompetencyCertificate() {
     });
 }
 
+// remove qc---------
+$(document).on("click", ".remove_qc_staff", function () {
+
+    $(this).closest("tr").remove();
+
+    $("#staffqc-records tr.staffqc-record").each(function (index) {
+        $(this).find("td:first").text(index + 1);
+    });
+
+});
+
+
+function calculateQCStaffFee() {
+
+    let totalFee = 0;
+
+    $("#staffqc-records .staffqc-record").each(function () {
+
+        let category = $(this)
+            .find("input[name='staffqc_category[]']")
+            .val();
+
+        category = $.trim(category).toUpperCase();
+
+        if (category === "QC") {
+            totalFee += 15000;
+        }
+        else if (category === "QSC") {
+            totalFee += 25000;
+        }
+    });
+
+    $("#qc-total-fee").text(
+        "₹" + totalFee.toLocaleString("en-IN")
+    );
+}
 // --validation---------------------------

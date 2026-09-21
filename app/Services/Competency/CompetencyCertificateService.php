@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Resolves issued certificates for competency forms S, W, WH, P.
- * Each form stores new + renewal certs in one table (replaces tnelb_license / tnelb_renewal_license).
+ * Each form stores new + renewal certs in one table (replaces cl_forma_lic / tnelb_renewal_license).
  */
 class CompetencyCertificateService
 {
@@ -77,7 +77,7 @@ class CompetencyCertificateService
     public function findByApplicationId(string $applicationId, ?string $formName = null): ?Model
     {
         $applicationId = trim($applicationId);
-        
+
         if ($applicationId === '') {
             return null;
         }
@@ -198,7 +198,7 @@ class CompetencyCertificateService
         if ($applicationId === '' || $certificateNo === '') {
             throw new \InvalidArgumentException('application_id and certificate_no are required to issue a certificate.');
         }
-    
+
         $now = now();
         $payload = [
             'application_id' => $applicationId,
@@ -213,7 +213,7 @@ class CompetencyCertificateService
         ];
 
         /** @var Model|null $existing */
-        
+
         $existing = $modelClass::where('application_id', $applicationId)->first();
         if ($existing) {
             $existing->update($payload);

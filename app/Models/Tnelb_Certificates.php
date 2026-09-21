@@ -9,7 +9,7 @@ class Tnelb_Certificates extends Model
 {
     use HasFactory;
 
-    protected $table = 'tnelb_license';
+    protected $table = 'cl_forma_lic';
 
     protected $primaryKey = 'id';
 

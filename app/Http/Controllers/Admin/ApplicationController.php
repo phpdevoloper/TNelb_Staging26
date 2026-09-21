@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use Illuminate\Support\Facades\DB;
 use App\Models\Admin\SupervisorModel;
+use App\Models\Admin\WorkflowA;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\CC_Forms_Meta;
@@ -285,7 +286,7 @@ class ApplicationController extends Controller
         }
     }
 
-    
+
 
 
     public function returntoSupervisor(Request $request)
@@ -648,15 +649,15 @@ class ApplicationController extends Controller
         $formType = DB::table('ccl_forma_meta')
             ->where('application_id', $request->application_id)
 
-            
+
             ->first();
 
-       
+
 
         $processed_by = match ($staff->name) {
             'President'  => 'PR',
             'Secretary'  => 'SE',
-          
+
             default      => abort(403, 'Unauthorized'),
         };
 
@@ -666,7 +667,7 @@ class ApplicationController extends Controller
         // Insert data into tnelb_workflow table
         $workflow = WorkflowA::create([ // Ensure this is the correct model
             'application_id' => $request->application_id,
-            'appl_status'    => 'RE', // Forwarded
+            'appl_status'    => 'PRE', // Forwarded
             'processed_by'   => $request->return_by,
             'forwarded_to'   => $forwarded_to,
             'role_id'        => $staffID,
@@ -711,7 +712,7 @@ class ApplicationController extends Controller
 
         EA_Application_model::where('application_id', $request->application_id)
             ->update([
-                'application_status' =>  'RE',
+                'application_status' =>  'PRE',
                 'processed_by'  => $processed_by,
                 'updated_at' => DB::raw('NOW()'),
             ]);

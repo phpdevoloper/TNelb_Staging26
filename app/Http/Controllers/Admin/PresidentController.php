@@ -49,10 +49,10 @@ class PresidentController extends Controller
             ->orderBy('updated_at', 'DESC')
             ->get();
 
-    
+
 
         return view('admin.president.forma_pendings', compact('workflows'));
-        
+
     }
 
     public function president_completed_forma(Request $request)
@@ -71,7 +71,7 @@ class PresidentController extends Controller
          $applicationIds = $workflows->pluck('application_id');
 
     // Fetch from both tables
-    $licenses = DB::table('tnelb_license')
+    $licenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()
@@ -87,7 +87,7 @@ class PresidentController extends Controller
         'licenses',
         'renewalLicenses'
     ));
-        
+
 
 
     }

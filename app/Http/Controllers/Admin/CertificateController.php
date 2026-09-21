@@ -14,7 +14,7 @@ class CertificateController extends Controller
     public function verifycertificate($application_id) {
 
          $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first() ??
-                        DB::table('tnelb_esa_applications')->where('application_id', $application_id)->first() ?? 
+                        DB::table('tnelb_esa_applications')->where('application_id', $application_id)->first() ??
                         DB::table('tnelb_eb_applications')->where('application_id', $application_id)->first() ??
                         DB::table('tnelb_esb_applications')->where('application_id', $application_id)->first() ;
         if($application){
@@ -28,12 +28,12 @@ class CertificateController extends Controller
             $staffs = DB::table('tnelb_applicant_cl_staffdetails')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
 
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
             ->select('*')
             ->first();
 
-              
+
         $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status','1')->first()??
                         Tnelb_bankguarantee_a::where('application_id', $application_id)->where('status','1')->first();
 
@@ -64,9 +64,9 @@ class CertificateController extends Controller
         else{
             dd('No Data Found');
         }
-            
 
 
-       
+
+
     }
 }

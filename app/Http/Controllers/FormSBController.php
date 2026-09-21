@@ -35,7 +35,7 @@ class FormSBController extends BaseController
      */
     public function index()
         {
-    
+
           $equiplist = Mst_equipment_tbl::where('equip_licence_name', 5)
             ->where('status', 1)
             ->orderBy('id')
@@ -46,7 +46,7 @@ class FormSBController extends BaseController
             // ->where('application_id', $applicant_id) // IMPORTANT
             ->get();
 
-   
+
          return view('user_login.formsb.apply-form-sb', compact('equiplist'));
     }
 
@@ -69,7 +69,7 @@ class FormSBController extends BaseController
    public function storerecords(Request $request)
     {
 //     dd('storerecords');
-// exit;   
+// exit;
 
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
@@ -110,7 +110,7 @@ class FormSBController extends BaseController
                 'bank_validity' => 'nullable|date',
                 'bank_amount' => 'nullable|numeric|min:0',
 
-              
+
 
                 'previous_contractor_license_verify' => 'nullable|numeric',
                 'criminal_offence' => 'nullable|string|in:yes,no',
@@ -147,7 +147,7 @@ class FormSBController extends BaseController
                 'manager_name' => 'nullable|string|max:255',
 
                 'application_ownershiptype'=> 'required|string',
-                
+
                 'previous_contractor_license' => 'required|string|max:10',
                 'previous_application_number' => 'nullable|string|max:50',
                 'previous_application_validity' => 'nullable',
@@ -157,7 +157,7 @@ class FormSBController extends BaseController
                 'bank_validity' => 'required|date',
                 'bank_amount' => 'required|numeric|min:0',
 
-                
+
 
                 'criminal_offence' => ['required', 'string', Rule::in(['yes', 'no'])],
                 'criminal_offence_details' => 'nullable|string|max:250',
@@ -336,7 +336,7 @@ class FormSBController extends BaseController
         }
 
         // ----------equipment list-------------------
-         
+
        Equipmentforma_tbl::where('application_id', $applicationId)
             ->where('login_id', $request->login_id_store)
             ->delete();
@@ -779,7 +779,7 @@ class FormSBController extends BaseController
         //         if ($request->has('ownership_type')) {
         //             //   dd('entry');
         //                dd($request->proprietor_id);
-        //                         exit; 
+        //                         exit;
 
         //                         //                 exit;
 
@@ -877,7 +877,7 @@ class FormSBController extends BaseController
         //                         $newProprietorIds[] = $new->id;
         //                     }
         //                 }
-        //             } 
+        //             }
 
         //             // 🧹 Deactivate removed rows (not in current request)
         //             ProprietorformA::where('application_id', $applicationId)
@@ -910,7 +910,7 @@ class FormSBController extends BaseController
 
         $payment = $isDraft ? 'draft' : 'success';
 
-       
+
 
         if (!$isDraft) {
 
@@ -920,7 +920,7 @@ class FormSBController extends BaseController
                 ->where('form_code', $request->form_name)
                 ->where('status', '1')
                 ->first();
- 
+
             // if (!$form) {
             //     return response()->json([
             //         'success' => false,
@@ -928,7 +928,7 @@ class FormSBController extends BaseController
             //     ]);
             // }
 
-           $appl_type = $request->appl_type; 
+           $appl_type = $request->appl_type;
 
             $form = \DB::table('mst_licences')
             ->where('form_code', $request->form_name)
@@ -946,7 +946,7 @@ class FormSBController extends BaseController
                 ->whereDate('start_date', '<=', $today)
                 ->orderBy('start_date', 'desc')
                 ->first();
-            
+
         if (!$form) {
             return response()->json([
                 'instructions' => null,
@@ -961,12 +961,12 @@ class FormSBController extends BaseController
         // dd($issued_licence);
         // exit;
 
-        
+
            if ($appl_type === 'R') {
-           
-    
-        
-         
+
+
+
+
                 $paymentDetails = DB::select("
                 SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
                 ", [
@@ -979,10 +979,10 @@ class FormSBController extends BaseController
                 // dd($paymentDetails);
                 // exit;
 
-            } 
+            }
             else {
 
-    
+
                 $paymentDetails = DB::select("
                     SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
                 ", [
@@ -1012,10 +1012,10 @@ class FormSBController extends BaseController
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
                 // $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
-              
+
 // dd($fees_details['basic_fees']);
 // exit;
-               
+
             }
 
             // dd($fees_details['basic_fees']);
@@ -1026,7 +1026,7 @@ class FormSBController extends BaseController
             'transaction_id' => $transactionId,
             'payment_status' => $payment,
             'payment_mode' => 'UPI',
-            'amount'         => $fees_details['total_fees'], 
+            'amount'         => $fees_details['total_fees'],
             'late_fee'       => $fees_details['lateFees'] ?? 0,
             'late_months'    => $fees_details['late_months'] ?? 0,
             'application_fee'     => $fees_details['basic_fees'],
@@ -1084,7 +1084,7 @@ class FormSBController extends BaseController
     }
 
 
-    
+
     private function toUpperCaseRecursive($data)
     {
         foreach ($data as $key => $value) {
@@ -1180,7 +1180,7 @@ class FormSBController extends BaseController
 
     public function renew_form_esb($application_id){
 
-   
+
 
         if (!Auth::check()) {
             return redirect()->route('logout');
@@ -1189,14 +1189,14 @@ class FormSBController extends BaseController
         if (!$application_id) {
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
-        
+
         // $application = EA_Application_model::where('application_id', $application_id)->first();
-        
-        $old_license_number= DB::table('tnelb_license')->where('application_id', $application_id)->first();
+
+        $old_license_number= DB::table('cl_forma_lic')->where('application_id', $application_id)->first();
 
         // var_dump($license_deatails->license_number);die;
 
-        
+
         $application = null;
         $proprietors = collect();
         $staffs = collect();
@@ -1217,7 +1217,7 @@ class FormSBController extends BaseController
             // dd($today);
             // exit;
 
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
             ->where('expires_at','<', $today)
             ->select('*')
@@ -1231,9 +1231,9 @@ class FormSBController extends BaseController
             //     ->with('expired_license', true)
             //     ->with('expired_date', \Carbon\Carbon::parse($license_details->expires_at)->format('d-m-Y'));
             // }
-            
 
-            
+
+
         $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status','1')->first();
 
          $equiplist = Mst_equipment_tbl::where('equip_licence_name', 5)
@@ -1294,7 +1294,7 @@ class FormSBController extends BaseController
                 'bank_validity' => 'nullable|date',
                 'bank_amount' => 'nullable|numeric|min:0',
 
-              
+
 
                 'previous_contractor_license_verify' => 'nullable|numeric',
                 'criminal_offence' => 'nullable|string|in:yes,no',
@@ -1330,7 +1330,7 @@ class FormSBController extends BaseController
                 'application_ownershiptype'=> 'required|string',
                 'manager_name_radio' => 'required',
                 'manager_name' => 'nullable|string|max:255',
-                
+
                 'previous_contractor_license' => 'required|string|max:10',
                 'previous_application_number' => 'nullable|string|max:50',
                 'previous_application_validity' => 'nullable',
@@ -1340,7 +1340,7 @@ class FormSBController extends BaseController
                 'bank_validity' => 'required|date',
                 'bank_amount' => 'required|numeric|min:0',
 
-                
+
 
                 'criminal_offence' => ['required', 'string', Rule::in(['yes', 'no'])],
                 'criminal_offence_details' => 'nullable|string|max:250',
@@ -1521,9 +1521,9 @@ class FormSBController extends BaseController
         $dataToSave['updated_at'] = now();
 
 
-      
+
         // ----------equipment list-------------------
-         
+
        Equipmentforma_tbl::where('application_id', $applicationId)
             ->where('login_id', $request->login_id_store)
             ->delete();
@@ -1821,7 +1821,7 @@ class FormSBController extends BaseController
         $newProprietorIds = [];
         if ($request->has('proprietor_name')) {
 
-    
+
             foreach ($request->proprietor_name as $index => $name) {
                 if (empty(trim($name))) continue;
 
@@ -1888,7 +1888,7 @@ class FormSBController extends BaseController
 
               $prapplicationId = ProprietorformA::where('application_id', $applicationId);
 
-              
+
 
                 if ($proprietorId) {
                  $existingRecord = ProprietorformA::where('id', $proprietorId)
@@ -1904,7 +1904,7 @@ class FormSBController extends BaseController
                     $new = ProprietorformA::create($data);
                     $newProprietorIds[] = $new->id;
                 }
-                   
+
                 } else {
                     $new = ProprietorformA::create($data);
                     $newProprietorIds[] = $new->id;
@@ -1920,7 +1920,7 @@ class FormSBController extends BaseController
         // Partners
         $newPartnerIds = [];
         if ($request->has('partner_name')) {
- 
+
             foreach ($request->partner_name as $index => $name) {
                 if (empty(trim($name))) continue;
 
@@ -1995,15 +1995,15 @@ class FormSBController extends BaseController
                         ->first();
 
                     if ($existingRecord) {
-                        
+
                         ProprietorformA::where('id', $partnerId)->update($data);
                         $newPartnerIds[] = $partnerId;
                     } else {
-                        
+
                         $new = ProprietorformA::create($data);
                         $newPartnerIds[] = $new->id;
                     }
-               
+
                 } else {
                     $new = ProprietorformA::create($data);
                     $newPartnerIds[] = $new->id;
@@ -2099,11 +2099,11 @@ class FormSBController extends BaseController
                         ->first();
 
                     if ($existingRecord) {
-                        
+
                         ProprietorformA::where('id', $directorId)->update($data);
                         $newdirectorIds[] = $directorId;
                     } else {
-                        
+
                         $new = ProprietorformA::create($data);
                         $newdirectorIds[] = $new->id;
                     }
@@ -2129,7 +2129,7 @@ class FormSBController extends BaseController
                 ->where('form_code', $request->form_name)
                 ->where('status', '1')
                 ->first();
- 
+
             // if (!$form) {
             //     return response()->json([
             //         'success' => false,
@@ -2137,7 +2137,7 @@ class FormSBController extends BaseController
             //     ]);
             // }
 
-           $appl_type = $request->appl_type; 
+           $appl_type = $request->appl_type;
 
             $form = \DB::table('mst_licences')
             ->where('form_code', $request->form_name)
@@ -2155,7 +2155,7 @@ class FormSBController extends BaseController
                 ->whereDate('start_date', '<=', $today)
                 ->orderBy('start_date', 'desc')
                 ->first();
-            
+
         if (!$form) {
             return response()->json([
                 'instructions' => null,
@@ -2170,12 +2170,12 @@ class FormSBController extends BaseController
         // dd($issued_licence);
         // exit;
 
-        
+
            if ($appl_type === 'R') {
-           
-    
-        
-         
+
+
+
+
                 $paymentDetails = DB::select("
                 SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
                 ", [
@@ -2188,10 +2188,10 @@ class FormSBController extends BaseController
                 // dd($paymentDetails);
                 // exit;
 
-            } 
+            }
             else {
 
-    
+
                 $paymentDetails = DB::select("
                     SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
                 ", [
@@ -2219,10 +2219,10 @@ class FormSBController extends BaseController
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
                 // $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
-              
+
 // dd($fees_details['total_fees']);
 // exit;
-               
+
             }
 
             // dd($form->license_name);
@@ -2233,7 +2233,7 @@ class FormSBController extends BaseController
             'transaction_id' => $transactionId,
             'payment_status' => $payment,
             'payment_mode' => 'UPI',
-            'amount'         => $fees_details['total_fees'], 
+            'amount'         => $fees_details['total_fees'],
             'late_fee'       => $fees_details['lateFees'] ?? 0,
             'late_months'    => $fees_details['late_months'] ?? 0,
             'application_fee'     => $fees_details['basic_fees'],
@@ -2291,15 +2291,15 @@ class FormSBController extends BaseController
             $staffs = DB::table('tnelb_applicant_cl_staffdetails')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
 
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
             ->select('*')
             ->first();
 
-              
+
         $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status','1')->first();
 
-      
+
          $equiplist = Mst_equipment_tbl::where('equip_licence_name', 5)
             ->where('status', 1)
             ->orderBy('id')

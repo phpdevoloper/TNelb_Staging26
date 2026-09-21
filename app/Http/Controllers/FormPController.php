@@ -67,7 +67,68 @@ class FormPController extends BaseController
 
     public function digitize(Request $request)
     {
+
+        $application_details = TnelbFormP::where('application_id', $appl_id)->first();
+        if (!$application_details) {
+            return [];
+        }
+
+        $edu_details = DB::table('tnelb_applicants_edu')
+            ->where('application_id', $appl_id)
+            ->orderBy('year_of_passing', 'desc')
+            ->get();
+
+        $exp_details = DB::table('tnelb_applicants_exp')
+            ->where('application_id', $appl_id)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $apps_doc = Schema::hasTable('mst_documents')
+            ? DB::table('mst_documents')->where('application_id', $appl_id)->get()
+            : collect([]);
+
+        $license_details = DB::table('cl_forma_lic')
+            ->where('application_id', $appl_id)
+            ->first();
+
+        if (!$license_details && !empty($application_details->license_number)) {
+            $license_details = DB::table('cl_forma_lic')
+                ->where('license_number', $application_details->license_number)
+                ->first();
+        }
+
+        $applicant_photo = TnelbApplicantPhoto::where('application_id', $appl_id)->first();
+        $applicant_sign = TnelbApplicantsSign::where('application_id', $appl_id)->first();
+        $proof_doc = Schema::hasTable('mst_documents')
+            ? Mst_documents::where('application_id', $appl_id)->first()
+            : null;
+
+        $institutes = TnelbAppsInstitute::where('application_id', $appl_id)
+            ->where('institute_status', 1)
+            ->get();
+
+        return compact(
+            'application_details',
+            'edu_details',
+            'exp_details',
+            'apps_doc',
+            'license_details',
+            'applicant_photo',
+            'applicant_sign',
+            'proof_doc',
+            'institutes'
+        );
+    }
+
+    /**
+     * Renewal entry: pre-fill from approved application (or resume in-progress renewal draft).
+     */
+    public function renew_form_p($appl_id)
+    {
+        if (!Auth::check()) {
+
         if (! Auth::check()) {
+
             return redirect()->route('logout');
         }
 
@@ -323,8 +384,83 @@ class FormPController extends BaseController
             return redirect()->route('dashboard')->with('error', 'Application not found.');
         }
 
+
+        if ($renewalDraft && !empty($appl_id) && (string) $dataSourceId !== (string) $appl_id) {
+            $parentPhoto = TnelbApplicantPhoto::where('application_id', $appl_id)->first();
+            if ($parentPhoto && !empty($parentPhoto->upload_path)) {
+                $currentPhoto = $viewData['applicant_photo'] ?? null;
+                if (!$currentPhoto || empty($currentPhoto->upload_path)) {
+                    $viewData['applicant_photo'] = $parentPhoto;
+                }
+            }
+
+            $parentSign = TnelbApplicantsSign::where('application_id', $appl_id)->first();
+            if ($parentSign && !empty($parentSign->uploaded_doc)) {
+                $currentSign = $viewData['applicant_sign'] ?? null;
+                if (!$currentSign || empty($currentSign->uploaded_doc)) {
+                    $viewData['applicant_sign'] = $parentSign;
+                }
+            }
+
+            $renewalForm = $viewData['application_details'] ?? null;
+            $parentForm = TnelbFormP::where('application_id', $appl_id)->first();
+            if ($renewalForm && $parentForm) {
+                if (empty($renewalForm->aadhaar_doc) && !empty($parentForm->aadhaar_doc)) {
+                    $renewalForm->aadhaar_doc = $parentForm->aadhaar_doc;
+                }
+                if (empty($renewalForm->pan_doc) && !empty($parentForm->pan_doc)) {
+                    $renewalForm->pan_doc = $parentForm->pan_doc;
+                }
+                if (empty($renewalForm->applicant_email) && !empty($parentForm->applicant_email)) {
+                    $renewalForm->applicant_email = $parentForm->applicant_email;
+                }
+            }
+
+            $parentInstitutes = TnelbAppsInstitute::where('application_id', $appl_id)
+                ->where('institute_status', 1)
+                ->get();
+            $renewalInstitutes = $viewData['institutes'] ?? collect([]);
+            if ($renewalInstitutes->isNotEmpty() && $parentInstitutes->isNotEmpty()) {
+                $viewData['institutes'] = $renewalInstitutes->map(function ($institute) use ($parentInstitutes) {
+                    if (!empty($institute->upload_doc)) {
+                        return $institute;
+                    }
+                    $parentMatch = $parentInstitutes->first(function ($parent) use ($institute) {
+                        return trim((string) ($parent->institute_name_address ?? '')) === trim((string) ($institute->institute_name_address ?? ''));
+                    });
+                    if ($parentMatch && !empty($parentMatch->upload_doc)) {
+                        $institute->upload_doc = $parentMatch->upload_doc;
+                    }
+                    return $institute;
+                });
+            }
+        }
+
+        $issuedForRenew = '';
+        if (!empty($viewData['license_details']->license_number ?? null)) {
+            $issuedForRenew = trim((string) $viewData['license_details']->license_number);
+        } elseif (!empty($original->license_number)) {
+            $issuedForRenew = trim((string) $original->license_number);
+        } else {
+            $licRow = DB::table('cl_forma_lic')->where('application_id', $appl_id)->first();
+            $issuedForRenew = trim((string) ($licRow->license_number ?? ''));
+        }
+
+        if ($issuedForRenew !== '') {
+            if (!$viewData['license_details']) {
+                $viewData['license_details'] = (object) ['license_number' => $issuedForRenew];
+            } elseif (trim((string) ($viewData['license_details']->license_number ?? '')) === '') {
+                $viewData['license_details']->license_number = $issuedForRenew;
+            }
+        }
+
+        $applicationid = $renewalDraft ? $renewalDraft->application_id : $appl_id;
+        $old_application_id = $appl_id;
+        $isRenewFormP = true;
+
         $old_application = $appl_id;
         $applicationid = $dataSourceId;
+
 
         return view('user_login.renew-form-p', array_merge($viewData, compact(
             'old_application',
@@ -575,6 +711,46 @@ class FormPController extends BaseController
             return redirect()->route('dashboard')->with('error', 'Unauthorized access.');
         }
 
+
+        if (!$application_details) {
+            return redirect()->route('dashboard')->with('error', 'Application not found.');
+        }
+
+        $edu_details = DB::table('tnelb_applicants_edu')
+            ->where('application_id', $appl_id)
+            ->select('*')
+            ->orderBy('year_of_passing', 'desc')
+            ->get();
+
+        $exp_details = DB::table('tnelb_applicants_exp')
+            ->where('application_id', $appl_id)
+            ->select('*')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $apps_doc = Schema::hasTable('mst_documents')
+            ? DB::table('mst_documents')->where('application_id', $appl_id)->get()
+            : collect([]);
+
+
+        $license_details = DB::table('cl_forma_lic')
+            ->where('application_id', $appl_id)
+            ->select('*')
+            ->first();
+
+        $applicant_photo = TnelbApplicantPhoto::where('application_id', $appl_id)->first();
+
+        $applicant_sign = TnelbApplicantsSign::where('application_id', $appl_id)->first();
+
+        $proof_doc = Schema::hasTable('mst_documents')
+            ? Mst_documents::where('application_id', $appl_id)->first()
+            : null;
+
+        $institutes = TnelbAppsInstitute::where('application_id', $appl_id)
+            ->where('institute_status', 1)
+            ->get();
+
+
         $applicationid = $appl_id;
         $user = $this->formPUserPayload(Auth::user());
         $appStatus = strtoupper(trim((string) ($application_details->app_status ?? '')));
@@ -672,6 +848,547 @@ class FormPController extends BaseController
             $request->merge(['pancard_doc_removed' => '0']);
         }
     }
+
+
+    // Save As Draft function
+    public function saveDraft(Request $request)
+    {
+        if ($request->input('month_passing') === null && $request->exists('month_of_passing')) {
+            $request->merge(['month_passing' => (array) $request->input('month_of_passing', [])]);
+        }
+
+        $request->merge([
+            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar),
+            'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) $request->input('pancard', ''))),
+        ]);
+
+        $request->validate([
+            'application_id' => 'nullable|string|max:50',
+            // 'pancard'              => 'required|string|size:10',
+
+        ]);
+
+        // var_dump($request->application_id);die;
+
+        $id = $request->application_id;
+
+        $applicationId = $id;
+
+        $existingForm = TnelbFormP::where('application_id', $applicationId)->first();
+
+        $existingPhoto = TnelbApplicantPhoto::where('application_id', $applicationId)->first();
+        $existingSign = TnelbApplicantsSign::where('application_id', $applicationId)->first();
+
+        if (!$existingForm && $applicationId) {
+            return response()->json(['status' => 'error', 'message' => 'Draft not found!'], 404);
+        }
+
+        $uploadPhotoRule = (!$existingPhoto || empty($existingPhoto->upload_path))
+            ? 'image|mimes:jpg,jpeg,png|max:50'
+            : 'nullable|image|mimes:jpg,jpeg,png|max:50';
+
+        $uploadSignRule = (!$existingSign || empty($existingSign->uploaded_doc))
+            ? 'image|mimes:jpg,jpeg,png|max:50'
+            : 'nullable|image|mimes:jpg,jpeg,png|max:50';
+
+        $aadhaarDocRule = 'nullable|mimes:pdf|max:250';
+        $panDocRule = 'nullable|mimes:pdf|max:250';
+
+        $request->validate([
+            'login_id'           => 'nullable|string',
+            'applicant_name'     => 'nullable|string|max:255',
+            'fathers_name'       => 'nullable|string|max:255',
+            'applicants_address' => 'nullable|string|max:500',
+            'd_o_b'              => 'nullable|date',
+            'age'                => 'integer|min:18|max:100',
+            'previously_number'  => 'nullable|string',
+            'previously_date'    => 'nullable|date',
+            'wireman_details'    => 'nullable|string|max:255',
+            'employer_name'      => 'nullable|string|max:255',
+            'form_name'          => 'nullable|string|max:2',
+            'license_name'       => 'nullable|string|max:2',
+            'form_id'            => 'nullable|integer',
+            'amount'             => 'nullable|numeric|min:0',
+            'pancard'             => ['nullable', 'string', 'regex:/^([A-Z]{5}[0-9]{4}[A-Z])?$/'],
+            'applicant_email'     => 'nullable|email|max:191',
+
+            'educational_level'    => 'nullable|array|min:1',
+            'educational_level.*'  => 'nullable|string|max:50',
+            'institute_name'       => 'nullable|array|min:1',
+            'institute_name.*'     => 'nullable|string|max:255',
+            'year_of_passing'      => 'nullable|array|min:1',
+            'year_of_passing.*'    => 'nullable',
+            'month_passing'        => 'nullable|array',
+            'month_passing.*'      => 'nullable|string|max:20',
+            'certificate_no'      => 'nullable|array',
+            'certificate_no.*'    => 'nullable|string|max:20',
+
+
+            'upload_photo'   => $uploadPhotoRule,
+            'upload_sign'    => $uploadSignRule,
+            'aadhaar_doc'    => $aadhaarDocRule,
+            'pancard_doc'    => $panDocRule,
+
+            'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+
+            'work_document'        => 'nullable|array',
+            'work_document.*'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
+            'work_date_from'       => 'nullable|array',
+            'work_date_from.*'     => 'nullable|date',
+            'work_date_to'         => 'nullable|array',
+            'work_date_to.*'       => 'nullable|date',
+            'work_experience_total'   => 'nullable|array',
+            'work_experience_total.*' => 'nullable|numeric|min:0|max:50',
+        ], [
+
+            // education arrays
+            'education_document.*'    => 'Educational document size permitted only 5 KB to 200 KB.',
+            'work_document.*.max'    => 'Experience document size permitted only 5 KB to 200 KB.',
+
+
+            'educational_level.*.string'    => 'Educational level must be a valid string.',
+            'educational_level.*.max'       => 'Educational level may not be greater than 50 characters.',
+
+            'institute_name.*.string'       => 'Institute name must be a valid string.',
+            'institute_name.*.max'          => 'Institute name may not be greater than 255 characters.',
+
+
+            // work experience arrays
+            'work_level.*.string'           => 'Work level must be a valid string.',
+            'work_level.*.max'              => 'Work level may not be greater than 50 characters.',
+
+            'experience.*.numeric'          => 'Experience must be a number.',
+            'experience.*.min'              => 'Experience cannot be negative.',
+            'experience.*.max'              => 'Experience may not exceed 50 years.',
+
+            'designation.*.string'          => 'Designation must be a valid string.',
+            'designation.*.max'             => 'Designation may not be greater than 100 characters.',
+
+            'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
+
+        ]);
+
+        $action = $request->form_action; // "draft" or "submit"
+        $loginId = $request->login_id;
+        $appl_type = $request->appl_type ?? '';
+
+        DB::beginTransaction();
+
+        try {
+            $hasCompanyNameColumn = Schema::hasColumn('tnelb_applicants_exp', 'company_name');
+            $hasEmpCateColumn = Schema::hasColumn('tnelb_applicants_exp', 'emp_cate');
+            $hasExperienceColumn = Schema::hasColumn('tnelb_applicants_exp', 'experience');
+            $hasTotalExpColumn = Schema::hasColumn('tnelb_applicants_exp', 'total_exp');
+            // 🔹 Find existing application if $id is passed
+
+            $form = $id ? TnelbFormP::where('application_id', $id)->first() : null;
+
+            // 🔹 Determine Application ID
+            if ($form) {
+                $applicationId = $form->application_id;
+            } else {
+
+                // Create New Application ID
+                $appl_type = $request->appl_type ?? '';
+
+                $lastApplication = TnelbFormP::latest('id')->value('application_id');
+                if ($lastApplication) {
+                    $lastNumber = (int) substr($lastApplication, -7);
+                    $applicationId = $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
+                } else {
+                    $applicationId = $request->form_name . $request->license_name . date('y') . '1111111';
+                }
+            }
+
+
+
+            $encrypted_aadhaar = Crypt::encryptString($request->aadhaar);
+
+
+            if ($request->hasFile('aadhaar_doc')) {
+                $file = $request->file('aadhaar_doc');
+
+                $contents = file_get_contents($file->getRealPath());
+
+                $encrypted = Crypt::encrypt($contents);
+
+                $aadhaarFilename = time() . '_' . rand(10000, 9999999) . '.bin';
+                $destinationPath = storage_path('app/private_documents');
+
+                if (!is_dir($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+
+                file_put_contents($destinationPath . '/' . $aadhaarFilename, $encrypted);
+            } elseif ($request->input('aadhaar_doc_removed') == "1") {
+                // ✅ Removed but not replaced
+                $aadhaarFilename = null;
+            } else {
+                // ✅ Keep the old one
+                $aadhaarFilename = $form?->aadhaar_doc ?? null;
+            }
+
+            $panPlainDraft = (string) $request->input('pancard', '');
+            if ($form && ! $request->exists('pancard')) {
+                $encrypted_pancard = $form->pancard;
+            } else {
+                $encrypted_pancard = $panPlainDraft !== '' ? Crypt::encryptString($panPlainDraft) : null;
+            }
+
+            if ($request->hasFile('pancard_doc')) {
+                $panFile = $request->file('pancard_doc');
+                $panContents = file_get_contents($panFile->getRealPath());
+                $panEncrypted = Crypt::encrypt($panContents);
+                $panFilename = time() . '_' . rand(10000, 9999999) . '_pan.bin';
+                $destinationPathPan = storage_path('app/private_documents');
+                if (! is_dir($destinationPathPan)) {
+                    mkdir($destinationPathPan, 0755, true);
+                }
+                file_put_contents($destinationPathPan . '/' . $panFilename, $panEncrypted);
+            } elseif ($request->input('pancard_doc_removed') == '1') {
+                $panFilename = null;
+            } else {
+                $panFilename = $form?->pan_doc ?? null;
+            }
+
+
+            $emailDraft = $request->exists('applicant_email')
+                ? (($e = trim((string) $request->input('applicant_email', ''))) !== '' ? $e : null)
+                : ($form?->applicant_email ?? null);
+
+            // 🔹 Prepare Data
+            $data = [
+                'login_id'          => $loginId,
+                'applicant_name'    => $request->applicant_name ?? $request->Applicant_Name,
+                'fathers_name'      => $request->fathers_name ?? $request->Fathers_Name,
+                'applicant_email'   => $emailDraft,
+                'applicants_address' => $request->applicants_address,
+                'd_o_b'             => $request->d_o_b ?? null,
+                'age'               => $request->age,
+                'app_status'            => 'P', // Pending (for both draft/submit)
+                'previously_number' => $request->previously_number ?? null,
+                'previously_date'   => $request->previously_date ?? null,
+                'wireman_details'   => $request->wireman_details,
+                'employer_detail'   => $request->employer_name,
+                'form_name'         => $request->form_name,
+                'form_id'           => $request->form_id,
+                'license_name'      => $request->license_name,
+                'aadhaar'           => $encrypted_aadhaar ?? null,
+                'pancard'           => $encrypted_pancard,
+                'appl_type'         => $request->appl_type,
+                'license_number'    => $request->license_number,
+                'payment_status'    => $action === 'draft' ? 'draft' : 'payment',
+                'aadhaar_doc'         => $aadhaarFilename,
+                'pan_doc'             => $panFilename,
+                'certificate_no'      => is_array($request->certificate_no ?? null) ? null : ($request->certificate_no ?? null),
+                'certificate_date'   => is_array($request->certificate_date ?? null) ? null : ($request->certificate_date ?? null),
+                'application_id'    => $applicationId,
+                'cert_verify'    => $request->cert_verify ?? '0',
+                'license_verify'    => $request->l_verify ?? '0',
+                'old_application' => $form?->old_application ?? null,
+                // submitted_date is intentionally NOT set here; it is owned by PaymentController
+                // when the application transitions out of draft after a successful payment.
+                'updated_at'      => $this->dbNow,
+            ];
+
+            // 🔹 Insert or Update
+            if ($form) {
+                $form->update($data);
+            } else {
+                $data['created_at'] = $this->dbNow;
+                $form = TnelbFormP::create($data);
+            }
+
+
+            if ($request->has('educational_level')) {
+
+                // ✅ Fetch the last edu_serial from DB
+                $lastEdu = Mst_education::whereNotNull('edu_serial')->latest('id')->value('edu_serial');
+                $lastNum = $lastEdu ? (int) str_replace('edu_', '', $lastEdu) : 0;
+
+                foreach ($request->educational_level as $key => $level) {
+
+                    if (
+                        empty($level) &&
+                        empty($request->institute_name[$key] ?? null) &&
+                        empty($request->year_of_passing[$key] ?? null) &&
+                        empty($request->certificate_no[$key] ?? null)
+                    ) {
+                        continue; // skip empty row
+                    }
+
+                    $eduId = $request->edu_id[$key] ?? null;
+                    $education = $eduId ? Mst_education::find($eduId) : null;
+
+                    // ✅ Check if file is removed via JS
+                    $isFileRemoved = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
+
+                    // ✅ File Handling
+                    $filePath = null;
+
+                    // Case 1: File removed explicitly by user
+                    if ($isFileRemoved) {
+                        $filePath = null;
+                    }
+
+                    // Case 2: New file uploaded
+                    elseif (isset($request->file('education_document')[$key]) && $request->file('education_document')[$key]->isValid()) {
+                        $file = $request->file('education_document')[$key];
+                        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                        $destinationPath = public_path('education_document');
+                        $file->move($destinationPath, $filename);
+                        $filePath = 'education_document/' . $filename;
+                    }
+
+                    // Case 3: No new file, not removed, keep existing
+                    elseif (!empty($request->existing_document[$key] ?? null)) {
+                        $filePath = $request->existing_document[$key];
+                    }
+
+                    // ✅ Update or Create record
+                    if ($education) {
+                        $education->update([
+                            'educational_level' => $level ?? null,
+                            'institute_name'    => $request->institute_name[$key] ?? null,
+                            'month_passing'     => $request->month_passing[$key] ?? null,
+                            'year_of_passing'   => $request->year_of_passing[$key] ?? null,
+                            'certificate_no'    => $request->certificate_no[$key] ?? null,
+                            'upload_document'   => $filePath,
+                        ]);
+                    } else {
+                        $lastNum++;
+                        $newEduSerial = 'edu_' . $lastNum;
+
+                        Mst_education::create([
+                            'login_id'          => $loginId,
+                            'educational_level' => $level,
+                            'institute_name'    => $request->institute_name[$key],
+                            'month_passing'     => $request->month_passing[$key] ?? null,
+                            'year_of_passing'   => $request->year_of_passing[$key],
+                            'certificate_no'    => $request->certificate_no[$key] ?? null,
+                            'application_id'    => $applicationId,
+                            'edu_serial'        => $newEduSerial,
+                            'upload_document'   => $filePath,
+                        ]);
+                    }
+                }
+            }
+
+
+            if ($request->has('work_level')) {
+                $hasFromDateColumn = Schema::hasColumn('tnelb_applicants_exp', 'from_date');
+                $hasToDateColumn = Schema::hasColumn('tnelb_applicants_exp', 'to_date');
+                // ✅ Fetch last exp_serial from DB once
+                $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
+                $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
+
+                foreach ($request->work_level as $key => $company) {
+                    $fromDate = $request->work_date_from[$key] ?? null;
+                    $toDate = $request->work_date_to[$key] ?? null;
+                    $totalExp = $this->formPResolveWorkTotalYears($request, $key);
+                    $designation = $request->designation[$key] ?? null;
+
+                    // ✅ Skip empty rows
+                    if (
+                        empty($company) &&
+                        empty($fromDate) &&
+                        empty($toDate) &&
+                        empty($totalExp) &&
+                        empty($designation)
+                    ) {
+                        continue;
+                    }
+
+                    // ✅ Check if row already exists
+                    $workId = $request->work_id[$key] ?? null;
+                    $work = $workId ? Mst_experience::find($workId) : null;
+
+                    // ✅ File Handling
+                    $filePath = null;
+                    $isFileRemoved = isset($request->removed_document_work[$key]) && $request->removed_document_work[$key] == '1';
+
+                    if (!$isFileRemoved && isset($request->file("work_document")[$key])) {
+                        $file = $request->file("work_document")[$key];
+
+                        if ($file && $file->isValid()) {
+                            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                            $destinationPath = public_path('work_experience');
+                            $file->move($destinationPath, $filename);
+                            $filePath = 'work_experience/' . $filename;
+                        }
+                    }
+
+                    if ($work) {
+                        // 🔹 UPDATE existing record
+                        $workPayload = [
+                            'designation'     => $designation,
+                            'upload_document' => $isFileRemoved ? null : ($filePath ?? $work->upload_document),
+                        ];
+                        if ($hasCompanyNameColumn) {
+                            $workPayload['company_name'] = $company ?? null;
+                        } elseif ($hasEmpCateColumn) {
+                            $workPayload['emp_cate'] = $company ?? null;
+                        }
+                        if ($hasFromDateColumn) {
+                            $workPayload['from_date'] = $fromDate ?: null;
+                        }
+                        if ($hasToDateColumn) {
+                            $workPayload['to_date'] = $toDate ?: null;
+                        }
+                        if ($hasTotalExpColumn) {
+                            $workPayload['total_exp'] = format_total_exp_years($totalExp);
+                        }
+                        if ($hasExperienceColumn) {
+                            $workPayload['experience'] = format_total_exp_years($totalExp);
+                        }
+                        $work->update($workPayload);
+                    } else {
+                        // 🔹 INSERT new record
+                        $lastNum++;
+                        $newExpSerial = 'exp_' . $lastNum;
+
+                        $workPayload = [
+                            'login_id'        => $loginId,
+                            'designation'     => $designation,
+                            'application_id'  => $applicationId,
+                            'exp_serial'      => $newExpSerial,
+                            'upload_document' => $filePath,
+                        ];
+                        if ($hasCompanyNameColumn) {
+                            $workPayload['company_name'] = $company;
+                        } elseif ($hasEmpCateColumn) {
+                            $workPayload['emp_cate'] = $company;
+                        }
+                        if ($hasFromDateColumn) {
+                            $workPayload['from_date'] = $fromDate ?: null;
+                        }
+                        if ($hasToDateColumn) {
+                            $workPayload['to_date'] = $toDate ?: null;
+                        }
+                        if ($hasTotalExpColumn) {
+                            $workPayload['total_exp'] = format_total_exp_years($totalExp);
+                        }
+                        if ($hasExperienceColumn) {
+                            $workPayload['experience'] = format_total_exp_years($totalExp);
+                        }
+                        Mst_experience::create($workPayload);
+                    }
+                }
+            }
+
+            if ($request->has('institute_name_address')) {
+
+                // ✅ Fetch last exp_serial from DB once
+                // $lastExp = Mst_experience::whereNotNull('exp_serial')->latest('id')->value('exp_serial');
+                // $lastNum = $lastExp ? (int) str_replace('exp_', '', $lastExp) : 0;
+
+                foreach ($request->institute_name_address as $key => $institute) {
+                    if (
+                        empty($institute) &&
+                        empty($request->duration[$key] ?? null) &&
+                        empty($request->from_date[$key] ?? null) &&
+                        empty($request->to_date[$key] ?? null)
+                    ) {
+                        continue;
+                    }
+
+                    $instituteId = $request->institute_id[$key] ?? null;
+                    $institutes = null;
+                    if ($instituteId) {
+                        $candidate = TnelbAppsInstitute::find($instituteId);
+                        if ($candidate && (string) $candidate->application_id === (string) $applicationId) {
+                            $institutes = $candidate;
+                        }
+                    }
+
+                    $filePath = null;
+                    $isFileRemoved = isset($request->removed_document_inst[$key]) && $request->removed_document_inst[$key] == '1';
+                    $existingDoc = $request->exist_institute_document[$key]
+                        ?? $request->institute_existdocument[$key]
+                        ?? null;
+
+                    if (!$isFileRemoved && isset($request->file('institute_document')[$key])) {
+                        $file = $request->file('institute_document')[$key];
+
+                        if ($file && $file->isValid()) {
+                            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                            $destinationPath = public_path('institute_document');
+                            $file->move($destinationPath, $filename);
+                            $filePath = 'institute_document/' . $filename;
+                        }
+                    }
+
+                    if ($institutes) {
+                        $institutes->update([
+                            'institute_name_address' => $institute ?? null,
+                            'duration'               => $request->duration[$key] ?? null,
+                            'from_date'                => $request->from_date[$key] ?? null,
+                            'to_date'                  => $request->to_date[$key] ?? null,
+                            'upload_doc'               => $isFileRemoved ? null : ($filePath ?? $institutes->upload_doc ?? $existingDoc),
+                        ]);
+                    } else {
+                        TnelbAppsInstitute::create([
+                            'login_id'               => $loginId,
+                            'application_id'         => $applicationId,
+                            'institute_name_address' => $institute,
+                            'duration'               => $request->duration[$key],
+                            'from_date'              => $request->from_date[$key],
+                            'to_date'                  => $request->to_date[$key],
+                            'upload_doc'               => $isFileRemoved ? null : ($filePath ?? $existingDoc),
+                        ]);
+                    }
+                }
+            }
+
+
+            // 🔹 Save Photo if New Upload
+            if ($request->hasFile('upload_photo')) {
+                $photoName = 'user_' . time() . '.' . $request->file('upload_photo')->getClientOriginalExtension();
+                $request->file('upload_photo')->move(public_path('attached_documents'), $photoName);
+
+                TnelbApplicantPhoto::updateOrCreate(
+                    ['application_id' => $applicationId],
+                    [
+                        'login_id' => $loginId,
+                        'upload_path' => 'attached_documents/' . $photoName,
+                    ]
+                );
+            }
+
+            if ($request->hasFile('upload_sign')) {
+                $signFile = $request->file('upload_sign');
+                $signName = 'sign_' . time() . '.' . $signFile->getClientOriginalExtension();
+                $signFile->move(public_path('attached_documents'), $signName);
+
+                TnelbApplicantsSign::updateOrCreate(
+                    ['application_id' => $applicationId],
+                    [
+                        'login_id'     => $loginId,
+                        'uploaded_doc' => 'attached_documents/' . $signName,
+                    ]
+                );
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $action === 'draft' ? 'Draft saved successfully!' : 'Form submitted successfully!',
+                'application_id' => $applicationId,
+                'applicantName' => $form->applicant_name
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong. Please try again!',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
 
     public function delete_institute(Request $request)
     {

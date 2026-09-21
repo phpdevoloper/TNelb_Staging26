@@ -14,6 +14,8 @@ class generateLicencepdfController extends Controller
 
     public function licencepdf_cl($application_id)
     {
+
+    // dd($application_id); exit;
         // ---------------------------------------
         // 1. DETECT WHICH TABLE HAS THE APPLICATION
         // ---------------------------------------
@@ -32,6 +34,8 @@ class generateLicencepdfController extends Controller
                 ->where('application_id', $application_id)
                 ->first();
 
+                // dd($record); exit;
+
             if ($record) {
                 $application = $record;
                 $table_name = $t;
@@ -42,6 +46,8 @@ class generateLicencepdfController extends Controller
         if (!$application) {
             return back()->with('error', 'Application ID not found.');
         }
+
+        // dd($application->license_name);exit;
 
         $licence_id = DB::table('mst_licences')
             ->where('cert_licence_code', $application->license_name)
@@ -54,58 +60,75 @@ class generateLicencepdfController extends Controller
         // ---------------------------------------
         // 2. FRESH APPLICATION (appl_type = N)
         // ---------------------------------------
-        if ($appltype === 'N') {
+      
 
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
+            $applicant = DB::table('cl_forma_lic')
+                ->join($table_name, 'cl_forma_lic.application_id', '=', $table_name . '.application_id')
+                ->where('cl_forma_lic.application_id', $application_id)
                 ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
+                    'cl_forma_lic.application_id',
+                    'cl_forma_lic.issued_by',
+                    'cl_forma_lic.valid_from',
+                    'cl_forma_lic.valid_to',
+                    'cl_forma_lic.dateof_issue',
 
                     $table_name . '.applicant_name AS name',
                     $table_name . '.license_name',
                     $table_name . '.form_name',
 
-                    'tnelb_license.license_number'
+                    'cl_forma_lic.license_number'
                 )
                 ->first();
 
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
+                 $QCstaffDetails = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereRaw("UPPER(TRIM(staff_category)) IN ('QC', 'QSC')")
+            ->where('staff_flag', '1')
+            ->orderBy('id')
+            ->get();
+
+              $staffDetails = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereRaw("UPPER(TRIM(staff_category)) NOT IN ('QC', 'QSC')")
+            ->where('staff_flag', '1')
+            ->orderBy('id')
+            ->get();
+        
 
         // ---------------------------------------
         // 3. RENEWAL APPLICATION
         // ---------------------------------------
-        else {
+        // else {
 
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
-                ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
+        //     $applicant = DB::table('tnelb_renewal_license')
+        //         ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
+        //         ->where('tnelb_renewal_license.application_id', $application_id)
+        //         ->select(
+        //             'tnelb_renewal_license.application_id',
+        //             'tnelb_renewal_license.issued_by',
+        //             'tnelb_renewal_license.valid_from',
+        //             'tnelb_renewal_license.valid_to',
 
-                    $table_name . '.applicant_name AS name',
-                    $table_name . '.license_name',
-                    $table_name . '.form_name',
+        //             $table_name . '.applicant_name AS name',
+        //             $table_name . '.license_name',
+        //             $table_name . '.form_name',
 
-                    'tnelb_renewal_license.license_number'
-                )
-                ->first();
+        //             'tnelb_renewal_license.license_number'
+        //         )
+        //         ->first();
 
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
-                ->where('application_id', $application_id)
-                ->orderBy('id')
-                ->get();
-        }
+        //     $QCstaffDetails = DB::table('cl_staff_tbl')
+        //     ->where('application_id', $application_id)
+        //     ->whereRaw("UPPER(TRIM(staff_category)) IN ('QC', 'QSC')")
+        //     ->orderBy('id')
+        //     ->get();
+
+        //    $staffDetails = DB::table('cl_staff_tbl')
+        //     ->where('application_id', $application_id)
+        //     ->whereRaw("UPPER(TRIM(staff_category)) NOT IN ('QC', 'QSC')")
+        //     ->orderBy('id')
+        //     ->get();
+        // }
 
 
         // ---------------------------------------
@@ -168,14 +191,14 @@ class generateLicencepdfController extends Controller
         .text-uppercase{text-transform:uppercase;}
         .font-size-16{font-size:16px;}
         .font-weight-n{font-weight:normal}
-        
+
     </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
         $grade_name = $applicant->license_name;
         // dd($grade_name);
         // exit;
 
         if ($grade_name == 'EA') {
-            $grade_name_txt = 'EA Grade Contractor Licence';
+            $grade_name_txt = 'Electrical Contractors Licence Grade A';
         } elseif ($grade_name == 'ESA') {
             $grade_name_txt = 'ESA Grade Contractor Licence';
         } elseif ($grade_name == 'ESB') {
@@ -213,9 +236,9 @@ class generateLicencepdfController extends Controller
 
         </td>
 
-        
 
-  
+
+
     </tr>
 </table>';
 
@@ -250,12 +273,12 @@ class generateLicencepdfController extends Controller
 
                 <tr>
                     <td><b class="txt_uppercase">D.O.I</b></td>
-                    <td>: ' . format_date($applicant->issued_at) . '</td>
+                    <td>: ' . format_date($applicant->dateof_issue) . '</td>
                 </tr>
 
                 <tr>
                     <td><b class="txt_uppercase">Validity</b></td>
-                    <td>: ' . format_date($applicant->issued_at) . ' To ' . format_date($applicant->expires_at) . '</td>
+                    <td>: ' . format_date($applicant->valid_from) . ' To ' . format_date($applicant->valid_to) . '</td>
                 </tr>
 
                 <tr>
@@ -272,9 +295,9 @@ class generateLicencepdfController extends Controller
 
         <!-- RIGHT SIDE QR -->
         <td style="width:20%; text-align:right; vertical-align:top;">
-            <barcode 
-                code="' . htmlspecialchars($qrData) . '" 
-                type="QR" 
+            <barcode
+                code="' . htmlspecialchars($qrData) . '"
+                type="QR"
                 size="1.5"
                 error="H"
             />
@@ -282,34 +305,111 @@ class generateLicencepdfController extends Controller
     </tr>
 </table>';
 
+$html .= '
+<h4 class="mt-2 orange font-size-14 font-weight txt_uppercase">QC Staff Details</h4>
+
+<table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center;">
+
+   <tr style="background-color:#f2f2f2;">
+        <th class="font-weight-n">S.No</th>
+        <th class="font-weight-n">Staff Category</th>
+         <th class="font-weight-n">Certificate Number</th>
+         <th class="font-weight-n">Date Of First Issue</th>
+        <th class="font-weight-n">Validity From</th>
+        <th class="font-weight-n">Validity To</th>
+    </tr>';
+
+       if ($QCstaffDetails->count() > 0) {
+    $i = 1;
+    foreach ($QCstaffDetails as $staff) {
+
+        $html .= '
+        <tr>
+            <td>' . $i++ . '</td>
+            <td>' . strtoupper($staff->staff_category) . '</td>
+            <td>' . $staff->staff_cc_no . '</td>
+            <td>' . $staff->staff_cc_first_issue . '</td>
+            <td>' . format_date($staff->staff_cc_validity_from) . '</td>
+             <td>' . format_date($staff->staff_cc_validity_to) . '</td>
+        </tr>';
+    }
+    
+} else {
+    $html .= '
+    <tr>
+        <td colspan="4">No Staff Details Available</td>
+    </tr>';
+}
+ $html .= '</table>';
         $html .= '
 <h4 class="mt-2 orange font-size-14 font-weight txt_uppercase">Staff Details</h4>
 
 <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center;">
 
-    <tr style="background-color:#f2f2f2;">
-        <th>S.No</th>
-        <th>Name</th>
-        <th>Certificate Number</th>
-        <th>Certificate Validity</th>
+   <tr style="background-color:#f2f2f2;">
+        <th class="font-weight-n">S.No</th>
+        <th class="font-weight-n">Staff Category</th>
+         <th class="font-weight-n">Certificate Number</th>
+         <th class="font-weight-n">Date Of First Issue</th>
+        <th class="font-weight-n">Validity From</th>
+        <th class="font-weight-n">Validity To</th>
     </tr>';
 
-       if ($staffDetails->count() > 0) {
+  if ($staffDetails->count() > 0) {
+
     $i = 1;
+
     foreach ($staffDetails as $staff) {
 
-        $html .= '
-        <tr>
-            <td>' . $i++ . '</td>
-            <td>' . strtoupper($staff->staff_name) . '</td>
-            <td>' . $staff->cc_number . '</td>
-            <td>' . format_date($staff->cc_validity) . '</td>
-        </tr>';
+        $category = strtoupper(trim((string) $staff->staff_category));
+
+        if ($category === 'OTHERS') {
+
+            // OTHERS: show designation only
+            $html .= '
+            <tr>
+                <td>' . $i++ . '</td>
+                <td>' . $category . '</td>
+                <td>' . htmlspecialchars($staff->staff_designation ?? '-') . '</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>';
+
+        } else {
+
+            // Other categories: show CC number and validity
+            $staffNumber = $staff->staff_cc_no ?? '-';
+
+            $firstIssue = !empty($staff->staff_cc_first_issue)
+                ? format_date($staff->staff_cc_first_issue)
+                : '-';
+
+            $validityFrom = !empty($staff->staff_cc_validity_from)
+                ? format_date($staff->staff_cc_validity_from)
+                : '-';
+
+            $validityTo = !empty($staff->staff_cc_validity_to)
+                ? format_date($staff->staff_cc_validity_to)
+                : '-';
+
+            $html .= '
+            <tr>
+                <td>' . $i++ . '</td>
+                <td>' . $category . '</td>
+                <td>' . htmlspecialchars($staffNumber) . '</td>
+                <td>' . htmlspecialchars($firstIssue) . '</td>
+                <td>' . htmlspecialchars($validityFrom) . '</td>
+                <td>' . htmlspecialchars($validityTo) . '</td>
+            </tr>';
+        }
     }
+
 } else {
+
     $html .= '
     <tr>
-        <td colspan="4">No Staff Details Available</td>
+        <td colspan="6">No Staff Details Available</td>
     </tr>';
 }
         $html .= '</table>';
@@ -341,7 +441,7 @@ class generateLicencepdfController extends Controller
                     <th >Equipment Name</th>
                     <th >Equipment Type</th>
                     <th  align="center">Serial No</th>
-                    <th align="center">	Make Model</th>
+                   
                     <th  align="center">Date of Test</th>
                 </tr>
             </thead>
@@ -363,7 +463,7 @@ class generateLicencepdfController extends Controller
                 <td align="center">' . $equip->equip_name . '</td>
                 <td align="center">' . $equip->equipment_type . '</td>
                 <td align="center">' . $serial . '</td>
-                <td align="center">' . $model . '</td>
+                
                 <td align="center">' . $date . '</td>
             </tr>';
             $slno++;
@@ -406,7 +506,7 @@ class generateLicencepdfController extends Controller
             <tr>
                 <td style="text-align:left;">TNELB</td>
                 <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-                
+
             </tr>
         </table>
         ');
@@ -465,24 +565,24 @@ class generateLicencepdfController extends Controller
         // ---------------------------------------
         if ($appltype === 'N') {
 
-            $applicant = DB::table('tnelb_license')
-                ->join($table_name, 'tnelb_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_license.application_id', $application_id)
+            $applicant = DB::table('cl_forma_lic')
+                ->join($table_name, 'cl_forma_lic.application_id', '=', $table_name . '.application_id')
+                ->where('cl_forma_lic.application_id', $application_id)
                 ->select(
-                    'tnelb_license.application_id',
-                    'tnelb_license.issued_by',
-                    'tnelb_license.issued_at',
-                    'tnelb_license.expires_at',
+                    'cl_forma_lic.application_id',
+                    'cl_forma_lic.issued_by',
+                    'cl_forma_lic.valid_from',
+                    'cl_forma_lic.valid_to',
 
                     $table_name . '.applicant_name AS name',
                     $table_name . '.license_name',
                     $table_name . '.form_name',
 
-                    'tnelb_license.license_number'
+                    'cl_forma_lic.license_number'
                 )
                 ->first();
 
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            $staffDetails = DB::table('cl_staff_tbl')
                 ->where('application_id', $application_id)
                 ->orderBy('id')
                 ->get();
@@ -499,8 +599,8 @@ class generateLicencepdfController extends Controller
                 ->select(
                     'tnelb_renewal_license.application_id',
                     'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
+                    'tnelb_renewal_license.valid_from',
+                    'tnelb_renewal_license.valid_to',
 
                     $table_name . '.applicant_name AS name',
                     $table_name . '.license_name',
@@ -510,7 +610,7 @@ class generateLicencepdfController extends Controller
                 )
                 ->first();
 
-            $staffDetails = DB::table('tnelb_applicant_cl_staffdetails')
+            $staffDetails = DB::table('cl_staff_tbl')
                 ->where('application_id', $application_id)
                 ->orderBy('id')
                 ->get();
@@ -532,7 +632,7 @@ class generateLicencepdfController extends Controller
             'margin_right' => 10,
             'margin_top' => 10,
             'margin_bottom' => 10,
-            
+
             'mode' => 'utf-8',
 
             'fontDir' => array_merge($fontDirs, [
@@ -550,7 +650,7 @@ class generateLicencepdfController extends Controller
             'autoScriptToLang' => true,
             'autoLangToFont'   => true,
         ]);
-  
+
 
         $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
 
@@ -602,7 +702,7 @@ class generateLicencepdfController extends Controller
         font-size:18px;
         }
         .ft-wt-18{font-size:18px;}
-        
+
     </style>', \Mpdf\HTMLParserMode::HEADER_CSS);
         $grade_name = $applicant->license_name;
         // dd($grade_name);
@@ -647,9 +747,9 @@ class generateLicencepdfController extends Controller
 
         </td>
 
-       
 
-  
+
+
     </tr>
 </table>';
 
@@ -671,7 +771,7 @@ class generateLicencepdfController extends Controller
             $proprietorNames = '—';
         }
 
- 
+
 
 $html .= '
 <table style="width:100%; border-collapse:collapse;" class="mt-1 mb-1">
@@ -679,7 +779,7 @@ $html .= '
         <!-- LEFT SIDE DATA -->
         <td style="width:80%; vertical-align:top;">
             <table style="width:100%;">
-               
+
     <tr>
         <td style="width:40%;"><b>உரிமம் எண்</b></td>
         <td>: ' . $applicant->license_number . '</td>
@@ -687,12 +787,12 @@ $html .= '
 
     <tr>
         <td><b>வழங்கிய நாள்</b></td>
-        <td>: ' . format_date($applicant->issued_at) . '</td>
+        <td>: ' . format_date($applicant->valid_from) . '</td>
     </tr>
 
     <tr>
         <td><b>செல்லுபடியாகும் காலம்</b></td>
-        <td>: ' . format_date($applicant->issued_at) . ' To ' . format_date($applicant->expires_at) . '</td>
+        <td>: ' . format_date($applicant->valid_from) . ' To ' . format_date($applicant->valid_to) . '</td>
     </tr>
 
     <tr>
@@ -709,9 +809,9 @@ $html .= '
 
         <!-- RIGHT SIDE QR -->
         <td style="width:20%; text-align:right; vertical-align:top;">
-            <barcode 
-                code="' . htmlspecialchars($qrData) . '" 
-                type="QR" 
+            <barcode
+                code="' . htmlspecialchars($qrData) . '"
+                type="QR"
                 size="1.5"
                 error="H"
             />
@@ -726,9 +826,10 @@ $html .= '
 
     <tr style="background-color:#f2f2f2;">
         <th class="font-weight-n">S.No</th>
-        <th class="font-weight-n">Name</th>
-        <th class="font-weight-n">Certificate Number</th>
-        <th class="font-weight-n">Certificate Validity</th>
+        <th class="font-weight-n">Staff Category</th>
+         <th class="font-weight-n">Certificate Number</th>
+        <th class="font-weight-n">Validity From</th>
+        <th class="font-weight-n">Validity To</th>
     </tr>';
 
        if ($staffDetails->count() > 0) {
@@ -738,9 +839,10 @@ $html .= '
         $html .= '
         <tr>
             <td>' . $i++ . '</td>
-            <td>' . strtoupper($staff->staff_name) . '</td>
-            <td>' . $staff->cc_number . '</td>
-            <td>' . format_date($staff->cc_validity) . '</td>
+            <td>' . strtoupper($staff->staff_category) . '</td>
+            <td>' . $staff->staff_cc_no . '</td>
+            <td>' . format_date($staff->staff_cc_validity_from) . '</td>
+             <td>' . format_date($staff->staff_cc_validity_to) . '</td>
         </tr>';
     }
 } else {
@@ -843,7 +945,7 @@ $html .= '
             <tr>
                 <td style="text-align:left;">TNELB</td>
                 <td class="label" style="text-align:right;">Date : ' . date('d-m-Y') . '</td>
-                
+
             </tr>
         </table>
         ');

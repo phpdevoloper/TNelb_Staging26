@@ -56,14 +56,14 @@ class FormController extends BaseController
     protected $today,$dbNow;
     public function __construct()
     {
-        parent::__construct();   
+        parent::__construct();
         $this->middleware('web');
         $this->today = Carbon::today()->toDateString();
         $this->dbNow  = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
 
 
     }
-    
+
     private function getApplicableFee($certLicenceId)
     {
         return TnelbFee::where('cert_licence_id', $certLicenceId)
@@ -592,19 +592,19 @@ class FormController extends BaseController
 
     private function rejectIfFormSSubmitInvalid(Request $request, $action)
     {
-        
+
         if ((string) $action === 'draft') {
             return null;
         }
 
         $boardMemberErr = $this->validateFormSBoardMemberWorkRows($request);
-        
+
         if ($boardMemberErr !== null) {
             return response()->json(['status' => 'error', 'message' => $boardMemberErr], 422);
         }
 
         $contractorErr = $this->checkContractorExperience($request);
-        
+
         if ($contractorErr !== null) {
             return response()->json(['status' => 'error', 'message' => $contractorErr], 422);
         }
@@ -614,7 +614,7 @@ class FormController extends BaseController
 
     private function checkContractorExperience(Request $request): ?string
     {
-        
+
         if (strtoupper((string) ($request->appl_type ?? '')) !== 'D') {
             return null;
         }
@@ -641,7 +641,7 @@ class FormController extends BaseController
         if (! $row || $row->licence_no === null || trim((string) $row->licence_no) === '') {
             return null;
         }
-        
+
         $wantCat = strtoupper(trim((string) $row->cl_type));
         $wantLic = preg_replace('/\D+/', '', (string) $row->licence_no);
         $wantOrg = strtolower(trim(preg_replace('/\s+/', ' ', (string) $row->contractor_name)));
@@ -1259,7 +1259,7 @@ class FormController extends BaseController
             )
             : null;
 
-        
+
         return [
             'org_name' => $orgName,
             'org_address' => ($orgAddress !== '' ? $orgAddress : null),
@@ -2117,8 +2117,8 @@ class FormController extends BaseController
             }
 
             $anyCountable = true;
-            
-            
+
+
 
 
 
@@ -2490,7 +2490,7 @@ class FormController extends BaseController
             }
         }
 
-        return DB::table('tnelb_license')
+        return DB::table('cl_forma_lic')
             ->where('application_id', $applicationId)
             ->select('*')
             ->first();
@@ -2964,11 +2964,11 @@ class FormController extends BaseController
                 $edu_details = CC_Education::where('application_id', $application_id)
                     ->orderByDesc('year_of_passing')
                     ->get();
-             
+
                 $exp_details = CC_Experience::where('application_id', $application_id)
                     ->orderBy('exp_id')
                     ->get();
-            
+
             }
         }
 
@@ -3045,7 +3045,7 @@ class FormController extends BaseController
         if ($validate->fails()) {
             return response()->json(['message' => $validate->errors()->first()], 422);
         }
-        
+
         if (! Auth::check()) {
             return response()->json(['message' => 'Please sign in to view this application.'], 401);
         }
@@ -3059,7 +3059,7 @@ class FormController extends BaseController
         $application = DB::table('cc_form_s_meta')->where('application_id', $application_id)->first();
         $getdetails_digitisation = DB::table('tnelb_cc_digitization')->where('application_id', $application_id)->first();
         $get_digitisation_mapping = DB::table('cc_digitisation_map')->where('application_id', $application_id)->first();
-        
+
         if (! $application) {
             return response()->json(['message' => 'Application not found.'], 404);
         }
@@ -3233,15 +3233,14 @@ class FormController extends BaseController
         $this->fillBoardMemberExperienceYearPlaceholders($request);
         $this->prepareFormPRequest($request);
 
-        
-        $isWorkOptional = in_array($request->form_name, ['W', 'WH', 'P'], true);
-        $isFormP = FormPSchema::isFormP($request->form_name ?? '');
+
+        $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
         $educationLevelRule = ($request->form_name === 'S')
             ? 'required|string|in:DEE,BEE,MEE,AMIE|max:50'
             : 'required|string|max:50';
 
         $rules = [
-            
+
             // basic fields
             'login_id'             => 'required|string',
             'applicant_name'       => 'required|string|max:80',
@@ -3277,9 +3276,9 @@ class FormController extends BaseController
             'month_of_passing.*'   => $isFormP ? 'nullable|string|max:20' : 'required|in:01,02,03,04,05,06,07,08,09,10,11,12',
             'year_of_passing'      => 'required|array|min:1',
             'year_of_passing.*'    => 'required|digits:4',
-            'certificate_no'       => $isFormP ? 'nullable|array' : 'required|array|min:1',
-            'certificate_no.*'     => $isFormP ? 'nullable|string|max:20' : 'required|string|max:20',
-            
+            'certificate_no'       => 'required|array|min:1',
+            'certificate_no.*'     => 'required|string|max:20',
+
             // work experience arrays
             'work_level'           => $isWorkOptional ? 'nullable|array' : 'required|array|min:1',
             'work_level.*'         => $isWorkOptional ? 'nullable|string|max:80' : 'required|string|max:80',
@@ -3287,12 +3286,12 @@ class FormController extends BaseController
             'experience.*'         => $isWorkOptional ? 'nullable|numeric|min:0|max:50' : 'required|numeric|min:0|max:50',
             'designation'          => $isWorkOptional ? 'nullable|array' : 'required|array|min:1',
             'designation.*'        => $isWorkOptional ? 'nullable|string|max:80' : 'required|string|max:80',
-            
+
             // single files
             'upload_photo'         => 'required|image|mimes:jpg,jpeg,png|max:50',
             'upload_sign'          => 'required|image|mimes:jpg,jpeg,png|max:50',
-            'aadhaar_doc'          => $isFormP ? 'nullable|mimes:pdf|max:250' : 'required|mimes:pdf|min:10|max:250',
-            
+            'aadhaar_doc'          => 'required|mimes:pdf|min:10|max:250',
+
             // multiple files (arrays) — file OR pre-uploaded path via existing_document / existing_work_document
             'education_document'   => 'nullable|array',
             'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
@@ -3306,7 +3305,7 @@ class FormController extends BaseController
             'existing_work_document.*' => 'nullable|string|max:500',
             'existing_work_relieving_document' => 'nullable|array',
             'existing_work_relieving_document.*' => 'nullable|string|max:500',
-            
+
         ];
 
         if ($this->isCompetencyForm($request->form_name)) {
@@ -3315,7 +3314,7 @@ class FormController extends BaseController
         }
 
         $messages = [
-            
+
             // education arrays
             'educational_level.required'    => 'Please add at least one educational qualification.',
             'educational_level.*.required'  => 'Educational level is required.',
@@ -3326,7 +3325,7 @@ class FormController extends BaseController
             'institute_name.*.required'     => 'Institute name is required.',
             'institute_name.*.string'       => 'Institute name must be a valid string.',
             'institute_name.*.max'          => 'Institute name may not be greater than 80 characters.',
-            
+
             'month_of_passing.required'     => 'Please add at least one educational qualification.',
             'month_of_passing.*.required'   => 'Month of passing is required.',
             'month_of_passing.*.in'         => 'Month of passing must be a valid month.',
@@ -3334,7 +3333,7 @@ class FormController extends BaseController
             'year_of_passing.required'      => 'Please add at least one educational qualification.',
             'year_of_passing.*.required'    => 'Year of passing is required.',
             'year_of_passing.*.digits'      => 'Year of passing must be a 4-digit year.',
-            
+
             'certificate_no.required'       => 'Please add at least one educational qualification.',
             'certificate_no.*.required'         => 'Certificate No is required.',
             'certificate_no.*.string'           => 'Certificate No must be a valid text value.',
@@ -3345,7 +3344,7 @@ class FormController extends BaseController
             'work_level.*.required'         => 'Work level is required.',
             'work_level.*.string'           => 'Work level must be a valid string.',
             'work_level.*.max'              => 'Work level may not be greater than 80 characters.',
-            
+
             'experience.required'           => 'Please add at least one work experience.',
             'experience.*.required'         => 'Experience (in years) is required.',
             'experience.*.numeric'          => 'Experience must be a valid number.',
@@ -3356,7 +3355,7 @@ class FormController extends BaseController
             'designation.*.required'        => 'Designation is required.',
             'designation.*.string'          => 'Designation must be a valid string.',
             'designation.*.max'             => 'Designation may not be greater than 80 characters.',
-            
+
             'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
             'applicant_name.max' => 'Applicant name may not be greater than 80 characters.',
             'fathers_name.max' => 'Father\'s name may not be greater than 80 characters.',
@@ -3368,12 +3367,12 @@ class FormController extends BaseController
             'pancard.required' => 'PAN card number is required.',
             'pancard.regex' => 'Enter a valid 10-character PAN (e.g. ABCDE1234F).',
             'pancard_doc.required' => 'PAN card document upload is required.',
-            
+
              'education_document.*.max'    => 'Educational document must not be greater than 200 kilobytes.',
             'work_document.required'           => 'Please upload at least one experience document.',
             'work_document.*.required'         => 'Experience document is required.',
             'work_document.*.max'              => 'Experience document must not be greater than 200 kilobytes.',
-            
+
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages);
@@ -3465,7 +3464,7 @@ class FormController extends BaseController
         // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
         //     return $reject;
         // }
-        
+
         // Safety fallback: if client doesn't send form_action, keep first save as draft.
         $loginId = $request->login_id;
 
@@ -3480,7 +3479,7 @@ class FormController extends BaseController
         }
 
         DB::beginTransaction();
-        
+
         $encrypted_aadhaar = Crypt::encryptString($request->aadhaar);
         $encrypted_pancard = ($this->isCompetencyForm($request->form_name) && $request->filled('pancard'))
             ? Crypt::encryptString($request->pancard)
@@ -3497,7 +3496,7 @@ class FormController extends BaseController
                     $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
                 } else {
                     $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . '1111111';
-                }     
+                }
             }else{
                 $metaService = app(CompetencyMetaService::class);
         $lastApplication = $metaService->latestApplicationId();
@@ -3507,11 +3506,11 @@ class FormController extends BaseController
                 } else {
                     $newApplicationId = $request->form_name . $request->license_name . date('y') . '1111111';
                 }
-                
+
             }
-            
+
             $aadhaarFilename = null;
-            
+
             $form = CC_Forms_Meta::createForForm((string) ($request->form_name ?? 'S'), array_merge([
                 'login_id'            => $loginId,
                 'application_id'      => $newApplicationId,
@@ -3556,7 +3555,7 @@ class FormController extends BaseController
             ->select('*')
             ->get()
             ->toArray();
-       
+
             $current_form = collect($form_details)->firstWhere('cert_licence_code', $form->certificate_name);
             $category_type = $current_form
                 ? collect($form_category)->firstWhere('id', $current_form['category_id'] ?? null)
@@ -3565,7 +3564,7 @@ class FormController extends BaseController
             $certificate_details['licence_name'] = $current_form['licence_name'] ?? '';
             $certificate_details['category_name'] = $category_type['category_name'] ?? '';
             $certificate_details['form_type'] = $form->appl_type;
-            
+
             // process education (upsert per level so duplicate DOM rows cannot create duplicate DB rows)
             if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
                 $this->persistChildEducationSnapshot($request, $form, $loginId, $request->form_name ?? null);
@@ -3607,7 +3606,7 @@ class FormController extends BaseController
                         'login_id'           => $loginId,
                         'application_id'     => $this->resolveFormSMasterApplicationId($form, $request->form_name),
                         'educational_level'  => $level,
-                    ];  
+                    ];
 
                     $existingByKey = CC_Education::where($upsertAttrs)->first();
 
@@ -3645,7 +3644,7 @@ class FormController extends BaseController
                 }
             }
 
-            
+
             // process experience
             if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
                 $this->persistChildExperienceSnapshot(
@@ -3694,9 +3693,9 @@ class FormController extends BaseController
                     }
                 }
             }
-            
+
             $this->saveCompetencyProofDocuments($request, $form, $request->form_name ?? null);
-            
+
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
 
             DB::commit();
@@ -3719,7 +3718,7 @@ class FormController extends BaseController
                 'type_of_apps' => $certificate_details['category_name'],
                 'form_type'    => $this->competencyFormTypeLabel($certificate_details['form_type']),
                 'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y'),
-                    
+
                     'ccnumber'   => $ccnumber,
                     'fissue'    => $fissue ? Carbon::parse($fissue)->format('d-m-Y') : null,
                     'from_date'    => $from_date ? Carbon::parse($from_date)->format('d-m-Y') : null,
@@ -3751,10 +3750,10 @@ class FormController extends BaseController
                 'form_type'    => $this->competencyFormTypeLabel($certificate_details['form_type']),
                 'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y')
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return $this->formErrorResponse($e, 'Failed to save form. Please try again!');
         }
     }
@@ -4107,8 +4106,8 @@ class FormController extends BaseController
             }
 
             $this->seedFormSDocumentsIfRenewal($existingForm->fresh(), $request->form_name);
-            
-            
+
+
 
             if ($this->shouldSnapshotChildDocuments($existingForm, $request->form_name ?? null)) {
                 $this->persistChildExperienceSnapshot(
@@ -4443,7 +4442,7 @@ class FormController extends BaseController
                 'license_name'       => 'nullable|string|max:2',
                 'form_id'            => 'nullable|integer',
                 'amount'             => 'nullable|numeric|min:0',
-    
+
                 'educational_level'    => 'nullable|array|min:1',
                 'educational_level.*'  => $educationLevelRuleDraft,
                 'institute_name'       => 'nullable|array|min:1',
@@ -4452,14 +4451,14 @@ class FormController extends BaseController
                 'year_of_passing.*'    => 'nullable',
                 'certificate_no'       => 'nullable|array|min:1',
                 'certificate_no.*'     => 'nullable|string|max:20',
-    
-    
+
+
                 'upload_photo'   => $uploadPhotoRule,
                 'upload_sign'    => $uploadSignRule,
                 'aadhaar_doc'    => $aadhaarDocRule,
-    
+
                 'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
-    
+
                 'work_document'        => 'nullable|array',
                 'work_document.*'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
             ],[
@@ -4654,7 +4653,7 @@ class FormController extends BaseController
             }
 
             $this->seedFormSDocumentsIfRenewal($form->fresh(), $request->form_name);
-            
+
 
             if ($this->shouldSnapshotChildDocuments($form, $request->form_name ?? null)) {
                 $this->persistChildExperienceSnapshot(
@@ -4714,7 +4713,7 @@ class FormController extends BaseController
             // $digization_number = DB::table('tnelb_cc_digitization')->where('application_id', $applicationId )->first();
             // dd($digization_number); exit;
 
-            
+
 
             return response()->json([
                 'status' => 'success',
@@ -4725,7 +4724,7 @@ class FormController extends BaseController
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-        
+
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage(),
@@ -4788,7 +4787,7 @@ class FormController extends BaseController
         $educationLevelRuleDraft = ($request->form_name === 'S')
             ? 'nullable|string|in:DEE,BEE,MEE,AMIE|max:50'
             : 'nullable|string|max:50';
-      
+
 
         $request->validate([
             'login_id'           => 'nullable|string',
@@ -5022,7 +5021,7 @@ class FormController extends BaseController
 
             $this->saveCompetencyProofDocuments($request, $form, $request->form_name ?? null);
 
-            
+
 
             DB::commit();
 
@@ -5125,9 +5124,9 @@ public function update(Request $request, $id)
                 'upload_photo'   => $uploadPhotoRule,
                 'upload_sign'    => $uploadSignRule,
                 'aadhaar_doc'    => $aadhaarDocRule,
-    
+
                 'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
-    
+
                 'work_document'        => 'nullable|array',
                 'work_document.*'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
             ],[
@@ -5161,16 +5160,16 @@ public function update(Request $request, $id)
             $action = 'submit';
         }
 
-        if ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $id)) {
-            return $reject;
-        }
+        // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
+        //     return $reject;
+        // }
         $loginId = $request->login_id;
 
         DB::beginTransaction();
 
         try {
 
-            
+
             $appl_type = $request->appl_type ?? '';
             $form = ($found = CC_Forms_Meta::findByApplicationId($id)) && strtoupper((string) ($found->appl_type ?? '')) === strtoupper((string) $appl_type)
                 ? $found
@@ -5237,7 +5236,7 @@ public function update(Request $request, $id)
                     'updated_at'         => $this->dbNow,
             ]);
 
-            
+
             $renewal_form = CC_Forms_Meta::updateOrCreateByApplicationId(
                 $applicationId,
                 $renewalPayload,
@@ -5255,12 +5254,12 @@ public function update(Request $request, $id)
             ->select('*')
             ->get()
             ->toArray();
-        
+
             $current_form = collect($form_details)->firstWhere('cert_licence_code', $renewal_form->certificate_name);
             $category_type = collect($form_category)->firstWhere('id', $current_form['category_id']);
 
             $licence_details['licence_name'] = $current_form['licence_name'];
-        
+
             $licence_details['category_name'] = $category_type['category_name'];
             $licence_details['form_type'] = $renewal_form->appl_type;
 
@@ -5350,7 +5349,7 @@ public function update(Request $request, $id)
                     }
                 }
             }
-            
+
             $this->persistWorkExperienceUpdateOrCreate(
                 $request,
                 $loginId,
@@ -5366,7 +5365,7 @@ public function update(Request $request, $id)
             // Process Payment for update
             DB::commit();
 
-            
+
             // dd($digization_number); exit;
 
              if ($appl_type == 'D') {
@@ -5389,7 +5388,7 @@ public function update(Request $request, $id)
                     'type_of_apps' => $licence_details['category_name'],
                     'form_type'    => $this->competencyFormTypeLabel($licence_details['form_type']),
                     'date_apps'    => Carbon::parse($this->dbNow)->format('d-m-Y'),
-                    
+
                     // 'ccnumber'   => $ccnumber,
                     // 'fissue'    => Carbon::parse($fissue)->format('d-m-Y'),
                     // 'from_date'    => Carbon::parse($from_date)->format('d-m-Y'),
@@ -5977,7 +5976,7 @@ public function update(Request $request, $id)
 
       public function getFormCost(Request $request)
     {
-        
+
         $applType = $request->input('appl_type'); // R = Renewal, N = New
         $formName = $request->input('form_name'); // e.g. S, W, WH
         $form = DB::table('tnelb_forms')
@@ -5992,7 +5991,7 @@ public function update(Request $request, $id)
         $formCost = ($applType === 'R')
             ? $form->renewal_amount
             : $form->fresh_amount;
-        
+
         return response()->json(['form_cost' => $formCost]);
     }
 }

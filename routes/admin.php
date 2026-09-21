@@ -56,8 +56,15 @@ use App\Http\Controllers\FormAController;
 // use App\Models\Admin;
 
 
+
+Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])
+    ->where('filename', '.+')
+    ->name('document.show');
+
+
 Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])->name('document.show');
 Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
+
 
     // ----------licensepdf-----------------
     Route::get('/generateForma-pdf/{application_id}', [LicensepdfController::class, 'generateFormaPDF'])->name('generateForma.pdf');
@@ -107,6 +114,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
         Route::get('/payment_reports', [PaymentReports::class, 'index'])->name('payment_reports');
 
         Route::get('/completed_applications', [LoginController::class, 'completedApplications'])->name('completed_applications');
+        
         Route::get('/completed_applications/data', [LoginController::class, 'completedApplicationsData'])->name('completed_applications.data');
         Route::get('/completed_applications/timeline/{application_id}', [LoginController::class, 'applicationTimeline'])->name('application.timeline');
 
@@ -154,7 +162,8 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
 
         // FORM-A Specific
         // Route::get('/view_forma', [SupervisorController::class, 'view_forma'])->name('view_forma');
-        Route::get('/view_form/{type}', [SupervisorController::class, 'view_forma'])->name('view_form');
+        Route::get('/view_form/{type}/{form_type}', [SupervisorController::class, 'view_forma'])
+    ->name('view_form');
 
 
         Route::get('/completed_forma', [SupervisorController::class, 'completed_forma'])->name('completed_forma');
@@ -188,7 +197,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
 
         Route::post('/returntoSupervisorforma', [ApplicationController::class, 'returntoSupervisorforma'])->name('returntoSupervisorforma');
 
-         Route::post('/returntoSecretaryforma', [ApplicationController::class, 'returntoSecretaryforma'])->name('returntoSecretaryforma');
+        Route::post('/returntoSecretaryforma', [ApplicationController::class, 'returntoSecretaryforma'])->name('returntoSecretaryforma');
         // Route::get('/generateForma-pdf/{application_id}', [LicensepdfController::class, 'generateFormaPDF'])->name('generateForma.pdf');
 
         // Misc
@@ -624,9 +633,6 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
         Route::post('/returntoapplicantforma', [ApplicationController::class, 'returntoapplicantForma'])->name('returntoapplicantforma');
 
 
-        Route::post('/check-competency-certificate_admin',[FormAprocessController::class, 'checkCompetencyCertificateadmin'])->name('checkCompetencyCertificateadmin');
-
-
-        
+        Route::post('/check-competency-certificate_admin', [FormAprocessController::class, 'checkCompetencyCertificateadmin'])->name('checkCompetencyCertificateadmin');
     });
 });

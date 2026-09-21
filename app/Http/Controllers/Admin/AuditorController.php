@@ -120,7 +120,7 @@ class AuditorController extends Controller
             ->orderBy('dt_submit', 'DESC')
             ->get();
 
-        
+
 
         return view('admin.auditor.view_forma', compact('workflows_ea'));
     }
@@ -136,13 +136,13 @@ class AuditorController extends Controller
             ->whereIn('processed_by', ['A', 'SE', 'PR', 'SPRE'])
             ->orderby('updated_at', 'DESC')
             ->select('*')
-            
+
             ->get();
-            
+
             $applicationIds = $workflows->pluck('application_id');
 
-    
-            $licenses = DB::table('tnelb_license')
+
+            $licenses = DB::table('cl_forma_lic')
                 ->whereIn('application_id', $applicationIds)
                 ->select('application_id', 'license_number')
                 ->get()
@@ -155,7 +155,7 @@ class AuditorController extends Controller
                 ->keyBy('application_id');
 
 
-           
+
         return view('admin.auditor.completed_forma', compact( 'workflows',
         'licenses',
         'renewalLicenses'));

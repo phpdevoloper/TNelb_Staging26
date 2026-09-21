@@ -1043,12 +1043,12 @@
                                 <ul class="legend justify-content-end mb-2">
                                     <li><span class="bg-info"></span> Draft</li>
                                     <li><span class="bg-primary"></span> Submitted</li>
-                                    
+
                                     <li><span class="bg-warning"></span> In Progress</li>
                                     <li><span class="bg-success"></span> Completed</li>
                                     <li><span class="bg-danger"></span> Rejected</li>
                                     <li><span class="bg-return"></span> Returned </li>
-                                    
+
                                 </ul>
                                 <div class="applications-table-toolbar">
                                     <div class="applications-page-length-toolbar">
@@ -1080,11 +1080,11 @@
                          @if($returnapplication->isNotEmpty())
 
                         <div class="projects-section-login active_license">
-                           
+
                             <div class="project-list-login mt-2">
 
                                 <div class="project-card-login return_section"  data-status="en-cours">
-                                
+
                                      <h5 class="mb-2 clr_retur" ><strong>Returned Application Details</strong></h5>
 
                                      <table class="table table-bordered " width="100%">
@@ -1094,22 +1094,22 @@
                                                 <th>Category</th>
 
                                                 <th>Application ID</th>
-                                                
+
                                                 <th>Returned By</th>
                                                 <th>Returned Date</th>
                                                 <th>Reason</th>
 
                                                  <th>Action</th>
-                                                
+
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            
+
                                             @foreach($returnapplication as $app)
 
                                           @php
-                                          
-                                               
+
+
                                              $licence = $mstLicences->firstWhere('form_code', $app->form_name);
 
                                                 if ($app->processed_by == 'SE') {
@@ -1122,21 +1122,21 @@
                                             @endphp
 
                                                 <tr class="text-center">
-                                                    
+
                                                     <td>{{ $licence->licence_name }} <br> [ Form {{$app->form_name}} ]</td>
-                                                    <td>    
+                                                    <td>
                                                         @if($licence->category_id == '1')
                                                           Contractor Licence
                                                         @else
                                                             Competency Certificate
                                                         @endif
-                                                    
+
                                                     </td>
 
                                                     <td> {{ $app->application_id }}</td>
                                                     <td> {{ $processed_by }}</td>
                                                    <td> {{ $returnformatdate }}</td>
-                                                   <td> 
+                                                   <td>
                                                     @php
                                                         $reasons = json_decode($app->return_reason, true);
                                                     @endphp
@@ -1147,7 +1147,7 @@
                                                         @endif
                                                    </td>
 
-                                                     <td> 
+                                                     <td>
                                                         <a href="{{ route('apply-form-a_return', ['application_id' => $app->application_id]) }}">
                                                            <button class="btn btn-info">
                                                                 Edit <i class="fa fa-long-arrow-right"></i>
@@ -1157,7 +1157,7 @@
 
                                                 </tr>
                                             @endforeach
-                                              
+
                                         </tbody>
                                     </table>
 
@@ -1165,7 +1165,7 @@
                             </div>
                         </div>
 
-        
+
                         @endif
 
                        <div class="tasks-section-login d-none d-sm-block">
@@ -1176,12 +1176,12 @@
                                 <ul class="legend justify-content-end mb-2">
                                     <li><span class="bg-info"></span> Draft</li>
                                     <li><span class="bg-primary"></span> Submitted</li>
-                                    
+
                                     <li><span class="bg-warning"></span> In Progress</li>
                                     <li><span class="bg-success"></span> Completed</li>
                                     <li><span class="bg-danger"></span> Rejected</li>
                                     <li><span class="bg-return"></span> Returned </li>
-                                    
+
                                 </ul>
                                 <div class="applications-table-toolbar">
                                     <div class="applications-page-length-toolbar">
@@ -1212,14 +1212,15 @@
                                            <th>Payment <br> Status</th>
                                            {{-- <th>Payment <br> Receipt</th> --}}
                                            <th>Acknowledgement<br> Download</th>
-                                           <th>Licence Number</th>
-                                           <th>Licence<br> Download</th>
+                                           <th>Licence Status</th>
+
                                        </tr>
                                    </thead>
                                    <tbody>
                                        @if (isset($workflows_cl) && $workflows_cl->isNotEmpty())
                                        @foreach ($workflows_cl as $index => $workflow)
-                                       <?php //var_dump($workflow);die;
+                                       <?php
+                                    //    var_dump($workflow);die;
                                        ?>
                                        <tr>
                                            <td>{{ $index + 1 }}</td>
@@ -1338,9 +1339,9 @@
 
                                                @elseif($workflow->application_status == 'F')
                                                <span class="btn btn-sm btn-warning">In Progress</span>
-                                               
+
                                                @elseif($workflow->application_status == 'RET')
-                                              
+
 
                                                 <a href="{{ route('renew-form_ea', ['application_id' => $workflow->application_id]) }}">
                                                    <button class="btn btn-sm btn-return">
@@ -1384,44 +1385,44 @@
                                                @if ($workflow->payment_status == 'draft')
                                                <p>-</p>
                                                @else
-                                               @if(($workflow->form_name == 'A'))
-                                               <a href="{{ route('generatea.pdf', ['login_id' => $workflow->application_id]) }}"
-                                                   target="_blank" style="font-weight:500;">
-                                                   <i class="fa fa-file-pdf-o"
-                                                       style="font-size:20px;color:red"></i>
-                                                   <span style="font-size: x-small;">English</span>
-                                               </a>
-                                               @elseif(($workflow->form_name == 'SB'))
-                                               <a href="{{ route('generatesb.pdf', ['login_id' => $workflow->application_id]) }}"
-                                                   target="_blank" style="font-weight:500;">
-                                                   <i class="fa fa-file-pdf-o"
-                                                       style="font-size:20px;color:red"></i>
-                                                   <span style="font-size: x-small;">English</span>
-                                               </a>
-                                               @elseif(($workflow->form_name == 'B'))
-                                               <a href="{{ route('generateb.pdf', ['login_id' => $workflow->application_id]) }}"
-                                                   target="_blank" style="font-weight:500;">
-                                                   <i class="fa fa-file-pdf-o"
-                                                       style="font-size:20px;color:red"></i>
-                                                   <span style="font-size: x-small;">English</span>
-                                               </a>
-                                               @else
-                                               <a href="{{ route('generatesa.pdf', ['login_id' => $workflow->application_id]) }}"
-                                                   target="_blank" style="font-weight:500;">
-                                                   <i class="fa fa-file-pdf-o"
-                                                       style="font-size:20px;color:red"></i>
-                                                   <span style="font-size: x-small;">English</span>
-                                               </a>
+                                                @if(($workflow->form_name == 'A'))
+                                                <a href="{{ route('generatea.pdf', ['login_id' => $workflow->application_id]) }}"
+                                                    target="_blank" style="font-weight:500;">
+                                                    <i class="fa fa-file-pdf-o"
+                                                        style="font-size:20px;color:red"></i>
+                                                    <span style="font-size: x-small;">Download</span>
+                                                </a>
+                                                @elseif(($workflow->form_name == 'SB'))
+                                                <a href="{{ route('generatesb.pdf', ['login_id' => $workflow->application_id]) }}"
+                                                    target="_blank" style="font-weight:500;">
+                                                    <i class="fa fa-file-pdf-o"
+                                                        style="font-size:20px;color:red"></i>
+                                                    <span style="font-size: x-small;">Download</span>
+                                                </a>
+                                                @elseif(($workflow->form_name == 'B'))
+                                                <a href="{{ route('generateb.pdf', ['login_id' => $workflow->application_id]) }}"
+                                                    target="_blank" style="font-weight:500;">
+                                                    <i class="fa fa-file-pdf-o"
+                                                        style="font-size:20px;color:red"></i>
+                                                    <span style="font-size: x-small;">Download</span>
+                                                </a>
+                                                @else
+                                                <a href="{{ route('generatesa.pdf', ['login_id' => $workflow->application_id]) }}"
+                                                    target="_blank" style="font-weight:500;">
+                                                    <i class="fa fa-file-pdf-o"
+                                                        style="font-size:20px;color:red"></i>
+                                                    <span style="font-size: x-small;">Download</span>
+                                                </a>
 
-                                               @endif
+                                                @endif
                                                @endif
                                            </td>
 
                                            <!-- License Number -->
 
-                                           <td>
+                                             <td>
                                                @if (!empty($workflow->license_number) && $workflow->application_status == 'A')
-                                               <a href="{{ route('admin.generateFormcontractor_download.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank">
+                                               <a href="{{ route('admin.licencepdf_cl.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank">
                                                    <span class="badge badge-info" style="font-size: 15px;">{{ $workflow->license_number }}</span>
                                                </a>
                                                <br>
@@ -1473,31 +1474,23 @@
                                                @else
                                                <p class="text-primary">NA</p>
                                                @endif
-                                           </td>
 
-                                           <!-- ---------------License download-------- -->
-                                            <td>
+                                                @if ( $workflow->application_status == 'A')
+                                                <br>
 
-                                               @if ( $workflow->application_status == 'A')
-                                               
-                                               <span> <a href="{{ route('admin.generateFormcontractor_download.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank">
+                                               <span> <a href="{{ route('admin.licencepdf_cl.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank">
                                                        <i class="fa fa-file-pdf-o"
                                                        style="font-size:20px;color:red"></i>
-                                                   <span style="font-size: x-small;">English</span> | <a href="{{ route('admin.generateFormcontractor_download_tamil.pdf', ['application_id' => $workflow->application_id]) }}" target="_blank">
-                                                        <i class="fa fa-file-pdf-o"
-                                                       style="font-size:20px;color:red"></i>
-                                                   <span style="font-size: x-small;">தமிழ்</span>
+                                                   <span style="font-size: x-small;">English</span>
                                                </a>
-                                               <br>
 
-                                             
 
-                                              
-                                              
                                                @else
                                                <p class="text-primary">NA</p>
                                                @endif
                                            </td>
+
+
                                        </tr>
                                        @endforeach
                                        @else
@@ -1528,7 +1521,7 @@
         <header class="dash-tl-header">
             <div>
                 <h2 id="dashAppTimelineTitle" class="dash-tl-title">
-                    Information of Digitisation Dependency 
+                    Information of Digitisation Dependency
                 </h2>
                 <p class="dash-tl-subtitle" id="dashAppTimelineSubtitle"></p>
             </div>

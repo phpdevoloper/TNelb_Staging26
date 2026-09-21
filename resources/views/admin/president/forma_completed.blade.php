@@ -98,7 +98,7 @@
                                 <div class="page-title">
                                 </div>
 
-                             
+
 
                             </div>
                         </div>
@@ -117,7 +117,7 @@
                     </div>
                     <div class="statbox widget box box-shadow">
                             {{-- <div class="row">
-                                <div class="col-xl-12 col-md-12 col-sm-12 col-12"> 
+                                <div class="col-xl-12 col-md-12 col-sm-12 col-12">
                                     <h5 class="text-center p-2" style="color: #427ee1">List of New Applications of FORM S (Licence C)</h5>
                                 </div>
                             </div> --}}
@@ -133,13 +133,13 @@
                                                                 <tr>
                                                                     <th>S.No</th>
                                                                     <th>Application Id</th>
-                                                                    
+
                                                                     <th>Applicant's Name</th>
                                                                     {{-- <th>Form Name</th> --}}
-                                                                    
-                                                                
-                                                                    
-                                                                    
+
+
+
+
                                                                     <!-- <th>Applied On</th> -->
                                                                     <th>License Number</th>
                                                                     <th>Issued At</th>
@@ -160,8 +160,8 @@
                                                                     </td>
                                                                     <td>{{ $application->applicant_name }}</td>
                                                                     {{-- <td>{{ $application->form_name }}</td> --}}
-                                                                    
-                                                                    
+
+
                                                                     <!-- <td>{{\Carbon\Carbon::parse($application->created_at)->format('d-m-Y') }}</td> -->
                                                                      <td>
                                                                     @php
@@ -170,7 +170,7 @@
 
                                                                 @if($applType === 'N')
                                                                     @php
-                                                                        $license = DB::table('tnelb_license')
+                                                                        $license = DB::table('cl_forma_lic')
                                                                             ->where('application_id', $application->application_id)
                                                                             ->first();
                                                                     @endphp
@@ -190,7 +190,7 @@
                                                                         $applType = strtoupper(trim($application->appl_type));
 
                                                                         if ($applType === 'N') {
-                                                                            $license = DB::table('tnelb_license')
+                                                                            $license = DB::table('cl_forma_lic')
                                                                                 ->where('application_id', $application->application_id)
                                                                                 ->first();
                                                                         } else {
@@ -204,7 +204,7 @@
                                                                         {{ \Carbon\Carbon::parse($license->issued_at)->format('d-m-Y') }}
                                                                     @endif
 
-                                                                        
+
                                                                     </td>
                                                                     <td>
                                                                         @if (in_array($application->application_status, ['F','RF']))
@@ -213,7 +213,7 @@
                                                                         <span class="badge badge-success">Completed</span>
                                                                         @endif
                                                                     </td>
-                                                                   
+
                                                                     <td>
 
                                                                         @if($application->application_status == 'F')
@@ -241,7 +241,7 @@
                                                         </table>
 
                             </div>
-                            
+
 
                         </div>
                     </div>

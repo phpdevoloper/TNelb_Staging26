@@ -595,8 +595,8 @@ class DashboardApplicationTimeline
             return $events;
         }
 
-        if (Schema::hasTable('tnelb_license')) {
-            $license = DB::table('tnelb_license')->where('application_id', $applicationId)->first();
+        if (Schema::hasTable('cl_forma_lic')) {
+            $license = DB::table('cl_forma_lic')->where('application_id', $applicationId)->first();
             if ($license) {
                 $events->push($this->event(
                     $this->toCarbon($license->issued_at ?? $license->created_at ?? null),
@@ -607,7 +607,7 @@ class DashboardApplicationTimeline
                     array_values(array_filter([
                         ! empty($license->license_number) ? 'License no: '.$license->license_number : null,
                         ! empty($license->expires_at) ? 'Valid to: '.$this->formatDateOnly($this->toCarbon($license->expires_at)) : null,
-                        'Source: tnelb_license',
+                        'Source: cl_forma_lic',
                     ])),
                     'f'
                 ));

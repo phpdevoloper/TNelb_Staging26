@@ -106,7 +106,7 @@
                                 <div class="page-title">
                                 </div>
 
-                             
+
 
                             </div>
                         </div>
@@ -125,7 +125,7 @@
                     </div>
                     <div class="statbox widget box box-shadow">
                             {{-- <div class="row">
-                                <div class="col-xl-12 col-md-12 col-sm-12 col-12"> 
+                                <div class="col-xl-12 col-md-12 col-sm-12 col-12">
                                     <h5 class="text-center p-2" style="color: #427ee1">List of New Applications of FORM S (Licence C)</h5>
                                 </div>
                             </div> --}}
@@ -141,13 +141,13 @@
                                                                 <tr>
                                                                     <th>S.No</th>
                                                                     <th>Application Id</th>
-                                                                    
+
                                                                     <th>Applicant's Name</th>
                                                                     {{-- <th>Form Name</th> --}}
-                                                                    
-                                                                
-                                                                    
-                                                                    
+
+
+
+
                                                                     <th>Applied On</th>
                                                                     <th>License Number</th>
                                                                     <th>Issued At</th>
@@ -169,12 +169,12 @@
                                                                     <td>{{ $application->applicant_name }}</td>
                                                                     {{-- <td>{{ $application->form_name }}</td> --}}
                                                                     <!-- <td>{{ $application->license_name }}</td> -->
-                                                                    
+
                                                                     <td>{{\Carbon\Carbon::parse($application->created_at)->format('d-m-Y') }}</td>
                                                                      <td>
                                                                         @php
-                                                                         $license = DB::table('tnelb_license')
-                                                                          ->select('application_id', 'license_number') 
+                                                                         $license = DB::table('cl_forma_lic')
+                                                                          ->select('application_id', 'license_number')
                                                                         ->where('application_id', $application->application_id)
                                                                         ->unionAll(
                                                                             DB::table('tnelb_renewal_license')
@@ -186,18 +186,18 @@
 
                                                                         @if($license)
                                                                             {{ $license->license_number }}
-                                                                        
+
                                                                         @endif
 
                                                                     </td>
                                                                     <td>
                                                                        @php
-                                                                        $license = DB::table('tnelb_license')
-                                                                            ->select('application_id', 'issued_at')  
+                                                                        $license = DB::table('cl_forma_lic')
+                                                                            ->select('application_id', 'issued_at')
                                                                             ->where('application_id', $application->application_id)
                                                                             ->unionAll(
                                                                                 DB::table('tnelb_renewal_license')
-                                                                                    ->select('application_id', 'issued_at') 
+                                                                                    ->select('application_id', 'issued_at')
                                                                                     ->where('application_id', $application->application_id)
                                                                             )
                                                                             ->first();
@@ -207,7 +207,7 @@
                                                                             {{ \Carbon\Carbon::parse($license->issued_at)->format('d-m-Y') }}
                                                                         @endif
 
-                                                                        
+
                                                                     </td>
                                                                     <td>
                                                                         @if (in_array($application->application_status, ['F','RF']))
@@ -216,7 +216,7 @@
                                                                         <span class="badge badge-success">Completed</span>
                                                                         @endif
                                                                     </td>
-                                                                   
+
                                                                     <td>
 
                                                                         @if($application->application_status == 'F')
@@ -244,7 +244,7 @@
                                                         </table>
 
                             </div>
-                            
+
 
                         </div>
                     </div>

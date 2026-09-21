@@ -1130,7 +1130,7 @@ use Illuminate\Support\Facades\Auth;
     display: none;
     position: absolute;
     bottom: 37px;
-    
+
     min-width: 426px;
 
     border: 1px solid #ccc;
@@ -1323,7 +1323,7 @@ use Illuminate\Support\Facades\Auth;
 
 
         /* --------digi CL---------- */
-    
+
     </style>
 </head>
 <script>
@@ -1333,7 +1333,7 @@ use Illuminate\Support\Facades\Auth;
 </script>
 
 <body class="theme-color-two">
-      
+
     <!-- Declaration Modal -->
     <div class="modal fade" id="declarationModal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
@@ -1667,7 +1667,7 @@ use Illuminate\Support\Facades\Auth;
                 <div class="modal-footer justify-content-center">
                      <a  href="{{ route('dashboard')}}" class=" btn btn-secondary">
                         Back
-                       
+
                     </a>
 
                     <button type="button" class="btn-proceed" id="digitizationSubmit">
@@ -1814,13 +1814,13 @@ use Illuminate\Support\Facades\Auth;
 
                                     </div>
 
-                                      
+
 
                                 </div>
                                 <div class="error text-center text-danger error_message">
                                     <div id="error_message" class="text-danger error_message"></div>
                                 </div>
-                                
+
 
                             </div>
 
@@ -1835,7 +1835,7 @@ use Illuminate\Support\Facades\Auth;
                 <div class="modal-footer justify-content-center">
                      <a  href="{{ route('dashboard')}}" class=" btn btn-secondary">
                         Back
-                       
+
                     </a>
 
                     <button type="button" class="btn-proceed" id="digitization_clSubmit">
@@ -1850,7 +1850,7 @@ use Illuminate\Support\Facades\Auth;
         </div>
     </div>
 
-  
+
     <!-- ----------------Alteration------------------- -->
 
 
@@ -2292,15 +2292,12 @@ use Illuminate\Support\Facades\Auth;
 
                         <!-- RIGHT DOWNLOAD PANEL -->
                         <div class="col-md-6 text-center">
-<<<<<<< HEAD
                             {{-- <p class="fw-bold">Download Your Payment Receipt:</p> --}}
                             {{-- <button class="btn btn-info btn-sm mb-2" onclick="paymentreceiptformA()">
                                 <i class="fa fa-file-pdf-o text-danger"></i>
                                 Download Receipt
                             </button> --}}
-=======
-                           
->>>>>>> 253a221a (form A president approval)
+
 
                             <p class="fw-bold mt-3">Download Your Application PDF:</p>
 
@@ -2381,7 +2378,7 @@ use Illuminate\Support\Facades\Auth;
                                 <i class="fa fa-file-pdf-o text-danger"></i> Download
                             </button>
 
-                           
+
 
                         </div>
                     </div>

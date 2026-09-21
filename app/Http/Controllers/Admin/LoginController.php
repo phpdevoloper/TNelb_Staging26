@@ -472,6 +472,7 @@ class LoginController extends Controller
                     if ($staff->role_id == '1') {
 
 
+
                         // recent modify for count form A
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
@@ -487,6 +488,8 @@ class LoginController extends Controller
                             ->selectRaw('ta.form_name, TRIM(ta.appl_type) as appl_type, COUNT(*) as cnt')
                             ->groupBy('ta.form_name', DB::raw('TRIM(ta.appl_type)'))
                             ->get();
+
+                            // print_r($rows); exit;
                     } elseif ($staff->role_id == '2') {
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
@@ -507,19 +510,20 @@ class LoginController extends Controller
                             // ->whereIn('ta.application_status', ['P', 'RE', 'F', 'RF'])
 
 
-                            ->whereIn('ta.application_status', ['F', 'RF', 'RE'])
+                            ->whereIn('ta.application_status', ['F', 'RF', 'RE', 'PRE'])
                             ->whereIn('ta.processed_by', ['A', 'PR'])
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
                             ->selectRaw('ta.form_name, TRIM(ta.appl_type) as appl_type, COUNT(*) as cnt')
                             ->groupBy('ta.form_name', DB::raw('TRIM(ta.appl_type)'))
                             ->get();
                     } elseif ($staff->role_id == '4') {
+
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
                             // in-workflow applications as "pending" so cards show any
                             // application that is not finally approved/rejected.
                             // ->whereIn('ta.application_status', ['P', 'RE', 'F', 'RF'])
-                            ->whereIn('ta.application_status', ['F'])
+                            ->whereIn('ta.application_status', ['F', 'RF'])
                             ->whereIn('ta.processed_by', ['SE'])
                             ->whereIn('ta.payment_status', ['payment', 'paid'])
                             ->selectRaw('ta.form_name, TRIM(ta.appl_type) as appl_type, COUNT(*) as cnt')
@@ -925,10 +929,15 @@ class LoginController extends Controller
                         continue;
                     }
 
-                    $applType = strtoupper((string) ($row->appl_type ?? ''));
+                    $applType = strtoupper(trim((string) ($row->appl_type ?? '')));
+
                     $type = in_array($applType, ['N', 'R', 'D', 'A'], true)
                         ? $applType
-                        : 'N';
+                        : null;
+
+                    if ($type === null) {
+                        continue;
+                    }
                     $cnt = (int) ($row->cnt ?? 0);
 
                     foreach ($contractorFormToIds[$formCode] as $licId) {
@@ -986,7 +995,7 @@ class LoginController extends Controller
             'ESA' => 'bg-thickblue',
             'ESB' => 'bg-gray',
         ];
-
+// dd($assignedFormSummary); exit;
         $summaryCollection = collect($assignedFormSummary);
         $contractorCardsCollection = $summaryCollection->filter(function ($item) use ($contractorCategoryIds) {
             if (!empty($contractorCategoryIds)) {
@@ -1010,6 +1019,7 @@ class LoginController extends Controller
         })->values();
 
         $competencyCards = $competencyCardsCollection->all();
+
         $contractorCards = $contractorCardsCollection->all();
         $amendmentCards = $amendmentCardsCollection->all();
 
@@ -1026,8 +1036,547 @@ class LoginController extends Controller
      * AJAX: return completed applications list for Completed Applications dashboard table.
      * Filters by form_id (mst_licences.id) and returns unified rows across tables.
      */
+
     public function completedApplicationsData(Request $request)
+{
+    // dd($request->all()); exit;
+
+    $staff = Auth::user();
+
+    if (!$staff) {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 403);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Form ID
+    |--------------------------------------------------------------------------
+    */
+    $formId = (int) $request->query('form_id', 0);
+
+    if ($formId <= 0) {
+        return response()->json([
+            'data' => []
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Type
+    | N = New
+    | R = Renewal
+    | D = Digitization
+    | A = Alteration
+    |--------------------------------------------------------------------------
+    */
+    $formTypeFilter = strtoupper(
+        trim((string) $request->query('form_type', ''))
+    );
+
+    $applyApplTypeFilter = in_array(
+        $formTypeFilter,
+        ['N', 'R', 'D', 'A'],
+        true
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Type Filter
+    |--------------------------------------------------------------------------
+    | Handles database values like:
+    |
+    | D
+    | D
+    |  D
+    |
+    | by using TRIM + UPPER.
+    |--------------------------------------------------------------------------
+    */
+    $applyApplTypeScope = function (
+        $query,
+        string $tableAlias
+    ) use (
+        $applyApplTypeFilter,
+        $formTypeFilter
+    ) {
+        if (!$applyApplTypeFilter) {
+            return;
+        }
+
+        $col = $tableAlias . '.appl_type';
+
+        $query->whereRaw(
+            "UPPER(TRIM(COALESCE($col, ''))) = ?",
+            [$formTypeFilter]
+        );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Security:
+    | Only allow forms assigned to logged-in staff
+    |--------------------------------------------------------------------------
+    */
+    $assignedFormsQuery = \App\Models\Admin\StaffAssigned::where(
+        'user_id',
+        $staff->id
+    )
+        ->where('is_active', 1)
+        ->whereIn('form_type', ['N', 'R', 'D', 'A']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check JSON form_id
+    |--------------------------------------------------------------------------
+    */
+    if (DB::getDriverName() === 'pgsql') {
+
+        $assignedFormsQuery->whereRaw(
+            "jsonb_array_length(COALESCE(form_id, '[]'::jsonb)) > 0"
+        );
+
+    } else {
+
+        $assignedFormsQuery->whereRaw(
+            'JSON_LENGTH(form_id) > 0'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get assigned form IDs
+    |--------------------------------------------------------------------------
+    */
+    $assignedFormIDs = $assignedFormsQuery
+        ->get(['form_id'])
+        ->pluck('form_id')
+        ->flatten()
+        ->map(fn($id) => (int) $id)
+        ->unique()
+        ->values()
+        ->all();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Security check
+    |--------------------------------------------------------------------------
+    */
+    if (!in_array($formId, $assignedFormIDs, true)) {
+
+        return response()->json([
+            'message' => 'Forbidden'
+        ], 403);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get licence master record
+    |--------------------------------------------------------------------------
+    */
+    $licence = DB::table('mst_licences')
+        ->where('id', $formId)
+        ->first();
+
+    $formCode = $licence
+        ? strtoupper(trim((string) ($licence->cert_licence_code ?? '')))
+        : '';
+
+    /*
+    |--------------------------------------------------------------------------
+    | Initialise rows
+    |--------------------------------------------------------------------------
+    */
+    $rows = collect();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Competency / CC forms
+    |--------------------------------------------------------------------------
+    */
+    $ccAdminQuery = app(
+        CompetencyAdminQueryService::class
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Contractor form tables
+    |--------------------------------------------------------------------------
+    */
+    $contractorTablesByCode = [
+
+        'EA' => 'ccl_forma_meta',
+
+        'SA' => 'tnelb_esa_applications',
+
+        'B' => 'tnelb_eb_applications',
+
+        'SB' => 'tnelb_esb_applications',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | CASE 1:
+    | Competency Certificate forms
+    |--------------------------------------------------------------------------
+    */
+    if ($ccAdminQuery->isCcMetaFormId($formId)) {
+
+        $applTypeFilter = $applyApplTypeFilter
+            ? $formTypeFilter
+            : null;
+
+        $rows = $ccAdminQuery->completedApplications(
+            $formId,
+            $applTypeFilter
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CASE 2:
+    | Contractor forms
+    |--------------------------------------------------------------------------
+    */
+    elseif (
+        isset($contractorTablesByCode[$formCode])
+        && Schema::hasTable($contractorTablesByCode[$formCode])
+    ) {
+
+        $tbl = $contractorTablesByCode[$formCode];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Base query
+        |--------------------------------------------------------------------------
+        */
+        $query = DB::table($tbl . ' as ta')
+            ->where('ta.application_status', 'A');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Application Type Filter
+        |--------------------------------------------------------------------------
+        */
+        $applyApplTypeScope(
+            $query,
+            'ta'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | FORM A / EA
+        |--------------------------------------------------------------------------
+        | Licence details are stored in cl_forma_lic.
+        |--------------------------------------------------------------------------
+        */
+        if (
+            $formCode === 'EA'
+            && Schema::hasTable('cl_forma_lic')
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Join latest/active licence
+            |--------------------------------------------------------------------------
+            */
+            $query->leftJoin(
+                'cl_forma_lic as lic',
+                function ($join) {
+
+                    $join->on(
+                        'lic.application_id',
+                        '=',
+                        'ta.application_id'
+                    )
+                    ->where(
+                        'lic.cert_status',
+                        '=',
+                        'A'
+                    );
+                }
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Form A result
+            |--------------------------------------------------------------------------
+            */
+            $rows = $query
+                ->select(
+
+                    'ta.application_id',
+
+                    'ta.applicant_name',
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Trim appl_type
+                    |--------------------------------------------------------------------------
+                    */
+                    DB::raw(
+                        "UPPER(TRIM(COALESCE(ta.appl_type, ''))) as appl_type"
+                    ),
+
+                    'ta.created_at',
+
+                    DB::raw("'A' as status"),
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Licence number
+                    |--------------------------------------------------------------------------
+                    | Prefer cl_forma_lic.
+                    | If not available, fallback to ccl_forma_meta.
+                    |--------------------------------------------------------------------------
+                    */
+                    DB::raw(
+                        "COALESCE(lic.license_number, ta.license_number) as license_number"
+                    ),
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Licence issue date
+                    |--------------------------------------------------------------------------
+                    */
+                    'lic.dateof_issue as issued_at',
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Licence validity from
+                    |--------------------------------------------------------------------------
+                    */
+                    'lic.valid_from as valid_from',
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Licence validity to
+                    |--------------------------------------------------------------------------
+                    */
+                    'lic.valid_to as expires_at',
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Form name
+                    |--------------------------------------------------------------------------
+                    */
+                    DB::raw(
+                        'TRIM(ta.form_name) as form_name'
+                    )
+                )
+                ->orderByDesc('ta.updated_at')
+                ->get();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Other contractor forms
+        |--------------------------------------------------------------------------
+        */
+        else {
+
+            $rows = $query
+                ->select(
+
+                    'ta.application_id',
+
+                    'ta.applicant_name',
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Trim appl_type
+                    |--------------------------------------------------------------------------
+                    */
+                    DB::raw(
+                        "UPPER(TRIM(COALESCE(ta.appl_type, ''))) as appl_type"
+                    ),
+
+                    'ta.created_at',
+
+                    DB::raw("'A' as status"),
+
+                    'ta.license_number',
+
+                    DB::raw(
+                        'NULL as issued_at'
+                    ),
+
+                    DB::raw(
+                        'NULL as valid_from'
+                    ),
+
+                    DB::raw(
+                        'NULL as expires_at'
+                    ),
+
+                    DB::raw(
+                        'TRIM(ta.form_name) as form_name'
+                    )
+                )
+                ->orderByDesc('ta.updated_at')
+                ->get();
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Convert rows to API response
+    |--------------------------------------------------------------------------
+    */
+    $data = collect($rows)
+        ->values()
+        ->map(function ($r, $idx) use ($formCode) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Application ID
+            |--------------------------------------------------------------------------
+            */
+            $applicationId = $r->application_id ?? '';
+
+            /*
+            |--------------------------------------------------------------------------
+            | Detail page URL
+            |--------------------------------------------------------------------------
+            */
+            if ($formCode === 'EA') {
+
+                $viewUrl = route(
+                    'admin.applicants_detail_forma_completed',
+                    [
+                        'applicant_id' => $applicationId
+                    ]
+                );
+
+            } else {
+
+                $viewUrl = route(
+                    'admin.view_completed_application',
+                    [
+                        'applicant_id' => $applicationId
+                    ]
+                );
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Status
+            |--------------------------------------------------------------------------
+            */
+            $statusText = strtoupper(
+                trim((string) ($r->status ?? ''))
+            ) === 'A'
+                ? 'Completed'
+                : (string) ($r->status ?? '');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Application Type
+            |--------------------------------------------------------------------------
+            */
+            $applType = strtoupper(
+                trim((string) ($r->appl_type ?? ''))
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Return row
+            |--------------------------------------------------------------------------
+            */
+            return [
+
+                'sno' => $idx + 1,
+
+                'application_id' => (string) $applicationId,
+
+                'applicant_name' => (string) (
+                    $r->applicant_name ?? ''
+                ),
+
+                'appl_type' => $applType,
+
+                'applied_on' => (string) (
+                    $r->created_at ?? ''
+                ),
+
+                'status' => $statusText,
+
+                /*
+                |--------------------------------------------------------------------------
+                | Licence number
+                |--------------------------------------------------------------------------
+                */
+                'license_number' => (string) (
+                    $r->license_number ?? ''
+                ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Date of issue
+                |--------------------------------------------------------------------------
+                */
+                'issued_at' => (string) (
+                    $r->issued_at ?? ''
+                ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Valid from
+                |--------------------------------------------------------------------------
+                */
+                'valid_from' => (string) (
+                    $r->valid_from ?? ''
+                ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Valid to
+                |--------------------------------------------------------------------------
+                */
+                'expires_at' => (string) (
+                    $r->expires_at ?? ''
+                ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Detail URL
+                |--------------------------------------------------------------------------
+                */
+                'license_url' => $viewUrl,
+
+                /*
+                |--------------------------------------------------------------------------
+                | Form name
+                |--------------------------------------------------------------------------
+                */
+                'form_name' => strtoupper(
+                    trim((string) ($r->form_name ?? ''))
+                ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Form code
+                |--------------------------------------------------------------------------
+                */
+                'form_code' => $formCode,
+            ];
+        })
+        ->all();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return JSON
+    |--------------------------------------------------------------------------
+    */
+    return response()->json([
+        'data' => $data
+    ]);
+}
+    public function completedApplicationsData_old(Request $request)
     {
+
+    // dd($request->all()); exit;
 
         $staff = Auth::user();
         if (!$staff) {
@@ -1107,6 +1656,8 @@ class LoginController extends Controller
                 ->orderByDesc('ta.updated_at')
                 ->get();
         }
+
+        // dd($rows);
 
         $data = collect($rows)->values()->map(function ($r, $idx) use ($formCode) {
             $applicationId = $r->application_id ?? '';
@@ -1670,7 +2221,7 @@ class LoginController extends Controller
             'formSWorkflowAppPk',
             'formSMasterWorkflowAppPk',
             'parentApplicantForAlter',
-            // 'checklist', 
+            // 'checklist',
             'checkedList_1',
             'verifyList'
         ));
@@ -1890,12 +2441,14 @@ class LoginController extends Controller
 
         $staffdetails = DB::table('cl_staff_tbl')
             ->where('application_id', $applicant_id)
+            ->where('staff_flag', '1')
             ->orderBy('id')
             ->get();
 
         $otherstaffdetails = DB::table('cl_staff_tbl')
             ->where('application_id', $applicant_id)
             ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
             ->orderBy('id')
             ->get();
 

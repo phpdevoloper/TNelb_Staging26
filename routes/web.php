@@ -121,7 +121,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/payment-maintenance/payment-transactions', [PaymentMaintenanceController::class, 'deletePaymentTransactions'])->name('payment.maintenance.delete_payment_transactions');
 
     Route::get('/apply-form-s', [RegisterController::class, 'apply_form_s'])->name('apply-form-s');
-    
+
     Route::get('/apply-form-w', [FormWController::class, 'create'])->name('apply-form-w');
     Route::get('/apply-form-wh', [FormWHController::class, 'create'])->name('apply-form-wh');
     Route::get('/apply_form_p', [FormPController::class, 'apply_form_p'])->name('apply_form_p');
@@ -275,9 +275,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/apply-form-a_renewal_draft/{application_id}', [EA_RenewalController::class, 'edit_renewaldraft'])->name('apply-form-a_renewal_draft');
 
-      //New Modified Routes added here 
+      //New Modified Routes added here
     Route::get('forms/new_application/{form_code}', [FormController::class, 'new_application'])->name('forms.new_application');
-    
+
     Route::post('licences/getPaymentDetails', [LicenceManagementController::class, 'getPaymentDetails'])->name('licences.getPaymentDetails');
     Route::post('/licences/getFormInstruction', [LicenceManagementController::class, 'getFormInstruction'])->name('licences.getFormInstruction');
 
@@ -381,7 +381,7 @@ Route::post('/form/updatePayment', [PaymentController::class, 'updatePayment'])-
 Route::post('/form_p/submit_returned/{appl_id}', [\App\Http\Controllers\Admin\FormPController::class, 'submitReturnedApplicationFormP'])
     ->name('form_p.submit_returned');
 
-//Testing Pages 
+//Testing Pages
 
 Route::get('/index_bk', function () {
     return view('user_login.index_bk');
@@ -443,7 +443,7 @@ Route::post('/updateCurrentDate', function (Illuminate\Http\Request $request) {
         'current_date' => 'required|date',
     ]);
 
-    $updated = DB::table('tnelb_license')
+    $updated = DB::table('cl_forma_lic')
         ->where('license_number', 'LC20251200009')
         ->update([
             'sample_date' => $request->current_date,
@@ -487,7 +487,7 @@ Route::post('/checkLcAge', [LicenseController::class, 'checkLcAge']);
 
 
 
-// ---------------License DB::check----------------------- 
+// ---------------License DB::check-----------------------
 Route::post('/checkCertificateValidity', [LicenseController::class, 'checkCertificateValidity']);
 
 Route::post('/checkCertificateValidity_b', [LicenseController::class, 'checkCertificateValidity_b']);
@@ -506,7 +506,7 @@ Route::post('/check_ealicence_validity', [LicenseController::class, 'check_ealic
 
  Route::get('/verify-certificate/{application_id}', [CertificateController::class, 'verifycertificate'])->name('verifycertificate');
 
- 
+
 //  -----certificate date change-------------
 
  Route::get('/previous_licence_date_change', [CertificatedatechangeController::class, 'index'])->name('previous_licence_date_change');

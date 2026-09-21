@@ -242,7 +242,7 @@ class EA_RenewalController extends BaseController
 
      public function renew_form_ea($application_id){
 
-   
+
 
         if (!Auth::check()) {
             return redirect()->route('logout');
@@ -251,14 +251,14 @@ class EA_RenewalController extends BaseController
         if (!$application_id) {
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
-        
+
         // $application = EA_Application_model::where('application_id', $application_id)->first();
-        
-        $old_license_number= DB::table('tnelb_license')->where('application_id', $application_id)->first();
+
+        $old_license_number= DB::table('cl_forma_lic')->where('application_id', $application_id)->first();
 
         // var_dump($license_deatails->license_number);die;
 
-        
+
         $application = null;
         $proprietors = collect();
         $staffs = collect();
@@ -279,7 +279,7 @@ class EA_RenewalController extends BaseController
             // dd($today);
             // exit;
 
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
             ->where('expires_at','<', $today)
             ->select('*')
@@ -293,14 +293,14 @@ class EA_RenewalController extends BaseController
             //     ->with('expired_license', true)
             //     ->with('expired_date', \Carbon\Carbon::parse($license_details->expires_at)->format('d-m-Y'));
             // }
-            
 
-            
+
+
         $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status','1')->first();
 
         // $equipmentlist = Equipment_storetmp_A::where('application_id', $application_id)->first();
 
-         
+
 
              $equiplist = Mst_equipment_tbl::where('equip_licence_name', 8)
             ->where('status', 1)
@@ -328,18 +328,40 @@ class EA_RenewalController extends BaseController
         $document = collect();
 
         if ($application_id) {
-            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+              $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
             $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
-                $draftCount = $proprietors->count();
+            $draftCount = $proprietors->count();
 
-            $staffs = DB::table('tnelb_applicant_cl_staffdetails')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
+            $draftCounts = ProprietorformA::where('application_id', $application_id)
+                ->count();
 
-            $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
+            $ownershipType = ProprietorformA::where('application_id', $application_id)
+                ->where('proprietor_flag', 1)
+                ->value('ownership_type');
+            // dd($proprietors);exit;
+
+             $QCstaffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
+            ->orderBy('id', 'ASC')
+            ->get();
+
+            $staffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->orderBy('id', 'ASC')
+            ->get();
+
+            // dd($staffs);
+            // exit;
+
+            // $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
-            $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status','1')->first();
+            $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status', '1')->first();
 
             $equipmentlist = Equipment_storetmp_A::where('application_id', $application_id)->first();
 
@@ -349,31 +371,33 @@ class EA_RenewalController extends BaseController
             $Address_proof = Tnelb_Addressproof_cl::where('application_id', $application_id)->first();
 
             $equipmentDetails = Tnelb_Equimentsuser_cl::where('application_id', $application_id)
-            ->get()
-            ->keyBy('equipment_id');
+                ->get()
+                ->keyBy('equipment_id');
 
 
 
-             $equiplist = Mst_equipment_tbl::where('equip_licence_name', 8)
-            ->where('status', 1)
-            ->orderBy('id')
-            ->get();
+            $equiplist = Mst_equipment_tbl::where('equip_licence_name', 8)
+                ->where('status', 1)
+                ->orderBy('id')
+                ->get();
 
             $equipmentlist = DB::table('equipmentforma_tbls')
-            ->where('login_id', Auth::user()->login_id)
-            ->where('application_id', $application_id) // IMPORTANT
-            ->get();
+                ->where('login_id', Auth::user()->login_id)
+                ->where('application_id', $application_id) // IMPORTANT
+                ->get();
 
             $cert_licence_code = 'EA';
             $form_code = MstLicence::where('cert_licence_code', $cert_licence_code)
-            ->where('status', 1)
-            ->orderBy('id')
-            ->first();
+                ->where('status', 1)
+                ->orderBy('id')
+                ->first();
 
             // var_dump()
         }
 
-        return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency' , 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails','Qcstaffs'));
+        // return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency' , 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails','Qcstaffs'));
+
+          return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType'));
     }
 
 
@@ -398,12 +422,12 @@ class EA_RenewalController extends BaseController
             $staffs = DB::table('tnelb_applicant_cl_staffdetails')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
 
-            $license_details = DB::table('tnelb_license')
+            $license_details = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
             ->select('*')
             ->first();
 
-              
+
         $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status','1')->first();
 
         $equipmentlist = Equipment_storetmp_A::where('application_id', $application_id)->first();
@@ -440,10 +464,10 @@ class EA_RenewalController extends BaseController
         if (!$appl_id) {
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
-        
+
         $application = EA_Application_model::where('application_id', $appl_id)->first();
-        
-        $license_deatails = DB::table('tnelb_license')->where('application_id', $appl_id)->first();
+
+        $license_deatails = DB::table('cl_forma_lic')->where('application_id', $appl_id)->first();
 
         // var_dump($license_deatails->license_number);die;
 
@@ -455,7 +479,7 @@ class EA_RenewalController extends BaseController
         ->where('application_id', $appl_id)
         ->get();
 
-        
+
         $document = DB::table('tnelb_applicant_doc_A')
         ->where('application_id', $appl_id)
         ->first();
@@ -485,7 +509,7 @@ class EA_RenewalController extends BaseController
             'purchase_bill_enclose'         => ['required', 'string', Rule::in(['yes', 'no'])],
             'test_reports_enclose'          => ['required', 'string', Rule::in(['yes', 'no'])],
             'specimen_signature_enclose'    => ['required', 'string', Rule::in(['yes', 'no'])],
-            'separate_sheet'                => ['required', 'string', Rule::in(['yes', 'no'])], 
+            'separate_sheet'                => ['required', 'string', Rule::in(['yes', 'no'])],
             'form_name'                     => 'required|string|max:255',
             'license_name'                  => 'required|string|max:255',
             'aadhaar'                       => 'required|digits:12',
@@ -528,7 +552,7 @@ class EA_RenewalController extends BaseController
             'separate_sheet' => $request->separate_sheet,
 
         ] + $validatedData);
-        
+
         if ($request->has('staff_name')) {
             foreach ($request->staff_name as $index => $staffName) {
                 TnelbApplicantStaffDetail::create([
@@ -542,9 +566,9 @@ class EA_RenewalController extends BaseController
             }
         }
 
-        
+
         if ($request->has('proprietor_name')) {
-           
+
             foreach ($request->proprietor_name as $index => $proprietor_name) {
 
                 $competencyHolding = $request->competency_certificate_holding[$index] ?? 'no';
