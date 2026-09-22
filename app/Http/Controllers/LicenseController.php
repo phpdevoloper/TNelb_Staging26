@@ -340,7 +340,7 @@ class LicenseController extends Controller
                 ->where('application_id', $h->application_id)
                 ->first();
 
-            $renewalData = DB::table('tnelb_renewal_license')
+            $renewalData = DB::table('cl_forma_lic')
                 ->where('application_id', $h->application_id)
                 ->first();
 
@@ -813,7 +813,7 @@ class LicenseController extends Controller
 
         // Step 1: Find application from cl_forma_lic using lc number
         $license = DB::table('cl_forma_lic')->where('license_number', $cc)->first() ??
-            DB::table('tnelb_renewal_license')->where('license_number', $cc)->first();
+            DB::table('cl_forma_lic')->where('license_number', $cc)->first();
 
         if (!$license) {
             return response()->json(['status' => 'not_found']);

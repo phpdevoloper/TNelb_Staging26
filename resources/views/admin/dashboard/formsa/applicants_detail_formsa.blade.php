@@ -603,7 +603,7 @@
                                                                             ->first();
 
                                                                         // Get renewal license
-                                                                        $renewal = DB::table('tnelb_renewal_license')
+                                                                        $renewal = DB::table('cl_forma_lic')
                                                                             ->where('application_id', $h->application_id)
                                                                             ->first();
 

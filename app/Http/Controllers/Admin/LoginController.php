@@ -2329,7 +2329,7 @@ class LoginController extends Controller
 
                 ->unionAll(
 
-                    DB::table('tnelb_renewal_license')
+                    DB::table('cl_forma_lic')
                         ->select('issued_at', 'created_at', 'expires_at')
                         ->where('application_id', $applicant->old_application)
 
@@ -2766,7 +2766,7 @@ class LoginController extends Controller
 
                 ->unionAll(
 
-                    DB::table('tnelb_renewal_license')
+                    DB::table('cl_forma_lic')
                         ->select('issued_at', 'created_at', 'expires_at')
                         ->where('application_id', $applicant->old_application)
 

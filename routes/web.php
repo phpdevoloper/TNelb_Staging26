@@ -22,6 +22,8 @@ use App\Http\Controllers\PDFFormAController;
 use App\Http\Controllers\PDFFormSBController;
 use App\Http\Controllers\PDFRenewalController;
 use App\Http\Controllers\RegisterController;
+
+use App\Http\Controllers\FormAAlteration;
 use App\Models\TnelbFormP;
 use App\Models\Mst_documents;
 use Illuminate\Support\Facades\Auth;
@@ -187,6 +189,10 @@ Route::middleware(['auth'])->group(function () {
     // ---------------
 
     Route::get('/apply-form-a', [RegisterController::class, 'apply_form_a'])->name('apply-form-a');
+
+    Route::get('/apply-form-a_alt', [FormAAlteration::class, 'index'])->name('apply-form-a_alt');
+
+
 
     Route::get('/apply-form-a_return/{application_id}', [ReturnapplicantController::class, 'returnforma'])->name('apply-form-a_return');
 

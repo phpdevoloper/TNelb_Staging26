@@ -29,6 +29,13 @@
     $activeFormPAlteration = request()->routeIs('form_p_alt')
         || (request()->routeIs('form_s_alt') && strtoupper((string) request('form')) === 'P');
     $activeContractorAlteration = request()->routeIs('alteration_cl');
+
+     $activeContractorAlterationA = request()->routeIs([
+        'apply-form-a_alt',
+        'apply-form-a_alt_draft',
+        'apply-form-a_alt_return',
+    ]);
+
 @endphp
 @once
     <link rel="stylesheet" href="{{ asset('assets/css/font-awesome-4.7.0/css/font-awesome.min.css') }}">
@@ -628,8 +635,8 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="sb-nav__child-link {{ $activeContractorAlteration ? 'is-active' : '' }}"
-                                            href="{{ route('alteration_cl') }}">
+                                        <a class="sb-nav__child-link {{ $activeContractorAlterationA ? 'is-active' : '' }}"
+                                            href="{{ route('apply-form-a_alt') }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
                                             <span>Alteration</span>
                                         </a>

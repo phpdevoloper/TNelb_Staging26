@@ -100,7 +100,7 @@ class SecretaryController extends Controller
 
         $workflows = DB::table('tnelb_application_tbl as ta')
             ->leftJoin('cl_forma_lic as l', 'l.application_id', '=', 'ta.application_id')
-            ->leftJoin('tnelb_renewal_license as rl', 'rl.application_id', '=', 'ta.application_id')
+            ->leftJoin('cl_forma_lic as rl', 'rl.application_id', '=', 'ta.application_id')
             ->where('ta.status', 'A')
             ->where('ta.processed_by','PR')
             ->where('ta.form_id', $formId)
@@ -212,7 +212,7 @@ class SecretaryController extends Controller
         ->get()
         ->keyBy('application_id');
 
-    $renewalLicenses = DB::table('tnelb_renewal_license')
+    $renewalLicenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()

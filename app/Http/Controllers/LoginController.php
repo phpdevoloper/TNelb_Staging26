@@ -178,7 +178,7 @@ class LoginController extends BaseController
             return $license;
         }
 
-        return DB::table('tnelb_renewal_license')
+        return DB::table('cl_forma_lic')
             ->where('application_id', $applicationId)
             ->select('license_number', 'expires_at')
             ->first();
@@ -878,7 +878,7 @@ class LoginController extends BaseController
                         // ------------------------------------------------
                         elseif ($appl_type === 'R') {
 
-                            $renewal = DB::table('tnelb_renewal_license')
+                            $renewal = DB::table('cl_forma_lic')
                                 ->where('application_id', $workflow->application_id)
                                 ->select('license_number', 'expires_at')
                                 ->first();
@@ -1087,19 +1087,19 @@ class LoginController extends BaseController
                 ->whereNotIn('ta.form_name', ['S', 'W', 'WH', 'P'])
 
                 ->unionAll(
-                    DB::table('tnelb_renewal_license as rl')
+                    DB::table('cl_forma_lic as rl')
                         ->join('tnelb_application_tbl as ta', 'ta.application_id', '=', 'rl.application_id')
                         ->select(
                             'rl.license_number',
-                            'rl.expires_at',
-                            'rl.issued_at',
+                            'rl.valid_to',
+                            'rl.valid_from',
                             'rl.application_id',
                             'ta.form_name',
                             'ta.license_name',
                             DB::raw("'R' as license_type"),
-                            'rl.expires_at as renewal_expires_at'
+                            'rl.valid_to as renewal_expires_at'
                         )
-                        ->where('rl.login_id', $loginId)
+                        // ->where('rl.login_id', $loginId)
                         ->whereNotIn('ta.form_name', ['S', 'W', 'WH', 'P'])
                 );
 

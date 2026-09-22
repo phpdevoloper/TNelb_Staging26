@@ -376,14 +376,14 @@ class RegisterController extends BaseController
                 $application_details->previous_scc_no = $issuedForRenew;
                 $application_details->license_verify = 1;
             }
-            if (empty($application_details->previously_issue_date) && ! empty($license_details->issued_at ?? $license_details->valid_from ?? null)) {
-                $application_details->previously_issue_date = $license_details->issued_at ?? $license_details->valid_from;
+            if (empty($application_details->previously_issue_date) && ! empty($license_details->valid_from ?? $license_details->valid_from ?? null)) {
+                $application_details->previously_issue_date = $license_details->valid_from ?? $license_details->valid_from;
             }
             if (empty($application_details->previously_valid_from) && ! empty($license_details->valid_from)) {
                 $application_details->previously_valid_from = $license_details->valid_from;
             }
-            if (empty($application_details->previously_valid_to) && ! empty($license_details->valid_to ?? $license_details->expires_at ?? null)) {
-                $application_details->previously_valid_to = $license_details->valid_to ?? $license_details->expires_at;
+            if (empty($application_details->previously_valid_to) && ! empty($license_details->valid_to ?? $license_details->valid_to ?? null)) {
+                $application_details->previously_valid_to = $license_details->valid_to ?? $license_details->valid_to;
                 $application_details->previously_date = $application_details->previously_valid_to;
             }
         }
@@ -491,13 +491,10 @@ class RegisterController extends BaseController
 
         $activeLicense = DB::table('cl_forma_lic')
             ->whereIn('application_id', $applicationIds)
-            ->whereDate('issued_at', '<=', $today)
-            ->whereDate('expires_at', '>=', $today)
-            ->orderByDesc('expires_at')
+            ->whereDate('valid_from', '<=', $today)
+            ->whereDate('valid_to', '>=', $today)
+            ->orderByDesc('valid_to')
             ->first();
-
-
-
 
         $previousLicenceNo = '';
         $previousValidityFirstIssue = '';
@@ -511,11 +508,11 @@ class RegisterController extends BaseController
 
             $previousLicenceNo = $activeLicense->license_number;
 
-            $previousValidityFirstIssue = $activeLicense->issued_at;
+            $previousValidityFirstIssue = $activeLicense->valid_from;
 
-            $previousValidityFrom = $activeLicense->issued_at;
+            $previousValidityFrom = $activeLicense->valid_from;
 
-            $previousValidityTo = $activeLicense->expires_at;
+            $previousValidityTo = $activeLicense->valid_to;
         }
 
 // dd($previousLicenceNo); exit;

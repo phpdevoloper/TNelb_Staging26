@@ -192,14 +192,14 @@ $(document).on("click", ".upload-btn", function () {
 
     let rowIndex = btn.attr("data-row-index");
 
-    if (documentCategory === "app_doc") {
+    // if (documentCategory === "app_doc") {
 
-        rowIndex = 1;
+    //     rowIndex = 1;
 
-    } else if (documentCategory === "cons_doc") {
+    // } else if (documentCategory === "cons_doc") {
 
-        rowIndex = 2;
-    }
+    //     rowIndex = 2;
+    // }
 
     formData.append(
         "row_index",
@@ -1717,106 +1717,162 @@ directors.forEach((p, index) => {
     // GET ALL QC / QSC STAFF ROWS
     // ----------------------------------------------------------
 
-    $("#staffqc-records tr").each(function (index) {
 
-        let $tr = $(this);
+$("#staffqc-records tr.staffqc-fields").each(function (index) {
 
-        // Skip rows that are not actual QC/QSC staff rows
-        if (
-            !$tr.hasClass("staffqc-record") &&
-            !$tr.hasClass("staffqc-fields")
-        ) {
-            return;
-        }
+    let $tr = $(this);
 
-        let record = {
+    let record = {
 
-            // Existing database ID
-            id: $tr.data("id") || null,
+        // --------------------------------------------------
+        // Existing database ID
+        // --------------------------------------------------
 
-            // Category
-            staffqc_category:
-                $tr.find(".staffqc_category").val()
-                ||
-                $tr.find('input[name="staffqc_category[]"]').val()
-                ||
-                $tr.find('input[name^="staffqc_category["]').val()
-                ||
-                $tr.find("td:eq(1)").text().trim()
-                ||
-                "",
-
-            // Certificate Number
-            staff_cc_no:
-                $tr.find(".staff_cc_no").val()
-                ||
-                $tr.find(".cc_number").val()
-                ||
-                $tr.find('input[name="staff_cc_no[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_no["]').val()
-                ||
-                $tr.find("td:eq(2)").text().trim()
-                ||
-                "",
-
-            // First Issue
-            staff_cc_first_issue:
-                $tr.find(".staff_cc_first_issue").val()
-                ||
-                $tr.find(".cc_firstissue").val()
-                ||
-                $tr.find('input[name="staff_cc_first_issue[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_first_issue["]').val()
-                ||
-                "",
-
-            // Validity From
-            staff_cc_validity_from:
-                $tr.find(".staff_cc_validity_from").val()
-                ||
-                $tr.find(".cc_validity_from").val()
-                ||
-                $tr.find('input[name="staff_cc_validity_from[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_validity_from["]').val()
-                ||
-                "",
-
-            // Validity To
-            staff_cc_validity_to:
-                $tr.find(".staff_cc_validity_to").val()
-                ||
-                $tr.find(".cc_validity_to").val()
-                ||
-                $tr.find('input[name="staff_cc_validity_to[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_validity_to["]').val()
-                ||
-                "",
-
-            // Appointment document
-            app_doc:
-                $tr.find('input[name="app_doc[]"]').val()
-                ||
-                $tr.find('input[name^="app_doc["]').val()
-                ||
-                "",
-
-            // Consent document
-            cons_doc:
-                $tr.find('input[name="cons_doc[]"]').val()
-                ||
-                $tr.find('input[name^="cons_doc["]').val()
-                ||
-                ""
-        };
+        id: $tr.data("id") || null,
 
 
-        qcStaffRecords.push(record);
+        // --------------------------------------------------
+        // Category
+        // --------------------------------------------------
 
-    });
+        staffqc_category:
+            $tr.find(".staffqc_category").val()
+            ||
+            $tr.find('input[name="staffqc_category[]"]').val()
+            ||
+            $tr.find('input[name^="staffqc_category["]').val()
+            ||
+            $tr.find("td:eq(1)").text().trim()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Certificate Number
+        // --------------------------------------------------
+
+        staff_cc_no:
+            $tr.find(".staff_cc_no").val()
+            ||
+            $tr.find(".cc_number").val()
+            ||
+            $tr.find('input[name="staff_cc_no[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_no["]').val()
+            ||
+            $tr.find("td:eq(2)").text().trim()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // First Issue
+        // --------------------------------------------------
+
+        staff_cc_first_issue:
+            $tr.find(".staff_cc_first_issue").val()
+            ||
+            $tr.find(".cc_firstissue").val()
+            ||
+            $tr.find('input[name="staff_cc_first_issue[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_first_issue["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Validity From
+        // --------------------------------------------------
+
+        staff_cc_validity_from:
+            $tr.find(".staff_cc_validity_from").val()
+            ||
+            $tr.find(".cc_validity_from").val()
+            ||
+            $tr.find('input[name="staff_cc_validity_from[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_validity_from["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Validity To
+        // --------------------------------------------------
+
+        staff_cc_validity_to:
+            $tr.find(".staff_cc_validity_to").val()
+            ||
+            $tr.find(".cc_validity_to").val()
+            ||
+            $tr.find('input[name="staff_cc_validity_to[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_validity_to["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Appointment Document
+        // --------------------------------------------------
+
+        app_doc:
+            $tr.find('input[name="app_doc[]"]').val()
+            ||
+            $tr.find('input[name^="app_doc["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Consent Document
+        // --------------------------------------------------
+
+        cons_doc:
+            $tr.find('input[name="cons_doc[]"]').val()
+            ||
+            $tr.find('input[name^="cons_doc["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // IMPORTANT: ROW INDEX
+        // --------------------------------------------------
+
+        row_index:
+            $tr.attr("data-row-index")
+            ||
+            $tr.data("row-index")
+            ||
+            $tr.find('input[name="row_index[]"]').val()
+            ||
+            ""
+    };
+
+
+    // --------------------------------------------------
+    // ADD ONLY QC / QSC
+    // --------------------------------------------------
+
+    let category = String(
+        record.staffqc_category || ""
+    ).trim().toUpperCase();
+
+
+    if (!["QC", "QSC"].includes(category)) {
+        return;
+    }
+
+
+    // --------------------------------------------------
+    // ADD RECORD
+    // --------------------------------------------------
+
+    qcStaffRecords.push(record);
+
+});
 
 
     // ----------------------------------------------------------
@@ -5217,106 +5273,162 @@ directors.forEach((p, index) => {
     // GET ALL QC / QSC STAFF ROWS
     // ----------------------------------------------------------
 
-    $("#staffqc-records tr").each(function (index) {
 
-        let $tr = $(this);
+$("#staffqc-records tr.staffqc-fields").each(function (index) {
 
-        // Skip rows that are not actual QC/QSC staff rows
-        if (
-            !$tr.hasClass("staffqc-record") &&
-            !$tr.hasClass("staffqc-fields")
-        ) {
-            return;
-        }
+    let $tr = $(this);
 
-        let record = {
+    let record = {
 
-            // Existing database ID
-            id: $tr.data("id") || null,
+        // --------------------------------------------------
+        // Existing database ID
+        // --------------------------------------------------
 
-            // Category
-            staffqc_category:
-                $tr.find(".staffqc_category").val()
-                ||
-                $tr.find('input[name="staffqc_category[]"]').val()
-                ||
-                $tr.find('input[name^="staffqc_category["]').val()
-                ||
-                $tr.find("td:eq(1)").text().trim()
-                ||
-                "",
-
-            // Certificate Number
-            staff_cc_no:
-                $tr.find(".staff_cc_no").val()
-                ||
-                $tr.find(".cc_number").val()
-                ||
-                $tr.find('input[name="staff_cc_no[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_no["]').val()
-                ||
-                $tr.find("td:eq(2)").text().trim()
-                ||
-                "",
-
-            // First Issue
-            staff_cc_first_issue:
-                $tr.find(".staff_cc_first_issue").val()
-                ||
-                $tr.find(".cc_firstissue").val()
-                ||
-                $tr.find('input[name="staff_cc_first_issue[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_first_issue["]').val()
-                ||
-                "",
-
-            // Validity From
-            staff_cc_validity_from:
-                $tr.find(".staff_cc_validity_from").val()
-                ||
-                $tr.find(".cc_validity_from").val()
-                ||
-                $tr.find('input[name="staff_cc_validity_from[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_validity_from["]').val()
-                ||
-                "",
-
-            // Validity To
-            staff_cc_validity_to:
-                $tr.find(".staff_cc_validity_to").val()
-                ||
-                $tr.find(".cc_validity_to").val()
-                ||
-                $tr.find('input[name="staff_cc_validity_to[]"]').val()
-                ||
-                $tr.find('input[name^="staff_cc_validity_to["]').val()
-                ||
-                "",
-
-            // Appointment document
-            app_doc:
-                $tr.find('input[name="app_doc[]"]').val()
-                ||
-                $tr.find('input[name^="app_doc["]').val()
-                ||
-                "",
-
-            // Consent document
-            cons_doc:
-                $tr.find('input[name="cons_doc[]"]').val()
-                ||
-                $tr.find('input[name^="cons_doc["]').val()
-                ||
-                ""
-        };
+        id: $tr.data("id") || null,
 
 
-        qcStaffRecords.push(record);
+        // --------------------------------------------------
+        // Category
+        // --------------------------------------------------
 
-    });
+        staffqc_category:
+            $tr.find(".staffqc_category").val()
+            ||
+            $tr.find('input[name="staffqc_category[]"]').val()
+            ||
+            $tr.find('input[name^="staffqc_category["]').val()
+            ||
+            $tr.find("td:eq(1)").text().trim()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Certificate Number
+        // --------------------------------------------------
+
+        staff_cc_no:
+            $tr.find(".staff_cc_no").val()
+            ||
+            $tr.find(".cc_number").val()
+            ||
+            $tr.find('input[name="staff_cc_no[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_no["]').val()
+            ||
+            $tr.find("td:eq(2)").text().trim()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // First Issue
+        // --------------------------------------------------
+
+        staff_cc_first_issue:
+            $tr.find(".staff_cc_first_issue").val()
+            ||
+            $tr.find(".cc_firstissue").val()
+            ||
+            $tr.find('input[name="staff_cc_first_issue[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_first_issue["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Validity From
+        // --------------------------------------------------
+
+        staff_cc_validity_from:
+            $tr.find(".staff_cc_validity_from").val()
+            ||
+            $tr.find(".cc_validity_from").val()
+            ||
+            $tr.find('input[name="staff_cc_validity_from[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_validity_from["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Validity To
+        // --------------------------------------------------
+
+        staff_cc_validity_to:
+            $tr.find(".staff_cc_validity_to").val()
+            ||
+            $tr.find(".cc_validity_to").val()
+            ||
+            $tr.find('input[name="staff_cc_validity_to[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_validity_to["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Appointment Document
+        // --------------------------------------------------
+
+        app_doc:
+            $tr.find('input[name="app_doc[]"]').val()
+            ||
+            $tr.find('input[name^="app_doc["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // Consent Document
+        // --------------------------------------------------
+
+        cons_doc:
+            $tr.find('input[name="cons_doc[]"]').val()
+            ||
+            $tr.find('input[name^="cons_doc["]').val()
+            ||
+            "",
+
+
+        // --------------------------------------------------
+        // IMPORTANT: ROW INDEX
+        // --------------------------------------------------
+
+        row_index:
+            $tr.attr("data-row-index")
+            ||
+            $tr.data("row-index")
+            ||
+            $tr.find('input[name="row_index[]"]').val()
+            ||
+            ""
+    };
+
+
+    // --------------------------------------------------
+    // ADD ONLY QC / QSC
+    // --------------------------------------------------
+
+    let category = String(
+        record.staffqc_category || ""
+    ).trim().toUpperCase();
+
+
+    if (!["QC", "QSC"].includes(category)) {
+        return;
+    }
+
+
+    // --------------------------------------------------
+    // ADD RECORD
+    // --------------------------------------------------
+
+    qcStaffRecords.push(record);
+
+});
 
 
     // ----------------------------------------------------------

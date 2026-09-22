@@ -74,7 +74,7 @@ class FormSBprocessController extends Controller
             ->get()
             ->keyBy('application_id');
 
-        $renewalLicenses = DB::table('tnelb_renewal_license')
+        $renewalLicenses = DB::table('cl_forma_lic')
             ->whereIn('application_id', $applicationIds)
             ->select('application_id', 'license_number')
             ->get()
@@ -560,7 +560,7 @@ class FormSBprocessController extends Controller
 
 
 
-                $license_details = DB::table('tnelb_renewal_license')
+                $license_details = DB::table('cl_forma_lic')
                     ->where('application_id', $request->application_id)
                     ->first();
 
@@ -611,7 +611,7 @@ class FormSBprocessController extends Controller
 
                     $issuedAt = now()->format('Y-m-d H:i:s');
 
-                    DB::table('tnelb_renewal_license')->insert([
+                    DB::table('cl_forma_lic')->insert([
                         'login_id'       => $login_id,
                         'license_number' => $application->license_number,
                         'application_id' => $request->application_id,
@@ -887,7 +887,7 @@ class FormSBprocessController extends Controller
                 ->get()
                 ->keyBy('application_id');
 
-            $renewalLicenses = DB::table('tnelb_renewal_license')
+            $renewalLicenses = DB::table('cl_forma_lic')
                 ->whereIn('application_id', $applicationIds)
                 ->select('application_id', 'license_number')
                 ->get()
@@ -1045,7 +1045,7 @@ class FormSBprocessController extends Controller
                 ->get()
                 ->keyBy('application_id');
 
-            $renewalLicenses = DB::table('tnelb_renewal_license')
+            $renewalLicenses = DB::table('cl_forma_lic')
                 ->whereIn('application_id', $applicationIds)
                 ->select('application_id', 'license_number')
                 ->get()
@@ -1343,7 +1343,7 @@ class FormSBprocessController extends Controller
         ->get()
         ->keyBy('application_id');
 
-    $renewalLicenses = DB::table('tnelb_renewal_license')
+    $renewalLicenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()

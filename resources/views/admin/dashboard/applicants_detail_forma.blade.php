@@ -2632,7 +2632,7 @@
 
              var role_id         = @json(Auth::user()->roles_id);
 
-             
+
 
              var checklistStatus = [];
 
@@ -2650,18 +2650,31 @@
                         let status = {};
                         let check_id = {};
 
-                        $("#specific-class tbody tr").each(function () {
 
-                            let checkbox = $(this).find("input[name^='checklists']");
-                            let switchBtn = $(this).find("input[name^='status']");
-                            let checkid = $(this).find("input[name^='check_id']");
+                    $("#specific-class tbody tr").each(function () {
 
-                            let id = checkbox.attr("name").match(/\d+/)[0];
-                            checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                            status[id] = switchBtn.is(":checked") ? 1 : 0;
-                            check_id[id] = checkid.val();
+                        let checkbox = $(this).find("input[name^='checklists']");
+                        let switchBtn = $(this).find("input[name^='status']");
+                        let checkid = $(this).find("input[name^='check_id']");
 
-                        });
+                        let name = checkbox.attr("name");
+
+                        if (!name) {
+                            return; // skip this row
+                        }
+
+                        let match = name.match(/\d+/);
+
+                        if (!match) {
+                            return; // skip if no number found
+                        }
+
+                        let id = match[0];
+
+                        checklists[id] = checkbox.is(":checked") ? 1 : 0;
+                        status[id] = switchBtn.is(":checked") ? 1 : 0;
+                        check_id[id] = checkid.val();
+                    });
 
 
             // 🔹 STEP 1: CHECK VALIDITY FROM CONTROLLER
@@ -2681,7 +2694,7 @@
                     checklists: checklists,
                     status: status,
                     check_id: check_id,
-                  
+
 
                 },
                 success: function (res) {
@@ -3249,22 +3262,34 @@
             // ===============================
                         // Checklist Data
                         // ===============================
-                        let checklists = {};
-                        let status = {};
-                        let check_id = {};
+                    let checklists = {};
+                    let status = {};
+                    let check_id = {};
 
-                        $("#specific-class tbody tr").each(function () {
+                    $("#specific-class tbody tr").each(function () {
 
-                            let checkbox = $(this).find("input[name^='checklists']");
-                            let switchBtn = $(this).find("input[name^='status']");
-                            let checkid = $(this).find("input[name^='check_id']");
+                        let checkbox = $(this).find("input[name^='checklists']");
+                        let switchBtn = $(this).find("input[name^='status']");
+                        let checkid = $(this).find("input[name^='check_id']");
 
-                            let id = checkbox.attr("name").match(/\d+/)[0];
-                            checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                            status[id] = switchBtn.is(":checked") ? 1 : 0;
-                            check_id[id] = checkid.val();
+                        let name = checkbox.attr("name");
 
-                        });
+                        if (!name) {
+                            return; // skip this row
+                        }
+
+                        let match = name.match(/\d+/);
+
+                        if (!match) {
+                            return; // skip if no number found
+                        }
+
+                        let id = match[0];
+
+                        checklists[id] = checkbox.is(":checked") ? 1 : 0;
+                        status[id] = switchBtn.is(":checked") ? 1 : 0;
+                        check_id[id] = checkid.val();
+                    });
 
             Swal.fire({
                 title: "Declaration",
@@ -3399,18 +3424,30 @@
                         let status = {};
                         let check_id = {};
 
-                        $("#specific-class tbody tr").each(function () {
+                    $("#specific-class tbody tr").each(function () {
 
-                            let checkbox = $(this).find("input[name^='checklists']");
-                            let switchBtn = $(this).find("input[name^='status']");
-                            let checkid = $(this).find("input[name^='check_id']");
+                        let checkbox = $(this).find("input[name^='checklists']");
+                        let switchBtn = $(this).find("input[name^='status']");
+                        let checkid = $(this).find("input[name^='check_id']");
 
-                            let id = checkbox.attr("name").match(/\d+/)[0];
-                            checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                            status[id] = switchBtn.is(":checked") ? 1 : 0;
-                            check_id[id] = checkid.val();
+                        let name = checkbox.attr("name");
 
-                        });
+                        if (!name) {
+                            return; // skip this row
+                        }
+
+                        let match = name.match(/\d+/);
+
+                        if (!match) {
+                            return; // skip if no number found
+                        }
+
+                        let id = match[0];
+
+                        checklists[id] = checkbox.is(":checked") ? 1 : 0;
+                        status[id] = switchBtn.is(":checked") ? 1 : 0;
+                        check_id[id] = checkid.val();
+                    });
 
                         let staffVerification = [];
 

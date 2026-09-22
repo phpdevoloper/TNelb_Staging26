@@ -20,7 +20,7 @@ class StaffController extends Controller
 
     $exists = DB::table('tnelb_applicant_cl_staffdetails as s')
         ->join('cl_forma_lic as l', 's.application_id', '=', 'l.application_id')
-        ->leftJoin('tnelb_renewal_license as rl', 's.application_id', '=', 'rl.application_id')
+        ->leftJoin('cl_forma_lic as rl', 's.application_id', '=', 'rl.application_id')
         ->where('s.cc_number', $cc_number)
         // ->where('s.cc_validity', $cc_validity)
         // ->where(function($query) {

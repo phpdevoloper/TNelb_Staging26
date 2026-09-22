@@ -2413,7 +2413,7 @@ exit; -->
 
                             <div class="file-link">
 
-                                <a href="#"
+                                <a href="{{ asset($staff->app_doc) }}"
                                     target="_blank"
                                     class="app-doc-link">
 
@@ -2426,7 +2426,7 @@ exit; -->
 
                                 <br>
 
-                                <a href="#"
+                                <a href="{{ asset($staff->cons_doc) }}"
                                     target="_blank"
                                     class="cons-doc-link">
 

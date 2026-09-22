@@ -194,7 +194,7 @@ exit; -->
 
 
 
-            <input type="hidden" class="form-control text-box single-line" id="appl_type" name="appl_type" value="N">
+            <input type="hidden" class="form-control text-box single-line" id="appl_type" name="appl_type" value="{{ trim($application->appl_type) }}">
 
             <input type="hidden" class="form-control text-box single-line" id="form_id" name="form_id" value="5">
             <input type="hidden" class="form-control text-box single-line" id="amount" name="amount" value="12000">
@@ -2437,7 +2437,7 @@ exit; -->
 
                             <div class="file-link">
 
-                                <a href="#"
+                               <a href="{{ asset($staff->app_doc) }}"
                                     target="_blank"
                                     class="app-doc-link">
 
@@ -2450,7 +2450,7 @@ exit; -->
 
                                 <br>
 
-                                <a href="#"
+                                 <a href="{{ asset($staff->cons_doc) }}"
                                     target="_blank"
                                     class="cons-doc-link">
 

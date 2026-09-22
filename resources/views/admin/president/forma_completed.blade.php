@@ -176,7 +176,7 @@
                                                                     @endphp
                                                                 @else
                                                                     @php
-                                                                        $license = DB::table('tnelb_renewal_license')
+                                                                        $license = DB::table('cl_forma_lic')
                                                                             ->where('application_id', $application->application_id)
                                                                             ->first();
                                                                     @endphp
@@ -194,7 +194,7 @@
                                                                                 ->where('application_id', $application->application_id)
                                                                                 ->first();
                                                                         } else {
-                                                                            $license = DB::table('tnelb_renewal_license')
+                                                                            $license = DB::table('cl_forma_lic')
                                                                                 ->where('application_id', $application->application_id)
                                                                                 ->first();
                                                                         }

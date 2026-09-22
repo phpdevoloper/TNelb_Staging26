@@ -84,20 +84,20 @@ class generateLicencepdfController extends Controller
         // ---------------------------------------
         else {
 
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
+            $applicant = DB::table('cl_forma_lic')
+                ->join($table_name, 'cl_forma_lic.application_id', '=', $table_name . '.application_id')
+                ->where('cl_forma_lic.application_id', $application_id)
                 ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
+                    'cl_forma_lic.application_id',
+                    'cl_forma_lic.issued_by',
+                    'cl_forma_lic.issued_at',
+                    'cl_forma_lic.expires_at',
 
                     $table_name . '.applicant_name AS name',
                     $table_name . '.license_name',
                     $table_name . '.form_name',
 
-                    'tnelb_renewal_license.license_number'
+                    'cl_forma_lic.license_number'
                 )
                 ->first();
 
@@ -488,20 +488,20 @@ class generateLicencepdfController extends Controller
         // ---------------------------------------
         else {
 
-            $applicant = DB::table('tnelb_renewal_license')
-                ->join($table_name, 'tnelb_renewal_license.application_id', '=', $table_name . '.application_id')
-                ->where('tnelb_renewal_license.application_id', $application_id)
+            $applicant = DB::table('cl_forma_lic')
+                ->join($table_name, 'cl_forma_lic.application_id', '=', $table_name . '.application_id')
+                ->where('cl_forma_lic.application_id', $application_id)
                 ->select(
-                    'tnelb_renewal_license.application_id',
-                    'tnelb_renewal_license.issued_by',
-                    'tnelb_renewal_license.issued_at',
-                    'tnelb_renewal_license.expires_at',
+                    'cl_forma_lic.application_id',
+                    'cl_forma_lic.issued_by',
+                    'cl_forma_lic.issued_at',
+                    'cl_forma_lic.expires_at',
 
                     $table_name . '.applicant_name AS name',
                     $table_name . '.license_name',
                     $table_name . '.form_name',
 
-                    'tnelb_renewal_license.license_number'
+                    'cl_forma_lic.license_number'
                 )
                 ->first();
 

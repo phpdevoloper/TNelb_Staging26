@@ -3138,7 +3138,7 @@ class PDFController extends Controller
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
 
         if ($form->appl_type == 'R') {
-            $license_details = DB::table('tnelb_renewal_license')->where('application_id', $newApplicationId)->first();
+            $license_details = DB::table('cl_forma_lic')->where('application_id', $newApplicationId)->first();
         } else {
             $license_details = DB::table('cl_forma_lic')->where('application_id', $newApplicationId)->first();
         }

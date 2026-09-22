@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Resolves issued certificates for competency forms S, W, WH, P.
- * Each form stores new + renewal certs in one table (replaces cl_forma_lic / tnelb_renewal_license).
+ * Each form stores new + renewal certs in one table (replaces cl_forma_lic / cl_forma_lic).
  */
 class CompetencyCertificateService
 {

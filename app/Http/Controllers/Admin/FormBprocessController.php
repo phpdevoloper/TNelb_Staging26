@@ -77,7 +77,7 @@ class FormBprocessController extends Controller
             ->get()
             ->keyBy('application_id');
 
-        $renewalLicenses = DB::table('tnelb_renewal_license')
+        $renewalLicenses = DB::table('cl_forma_lic')
             ->whereIn('application_id', $applicationIds)
             ->select('application_id', 'license_number')
             ->get()
@@ -640,7 +640,7 @@ class FormBprocessController extends Controller
             if ($appl_type === 'R') {
 
                 // Renewal → old expiry + months
-                $oldExpiry = DB::table('tnelb_renewal_license')
+                $oldExpiry = DB::table('cl_forma_lic')
                     ->where('application_id', $request->oldapplicationId)
                     ->value('expires_at');
 
@@ -685,7 +685,7 @@ class FormBprocessController extends Controller
 
             if ($appl_type === 'R') {
 
-                DB::table('tnelb_renewal_license')->insert([
+                DB::table('cl_forma_lic')->insert([
                     'login_id'       => $application->login_id,
                     'license_number' => $application->license_number,
                     'application_id' => $request->application_id,
@@ -909,7 +909,7 @@ class FormBprocessController extends Controller
                 ->get()
                 ->keyBy('application_id');
 
-            $renewalLicenses = DB::table('tnelb_renewal_license')
+            $renewalLicenses = DB::table('cl_forma_lic')
                 ->whereIn('application_id', $applicationIds)
                 ->select('application_id', 'license_number')
                 ->get()
@@ -1077,7 +1077,7 @@ class FormBprocessController extends Controller
         ->get()
         ->keyBy('application_id');
 
-    $renewalLicenses = DB::table('tnelb_renewal_license')
+    $renewalLicenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()
@@ -1114,7 +1114,7 @@ class FormBprocessController extends Controller
         ->get()
         ->keyBy('application_id');
 
-    $renewalLicenses = DB::table('tnelb_renewal_license')
+    $renewalLicenses = DB::table('cl_forma_lic')
         ->whereIn('application_id', $applicationIds)
         ->select('application_id', 'license_number')
         ->get()

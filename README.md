@@ -29,7 +29,7 @@ select * from tnelb_ea_qc_models;
 
     ALTER TABLE tnelb_ea_qc_models RENAME COLUMN category TO staffqc_category, COLUMN cc_number TO cc_qc_number, COLUMN cc_validity TO cc_qc_validity ;
 
-    ALTER TABLE tnelb_renewal_license ADD COLUMN issued_from dateTime;
+    ALTER TABLE cl_forma_lic ADD COLUMN issued_from dateTime;
 
 26/05/2026
 

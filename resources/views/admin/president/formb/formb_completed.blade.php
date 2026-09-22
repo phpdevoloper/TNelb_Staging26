@@ -177,7 +177,7 @@
                                                                           ->select('application_id', 'license_number')
                                                                         ->where('application_id', $application->application_id)
                                                                         ->unionAll(
-                                                                            DB::table('tnelb_renewal_license')
+                                                                            DB::table('cl_forma_lic')
                                                                                     ->select('application_id', 'license_number')
                                                                                     ->where('application_id', $application->application_id)
                                                                         )
@@ -196,7 +196,7 @@
                                                                             ->select('application_id', 'issued_at')
                                                                             ->where('application_id', $application->application_id)
                                                                             ->unionAll(
-                                                                                DB::table('tnelb_renewal_license')
+                                                                                DB::table('cl_forma_lic')
                                                                                     ->select('application_id', 'issued_at')
                                                                                     ->where('application_id', $application->application_id)
                                                                             )

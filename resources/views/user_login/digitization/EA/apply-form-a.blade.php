@@ -2345,23 +2345,36 @@ exit; -->
 
                 {{-- Attachments --}}
                 <td>
-                    <div class="file-link">
 
+                            <div class="file-link">
 
-                            <a href="#" target="_blank">
-                                Appointment Letter
-                            </a>
+                              <a href="{{ asset($staff->app_doc) }}"
+                                    target="_blank"
+                                    class="app-doc-link">
 
+                                    <i class="fa fa-file-pdf-o"
+                                        style="color:red;"></i>
 
+                                    Appointment Letter
 
+                                </a>
 
-                            <a href="#" target="_blank">
-                                Consent Letter
-                            </a>
+                                <br>
 
+                                 <a href="{{ asset($staff->cons_doc) }}"
+                                    target="_blank"
+                                    class="cons-doc-link">
 
-                    </div>
-                </td>
+                                    <i class="fa fa-file-pdf-o"
+                                        style="color:red;"></i>
+
+                                    Consent Letter
+
+                                </a>
+
+                            </div>
+
+                        </td>
 
                 {{-- Remove --}}
                 <td>

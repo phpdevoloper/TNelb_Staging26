@@ -148,7 +148,7 @@ class AuditorController extends Controller
                 ->get()
                 ->keyBy('application_id');
 
-            $renewalLicenses = DB::table('tnelb_renewal_license')
+            $renewalLicenses = DB::table('cl_forma_lic')
                 ->whereIn('application_id', $applicationIds)
                 ->select('application_id', 'license_number')
                 ->get()

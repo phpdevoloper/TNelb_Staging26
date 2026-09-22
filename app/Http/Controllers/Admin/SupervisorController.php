@@ -858,7 +858,7 @@ class SupervisorController extends Controller
             $tbl = $contractorTablesByCode[$formCode];
             $query = DB::table($tbl . ' as ta')
                 ->leftJoin('cl_forma_lic as tl', 'tl.application_id', '=', 'ta.application_id')
-                ->leftJoin('tnelb_renewal_license as tr', 'tr.application_id', '=', 'ta.application_id')
+                ->leftJoin('cl_forma_lic as tr', 'tr.application_id', '=', 'ta.application_id')
                 ->whereIn('ta.application_status', ['F', 'RF', 'A'])
                 ->select(
                     'ta.*',
@@ -892,7 +892,7 @@ class SupervisorController extends Controller
         $query = DB::table('tnelb_application_tbl as ta')
             ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
             ->leftJoin('cl_forma_lic as tl', 'tl.application_id', '=', 'ta.application_id')
-            ->leftJoin('tnelb_renewal_license as tr', 'tr.application_id', '=', 'ta.application_id')
+            ->leftJoin('cl_forma_lic as tr', 'tr.application_id', '=', 'ta.application_id')
             ->where('ta.form_id', $selectedFormId)
             ->where('ta.status', 'A')
             ->select(
@@ -1075,7 +1075,7 @@ class SupervisorController extends Controller
             ->get()
             ->keyBy('application_id');
 
-        $renewalLicenses = DB::table('tnelb_renewal_license')
+        $renewalLicenses = DB::table('cl_forma_lic')
             ->whereIn('application_id', $applicationIds)
             ->select('application_id', 'license_number')
             ->get()
@@ -1686,6 +1686,10 @@ class SupervisorController extends Controller
             ->where('application_id', $request->application_id)
             ->first();
 
+            $old_license_number = $application->license_number;
+
+            // dd($old_license_number); exit;
+
         if (!$application) {
             return response()->json([
                 'error' => 'Application not found'
@@ -1759,9 +1763,9 @@ class SupervisorController extends Controller
 
                 // Renewal → old expiry + months
 
-                $oldExpiry = DB::table('tnelb_renewal_license')
+                $oldExpiry = DB::table('cl_forma_lic')
                     ->where('application_id', $request->oldapplicationId)
-                    ->value('expires_at');
+                    ->value('valid_to');
 
                 $baseExpiry = $oldExpiry
                     ? Carbon::parse($oldExpiry)
@@ -1810,25 +1814,44 @@ class SupervisorController extends Controller
 
             if ($appl_type === 'R') {
 
-                DB::table('tnelb_renewal_license')->insert([
+            // $issuedAt = $old_license_number->dateof_issue;
 
-                    'login_id'       => $application->login_id,
+            $license_validitydetails = DB::table('cl_forma_lic')
+            ->where('license_number', $old_license_number)
+            ->orderByDesc('id')
+            ->first();
 
-                    'license_number' => $application->license_number,
+            // dd($license_validitydetails); exit;
 
+            $issuedAt = $license_validitydetails->dateof_issue;
+
+             $validityfrom = now()->format('Y-m-d');
+
+            //  dd($issuedAt, $validityfrom, $expiresAt); exit;
+
+
+                DB::table('cl_forma_lic')->insert([
+
+                    // 'login_id'       => $application->login_id,
                     'application_id' => $request->application_id,
 
-                    'issued_by'      => $request->processed_by,
+                      'license_number' => $application->license_number,
 
-                    'issued_at'      => $issuedAt,
+                    'issued_by'      => $request->roleid,
 
-                    'expires_at'     => $expiresAt,
+                    'dateof_issue'      => $issuedAt,
 
-                    'created_at'     => now(),
+                    'valid_from'      => $validityfrom,
+
+                    'valid_to'     => $expiresAt,
+                    'cert_status' => 'A',
+                    'cert_pdf' => '',
+                    'created_at' => now(),
+                    'updated_at' => now()
 
                 ]);
 
-                $newSerial = $application->license_number;
+                // $newSerial = $application->license_number;
             } else {
 
                 $prefix    = $application->license_name;
@@ -1858,7 +1881,7 @@ class SupervisorController extends Controller
 
                 $newSerial = "L{$prefix}{$yearMonth}{$next}";
 
-                
+
 
 
                 DB::table('cl_forma_lic')->insert([
@@ -1870,7 +1893,7 @@ class SupervisorController extends Controller
                     'issued_by'      => $request->roleid,
 
                     'dateof_issue'      => $issuedAt,
-                    
+
                     'valid_from'      => $issuedAt,
 
                     'valid_to'     => $expiresAt,
