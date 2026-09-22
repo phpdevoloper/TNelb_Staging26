@@ -631,395 +631,879 @@ class FormAController extends BaseController
 
         // -----------QC process---------------
 
-        $processedStaffIdsQC = [];
-
-        //     if ($request->has('staffqc_name')) {
+//         $processedStaffIdsQC = [];
 
 
-        //         $staffIdsFromForm = $request->staffqc_id ?? [];
+//         // QC/QSC----------------
 
-        //         $existingStaffIds = Tnelb_EA_QC_model::where(
-        //             'application_id',
-        //             $applicationId
-        //         )->pluck('id')->toArray();
+//         if ($request->has('staffqc_category')) {
+//             // dd('qc'); exit;
 
-        //         // Get the current maximum row_index for this application
-        //         $maxRowIndex = Tnelb_EA_QC_model::where(
-        //             'application_id',
-        //             $applicationId
-        //         )->max('row_index');
+//             $staffCategories = $request->input('staffqc_category', []);
+//             $staffCcNos = $request->input('staff_cc_no', []);
+//             $staffFirstIssues = $request->input('staff_cc_first_issue', []);
+//             $staffValidityFroms = $request->input('staff_cc_validity_from', []);
+//             $staffValidityTos = $request->input('staff_cc_validity_to', []);
 
-        //         $nextRowIndex = ((int) $maxRowIndex) + 1;
+//             $staffQcIds = $request->input('staffqc_id', []);
+//             $rowIndexes = $request->input('row_index', []);
 
-        //         $qc_code = 1;
+//             /*
+//     |--------------------------------------------------------------------------
+//     | GET NEXT ROW INDEX
+//     |--------------------------------------------------------------------------
+//     */
 
-        //         foreach ($request->staffqc_name as $index => $staffName) {
+//             $lastRowIndex = DB::table('cl_staff_tbl')
+//                 ->where('application_id', $applicationId)
+//                 ->max('row_index');
 
-        //             if (
-        //                 empty($staffName) &&
-        //                 empty($request->cc_qc_number[$index] ?? null) &&
-        //                 empty($request->cc_qc_validity[$index] ?? null)
-        //             ) {
-        //                 continue;
-        //             }
+//             $nextRowIndex = ((int) $lastRowIndex) + 1;
 
-        //             $staffId = $staffIdsFromForm[$index] ?? null;
+//             /*
+//     |--------------------------------------------------------------------------
+//     | ROW INDEXES PRESENT IN CURRENT FORM
+//     |--------------------------------------------------------------------------
+//     */
 
-        //             $validity = $request->cc_qc_validity[$index] ?? null;
+//             $currentRowIndexes = [];
 
-        //             /*
-        //     |--------------------------------------------------------------------------
-        //     | Existing record
-        //     |--------------------------------------------------------------------------
-        //     */
-        //             if ($staffId && in_array($staffId, $existingStaffIds)) {
+//             foreach ($staffCategories as $index => $category) {
 
-        //                 $existingStaff = Tnelb_EA_QC_model::find($staffId);
+//                 $category = strtoupper(trim((string) $category));
 
-        //                 $staffData = [
-        //                     'application_id'    => $applicationId,
-        //                     'login_id'          => $request->login_id_store,
-        //                     'form_name'         => $request->form_name,
-        //                     'license_name'      => $request->license_name,
-        //                     'staffname'         => strtoupper($staffName),
-        //                     'staffqc_category'  => strtoupper(
-        //                         $request->staffqc_category[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_number'      => strtoupper(
-        //                         $request->cc_qc_number[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_validity'    => $validity,
-        //                     'qc_code'           => $qc_code,
-        //                     'flag'              => '1',
-        //                 ];
+//                 /*
+//         |--------------------------------------------------------------------------
+//         | Only QC / QSC
+//         |--------------------------------------------------------------------------
+//         */
 
-        //                 $existingStaff->update($staffData);
+//                 if (!in_array($category, ['QC', 'QSC'], true)) {
+//                     continue;
+//                 }
 
-        //                 // Keep existing row_index unchanged
-        //                 $processedStaffIdsQC[] = $staffId;
-        //             }
+//                 $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
 
-        //             /*
-        //     |--------------------------------------------------------------------------
-        //     | New record
-        //     |--------------------------------------------------------------------------
-        //     */ else {
+//                 /*
+//         |--------------------------------------------------------------------------
+//         | Ignore empty / undefined certificate number
+//         |--------------------------------------------------------------------------
+//         */
 
-        //                 $staffData = [
-        //                     'application_id'    => $applicationId,
-        //                     'login_id'          => $request->login_id_store,
-        //                     'form_name'         => $request->form_name,
-        //                     'license_name'      => $request->license_name,
-        //                     'staffname'         => strtoupper($staffName),
-        //                     'staffqc_category'  => strtoupper(
-        //                         $request->staffqc_category[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_number'      => strtoupper(
-        //                         $request->cc_qc_number[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_validity'    => $validity,
-        //                     'qc_code'           => $qc_code,
-        //                     'row_index'         => $nextRowIndex,
-        //                     'flag'              => '1',
-        //                 ];
+//                 if (
+//                     $ccNo === '' ||
+//                     strtolower($ccNo) === 'undefined' ||
+//                     strtolower($ccNo) === 'null'
+//                 ) {
+//                     continue;
+//                 }
 
-        //                 $newStaff = Tnelb_EA_QC_model::create($staffData);
-
-        //                 $processedStaffIdsQC[] = $newStaff->id;
-
-        //                 // Next new record gets next sequence number
-        //                 $nextRowIndex++;
-        //             }
-
-        //             $qc_code++;
-        //         }
-
-        //         /*
-        // |--------------------------------------------------------------------------
-        // | Delete records removed from the form
-        // |--------------------------------------------------------------------------
-        // */
-        //         Tnelb_EA_QC_model::where('application_id', $applicationId)
-        //             ->whereNotIn('id', $processedStaffIdsQC)
-        //             ->delete();
+//                 $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
+//                 $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
+//                 $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
 
 
 
-        //         $tempDocs = DB::table('tnelb_temp_uploaded_documents')
-        //             ->where('login_id', $request->login_id_store)
-        //             ->where('form_name', $request->form_name)
-        //             ->where('license_name', $request->license_name)
-        //             ->where('document_category', 'qc_doc')
-        //             ->where('appl_type', 'N')
-        //             // ->whereIn('is_final', ['0', '2'])
+//                 $staffId = $staffQcIds[$index] ?? null;
+//                 $submittedRowIndex = $rowIndexes[$index] ?? null;
 
-        //             ->get();
+//                 /*
+//         |--------------------------------------------------------------------------
+//         | EXISTING RECORD
+//         |--------------------------------------------------------------------------
+//         */
 
-        //         // dd($tempDocs->pluck('qc_code')->toArray());
+//                 /*
+// |--------------------------------------------------------------------------
+// | EXISTING RECORD
+// |--------------------------------------------------------------------------
+// */
 
-        //         foreach ($tempDocs as $tempDoc) {
+//                 if (!empty($staffId)) {
+
+//                     $existing = DB::table('cl_staff_tbl')
+//                         ->where('id', $staffId)
+//                         ->where('application_id', $applicationId)
+//                         ->whereIn('staff_category', ['QC', 'QSC'])
+//                         ->first();
+
+//                     if ($existing) {
+
+//                         /*
+//         |--------------------------------------------------------------------------
+//         | Keep existing values if POST value is empty
+//         |--------------------------------------------------------------------------
+//         */
+
+//                         $updateData = [
+//                             'staff_category' => $category,
+//                             'staff_cc_no' => $ccNo,
+//                             'staff_flag' => '1',
+//                             'updated_at' => now(),
+//                         ];
+
+//                         if ($firstIssue !== '') {
+//                             $updateData['staff_cc_first_issue'] = $firstIssue;
+//                         }
+
+//                         if ($validityFrom !== '') {
+//                             $updateData['staff_cc_validity_from'] = $validityFrom;
+//                         }
+
+//                         if ($validityTo !== '') {
+//                             $updateData['staff_cc_validity_to'] = $validityTo;
+//                         }
+
+//                         DB::table('cl_staff_tbl')
+//                             ->where('id', $staffId)
+//                             ->where('application_id', $applicationId)
+//                             ->update($updateData);
+
+//                         $currentRowIndexes[] = (int) $existing->row_index;
+//                     }
+//                 }
+
+//                 /*
+//         |--------------------------------------------------------------------------
+//         | NEW RECORD
+//         |--------------------------------------------------------------------------
+//         */ else {
+
+//                     // dd('new qc'); exit;
+
+//                     $newRowIndex = $nextRowIndex;
+
+//                     DB::table('cl_staff_tbl')->insert([
+//                         'login_id' => $request->input('login_id_store'),
+//                         'application_id' => $applicationId,
+//                         'staff_category' => $category,
+//                         'staff_cc_no' => $ccNo,
+
+//                         'staff_cc_first_issue' =>
+//                         $firstIssue !== '' ? $firstIssue : null,
+
+//                         'staff_cc_validity_from' =>
+//                         $validityFrom !== '' ? $validityFrom : null,
+
+//                         'staff_cc_validity_to' =>
+//                         $validityTo !== '' ? $validityTo : null,
+
+//                         'row_index' => $newRowIndex,
+//                         'staff_flag' => '1',
+//                         'staff_status' => 'N',
+//                         'created_at' => now(),
+//                         'updated_at' => now(),
+//                     ]);
+
+//                     $currentRowIndexes[] = $newRowIndex;
+
+//                     $nextRowIndex++;
+//                 }
+//             }
+
+//             /*
+//     |--------------------------------------------------------------------------
+//     | SET MISSING QC / QSC RECORDS TO staff_flag = 0
+//     |--------------------------------------------------------------------------
+//     |
+//     | Existing DB records which are NOT present in the submitted form
+//     | will be marked as 0.
+//     |
+//     */
+
+//             DB::table('cl_staff_tbl')
+//                 ->where('application_id', $applicationId)
+//                 ->whereIn('staff_category', ['QC', 'QSC'])
+//                 ->where('staff_flag', '1')
+//                 ->whereNotIn('row_index', $currentRowIndexes)
+//                 ->update([
+//                     'staff_flag' => '0',
+//                     'updated_at' => now(),
+//                 ]);
 
 
 
+//         }
 
-        //             $matchedPartner = Tnelb_EA_QC_model::where('application_id', $applicationId)
 
-        //                 ->where('qc_code', $tempDoc->qc_code)
-        //                 ->first();
 
-        //             // dd($matchedPartner); exit;
+$processedStaffIdsQC = [];
 
-        //             if (!$matchedPartner) {
-        //                 continue; // No match → skip
-        //             }
 
-        //             // -----------------------------------------
-        //             // 4️⃣ GET FINAL PRO PATH
-        //             // -----------------------------------------
-        //             $dynamicRequest = clone $request;
-        //             $dynamicRequest->merge([
-        //                 'module' => $tempDoc->module
-        //             ]);
+// ==========================================================
+// QC / QSC
+// ==========================================================
 
-        //             $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-        //             $dbFilePath     = $dbFilePath_all->filepath_pro;
+if ($request->has('staffqc_category')) {
 
-        //             $tempFullPath = public_path(
-        //                 $tempDoc->file_path . '/' . $tempDoc->file_name
-        //             );
+    $staffCategories = $request->input(
+        'staffqc_category',
+        []
+    );
 
-        //             $proFolderPath = public_path($dbFilePath);
+    $staffCcNos = $request->input(
+        'staff_cc_no',
+        []
+    );
 
-        //             if (!File::exists($proFolderPath)) {
-        //                 File::makeDirectory($proFolderPath, 0755, true);
-        //             }
+    $staffFirstIssues = $request->input(
+        'staff_cc_first_issue',
+        []
+    );
 
-        //             $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
+    $staffValidityFroms = $request->input(
+        'staff_cc_validity_from',
+        []
+    );
 
-        //             // dd($dbFilePath);exit;
+    $staffValidityTos = $request->input(
+        'staff_cc_validity_to',
+        []
+    );
 
-        //             // -----------------------------------------
-        //             // 5️⃣ COPY FILE
-        //             // -----------------------------------------
-        //             if (File::exists($tempFullPath)) {
-        //                 File::copy($tempFullPath, $proFullPath);
-        //             } else {
-        //                 continue;
-        //             }
+    $staffQcIds = $request->input(
+        'staffqc_id',
+        []
+    );
 
-        //             // dd($tempDoc->file_path . '/' . $tempDoc->file_name);
-        //             // exit;
+    $rowIndexes = $request->input(
+        'row_index',
+        []
+    );
 
-        //             // -----------------------------------------
-        //             // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
-        //             // -----------------------------------------
-        //             $matchedPartner->qc_document = $dbFilePath_all->filepath_pro . $tempDoc->file_name;
 
-        //             // dd($matchedPartner->qc_document);exit;
-        //             // $matchedPartner->qc_code = $tempDoc->qc_code;
-        //             $matchedPartner->save();
+    // ==========================================================
+    // GET CURRENT MAX ROW INDEX
+    // ==========================================================
 
-        //             // -----------------------------------------
-        //             // 7️⃣ MARK TEMP DOC AS FINAL
-        //             // -----------------------------------------
-        //             DB::table('tnelb_temp_uploaded_documents')
-        //                 ->where('id', $tempDoc->id)
-        //                 ->update([
-        //                     'is_final'   => '1',
-        //                     'moved_as'   => $request->input('form_action'),
-        //                     'record_id_app' => $applicationId,
-        //                     'updated_at' => now()
-        //                 ]);
-        //         }
-        //     }
+    $lastRowIndex = DB::table('cl_staff_tbl')
+        ->where(
+            'application_id',
+            $applicationId
+        )
+        ->max('row_index');
 
-        // QC/QSC----------------
+    $nextRowIndex =
+        ((int) $lastRowIndex) + 1;
 
-        if ($request->has('staffqc_category')) {
-            // dd('qc'); exit;
 
-            $staffCategories = $request->input('staffqc_category', []);
-            $staffCcNos = $request->input('staff_cc_no', []);
-            $staffFirstIssues = $request->input('staff_cc_first_issue', []);
-            $staffValidityFroms = $request->input('staff_cc_validity_from', []);
-            $staffValidityTos = $request->input('staff_cc_validity_to', []);
+    // ==========================================================
+    // ROW INDEXES PRESENT IN CURRENT FORM
+    // ==========================================================
 
-            $staffQcIds = $request->input('staffqc_id', []);
-            $rowIndexes = $request->input('row_index', []);
+    $currentRowIndexes = [];
 
-            /*
-    |--------------------------------------------------------------------------
-    | GET NEXT ROW INDEX
-    |--------------------------------------------------------------------------
-    */
 
-            $lastRowIndex = DB::table('cl_staff_tbl')
-                ->where('application_id', $applicationId)
-                ->max('row_index');
+    // ==========================================================
+    // PROCESS QC / QSC
+    // ==========================================================
 
-            $nextRowIndex = ((int) $lastRowIndex) + 1;
+    foreach (
+        $staffCategories
+        as $index => $category
+    ) {
 
-            /*
-    |--------------------------------------------------------------------------
-    | ROW INDEXES PRESENT IN CURRENT FORM
-    |--------------------------------------------------------------------------
-    */
+        // ------------------------------------------------------
+        // CATEGORY
+        // ------------------------------------------------------
 
-            $currentRowIndexes = [];
+        $category = strtoupper(
+            trim((string) $category)
+        );
 
-            foreach ($staffCategories as $index => $category) {
 
-                $category = strtoupper(trim((string) $category));
+        // ------------------------------------------------------
+        // ONLY QC / QSC
+        // ------------------------------------------------------
 
-                /*
-        |--------------------------------------------------------------------------
-        | Only QC / QSC
-        |--------------------------------------------------------------------------
-        */
+        if (
+            !in_array(
+                $category,
+                ['QC', 'QSC'],
+                true
+            )
+        ) {
+            continue;
+        }
 
-                if (!in_array($category, ['QC', 'QSC'], true)) {
-                    continue;
+
+        // ------------------------------------------------------
+        // CERTIFICATE NUMBER
+        // ------------------------------------------------------
+
+        $ccNo = trim(
+            (string) (
+                $staffCcNos[$index] ?? ''
+            )
+        );
+
+
+        // ------------------------------------------------------
+        // IGNORE EMPTY CERTIFICATE
+        // ------------------------------------------------------
+
+        if (
+            $ccNo === '' ||
+            strtolower($ccNo) === 'undefined' ||
+            strtolower($ccNo) === 'null'
+        ) {
+            continue;
+        }
+
+
+        // ------------------------------------------------------
+        // OTHER VALUES
+        // ------------------------------------------------------
+
+        $firstIssue = trim(
+            (string) (
+                $staffFirstIssues[$index] ?? ''
+            )
+        );
+
+        $validityFrom = trim(
+            (string) (
+                $staffValidityFroms[$index] ?? ''
+            )
+        );
+
+        $validityTo = trim(
+            (string) (
+                $staffValidityTos[$index] ?? ''
+            )
+        );
+
+
+        // ------------------------------------------------------
+        // STAFF ID
+        // ------------------------------------------------------
+
+        $staffId =
+            $staffQcIds[$index] ?? null;
+
+
+        // ------------------------------------------------------
+        // SUBMITTED ROW INDEX
+        // ------------------------------------------------------
+
+        $submittedRowIndex =
+            $rowIndexes[$index] ?? null;
+
+
+        // ======================================================
+        // NORMALIZE STAFF ID
+        // ======================================================
+
+        if (
+            $staffId !== null &&
+            $staffId !== '' &&
+            strtolower(
+                trim((string) $staffId)
+            ) !== 'undefined' &&
+            strtolower(
+                trim((string) $staffId)
+            ) !== 'null'
+        ) {
+
+            $staffId = (int) $staffId;
+
+        } else {
+
+            $staffId = null;
+        }
+
+
+        // ======================================================
+        // NORMALIZE ROW INDEX
+        // ======================================================
+
+        if (
+            $submittedRowIndex !== null &&
+            $submittedRowIndex !== '' &&
+            strtolower(
+                trim((string) $submittedRowIndex)
+            ) !== 'undefined' &&
+            strtolower(
+                trim((string) $submittedRowIndex)
+            ) !== 'null'
+        ) {
+
+            $submittedRowIndex =
+                (int) $submittedRowIndex;
+
+        } else {
+
+            $submittedRowIndex = null;
+        }
+
+
+        // ======================================================
+        // EXISTING QC / QSC RECORD
+        // ======================================================
+
+        if (!empty($staffId)) {
+
+            $existing = DB::table('cl_staff_tbl')
+                ->where(
+                    'id',
+                    $staffId
+                )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->whereIn(
+                    'staff_category',
+                    ['QC', 'QSC']
+                )
+                ->first();
+
+
+            if ($existing) {
+
+                // --------------------------------------------------
+                // DO NOT CHANGE EXISTING ROW INDEX
+                // --------------------------------------------------
+
+                $existingRowIndex =
+                    (int) $existing->row_index;
+
+
+                // --------------------------------------------------
+                // UPDATE DATA
+                // --------------------------------------------------
+
+                $updateData = [
+
+                    'staff_category' =>
+                        $category,
+
+                    'staff_cc_no' =>
+                        $ccNo,
+
+                    'staff_flag' =>
+                        '1',
+
+                    'updated_at' =>
+                        now(),
+                ];
+
+
+                if ($firstIssue !== '') {
+
+                    $updateData[
+                        'staff_cc_first_issue'
+                    ] = $firstIssue;
                 }
 
-                $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
 
-                /*
-        |--------------------------------------------------------------------------
-        | Ignore empty / undefined certificate number
-        |--------------------------------------------------------------------------
-        */
+                if ($validityFrom !== '') {
 
-                if (
-                    $ccNo === '' ||
-                    strtolower($ccNo) === 'undefined' ||
-                    strtolower($ccNo) === 'null'
-                ) {
-                    continue;
+                    $updateData[
+                        'staff_cc_validity_from'
+                    ] = $validityFrom;
                 }
 
-                $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
-                $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
-                $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
 
+                if ($validityTo !== '') {
 
-
-                $staffId = $staffQcIds[$index] ?? null;
-                $submittedRowIndex = $rowIndexes[$index] ?? null;
-
-                /*
-        |--------------------------------------------------------------------------
-        | EXISTING RECORD
-        |--------------------------------------------------------------------------
-        */
-
-                /*
-|--------------------------------------------------------------------------
-| EXISTING RECORD
-|--------------------------------------------------------------------------
-*/
-
-                if (!empty($staffId)) {
-
-                    $existing = DB::table('cl_staff_tbl')
-                        ->where('id', $staffId)
-                        ->where('application_id', $applicationId)
-                        ->whereIn('staff_category', ['QC', 'QSC'])
-                        ->first();
-
-                    if ($existing) {
-
-                        /*
-        |--------------------------------------------------------------------------
-        | Keep existing values if POST value is empty
-        |--------------------------------------------------------------------------
-        */
-
-                        $updateData = [
-                            'staff_category' => $category,
-                            'staff_cc_no' => $ccNo,
-                            'staff_flag' => '1',
-                            'updated_at' => now(),
-                        ];
-
-                        if ($firstIssue !== '') {
-                            $updateData['staff_cc_first_issue'] = $firstIssue;
-                        }
-
-                        if ($validityFrom !== '') {
-                            $updateData['staff_cc_validity_from'] = $validityFrom;
-                        }
-
-                        if ($validityTo !== '') {
-                            $updateData['staff_cc_validity_to'] = $validityTo;
-                        }
-
-                        DB::table('cl_staff_tbl')
-                            ->where('id', $staffId)
-                            ->where('application_id', $applicationId)
-                            ->update($updateData);
-
-                        $currentRowIndexes[] = (int) $existing->row_index;
-                    }
+                    $updateData[
+                        'staff_cc_validity_to'
+                    ] = $validityTo;
                 }
 
-                /*
-        |--------------------------------------------------------------------------
-        | NEW RECORD
-        |--------------------------------------------------------------------------
-        */ else {
 
-                    // dd('new qc'); exit;
+                // --------------------------------------------------
+                // UPDATE
+                // --------------------------------------------------
 
-                    $newRowIndex = $nextRowIndex;
+                DB::table('cl_staff_tbl')
+                    ->where(
+                        'id',
+                        $staffId
+                    )
+                    ->where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->update(
+                        $updateData
+                    );
 
-                    DB::table('cl_staff_tbl')->insert([
-                        'login_id' => $request->input('login_id_store'),
-                        'application_id' => $applicationId,
-                        'staff_category' => $category,
-                        'staff_cc_no' => $ccNo,
 
-                        'staff_cc_first_issue' =>
-                        $firstIssue !== '' ? $firstIssue : null,
+                // --------------------------------------------------
+                // CURRENT ROW
+                // --------------------------------------------------
 
-                        'staff_cc_validity_from' =>
-                        $validityFrom !== '' ? $validityFrom : null,
+                $currentRowIndexes[] =
+                    $existingRowIndex;
 
-                        'staff_cc_validity_to' =>
-                        $validityTo !== '' ? $validityTo : null,
 
-                        'row_index' => $newRowIndex,
-                        'staff_flag' => '1',
-                        'staff_status' => 'N',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                $processedStaffIdsQC[] =
+                    $staffId;
+            }
+        }
 
-                    $currentRowIndexes[] = $newRowIndex;
 
-                    $nextRowIndex++;
-                }
+        // ======================================================
+        // NEW QC / QSC RECORD
+        // ======================================================
+
+        else {
+
+            // --------------------------------------------------
+            // USE SUBMITTED ROW INDEX
+            // --------------------------------------------------
+
+            if (
+                $submittedRowIndex !== null
+            ) {
+
+                $newRowIndex =
+                    $submittedRowIndex;
+
+            } else {
+
+                $newRowIndex =
+                    $nextRowIndex;
             }
 
-            /*
-    |--------------------------------------------------------------------------
-    | SET MISSING QC / QSC RECORDS TO staff_flag = 0
-    |--------------------------------------------------------------------------
-    |
-    | Existing DB records which are NOT present in the submitted form
-    | will be marked as 0.
-    |
-    */
 
-            DB::table('cl_staff_tbl')
-                ->where('application_id', $applicationId)
-                ->whereIn('staff_category', ['QC', 'QSC'])
-                ->where('staff_flag', '1')
-                ->whereNotIn('row_index', $currentRowIndexes)
+            // --------------------------------------------------
+            // INSERT
+            // --------------------------------------------------
+
+            $newStaffId =
+                DB::table('cl_staff_tbl')
+                    ->insertGetId([
+
+                        'login_id' =>
+                            $request->input(
+                                'login_id_store'
+                            ),
+
+                        'application_id' =>
+                            $applicationId,
+
+                        'staff_category' =>
+                            $category,
+
+                        'staff_cc_no' =>
+                            $ccNo,
+
+                        'staff_cc_first_issue' =>
+                            $firstIssue !== ''
+                                ? $firstIssue
+                                : null,
+
+                        'staff_cc_validity_from' =>
+                            $validityFrom !== ''
+                                ? $validityFrom
+                                : null,
+
+                        'staff_cc_validity_to' =>
+                            $validityTo !== ''
+                                ? $validityTo
+                                : null,
+
+                        'row_index' =>
+                            $newRowIndex,
+
+                        'staff_flag' =>
+                            '1',
+
+                        'staff_status' =>
+                            'N',
+
+                        'created_at' =>
+                            now(),
+
+                        'updated_at' =>
+                            now(),
+                    ]);
+
+
+            // --------------------------------------------------
+            // CURRENT ROW
+            // --------------------------------------------------
+
+            $currentRowIndexes[] =
+                $newRowIndex;
+
+
+            $processedStaffIdsQC[] =
+                $newStaffId;
+
+
+            // --------------------------------------------------
+            // UPDATE NEXT ROW INDEX
+            // --------------------------------------------------
+
+            if (
+                $newRowIndex >= $nextRowIndex
+            ) {
+
+                $nextRowIndex =
+                    $newRowIndex + 1;
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // SET MISSING QC / QSC RECORDS TO FLAG 0
+    // ==========================================================
+
+    DB::table('cl_staff_tbl')
+        ->where(
+            'application_id',
+            $applicationId
+        )
+        ->whereIn(
+            'staff_category',
+            ['QC', 'QSC']
+        )
+        ->where(
+            'staff_flag',
+            '1'
+        )
+        ->whereNotIn(
+            'row_index',
+            $currentRowIndexes
+        )
+        ->update([
+
+            'staff_flag' =>
+                '0',
+
+            'updated_at' =>
+                now(),
+        ]);
+
+
+    // ==========================================================
+    // SYNC TEMP UPLOADED DOCUMENTS
+    // APP DOC / CONS DOC
+    // ==========================================================
+
+    $tempDocs = DB::table(
+            'tnelb_temp_uploaded_documents'
+        )
+        ->where(
+            'login_id',
+            $request->input(
+                'login_id_store'
+            )
+        )
+        ->where(
+            'form_name',
+            $request->input(
+                'form_name'
+            )
+        )
+        ->where(
+            'license_name',
+            $request->input(
+                'license_name'
+            )
+        )
+        ->whereIn(
+            'document_category',
+            [
+                'app_doc',
+                'cons_doc'
+            ]
+        )
+        ->where(
+            'appl_type',
+            trim(
+                (string) $request->input(
+                    'appl_type'
+                )
+            )
+        )
+        ->get();
+
+
+    // ==========================================================
+    // PROCESS EACH TEMP DOCUMENT
+    // ==========================================================
+
+    foreach ($tempDocs as $tempDoc) {
+
+        // ------------------------------------------------------
+        // ROW INDEX
+        // ------------------------------------------------------
+
+        $tempRowIndex = trim(
+            (string) (
+                $tempDoc->row_index ?? ''
+            )
+        );
+
+
+        if (
+            $tempRowIndex === '' ||
+            strtolower($tempRowIndex) === 'undefined' ||
+            strtolower($tempRowIndex) === 'null'
+        ) {
+            continue;
+        }
+
+
+        $tempRowIndex =
+            (int) $tempRowIndex;
+
+
+        // ------------------------------------------------------
+        // BUILD DOCUMENT PATH
+        // ------------------------------------------------------
+
+        $documentPath = rtrim(
+            (string) (
+                $tempDoc->file_path ?? ''
+            ),
+            '/'
+        );
+
+
+        $fileName = ltrim(
+            (string) (
+                $tempDoc->file_name ?? ''
+            ),
+            '/'
+        );
+
+
+        if (
+            $documentPath !== '' &&
+            $fileName !== ''
+        ) {
+
+            $documentPath .= '/' .
+                $fileName;
+
+        } elseif (
+            $fileName !== ''
+        ) {
+
+            $documentPath =
+                $fileName;
+        }
+
+
+        // ------------------------------------------------------
+        // IGNORE EMPTY DOCUMENT
+        // ------------------------------------------------------
+
+        if (
+            trim($documentPath) === ''
+        ) {
+            continue;
+        }
+
+
+        // ======================================================
+        // FIND QC / QSC STAFF BY APPLICATION + ROW INDEX
+        // ======================================================
+
+        $staff = DB::table(
+                'cl_staff_tbl'
+            )
+            ->where(
+                'application_id',
+                $applicationId
+            )
+            ->where(
+                'row_index',
+                $tempRowIndex
+            )
+            ->whereIn(
+                'staff_category',
+                ['QC', 'QSC']
+            )
+            ->first();
+
+
+        // ------------------------------------------------------
+        // STAFF NOT FOUND
+        // ------------------------------------------------------
+
+        if (!$staff) {
+            continue;
+        }
+
+
+        // ======================================================
+        // APP DOC
+        // ======================================================
+
+        if (
+            $tempDoc->document_category ===
+            'app_doc'
+        ) {
+
+            DB::table(
+                'cl_staff_tbl'
+            )
+                ->where(
+                    'id',
+                    $staff->id
+                )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->where(
+                    'row_index',
+                    $tempRowIndex
+                )
                 ->update([
-                    'staff_flag' => '0',
-                    'updated_at' => now(),
+
+                    'app_doc' =>
+                        $documentPath,
+
+                    'updated_at' =>
+                        now(),
                 ]);
         }
+
+
+        // ======================================================
+        // CONS DOC
+        // ======================================================
+
+        elseif (
+            $tempDoc->document_category ===
+            'cons_doc'
+        ) {
+
+            DB::table(
+                'cl_staff_tbl'
+            )
+                ->where(
+                    'id',
+                    $staff->id
+                )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->where(
+                    'row_index',
+                    $tempRowIndex
+                )
+                ->update([
+
+                    'cons_doc' =>
+                        $documentPath,
+
+                    'updated_at' =>
+                        now(),
+                ]);
+        }
+    }
+}
 
 
         if ($request->has('cc_number') || $request->filled('designation')) {
@@ -1304,6 +1788,7 @@ class FormAController extends BaseController
                     $nextRowIndex++;
                 }
             }
+
         }
 
 
@@ -1453,7 +1938,7 @@ class FormAController extends BaseController
                 ->where('license_name', $request->license_name)
                 ->where('document_category', 'educ_qual_proof')
                 ->where('ownership_type', 'pr')
-                // ->whereIn('is_final', ['0', '2'])
+                // ->whereIn('is_final', ['0', '2', '1'])
 
                 ->get();
 
@@ -1536,7 +2021,7 @@ class FormAController extends BaseController
                 ->where('license_name', $request->license_name)
                 ->where('document_category', 'age_proof')
                 ->where('ownership_type', 'pr')
-                // ->whereIn('is_final', ['0', '2'])
+                // ->whereIn('is_final', ['0', '2', '1'])
 
                 ->get();
 
@@ -2275,7 +2760,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'ownership_doc')
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->latest()
                 ->first();
 
@@ -2315,7 +2800,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'bank_doc')
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->latest()
                 ->first();
 
@@ -2359,7 +2844,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'Address_proof')
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->latest()
                 ->first();
 
@@ -2402,7 +2887,7 @@ class FormAController extends BaseController
 
             $otherDocs = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->where('document_category', 'other_doc')
                 ->get();
 
@@ -2483,7 +2968,7 @@ class FormAController extends BaseController
                 ->where('login_id', $request->login_id_store)
                 ->where('module', 'EQUIPMENTS DOCUMENT')
                 ->where('document_sub_category', 'ED')
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->get()
                 ->groupBy('equip_code');
 
@@ -3279,205 +3764,6 @@ class FormAController extends BaseController
 
         $processedStaffIdsQC = [];
 
-        //     if ($request->has('staffqc_name')) {
-
-
-        //         $staffIdsFromForm = $request->staffqc_id ?? [];
-
-        //         $existingStaffIds = Tnelb_EA_QC_model::where(
-        //             'application_id',
-        //             $applicationId
-        //         )->pluck('id')->toArray();
-
-        //         // Get the current maximum row_index for this application
-        //         $maxRowIndex = Tnelb_EA_QC_model::where(
-        //             'application_id',
-        //             $applicationId
-        //         )->max('row_index');
-
-        //         $nextRowIndex = ((int) $maxRowIndex) + 1;
-
-        //         $qc_code = 1;
-
-        //         foreach ($request->staffqc_name as $index => $staffName) {
-
-        //             if (
-        //                 empty($staffName) &&
-        //                 empty($request->cc_qc_number[$index] ?? null) &&
-        //                 empty($request->cc_qc_validity[$index] ?? null)
-        //             ) {
-        //                 continue;
-        //             }
-
-        //             $staffId = $staffIdsFromForm[$index] ?? null;
-
-        //             $validity = $request->cc_qc_validity[$index] ?? null;
-
-        //             /*
-        //     |--------------------------------------------------------------------------
-        //     | Existing record
-        //     |--------------------------------------------------------------------------
-        //     */
-        //             if ($staffId && in_array($staffId, $existingStaffIds)) {
-
-        //                 $existingStaff = Tnelb_EA_QC_model::find($staffId);
-
-        //                 $staffData = [
-        //                     'application_id'    => $applicationId,
-        //                     'login_id'          => $request->login_id_store,
-        //                     'form_name'         => $request->form_name,
-        //                     'license_name'      => $request->license_name,
-        //                     'staffname'         => strtoupper($staffName),
-        //                     'staffqc_category'  => strtoupper(
-        //                         $request->staffqc_category[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_number'      => strtoupper(
-        //                         $request->cc_qc_number[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_validity'    => $validity,
-        //                     'qc_code'           => $qc_code,
-        //                     'flag'              => '1',
-        //                 ];
-
-        //                 $existingStaff->update($staffData);
-
-        //                 // Keep existing row_index unchanged
-        //                 $processedStaffIdsQC[] = $staffId;
-        //             }
-
-        //             /*
-        //     |--------------------------------------------------------------------------
-        //     | New record
-        //     |--------------------------------------------------------------------------
-        //     */ else {
-
-        //                 $staffData = [
-        //                     'application_id'    => $applicationId,
-        //                     'login_id'          => $request->login_id_store,
-        //                     'form_name'         => $request->form_name,
-        //                     'license_name'      => $request->license_name,
-        //                     'staffname'         => strtoupper($staffName),
-        //                     'staffqc_category'  => strtoupper(
-        //                         $request->staffqc_category[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_number'      => strtoupper(
-        //                         $request->cc_qc_number[$index] ?? ''
-        //                     ),
-        //                     'cc_qc_validity'    => $validity,
-        //                     'qc_code'           => $qc_code,
-        //                     'row_index'         => $nextRowIndex,
-        //                     'flag'              => '1',
-        //                 ];
-
-        //                 $newStaff = Tnelb_EA_QC_model::create($staffData);
-
-        //                 $processedStaffIdsQC[] = $newStaff->id;
-
-        //                 // Next new record gets next sequence number
-        //                 $nextRowIndex++;
-        //             }
-
-        //             $qc_code++;
-        //         }
-
-        //         /*
-        // |--------------------------------------------------------------------------
-        // | Delete records removed from the form
-        // |--------------------------------------------------------------------------
-        // */
-        //         Tnelb_EA_QC_model::where('application_id', $applicationId)
-        //             ->whereNotIn('id', $processedStaffIdsQC)
-        //             ->delete();
-
-
-
-        //         $tempDocs = DB::table('tnelb_temp_uploaded_documents')
-        //             ->where('login_id', $request->login_id_store)
-        //             ->where('form_name', $request->form_name)
-        //             ->where('license_name', $request->license_name)
-        //             ->where('document_category', 'qc_doc')
-        //             ->where('appl_type', 'N')
-        //             // ->whereIn('is_final', ['0', '2'])
-
-        //             ->get();
-
-        //         // dd($tempDocs->pluck('qc_code')->toArray());
-
-        //         foreach ($tempDocs as $tempDoc) {
-
-
-
-
-        //             $matchedPartner = Tnelb_EA_QC_model::where('application_id', $applicationId)
-
-        //                 ->where('qc_code', $tempDoc->qc_code)
-        //                 ->first();
-
-        //             // dd($matchedPartner); exit;
-
-        //             if (!$matchedPartner) {
-        //                 continue; // No match → skip
-        //             }
-
-        //             // -----------------------------------------
-        //             // 4️⃣ GET FINAL PRO PATH
-        //             // -----------------------------------------
-        //             $dynamicRequest = clone $request;
-        //             $dynamicRequest->merge([
-        //                 'module' => $tempDoc->module
-        //             ]);
-
-        //             $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-        //             $dbFilePath     = $dbFilePath_all->filepath_pro;
-
-        //             $tempFullPath = public_path(
-        //                 $tempDoc->file_path . '/' . $tempDoc->file_name
-        //             );
-
-        //             $proFolderPath = public_path($dbFilePath);
-
-        //             if (!File::exists($proFolderPath)) {
-        //                 File::makeDirectory($proFolderPath, 0755, true);
-        //             }
-
-        //             $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
-
-        //             // dd($dbFilePath);exit;
-
-        //             // -----------------------------------------
-        //             // 5️⃣ COPY FILE
-        //             // -----------------------------------------
-        //             if (File::exists($tempFullPath)) {
-        //                 File::copy($tempFullPath, $proFullPath);
-        //             } else {
-        //                 continue;
-        //             }
-
-        //             // dd($tempDoc->file_path . '/' . $tempDoc->file_name);
-        //             // exit;
-
-        //             // -----------------------------------------
-        //             // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
-        //             // -----------------------------------------
-        //             $matchedPartner->qc_document = $dbFilePath_all->filepath_pro . $tempDoc->file_name;
-
-        //             // dd($matchedPartner->qc_document);exit;
-        //             // $matchedPartner->qc_code = $tempDoc->qc_code;
-        //             $matchedPartner->save();
-
-        //             // -----------------------------------------
-        //             // 7️⃣ MARK TEMP DOC AS FINAL
-        //             // -----------------------------------------
-        //             DB::table('tnelb_temp_uploaded_documents')
-        //                 ->where('id', $tempDoc->id)
-        //                 ->update([
-        //                     'is_final'   => '1',
-        //                     'moved_as'   => $request->input('form_action'),
-        //                     'record_id_app' => $applicationId,
-        //                     'updated_at' => now()
-        //                 ]);
-        //         }
-        //     }
 
         // QC/QSC----------------
 
@@ -3584,7 +3870,7 @@ class FormAController extends BaseController
         |--------------------------------------------------------------------------
         */
 
-                        $updateData = [
+                        $updateDataqc = [
                             'staff_category' => $category,
                             'staff_cc_no' => $ccNo,
                             'staff_flag' => '1',
@@ -3592,21 +3878,21 @@ class FormAController extends BaseController
                         ];
 
                         if ($firstIssue !== '') {
-                            $updateData['staff_cc_first_issue'] = $firstIssue;
+                            $updateDataqc['staff_cc_first_issue'] = $firstIssue;
                         }
 
                         if ($validityFrom !== '') {
-                            $updateData['staff_cc_validity_from'] = $validityFrom;
+                            $updateDataqc['staff_cc_validity_from'] = $validityFrom;
                         }
 
                         if ($validityTo !== '') {
-                            $updateData['staff_cc_validity_to'] = $validityTo;
+                            $updateDataqc['staff_cc_validity_to'] = $validityTo;
                         }
 
                         DB::table('cl_staff_tbl')
                             ->where('id', $staffId)
                             ->where('application_id', $applicationId)
-                            ->update($updateData);
+                            ->update($updateDataqc);
 
                         $currentRowIndexes[] = (int) $existing->row_index;
                     } else {
@@ -3957,323 +4243,970 @@ class FormAController extends BaseController
         }
 
 
+        // =========================================================
+        // PROPRIETOR
+        // =========================================================
+
         $newProprietorIds = [];
 
         if ($request->has('proprietor_name')) {
 
+            // =====================================================
+            // STEP 1:
+            // COPY ACTIVE PROPRIETOR FROM OLD APPLICATION
+            // ONLY IF NEW APPLICATION HAS NO ACTIVE PROPRIETOR
+            // =====================================================
+
+            $existingNewProprietors = ProprietorformA::where(
+                'application_id',
+                $applicationId
+            )
+                ->where('ownership_type', 'pr')
+                ->where('proprietor_flag', 1)
+                ->orderBy('ownership_count')
+                ->get();
+
+
+            if (
+                $existingNewProprietors->isEmpty() &&
+                !empty($recordId)
+            ) {
+
+                $oldProprietors = ProprietorformA::where(
+                    'application_id',
+                    $recordId
+                )
+                    ->where('ownership_type', 'pr')
+                    ->where('proprietor_flag', 1)
+                    ->orderBy('ownership_count')
+                    ->get();
+
+
+                foreach ($oldProprietors as $oldProprietor) {
+
+                    $newProprietor = ProprietorformA::create([
+
+                        'login_id' =>
+                        $request->login_id_store,
+
+                        'application_id' =>
+                        $applicationId,
+
+                        'proprietor_name' =>
+                        $oldProprietor->proprietor_name,
+
+                        'ownership_type' =>
+                        'pr',
+
+                        'proprietor_address' =>
+                        $oldProprietor->proprietor_address,
+
+                        'dob' =>
+                        $oldProprietor->dob,
+
+                        'age' =>
+                        $oldProprietor->age,
+
+                        'qualification' =>
+                        $oldProprietor->qualification,
+
+                        'qualification_text' =>
+                        $oldProprietor->qualification_text,
+
+                        'fathers_name' =>
+                        $oldProprietor->fathers_name,
+
+                        'present_business' =>
+                        $oldProprietor->present_business,
+
+
+                        // =========================================
+                        // COMPETENCY CERTIFICATE
+                        // =========================================
+
+                        'competency_certificate_holding' =>
+                        $oldProprietor->competency_certificate_holding,
+
+                        'competency_certificate_number' =>
+                        $oldProprietor->competency_certificate_number,
+
+                        'competency_certificate_first_issue' =>
+                        $oldProprietor->competency_certificate_first_issue,
+
+                        'competency_certificate_validity_from' =>
+                        $oldProprietor->competency_certificate_validity_from,
+
+                        'competency_certificate_validity_to' =>
+                        $oldProprietor->competency_certificate_validity_to,
+
+
+                        // =========================================
+                        // OLD DOCUMENTS
+                        // =========================================
+
+                        'educational_proof' =>
+                        $oldProprietor->educational_proof,
+
+                        'age_proof' =>
+                        $oldProprietor->age_proof,
+
+                        'row_index' =>
+                        $oldProprietor->row_index,
+
+
+                        // =========================================
+                        // STATUS
+                        // =========================================
+
+                        'proprietor_flag' => 1,
+
+                        'ownership_count' =>
+                        $oldProprietor->ownership_count,
+
+                        'created_at' => now(),
+
+                        'updated_at' => now(),
+                    ]);
+
+
+                    $newProprietorIds[] =
+                        $newProprietor->id;
+                }
+            }
+
+
+            // =====================================================
+            // STEP 2:
+            // PROCESS CURRENT REQUEST PROPRIETORS
+            // =====================================================
+
             $count = 1;
 
-            foreach ($request->proprietor_name as $index => $name) {
+
+            foreach (
+                $request->proprietor_name
+                as $index => $name
+            ) {
+
+                // =================================================
+                // IGNORE EMPTY / INVALID NAME
+                // =================================================
 
                 if (
                     empty($name) ||
                     strtolower(trim($name)) === 'undefined' ||
-                    trim($name) === 'null'
+                    strtolower(trim($name)) === 'null'
                 ) {
                     continue;
                 }
 
-                $competencyHolding = data_get($request->competency, $index);
-                $proprietorId = $request->proprietor_id[$index] ?? null;
+
+                // =================================================
+                // GET REQUEST VALUES
+                // =================================================
+
+                $competencyHolding = data_get(
+                    $request->competency,
+                    $index,
+                    'no'
+                );
+
+
+                $proprietorId = data_get(
+                    $request->proprietor_id,
+                    $index
+                );
+
+
+                // =================================================
+                // PROPRIETOR DATA
+                // =================================================
 
                 $data = [
-                    'login_id' => $request->login_id_store,
-                    'application_id' => $applicationId,
 
-                    'proprietor_name' => strtoupper($name ?? ''),
+                    'login_id' =>
+                    $request->login_id_store,
 
-                    'ownership_type' => 'pr',
+                    'application_id' =>
+                    $applicationId,
 
-                    'proprietor_address' => strtoupper(
-                        data_get($request->proprietor_address, $index, '')
+                    'proprietor_name' =>
+                    strtoupper(trim($name)),
+
+                    'ownership_type' =>
+                    'pr',
+
+
+                    // =============================================
+                    // ADDRESS
+                    // =============================================
+
+                    'proprietor_address' =>
+                    strtoupper(
+                        data_get(
+                            $request->proprietor_address,
+                            $index,
+                            ''
+                        )
                     ),
 
-                    'dob' => data_get($request->dob, $index),
 
-                    'age' => data_get($request->age, $index),
+                    // =============================================
+                    // BASIC DETAILS
+                    // =============================================
 
-                    'qualification' => strtoupper(
-                        data_get($request->qualification, $index, '')
+                    'dob' =>
+                    data_get(
+                        $request->dob,
+                        $index
                     ),
 
-                    'qualification_text' => strtoupper(
-                        data_get($request->qual_text, $index, '')
+                    'age' =>
+                    data_get(
+                        $request->age,
+                        $index
                     ),
 
-                    'fathers_name' => strtoupper(
-                        data_get($request->fathers_name, $index, '')
+
+                    // =============================================
+                    // QUALIFICATION
+                    // =============================================
+
+                    'qualification' =>
+                    strtoupper(
+                        data_get(
+                            $request->qualification,
+                            $index,
+                            ''
+                        )
                     ),
 
-                    'present_business' => strtoupper(
-                        data_get($request->present_business, $index, '')
+                    'qualification_text' =>
+                    strtoupper(
+                        data_get(
+                            $request->qual_text,
+                            $index,
+                            ''
+                        )
                     ),
 
-                    // ==========================================
+
+                    // =============================================
+                    // FATHER NAME
+                    // =============================================
+
+                    'fathers_name' =>
+                    strtoupper(
+                        data_get(
+                            $request->fathers_name,
+                            $index,
+                            ''
+                        )
+                    ),
+
+
+                    // =============================================
+                    // PRESENT BUSINESS
+                    // =============================================
+
+                    'present_business' =>
+                    strtoupper(
+                        data_get(
+                            $request->present_business,
+                            $index,
+                            ''
+                        )
+                    ),
+
+
+                    // =============================================
                     // COMPETENCY CERTIFICATE
-                    // ==========================================
+                    // =============================================
 
-                    'competency_certificate_holding' => $competencyHolding,
+                    'competency_certificate_holding' =>
+                    $competencyHolding,
+
 
                     'competency_certificate_number' =>
                     $competencyHolding === 'yes'
                         ? strtoupper(
-                            data_get($request->competency_certno, $index, '')
+                            data_get(
+                                $request->competency_certno,
+                                $index,
+                                ''
+                            )
                         )
                         : null,
 
+
                     'competency_certificate_first_issue' =>
                     $competencyHolding === 'yes'
-                        ? data_get($request->ccfirstissue, $index)
+                        ? data_get(
+                            $request->ccfirstissue,
+                            $index
+                        )
                         : null,
+
 
                     'competency_certificate_validity_from' =>
                     $competencyHolding === 'yes'
-                        ? data_get($request->ccvalidityfrom, $index)
+                        ? data_get(
+                            $request->ccvalidityfrom,
+                            $index
+                        )
                         : null,
+
 
                     'competency_certificate_validity_to' =>
                     $competencyHolding === 'yes'
-                        ? data_get($request->ccvalidityto, $index)
+                        ? data_get(
+                            $request->ccvalidityto,
+                            $index
+                        )
                         : null,
+
+
+                    // =============================================
+                    // STATUS
+                    // =============================================
 
                     'proprietor_flag' => 1,
 
                     'ownership_count' => $count,
                 ];
 
-                // ==================================================
-                // EXISTING PROPRIETOR ID → UPDATE
-                // ==================================================
+
+                // =================================================
+                // STEP 3:
+                // FIND EXISTING PROPRIETOR
+                // =================================================
+
+                $proprietor = null;
+
+
+                // -------------------------------------------------
+                // FIRST PRIORITY:
+                // USE proprietor_id
+                // -------------------------------------------------
 
                 if (!empty($proprietorId)) {
 
-                    $proprietor = ProprietorformA::where('id', $proprietorId)
-                        ->where('application_id', $applicationId)
-                        ->where('ownership_type', 'pr')
+                    $proprietor = ProprietorformA::where(
+                        'id',
+                        $proprietorId
+                    )
+                        ->where(
+                            'application_id',
+                            $applicationId
+                        )
+                        ->where(
+                            'ownership_type',
+                            'pr'
+                        )
+                        ->where(
+                            'proprietor_flag',
+                            1
+                        )
                         ->first();
-
-                    if ($proprietor) {
-
-                        $proprietor->update($data);
-
-                        $newProprietorIds[] = $proprietor->id;
-                    }
-                } else {
-
-                    // ==================================================
-                    // NO ID → INSERT NEW PROPRIETOR
-                    // ==================================================
-
-                    $newProprietor = ProprietorformA::create($data);
-
-                    $newProprietorIds[] = $newProprietor->id;
                 }
+
+
+                // -------------------------------------------------
+                // SECOND PRIORITY:
+                // FIND COPIED OLD RECORD
+                // USING OWNERSHIP COUNT
+                // -------------------------------------------------
+
+                if (!$proprietor) {
+
+                    $proprietor = ProprietorformA::where(
+                        'application_id',
+                        $applicationId
+                    )
+                        ->where(
+                            'ownership_type',
+                            'pr'
+                        )
+                        ->where(
+                            'ownership_count',
+                            $count
+                        )
+                        ->where(
+                            'proprietor_flag',
+                            1
+                        )
+                        ->first();
+                }
+
+
+                // =================================================
+                // STEP 4:
+                // UPDATE EXISTING / COPIED PROPRIETOR
+                // =================================================
+
+                if ($proprietor) {
+
+                    /*
+             * Preserve old documents.
+             * New uploaded documents will replace them later.
+             */
+
+                    $data['educational_proof'] =
+                        $proprietor->educational_proof;
+
+                    $data['age_proof'] =
+                        $proprietor->age_proof;
+
+                    $data['row_index'] =
+                        $proprietor->row_index;
+
+
+                    $proprietor->update($data);
+
+
+                    $newProprietorIds[] =
+                        $proprietor->id;
+                }
+
+
+                // =================================================
+                // STEP 5:
+                // INSERT NEW PROPRIETOR
+                // =================================================
+
+                else {
+
+                    $newProprietor =
+                        ProprietorformA::create($data);
+
+
+                    $newProprietorIds[] =
+                        $newProprietor->id;
+                }
+
 
                 $count++;
             }
 
-            // ==================================================
-            // DEACTIVATE REMOVED PROPRIETOR RECORDS
-            // ==================================================
 
-            ProprietorformA::where('application_id', $applicationId)
-                ->where('ownership_type', 'pr')
-                ->where('proprietor_flag', 1)
-                ->whereNotIn('id', $newProprietorIds)
-                ->update([
-                    'proprietor_flag' => 0
-                ]);
+            // =====================================================
+            // STEP 6:
+            // DEACTIVATE REMOVED PROPRIETORS
+            // =====================================================
+
+            if (!empty($newProprietorIds)) {
+
+                ProprietorformA::where(
+                    'application_id',
+                    $applicationId
+                )
+                    ->where(
+                        'ownership_type',
+                        'pr'
+                    )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
+                    ->whereNotIn(
+                        'id',
+                        $newProprietorIds
+                    )
+                    ->update([
+                        'proprietor_flag' => 0
+                    ]);
+            }
 
 
-            // table move edu_file----------
+            // =====================================================
+            // STEP 7:
+            // EDUCATIONAL QUALIFICATION PROOF
+            // =====================================================
 
-            // $recordexists = DB::table('cl_ownership_table')
-            //             ->where('application_id', $applicationId)
-            //             ->get();
-            // if ($recordexists) {
-
-            //              DB::table('$cl_ownership_table')
-            //             ->where('application_id', $applicationId)
-            //             ->update([
-            //                 'educ_qual_proof' => $finalDbPath,
-            //                 'updated_at'  => now()
-            //             ]);
-            //         }
-
-
-            $tempDocs = DB::table('tnelb_temp_uploaded_documents')
-                ->where('login_id', $request->login_id_store)
-                ->where('form_name', $request->form_name)
-                ->where('license_name', $request->license_name)
-                ->where('document_category', 'educ_qual_proof')
-                ->where('ownership_type', 'pr')
-                // ->whereIn('is_final', ['0', '2'])
-
+            $tempDocs = DB::table(
+                'tnelb_temp_uploaded_documents'
+            )
+                ->where(
+                    'login_id',
+                    $request->login_id_store
+                )
+                ->where(
+                    'form_name',
+                    $request->form_name
+                )
+                ->where(
+                    'license_name',
+                    $request->license_name
+                )
+                ->where(
+                    'document_category',
+                    'educ_qual_proof'
+                )
+                ->where(
+                    'ownership_type',
+                    'pr'
+                )
+                ->whereIn(
+                    'is_final',
+                    ['0', '2', '1']
+                )
                 ->get();
+
 
             foreach ($tempDocs as $tempDoc) {
 
+                // =============================================
+                // FIND PROPRIETOR
+                // =============================================
 
-                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
-                    ->where('ownership_type', 'pr')
-                    ->where('ownership_count', $tempDoc->row_index + 1)
+                $matchedProprietor =
+                    ProprietorformA::where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->where(
+                        'ownership_type',
+                        'pr'
+                    )
+                    ->where(
+                        'ownership_count',
+                        $tempDoc->row_index + 1
+                    )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
                     ->first();
 
-                if (!$matchedPartner) {
-                    continue; // No match → skip
+
+                if (!$matchedProprietor) {
+                    continue;
                 }
 
-                // -----------------------------------------
-                // 4️⃣ GET FINAL PRO PATH
-                // -----------------------------------------
+
+                // =============================================
+                // GET FINAL PATH
+                // =============================================
+
                 $dynamicRequest = clone $request;
+
                 $dynamicRequest->merge([
                     'module' => $tempDoc->module
                 ]);
 
-                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-                $dbFilePath     = $dbFilePath_all->filepath_pro;
+
+                $dbFilePath_all =
+                    DocPathController::getPath(
+                        $dynamicRequest
+                    );
+
+
+                $dbFilePath =
+                    $dbFilePath_all->filepath_pro;
+
+
+                // =============================================
+                // TEMP FILE
+                // =============================================
 
                 $tempFullPath = public_path(
-                    $tempDoc->file_path . '/' . $tempDoc->file_name
+                    $tempDoc->file_path .
+                        '/' .
+                        $tempDoc->file_name
                 );
 
-                $proFolderPath = public_path($dbFilePath);
 
-                if (!File::exists($proFolderPath)) {
-                    File::makeDirectory($proFolderPath, 0755, true);
-                }
-
-                $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
-
-                // dd($dbFilePath);exit;
-
-                // -----------------------------------------
-                // 5️⃣ COPY FILE
-                // -----------------------------------------
-                if (File::exists($tempFullPath)) {
-                    File::copy($tempFullPath, $proFullPath);
-                } else {
+                if (!File::exists($tempFullPath)) {
                     continue;
                 }
 
-                // dd($tempDoc->file_path . '/' . $tempDoc->file_name);
-                // exit;
 
-                // -----------------------------------------
-                // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
-                // -----------------------------------------
-                $matchedPartner->educational_proof = $dbFilePath_all->filepath_pro . $tempDoc->file_name;
+                // =============================================
+                // CREATE FINAL DIRECTORY
+                // =============================================
 
-                // dd($matchedPartner->educational_proof);exit;
-                $matchedPartner->row_index = $tempDoc->row_index;
-                $matchedPartner->save();
+                $proFolderPath =
+                    public_path($dbFilePath);
 
-                // -----------------------------------------
-                // 7️⃣ MARK TEMP DOC AS FINAL
-                // -----------------------------------------
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $tempDoc->id)
+
+                if (!File::exists($proFolderPath)) {
+
+                    File::makeDirectory(
+                        $proFolderPath,
+                        0755,
+                        true
+                    );
+                }
+
+
+                // =============================================
+                // COPY FILE
+                // =============================================
+
+                $proFullPath =
+                    $proFolderPath .
+                    '/' .
+                    $tempDoc->file_name;
+
+
+                File::copy(
+                    $tempFullPath,
+                    $proFullPath
+                );
+
+
+                // =============================================
+                // SAVE FILE PATH
+                // =============================================
+
+                $matchedProprietor->educational_proof =
+                    rtrim(
+                        $dbFilePath_all->filepath_pro,
+                        '/'
+                    ) .
+                    '/' .
+                    $tempDoc->file_name;
+
+
+                $matchedProprietor->row_index =
+                    $tempDoc->row_index;
+
+
+                $matchedProprietor->save();
+
+
+                // =============================================
+                // MARK TEMP FILE FINAL
+                // =============================================
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDoc->id
+                    )
                     ->update([
-                        'is_final'   => '1',
-                        'moved_as'   => $request->input('form_action'),
-                        'record_id_app' => $applicationId,
-                        'updated_at' => now()
+
+                        'is_final' => '1',
+
+                        'moved_as' =>
+                        $request->input('form_action'),
+
+                        'record_id_app' =>
+                        $applicationId,
+
+                        'updated_at' => now(),
                     ]);
             }
 
 
-            // ------Age Proof-------------------
-            $tempDocsAge = DB::table('tnelb_temp_uploaded_documents')
-                ->where('login_id', $request->login_id_store)
-                ->where('form_name', $request->form_name)
-                ->where('license_name', $request->license_name)
-                ->where('document_category', 'age_proof')
-                ->where('ownership_type', 'pr')
-                // ->whereIn('is_final', ['0', '2'])
+            // =====================================================
+            // STEP 8:
+            // AGE PROOF
+            // =====================================================
 
+            $tempDocsAge = DB::table(
+                'tnelb_temp_uploaded_documents'
+            )
+                ->where(
+                    'login_id',
+                    $request->login_id_store
+                )
+                ->where(
+                    'form_name',
+                    $request->form_name
+                )
+                ->where(
+                    'license_name',
+                    $request->license_name
+                )
+                ->where(
+                    'document_category',
+                    'age_proof'
+                )
+                ->where(
+                    'ownership_type',
+                    'pr'
+                )
+                ->whereIn(
+                    'is_final',
+                    ['0', '2', '1']
+                )
                 ->get();
+
 
             foreach ($tempDocsAge as $tempDocAge) {
 
+                // =============================================
+                // FIND PROPRIETOR
+                // =============================================
 
-                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
-                    ->where('ownership_type', 'pr')
-                    ->where('ownership_count', $tempDocAge->row_index + 1)
+                $matchedProprietor =
+                    ProprietorformA::where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->where(
+                        'ownership_type',
+                        'pr'
+                    )
+                    ->where(
+                        'ownership_count',
+                        $tempDocAge->row_index + 1
+                    )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
                     ->first();
 
-                if (!$matchedPartner) {
-                    continue; // No match → skip
+
+                if (!$matchedProprietor) {
+                    continue;
                 }
 
-                // -----------------------------------------
-                // 4️⃣ GET FINAL PRO PATH
-                // -----------------------------------------
+
+                // =============================================
+                // GET FINAL PATH
+                // =============================================
+
                 $dynamicRequest = clone $request;
+
                 $dynamicRequest->merge([
                     'module' => $tempDocAge->module
                 ]);
 
-                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-                $dbFilePath     = $dbFilePath_all->filepath_pro;
+
+                $dbFilePath_all =
+                    DocPathController::getPath(
+                        $dynamicRequest
+                    );
+
+
+                $dbFilePath =
+                    $dbFilePath_all->filepath_pro;
+
+
+                // =============================================
+                // TEMP FILE
+                // =============================================
 
                 $tempFullPath = public_path(
-                    $tempDocAge->file_path . '/' . $tempDocAge->file_name
+                    $tempDocAge->file_path .
+                        '/' .
+                        $tempDocAge->file_name
                 );
 
-                $proFolderPath = public_path($dbFilePath);
 
-                if (!File::exists($proFolderPath)) {
-                    File::makeDirectory($proFolderPath, 0755, true);
-                }
-
-                $proFullPath = $proFolderPath . '/' . $tempDocAge->file_name;
-
-                // dd($dbFilePath);exit;
-
-                // -----------------------------------------
-                // 5️⃣ COPY FILE
-                // -----------------------------------------
-                if (File::exists($tempFullPath)) {
-                    File::copy($tempFullPath, $proFullPath);
-                } else {
+                if (!File::exists($tempFullPath)) {
                     continue;
                 }
 
-                // dd($tempDocAge->file_path . '/' . $tempDocAge->file_name);
-                // exit;
 
-                // -----------------------------------------
-                // 6️⃣ SAVE FILE NAME INTO MATCHED PARTNER
-                // -----------------------------------------
-                $matchedPartner->age_proof = $dbFilePath_all->filepath_pro . $tempDocAge->file_name;
+                // =============================================
+                // CREATE FINAL DIRECTORY
+                // =============================================
 
-                // dd($matchedPartner->educational_proof);exit;
-                $matchedPartner->row_index = $tempDocAge->row_index;
-                $matchedPartner->save();
+                $proFolderPath =
+                    public_path($dbFilePath);
 
-                // -----------------------------------------
-                // 7️⃣ MARK TEMP DOC AS FINAL
-                // -----------------------------------------
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $tempDocAge->id)
+
+                if (!File::exists($proFolderPath)) {
+
+                    File::makeDirectory(
+                        $proFolderPath,
+                        0755,
+                        true
+                    );
+                }
+
+
+                // =============================================
+                // COPY FILE
+                // =============================================
+
+                $proFullPath =
+                    $proFolderPath .
+                    '/' .
+                    $tempDocAge->file_name;
+
+
+                File::copy(
+                    $tempFullPath,
+                    $proFullPath
+                );
+
+
+                // =============================================
+                // SAVE FILE PATH
+                // =============================================
+
+                $matchedProprietor->age_proof =
+                    rtrim(
+                        $dbFilePath_all->filepath_pro,
+                        '/'
+                    ) .
+                    '/' .
+                    $tempDocAge->file_name;
+
+
+                $matchedProprietor->row_index =
+                    $tempDocAge->row_index;
+
+
+                $matchedProprietor->save();
+
+
+                // =============================================
+                // MARK TEMP FILE FINAL
+                // =============================================
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDocAge->id
+                    )
                     ->update([
-                        'is_final'   => '1',
-                        'moved_as'   => $request->input('form_action'),
-                        'record_id_app' => $applicationId,
-                        'updated_at' => now()
+
+                        'is_final' => '1',
+
+                        'moved_as' =>
+                        $request->input('form_action'),
+
+                        'record_id_app' =>
+                        $applicationId,
+
+                        'updated_at' => now(),
                     ]);
             }
         }
 
-        // Partners
+
         $newPartnerIds = [];
 
         if ($request->has('partner_name')) {
 
+            // =====================================================
+            // STEP 1:
+            // If NEW application has no active partners,
+            // copy ACTIVE partners from OLD application
+            // =====================================================
+
+            $existingNewPartners = ProprietorformA::where(
+                'application_id',
+                $applicationId
+            )
+                ->where('ownership_type', 'pt')
+                ->where('proprietor_flag', 1)
+                ->orderBy('ownership_count')
+                ->get();
+
+            if (
+                $existingNewPartners->isEmpty() &&
+                !empty($recordId)
+            ) {
+
+                $oldPartners = ProprietorformA::where(
+                    'application_id',
+                    $recordId
+                )
+                    ->where('ownership_type', 'pt')
+                    ->where('proprietor_flag', 1)
+                    ->orderBy('ownership_count')
+                    ->get();
+
+                foreach ($oldPartners as $oldPartner) {
+
+                    $newPartner = ProprietorformA::create([
+
+                        'login_id' => $request->login_id_store,
+
+                        'application_id' => $applicationId,
+
+                        'proprietor_name' => $oldPartner->proprietor_name,
+
+                        'ownership_type' => 'pt',
+
+                        'proprietor_address' => $oldPartner->proprietor_address,
+
+                        'dob' => $oldPartner->dob,
+
+                        'age' => $oldPartner->age,
+
+                        'qualification' => $oldPartner->qualification,
+
+                        'qualification_text' => $oldPartner->qualification_text,
+
+                        'fathers_name' => $oldPartner->fathers_name,
+
+                        'present_business' => $oldPartner->present_business,
+
+                        // ==========================================
+                        // COMPETENCY CERTIFICATE
+                        // ==========================================
+
+                        'competency_certificate_holding' =>
+                        $oldPartner->competency_certificate_holding,
+
+                        'competency_certificate_number' =>
+                        $oldPartner->competency_certificate_number,
+
+                        'competency_certificate_first_issue' =>
+                        $oldPartner->competency_certificate_first_issue,
+
+                        'competency_certificate_validity_from' =>
+                        $oldPartner->competency_certificate_validity_from,
+
+                        'competency_certificate_validity_to' =>
+                        $oldPartner->competency_certificate_validity_to,
+
+                        // ==========================================
+                        // COPY EXISTING DOCUMENTS
+                        // ==========================================
+
+                        'educational_proof' =>
+                        $oldPartner->educational_proof,
+
+                        'age_proof' =>
+                        $oldPartner->age_proof,
+
+                        'row_index' =>
+                        $oldPartner->row_index,
+
+                        // ==========================================
+                        // ACTIVE
+                        // ==========================================
+
+                        'proprietor_flag' => 1,
+
+                        'ownership_count' =>
+                        $oldPartner->ownership_count,
+
+                        'created_at' => now(),
+
+                        'updated_at' => now(),
+                    ]);
+
+                    $newPartnerIds[] = $newPartner->id;
+                }
+            }
+
+
+            // =====================================================
+            // STEP 2:
+            // Process submitted partner data
+            // =====================================================
+
             $count = 1;
 
             foreach ($request->partner_name as $index => $name) {
+
+                // =================================================
+                // IGNORE EMPTY / INVALID PARTNER
+                // =================================================
 
                 if (
                     empty($name) ||
@@ -4282,6 +5215,11 @@ class FormAController extends BaseController
                 ) {
                     continue;
                 }
+
+
+                // =================================================
+                // GET REQUEST VALUES
+                // =================================================
 
                 $competencyHolding = data_get(
                     $request->partner_competency,
@@ -4294,12 +5232,18 @@ class FormAController extends BaseController
                     $index
                 );
 
+
+                // =================================================
+                // PARTNER DATA
+                // =================================================
+
                 $data = [
+
                     'login_id' => $request->login_id_store,
 
                     'application_id' => $applicationId,
 
-                    'proprietor_name' => strtoupper($name),
+                    'proprietor_name' => strtoupper(trim($name)),
 
                     'ownership_type' => 'pt',
 
@@ -4353,11 +5297,13 @@ class FormAController extends BaseController
                         )
                     ),
 
-                    // ==========================================
-                    // COMPETENCY CERTIFICATE
-                    // ==========================================
 
-                    'competency_certificate_holding' => $competencyHolding,
+                    // =============================================
+                    // COMPETENCY CERTIFICATE
+                    // =============================================
+
+                    'competency_certificate_holding' =>
+                    $competencyHolding,
 
                     'competency_certificate_number' =>
                     $competencyHolding === 'yes'
@@ -4401,14 +5347,24 @@ class FormAController extends BaseController
 
 
                 // =====================================================
-                // EXISTING PARTNER → UPDATE
+                // CASE 1:
+                // PARTNER ID EXISTS → UPDATE EXACT RECORD
                 // =====================================================
 
                 if (!empty($partnerId)) {
 
-                    $partner = ProprietorformA::where('id', $partnerId)
-                        ->where('application_id', $applicationId)
-                        ->where('ownership_type', 'pt')
+                    $partner = ProprietorformA::where(
+                        'id',
+                        $partnerId
+                    )
+                        ->where(
+                            'application_id',
+                            $applicationId
+                        )
+                        ->where(
+                            'ownership_type',
+                            'pt'
+                        )
                         ->first();
 
                     if ($partner) {
@@ -4419,67 +5375,73 @@ class FormAController extends BaseController
                     }
                 }
 
+
                 // =====================================================
-                // NEW PARTNER → INSERT
+                // CASE 2:
+                // NO PARTNER ID
                 // =====================================================
 
                 else {
 
-                    /*
-             * Check whether this application already has
-             * partner records.
-             */
+
+
                     $existingPartner = ProprietorformA::where(
                         'application_id',
                         $applicationId
                     )
-                        ->where('ownership_type', 'pt')
-                        ->exists();
+                        ->where(
+                            'ownership_type',
+                            'pt'
+                        )
+                        ->where(
+                            'ownership_count',
+                            $count
+                        )
+                        ->where(
+                            'proprietor_flag',
+                            1
+                        )
+                        ->first();
 
+
+                    // =============================================
+                    // COPIED OLD PARTNER FOUND → UPDATE IT
+                    // =============================================
 
                     if ($existingPartner) {
 
-                        // Application already has partners.
-                        // Insert this new partner.
+                        /*
+                 * Preserve old documents if the current
+                 * request does not contain a replacement.
+                 */
+
+                        $data['educational_proof'] =
+                            $existingPartner->educational_proof;
+
+                        $data['age_proof'] =
+                            $existingPartner->age_proof;
+
+                        $data['row_index'] =
+                            $existingPartner->row_index;
+
+
+                        $existingPartner->update($data);
+
+                        $newPartnerIds[] =
+                            $existingPartner->id;
+                    }
+
+
+                    // =============================================
+                    // NO COPIED PARTNER → INSERT NEW PARTNER
+                    // =============================================
+
+                    else {
 
                         $newPartner = ProprietorformA::create($data);
 
-                        $newPartnerIds[] = $newPartner->id;
-                    } else {
-
-                        /*
-                 * No partner exists in ProprietorformA.
-                 *
-                 * Get all records from EA_Application_model.
-                 */
-                        $records = EA_Application_model::where(
-                            'application_id',
-                            $recordId
-                        )->get();
-
-
-                        if ($records->count() > 0) {
-
-                            /*
-                     * If you need to copy old partner information
-                     * from EA_Application_model, do it here.
-                     *
-                     * Do NOT blindly create one row for every
-                     * $record unless every record represents
-                     * a partner.
-                     */
-
-                            $newPartner = ProprietorformA::create($data);
-
-                            $newPartnerIds[] = $newPartner->id;
-                        } else {
-
-                            // No old EA record → normal new insert
-
-                            $newPartner = ProprietorformA::create($data);
-
-                            $newPartnerIds[] = $newPartner->id;
-                        }
+                        $newPartnerIds[] =
+                            $newPartner->id;
                     }
                 }
 
@@ -4488,40 +5450,98 @@ class FormAController extends BaseController
 
 
             // =========================================================
+            // STEP 3:
             // DEACTIVATE REMOVED PARTNERS
             // =========================================================
 
-            ProprietorformA::where('application_id', $applicationId)
-                ->where('ownership_type', 'pt')
-                ->whereNotIn('id', $newPartnerIds)
-                ->where('proprietor_flag', 1)
-                ->update([
-                    'proprietor_flag' => 0
-                ]);
+            if (!empty($newPartnerIds)) {
+
+                ProprietorformA::where(
+                    'application_id',
+                    $applicationId
+                )
+                    ->where(
+                        'ownership_type',
+                        'pt'
+                    )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
+                    ->whereNotIn(
+                        'id',
+                        $newPartnerIds
+                    )
+                    ->update([
+                        'proprietor_flag' => 0
+                    ]);
+            }
 
 
-            // ==========================================
+            // =========================================================
+            // STEP 4:
             // EDUCATIONAL QUALIFICATION PROOF
-            // ==========================================
+            // =========================================================
 
-            $tempDocs = DB::table('tnelb_temp_uploaded_documents')
-                ->where('login_id', $request->login_id_store)
-                ->where('form_name', $request->form_name)
-                ->where('license_name', $request->license_name)
-                ->where('document_category', 'educ_qual_proof')
-                ->where('ownership_type', 'pt')
+            $tempDocs = DB::table(
+                'tnelb_temp_uploaded_documents'
+            )
+                ->where(
+                    'login_id',
+                    $request->login_id_store
+                )
+                ->where(
+                    'form_name',
+                    $request->form_name
+                )
+                ->where(
+                    'license_name',
+                    $request->license_name
+                )
+                ->where(
+                    'document_category',
+                    'educ_qual_proof'
+                )
+                ->where(
+                    'ownership_type',
+                    'pt'
+                )
+                ->whereIn(
+                    'is_final',
+                    ['0', '2', '1']
+                )
                 ->get();
+
 
             foreach ($tempDocs as $tempDoc) {
 
-                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
-                    ->where('ownership_type', 'pt')
-                    ->where('ownership_count', $tempDoc->row_index + 1)
+                $matchedPartner = ProprietorformA::where(
+                    'application_id',
+                    $applicationId
+                )
+                    ->where(
+                        'ownership_type',
+                        'pt'
+                    )
+                    ->where(
+                        'ownership_count',
+                        $tempDoc->row_index + 1
+                    )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
                     ->first();
+
 
                 if (!$matchedPartner) {
                     continue;
                 }
+
+
+                // =============================================
+                // GET DOCUMENT PATH
+                // =============================================
 
                 $dynamicRequest = clone $request;
 
@@ -4529,66 +5549,168 @@ class FormAController extends BaseController
                     'module' => $tempDoc->module
                 ]);
 
-                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-                $dbFilePath = $dbFilePath_all->filepath_pro;
+                $dbFilePath_all =
+                    DocPathController::getPath($dynamicRequest);
+
+                $dbFilePath =
+                    $dbFilePath_all->filepath_pro;
+
+
+                // =============================================
+                // TEMP FILE
+                // =============================================
 
                 $tempFullPath = public_path(
-                    $tempDoc->file_path . '/' . $tempDoc->file_name
+                    $tempDoc->file_path .
+                        '/' .
+                        $tempDoc->file_name
                 );
 
-                $proFolderPath = public_path($dbFilePath);
+
+                // =============================================
+                // PRODUCTION FOLDER
+                // =============================================
+
+                $proFolderPath =
+                    public_path($dbFilePath);
+
 
                 if (!File::exists($proFolderPath)) {
-                    File::makeDirectory($proFolderPath, 0755, true);
+
+                    File::makeDirectory(
+                        $proFolderPath,
+                        0755,
+                        true
+                    );
                 }
 
-                $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
 
-                if (File::exists($tempFullPath)) {
-                    File::copy($tempFullPath, $proFullPath);
-                } else {
+                // =============================================
+                // PRODUCTION FILE
+                // =============================================
+
+                $proFullPath =
+                    $proFolderPath .
+                    '/' .
+                    $tempDoc->file_name;
+
+
+                if (!File::exists($tempFullPath)) {
                     continue;
                 }
 
-                $matchedPartner->educational_proof =
-                    $dbFilePath_all->filepath_pro . $tempDoc->file_name;
 
-                $matchedPartner->row_index = $tempDoc->row_index;
+                File::copy(
+                    $tempFullPath,
+                    $proFullPath
+                );
+
+
+                // =============================================
+                // UPDATE PARTNER
+                // =============================================
+
+                $matchedPartner->educational_proof =
+                    rtrim($dbFilePath_all->filepath_pro, '/') .
+                    '/' .
+                    $tempDoc->file_name;
+
+                $matchedPartner->row_index =
+                    $tempDoc->row_index;
 
                 $matchedPartner->save();
 
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $tempDoc->id)
+
+                // =============================================
+                // MARK TEMP DOCUMENT FINAL
+                // =============================================
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDoc->id
+                    )
                     ->update([
+
                         'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId,
+
+                        'moved_as' =>
+                        $request->input('form_action'),
+
+                        'record_id_app' =>
+                        $applicationId,
+
                         'updated_at' => now()
                     ]);
             }
 
-            // ==========================================
-            // AGE PROOF
-            // ==========================================
 
-            $tempDocsAge = DB::table('tnelb_temp_uploaded_documents')
-                ->where('login_id', $request->login_id_store)
-                ->where('form_name', $request->form_name)
-                ->where('license_name', $request->license_name)
-                ->where('document_category', 'age_proof')
-                ->where('ownership_type', 'pt')
+            // =========================================================
+            // STEP 5:
+            // AGE PROOF
+            // =========================================================
+
+            $tempDocsAge = DB::table(
+                'tnelb_temp_uploaded_documents'
+            )
+                ->where(
+                    'login_id',
+                    $request->login_id_store
+                )
+                ->where(
+                    'form_name',
+                    $request->form_name
+                )
+                ->where(
+                    'license_name',
+                    $request->license_name
+                )
+                ->where(
+                    'document_category',
+                    'age_proof'
+                )
+                ->where(
+                    'ownership_type',
+                    'pt'
+                )
+                ->whereIn(
+                    'is_final',
+                    ['0', '2', '1']
+                )
                 ->get();
+
 
             foreach ($tempDocsAge as $tempDocAge) {
 
-                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
-                    ->where('ownership_type', 'pt')
-                    ->where('ownership_count', $tempDocAge->row_index + 1)
+                $matchedPartner = ProprietorformA::where(
+                    'application_id',
+                    $applicationId
+                )
+                    ->where(
+                        'ownership_type',
+                        'pt'
+                    )
+                    ->where(
+                        'ownership_count',
+                        $tempDocAge->row_index + 1
+                    )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
                     ->first();
+
 
                 if (!$matchedPartner) {
                     continue;
                 }
+
+
+                // =============================================
+                // GET DOCUMENT PATH
+                // =============================================
 
                 $dynamicRequest = clone $request;
 
@@ -4596,62 +5718,289 @@ class FormAController extends BaseController
                     'module' => $tempDocAge->module
                 ]);
 
-                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-                $dbFilePath = $dbFilePath_all->filepath_pro;
+                $dbFilePath_all =
+                    DocPathController::getPath($dynamicRequest);
+
+                $dbFilePath =
+                    $dbFilePath_all->filepath_pro;
+
+
+                // =============================================
+                // TEMP FILE
+                // =============================================
 
                 $tempFullPath = public_path(
-                    $tempDocAge->file_path . '/' . $tempDocAge->file_name
+                    $tempDocAge->file_path .
+                        '/' .
+                        $tempDocAge->file_name
                 );
 
-                $proFolderPath = public_path($dbFilePath);
+
+                // =============================================
+                // PRODUCTION FOLDER
+                // =============================================
+
+                $proFolderPath =
+                    public_path($dbFilePath);
+
 
                 if (!File::exists($proFolderPath)) {
-                    File::makeDirectory($proFolderPath, 0755, true);
+
+                    File::makeDirectory(
+                        $proFolderPath,
+                        0755,
+                        true
+                    );
                 }
 
-                $proFullPath = $proFolderPath . '/' . $tempDocAge->file_name;
 
-                if (File::exists($tempFullPath)) {
-                    File::copy($tempFullPath, $proFullPath);
-                } else {
+                // =============================================
+                // PRODUCTION FILE
+                // =============================================
+
+                $proFullPath =
+                    $proFolderPath .
+                    '/' .
+                    $tempDocAge->file_name;
+
+
+                if (!File::exists($tempFullPath)) {
                     continue;
                 }
 
-                $matchedPartner->age_proof =
-                    $dbFilePath_all->filepath_pro . $tempDocAge->file_name;
 
-                $matchedPartner->row_index = $tempDocAge->row_index;
+                File::copy(
+                    $tempFullPath,
+                    $proFullPath
+                );
+
+
+                // =============================================
+                // UPDATE PARTNER
+                // =============================================
+
+                $matchedPartner->age_proof =
+                    rtrim($dbFilePath_all->filepath_pro, '/') .
+                    '/' .
+                    $tempDocAge->file_name;
+
+                $matchedPartner->row_index =
+                    $tempDocAge->row_index;
 
                 $matchedPartner->save();
 
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $tempDocAge->id)
+
+                // =============================================
+                // MARK TEMP DOCUMENT FINAL
+                // =============================================
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDocAge->id
+                    )
                     ->update([
+
                         'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId,
+
+                        'moved_as' =>
+                        $request->input('form_action'),
+
+                        'record_id_app' =>
+                        $applicationId,
+
                         'updated_at' => now()
                     ]);
             }
         }
+
+
         // ----------------director------------------------
+        // =========================================================
+        // DIRECTORS
+        // =========================================================
+
         $newdirectorIds = [];
 
         if ($request->has('director_name')) {
 
+            // =====================================================
+            // STEP 1:
+            // COPY ACTIVE DIRECTORS FROM OLD APPLICATION
+            // ONLY IF NEW APPLICATION HAS NO ACTIVE DIRECTORS
+            // =====================================================
+
+            $existingNewDirectors = ProprietorformA::where(
+                'application_id',
+                $applicationId
+            )
+                ->where('ownership_type', 'dr')
+                ->where('proprietor_flag', 1)
+                ->orderBy('ownership_count')
+                ->get();
+
+
+            if (
+                $existingNewDirectors->isEmpty() &&
+                !empty($recordId)
+            ) {
+
+                $oldDirectors = ProprietorformA::where(
+                    'application_id',
+                    $recordId
+                )
+                    ->where('ownership_type', 'dr')
+                    ->where('proprietor_flag', 1)
+                    ->orderBy('ownership_count')
+                    ->get();
+
+
+                foreach ($oldDirectors as $oldDirector) {
+
+                    $newDirector = ProprietorformA::create([
+
+                        'login_id' => $request->login_id_store,
+
+                        'application_id' => $applicationId,
+
+                        'proprietor_name' =>
+                        $oldDirector->proprietor_name,
+
+                        'ownership_type' => 'dr',
+
+                        'ownership_count' =>
+                        $oldDirector->ownership_count,
+
+                        'proprietor_flag' => 1,
+
+
+                        // =========================================
+                        // MANAGING DIRECTOR
+                        // =========================================
+
+                        'managing_director' =>
+                        $oldDirector->managing_director,
+
+
+                        // =========================================
+                        // BASIC DETAILS
+                        // =========================================
+
+                        'fathers_name' =>
+                        $oldDirector->fathers_name,
+
+                        'proprietor_address' =>
+                        $oldDirector->proprietor_address,
+
+                        'dob' =>
+                        $oldDirector->dob,
+
+                        'age' =>
+                        $oldDirector->age,
+
+
+                        // =========================================
+                        // QUALIFICATION
+                        // =========================================
+
+                        'qualification' =>
+                        $oldDirector->qualification,
+
+                        'qualification_text' =>
+                        $oldDirector->qualification_text,
+
+
+                        // =========================================
+                        // BUSINESS
+                        // =========================================
+
+                        'present_business' =>
+                        $oldDirector->present_business,
+
+
+                        // =========================================
+                        // COMPETENCY CERTIFICATE
+                        // =========================================
+
+                        'competency_certificate_holding' =>
+                        $oldDirector->competency_certificate_holding,
+
+                        'competency_certificate_number' =>
+                        $oldDirector->competency_certificate_number,
+
+                        'competency_certificate_first_issue' =>
+                        $oldDirector->competency_certificate_first_issue,
+
+                        'competency_certificate_validity_from' =>
+                        $oldDirector->competency_certificate_validity_from,
+
+                        'competency_certificate_validity_to' =>
+                        $oldDirector->competency_certificate_validity_to,
+
+
+                        // =========================================
+                        // OLD DOCUMENTS
+                        // =========================================
+
+                        'educational_proof' =>
+                        $oldDirector->educational_proof,
+
+                        'age_proof' =>
+                        $oldDirector->age_proof,
+
+                        'row_index' =>
+                        $oldDirector->row_index,
+
+
+                        'created_at' => now(),
+
+                        'updated_at' => now(),
+                    ]);
+
+
+                    $newdirectorIds[] =
+                        $newDirector->id;
+                }
+            }
+
+
+            // =====================================================
+            // STEP 2:
+            // PROCESS CURRENT REQUEST DIRECTORS
+            // =====================================================
+
             $count = 1;
 
-            foreach ($request->director_name as $index => $name) {
+
+            foreach (
+                $request->director_name
+                as $index => $name
+            ) {
+
+                // =================================================
+                // IGNORE EMPTY / INVALID DIRECTOR
+                // =================================================
 
                 if (
                     empty($name) ||
                     strtolower(trim($name)) === 'undefined' ||
-                    trim($name) === 'null'
+                    strtolower(trim($name)) === 'null'
                 ) {
                     continue;
                 }
 
-                $directorId = data_get($request->director_id, $index);
+
+                // =================================================
+                // GET REQUEST VALUES
+                // =================================================
+
+                $directorId = data_get(
+                    $request->director_id,
+                    $index
+                );
+
 
                 $competencyHolding = data_get(
                     $request->director_competency,
@@ -4659,22 +6008,38 @@ class FormAController extends BaseController
                     'no'
                 );
 
+
+                // =================================================
+                // DIRECTOR DATA
+                // =================================================
+
                 $data = [
 
-                    'login_id' => $request->login_id_store,
+                    'login_id' =>
+                    $request->login_id_store,
 
-                    'application_id' => $applicationId,
+                    'application_id' =>
+                    $applicationId,
 
-                    'proprietor_name' => strtoupper($name),
+                    'proprietor_name' =>
+                    strtoupper(trim($name)),
 
-                    'ownership_type' => 'dr',
+                    'ownership_type' =>
+                    'dr',
 
-                    'ownership_count' => $count,
+                    'ownership_count' =>
+                    $count,
 
-                    'proprietor_flag' => 1,
+                    'proprietor_flag' =>
+                    1,
 
+
+                    // =============================================
                     // MANAGING DIRECTOR
-                    'managing_director' => strtoupper(
+                    // =============================================
+
+                    'managing_director' =>
+                    strtoupper(
                         data_get(
                             $request->director_managing_director,
                             $index,
@@ -4682,8 +6047,13 @@ class FormAController extends BaseController
                         )
                     ),
 
+
+                    // =============================================
                     // BASIC DETAILS
-                    'fathers_name' => strtoupper(
+                    // =============================================
+
+                    'fathers_name' =>
+                    strtoupper(
                         data_get(
                             $request->director_fathers_name,
                             $index,
@@ -4691,7 +6061,9 @@ class FormAController extends BaseController
                         )
                     ),
 
-                    'proprietor_address' => strtoupper(
+
+                    'proprietor_address' =>
+                    strtoupper(
                         data_get(
                             $request->director_proprietor_address,
                             $index,
@@ -4699,18 +6071,27 @@ class FormAController extends BaseController
                         )
                     ),
 
-                    'dob' => data_get(
+
+                    'dob' =>
+                    data_get(
                         $request->director_dob,
                         $index
                     ),
 
-                    'age' => data_get(
+
+                    'age' =>
+                    data_get(
                         $request->director_age,
                         $index
                     ),
 
+
+                    // =============================================
                     // QUALIFICATION
-                    'qualification' => strtoupper(
+                    // =============================================
+
+                    'qualification' =>
+                    strtoupper(
                         data_get(
                             $request->director_qualification,
                             $index,
@@ -4718,7 +6099,9 @@ class FormAController extends BaseController
                         )
                     ),
 
-                    'qualification_text' => strtoupper(
+
+                    'qualification_text' =>
+                    strtoupper(
                         data_get(
                             $request->director_qual_text,
                             $index,
@@ -4726,8 +6109,13 @@ class FormAController extends BaseController
                         )
                     ),
 
+
+                    // =============================================
                     // BUSINESS
-                    'present_business' => strtoupper(
+                    // =============================================
+
+                    'present_business' =>
+                    strtoupper(
                         data_get(
                             $request->director_present_business,
                             $index,
@@ -4735,8 +6123,14 @@ class FormAController extends BaseController
                         )
                     ),
 
-                    // COMPETENCY
-                    'competency_certificate_holding' => $competencyHolding,
+
+                    // =============================================
+                    // COMPETENCY CERTIFICATE
+                    // =============================================
+
+                    'competency_certificate_holding' =>
+                    $competencyHolding,
+
 
                     'competency_certificate_number' =>
                     $competencyHolding === 'yes'
@@ -4749,6 +6143,7 @@ class FormAController extends BaseController
                         )
                         : null,
 
+
                     'competency_certificate_first_issue' =>
                     $competencyHolding === 'yes'
                         ? data_get(
@@ -4757,6 +6152,7 @@ class FormAController extends BaseController
                         )
                         : null,
 
+
                     'competency_certificate_validity_from' =>
                     $competencyHolding === 'yes'
                         ? data_get(
@@ -4764,6 +6160,7 @@ class FormAController extends BaseController
                             $index
                         )
                         : null,
+
 
                     'competency_certificate_validity_to' =>
                     $competencyHolding === 'yes'
@@ -4775,151 +6172,217 @@ class FormAController extends BaseController
                 ];
 
 
-                // =====================================================
-                // UPDATE EXISTING DIRECTOR
-                // =====================================================
+                // =================================================
+                // STEP 3:
+                // FIND EXISTING DIRECTOR
+                // =================================================
+
+                $director = null;
+
+
+                // -------------------------------------------------
+                // FIRST PRIORITY:
+                // director_id
+                // -------------------------------------------------
 
                 if (!empty($directorId)) {
 
-                    $director = ProprietorformA::where('id', $directorId)
-                        ->where('application_id', $applicationId)
-                        ->where('ownership_type', 'dr')
+                    $director = ProprietorformA::where(
+                        'id',
+                        $directorId
+                    )
+                        ->where(
+                            'application_id',
+                            $applicationId
+                        )
+                        ->where(
+                            'ownership_type',
+                            'dr'
+                        )
+                        ->where(
+                            'proprietor_flag',
+                            1
+                        )
                         ->first();
-
-                    if ($director) {
-
-                        $director->update($data);
-
-                        $newdirectorIds[] = $director->id;
-                    }
                 }
 
-                // =====================================================
-                // NEW DIRECTOR
-                // =====================================================
 
-                else {
+                // -------------------------------------------------
+                // SECOND PRIORITY:
+                // ownership_count
+                // -------------------------------------------------
 
-                    /*
-             * Check whether this application already has
-             * director records.
-             */
-                    $existingDirector = ProprietorformA::where(
+                if (!$director) {
+
+                    $director = ProprietorformA::where(
                         'application_id',
                         $applicationId
                     )
-                        ->where('ownership_type', 'dr')
-                        ->exists();
-
-
-                    if ($existingDirector) {
-
-                        // Application has directors already
-                        // So simply INSERT the new director.
-
-                        $newDirector = ProprietorformA::create($data);
-
-                        $newdirectorIds[] = $newDirector->id;
-                    } else {
-
-                        /*
-                 * No director record exists for this application.
-                 *
-                 * Get existing EA application records.
-                 */
-                        $records = EA_Application_model::where(
-                            'application_id',
-                            $recordId
-                        )->get();
-
-
-                        /*
-                 * If EA records are available, create the
-                 * required director records from them.
-                 */
-                        if ($records->count() > 0) {
-
-                            foreach ($records as $record) {
-
-                                $insertData = $data;
-
-                                /*
-                         * If you need to copy values from
-                         * EA_Application_model, assign them here.
-                         *
-                         * Example:
-                         *
-                         * $insertData['some_column'] =
-                         *     $record->some_column;
-                         */
-
-                                $newDirector = ProprietorformA::create(
-                                    $insertData
-                                );
-
-                                $newdirectorIds[] = $newDirector->id;
-                            }
-                        } else {
-
-                            // No EA records → insert submitted director normally
-
-                            $newDirector = ProprietorformA::create($data);
-
-                            $newdirectorIds[] = $newDirector->id;
-                        }
-                    }
+                        ->where(
+                            'ownership_type',
+                            'dr'
+                        )
+                        ->where(
+                            'ownership_count',
+                            $count
+                        )
+                        ->where(
+                            'proprietor_flag',
+                            1
+                        )
+                        ->first();
                 }
+
+
+                // =================================================
+                // STEP 4:
+                // UPDATE EXISTING DIRECTOR
+                // =================================================
+
+                if ($director) {
+
+                    /*
+             * Preserve existing documents.
+             * New uploaded documents will replace them
+             * later.
+             */
+
+                    $data['educational_proof'] =
+                        $director->educational_proof;
+
+                    $data['age_proof'] =
+                        $director->age_proof;
+
+                    $data['row_index'] =
+                        $director->row_index;
+
+
+                    $director->update($data);
+
+
+                    $newdirectorIds[] =
+                        $director->id;
+                }
+
+
+                // =================================================
+                // STEP 5:
+                // INSERT NEW DIRECTOR
+                // =================================================
+
+                else {
+
+                    $newDirector =
+                        ProprietorformA::create($data);
+
+
+                    $newdirectorIds[] =
+                        $newDirector->id;
+                }
+
 
                 $count++;
             }
 
 
-            // =========================================================
+            // =====================================================
+            // STEP 6:
             // DEACTIVATE REMOVED DIRECTORS
-            // =========================================================
+            // =====================================================
 
+            if (!empty($newdirectorIds)) {
 
-
-            // ==========================================
-            // DEACTIVATE REMOVED DIRECTORS
-            // ==========================================
-
-            ProprietorformA::where('application_id', $applicationId)
-                ->whereNotIn('id', $newdirectorIds)
-                ->where('ownership_type', 'dr')
-                ->where('proprietor_flag', 1)
-                ->update([
-                    'proprietor_flag' => 0
-                ]);
-
-            // ==========================================
-            // EDUCATIONAL QUALIFICATION PROOF
-            // ==========================================
-
-            $tempDocs = DB::table('tnelb_temp_uploaded_documents')
-                ->where('login_id', $request->login_id_store)
-                ->where('form_name', $request->form_name)
-                ->where('license_name', $request->license_name)
-                ->where('document_category', 'educ_qual_proof')
-                ->where('ownership_type', 'dr')
-                ->get();
-
-            foreach ($tempDocs as $tempDoc) {
-
-                $matchedDirector = ProprietorformA::where(
+                ProprietorformA::where(
                     'application_id',
                     $applicationId
                 )
-                    ->where('ownership_type', 'dr')
+                    ->where(
+                        'ownership_type',
+                        'dr'
+                    )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
+                    ->whereNotIn(
+                        'id',
+                        $newdirectorIds
+                    )
+                    ->update([
+                        'proprietor_flag' => 0
+                    ]);
+            }
+
+
+            // =====================================================
+            // STEP 7:
+            // EDUCATIONAL QUALIFICATION PROOF
+            // =====================================================
+
+            $tempDocs = DB::table(
+                'tnelb_temp_uploaded_documents'
+            )
+                ->where(
+                    'login_id',
+                    $request->login_id_store
+                )
+                ->where(
+                    'form_name',
+                    $request->form_name
+                )
+                ->where(
+                    'license_name',
+                    $request->license_name
+                )
+                ->where(
+                    'document_category',
+                    'educ_qual_proof'
+                )
+                ->where(
+                    'ownership_type',
+                    'dr'
+                )
+                ->whereIn(
+                    'is_final',
+                    ['0', '2', '1']
+                )
+                ->get();
+
+
+            foreach ($tempDocs as $tempDoc) {
+
+                // =============================================
+                // FIND DIRECTOR
+                // =============================================
+
+                $matchedDirector =
+                    ProprietorformA::where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->where(
+                        'ownership_type',
+                        'dr'
+                    )
                     ->where(
                         'ownership_count',
                         $tempDoc->row_index + 1
                     )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
                     ->first();
+
 
                 if (!$matchedDirector) {
                     continue;
                 }
+
+
+                // =============================================
+                // GET PATH
+                // =============================================
 
                 $dynamicRequest = clone $request;
 
@@ -4927,16 +6390,43 @@ class FormAController extends BaseController
                     'module' => $tempDoc->module
                 ]);
 
-                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-                $dbFilePath = $dbFilePath_all->filepath_pro;
+
+                $dbFilePath_all =
+                    DocPathController::getPath(
+                        $dynamicRequest
+                    );
+
+
+                $dbFilePath =
+                    $dbFilePath_all->filepath_pro;
+
+
+                // =============================================
+                // TEMP FILE
+                // =============================================
 
                 $tempFullPath = public_path(
-                    $tempDoc->file_path . '/' . $tempDoc->file_name
+                    $tempDoc->file_path .
+                        '/' .
+                        $tempDoc->file_name
                 );
 
-                $proFolderPath = public_path($dbFilePath);
+
+                if (!File::exists($tempFullPath)) {
+                    continue;
+                }
+
+
+                // =============================================
+                // PRODUCTION FOLDER
+                // =============================================
+
+                $proFolderPath =
+                    public_path($dbFilePath);
+
 
                 if (!File::exists($proFolderPath)) {
+
                     File::makeDirectory(
                         $proFolderPath,
                         0755,
@@ -4944,64 +6434,138 @@ class FormAController extends BaseController
                     );
                 }
 
-                $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
 
-                if (File::exists($tempFullPath)) {
-                    File::copy(
-                        $tempFullPath,
-                        $proFullPath
-                    );
-                } else {
-                    continue;
-                }
+                // =============================================
+                // COPY FILE
+                // =============================================
+
+                $proFullPath =
+                    $proFolderPath .
+                    '/' .
+                    $tempDoc->file_name;
+
+
+                File::copy(
+                    $tempFullPath,
+                    $proFullPath
+                );
+
+
+                // =============================================
+                // UPDATE DIRECTOR
+                // =============================================
 
                 $matchedDirector->educational_proof =
-                    $dbFilePath_all->filepath_pro .
+                    rtrim(
+                        $dbFilePath_all->filepath_pro,
+                        '/'
+                    ) .
+                    '/' .
                     $tempDoc->file_name;
+
 
                 $matchedDirector->row_index =
                     $tempDoc->row_index;
 
+
                 $matchedDirector->save();
 
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $tempDoc->id)
+
+                // =============================================
+                // MARK TEMP DOCUMENT FINAL
+                // =============================================
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDoc->id
+                    )
                     ->update([
+
                         'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId,
-                        'updated_at' => now()
+
+                        'moved_as' =>
+                        $request->input('form_action'),
+
+                        'record_id_app' =>
+                        $applicationId,
+
+                        'updated_at' => now(),
                     ]);
             }
 
-            // ==========================================
-            // AGE PROOF
-            // ==========================================
 
-            $tempDocsAge = DB::table('tnelb_temp_uploaded_documents')
-                ->where('login_id', $request->login_id_store)
-                ->where('form_name', $request->form_name)
-                ->where('license_name', $request->license_name)
-                ->where('document_category', 'age_proof')
-                ->where('ownership_type', 'dr')
+            // =====================================================
+            // STEP 8:
+            // AGE PROOF
+            // =====================================================
+
+            $tempDocsAge = DB::table(
+                'tnelb_temp_uploaded_documents'
+            )
+                ->where(
+                    'login_id',
+                    $request->login_id_store
+                )
+                ->where(
+                    'form_name',
+                    $request->form_name
+                )
+                ->where(
+                    'license_name',
+                    $request->license_name
+                )
+                ->where(
+                    'document_category',
+                    'age_proof'
+                )
+                ->where(
+                    'ownership_type',
+                    'dr'
+                )
+                ->whereIn(
+                    'is_final',
+                    ['0', '2', '1']
+                )
                 ->get();
+
 
             foreach ($tempDocsAge as $tempDocAge) {
 
-                $matchedDirector = ProprietorformA::where(
-                    'application_id',
-                    $applicationId
-                )
-                    ->where('ownership_type', 'dr')
+                // =============================================
+                // FIND DIRECTOR
+                // =============================================
+
+                $matchedDirector =
+                    ProprietorformA::where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->where(
+                        'ownership_type',
+                        'dr'
+                    )
                     ->where(
                         'ownership_count',
                         $tempDocAge->row_index + 1
                     )
+                    ->where(
+                        'proprietor_flag',
+                        1
+                    )
                     ->first();
+
 
                 if (!$matchedDirector) {
                     continue;
                 }
+
+
+                // =============================================
+                // GET PATH
+                // =============================================
 
                 $dynamicRequest = clone $request;
 
@@ -5009,16 +6573,43 @@ class FormAController extends BaseController
                     'module' => $tempDocAge->module
                 ]);
 
-                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
-                $dbFilePath = $dbFilePath_all->filepath_pro;
+
+                $dbFilePath_all =
+                    DocPathController::getPath(
+                        $dynamicRequest
+                    );
+
+
+                $dbFilePath =
+                    $dbFilePath_all->filepath_pro;
+
+
+                // =============================================
+                // TEMP FILE
+                // =============================================
 
                 $tempFullPath = public_path(
-                    $tempDocAge->file_path . '/' . $tempDocAge->file_name
+                    $tempDocAge->file_path .
+                        '/' .
+                        $tempDocAge->file_name
                 );
 
-                $proFolderPath = public_path($dbFilePath);
+
+                if (!File::exists($tempFullPath)) {
+                    continue;
+                }
+
+
+                // =============================================
+                // PRODUCTION FOLDER
+                // =============================================
+
+                $proFolderPath =
+                    public_path($dbFilePath);
+
 
                 if (!File::exists($proFolderPath)) {
+
                     File::makeDirectory(
                         $proFolderPath,
                         0755,
@@ -5026,74 +6617,86 @@ class FormAController extends BaseController
                     );
                 }
 
-                $proFullPath = $proFolderPath . '/' . $tempDocAge->file_name;
 
-                if (File::exists($tempFullPath)) {
-                    File::copy(
-                        $tempFullPath,
-                        $proFullPath
-                    );
-                } else {
-                    continue;
-                }
+                // =============================================
+                // COPY FILE
+                // =============================================
+
+                $proFullPath =
+                    $proFolderPath .
+                    '/' .
+                    $tempDocAge->file_name;
+
+
+                File::copy(
+                    $tempFullPath,
+                    $proFullPath
+                );
+
+
+                // =============================================
+                // UPDATE DIRECTOR
+                // =============================================
 
                 $matchedDirector->age_proof =
-                    $dbFilePath_all->filepath_pro .
+                    rtrim(
+                        $dbFilePath_all->filepath_pro,
+                        '/'
+                    ) .
+                    '/' .
                     $tempDocAge->file_name;
+
 
                 $matchedDirector->row_index =
                     $tempDocAge->row_index;
 
+
                 $matchedDirector->save();
 
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $tempDocAge->id)
+
+                // =============================================
+                // MARK TEMP DOCUMENT FINAL
+                // =============================================
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDocAge->id
+                    )
                     ->update([
+
                         'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId,
-                        'updated_at' => now()
+
+                        'moved_as' =>
+                        $request->input('form_action'),
+
+                        'record_id_app' =>
+                        $applicationId,
+
+                        'updated_at' => now(),
                     ]);
             }
         }
+        // dd($request->all()); exit;
 
-
-
-
-        // if ($existing) {
-
-        //     $updateData = collect($dataToSave)
-        //         ->except(['aadhaar_doc', 'pancard_doc', 'gst_doc'])
-        //         ->toArray();
-
-
-
-        //     EA_Application_model::where('application_id', $existing->application_id)
-        //         ->update($updateData);
-        // } else {
-        //     $dataToSave['created_at'] = DB::raw('NOW()');
-
-        //     $createData = collect($dataToSave)
-        //         ->except(['aadhaar_doc', 'pancard_doc', 'gst_doc'])
-        //         ->toArray();
-
-        //     EA_Application_model::create($createData);
-        //     $message = $isDraft ? 'Draft saved successfully!' : 'Application submitted successfully!';
-        // }
-        // dd($request->appl_type); exit;
         if ($existing) {
             // AEA
-            // if (preg_match('/^AEA/i', trim($existing->application_id))) {
-            //     // Generate a new RAEA ID
-            //     $newApplicationId = $this->generateApplicationId(
-            //         $request->appl_type,
-            //         $request->form_name,
-            //         $request->license_name,
-            //         'RAEA'
-            //     );
+            if (preg_match('/^AEA/i', trim($existing->application_id))) {
+                // Generate a new RAEA ID
+                // $newApplicationId = $this->generateApplicationId(
+                //     $request->appl_type,
+                //     $request->form_name,
+                //     $request->license_name,
+                //     'RAEA'
+                // );
 
                 // dd($newApplicationId);
                 // exit;
+
+                // dd('333'); exit;
+                $newApplicationId = $applicationId;
 
                 $formData['application_id'] = $newApplicationId;
                 $formData['login_id'] = $request->login_id_store;
@@ -5110,7 +6713,7 @@ class FormAController extends BaseController
 
                 // dd($formData['appl_type']);
                 // exit;
-
+                // $formData['license_number'] = $request->license_number;
                 // Insert as new record
                 EA_Application_model::create($formData);
 
@@ -5119,21 +6722,24 @@ class FormAController extends BaseController
                     : 'Application submitted successfully with new RAEA ID!';
             } else {
                 // Normal update
+                // dd('222'); exit;
 
-
-                EA_Application_model::where('application_id', $existing->application_id)
-                    ->update($updateData);
+                EA_Application_model::where('application_id', $existing->application_id);
 
                 $message = $isDraft
                     ? 'Draft updated successfully!'
                     : 'Application updated successfully!';
             }
         } else {
-            //    $dataToSave['old_application'] = $recordId ?? null;
+
+            // dd('111'); exit;
+            $dataToSave['old_application'] = $recordId ?? null;
             $dataToSave['created_at'] = DB::raw('NOW()');
 
 
+            $dataToSave['license_number'] = $request->license_number;
 
+            // dd($dataToSave['licence_number']); exit;
 
             EA_Application_model::create($dataToSave);
 
@@ -5161,7 +6767,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'ownership_doc')
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->latest()
                 ->first();
 
@@ -5198,10 +6804,16 @@ class FormAController extends BaseController
 
 
             // ---------------------------bank doc------------------
+
+            $existingappId = DB::table('tnelb_banksolvency_a')->where('application_id', $applicationId)
+                ->first();
+
+            // dd($existingappId);exit;
+            // if($existingappId){}
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'bank_doc')
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->latest()
                 ->first();
 
@@ -5245,7 +6857,7 @@ class FormAController extends BaseController
             $doc = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'Address_proof')
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->latest()
                 ->first();
 
@@ -5288,7 +6900,7 @@ class FormAController extends BaseController
 
             $otherDocs = DB::table('tnelb_temp_uploaded_documents')
                 ->where('login_id', $request->login_id_store)
-                ->whereIn('is_final', ['0', '2'])
+                ->whereIn('is_final', ['0', '2', '1'])
                 ->where('document_category', 'other_doc')
                 ->get();
 
@@ -5366,7 +6978,7 @@ class FormAController extends BaseController
             ->where('login_id', $request->login_id_store)
             ->where('module', 'EQUIPMENTS DOCUMENT')
             ->where('document_sub_category', 'ED')
-            ->whereIn('is_final', ['0', '2'])
+            ->whereIn('is_final', ['0', '2', '1'])
             ->get()
             ->groupBy('equip_code');
 
@@ -5895,7 +7507,7 @@ class FormAController extends BaseController
             $formName  = $request->get('form_name');
             $appl_type = $request->get('appl_type');
 
-            $issued_licence = $request->issued_licence ?? 0;
+            $issued_licence = $request->license_number ?? 0;
 
             // dd($issued_licence);
             // exit;
@@ -5917,7 +7529,7 @@ class FormAController extends BaseController
 
             if ($appl_type === 'R') {
 
-
+                // dd($appl_type,  $form->id, $issued_licence); exit;
 
 
                 $paymentDetails = DB::select("
@@ -6147,8 +7759,8 @@ class FormAController extends BaseController
                 ]);
 
 
-                dd($paymentDetails);
-                exit;
+                // dd($paymentDetails);
+                // exit;
             } else {
 
                 // dd($request->all());
@@ -6944,6 +8556,9 @@ class FormAController extends BaseController
         $formname = $application->form_name;
 
         $payment = $request->payment_status;
+
+        dd($payment);
+        exit;
 
 
 
