@@ -3905,7 +3905,8 @@
             }
         });
 
-        async function validateCompetencyFormForSubmit() {
+        async function validateCompetencyFormForSubmit(options) {
+            const requireDeclaration = !(options && options.requireDeclaration === false);
             normalizeCompetencyDynamicSections();
 
             const readableFiles = await validateReadableSelectedFiles();
@@ -4775,7 +4776,7 @@
                 }
             }
 
-            if (!$('#declarationCheckbox').is(':checked')) {
+            if (requireDeclaration && !$('#declarationCheckbox').is(':checked')) {
                 $('#declaration-error-new-application').removeClass('d-none');
                 $('#checkboxError')
                     .removeClass('d-none')
@@ -4893,6 +4894,8 @@
         $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
             e.preventDefault();
             e.stopPropagation();
+            console.log('submitPaymentBtn clicked');
+            return false;
             if ($('#competency_form_ws.fs-alt-form').length) {
                 return;
             }

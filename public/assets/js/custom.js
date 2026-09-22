@@ -286,7 +286,9 @@ $(document).ready(function () {
         const isRenewalDraft = String($('#appl_type').val() || '').toUpperCase() === 'R';
 
         if (isRenewalDraft && typeof window.validateCompetencyFormForSubmit === 'function') {
-            const renewalDraftValid = await window.validateCompetencyFormForSubmit();
+            const renewalDraftValid = await window.validateCompetencyFormForSubmit({
+                requireDeclaration: false
+            });
             if (!renewalDraftValid) {
                 return;
             }

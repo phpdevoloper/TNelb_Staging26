@@ -201,7 +201,6 @@ class FormAController extends BaseController
     }
     public function checkQCCertificate(Request $request)
     {
-
         // $dateofIssue = Carbon::createFromFormat(
         //     'd-m-Y',
         //     $request->dateof_issue
@@ -246,7 +245,7 @@ class FormAController extends BaseController
             ->orderBy('cc_id', 'desc')
             ->first();
 
-        // dd($certificate);exit;
+            // dd($certificate);exit;
 
 
         if (!$certificate) {
