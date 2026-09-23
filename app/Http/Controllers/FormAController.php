@@ -3557,8 +3557,9 @@ class FormAController extends BaseController
                 }
             }
 
-            // Deactivate removed rows
+            // Deactivate removed proprietor rows only (do not touch partners/directors)
             ProprietorformA::where('application_id', $applicationId)
+                ->where('ownership_type', 'pr')
                 ->whereNotIn('id', $newProprietorIds)
                 ->update(['proprietor_flag' => 0]);
         }
@@ -3566,99 +3567,230 @@ class FormAController extends BaseController
         // Partners
         $newPartnerIds = [];
         if ($request->has('partner_name')) {
-            foreach ($request->partner_name as $index => $name) {
-                if (empty(trim($name))) continue;
+            $existingNewPartners = ProprietorformA::where('application_id', $applicationId)
+                ->where('ownership_type', 'pt')
+                ->where('proprietor_flag', 1)
+                ->orderBy('ownership_count')
+                ->get();
 
-                $partnerId = $request->partner_id[$index] ?? null;
-                if (empty(trim($name))) continue;
+            if ($existingNewPartners->isEmpty() && ! empty($recordId)) {
+                $oldPartners = ProprietorformA::where('application_id', $recordId)
+                    ->where('ownership_type', 'pt')
+                    ->where('proprietor_flag', 1)
+                    ->orderBy('ownership_count')
+                    ->get();
 
-                $competencyHolding = data_get($request->partner_competency, $index);
-
-                //                     // dd($competencyHolding);
-                //                     // exit;
-                $presently_employed = data_get($request->partner_employed, $index);
-                $previous_experience = data_get($request->partner_experience, $index);
-                //                     // Skip if no name (avoid empty row)
-                //                     if (empty(trim($proprietor_name))) {
-                //                         continue;
-                //                     }
-
-
-                // $proprietorId = $request->proprietor_id[$index] ?? null;
-                $data = [
-                    'login_id' => $request->login_id_store,
-                    'application_id' => $applicationId,
-                    'proprietor_name' => strtoupper($name ?? ''),
-                    'ownership_type' => $request->partner_ownership_type[$index],
-                    'proprietor_address' => strtoupper(data_get($request->partner_proprietor_address, $index, '')),
-                    'age' => data_get($request->partner_age, $index),
-                    'qualification' => strtoupper(data_get($request->partner_qualification, $index, '')),
-                    'fathers_name' => strtoupper(data_get($request->partner_fathers_name, $index, '')),
-                    'present_business' => strtoupper(data_get($request->partner_present_business, $index, '')),
-                    'competency_certificate_holding' => $competencyHolding,
-                    'competency_certificate_number' => $competencyHolding === 'yes' ? strtoupper(data_get($request->partner_competency_certno, $index)) : null,
-                    'competency_certificate_validity' => $competencyHolding === 'yes' ? data_get($request->partner_competency_validity, $index) : null,
-
-
-
-                    'presently_employed' => $presently_employed,
-
-                    'presently_employed_name' => $presently_employed === 'yes' ? strtoupper(data_get($request->partner_employer_name, $index)) : null,
-
-                    'presently_employed_address' => $presently_employed === 'yes' ? strtoupper(data_get($request->partner_employer_address, $index)) : null,
-
-                    // 'presently_employed_name' => data_get($presently_employed, $index) === 'yes' ? strtoupper(data_get($request->employer_name, $index)) : null,
-                    // 'presently_employed_address' => data_get($presently_employed, $index) === 'yes' ? strtoupper(data_get($request->employer_address, $index)) : null,
-
-                    'previous_experience' => $previous_experience,
-
-                    'previous_experience_name' => $previous_experience === 'yes' ? strtoupper(data_get($request->partner_exp_name, $index)) : null,
-
-                    'previous_experience_address' => $previous_experience === 'yes' ? strtoupper(data_get($request->partner_exp_address, $index)) : null,
-
-
-                    'previous_experience_lnumber' => $previous_experience === 'yes' ? strtoupper(data_get($request->partner_exp_license, $index)) : null,
-
-                    'previous_experience_lnumber_validity' => $previous_experience === 'yes' ? strtoupper(data_get($request->partner_exp_validity, $index)) : null,
-
-
-
-                    // 'previous_experience_name' => data_get($request->previous_experience, $index) === 'yes' ? strtoupper(data_get($request->previous_experience_name, $index)) : null,
-                    // 'previous_experience_address' => data_get($request->previous_experience, $index) === 'yes' ? strtoupper(data_get($request->previous_experience_address, $index)) : null,
-                    // 'previous_experience_lnumber' => data_get($request->previous_experience, $index) === 'yes' ? strtoupper(data_get($request->previous_experience_lnumber, $index)) : null,
-
-                    // 'previous_experience_lnumber_validity' => data_get($request->previous_experience, $index) === 'yes' ? data_get($request->previous_experience_lnumber_validity, $index) : null,
-
-                    'proprietor_contractor_verify' => $previous_experience === 'yes' ? data_get($request->partner_expverify, $index) : null,
-                    'proprietor_flag' => 1,
-                ];
-
-                if ($partnerId) {
-
-                    $existingRecord = ProprietorformA::where('id', $partnerId)
-                        ->where('application_id', $applicationId)
-                        ->first();
-
-                    if ($existingRecord) {
-
-                        ProprietorformA::where('id', $partnerId)->update($data);
-                        $newPartnerIds[] = $partnerId;
-                    } else {
-
-                        $new = ProprietorformA::create($data);
-                        $newPartnerIds[] = $new->id;
-                    }
-                } else {
-                    $new = ProprietorformA::create($data);
-                    $newPartnerIds[] = $new->id;
+                foreach ($oldPartners as $oldPartner) {
+                    $newPartner = ProprietorformA::create([
+                        'login_id' => $request->login_id_store,
+                        'application_id' => $applicationId,
+                        'proprietor_name' => $oldPartner->proprietor_name,
+                        'ownership_type' => 'pt',
+                        'proprietor_address' => $oldPartner->proprietor_address,
+                        'dob' => $oldPartner->dob,
+                        'age' => $oldPartner->age,
+                        'qualification' => $oldPartner->qualification,
+                        'qualification_text' => $oldPartner->qualification_text,
+                        'fathers_name' => $oldPartner->fathers_name,
+                        'present_business' => $oldPartner->present_business,
+                        'competency_certificate_holding' => $oldPartner->competency_certificate_holding,
+                        'competency_certificate_number' => $oldPartner->competency_certificate_number,
+                        'competency_certificate_first_issue' => $oldPartner->competency_certificate_first_issue,
+                        'competency_certificate_validity_from' => $oldPartner->competency_certificate_validity_from,
+                        'competency_certificate_validity_to' => $oldPartner->competency_certificate_validity_to,
+                        'educational_proof' => $oldPartner->educational_proof,
+                        'age_proof' => $oldPartner->age_proof,
+                        'proprietor_flag' => 1,
+                        'ownership_count' => $oldPartner->ownership_count,
+                    ]);
+                    $newPartner->row_index = $oldPartner->row_index;
+                    $newPartner->save();
+                    $newPartnerIds[] = $newPartner->id;
                 }
             }
 
-            // Deactivate removed partner rows
-            ProprietorformA::where('application_id', $applicationId)
-                ->whereNotIn('id', $newPartnerIds)
-                ->where('ownership_type', 'partner') // optional if you differentiate ownership
-                ->update(['proprietor_flag' => 0]);
+            $count = 1;
+            foreach ($request->partner_name as $index => $name) {
+                if (
+                    empty($name) ||
+                    strtolower(trim($name)) === 'undefined' ||
+                    trim($name) === 'null'
+                ) {
+                    continue;
+                }
+
+                $competencyHolding = data_get($request->partner_competency, $index, 'no');
+                $partnerId = data_get($request->partner_id, $index);
+
+                $data = [
+                    'login_id' => $request->login_id_store,
+                    'application_id' => $applicationId,
+                    'proprietor_name' => strtoupper(trim($name)),
+                    'ownership_type' => 'pt',
+                    'proprietor_address' => strtoupper(data_get($request->partner_proprietor_address, $index, '')),
+                    'dob' => data_get($request->partner_dob, $index),
+                    'age' => data_get($request->partner_age, $index),
+                    'qualification' => strtoupper(data_get($request->partner_qualification, $index, '')),
+                    'qualification_text' => strtoupper(data_get($request->partner_qual_text, $index, '')),
+                    'fathers_name' => strtoupper(data_get($request->partner_fathers_name, $index, '')),
+                    'present_business' => strtoupper(data_get($request->partner_present_business, $index, '')),
+                    'competency_certificate_holding' => $competencyHolding,
+                    'competency_certificate_number' => $competencyHolding === 'yes'
+                        ? strtoupper(data_get($request->partner_competency_certno, $index, ''))
+                        : null,
+                    'competency_certificate_first_issue' => $competencyHolding === 'yes'
+                        ? data_get($request->partner_ccfirstissue, $index)
+                        : null,
+                    'competency_certificate_validity_from' => $competencyHolding === 'yes'
+                        ? data_get($request->partner_ccvalidityfrom, $index)
+                        : null,
+                    'competency_certificate_validity_to' => $competencyHolding === 'yes'
+                        ? data_get($request->partner_ccvalidityto, $index)
+                        : null,
+                    'proprietor_flag' => 1,
+                    'ownership_count' => $count,
+                ];
+
+                $partner = null;
+                if (! empty($partnerId)) {
+                    $partner = ProprietorformA::where('id', $partnerId)
+                        ->where('application_id', $applicationId)
+                        ->where('ownership_type', 'pt')
+                        ->first();
+                }
+
+                if (! $partner) {
+                    $partner = ProprietorformA::where('application_id', $applicationId)
+                        ->where('ownership_type', 'pt')
+                        ->where('ownership_count', $count)
+                        ->where('proprietor_flag', 1)
+                        ->first();
+                }
+
+                if ($partner) {
+                    $data['educational_proof'] = $partner->educational_proof;
+                    $data['age_proof'] = $partner->age_proof;
+                    $partner->update($data);
+                    $newPartnerIds[] = $partner->id;
+                } else {
+                    $newPartner = ProprietorformA::create($data);
+                    $newPartnerIds[] = $newPartner->id;
+                }
+
+                $count++;
+            }
+
+            if (! empty($newPartnerIds)) {
+                ProprietorformA::where('application_id', $applicationId)
+                    ->where('ownership_type', 'pt')
+                    ->where('proprietor_flag', 1)
+                    ->whereNotIn('id', $newPartnerIds)
+                    ->update(['proprietor_flag' => 0]);
+            }
+
+            $tempDocs = DB::table('tnelb_temp_uploaded_documents')
+                ->where('login_id', $request->login_id_store)
+                ->where('form_name', $request->form_name)
+                ->where('license_name', $request->license_name)
+                ->where('document_category', 'educ_qual_proof')
+                ->where('ownership_type', 'pt')
+                ->whereIn('is_final', ['0', '2'])
+                ->get();
+
+            foreach ($tempDocs as $tempDoc) {
+                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
+                    ->where('ownership_type', 'pt')
+                    ->where('ownership_count', $tempDoc->row_index + 1)
+                    ->where('proprietor_flag', 1)
+                    ->first();
+
+                if (! $matchedPartner) {
+                    continue;
+                }
+
+                $dynamicRequest = clone $request;
+                $dynamicRequest->merge(['module' => $tempDoc->module]);
+                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
+                $dbFilePath = $dbFilePath_all->filepath_pro;
+                $tempFullPath = public_path($tempDoc->file_path . '/' . $tempDoc->file_name);
+                $proFolderPath = public_path($dbFilePath);
+
+                if (! File::exists($proFolderPath)) {
+                    File::makeDirectory($proFolderPath, 0755, true);
+                }
+
+                $proFullPath = $proFolderPath . '/' . $tempDoc->file_name;
+                if (! File::exists($tempFullPath)) {
+                    continue;
+                }
+
+                File::copy($tempFullPath, $proFullPath);
+
+                $matchedPartner->educational_proof = rtrim($dbFilePath_all->filepath_pro, '/') . '/' . $tempDoc->file_name;
+                $matchedPartner->row_index = $tempDoc->row_index;
+                $matchedPartner->save();
+
+                DB::table('tnelb_temp_uploaded_documents')
+                    ->where('id', $tempDoc->id)
+                    ->update([
+                        'is_final' => '1',
+                        'moved_as' => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            $tempDocsAge = DB::table('tnelb_temp_uploaded_documents')
+                ->where('login_id', $request->login_id_store)
+                ->where('form_name', $request->form_name)
+                ->where('license_name', $request->license_name)
+                ->where('document_category', 'age_proof')
+                ->where('ownership_type', 'pt')
+                ->whereIn('is_final', ['0', '2'])
+                ->get();
+
+            foreach ($tempDocsAge as $tempDocAge) {
+                $matchedPartner = ProprietorformA::where('application_id', $applicationId)
+                    ->where('ownership_type', 'pt')
+                    ->where('ownership_count', $tempDocAge->row_index + 1)
+                    ->where('proprietor_flag', 1)
+                    ->first();
+
+                if (! $matchedPartner) {
+                    continue;
+                }
+
+                $dynamicRequest = clone $request;
+                $dynamicRequest->merge(['module' => $tempDocAge->module]);
+                $dbFilePath_all = DocPathController::getPath($dynamicRequest);
+                $dbFilePath = $dbFilePath_all->filepath_pro;
+                $tempFullPath = public_path($tempDocAge->file_path . '/' . $tempDocAge->file_name);
+                $proFolderPath = public_path($dbFilePath);
+
+                if (! File::exists($proFolderPath)) {
+                    File::makeDirectory($proFolderPath, 0755, true);
+                }
+
+                $proFullPath = $proFolderPath . '/' . $tempDocAge->file_name;
+                if (! File::exists($tempFullPath)) {
+                    continue;
+                }
+
+                File::copy($tempFullPath, $proFullPath);
+
+                $matchedPartner->age_proof = rtrim($dbFilePath_all->filepath_pro, '/') . '/' . $tempDocAge->file_name;
+                $matchedPartner->row_index = $tempDocAge->row_index;
+                $matchedPartner->save();
+
+                DB::table('tnelb_temp_uploaded_documents')
+                    ->where('id', $tempDocAge->id)
+                    ->update([
+                        'is_final' => '1',
+                        'moved_as' => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
+                        'updated_at' => now(),
+                    ]);
+            }
         }
 
         // ----------------director------------------------

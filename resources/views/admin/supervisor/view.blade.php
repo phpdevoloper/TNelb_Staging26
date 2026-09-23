@@ -195,6 +195,83 @@
         color: #64748b;
         font-size: 0.95rem;
     }
+    #applicationDetailsModal .modal-dialog {
+        max-width: min(1080px, 96vw);
+    }
+    #applicationDetailsModal .modal-content {
+        border: 1px solid #dbe3ee;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+    }
+    #applicationDetailsModal .modal-header {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border-bottom: 1px solid #dbe3ee !important;
+        padding: 0.85rem 1.2rem !important;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    #applicationDetailsModal .modal-title,
+    #applicationDetailsModal .modal-header h5 {
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        color: #0f172a !important;
+        letter-spacing: 0 !important;
+        margin: 0 !important;
+    }
+    #applicationDetailsModal .btn-adm-x {
+        width: 34px;
+        height: 34px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #0f172a;
+        font-size: 1.35rem;
+        line-height: 1;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    #applicationDetailsModal .btn-adm-x:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+    #applicationDetailsModal .modal-body {
+        max-height: min(78vh, 820px);
+        overflow-y: auto;
+        background: #f8fafc;
+        padding: 1.1rem 1.2rem;
+    }
+    #applicationDetailsModal .modal-footer {
+        background: #fff;
+        border-top: 1px solid #e2e8f0;
+        padding: 0.7rem 1.2rem;
+    }
+    #applicationDetailsModal .btn-adm-close {
+        background: #1e3a5f;
+        border-color: #1e3a5f;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0.4rem 1.15rem;
+    }
+    #applicationDetailsModal .btn-adm-close:hover {
+        background: #2c5282;
+        border-color: #2c5282;
+        color: #fff;
+    }
+    #applicationDetailsModal .app-details-loading {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        color: #64748b;
+    }
+    #applicationDetailsModal .app-details-loading .spinner-border {
+        color: #1e3a5f;
+    }
 </style>
 
 <div id="content" class="main-content">
@@ -234,7 +311,7 @@
 
             <!-- -------------------------------------------------------- -->
             <div class="row">
-                <div class="col-xl-12 col-lg-12 col-sm-12 layout-spacing">
+                <div class="col-xl-12 col-lg-12 col-sm-12 layout-top-spacing">
                     <div class="app-view-title">
                         @if($isCompletedList)
                             @if($isRenewalOnly)
@@ -242,7 +319,7 @@
                             @elseif($isNewOnly)
                                 Completed New Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
                             @elseif($isDigitizationOnly)
-                                Completed Digitization Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Completed Digitisation Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
                             @elseif($isAlterationOnly)
                                 Completed Alteration Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
                             @else
@@ -281,7 +358,7 @@
                                         <th>License</th>
                                         @else
                                         <th>Certificate of</th>
-                                        <th>Payment Status</th>
+                                        {{-- <th>Payment Status</th> --}}
                                         <th>Applied On</th>
                                         <th class="no-content">Action</th>
                                         @endif
@@ -320,7 +397,7 @@
                                             elseif($application->appl_type == 'R')
                                                 $appltype= 'Renewal ';
                                             elseif($application->appl_type == 'D')
-                                                 $appltype= 'Digitization';
+                                                 $appltype= 'Digitisation';
                                             elseif($application->appl_type == 'A')
                                                  $appltype= 'Alteration';
                                             else
@@ -337,7 +414,11 @@
                                                 <span class="sno-num">{{ $loop->iteration }}</span>
                                             </td>
                                             <td>
-                                                <a href="{{ $detailUrl }}">
+                                                <a href="javascript:void(0)"
+                                                    class="js-app-details-trigger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#applicationDetailsModal"
+                                                    data-application-id="{{ $application->application_id }}">
                                                     {{ $application->application_id }}
                                                 </a>
                                             </td>
@@ -373,7 +454,7 @@
                                             </td>
                                             @else
                                             <td>{{ $application->license_name ?? 'N/A' }}</td>
-                                            <td>{{ in_array($application->payment_status ?? null, ['payment', 'paid'], true) ? 'Success' : ($application->payment_status ?? 'N/A') }}</td>
+                                            {{-- <td>{{ in_array($application->payment_status ?? null, ['payment', 'paid'], true) ? 'Success' : ($application->payment_status ?? 'N/A') }}</td> --}}
                                             <td>{{ format_date_other($appliedOnRaw) }}</td>
                                             <td>
                                                 <a href="{{ $detailUrl }}">
@@ -414,4 +495,81 @@
     </div>
 </div>
 
+<div class="modal fade" id="applicationDetailsModal" tabindex="-1" aria-labelledby="applicationDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="applicationDetailsModalLabel">Application Details</h5>
+                <button type="button" class="btn-adm-x" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body" id="applicationDetailsModalBody">
+                <div class="app-details-loading">
+                    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                    <p class="mt-2 mb-0">Loading application details…</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-adm-close" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @include('admin.include.footer')
+
+<style>
+    #applicationDetailsModal .modal-header {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border-bottom: 1px solid #dbe3ee !important;
+    }
+    #applicationDetailsModal .modal-title,
+    #applicationDetailsModal .modal-header h5 {
+        color: #0f172a !important;
+    }
+    #applicationDetailsModal .modal-header .btn-close {
+        display: none !important;
+    }
+</style>
+
+<script>
+    (function ($) {
+        var loadingHtml = '<div class="app-details-loading">'
+            + '<div class="spinner-border text-primary" role="status" aria-hidden="true"></div>'
+            + '<p class="mt-2 mb-0">Loading application details…</p>'
+            + '</div>';
+        var detailsUrl = @json(route('admin.application_details_modal'));
+
+        $('#applicationDetailsModal').on('show.bs.modal', function (event) {
+            var trigger = $(event.relatedTarget);
+            var applicationId = trigger.data('application-id') || '';
+            var $body = $('#applicationDetailsModalBody');
+            var $title = $('#applicationDetailsModalLabel');
+
+            $title.text(applicationId ? ('Application Details — ' + applicationId) : 'Application Details');
+            $body.html(loadingHtml);
+
+            if (!applicationId) {
+                $body.html('<p class="text-danger mb-0">Application id is missing.</p>');
+                return;
+            }
+
+            $.ajax({
+                url: detailsUrl,
+                method: 'GET',
+                data: { application_id: applicationId },
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).done(function (html) {
+                $body.html(html);
+            }).fail(function (xhr) {
+                var message = (xhr.responseJSON && xhr.responseJSON.error)
+                    ? xhr.responseJSON.error
+                    : (xhr.status === 404 ? 'Application details were not found.' : 'Unable to load application details.');
+                $body.html('<p class="text-danger mb-0">' + message + '</p>');
+            });
+        }).on('hidden.bs.modal', function () {
+            $('#applicationDetailsModalBody').html(loadingHtml);
+            $('#applicationDetailsModalLabel').text('Application Details');
+        });
+    })(jQuery);
+</script>

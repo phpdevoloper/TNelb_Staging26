@@ -2317,11 +2317,6 @@ use Illuminate\Support\Facades\Auth;
     </div>
 
     <!-- --------------------------------------------- -->
-
-
-
-
-
     <!-- Payment Success Modal -->
     <div class="modal fade" id="paymentSuccessModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -2346,6 +2341,9 @@ use Illuminate\Support\Facades\Auth;
                                 <div class="value" id="ps_applicantName_competency"></div>
 
                                 <div class="label">Type of Application:</div>
+                                <div class="value" id="ps_applicationType_competency"></div>
+
+                                <div class="label">Type of certificate:</div>
                                 <div class="value" id="ps_licenceName_competency"></div>
 
                                 <div class="label ps-payment-only">Transaction ID:</div>

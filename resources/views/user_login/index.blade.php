@@ -899,9 +899,9 @@
                                                 $licName = DB::table('mst_licences')
                                                     ->where('cert_licence_code', $workflow->license_name)
                                                     ->first();
-                                                $issuedDate = $workflow->issued_at ? Carbon::parse($workflow->issued_at)->format('d-m-Y') : 'N/A';
-                                                $expiryDate = $workflow->expires_at ? Carbon::parse($workflow->expires_at)->format('d-m-Y') : 'N/A';
-                                                $expiry = $workflow->renewal_expires_at ?: $workflow->expires_at;
+                                                $issuedDate = $workflow->valid_from ? Carbon::parse($workflow->valid_from)->format('d-m-Y') : 'N/A';
+                                                $expiryDate = $workflow->valid_to ? Carbon::parse($workflow->valid_to)->format('d-m-Y') : 'N/A';
+                                                $expiry =  $workflow->valid_to;
                                                 $isExpired = $expiry ? Carbon::parse($expiry)->lte($today) : false;
                                             @endphp
 

@@ -90,23 +90,6 @@
                 ? window.isNoPaymentApplType()
                 : false;
 
-            // const formResponse = await $.ajax({
-            //     url: cfg.getFormInstructionUrl,
-            //     type: "POST",
-            //     data: {
-            //         appl_type,
-            //         licence_code,
-            //         _token: $('meta[name="csrf-token"]').attr('content')
-            //     }
-            // });
-
-            // if (formResponse.status == 200) {
-            //     form_instruct = formResponse.data;
-            // } else {
-            //     Swal.fire("Error", "Instruction not available", "error");
-            //     return;
-            // }
-
             let data = null;
             if (!noPaymentApplType) {
                 data = await getPaymentsService(licence_code, issued_licence, appl_type);
@@ -187,30 +170,6 @@
                         ? 'No fee (Board Member — fee not applicable)'
                         : ('Rs.' + actual_fees + '/-'));
             }
-
-            // // Reset state
-            // agreeCheckbox.checked = false;
-            // errorText.classList.add('d-none');
-
-            // // Show modal
-            // const modalBody = modalEl.querySelector('#instructionContent');
-
-
-            // const delta = JSON.parse(form_instruct);
-
-            // const converter = new QuillDeltaToHtmlConverter(delta.ops, {
-            //     inlineStyles: true,
-            //     multiLineParagraph: false,
-            //     listItemTag: "li",
-            //     paragraphTag: "p"
-            // });
-
-            // let html = converter.convert();
-            // /* Stray "@" before (ii) / list markers when Quill split merge-tag text */
-            // html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
-            // html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
-            // modalBody.innerHTML = html;
-            // const el = document.querySelector("#instructionContent");
 
 
             // return false;
@@ -320,7 +279,6 @@
                         }
                     });
 
-                    console.log(total_fees);
                     
 
                     if (saveResponse.status === "success") {
@@ -334,11 +292,7 @@
                             $('#cc_digitization_temp_id').val('');
                         }
 
-                        let form_type = isDigitization
-                            ? 'Digitization Application'
-                            : (String(appl_type || '').trim().toUpperCase() === 'A'
-                                ? 'Alteration Application'
-                                : (appl_type === 'R' ? 'Renewal Application' : 'New Application'));
+                        let form_type = isDigitization ? 'Digitisation': (String(appl_type || '').trim().toUpperCase() === 'A' ? 'Alteration' : (appl_type === 'R' ? 'Renewal' : 'New'));
 
                         const login_id = window.login_id || cfg.loginId || '';
                         const application_id = saveResponse.application_id;
@@ -353,8 +307,6 @@
                         const amount = total_fees;
                         const licence_name = saveResponse.licence_name || 'N/A';
                         const feeExemptSubmit = noPaymentApplType || boardMemberFeeExempt;
-
-                        //console.log(transactionDate);
 
                         // const serviceCharge = 10;
                         // let lateFee = typeof lateFee !== "undefined" ? lateFee : 0;
@@ -849,7 +801,7 @@
         $("#ps_applicationId_competency").text(loginId);
         $("#ps_licenceName_competency").text(licence_name);
         $("#ps_transactionDate_competency").text(transactionDate);
-
+        $("#ps_applicationType_competency").text(form_type);
         // Digitisation (D) / Alteration (A) / board-member waiver: never show or retain payment details.
         if (isFeeExemptSubmit) {
             $("#ps_transactionId_competency").text('');
@@ -3997,7 +3949,7 @@
             if (applicantEmailEl.length) {
                 let ev = readApplicantEmailValue();
                 let formNameEmail = ($('#form_name').val() || '').toString().trim().toUpperCase();
-                let emailRequired = formNameEmail === 'S' || formNameEmail === 'W';
+                let emailRequired = formNameEmail === 'S';
                 if (emailRequired && ev === '') {
                     showCompetencyFieldError(applicantEmailEl, 'Email ID is required.');
                     if (!firstErrorField) firstErrorField = applicantEmailEl;
@@ -4894,8 +4846,8 @@
         $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('submitPaymentBtn clicked');
-            return false;
+
+           
             if ($('#competency_form_ws.fs-alt-form').length) {
                 return;
             }

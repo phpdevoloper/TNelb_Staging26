@@ -1099,11 +1099,11 @@
                                             data-error="#dateError" value="">
                                         <span id="dateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    {{-- <div class="col-12 col-md-2">
                                         <button type="button" class="btn-verify verify-btn" data-type="license" data-url="{{ route('verifylicense') }}">
                                             <i class="fa fa-check-circle"></i> Verify
                                         </button>
-                                    </div>
+                                    </div> --}}
                                 </div>
                                 <div class="mt-1">
                                     <span id="verify_result"></span>
@@ -1167,11 +1167,11 @@
                                             data-error="#certDateError" type="date" value="{{ $oldExpiry }}">
                                         <span id="certDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                  {{--  <div class="col-12 col-md-2">
                                         <button type="button" class="btn-verify verify-btn" data-type="certificate" data-url="{{ route('verifylicense') }}">
                                             <i class="fa fa-check-circle"></i> Verify
                                         </button>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>
                         </div>
