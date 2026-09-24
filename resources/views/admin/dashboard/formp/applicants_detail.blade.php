@@ -964,8 +964,12 @@
                         <label class="form-check-label" for="query_aadhaar">Aadhaar document is missing</label>
                     </div>
                     <div class="form-check mb-2">
-                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_other" value="Other">
-                        <label class="form-check-label" for="query_other">Other</label>
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_work_exp" value="Work Experience">
+                        <label class="form-check-label" for="query_work_exp">Work Experience</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_personal" value="Personal Details">
+                        <label class="form-check-label" for="query_personal">Personal Details</label>
                     </div>
                 </div>
                 <div class="form-group mt-3">

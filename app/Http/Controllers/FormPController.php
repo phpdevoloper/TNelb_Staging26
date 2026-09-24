@@ -819,7 +819,9 @@ class FormPController extends BaseController
         }
 
         $editable = array_flip($editableSections);
-        ReturnedApplicationPayloadMerge::mergeFormPApplicantScalarsIntoRequest($request, $form);
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_APPLICANT])) {
+            ReturnedApplicationPayloadMerge::mergeFormPApplicantScalarsIntoRequest($request, $form);
+        }
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_EDUCATION])) {
             $request->files->remove('education_document');

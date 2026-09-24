@@ -1592,15 +1592,15 @@
                             <div>
                                 <div class="fs-section-title">
                                     Details of Previous and Current Work experiences
-                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
-                                        <span class="section-hint">(Optional)</span>
+                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['WH']))
+                                        <span class="section-hint"></span>
                                     @else
                                         <span class="section-req">*</span>
                                     @endif
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
                                 <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
-                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
+                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['WH']))
                                         <span style="font-size:.72rem;">(விருப்பமெனில் நிரப்பலாம்)</span>
                                     @endif
                                     <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span>

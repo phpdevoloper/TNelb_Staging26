@@ -34,4 +34,6 @@
 <div class="work-exp-admin-readonly comp_certificate">
     @include('user_login.partials.form-s-work-exp-view', ['exp_details' => $standardRows, 'hideVoltageFields' => $hideVoltageFields])
 </div>
+@if (in_array(($applicant->form_name ?? ''), ['S'], true))
 @include('user_login.partials.form-s-board-member-view', ['boardMemberRows' => $boardMemberRows])
+@endif

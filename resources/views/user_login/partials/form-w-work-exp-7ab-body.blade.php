@@ -56,10 +56,11 @@
         'isAlterationMode' => $isAlterationMode,
         'lockExistingRows' => $lockExistingRows,
         'contractorDetails' => $contractorDetails,
+        'showAddRow' => $showAddRow ?? true,
     ])
 </div>
 
-<div class="fs-question-part fs-question-part--7b {{ $is7bBoardMemberPrefill ? 'fs-7b-mode-board' : 'fs-7b-mode-standard' }}" id="fs-7b-root">
+{{-- <div class="fs-question-part fs-question-part--7b {{ $is7bBoardMemberPrefill ? 'fs-7b-mode-board' : 'fs-7b-mode-standard' }}" id="fs-7b-root">
     <div class="fs-question-part-hd fs-7b-hd">
         <span class="fs-section-num fs-section-num--sub">7b</span>
         <div class="fs-7b-hd-content">
@@ -98,4 +99,4 @@
             ])
         </div>
     </div>
-</div>
+</div> --}}

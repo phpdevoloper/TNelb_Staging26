@@ -283,7 +283,7 @@
 @include('user_login.partials.form-s-work-exp-7ab-styles')
 </style>
 
-{{-- ░░ BREADCRUMB ░░ --}}
+{{-- BREADCRUMB --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
         <ul id="breadcrumb">
@@ -293,16 +293,16 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{-- PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Wireman Competency Certificate</h5>
-                    <h5 class="tamil-title">மின்கம்பியாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
+                    <h5>Application for Wireman Competency Certificate - New Application</h5>
+                    <h5 class="tamil-title">மின்கம்பியாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதிய விண்ணப்பம்</h5>
                     <span class="form-badge">FORM - W / Certificate B</span>
                 </div>
                 <div class="instructions-link">
@@ -311,16 +311,16 @@
                 </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- Mandatory notice --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- Form body --}}
             <div class="fs-form-body fs-form apply-card">
                 <form id="competency_form_ws" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTIONS 1–3 — Name, Father's Name, Email (same layout as apply-form-s) ═══ --}}
+                    {{-- SECTIONS 1–3 — Name, Father's Name, Email (same layout as apply-form-s) --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
@@ -350,7 +350,7 @@
                                     <div class="fs-section-header fs-section-header--in-grid">
                                         <span class="fs-section-num">3</span>
                                         <div>
-                                            <div class="fs-section-title">Email ID <span class="section-req">*</span></div>
+                                            <div class="fs-section-title">Email ID </div>
                                             <div class="fs-section-tamil">மின்னஞ்சல் முகவரி</div>
                                         </div>
                                     </div>
@@ -362,7 +362,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTIONS 4–5 — Address / D.O.B & Age (same layout as apply-form-s) ═══ --}}
+                    {{-- SECTIONS 4–5 — Address / D.O.B & Age (same layout as apply-form-s) --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
@@ -414,7 +414,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 6 — Education ═══ --}}
+                            {{-- SECTION 6 — Education --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">6</span>
@@ -504,7 +504,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Work Experience (Form W 7a/7b partials; no voltage / nature / transformer) ═══ --}}
+                    {{-- SECTION 7 — Work Experience (Form W 7a/7b partials; no voltage / nature / transformer) --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">7</span>
@@ -522,7 +522,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 8 — Previous Certificate ═══ --}}
+                    {{-- SECTION 8 — Previous Certificate --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
@@ -551,7 +551,7 @@
                             <div id="previously_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. H1234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. H1234, W1234, CB20260800001)</span></div>
                                         <input autocomplete="off" class="form-control verify-input" id="previously_number" name="competency_certificate_no" type="text" data-type="certificate" data-error="#licenseError" data-msg="#license_message" placeholder="Certificate Number" maxlength="80" value="{{ $oldCertNo }}">
                                         <input type="hidden" id="cert_verify" name="cert_verify" value="0">
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
@@ -563,7 +563,12 @@
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control verify-valid-from" id="certificate_valid_from" name="certificate_valid_from" type="date" data-error="#certFromDateError" value="">
+                                        <span id="certFromDateError" class="text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-date" id="previously_date" name="certificate_date" type="date" data-error="#dateError" value="{{ $oldExpiry }}">
                                         <span id="dateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
@@ -572,7 +577,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 9 — Upload Documents ═══ --}}
+                    {{-- SECTION 9 — Upload Documents --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">9</span>

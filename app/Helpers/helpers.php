@@ -404,10 +404,7 @@ if (!function_exists('proof_document_url')) {
         // Encrypted Aadhaar/PAN must be decrypted by Laravel and shown inline as PDF.
         // Do not use the public /competency/... URL — the raw .bin cannot be viewed.
         if ($isEncryptedBlob && \Illuminate\Support\Facades\Route::has('document.show')) {
-            return route('document.show', [
-                'type' => $legacyType,
-                'filename' => $storedPath,
-            ]);
+            return url('/document/' . $legacyType) . '?file=' . rawurlencode($storedPath);
         }
 
         if (preg_match('#^FORM_[A-Z]+/#', $storedPath) || str_starts_with($storedPath, 'uploads/digitization/')) {

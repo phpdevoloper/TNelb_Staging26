@@ -901,6 +901,24 @@
         opacity: 0.72;
         filter: grayscale(0.06);
     }
+    .fs-return-section-locked .btn-fs-change,
+    .fs-return-section-locked .remove-aadhaar-doc,
+    .fs-return-section-locked .remove-pan-doc,
+    .fs-return-section-locked .remove-doc_edu_confirm,
+    .fs-return-section-locked input[type="file"],
+    .fs-return-section-locked .form-s-file-upload-wrap,
+    .fs-return-section-locked .file-limit {
+        display: none !important;
+    }
+    .fs-return-section-locked a[href] {
+        pointer-events: auto;
+    }
+    .fs-docs-table #aadhaar,
+    .fs-docs-table #pancard {
+        border: 1px solid #c5d0e6;
+        background: #fff;
+        min-height: 38px;
+    }
 
     @if (in_array($editFormName, ['S', 'W', 'WH'], true))
     @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
@@ -1621,6 +1639,7 @@
                                 'showContractorNotice' => true,
                                 'contractorDetails' => $get_contractor_details ?? null,
                                 'hideUploadWhenDocExists' => true,
+                                'showAddRow' => $retCanEdit('experience'),
                             ])
                             @else
                             <div class="fs-table-wrap">
@@ -1990,6 +2009,7 @@
                                             <div class="fs-return-upload-cell{{ $retLockClass('photo') }}" data-return-section="photo">
                                             <div class="fs-upload-card p-3">
                                                 <div class="fs-upload-controls">
+                                                    @if($retCanEdit('photo'))
                                                     <div id="photo-input-wrapper" style="{{ $hasPhoto ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
                                                             <input autocomplete="off" class="form-control" id="upload_photo" name="upload_photo" type="file" accept=".jpg,.jpeg,.png">
@@ -2003,6 +2023,7 @@
                                                                 <i class="fa fa-pencil"></i> Change Photo
                                                             </button>
                                                         </div>
+                                                    @endif
                                                     @endif
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--photo">
@@ -2021,8 +2042,8 @@
                                             <div class="fs-field-tamil">ஆதார் எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-aadhaar-no">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="applicant-aadhaar-no">
+                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}" @unless($retCanEdit('aadhaar_doc')) readonly tabindex="-1" data-return-locked="1" @endunless>
                                             <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
                                             </div>
                                         </td>
@@ -2037,9 +2058,12 @@
                                                     <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
+                                                    @if($retCanEdit('aadhaar_doc'))
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
+                                                    @endif
                                                 </div>
                                             @endif
+                                            @if($retCanEdit('aadhaar_doc'))
                                             <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
                                                 <div class="form-s-file-upload-wrap" style="max-width:280px;">
                                                     <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
@@ -2047,6 +2071,7 @@
                                                 <span class="file-limit">File type: PDF (Max 250 KB)</span>
                                                 <small class="text-danger file-error d-block"></small>
                                             </div>
+                                            @endif
                                             <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
                                             </div>
                                         </td>
@@ -2059,8 +2084,8 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-pan-no">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('pan_doc') }}" data-return-section="applicant-pan-no">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}" @unless($retCanEdit('pan_doc')) readonly tabindex="-1" data-return-locked="1" @endunless>
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                             </div>
                                         </td>
@@ -2075,9 +2100,12 @@
                                                     <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
+                                                    @if($retCanEdit('pan_doc'))
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
+                                                    @endif
                                                 </div>
                                             @endif
+                                            @if($retCanEdit('pan_doc'))
                                             <div class="pan-doc-input {{ !empty($existingPanDoc) ? 'd-none' : '' }}">
                                                 <div class="form-s-file-upload-wrap" style="max-width:280px;">
                                                     <input autocomplete="off" class="form-control" id="pancard_doc" name="pancard_doc" type="file" accept=".pdf,application/pdf">
@@ -2085,6 +2113,7 @@
                                                 <span class="file-limit">File type: PDF (Max 250 KB)</span>
                                                 <small class="text-danger file-error d-block"></small>
                                             </div>
+                                            @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -2099,6 +2128,7 @@
                                             <div class="fs-return-upload-cell{{ $retLockClass('signature') }}" data-return-section="signature">
                                             <div class="fs-upload-card p-3">
                                                 <div class="fs-upload-controls">
+                                                    @if($retCanEdit('signature'))
                                                     <div id="sign-input-wrapper" style="{{ $hasSign ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
                                                             <input autocomplete="off" class="form-control" id="upload_sign" name="upload_sign" type="file" accept=".jpg,.jpeg,.png">
@@ -2112,6 +2142,7 @@
                                                                 <i class="fa fa-pencil"></i> Change Signature
                                                             </button>
                                                         </div>
+                                                    @endif
                                                     @endif
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--sign">
@@ -2279,6 +2310,33 @@
             var signUploadedState = document.getElementById('sign-uploaded-state');
             if (signUploadedState) signUploadedState.style.display = 'none';
         };
+    })();
+</script>
+<script>
+    (function () {
+        function lockReturnIdentityField(id) {
+            var el = document.getElementById(id);
+            if (!el || el.getAttribute('data-return-locked') !== '1') {
+                return;
+            }
+            var lockedVal = el.value;
+            function restore(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+                el.value = lockedVal;
+                return false;
+            }
+            ['keydown', 'keypress', 'keyup', 'input', 'beforeinput', 'paste', 'cut', 'drop'].forEach(function (evt) {
+                el.addEventListener(evt, restore, true);
+            });
+            el.addEventListener('focus', function () {
+                el.blur();
+            });
+        }
+        lockReturnIdentityField('aadhaar');
+        lockReturnIdentityField('pancard');
     })();
 </script>
 <script>

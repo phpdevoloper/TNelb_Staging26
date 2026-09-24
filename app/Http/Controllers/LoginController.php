@@ -195,8 +195,8 @@ class LoginController extends BaseController
             ->whereRaw("TRIM(COALESCE(ta.appl_type, '')) <> 'A'")
             ->select(
                 'c.certificate_no as license_number',
-                'c.valid_to as expires_at',
-                'c.dateof_issue as issued_at',
+                'c.valid_to',
+                DB::raw('COALESCE(c.valid_from, c.dateof_issue) as valid_from'),
                 'ta.application_id',
                 'ta.form_name',
                 DB::raw("{$licenseNameExpr} as license_name"),

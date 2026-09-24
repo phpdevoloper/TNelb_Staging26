@@ -3429,32 +3429,45 @@
                 }
             }
 
-            // Previous same-type certificate section
-            let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevFromId, prevExpiryId;
+            // Previous same-type certificate section.
+            // Apply forms use wireman_license_yes + previously_number(_h).
+            // Edit Form W/WH stores the same answer on yesOption + certificate_no (wcc_*).
+            const radioChecked = function (id) {
+                const el = document.getElementById(id);
+                return !!(el && el.checked);
+            };
+            const firstFilled = function () {
+                for (let i = 0; i < arguments.length; i++) {
+                    const raw = v(arguments[i]);
+                    if (raw && raw !== '0') return raw;
+                }
+                return '';
+            };
+            let prevTitle, prevTamil, prevYesValue, prevNo, prevIssue, prevFrom, prevExpiry;
             if (formCode === 'S') {
                 prevTitle = 'Do you already possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.';
                 prevTamil = 'இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக';
-                prevYesValue = !!((document.getElementById('previous_license_yes') || {}).checked);
-                prevNumId = 'previously_number';
-                prevIssueId = 'previously_issue_date';
-                prevFromId = 'previously_valid_from';
-                prevExpiryId = 'previously_valid_to';
+                prevNo = firstFilled('previously_number');
+                prevIssue = firstFilled('previously_issue_date');
+                prevFrom = firstFilled('previously_valid_from');
+                prevExpiry = firstFilled('previously_valid_to');
+                prevYesValue = radioChecked('previous_license_yes') || !!prevNo;
             } else if (formCode === 'W') {
-                prevTitle = 'Previous Wireman / Helper Certificate';
-                prevTamil = 'மின்கம்பியாளர் / உதவியாளர் தகுதி சான்றிதழ் விவரம்';
-                prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
-                prevNumId = 'previously_number';
-                prevIssueId = 'previously_issue_date';
-                prevFromId = 'previously_valid_from';
-                prevExpiryId = 'previously_valid_to';
+                prevTitle = 'Have you applied for and obtained a Certificate of Qualification for Wireman / Wireman Helper? If yes, please state its number and validity.';
+                prevTamil = 'இதற்கு முன்னாள் விண்ணப்பம் செய்து மின்கம்பியாளர் தகுதி சான்றிதழ் / மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் பெறப்பட்டுள்ளதா? ஆம் என்றால் அதன் எண் மற்றும் செல்லத்தக்க காலம் குறிப்பிடுக';
+                prevNo = firstFilled('previously_number', 'certificate_no');
+                prevIssue = firstFilled('previously_issue_date', 'certificate_issue_date');
+                prevFrom = firstFilled('certificate_valid_from', 'previously_valid_from');
+                prevExpiry = firstFilled('previously_date', 'certificate_valid_to', 'certificate_date');
+                prevYesValue = radioChecked('wireman_license_yes') || radioChecked('yesOption') || !!prevNo;
             } else {
-                prevTitle = 'Previous Wireman Helper Certificate';
-                prevTamil = 'மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் விவரம்';
-                prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
-                prevNumId = 'previously_number_h';
-                prevIssueId = 'previously_issue_date_h';
-                prevFromId = 'previously_valid_from_h';
-                prevExpiryId = 'previously_date_h';
+                prevTitle = 'Have you applied for and obtained a Certificate of Qualification for Wireman Helper? If yes, please state its number and validity.';
+                prevTamil = 'இதற்கு முன்னாள் விண்ணப்பம் செய்து மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் பெறப்பட்டுள்ளதா? ஆம் என்றால் அதன் எண் மற்றும் செல்லத்தக்க காலம் குறிப்பிடுக';
+                prevNo = firstFilled('previously_number_h', 'certificate_no');
+                prevIssue = firstFilled('previously_issue_date_h', 'certificate_issue_date');
+                prevFrom = firstFilled('certificate_valid_from', 'previously_valid_from_h');
+                prevExpiry = firstFilled('previously_date_h', 'certificate_valid_to', 'certificate_date');
+                prevYesValue = radioChecked('wireman_license_yes') || radioChecked('yesOption') || !!prevNo;
             }
             const prevTitleEl = document.getElementById('prvSwSecPrevTitle');
             if (prevTitleEl) prevTitleEl.textContent = prevTitle;
@@ -3469,10 +3482,10 @@
             const prevBlockEl = document.getElementById('prvSwPrevBlock');
             if (prevBlockEl) prevBlockEl.style.display = prevYesValue ? '' : 'none';
             if (prevYesValue) {
-                setField('prvSwPrevNo', v(prevNumId));
-                setField('prvSwPrevIssueDate', fmtDate(v(prevIssueId)));
-                setField('prvSwPrevFromDate', fmtDate(v(prevFromId)));
-                setField('prvSwPrevExpiryDate', fmtDate(v(prevExpiryId)));
+                setField('prvSwPrevNo', prevNo);
+                setField('prvSwPrevIssueDate', fmtDate(prevIssue));
+                setField('prvSwPrevFromDate', fmtDate(prevFrom));
+                setField('prvSwPrevExpiryDate', fmtDate(prevExpiry));
             } else {
                 setField('prvSwPrevNo', '');
                 setField('prvSwPrevIssueDate', '');

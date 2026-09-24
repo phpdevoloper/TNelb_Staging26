@@ -1638,8 +1638,8 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Supervisor Competency Certificate - New</h5>
-                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதியது</h5>
+                    <h5>Application for Supervisor Competency Certificate - New Application</h5>
+                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதிய விண்ணப்பம்</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
                 <div class="instructions-link">

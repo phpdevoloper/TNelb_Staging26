@@ -1444,7 +1444,11 @@
 
                                             @if (in_array($applicant->form_name, ['WH']))
                                                 @php
-                                                    $hasWiremanBoardCert = !empty($applicant->certificate_no) && !empty($applicant->certificate_date);
+                                                    $whCertNo = $applicant->wcc_no ?? $applicant->certificate_no ?? null;
+                                                    $whCertIssue = $applicant->wcc_issue_date ?? $applicant->certificate_issue_date ?? null;
+                                                    $whCertFrom = $applicant->wcc_from ?? $applicant->certificate_valid_from ?? null;
+                                                    $whCertTo = $applicant->wcc_to ?? $applicant->certificate_valid_to ?? $applicant->certificate_date ?? null;
+                                                    $hasWiremanBoardCert = !empty($whCertNo) && !empty($whCertTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -1463,25 +1467,25 @@
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">License Number</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
+                                                                    class="asp-detail-value">{{ $whCertNo ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($whCertIssue) ? format_date($whCertIssue) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of Expiry</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ format_date($applicant->certificate_date) }}</span>
+                                                                    class="asp-detail-value">{{ !empty($whCertTo) ? format_date($whCertTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->certificate_no }}"
-                                                                data-license_from_date="{{ $applicant->certificate_valid_from }}"
-                                                                data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}"
-                                                                data-license_issue_date="{{ $applicant->certificate_issue_date }}"
+                                                                data-license_number="{{ $whCertNo }}"
+                                                                data-license_from_date="{{ $whCertFrom }}"
+                                                                data-license_date="{{ $whCertTo }}"
+                                                                data-license_issue_date="{{ $whCertIssue }}"
                                                                 data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
@@ -1489,7 +1493,11 @@
                                             @endif
                                             @if (in_array($applicant->form_name, ['W']))
                                                 @php
-                                                    $hasWiremanBoardCert = !empty($applicant->certificate_no) && !empty($applicant->certificate_date);
+                                                    $wCertNo = $applicant->wcc_no ?? $applicant->certificate_no ?? null;
+                                                    $wCertIssue = $applicant->wcc_issue_date ?? $applicant->certificate_issue_date ?? null;
+                                                    $wCertFrom = $applicant->wcc_from ?? $applicant->certificate_valid_from ?? null;
+                                                    $wCertTo = $applicant->wcc_to ?? $applicant->certificate_valid_to ?? $applicant->certificate_date ?? null;
+                                                    $hasWiremanBoardCert = !empty($wCertNo) && !empty($wCertTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -1508,25 +1516,25 @@
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">License Number</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
+                                                                    class="asp-detail-value">{{ $wCertNo ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($wCertIssue) ? format_date($wCertIssue) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of Expiry</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ format_date($applicant->certificate_date) }}</span>
+                                                                    class="asp-detail-value">{{ !empty($wCertTo) ? format_date($wCertTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->certificate_no }}"
-                                                                data-license_from_date="{{ $applicant->certificate_valid_from }}"
-                                                                data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}"
-                                                                data-license_issue_date="{{ $applicant->certificate_issue_date }}"
+                                                                data-license_number="{{ $wCertNo }}"
+                                                                data-license_from_date="{{ $wCertFrom }}"
+                                                                data-license_date="{{ $wCertTo }}"
+                                                                data-license_issue_date="{{ $wCertIssue }}"
                                                                 data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
@@ -1960,8 +1968,13 @@
                             </div>
                             <div class="form-check mb-2">
                                 <input class="form-check-input return-to-applicant-query" type="checkbox"
-                                    name="return_applicant_query[]" id="query_other" value="Other">
-                                <label class="form-check-label" for="query_other">Other</label>
+                                    name="return_applicant_query[]" id="query_work_exp" value="Work Experience">
+                                <label class="form-check-label" for="query_work_exp">Work Experience</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input return-to-applicant-query" type="checkbox"
+                                    name="return_applicant_query[]" id="query_personal" value="Personal Details">
+                                <label class="form-check-label" for="query_personal">Personal Details</label>
                             </div>
                         </div>
                         <div class="form-group mt-3">

@@ -529,15 +529,20 @@
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Date of Expiry <span class="req">*</span></div>
+                                        <div class="fs-field-label">From date <span class="req">*</span></div>
+                                        <input autocomplete="off" class="form-control verify-valid-from" id="certificate_valid_from" name="certificate_valid_from" type="date" data-error="#certFromDateError" value="">
+                                        <span id="certFromDateError" class="text-danger" style="font-size:.78rem;"></span>
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <div class="fs-field-label">To date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-date" id="previously_date_h" name="certificate_date" type="date" data-error="#dateError" value="{{ $oldExpiry }}">
                                         <span id="dateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
-                                    <div class="col-12 col-md-2">
+                                    {{-- <div class="col-12 col-md-2">
                                         <button type="button" class="btn-verify verify-btn" id="verify_form_wh" data-type="helper" data-url="{{ route('verifylicense') }}">
                                             <i class="fa fa-check-circle"></i> Verify
                                         </button>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>
                         </div>

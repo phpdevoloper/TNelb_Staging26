@@ -2408,24 +2408,36 @@ class FormController extends BaseController
             return CalendarDate::ymd($v);
         };
 
-        $request->merge([
-            'applicant_name' => $existingForm->applicant_name,
-            'fathers_name' => $existingForm->fathers_name,
-            'applicant_email' => $existingForm->applicant_email,
-            'applicants_address' => $existingForm->applicant_address,
-            'd_o_b' => $fmtDate($existingForm->d_o_b) ?? '',
-            'age' => $existingForm->age,
-            'previously_number' => $existingForm->previous_scc_no,
-            'previously_valid_to' => $fmtDate($existingForm->scc_to_date ?? null),
-            'previously_issue_date' => $fmtDate($existingForm->first_issue_date),
-            'previously_valid_from' => $fmtDate($existingForm->scc_from_date ?? null),
-            'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
-            'pancard' => $panPlain !== null && $panPlain !== '' ? strtoupper(preg_replace('/\s+/', '', (string) $panPlain)) : null,
-            'competency_certificate_no' => $existingForm->wcc_no,
-            'certificate_valid_to' => $fmtDate($existingForm->wcc_to ?? null),
-            'certificate_issue_date' => $fmtDate($existingForm->wcc_issue_date),
-            'certificate_valid_from' => $fmtDate($existingForm->wcc_from ?? null),
-        ]);
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_APPLICANT])) {
+            $request->merge([
+                'applicant_name' => $existingForm->applicant_name,
+                'fathers_name' => $existingForm->fathers_name,
+                'applicant_email' => $existingForm->applicant_email,
+                'applicants_address' => $existingForm->applicant_address,
+                'd_o_b' => $fmtDate($existingForm->d_o_b) ?? '',
+                'age' => $existingForm->age,
+                'previously_number' => $existingForm->previous_scc_no,
+                'previously_valid_to' => $fmtDate($existingForm->scc_to_date ?? null),
+                'previously_issue_date' => $fmtDate($existingForm->first_issue_date),
+                'previously_valid_from' => $fmtDate($existingForm->scc_from_date ?? null),
+                'competency_certificate_no' => $existingForm->wcc_no,
+                'certificate_valid_to' => $fmtDate($existingForm->wcc_to ?? null),
+                'certificate_issue_date' => $fmtDate($existingForm->wcc_issue_date),
+                'certificate_valid_from' => $fmtDate($existingForm->wcc_from ?? null),
+            ]);
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_AADHAAR_DOC])) {
+            $request->merge([
+                'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
+            ]);
+        }
+
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_PAN_DOC])) {
+            $request->merge([
+                'pancard' => $panPlain !== null && $panPlain !== '' ? strtoupper(preg_replace('/\s+/', '', (string) $panPlain)) : null,
+            ]);
+        }
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_EDUCATION])) {
             $request->files->remove('education_document');
@@ -2717,28 +2729,26 @@ class FormController extends BaseController
 
     private function enrichCcMetaProofFieldsForEdit(object $applicationDetails, string $masterApplicationId): object
     {
-        $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
-            ->whereIn('proof_type', ['aadhaar', 'pan'])
-            ->get();
+        $proofService = app(FormSProofDocumentService::class);
+        $startId = trim((string) ($applicationDetails->application_id ?? $masterApplicationId));
 
-        foreach ($proofRows as $proof) {
-            $proofType = strtolower((string) ($proof->proof_type ?? ''));
-            if ($proofType === 'aadhaar') {
-                if (! empty($proof->proof_no)) {
-                    $applicationDetails->aadhaar = $proof->proof_no;
-                }
-                if (! empty($proof->proof_doc)) {
-                    $applicationDetails->aadhaar_doc = $proof->proof_doc;
-                }
-            } elseif ($proofType === 'pan') {
-                if (! empty($proof->proof_no)) {
-                    $applicationDetails->pancard = $proof->proof_no;
-                }
-                if (! empty($proof->proof_doc)) {
-                    $applicationDetails->pan_doc = $proof->proof_doc;
-                    $applicationDetails->pancard_doc = $proof->proof_doc;
-                }
-            }
+        $aadhaarNo = $proofService->loadIdentityProofNumberForView($startId, FormSProofDocumentService::PROOF_AADHAAR);
+        $aadhaarDoc = $proofService->loadIdentityDocumentPathForView($startId, FormSProofDocumentService::PROOF_AADHAAR);
+        $panNo = $proofService->loadIdentityProofNumberForView($startId, FormSProofDocumentService::PROOF_PAN);
+        $panDoc = $proofService->loadIdentityDocumentPathForView($startId, FormSProofDocumentService::PROOF_PAN);
+
+        if ($aadhaarNo) {
+            $applicationDetails->aadhaar = $aadhaarNo;
+        }
+        if ($aadhaarDoc) {
+            $applicationDetails->aadhaar_doc = $aadhaarDoc;
+        }
+        if ($panNo) {
+            $applicationDetails->pancard = $panNo;
+        }
+        if ($panDoc) {
+            $applicationDetails->pan_doc = $panDoc;
+            $applicationDetails->pancard_doc = $panDoc;
         }
 
         return $applicationDetails;
@@ -3034,6 +3044,44 @@ class FormController extends BaseController
         return view('user_login.application-preview', $viewData);
     }
 
+    public function previewApplicationProof(string $application_id, string $type)
+    {
+        if (! Auth::check()) {
+            return redirect()->route('logout');
+        }
+
+        $type = strtolower(trim($type));
+        if (! in_array($type, ['aadhaar', 'pan'], true)) {
+            abort(400, 'Invalid document type.');
+        }
+
+        $application_id = trim($application_id);
+        $ccBundle = $this->loadCompetencyEditBundle($application_id);
+        $applicationDetails = $ccBundle['application_details'] ?? null;
+        if (! $applicationDetails) {
+            abort(404, 'Application not found.');
+        }
+
+        $loginId = Auth::user()->login_id ?? session('login_id');
+        if (! $loginId || (string) ($applicationDetails->login_id ?? '') !== (string) $loginId) {
+            abort(403, 'You can only view your own application.');
+        }
+
+        $proofName = $type === 'pan'
+            ? FormSProofDocumentService::PROOF_PAN
+            : FormSProofDocumentService::PROOF_AADHAAR;
+        $path = app(FormSProofDocumentService::class)
+            ->loadIdentityDocumentPathForView($application_id, $proofName);
+
+        if (! $path) {
+            $path = $type === 'pan'
+                ? ($applicationDetails->pan_doc ?? $applicationDetails->pancard_doc ?? null)
+                : ($applicationDetails->aadhaar_doc ?? null);
+        }
+
+        return $this->streamIdentityProofFile($type, (string) $path);
+    }
+
     /**
      * Testing: full application process timeline from first create in this system.
      */
@@ -3235,6 +3283,7 @@ class FormController extends BaseController
 
 
         $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
+        $isFormP = FormPSchema::isFormP($request->form_name ?? '');
         $educationLevelRule = ($request->form_name === 'S')
             ? 'required|string|in:DEE,BEE,MEE,AMIE|max:50'
             : 'required|string|max:50';
@@ -5499,15 +5548,22 @@ public function update(Request $request, $id)
         }
     }
 
-    public function showEncryptedDocument($type, $filename)
+    public function showEncryptedDocument(Request $request, $type, $filename = null)
+    {
+        $filename = $filename ?: $request->query('file');
+
+        return $this->streamIdentityProofFile((string) $type, (string) $filename);
+    }
+
+    private function streamIdentityProofFile(string $type, string $filename)
     {
         $allowedTypes = ['aadhaar', 'pan'];
 
-        if (! in_array((string) $type, $allowedTypes, true)) {
+        if (! in_array($type, $allowedTypes, true)) {
             abort(400, 'Invalid document type.');
         }
 
-        $filename = trim(str_replace('\\', '/', rawurldecode((string) $filename)));
+        $filename = trim(str_replace('\\', '/', rawurldecode($filename)));
         if ($filename === '' || str_contains($filename, '..')) {
             abort(404, 'File not found.');
         }
@@ -5533,6 +5589,11 @@ public function update(Request $request, $id)
             $legacyPath = storage_path('app/private_documents/' . basename((string) $relative));
             if (is_file($legacyPath)) {
                 return $this->streamLegacyEncryptedProof($legacyPath, basename((string) $relative));
+            }
+
+            $publicPath = public_path(ltrim((string) $relative, '/'));
+            if (is_file($publicPath)) {
+                return response()->file($publicPath);
             }
         }
 

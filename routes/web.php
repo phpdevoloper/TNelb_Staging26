@@ -257,13 +257,16 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/editApplication/{application_id}', [FormController::class, 'editApplication'])->name('edit-application');
     Route::get('/application-preview/{application_id}', [FormController::class, 'previewApplication'])->name('dashboard.application.preview');
+    Route::get('/application-preview/{application_id}/proof/{type}', [FormController::class, 'previewApplicationProof'])
+        ->where('type', 'aadhaar|pan')
+        ->name('dashboard.application.proof');
     Route::get('/application-timeline/{application_id}', [FormController::class, 'previewApplicationTimeline'])->name('dashboard.application.timeline');
 
     Route::get('/edit_application/{application_id}', [FormController::class, 'edit_application'])->name('edit_application');
     Route::get('/edit_returned_application/{application_id}', [FormController::class, 'editReturnedApplication'])->name('edit_returned_application');
     Route::get('/cc_renew_form/{application_id}', [RegisterController::class, 'cc_renew_form'])->name('cc_renew_form');
     Route::get('/renew-form_ea/{application_id}', [EA_RenewalController::class, 'renew_form_ea'])->name('renew-form_ea');
-    Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])
+    Route::get('/document/{type}/{filename?}', [FormController::class, 'showEncryptedDocument'])
         ->where('filename', '.+')
         ->name('document.show');
     Route::post('/delete_education', [FormController::class, 'delete_education'])->name('delete_education');

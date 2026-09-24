@@ -320,14 +320,14 @@
                       
                         <a href="{{ route('generateformP.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">Download</span>
+                            <span style="font-size: x-small;">Receipt</span>
                         </a>
                     @else
                      
 
                         <a href="{{ route('generate.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">Download</span>
+                            <span style="font-size: x-small;">Receipt</span>
                         </a>
                     @endif
                 @endif
