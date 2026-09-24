@@ -192,6 +192,26 @@
         box-shadow: inset 3px 0 0 #f59e0b;
     }
 
+    .applicant-supervisor-page .wx-renew-badge,
+    .applicant-supervisor-page .asp-renew-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.1rem 0.45rem;
+        border-radius: 4px;
+        background: #ccfbf1;
+        color: #0f766e;
+        border: 1px solid #14b8a6;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        vertical-align: middle;
+    }
+
+    .applicant-supervisor-page .wx-renewal-new-row>td {
+        background: #f0fdfa !important;
+        box-shadow: inset 3px 0 0 #14b8a6;
+    }
+
     /* ---------- Personal details mini-table ---------- */
     .applicant-supervisor-page .home-tab-pane .table-sm tbody td {
         padding: 0.45rem 0.5rem;
@@ -1032,8 +1052,11 @@
                                         @php
                                             $isAlterationApp = ($applicant->appl_type ?? '') === 'A';
                                             $parentForAlter = $parentApplicantForAlter ?? null;
-                                            $nameAltered = $isAlterationApp && $parentForAlter
-                                                && trim((string) ($applicant->applicant_name ?? '')) !== trim((string) ($parentForAlter->applicant_name ?? $parentForAlter->applicants_name ?? ''));
+                                            $previousApplicantName = $parentForAlter
+                                                ? trim((string) ($parentForAlter->applicant_name ?? $parentForAlter->applicants_name ?? ''))
+                                                : '';
+                                            $nameAltered = $isAlterationApp && $previousApplicantName !== ''
+                                                && trim((string) ($applicant->applicant_name ?? '')) !== $previousApplicantName;
                                             $hasAlteredWork = $isAlterationApp && ($workExperience ?? collect())->contains(function ($row) {
                                                 return !empty($row->is_alteration_new);
                                             });
@@ -1056,8 +1079,10 @@
                                             };
                                             $nameProofUrl = $resolveAlterProofUrl($nameProofDoc);
                                             $addressProofUrl = $resolveAlterProofUrl($addressProofDoc);
-                                            $parentAddressValue = trim((string) ($parentForAlter->applicants_address ?? $parentForAlter->applicant_address ?? ''));
-                                            $addressAltered = $isAlterationApp && $parentForAlter
+                                            $parentAddressValue = $parentForAlter
+                                                ? trim((string) ($parentForAlter->applicants_address ?? $parentForAlter->applicant_address ?? ''))
+                                                : '';
+                                            $addressAltered = $isAlterationApp && $parentAddressValue !== ''
                                                 && trim((string) ($applicant->applicants_address ?? $applicant->applicant_address ?? '')) !== $parentAddressValue;
                                         @endphp
                                         @if($isAlterationApp && ($nameAltered || $addressAltered || $hasAlteredWork || $hasAlterationProofs))
@@ -1065,14 +1090,14 @@
                                                 <strong>Altered in this request</strong>
                                                 <ul class="mb-0">
                                                     @if($nameAltered)
-                                                        <li>Applicant name <span class="asp-alter-badge">ALTER</span></li>
+                                                        <li>Applicant name <span class="asp-alter-badge">ALTERED</span></li>
                                                     @endif
                                                     @if($addressAltered)
-                                                        <li>Address <span class="asp-alter-badge">ALTER</span></li>
+                                                        <li>Address <span class="asp-alter-badge">ALTERED</span></li>
                                                     @endif
                                                     @if($hasAlteredWork)
-                                                        <li>Work experience or board member details — see sections marked <span
-                                                                class="asp-alter-badge">ALTER</span> below</li>
+                                                        <li>Work experience — see sections marked <span
+                                                                class="asp-alter-badge">ALTERED</span> below</li>
                                                     @endif
                                                     @if($hasAlterationProofs)
                                                         <li>Supporting documents uploaded for name/address change</li>
@@ -1098,9 +1123,9 @@
                                                                         {{ $applicant->applicant_name }}
                                                                         @if($nameAltered)
                                                                             <span class="asp-alter-badge ms-1">ALTER</span>
-                                                                            @if($parentForAlter && trim((string) ($parentForAlter->applicant_name ?? '')) !== '')
+                                                                            @if($previousApplicantName !== '')
                                                                                 <div class="text-muted small mt-1">Previously:
-                                                                                    {{ $parentForAlter->applicant_name }}
+                                                                                    {{ $previousApplicantName }}
                                                                                 </div>
                                                                             @endif
                                                                             @if(!empty($nameProofUrl))
@@ -1140,7 +1165,7 @@
                                                                         {{ $applicant->applicants_address }}
                                                                         @if($addressAltered)
                                                                             <span class="asp-alter-badge ms-1">ALTER</span>
-                                                                            @if($parentForAlter && $parentAddressValue !== '')
+                                                                            @if($parentAddressValue !== '')
                                                                                 <div class="text-muted small mt-1">Previously:
                                                                                     {{ $parentAddressValue }}
                                                                                 </div>
@@ -1353,12 +1378,6 @@
                                             @if (in_array(($applicant->form_name ?? ''), ['S', 'W'], true))
                                                 @php $isFormS = (($applicant->form_name ?? '') === 'S'); @endphp
                                                 <h6 class="asp-section-title">Work Experience</h6>
-                                                @if($applicant->appl_type == 'A')
-                                                    <p class="text-muted small mb-2">Existing experience from the parent
-                                                        certificate is shown below. Rows marked <span
-                                                            class="asp-alter-badge">ALTER</span> were added or changed in this
-                                                        alteration request.</p>
-                                                @endif
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
                                                 @else

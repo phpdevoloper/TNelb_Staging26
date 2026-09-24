@@ -730,8 +730,6 @@ $(document).ready(function () {
 
     let ownershipType = $("#ownership_type_select").val();
 
-    console.log("Saved Ownership Type:", ownershipType);
-
     // Hide all sections first
     $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section").hide();
 

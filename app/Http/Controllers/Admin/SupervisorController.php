@@ -17,11 +17,19 @@ use App\Models\CC_Forms_cert;
 use App\Models\CC_Forms_Meta;
 use App\Models\Cl_Checklist_applicant;
 use App\Models\EA_Application_model;
+use App\Models\TnelbApplicantPhoto;
+use App\Models\TnelbApplicantsSign;
+use App\Models\TnelbAppsInstitute;
 use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyCertificateService;
+use App\Services\Competency\CompetencyDocumentReviewService;
+use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\CompetencyWorkflowService;
+use App\Services\Competency\FormPSchema;
+use App\Services\FormS\FormSProofDocumentService;
+use Illuminate\Support\Facades\Schema;
 
 
 use Carbon\Carbon;
@@ -915,6 +923,184 @@ class SupervisorController extends Controller
         });
 
         return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal') + ['is_completed_list' => true]);
+    }
+
+    public function applicationDetailsModal(Request $request)
+    {
+        $applicationId = trim((string) $request->query('application_id', ''));
+        if ($applicationId === '') {
+            return response('<p class="text-danger mb-0">Application id is required.</p>', 400);
+        }
+
+        $applicant = app(CompetencyApplicationService::class)->findApplicantWithPayment($applicationId);
+        if (! $applicant) {
+            return response('<p class="text-danger mb-0">Application details were not found.</p>', 404);
+        }
+
+        $formName = strtoupper(trim((string) ($applicant->form_name ?? '')));
+        if (str_starts_with($formName, 'FORM ')) {
+            $formName = trim(substr($formName, 5));
+        }
+        $isFormP = $formName === 'P';
+
+        $educationalQualifications = collect();
+        $workExperience = collect();
+        $uploadedPhoto = null;
+        $uploadedSign = null;
+        $alterationProofs = collect();
+        $parentApplicantForAlter = null;
+        $instituteDetails = collect();
+
+        if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
+            $workflowApp = CC_Forms_Meta::findByApplicationId($applicationId, $formName)
+                ?: CC_Forms_Meta::findByApplicationId($applicationId);
+            if ($workflowApp) {
+                $reviewContext = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($workflowApp);
+                $educationalQualifications = $reviewContext['educationalQualifications'] ?? collect();
+                $workExperience = $reviewContext['workExperience'] ?? collect();
+                $uploadedPhoto = $reviewContext['uploadedPhoto'] ?? null;
+                $uploadedSign = $reviewContext['uploadedSign'] ?? null;
+                $alterationProofs = $reviewContext['alterationProofs'] ?? collect();
+                $parentApp = $reviewContext['parentApplication'] ?? null;
+                if (($applicant->appl_type ?? '') === 'A') {
+                    $parentApplicantForAlter = $parentApp;
+                    if ($parentApplicantForAlter) {
+                        $parentApplicantForAlter->applicants_address = $parentApplicantForAlter->applicants_address
+                            ?? $parentApplicantForAlter->applicant_address
+                            ?? null;
+                        $parentApplicantForAlter->applicant_name = $parentApplicantForAlter->applicant_name
+                            ?? $parentApplicantForAlter->applicants_name
+                            ?? null;
+                    }
+                }
+            }
+        }
+
+        if ($isFormP) {
+            $formPRelated = $this->loadFormPModalRelated($applicationId, $applicant);
+            if ($educationalQualifications->isEmpty()) {
+                $educationalQualifications = $formPRelated['edu'];
+            }
+            if ($workExperience->isEmpty()) {
+                $workExperience = $formPRelated['exp'];
+            }
+            $uploadedPhoto = $uploadedPhoto ?: $formPRelated['photo'];
+            $uploadedSign = $uploadedSign ?: $formPRelated['sign'];
+            $instituteDetails = $formPRelated['institutes'];
+            $applicant = $formPRelated['applicant'];
+        }
+
+        return view('admin.supervisor.partials.application_details_modal_body', [
+            'applicant' => $applicant,
+            'educationalQualifications' => $educationalQualifications,
+            'workExperience' => $workExperience,
+            'uploadedPhoto' => $uploadedPhoto,
+            'uploadedSign' => $uploadedSign,
+            'alterationProofs' => $alterationProofs,
+            'parentApplicantForAlter' => $parentApplicantForAlter,
+            'instituteDetails' => $instituteDetails,
+            'isFormP' => $isFormP,
+        ]);
+    }
+
+    private function loadFormPModalRelated(string $applicantId, object $applicant): array
+    {
+        $fromCc = Schema::hasTable(FormPSchema::META_TABLE)
+            && DB::table(FormPSchema::META_TABLE)->where('application_id', $applicantId)->exists();
+
+        $edu = collect();
+        $exp = collect();
+        $photo = null;
+        $sign = null;
+
+        if ($fromCc) {
+            $edu = Schema::hasTable('cc_edu')
+                ? DB::table('cc_edu')->where('application_id', $applicantId)->get()
+                : collect();
+            $exp = Schema::hasTable('cc_exp')
+                ? DB::table('cc_exp')->where('application_id', $applicantId)->get()
+                : collect();
+            $proofService = app(FormSProofDocumentService::class);
+            $photo = $proofService->loadPhotoForView($applicantId);
+            $sign = $proofService->loadSignForView($applicantId);
+            $documents = Schema::hasTable('cc_proof_doc')
+                ? DB::table('cc_proof_doc')->where('application_id', $applicantId)->get()
+                : collect();
+            foreach ($documents as $proof) {
+                $proofType = strtolower((string) ($proof->proof_type ?? ''));
+                $proofName = strtoupper((string) ($proof->proof_name ?? ''));
+                if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
+                    if (! empty($proof->proof_no) && empty($applicant->aadhaar)) {
+                        $applicant->aadhaar = $proof->proof_no;
+                    }
+                    if (! empty($proof->proof_doc)) {
+                        $applicant->aadhaar_doc = $proof->proof_doc;
+                    }
+                } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
+                    if (! empty($proof->proof_no) && empty($applicant->pancard)) {
+                        $applicant->pancard = $proof->proof_no;
+                    }
+                    if (! empty($proof->proof_doc)) {
+                        $applicant->pan_doc = $proof->proof_doc;
+                        $applicant->pancard_doc = $proof->proof_doc;
+                    }
+                }
+            }
+        } else {
+            $edu = Schema::hasTable('tnelb_applicants_edu')
+                ? DB::table('tnelb_applicants_edu')->where('application_id', $applicantId)->get()
+                : collect();
+            $exp = Schema::hasTable('tnelb_applicants_exp')
+                ? DB::table('tnelb_applicants_exp')->where('application_id', $applicantId)->get()
+                : collect();
+            $photo = class_exists(TnelbApplicantPhoto::class)
+                ? TnelbApplicantPhoto::where('application_id', $applicantId)->first()
+                : null;
+            $sign = class_exists(TnelbApplicantsSign::class)
+                ? TnelbApplicantsSign::where('application_id', $applicantId)->first()
+                : null;
+        }
+
+        $edu = $edu->map(function ($row) {
+            if (is_object($row) && empty($row->id) && ! empty($row->edu_id)) {
+                $row->id = $row->edu_id;
+            }
+
+            return $row;
+        });
+        $exp = $exp->map(function ($row) {
+            if (! is_object($row)) {
+                return $row;
+            }
+            if (empty($row->id) && ! empty($row->exp_id)) {
+                $row->id = $row->exp_id;
+            }
+            if (empty($row->upload_document) && ! empty($row->support_document)) {
+                $row->upload_document = $row->support_document;
+            }
+            if (empty($row->company_name) && ! empty($row->org_name)) {
+                $row->company_name = $row->org_name;
+            }
+
+            return $row;
+        });
+
+        $institutes = (class_exists(TnelbAppsInstitute::class) && Schema::hasTable('tnelb_applicant_institute'))
+            ? TnelbAppsInstitute::where('application_id', $applicantId)
+                ->where(function ($q) {
+                    $q->where('institute_status', 1)->orWhereNull('institute_status');
+                })
+                ->get()
+            : collect();
+
+        return [
+            'applicant' => $applicant,
+            'edu' => $edu,
+            'exp' => $exp,
+            'photo' => $photo,
+            'sign' => $sign,
+            'institutes' => $institutes,
+        ];
     }
 
     public function view_auditor()
