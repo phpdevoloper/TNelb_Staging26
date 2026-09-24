@@ -138,31 +138,32 @@ class CompetencyDocumentReviewService
             ->map(fn (CC_Experience $row) => $enrichExperienceDocument($row, false));
 
         $workExperience = $parentExperience;
-        $isChildExperienceParent = $this->workflowService->isAlterationApplication($application)
-            || $this->workflowService->isRenewalApplication($application);
+        $isAlterationApp = $this->workflowService->isAlterationApplication($application);
+        $isRenewalApp = $this->workflowService->isRenewalApplication($application);
+        $isChildExperienceParent = $isAlterationApp || $isRenewalApp;
         if ($childId !== $masterId && $isChildExperienceParent) {
             $childExperience = CC_Experience::where('application_id', $childId)
                 ->orderBy('exp_id')
                 ->get();
 
             if ($childExperience->isNotEmpty()) {
-                $parentKeys = $parentExperience->map(function (CC_Experience $row) {
-                    return strtolower(trim((string) ($row->org_name ?? '')) . '|'
-                        . trim((string) ($row->designation ?? '')) . '|'
-                        . trim((string) ($row->from_date ?? '')) . '|'
-                        . trim((string) ($row->to_date ?? '')));
-                })->flip();
+                $parentKeys = $parentExperience->map(fn (CC_Experience $row) => $this->experienceIdentityKey($row))->flip();
 
-                $workExperience = $childExperience->map(function (CC_Experience $row) use ($enrichExperienceDocument, $parentKeys) {
-                    $key = strtolower(trim((string) ($row->org_name ?? '')) . '|'
-                        . trim((string) ($row->designation ?? '')) . '|'
-                        . trim((string) ($row->from_date ?? '')) . '|'
-                        . trim((string) ($row->to_date ?? '')));
+                $enrichedChild = $childExperience->map(function (CC_Experience $row) use ($enrichExperienceDocument, $parentKeys, $isAlterationApp, $isRenewalApp) {
+                    $key = $this->experienceIdentityKey($row);
                     $isNew = $key === '|||' || ! $parentKeys->has($key);
-                    $row->setAttribute('is_alteration_new', $isNew);
+                    $row->setAttribute('is_alteration_new', $isAlterationApp && $isNew);
+                    $row->setAttribute('is_renewal_new', $isRenewalApp && $isNew);
 
                     return $enrichExperienceDocument($row, $isNew);
-                })->values();
+                });
+
+                $workExperience = $this->orderChildExperienceByParent(
+                    $parentExperience,
+                    $enrichedChild,
+                    $isAlterationApp,
+                    $isRenewalApp
+                );
             }
         }
 
@@ -528,5 +529,78 @@ class CompetencyDocumentReviewService
         }
 
         return $this->legacyMediaFileExists($storedPath);
+    }
+
+    protected function experienceIdentityKey(object $row): string
+    {
+        return strtolower(trim((string) ($row->org_name ?? '')) . '|'
+            . trim((string) ($row->designation ?? '')) . '|'
+            . trim((string) ($row->from_date ?? '')) . '|'
+            . trim((string) ($row->to_date ?? '')));
+    }
+
+    /**
+     * Child alteration rows are inserted as: edited till-date first, then remaining
+     * parent copies, then brand-new rows. Staff review must show parent-certificate
+     * order, with unmatched new rows after.
+     *
+     * @param  Collection<int, CC_Experience>  $parentExperience
+     * @param  Collection<int, CC_Experience>  $childExperience
+     * @return Collection<int, CC_Experience>
+     */
+    protected function orderChildExperienceByParent(
+        Collection $parentExperience,
+        Collection $childExperience,
+        bool $markAlteration = false,
+        bool $markRenewal = false
+    ): Collection
+    {
+        $snapshot = app(FormSChildDocumentSnapshotService::class);
+        $remaining = $childExperience->values();
+        $ordered = collect();
+
+        foreach ($parentExperience as $parentRow) {
+            $parentExpId = (int) ($parentRow->exp_id ?? 0);
+            $parentKey = $this->experienceIdentityKey($parentRow);
+            $parentFrom = strtolower(trim((string) ($parentRow->org_name ?? '')) . '|'
+                . trim((string) ($parentRow->designation ?? '')) . '|'
+                . trim((string) ($parentRow->from_date ?? '')));
+
+            $matchIndex = $remaining->search(function (CC_Experience $child) use ($snapshot, $parentExpId, $parentKey, $parentFrom) {
+                $sourceId = $snapshot->decodeCopiedExperienceSourceId((string) ($child->board_meeting_details ?? ''));
+                if ($parentExpId > 0 && $sourceId === $parentExpId) {
+                    return true;
+                }
+                if ($this->experienceIdentityKey($child) === $parentKey) {
+                    return true;
+                }
+
+                $childFrom = strtolower(trim((string) ($child->org_name ?? '')) . '|'
+                    . trim((string) ($child->designation ?? '')) . '|'
+                    . trim((string) ($child->from_date ?? '')));
+
+                return $parentFrom !== '||' && $childFrom === $parentFrom;
+            });
+
+            if ($matchIndex !== false) {
+                $ordered->push($remaining->get($matchIndex));
+                $remaining->forget($matchIndex);
+                $remaining = $remaining->values();
+            } else {
+                $ordered->push($parentRow);
+            }
+        }
+
+        foreach ($remaining as $child) {
+            if ($markAlteration) {
+                $child->setAttribute('is_alteration_new', true);
+            }
+            if ($markRenewal) {
+                $child->setAttribute('is_renewal_new', true);
+            }
+            $ordered->push($child);
+        }
+
+        return $ordered->values();
     }
 }

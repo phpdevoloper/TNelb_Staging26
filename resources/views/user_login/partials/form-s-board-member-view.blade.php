@@ -16,6 +16,7 @@
         @foreach($boardMemberRows as $expRow)
             @php
                 $isAltered = !empty($expRow->is_alteration_new);
+                $isRenewalNew = !empty($expRow->is_renewal_new);
                 $meetingDetails = trim((string) ($expRow->board_meeting_details ?? ''));
                 $meetingDate = $expRow->board_meeting_date ?? null;
                 $supportDoc = (string) ($expRow->support_document ?? $expRow->upload_document ?? '');
@@ -46,7 +47,11 @@
             <div class="board-member-detail-wrap">
                 @if($isAltered)
                     <div class="board-member-detail-alter-flag">
-                        <span class="asp-alter-badge">ALTER</span>
+                        <span class="asp-alter-badge">ALTERED</span>
+                    </div>
+                @elseif($isRenewalNew)
+                    <div class="board-member-detail-alter-flag">
+                        <span class="asp-renew-badge">RENEWED</span>
                     </div>
                 @endif
                 <table class="table table-sm no-border-table board-member-detail-table">

@@ -192,6 +192,26 @@
         box-shadow: inset 3px 0 0 #f59e0b;
     }
 
+    .applicant-supervisor-page .wx-renew-badge,
+    .applicant-supervisor-page .asp-renew-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.1rem 0.45rem;
+        border-radius: 4px;
+        background: #ccfbf1;
+        color: #0f766e;
+        border: 1px solid #14b8a6;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        vertical-align: middle;
+    }
+
+    .applicant-supervisor-page .wx-renewal-new-row>td {
+        background: #f0fdfa !important;
+        box-shadow: inset 3px 0 0 #14b8a6;
+    }
+
     /* ---------- Personal details mini-table ---------- */
     .applicant-supervisor-page .home-tab-pane .table-sm tbody td {
         padding: 0.45rem 0.5rem;
@@ -1307,6 +1327,11 @@
                                                         certificate is shown below. Rows marked <span
                                                             class="asp-alter-badge">ALTER</span> were added or changed in this
                                                         alteration request.</p>
+                                                @elseif($applicant->appl_type == 'R')
+                                                    <p class="text-muted small mb-2">Existing experience from the parent
+                                                        certificate is shown below. Rows marked <span
+                                                            class="asp-renew-badge">RENEW</span> were added or changed in this
+                                                        renewal request.</p>
                                                 @endif
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])

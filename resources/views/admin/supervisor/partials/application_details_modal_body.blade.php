@@ -307,6 +307,15 @@
         padding: 0.12rem 0.4rem;
         border-radius: 999px;
     }
+    .app-details-modal-body .adm-renew-badge {
+        display: inline-block;
+        background: #0f766e;
+        color: #fff;
+        font-size: 0.62rem;
+        font-weight: 800;
+        padding: 0.12rem 0.4rem;
+        border-radius: 999px;
+    }
     .app-details-modal-body a {
         color: #2563eb;
         font-weight: 500;
@@ -597,6 +606,8 @@
                                     {{ $experience->emp_cate ?? $experience->company_name ?? '—' }}
                                     @if(!empty($experience->is_alteration_new))
                                         <span class="adm-alter-badge ms-1">ALTER</span>
+                                    @elseif(!empty($experience->is_renewal_new))
+                                        <span class="adm-renew-badge ms-1">RENEW</span>
                                     @endif
                                 </td>
                                 <td>{{ $experience->designation ?? '—' }}</td>
