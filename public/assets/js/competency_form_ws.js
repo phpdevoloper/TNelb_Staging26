@@ -1070,13 +1070,7 @@
                     return;
                 }
 
-                if (formName === 'WH') {
-                    var minTo = new Date(from.getTime());
-                    minTo.setFullYear(minTo.getFullYear() + 2);
-                    if (to < minTo) {
-                        messages.push(prefix + 'Minimum 2 Years Experience needed');
-                    }
-                }
+                /* Form W / WH: no per-row or combined 2-year minimum (Form S only). */
             });
 
             if (messages.length) {
@@ -3811,7 +3805,7 @@
             var applType = (typeof resolveCompetencyApplType === 'function')
                 ? resolveCompetencyApplType()
                 : String($('#appl_type').val() || '').trim().toUpperCase();
-            return (formName === 'S' || formName === 'W') && applType === 'D';
+            return (formName === 'S' || formName === 'W' || formName === 'WH') && applType === 'D';
         }
 
         /** Digitisation 7a: matching contractor licence must be a currently-working (Till date) row. */
@@ -5104,13 +5098,6 @@
             if (to < from) {
                 showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
                 return;
-            }
-            if (formName === 'WH') {
-                var minTo = new Date(from.getTime());
-                minTo.setFullYear(minTo.getFullYear() + 2);
-                if (to < minTo) {
-                    showWorkExpDateRangeError($row, 'Minimum 2 Years Experience needed');
-                }
             }
         });
 

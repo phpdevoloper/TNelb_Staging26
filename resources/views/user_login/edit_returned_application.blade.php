@@ -901,14 +901,37 @@
         opacity: 0.72;
         filter: grayscale(0.06);
     }
-    .fs-return-section-locked .btn-fs-change,
-    .fs-return-section-locked .remove-aadhaar-doc,
-    .fs-return-section-locked .remove-pan-doc,
-    .fs-return-section-locked .remove-doc_edu_confirm,
-    .fs-return-section-locked input[type="file"],
-    .fs-return-section-locked .form-s-file-upload-wrap,
-    .fs-return-section-locked .file-limit {
+    .fs-section.fs-return-section-locked .btn-fs-change,
+    .fs-section.fs-return-section-locked .remove-aadhaar-doc,
+    .fs-section.fs-return-section-locked .remove-pan-doc,
+    .fs-section.fs-return-section-locked .remove-doc_edu_confirm,
+    .fs-section.fs-return-section-locked input[type="file"],
+    .fs-section.fs-return-section-locked .form-s-file-upload-wrap,
+    .fs-section.fs-return-section-locked .file-limit {
         display: none !important;
+    }
+    /* Returned + Till date off: relieving upload must stay visible and clickable. */
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"] {
+        pointer-events: auto !important;
+    }
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"].d-none {
+        display: block !important;
+    }
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"] .form-s-file-upload-wrap {
+        display: flex !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"] input[type="file"] {
+        display: block !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     .fs-return-section-locked a[href] {
         pointer-events: auto;
@@ -1127,7 +1150,7 @@
             {{-- ── Form body ── --}}
             <div class="fs-form-body fs-form apply-card">
 
-                <form id="competency_form_ws" enctype="multipart/form-data">
+                <form id="competency_form_ws" class="fs-returned-form" enctype="multipart/form-data">
 
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id"
@@ -3126,6 +3149,7 @@
     'enableBoardMemberFeeExempt' => $editShowBoardMember,
     'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
     'hideUploadWhenDocExists' => true,
+    'isReturnedApplication' => true,
     'hideVoltageFields' => in_array($editFormName, ['W', 'WH'], true),
 ])
 <script>

@@ -388,7 +388,8 @@
                     return false;
                 }
             }
-            if (typeof window.wxValidateFormSCountableExperience === 'function') {
+            var altFormName = String($('#form_name').val() || '').trim().toUpperCase();
+            if (altFormName === 'S' && typeof window.wxValidateFormSCountableExperience === 'function') {
                 var expCheck = window.wxValidateFormSCountableExperience();
                 if (!expCheck.ok) {
                     var $msg = $('#work-exp-total-msg-previous').length
@@ -645,10 +646,10 @@
                 return;
             }
 
-            if (certCode !== 'S' && certCode !== 'W') {
-                Swal.fire('Not available', 'Alteration for this certificate type is not available yet.', 'info');
-                return;
-            }
+            // if (certCode !== 'S' && certCode !== 'W') {
+            //     Swal.fire('Not available', 'Alteration for this certificate type is not available yet.', 'info');
+            //     return;
+            // }
 
             var $btn = $(this).prop('disabled', true);
             try {

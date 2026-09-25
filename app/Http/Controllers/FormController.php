@@ -657,6 +657,7 @@ class FormController extends BaseController
         }
 
         $hasContractorRow = false;
+        $matchedLicence = false;
         foreach ($this->getWorkRowIndexes($request) as $key) {
             if (strtolower(trim((string) ($sections[$key] ?? ''))) === 'current') {
                 continue;
@@ -670,24 +671,29 @@ class FormController extends BaseController
             $cat = strtoupper(trim((string) ($cats[$key] ?? '')));
             $lic = preg_replace('/\D+/', '', (string) ($lics[$key] ?? ''));
             $org = strtolower(trim(preg_replace('/\s+/', ' ', (string) ($orgs[$key] ?? ''))));
+            $orgOk = $wantOrg === '' || $org === $wantOrg;
+            $catOk = $wantCat === '' || $cat === $wantCat;
+            $licOk = $wantLic === '' || $lic === $wantLic;
 
-            if ($cat === $wantCat && $lic === $wantLic && $org === $wantOrg) {
+            if ($catOk && $licOk && $orgOk && ($wantCat !== '' || $wantLic !== '')) {
+                $matchedLicence = true;
                 if (! FormSWorkTillDate::isChecked($tillFlags[$key] ?? '0')) {
                     return 'The given licence number must be a Till date (currently working) experience row.';
                 }
 
                 return null;
             }
-
-            return 'The Given Licence Number of Contractor must exist in the experience details.';
         }
-
 
         if (! $hasContractorRow) {
             return 'Please add a work experience as Electrical Contractor with details already provided.';
         }
 
-        return '';
+        if (! $matchedLicence) {
+            return 'The Given Licence Number of Contractor must exist in the experience details.';
+        }
+
+        return null;
     }
 
     private function hasWorkExperiencePayload(Request $request): bool
@@ -1076,7 +1082,8 @@ class FormController extends BaseController
             $relieve = $existingRelieve;
         }
         $uploadedRelieve = $this->requestWorkRowFile($request, 'work_relieving_letter', $key);
-        if ($uploadedRelieve && $uploadedRelieve->isValid()) {
+        $hasNewRelieve = $uploadedRelieve && $uploadedRelieve->isValid();
+        if ($hasNewRelieve) {
             $file = $uploadedRelieve;
             if ($useVersioned) {
                 $pendingRelieveUpload = $file;
@@ -1095,7 +1102,7 @@ class FormController extends BaseController
 
         return [
             'support_document' => $supportRemoved ? null : $support,
-            'releive_document' => $relieveRemoved ? null : $relieve,
+            'releive_document' => ($relieveRemoved && ! $hasNewRelieve) ? null : $relieve,
             'pending_support_upload' => $pendingSupportUpload,
             'pending_relieve_upload' => $pendingRelieveUpload,
         ];
@@ -4244,8 +4251,9 @@ class FormController extends BaseController
         if ($returnStatus !== 'QU' && $legacyApp) {
             $returnStatus = strtoupper(trim((string) ($legacyApp->status ?? '')));
         }
+        
         if ($returnStatus !== 'QU') {
-            return response()->json(['status' => 'error', 'message' => 'This application is not under query.'], 400);
+            return response()->json(['status' => 'error', 'message' => 'This application is already submitted.'], 400);
         }
 
         $ownerLoginId = $ccApplicant->login_id ?? $legacyApp->login_id ?? null;

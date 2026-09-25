@@ -103,7 +103,7 @@
     $meetingDateName = $isBoardMemberRow ? 'work_board_meeting_date[]' : '';
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $hideSupportUpload = $hideUploadWhenDocExists && $supportDoc !== '';
-    $hideRelieveUpload = $relieveDoc !== '';
+    $hideRelieveUpload = $hideUploadWhenDocExists && $relieveDoc !== '';
 @endphp
 <div class="work-entry-block">
 <div class="work-fields work-row{{ $storedRowClass }}" data-row-index="{{ $rowIndex }}">

@@ -165,10 +165,10 @@ class SupervisorController extends Controller
                     ->orderByDesc('ta.id')
                     ->get();
             } else {
-                $twLast = DB::table('cc_workflow_forms')->select('application_id', DB::raw('MAX(id) as max_id'))->groupBy('application_id');
+                $twLast = DB::table('cc_workflow_forms')->select('application_id', DB::raw('MAX(w_id) as max_id'))->groupBy('application_id');
                 $currentAppIds = DB::table('cc_workflow_forms as tw')
                     ->joinSub($twLast, 'tw_last', function ($join) {
-                        $join->on('tw.application_id', '=', 'tw_last.application_id')->on('tw.id', '=', 'tw_last.max_id');
+                        $join->on('tw.application_id', '=', 'tw_last.application_id')->on('tw.w_id', '=', 'tw_last.max_id');
                     })
                     ->where('tw.forwarded_to', $roleId)->whereIn('tw.appl_status', ['F', 'RF'])->select('tw.application_id');
                 $workflows = DB::query()->fromSub($currentAppIds, 'cur')
@@ -190,28 +190,21 @@ class SupervisorController extends Controller
             }
             // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with QU in history) +
             // Form P apps returned to Supervisor/upper staff with an open workflow query (RE + latest tw.query_status P).
-            $twLastFormP = DB::table('cc_workflow_forms')
-                ->select('application_id', DB::raw('MAX(id) as max_id'))
-                ->groupBy('application_id');
-
+            // MAX() must stay in a scalar subquery — joinSub(MAX) inside WHERE EXISTS is invalid in PostgreSQL.
             $returnedQuery = DB::table('tnelb_form_p as ta')
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
-                ->where(function ($q) use ($twLastFormP) {
+                ->where(function ($q) {
                     $q->where('ta.app_status', 'QU')
                         ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM cc_workflow_forms tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))")
-                        ->orWhere(function ($q2) use ($twLastFormP) {
-                            $q2->whereIn('ta.app_status', ['P', 'RE'])
-                                ->whereExists(function ($sub) use ($twLastFormP) {
-                                    $sub->select(DB::raw(1))
-                                        ->from('cc_workflow_forms as tw')
-                                        ->joinSub($twLastFormP, 'tw_last', function ($join) {
-                                            $join->on('tw.application_id', '=', 'tw_last.application_id')
-                                                ->on('tw.id', '=', 'tw_last.max_id');
-                                        })
-                                        ->whereColumn('tw.application_id', 'ta.application_id')
-                                        ->where('tw.query_status', 'P');
-                                });
-                        });
+                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (
+                            SELECT 1 FROM cc_workflow_forms tw
+                            WHERE tw.application_id = ta.application_id
+                              AND tw.query_status = 'P'
+                              AND tw.w_id = (
+                                  SELECT MAX(twx.w_id) FROM cc_workflow_forms twx
+                                  WHERE twx.application_id = ta.application_id
+                              )
+                        ))");
                 })
                 ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))
                 ->orderByDesc('ta.submitted_date')
@@ -533,28 +526,21 @@ class SupervisorController extends Controller
             }
             // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with QU in history) +
             // Form P apps returned to Supervisor/upper staff with an open workflow query (RE + latest tw.query_status P).
-            $twLastFormP = DB::table('tnelb_workflow')
-                ->select('application_id', DB::raw('MAX(id) as max_id'))
-                ->groupBy('application_id');
-
+            // MAX() must stay in a scalar subquery — joinSub(MAX) inside WHERE EXISTS is invalid in PostgreSQL.
             $returnedQuery = DB::table('tnelb_form_p as ta')
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
-                ->where(function ($q) use ($twLastFormP) {
+                ->where(function ($q) {
                     $q->where('ta.app_status', 'QU')
                         ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM tnelb_workflow tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))")
-                        ->orWhere(function ($q2) use ($twLastFormP) {
-                            $q2->whereIn('ta.app_status', ['P', 'RE'])
-                                ->whereExists(function ($sub) use ($twLastFormP) {
-                                    $sub->select(DB::raw(1))
-                                        ->from('tnelb_workflow as tw')
-                                        ->joinSub($twLastFormP, 'tw_last', function ($join) {
-                                            $join->on('tw.application_id', '=', 'tw_last.application_id')
-                                                ->on('tw.id', '=', 'tw_last.max_id');
-                                        })
-                                        ->whereColumn('tw.application_id', 'ta.application_id')
-                                        ->where('tw.query_status', 'P');
-                                });
-                        });
+                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (
+                            SELECT 1 FROM tnelb_workflow tw
+                            WHERE tw.application_id = ta.application_id
+                              AND tw.query_status = 'P'
+                              AND tw.id = (
+                                  SELECT MAX(twx.id) FROM tnelb_workflow twx
+                                  WHERE twx.application_id = ta.application_id
+                              )
+                        ))");
                 })
                 ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))
                 ->orderByDesc('ta.submitted_date')

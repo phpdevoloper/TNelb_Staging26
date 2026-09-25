@@ -361,11 +361,13 @@
                                                 <div class="col-lg-4 col-6">
                                                     <p class="mt-2 mb-1 mt-lg-2">
                                                         @php
-                                                        if (empty($applicant->previously_number) && empty($applicant->previously_date)) {
+                                                        $prevNumber = trim((string) ($applicant->previously_number ?? ''));
+                                                        $prevDate = $applicant->previously_date ?? $applicant->previously_valid_to ?? $applicant->scc_to_date ?? null;
+                                                        if ($prevNumber === '' && empty($prevDate)) {
                                                             $prev_val = 'No';
                                                         } else {
-                                                            $prev_val = 'Yes, ' . ($applicant->previously_number ?? '') . ' , ' .
-                                                                (!empty($applicant->previously_date) ? format_date($applicant->previously_date) : '');
+                                                            $prev_val = 'Yes, ' . $prevNumber . ' , ' .
+                                                                (!empty($prevDate) ? format_date($prevDate) : '');
                                                         }
                                                     @endphp
                                                     </p>
@@ -375,13 +377,13 @@
                                                         <div class="row justify-content-center">
                                                             <div class="col-6 col-md-5 col-lg-4 text-center">
                                                                 <p class="mb-1">
-                                                                    <strong>Application Number :</strong> {{ !empty($applicant->previously_number) ? $applicant->previously_number : 'No' }}
+                                                                    <strong>Application Number :</strong> {{ $prevNumber !== '' ? $prevNumber : 'No' }}
                                                                 </p>
                                                             </div>
                                         
                                                             <div class="col-6 col-md-5 col-lg-4 text-center">
                                                                 <p class="mb-1">
-                                                                    <strong>Date :</strong> {{ format_date($applicant->previously_date) ?: '—' }}
+                                                                    <strong>Date :</strong> {{ !empty($prevDate) ? (format_date($prevDate) ?: '—') : '—' }}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -389,10 +391,12 @@
                                                 @endif
                                             </div>
                                             @php
-                                                $decryptedaadhar = $applicant->aadhaar ? safeDecrypt($applicant->aadhaar) : '';
-                                                $masked          = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : ($applicant->aadhaar ? 'Invalid Aadhaar' : '—');
-                                                $decryptedPanRow = $applicant->pancard ? safeDecrypt($applicant->pancard) : '';
-                                                $maskedPan       = strlen((string) $decryptedPanRow) === 10 ? str_repeat('X', 6) . substr($decryptedPanRow, -4) : ($applicant->pancard ? 'Invalid PAN' : '—');
+                                                $aadhaarRaw = $applicant->aadhaar ?? $applicant->aadhar ?? null;
+                                                $panRaw = $applicant->pancard ?? $applicant->pan_no ?? $applicant->pan ?? null;
+                                                $decryptedaadhar = $aadhaarRaw ? safeDecrypt($aadhaarRaw) : '';
+                                                $masked          = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : ($aadhaarRaw ? 'Invalid Aadhaar' : '—');
+                                                $decryptedPanRow = $panRaw ? safeDecrypt($panRaw) : '';
+                                                $maskedPan       = strlen((string) $decryptedPanRow) === 10 ? str_repeat('X', 6) . substr($decryptedPanRow, -4) : ($panRaw ? 'Invalid PAN' : '—');
                                                 $panDocFile      = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
                                             @endphp
 

@@ -195,10 +195,12 @@
                                                 </div>
                                                 <div class="col-lg-6 col-6">
                                                     @php
-                                                        if (empty($applicant->previously_number) || empty($applicant->previously_date)){
+                                                        $prevNumber = trim((string) ($applicant->previously_number ?? ''));
+                                                        $prevDate = $applicant->previously_date ?? $applicant->previously_valid_to ?? $applicant->scc_to_date ?? null;
+                                                        if ($prevNumber === '' || empty($prevDate)) {
                                                             $value = 'No';
-                                                        }else{
-                                                            $value = ($applicant->previously_number ?: '') . ' , ' . (!empty($applicant->previously_date) ? format_date($applicant->previously_date) : '' . '<a href="">view</a>');
+                                                        } else {
+                                                            $value = $prevNumber . ' , ' . format_date($prevDate);
                                                         }
                                                     @endphp
                                                     <p>{{ $value }}</p>

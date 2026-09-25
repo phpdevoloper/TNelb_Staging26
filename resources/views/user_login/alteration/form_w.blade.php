@@ -23,7 +23,14 @@
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit input.work-date-to:not([type="hidden"]),
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] input,
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] button,
-    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn {
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] .form-s-file-upload-wrap,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-card-till-toggle,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-date-till,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open input.work-date-to:not([type="hidden"]),
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-card-field[data-field="relieve"],
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-card-field[data-field="relieve"] *,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-row-done-btn {
         pointer-events: auto !important;
     }
     /* Keep the expanded till-date card visible after Till date is unchecked

@@ -951,7 +951,7 @@
                                                         <tr>
                                                             <th>Certificate Document</th>
                                                             <td>
-                                                                <a href="{{ asset('uploads/digitization/scc/' . $cc_digitization->cc_doc) }}"
+                                                                <a href="{{ digitization_document_url($cc_digitization->cc_doc, 'scc') }}"
                                                                     target="_blank">
                                                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                                                     View Document
@@ -988,7 +988,7 @@
                                                             <tr>
                                                                 <th> Document</th>
                                                                 <td>
-                                                                    <a href="{{ asset('uploads/digitization/qc/' . $cc_digitization->qc_doc) }}"
+                                                                    <a href="{{ digitization_document_url($cc_digitization->qc_doc, 'qc') }}"
                                                                         target="_blank">
                                                                         <i class="fa fa-file-pdf-o text-danger"></i>
                                                                         View Document
