@@ -9,6 +9,7 @@
     $previousExpDetails = $partition['previous'];
     $currentExpDetails = $partition['current'];
     $is7bBoardMemberPrefill = $partition['is7bBoardMemberPrefill'];
+    $lock7bBoardMemberOnReturn = ! empty($lock7bBoardMemberOnReturn) && $is7bBoardMemberPrefill;
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $isAlterationMode = !empty($isAlterationMode);
     $lockExistingRows = !empty($lockExistingRows) || $isAlterationMode;
@@ -58,7 +59,7 @@
     ])
 </div>
 
-<div class="fs-question-part fs-question-part--7b {{ $is7bBoardMemberPrefill ? 'fs-7b-mode-board' : 'fs-7b-mode-standard' }}" id="fs-7b-root">
+<div class="fs-question-part fs-question-part--7b {{ $is7bBoardMemberPrefill ? 'fs-7b-mode-board' : 'fs-7b-mode-standard' }}{{ $lock7bBoardMemberOnReturn ? ' fs-7b-return-locked' : '' }}" id="fs-7b-root">
     <div class="fs-question-part-hd fs-7b-hd">
         <span class="fs-section-num fs-section-num--sub">7b</span>
         <div class="fs-7b-hd-content">
@@ -70,17 +71,17 @@
                     </div>
                     <div class="fs-section-tamil">நீங்கள் மின்சார உரிமையாளர்கள் வாரியத்தின் குழு உறுப்பினரா / முன்னாள் குழு உறுப்பினரா?</div>
                 </div>
-                <div class="fs-segmented-toggle fs-7b-board-toggle{{ $isAlterationMode ? ' is-locked' : '' }}" role="radiogroup" aria-label="Board member of TNELB or Ex board member"{{ $isAlterationMode ? ' aria-disabled="true"' : '' }}>
+                <div class="fs-segmented-toggle fs-7b-board-toggle{{ ($isAlterationMode || $lock7bBoardMemberOnReturn) ? ' is-locked' : '' }}" role="radiogroup" aria-label="Board member of TNELB or Ex board member"{{ ($isAlterationMode || $lock7bBoardMemberOnReturn) ? ' aria-disabled="true"' : '' }}>
                     <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? '' : ' is-active' }}">
-                        <input type="radio" name="current_work_board_member" id="current_work_board_member_no" value="no"{{ $is7bBoardMemberPrefill ? '' : ' checked' }}{{ $isAlterationMode ? ' disabled' : '' }}>
+                        <input type="radio" name="current_work_board_member" id="current_work_board_member_no" value="no"{{ $is7bBoardMemberPrefill ? '' : ' checked' }}{{ ($isAlterationMode || $lock7bBoardMemberOnReturn) ? ' disabled' : '' }}>
                         <span>No</span>
                     </label>
                     <label class="fs-segmented-opt{{ $is7bBoardMemberPrefill ? ' is-active' : '' }}">
-                        <input type="radio" name="current_work_board_member" id="current_work_board_member_yes" value="yes"{{ $is7bBoardMemberPrefill ? ' checked' : '' }}{{ $isAlterationMode ? ' disabled' : '' }}>
+                        <input type="radio" name="current_work_board_member" id="current_work_board_member_yes" value="yes"{{ $is7bBoardMemberPrefill ? ' checked' : '' }}{{ ($isAlterationMode || $lock7bBoardMemberOnReturn) ? ' disabled' : '' }}>
                         <span>Yes</span>
                     </label>
                 </div>
-                @if ($isAlterationMode)
+                @if ($isAlterationMode || $lock7bBoardMemberOnReturn)
                     <input type="hidden" name="current_work_board_member" value="{{ $is7bBoardMemberPrefill ? 'yes' : 'no' }}">
                 @endif
             </div>

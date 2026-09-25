@@ -6,6 +6,7 @@ use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Proof_doc;
 use App\Models\Competency\CC_CompetencyMeta;
+use App\Services\Competency\CompetencyMetaService;
 
 /**
  * Copy parent cc_edu / cc_exp / cc_proof_doc onto a renewal or alteration
@@ -51,10 +52,12 @@ class FormSChildDocumentSnapshotService
             return;
         }
 
-        $parent = $this->workflowService->masterApplication($child);
+        $sourceId = $this->educationSourceApplicationId(
+            $this->workflowService->masterApplication($child)
+        );
         $childId = (string) $child->application_id;
 
-        foreach (CC_Education::where('application_id', $parent->application_id)->orderBy('edu_id')->get() as $parentEdu) {
+        foreach (CC_Education::where('application_id', $sourceId)->orderBy('edu_id')->get() as $parentEdu) {
             $parentEduId = (int) ($parentEdu->edu_id ?? 0);
             if ($parentEduId <= 0 || isset($skipParentEduIds[$parentEduId])) {
                 continue;
@@ -89,12 +92,14 @@ class FormSChildDocumentSnapshotService
             return;
         }
 
-        $parent = $this->workflowService->masterApplication($child);
+        $sourceId = $this->identityProofSourceApplicationId(
+            $this->workflowService->masterApplication($child)
+        );
         $childId = (string) $child->application_id;
         $appType = (string) ($child->appl_type ?? '');
 
         foreach (self::identityProofNames() as $proofName) {
-            $parentProof = CC_Proof_doc::where('application_id', $parent->application_id)
+            $parentProof = CC_Proof_doc::where('application_id', $sourceId)
                 ->where('proof_name', $proofName)
                 ->first();
             if (! $parentProof) {
@@ -138,10 +143,12 @@ class FormSChildDocumentSnapshotService
             return;
         }
 
-        $parent = $this->workflowService->masterApplication($child);
+        $sourceId = $this->experienceSourceApplicationId(
+            $this->workflowService->masterApplication($child)
+        );
         $childId = (string) $child->application_id;
 
-        foreach (CC_Experience::where('application_id', $parent->application_id)->orderBy('exp_id')->get() as $parentExp) {
+        foreach (CC_Experience::where('application_id', $sourceId)->orderBy('exp_id')->get() as $parentExp) {
             $parentExpId = (int) ($parentExp->exp_id ?? 0);
             if ($parentExpId <= 0 || isset($skipParentExpIds[$parentExpId])) {
                 continue;
@@ -182,39 +189,76 @@ class FormSChildDocumentSnapshotService
 
     public function preferredEducationApplicationId(CC_CompetencyMeta $workflow): string
     {
-        $childId = (string) $workflow->application_id;
-        $masterId = (string) $this->workflowService->masterApplication($workflow)->application_id;
-        if ($childId !== $masterId && CC_Education::where('application_id', $childId)->exists()) {
-            return $childId;
-        }
-
-        return $masterId;
+        return $this->educationSourceApplicationId($workflow);
     }
 
     public function preferredExperienceApplicationId(CC_CompetencyMeta $workflow): string
     {
-        $childId = (string) $workflow->application_id;
-        $masterId = (string) $this->workflowService->masterApplication($workflow)->application_id;
-        if ($childId !== $masterId && CC_Experience::where('application_id', $childId)->exists()) {
-            return $childId;
-        }
-
-        return $masterId;
+        return $this->experienceSourceApplicationId($workflow);
     }
 
     public function preferredIdentityProofApplicationId(CC_CompetencyMeta $workflow): string
     {
-        $childId = (string) $workflow->application_id;
-        $masterId = (string) $this->workflowService->masterApplication($workflow)->application_id;
-        if ($childId !== $masterId
-            && CC_Proof_doc::where('application_id', $childId)
+        return $this->identityProofSourceApplicationId($workflow);
+    }
+
+    /**
+     * Nearest application in this chain (self, then each parent) that holds the rows.
+     * A second alteration therefore reads the first alteration when that snapshot exists,
+     * and only falls through to the original certificate application when it does not.
+     */
+    public function educationSourceApplicationId(CC_CompetencyMeta $start): string
+    {
+        return $this->nearestApplicationId(
+            $start,
+            fn (string $id) => CC_Education::where('application_id', $id)->exists()
+        );
+    }
+
+    public function experienceSourceApplicationId(CC_CompetencyMeta $start): string
+    {
+        return $this->nearestApplicationId(
+            $start,
+            fn (string $id) => CC_Experience::where('application_id', $id)->exists()
+        );
+    }
+
+    public function identityProofSourceApplicationId(CC_CompetencyMeta $start): string
+    {
+        return $this->nearestApplicationId(
+            $start,
+            fn (string $id) => CC_Proof_doc::where('application_id', $id)
                 ->whereIn('proof_name', self::identityProofNames())
                 ->exists()
-        ) {
-            return $childId;
+        );
+    }
+
+    /**
+     * @param  callable(string): bool  $hasRows
+     */
+    protected function nearestApplicationId(CC_CompetencyMeta $start, callable $hasRows): string
+    {
+        $metaService = app(CompetencyMetaService::class);
+        $current = $start;
+        $seen = [];
+        $lastId = trim((string) ($start->application_id ?? ''));
+
+        while ($current instanceof CC_CompetencyMeta) {
+            $id = trim((string) ($current->application_id ?? ''));
+            if ($id === '' || isset($seen[$id])) {
+                break;
+            }
+            $seen[$id] = true;
+            $lastId = $id;
+            if ($hasRows($id)) {
+                return $id;
+            }
+
+            $parentId = trim((string) ($current->old_application ?? ''));
+            $current = $parentId !== '' ? $metaService->findModel($parentId) : null;
         }
 
-        return $masterId;
+        return $lastId;
     }
 
     public function resolveParentExperienceFromPostedId(?CC_Experience $found, string $parentId): ?CC_Experience

@@ -119,6 +119,7 @@ class LoginController extends BaseController
 
         return match ($normalized) {
             'n', 'draft' => 'draft',
+            'b' => 'payment',
             'y', 'payment', 'paid', 'success' => 'payment',
             default => $normalized !== '' ? $normalized : 'draft',
         };
@@ -249,7 +250,8 @@ class LoginController extends BaseController
                 }
             }
 
-            if ($workflow->appl_type === 'A' && $workflow->status !== 'A') {
+            $legacyStatus = strtoupper(trim((string) ($workflow->status ?? $workflow->app_status ?? '')));
+            if ($workflow->appl_type === 'A' && $legacyStatus !== 'A') {
                 $licenseNumber = null;
                 $expiry = null;
             }
@@ -314,18 +316,43 @@ class LoginController extends BaseController
     }
 
     /**
-     * Alteration reuses the parent certificate; licence PDF is stored against that parent id.
+     * Certificate row may sit on this application or on an earlier one in the chain.
+     * A second alteration's parent is another alteration, so the lookup has to keep
+     * walking until the issued certificate is found. The application's own row wins
+     * when the certificate was issued on that latest application.
      */
     private function issuedCertificateApplicationId(object $workflow): string
     {
-        if (strtoupper(trim((string) ($workflow->appl_type ?? ''))) === 'A') {
-            $parentId = trim((string) ($workflow->old_application ?? ''));
-            if ($parentId !== '') {
-                return $parentId;
+        $metaService = app(CompetencyMetaService::class);
+        $certService = $this->competencyCertificateService();
+        $currentId = trim((string) ($workflow->application_id ?? ''));
+        $formName = (string) ($workflow->form_name ?? '');
+        $seen = [];
+        $fallback = $currentId;
+
+        while ($currentId !== '' && ! isset($seen[$currentId])) {
+            $seen[$currentId] = true;
+            $license = $certService->asWorkflowLicense($currentId, $formName);
+            if ($license && trim((string) ($license->license_number ?? '')) !== '') {
+                return $currentId;
             }
+
+            $parentId = '';
+            $row = $metaService->findModel($currentId);
+            if ($row) {
+                $parentId = trim((string) ($row->old_application ?? ''));
+                $formName = (string) ($row->form_name ?? $formName);
+            } elseif ($currentId === $fallback) {
+                $parentId = trim((string) ($workflow->old_application ?? ''));
+            }
+
+            if ($parentId === '' || $parentId === $currentId) {
+                break;
+            }
+            $currentId = $parentId;
         }
 
-        return trim((string) ($workflow->application_id ?? ''));
+        return $fallback;
     }
 
     private function enrichCompetencyWorkflowRow(object $workflow): object
@@ -370,7 +397,10 @@ class LoginController extends BaseController
                 }
             }
 
-            if ($workflow->appl_type === 'A' && $workflow->app_status !== 'A') {
+            $appStatus = strtoupper(trim((string) (
+                $workflow->application_status ?? $workflow->app_status ?? $workflow->status ?? ''
+            )));
+            if ($workflow->appl_type === 'A' && $appStatus !== 'A') {
                 $licenseNumber = null;
                 $expiry = null;
             }
@@ -1253,7 +1283,7 @@ class LoginController extends BaseController
                     }
 
                     $ps = strtolower((string) ($row->payment_status ?? ''));
-                    if (in_array($ps, ['payment', 'paid', 'y', 'success'], true)) {
+                    if (in_array($ps, ['payment', 'paid', 'y', 'b', 'success'], true)) {
                         $parts[] = 'success';
                         $parts[] = 'payment';
                     } else {

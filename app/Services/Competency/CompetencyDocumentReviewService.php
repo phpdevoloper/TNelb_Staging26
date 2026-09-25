@@ -137,6 +137,17 @@ class CompetencyDocumentReviewService
             ->get()
             ->map(fn (CC_Experience $row) => $enrichExperienceDocument($row, false));
 
+        if ($parentExperience->isEmpty() && $childId !== $masterId) {
+            $walkedId = $snapshot->experienceSourceApplicationId($master);
+            if ($walkedId !== '' && $walkedId !== $masterId) {
+                $masterId = $walkedId;
+                $parentExperience = CC_Experience::where('application_id', $masterId)
+                    ->orderBy('exp_id')
+                    ->get()
+                    ->map(fn (CC_Experience $row) => $enrichExperienceDocument($row, false));
+            }
+        }
+
         $workExperience = $parentExperience;
         $isAlterationApp = $this->workflowService->isAlterationApplication($application);
         $isRenewalApp = $this->workflowService->isRenewalApplication($application);

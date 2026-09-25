@@ -71,7 +71,8 @@
 
     $hasPreviousEaQual = !empty($applicant->previously_number) || !empty($applicant->previously_date);
     $hasCert = !empty($applicant->certificate_no) && !empty($applicant->certificate_date);
-    $paymentStatus = strtoupper((string) ($applicant->payment_status ?? $applicant->gateway_payment_status ?? ''));
+    $paymentStatus = strtoupper(trim((string) ($applicant->payment_status ?? $applicant->gateway_payment_status ?? '')));
+    $paymentStatusLabel = $paymentStatus === 'B' ? 'Fee exempt' : $paymentStatus;
     $appStatus = strtoupper((string) ($applicant->status ?? $applicant->app_status ?? ''));
     $statusLabel = match ($appStatus) {
         'A' => 'Completed',
@@ -334,7 +335,7 @@
                 <span class="adm-pill is-type">{{ $applTypeLabel }}</span>
                 <span class="adm-pill {{ in_array($appStatus, ['A'], true) ? 'is-ok' : (in_array($appStatus, ['QU'], true) ? 'is-warn' : 'is-muted') }}">{{ $statusLabel }}</span>
                 @if($paymentStatus !== '')
-                    <span class="adm-pill {{ in_array($paymentStatus, ['PAYMENT', 'PAID', 'SUCCESS'], true) ? 'is-ok' : 'is-muted' }}">{{ $paymentStatus }}</span>
+                    <span class="adm-pill {{ in_array($paymentStatus, ['B', 'PAYMENT', 'PAID', 'SUCCESS', 'Y'], true) ? 'is-ok' : 'is-muted' }}">{{ $paymentStatusLabel }}</span>
                 @endif
             </div>
         </div>
@@ -690,12 +691,13 @@
                     <span class="adm-k">Payment Status</span>
                     <span class="adm-v">
                         @if($paymentStatus !== '')
-                            <span class="adm-pill {{ in_array($paymentStatus, ['PAYMENT', 'PAID', 'SUCCESS'], true) ? 'is-ok' : 'is-muted' }}">{{ $paymentStatus }}</span>
+                            <span class="adm-pill {{ in_array($paymentStatus, ['B', 'PAYMENT', 'PAID', 'SUCCESS', 'Y'], true) ? 'is-ok' : 'is-muted' }}">{{ $paymentStatusLabel }}</span>
                         @else
                             —
                         @endif
                     </span>
                 </div>
+                @if($paymentStatus !== 'B')
                 <div class="adm-pay-card">
                     <span class="adm-k">Transaction Id</span>
                     <span class="adm-v">{{ $applicant->transaction_id ?? '—' }}</span>
@@ -712,6 +714,7 @@
                     <span class="adm-k">Payment Time</span>
                     <span class="adm-v">{{ !empty($paymentTime) ? format_date_other($paymentTime) : '—' }}</span>
                 </div>
+                @endif
                 @if($applicationFee !== null && $applicationFee !== '')
                     <div class="adm-pay-card">
                         <span class="adm-k">Application Fee</span>

@@ -734,6 +734,7 @@ class DashboardApplicationTimeline
     {
         return match ($status) {
             'n', 'draft' => 'Draft / unpaid',
+            'b' => 'Fee exempt',
             'y', 'payment', 'paid', 'success' => 'Paid',
             default => $status !== '' ? $status : '—',
         };

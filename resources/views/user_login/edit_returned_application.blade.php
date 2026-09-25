@@ -933,6 +933,16 @@
         visibility: visible !important;
         opacity: 1 !important;
     }
+    #fs-7b-root.fs-7b-return-locked .work-card-field .form-control,
+    #fs-7b-root.fs-7b-return-locked .work-card-field textarea {
+        background: #eef1f4;
+        pointer-events: none;
+    }
+    #fs-7b-root.fs-7b-return-locked .remove-work-doc-confirm,
+    #fs-7b-root.fs-7b-return-locked .form-s-file-upload-wrap,
+    #fs-7b-root.fs-7b-return-locked .work-card-field-hint {
+        display: none !important;
+    }
     .fs-return-section-locked a[href] {
         pointer-events: auto;
     }
@@ -1655,6 +1665,7 @@
                                 'hideUploadWhenDocExists' => true,
                                 'showContractorNotice' => true,
                                 'contractorDetails' => $get_contractor_details ?? null,
+                                'lock7bBoardMemberOnReturn' => true,
                             ])
                             @elseif (in_array($editFormName, ['W', 'WH'], true))
                             @include('user_login.partials.form-w-work-exp-7ab-body', [
@@ -3166,6 +3177,34 @@
             $input.closest('.fs-segmented-opt').addClass('is-active');
         }
 
+        function lockReturned7bFields($row) {
+            var $root = $('#fs-7b-root');
+            if (!$root.hasClass('fs-7b-return-locked')) return;
+
+            $('.fs-7b-board-toggle').addClass('is-locked').attr('aria-disabled', 'true');
+            $('input[name="current_work_board_member"][type="radio"]').prop('disabled', true);
+            if (!$('input[type="hidden"][name="current_work_board_member"]').length) {
+                $('.fs-7b-board-toggle').after('<input type="hidden" name="current_work_board_member" value="yes">');
+            }
+
+            if (!$row || !$row.length) return;
+
+            $row.find('input, select, textarea').not('[type="hidden"]').each(function () {
+                var type = (this.type || '').toLowerCase();
+                if (type === 'file') {
+                    $(this).prop('disabled', true).prop('required', false);
+                    return;
+                }
+                if ((this.tagName || '').toLowerCase() === 'select') {
+                    $(this).prop('disabled', false).attr('tabindex', '-1');
+                    return;
+                }
+                $(this).prop('readonly', true).prop('disabled', false);
+            });
+            $row.find('.remove-work-doc-confirm').hide();
+            $row.find('.form-s-file-upload-wrap, .work-card-field-hint').hide();
+        }
+
         function apply7bBoardToggle(mode, isInit) {
             var $root = $('#fs-7b-root');
             var $row = get7bWorkRow();
@@ -3204,6 +3243,10 @@
                 $parallel.prop('disabled', true);
             }
 
+            if ($root.hasClass('fs-7b-return-locked')) {
+                lockReturned7bFields($row);
+            }
+
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                 window.wxSyncBoardMemberRenewalFee();
             }
@@ -3211,6 +3254,12 @@
 
         $(document).ready(function () {
             $('input[name="current_work_board_member"]').on('change', function () {
+                if ($('#fs-7b-root').hasClass('fs-7b-return-locked')) {
+                    $('#current_work_board_member_yes').prop('checked', true);
+                    sync7bSegmentedActive($('#current_work_board_member_yes'));
+                    lockReturned7bFields(get7bWorkRow());
+                    return;
+                }
                 sync7bSegmentedActive($(this));
                 apply7bBoardToggle($(this).val(), false);
             });

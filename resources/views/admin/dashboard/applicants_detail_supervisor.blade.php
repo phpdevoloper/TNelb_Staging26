@@ -1827,11 +1827,12 @@
                                                         @php
                                                             $paymentStatusRaw = strtoupper(trim((string) ($applicant->payment_status ?? '')));
                                                             $paymentStatusLabel = match ($paymentStatusRaw) {
+                                                                'B' => 'Fee exempt',
                                                                 'Y', 'PAYMENT', 'PAID', 'SUCCESS' => 'Success',
                                                                 'N', 'DRAFT' => 'Draft',
                                                                 default => $paymentStatusRaw !== '' ? $paymentStatusRaw : 'N/A',
                                                             };
-                                                            $paymentStatusBadge = in_array($paymentStatusRaw, ['Y', 'PAYMENT', 'PAID', 'SUCCESS'], true)
+                                                            $paymentStatusBadge = in_array($paymentStatusRaw, ['B', 'Y', 'PAYMENT', 'PAID', 'SUCCESS'], true)
                                                                 ? 'badge-success'
                                                                 : 'badge-warning';
                                                         @endphp
@@ -1840,6 +1841,7 @@
                                                         </p>
                                                     </div>
 
+                                                    @if ($paymentStatusRaw !== 'B')
                                                     <div class="col-lg-6">
                                                         <p><strong> Transaction Id</strong></p>
                                                     </div>
@@ -1864,6 +1866,7 @@
                                                     <div class="col-lg-6">
                                                         <p>{{ format_date($applicant->transaction_date) }}</p>
                                                     </div>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>

@@ -1487,7 +1487,7 @@ class FormSAlterationService
         $anyDatedExcluded650v = false;
         $today = Carbon::now()->startOfDay();
 
-        $masterId = $this->workflowService->masterApplication($parent)->application_id;
+        $masterId = $this->childDocumentSnapshot->experienceSourceApplicationId($parent);
         $existing = CC_Experience::where('application_id', $masterId)->orderBy('exp_id')->get();
 
         $workIds = (array) $request->input('work_id', []);
@@ -1619,7 +1619,7 @@ class FormSAlterationService
 
         $created = 0;
         $copiedSourceIds = [];
-        $masterId = (string) $this->workflowService->masterApplication($parent)->application_id;
+        $masterId = $this->childDocumentSnapshot->experienceSourceApplicationId($parent);
 
         foreach ($existingIndexes as $key) {
             $postedId = (int) (($request->input('work_id', [])[$key] ?? 0));
@@ -1744,7 +1744,8 @@ class FormSAlterationService
 
         $postedExpId = $isExistingRow ? (int) ($workIds[$key] ?? 0) : 0;
         $postedExp = $postedExpId > 0 ? CC_Experience::find($postedExpId) : null;
-        $parentId = (string) $this->workflowService->masterApplication($child)->application_id;
+        $immediateParent = $this->workflowService->masterApplication($child);
+        $parentId = $this->childDocumentSnapshot->experienceSourceApplicationId($immediateParent);
         $master = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($postedExp, $parentId);
         $isExistingTillMaster = $isExistingRow && $this->experienceIsTillDate($master);
 
@@ -1930,33 +1931,20 @@ class FormSAlterationService
             throw new RuntimeException('Parent application record not found.');
         }
 
-        $parentUpdates = ['updated_at' => now()];
+        $childModel = $metaService->findModel($alterationApplicationId);
+        $certAppId = $childModel instanceof CC_CompetencyMeta
+            ? $this->issuedCertificateApplicationId($childModel)
+            : $parentId;
 
-        $childName = trim((string) ($childRow->applicant_name ?? ''));
-        $parentName = trim((string) ($parentRow->applicant_name ?? ''));
-        if ($childName !== '' && $childName !== $parentName) {
-            $parentUpdates['applicant_name'] = $childName;
+        foreach (array_values(array_unique(array_filter([$parentId, $certAppId]))) as $targetId) {
+            $this->applyApprovedNameAddressToApplication($targetId, $childRow, $metaService);
         }
 
-        $childAddress = trim((string) ($childRow->applicant_address ?? $childRow->applicant_address ?? ''));
-        $parentAddress = trim((string) ($parentRow->applicant_address ?? $parentRow->applicant_address ?? ''));
-        if ($childAddress !== '' && $childAddress !== $parentAddress) {
-            $parentUpdates['applicant_address'] = $childAddress;
-        }
-
-        $parentUpdates['qc'] = $this->qcEligibilityFlag($childRow->qc ?? $parentRow->qc ?? 0);
-        $parentUpdates['qsc'] = $this->qcEligibilityFlag($childRow->qsc ?? $parentRow->qsc ?? 0);
-
-        if (count($parentUpdates) > 1) {
-            DB::table($parentTable)->where('application_id', $parentId)->update($parentUpdates);
-        }
-
-        $this->syncLegacyApplicationProfile($parentId, $parentUpdates);
         $this->syncRegistrationProfile((string) ($childRow->login_id ?? ''), $childRow);
         // Experience/education/proofs stay on the alteration application_id (full snapshot at submit).
 
         $licenseDetails = app(CompetencyCertificateService::class)->asLicenseDetails(
-            $parentId,
+            $certAppId,
             $childRow->form_name ?? null
         );
 
@@ -1970,6 +1958,55 @@ class FormSAlterationService
             'issued_at' => $licenseDetails->issued_at,
             'expires_at' => $licenseDetails->expires_at,
         ];
+    }
+
+    /**
+     * Write the approved alteration name and address onto one application in the chain.
+     * The immediate parent and the application that holds the issued certificate can differ
+     * when the parent is itself an alteration.
+     */
+    protected function applyApprovedNameAddressToApplication(
+        string $targetId,
+        object $childRow,
+        CompetencyMetaService $metaService
+    ): void {
+        $targetId = trim($targetId);
+        if ($targetId === '') {
+            return;
+        }
+
+        $targetTable = $metaService->metaTableForApplicationId($targetId);
+        if (! $targetTable) {
+            return;
+        }
+
+        $targetRow = DB::table($targetTable)->where('application_id', $targetId)->first();
+        if (! $targetRow) {
+            return;
+        }
+
+        $updates = ['updated_at' => now()];
+
+        $childName = trim((string) ($childRow->applicant_name ?? ''));
+        $targetName = trim((string) ($targetRow->applicant_name ?? ''));
+        if ($childName !== '' && $childName !== $targetName) {
+            $updates['applicant_name'] = $childName;
+        }
+
+        $childAddress = trim((string) ($childRow->applicant_address ?? ''));
+        $targetAddress = trim((string) ($targetRow->applicant_address ?? ''));
+        if ($childAddress !== '' && $childAddress !== $targetAddress) {
+            $updates['applicant_address'] = $childAddress;
+        }
+
+        $updates['qc'] = $this->qcEligibilityFlag($childRow->qc ?? $targetRow->qc ?? 0);
+        $updates['qsc'] = $this->qcEligibilityFlag($childRow->qsc ?? $targetRow->qsc ?? 0);
+
+        if (count($updates) > 1) {
+            DB::table($targetTable)->where('application_id', $targetId)->update($updates);
+        }
+
+        $this->syncLegacyApplicationProfile($targetId, $updates);
     }
 
     protected function syncLegacyApplicationProfile(string $parentApplicationId, array $parentUpdates): void

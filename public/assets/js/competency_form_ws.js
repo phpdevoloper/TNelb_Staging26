@@ -90,25 +90,25 @@
                 ? window.isNoPaymentApplType()
                 : false;
 
-            let data = null;
-            if (!noPaymentApplType) {
-                data = await getPaymentsService(licence_code, issued_licence, appl_type);
-            }
-
-            if (!noPaymentApplType && !data) {
-                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
-                return;
-            }
-
-            if (noPaymentApplType) {
-                $('#amount').val('0');
-            }
-
             const boardMemberFeeExempt = !noPaymentApplType
                 && ($('#form_name').val() || '').trim().toUpperCase() === 'S'
                 && ['N', 'R'].includes(String(appl_type || '').trim().toUpperCase())
                 && typeof window.wxHasBoardMemberWorkRow === 'function'
                 && window.wxHasBoardMemberWorkRow();
+
+            let data = null;
+            if (!noPaymentApplType && !boardMemberFeeExempt) {
+                data = await getPaymentsService(licence_code, issued_licence, appl_type);
+            }
+
+            if (!noPaymentApplType && !boardMemberFeeExempt && !data) {
+                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
+                return;
+            }
+
+            if (noPaymentApplType || boardMemberFeeExempt) {
+                $('#amount').val('0');
+            }
 
             if (boardMemberFeeExempt) {
                 $('#amount').val('0');
@@ -167,8 +167,13 @@
                 formFeesEl.textContent = noPaymentApplType
                     ? (applUpper === 'A' ? 'No fee (Alteration)' : 'No fee (Digitization)')
                     : (boardMemberFeeExempt
-                        ? 'No fee (Board Member — fee not applicable)'
+                        ? 'Application fee-exempted for this application'
                         : ('Rs.' + actual_fees + '/-'));
+                formFeesEl.style.color = boardMemberFeeExempt ? '#198754' : '';
+            }
+            const exemptNotice = document.getElementById('board-member-fee-exempt-notice');
+            if (exemptNotice) {
+                exemptNotice.classList.toggle('d-none', !boardMemberFeeExempt);
             }
 
 
@@ -201,7 +206,7 @@
                 }
                 let formData = new FormData($('#competency_form_ws')[0]);
                 // Digitisation / alteration: this is the final submit (no PayU). N/R stay draft until payment.
-                formData.set('form_action', noPaymentApplType ? 'submit' : 'draft');
+                formData.set('form_action', (noPaymentApplType || boardMemberFeeExempt) ? 'submit' : 'draft');
                 if (typeof window.appendWorkTransformerKvaToFormData === 'function') {
                     window.appendWorkTransformerKvaToFormData(formData, $('#competency_form_ws')[0]);
                 }
@@ -378,38 +383,20 @@
                         // Zero-fee paths — submit directly (no payment gateway UI)
                         if (feeExemptSubmit) {
                             try {
-                                // Digitisation / Alteration: form save already finalises; do not create payment records.
-                                if (noPaymentApplType) {
-                                    showPaymentSuccessPopup(
-                                        application_id,
-                                        '',
-                                        transactionDate,
-                                        applicantName,
-                                        0,
-                                        form_type,
-                                        licence_name,
-                                        false,
-                                        { feeExempt: true }
-                                    );
-                                    return;
-                                }
-
-                                // Board-member fee exemption (N/R Form S) still records a zero-amount payment.
-                                const paid = await runCompetencyPayment();
                                 showPaymentSuccessPopup(
-                                    paid.application_id,
-                                    paid.transactionId,
-                                    paid.transactionDate,
-                                    paid.applicantName,
-                                    paid.amount,
-                                    paid.form_type,
-                                    paid.licence_name,
+                                    application_id,
+                                    '',
+                                    transactionDate,
+                                    applicantName,
+                                    0,
+                                    form_type,
+                                    licence_name,
                                     false,
-                                    { feeExempt: true }
+                                    { feeExempt: true, boardMemberExempt: boardMemberFeeExempt }
                                 );
                             } catch (err) {
                                 Swal.fire({
-                                    title: noPaymentApplType ? 'Submission Failed' : 'Payment Failed',
+                                    title: (noPaymentApplType || boardMemberFeeExempt) ? 'Submission Failed' : 'Payment Failed',
                                     text: err.message || 'Something went wrong. Please try again.',
                                     icon: 'error'
                                 });
@@ -817,6 +804,13 @@
             $modal.find(".ps-payment-only").removeClass("d-none");
             $modal.find(".ps-transaction-date-label").text("Transaction Date:");
             $modal.find(".ps-app-pdf-heading").addClass("mt-3");
+        }
+        const boardMemberExempt = options.boardMemberExempt === true;
+        const $exemptNotice = $modal.find("#ps_fee_exempt_notice");
+        if (boardMemberExempt) {
+            $exemptNotice.removeClass("d-none");
+        } else {
+            $exemptNotice.addClass("d-none");
         }
 
         // store ID globally for download actions
@@ -2110,6 +2104,7 @@
                     border-radius: 6px; min-height: 34px; word-break: break-word;
                 }
                 .prv-sw-modal-root .prv-sw-value.prv-sw-empty { color: #9aa8bf; font-style: italic; font-weight: 400; }
+                .prv-sw-modal-root .prv-sw-7b-not-used { display: none !important; }
 
                 /* Personal & contact — photo + signature column + 2-col details grid */
                 .prv-sw-modal-root .prv-sw-personal-layout {
@@ -2483,19 +2478,19 @@
                                                             <div class="prv-sw-value" id="prvSwWork7bMeetingDetails" style="white-space:pre-line;">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-4">
+                                                    <div class="col-12 col-sm-4 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">From date</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bFrom">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-4">
+                                                    <div class="col-12 col-sm-4 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">To date</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bTo">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-4">
+                                                    <div class="col-12 col-sm-4 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">Duration</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bDuration">&mdash;</div>
@@ -2507,7 +2502,7 @@
                                                             <div class="prv-sw-value" id="prvSwWork7bSupportDoc">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-6">
+                                                    <div class="col-12 col-sm-6 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">Relieving Letter</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bRelieveDoc">&mdash;</div>
@@ -2903,17 +2898,22 @@
             const formFullTitle = formTitleMap[formCode] || ('Form ' + formCode);
             const applicantName = v('Applicant_Name') || valByName('applicant_name');
             const appId = v('application_id') || valByName('application_id');
-            const licenceVal = v('license_number') || valByName('license_number');
+            const issuedLicence = v('license_number') || valByName('license_number');
+            // New applications have no issued licence. license_number on edit is a
+            // previous SCC or wireman number (section 8 / 9), not this application.
+            const licenceVal = applType === 'N'
+                ? formFullTitle
+                : (issuedLicence || formFullTitle);
             setField('prvSwMetaName', applicantName);
             setField('prvSwMetaAppId', appId || 'Draft (not saved yet)');
-            setField('prvSwMetaLicence', licenceVal || ('Certificate ' + formCode));
+            setField('prvSwMetaLicence', licenceVal);
 
             const printTagEl = document.getElementById('prvSwPrintTag');
             if (printTagEl) {
                 const tagParts = [];
                 if (applType === 'R') tagParts.push('Renewal');
                 tagParts.push('Form ' + formCode);
-                if (licenceVal) tagParts.push('Licence: ' + licenceVal);
+                if (applType !== 'N' && issuedLicence) tagParts.push('Licence: ' + issuedLicence);
                 printTagEl.textContent = tagParts.join(' · ');
             }
             const printTitleEl = document.getElementById('prvSwPrintTitle');

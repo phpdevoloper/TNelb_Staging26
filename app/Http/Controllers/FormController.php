@@ -550,6 +550,11 @@ class FormController extends BaseController
 
     private function isFormSBoardMemberFeeExempt(Request $request): bool
     {
+        $applType = strtoupper(trim((string) ($request->appl_type ?? '')));
+        if (! in_array($applType, ['N', 'R'], true)) {
+            return false;
+        }
+
         return $this->requestHasFormSBoardMemberWorkExperience($request);
     }
 
@@ -1616,7 +1621,7 @@ class FormController extends BaseController
     ): void {
         $workflow = app(FormSApplicationWorkflowService::class);
         $parent = $workflow->masterApplication($child);
-        $parentId = (string) $parent->application_id;
+        $parentId = $this->childDocumentSnapshotService()->experienceSourceApplicationId($parent);
         $childId = (string) $child->application_id;
 
         CC_Experience::where('application_id', $childId)->delete();
@@ -1851,7 +1856,7 @@ class FormController extends BaseController
         $snapshot = $this->childDocumentSnapshotService();
         $workflow = app(FormSApplicationWorkflowService::class);
         $parent = $workflow->masterApplication($child);
-        $parentId = (string) $parent->application_id;
+        $parentId = $snapshot->educationSourceApplicationId($parent);
         $childId = (string) $child->application_id;
 
         CC_Education::where('application_id', $childId)->delete();
@@ -2645,6 +2650,7 @@ class FormController extends BaseController
 
         return match ($normalized) {
             'n', 'draft', '' => 'draft',
+            'b' => 'payment',
             'y', 'payment', 'paid', 'success' => 'payment',
             default => $normalized !== '' ? $normalized : 'draft',
         };
@@ -2653,16 +2659,18 @@ class FormController extends BaseController
     /**
      * Form save/submit must not mark N/R as paid. Paid status is set only after
      * PayU/cc_payments success (or on fee-exempt D/A finalize).
+     * Form S board-member New/Renewal submit stores B and does not write cc_payments.
      */
     private function resolveCompetencyPaymentStatusOnSave(
         string $action,
         ?string $applType,
-        ?string $existingPaymentStatus = null
+        ?string $existingPaymentStatus = null,
+        ?Request $request = null
     ): string {
         $existing = strtoupper(trim((string) $existingPaymentStatus));
 
-        if (in_array($existing, ['Y'], true)) {
-            return trim((string) $existingPaymentStatus);
+        if (in_array($existing, ['Y', 'B'], true)) {
+            return $existing;
         }
 
         if (strtolower(trim($action)) === 'draft') {
@@ -2674,7 +2682,10 @@ class FormController extends BaseController
             return 'Y';
         }
 
-        // N/R (and other paid types): stay unpaid until payment callback.
+        if ($request && $this->isFormSBoardMemberFeeExempt($request)) {
+            return 'B';
+        }
+
         return 'N';
     }
 
@@ -3587,7 +3598,7 @@ class FormController extends BaseController
                 'certificate_name'        => $request->license_name,
                 'app_status'              => 'P',
                 'appl_type'           => $appl_type,
-                'payment_status'      => $this->resolveCompetencyPaymentStatusOnSave($action, $appl_type),
+                'payment_status'      => $this->resolveCompetencyPaymentStatusOnSave($action, $appl_type, null, $request),
                 'wcc_no'      => $request->competency_certificate_no,
                 'wcc_to' => $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
                 'wcc_issue_date' => $this->calendarDateYmd($request->certificate_issue_date),
@@ -4041,7 +4052,8 @@ class FormController extends BaseController
         $paymentStatus = $this->resolveCompetencyPaymentStatusOnSave(
             $action,
             $request->appl_type ?? $existingForm->appl_type ?? null,
-            $existingForm->payment_status ?? null
+            $existingForm->payment_status ?? null,
+            $request
         );
 
         DB::beginTransaction();
@@ -4067,7 +4079,7 @@ class FormController extends BaseController
                 'wcc_to'            => $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
                 'wcc_issue_date'    => $this->calendarDateYmd($request->certificate_issue_date),
                 'wcc_from'          => $this->calendarDateYmd($request->certificate_valid_from),
-                'app_status'        => 'D',
+                'app_status'        => $paymentStatus === 'B' ? 'P' : 'D',
                 'payment_status'    => $paymentStatus,
                 'submitted_date'    => $this->dbNow,
                 'updated_at'        => $this->dbNow,
@@ -4570,17 +4582,19 @@ class FormController extends BaseController
                 $applicationId = $this->generateCompetencyApplicationId($request);
             }
 
+            $paymentStatus = $this->resolveCompetencyPaymentStatusOnSave(
+                (string) $action,
+                $appl_type,
+                $form?->payment_status,
+                $request
+            );
             $metaPayload = $this->buildCcFormsMetaPayload(
                 $request,
                 $applicationId,
                 $form,
                 [
-                    'app_status' => 'D',
-                    'payment_status' => $this->resolveCompetencyPaymentStatusOnSave(
-                        (string) $action,
-                        $appl_type,
-                        $form?->payment_status
-                    ),
+                    'app_status' => $paymentStatus === 'B' ? 'P' : 'D',
+                    'payment_status' => $paymentStatus,
                     'old_application' => $form?->old_application ?? $request->input('old_application'),
                 ]
             );
@@ -4961,7 +4975,8 @@ class FormController extends BaseController
                 'payment_status' => $this->resolveCompetencyPaymentStatusOnSave(
                     (string) $action,
                     $appl_type,
-                    $form?->payment_status
+                    $form?->payment_status,
+                    $request
                 ),
                 'old_application' => $oldApplicationId,
             ];
@@ -5287,7 +5302,8 @@ public function update(Request $request, $id)
                     'payment_status'     => $this->resolveCompetencyPaymentStatusOnSave(
                         (string) ($action ?? 'draft'),
                         $appl_type,
-                        $form?->payment_status
+                        $form?->payment_status,
+                        $request
                     ),
                     'submitted_date'     => $this->dbNow,
                     'updated_at'         => $this->dbNow,
@@ -5571,7 +5587,7 @@ public function update(Request $request, $id)
             abort(400, 'Invalid document type.');
         }
 
-        $filename = trim(str_replace('\\', '/', rawurldecode($filename)));
+        $filename = trim(str_replace('\\', '/', urldecode($filename)));
         if ($filename === '' || str_contains($filename, '..')) {
             abort(404, 'File not found.');
         }
@@ -5583,7 +5599,7 @@ public function update(Request $request, $id)
         } elseif (preg_match('/\.bin$/i', $filename)) {
             $candidates[] = (string) preg_replace('/\.bin$/i', '.pdf', $filename);
         }
-
+        
         $storage = app(DocumentStorageService::class);
 
         foreach (array_unique(array_filter($candidates)) as $relative) {
@@ -5828,7 +5844,7 @@ public function update(Request $request, $id)
     private function isCompetencyRenewalDraftOpen(CC_CompetencyMeta $form): bool
     {
         $pay = strtoupper(trim((string) ($form->payment_status ?? '')));
-        if (in_array($pay, ['Y', 'SUCCESS', 'PAID', 'S', 'PAYMENT'], true)) {
+        if (in_array($pay, ['Y', 'B', 'SUCCESS', 'PAID', 'S', 'PAYMENT'], true)) {
             return false;
         }
 

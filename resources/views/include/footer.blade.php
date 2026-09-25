@@ -2002,25 +2002,25 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 return;
             }
 
-            let data = null;
-            if (!noPaymentApplType) {
-                data = await getPaymentsService(licence_code, issued_licence, appl_type);
-            }
-
-            if (!noPaymentApplType && !data) {
-                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
-                return;
-            }
-
-            if (noPaymentApplType) {
-                $('#amount').val('0');
-            }
-
             const boardMemberFeeExempt = !noPaymentApplType
                 && ($('#form_name').val() || '').trim().toUpperCase() === 'S'
                 && ['N', 'R'].includes(String(appl_type || '').trim().toUpperCase())
                 && typeof window.wxHasBoardMemberWorkRow === 'function'
                 && window.wxHasBoardMemberWorkRow();
+
+            let data = null;
+            if (!noPaymentApplType && !boardMemberFeeExempt) {
+                data = await getPaymentsService(licence_code, issued_licence, appl_type);
+            }
+
+            if (!noPaymentApplType && !boardMemberFeeExempt && !data) {
+                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
+                return;
+            }
+
+            if (noPaymentApplType || boardMemberFeeExempt) {
+                $('#amount').val('0');
+            }
 
             if (boardMemberFeeExempt) {
                 $('#amount').val('0');
@@ -2079,8 +2079,13 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 formFeesEl.textContent = noPaymentApplType
                     ? (applUpper === 'A' ? 'No fee (Alteration)' : 'No fee (Digitization)')
                     : (boardMemberFeeExempt
-                        ? 'No fee (Board Member — fee not applicable)'
+                        ? 'Application fee-exempted for this application'
                         : ('Rs.' + actual_fees + '/-'));
+                formFeesEl.style.color = boardMemberFeeExempt ? '#198754' : '';
+            }
+            const exemptNotice = document.getElementById('board-member-fee-exempt-notice');
+            if (exemptNotice) {
+                exemptNotice.classList.toggle('d-none', !boardMemberFeeExempt);
             }
 
             // Reset state
@@ -2136,7 +2141,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                     window.normalizeIsoDateInputs('#competency_form_ws');
                 }
                 let formData = new FormData($('#competency_form_ws')[0]);
-                formData.set('form_action', 'draft');
+                formData.set('form_action', (noPaymentApplType || boardMemberFeeExempt) ? 'submit' : 'draft');
                 if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
                     window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
                 }
@@ -2304,38 +2309,20 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         // Zero-fee paths — submit directly (no payment gateway UI)
                         if (feeExemptSubmit) {
                             try {
-                                // Digitisation / Alteration: form save already finalises; do not create payment records.
-                                if (noPaymentApplType) {
-                                    showPaymentSuccessPopup(
-                                        application_id,
-                                        '',
-                                        transactionDate,
-                                        applicantName,
-                                        0,
-                                        form_type,
-                                        licence_name,
-                                        false,
-                                        { feeExempt: true }
-                                    );
-                                    return;
-                                }
-
-                                // Board-member fee exemption (N/R Form S) still records a zero-amount payment.
-                                const paid = await runCompetencyPayment();
                                 showPaymentSuccessPopup(
-                                    paid.application_id,
-                                    paid.transactionId,
-                                    paid.transactionDate,
-                                    paid.applicantName,
-                                    paid.amount,
-                                    paid.form_type,
-                                    paid.licence_name,
+                                    application_id,
+                                    '',
+                                    transactionDate,
+                                    applicantName,
+                                    0,
+                                    form_type,
+                                    licence_name,
                                     false,
-                                    { feeExempt: true }
+                                    { feeExempt: true, boardMemberExempt: boardMemberFeeExempt }
                                 );
                             } catch (err) {
                                 Swal.fire({
-                                    title: noPaymentApplType ? 'Submission Failed' : 'Payment Failed',
+                                    title: (noPaymentApplType || boardMemberFeeExempt) ? 'Submission Failed' : 'Payment Failed',
                                     text: err.message || 'Something went wrong. Please try again.',
                                     icon: 'error'
                                 });
@@ -2532,6 +2519,13 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             $modal.find(".ps-payment-only").removeClass("d-none");
             $modal.find(".ps-transaction-date-label").text("Transaction Date:");
             $modal.find(".ps-app-pdf-heading").addClass("mt-3");
+        }
+        const boardMemberExempt = options.boardMemberExempt === true;
+        const $exemptNotice = $modal.find("#ps_fee_exempt_notice");
+        if (boardMemberExempt) {
+            $exemptNotice.removeClass("d-none");
+        } else {
+            $exemptNotice.addClass("d-none");
         }
 
         // store ID globally for download actions

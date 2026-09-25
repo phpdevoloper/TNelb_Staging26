@@ -2149,6 +2149,9 @@ use Illuminate\Support\Facades\Auth;
                 </div>
 
                 <div class="modal-body">
+                    <p id="board-member-fee-exempt-notice" class="d-none text-center fw-bold mb-3" style="color:#198754;font-size:1.05rem;">
+                        Application fee-exempted for this application
+                    </p>
                     <div class="instructions-card">
                         <div class="card-header-strip">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2326,6 +2329,9 @@ use Illuminate\Support\Facades\Auth;
                     <h4 class="text-success w-100 text-center m-0" id="ps_success_modal_title">
                         Payment Successful!
                     </h4>
+                    <p id="ps_fee_exempt_notice" class="d-none text-center fw-bold mb-0 mt-2" style="color:#198754;">
+                        Application fee-exempted for this application
+                    </p>
                 </div>
 
                 <div class="modal-body">

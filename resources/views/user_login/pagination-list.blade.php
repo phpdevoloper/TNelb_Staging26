@@ -237,6 +237,7 @@
                             'N' => 'New',
                             'R' => 'Renewal',
                             'D' => 'Digitisation',
+                            'A' => 'Alteration',
                             default => 'Certificate',
                         };
                     @endphp
