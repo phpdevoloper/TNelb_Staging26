@@ -2432,8 +2432,6 @@ class SupervisorController extends Controller
         $application = $this->resolveCompetencyApplicationForApproval($request->application_id);
 
 
-
-
         if (!$application) {
             return response()->json(['error' => 'Application not found.'], 404);
         }
@@ -2478,18 +2476,42 @@ class SupervisorController extends Controller
 
 
             // Regenerate licence PDF on the issued certificate application (parent for alterations).
+            // A failure here rolls the approval back. Nothing after this point is saved.
             $pdfApplicationId = $appl_type === 'A'
                 ? trim((string) ($application->old_application ?? $request->application_id))
                 : $request->application_id;
 
             try {
-                app(LicensepdfController::class)->generatePDF($pdfApplicationId);
+                $pdfResponse = app(LicensepdfController::class)->generatePDF($pdfApplicationId);
+                $pdfFailed = ! $pdfResponse instanceof \Symfony\Component\HttpFoundation\Response
+                    || $pdfResponse->isRedirection()
+                    || $pdfResponse->getStatusCode() >= 400;
+                if ($pdfFailed) {
+                    throw new \RuntimeException('Licence PDF could not be generated.');
+                }
+
+                $storedPath = 'private_documents/license_pdfs/' . $pdfApplicationId . '.pdf';
+                if (! \Illuminate\Support\Facades\Storage::disk('local')->exists($storedPath)) {
+                    throw new \RuntimeException('Licence PDF file was not stored.');
+                }
             } catch (\Throwable $e) {
+                DB::rollBack();
                 Log::warning('Failed to generate/store encrypted licence PDF after approval', [
                     'application_id' => $pdfApplicationId,
                     'alteration_application_id' => $appl_type === 'A' ? $request->application_id : null,
                     'error' => $e->getMessage(),
                 ]);
+
+                $detail = trim($e->getMessage());
+                $prefix = 'Licence PDF could not be generated.';
+                if (str_starts_with($detail, $prefix)) {
+                    $detail = trim(substr($detail, strlen($prefix)));
+                }
+
+                return response()->json([
+                    'status' => 'error',
+                    'error' => trim($prefix . ' Approval was not saved. ' . $detail),
+                ], 422);
             }
 
 

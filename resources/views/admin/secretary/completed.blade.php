@@ -178,11 +178,11 @@
                                             @if($application->status == 'F')
                                             {{ '-' }}
                                             @else
-                                                <a class="badge badge-primary mb-2 me-4" href="{{ route('admin.generate.pdf', ['application_id' => $application->application_id]) }}" target="_blank">
+                                                <a class="badge badge-primary mb-2 me-4" href="{{ route('admin.licence.stored', ['application_id' => $application->application_id]) }}" target="_blank">
                                                     <i class="fa fa-eye"></i> View
                                                 </a>
 
-                                                <a href="{{ route('admin.generateLicensePDF', ['application_id' => $application->application_id]) }}" target="_blank"
+                                                <a href="{{ route('admin.licence.stored', ['application_id' => $application->application_id]) }}" target="_blank"
 
                                                 ata-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence PDF"> 
                                                 <span class="badge badge-info" style="font-size: 15px;">

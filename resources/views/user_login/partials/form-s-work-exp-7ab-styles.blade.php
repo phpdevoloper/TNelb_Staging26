@@ -334,3 +334,13 @@
     #work-exp-summary-panel-current .work-exp-summary-tr--frozen .work-row-remove {
         display: none !important;
     }
+    #fs-7b-root.fs-7b-return-locked .work-card-field .form-control,
+    #fs-7b-root.fs-7b-return-locked .work-card-field textarea {
+        background: #eef1f4;
+        pointer-events: none;
+    }
+    #fs-7b-root.fs-7b-return-locked .remove-work-doc-confirm,
+    #fs-7b-root.fs-7b-return-locked .form-s-file-upload-wrap,
+    #fs-7b-root.fs-7b-return-locked .work-card-field-hint {
+        display: none !important;
+    }

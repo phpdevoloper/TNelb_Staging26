@@ -444,7 +444,7 @@
                                                             <a href="{{ route('admin.formp.licence.en', ['application_id' => $application->application_id]) }}" target="_blank" class="btn btn-sm btn-primary btn-view-licence" title="Form P Licence (English)"><i class="fa fa-file-pdf-o me-1"></i> View EN</a>
                                                             <a href="{{ route('admin.formp.licence.ta', ['application_id' => $application->application_id]) }}" target="_blank" class="btn btn-sm btn-outline-primary btn-view-licence" title="Form P Licence (Tamil)"><i class="fa fa-file-pdf-o me-1"></i> View TA</a>
                                                         @else
-                                                            <a href="{{ route('admin.getLicenceDoc.pdf', ['application_id' => $application->application_id]) }}" target="_blank" class="btn btn-sm btn-primary btn-view-licence" title="View stored Licence PDF"><i class="fa fa-file-pdf-o me-1"></i> View</a>
+                                                            <a href="{{ route('admin.licence.stored', ['application_id' => $application->application_id]) }}" target="_blank" class="btn btn-sm btn-primary btn-view-licence" title="View stored Licence PDF"><i class="fa fa-file-pdf-o me-1"></i> View</a>
                                                             <a href="{{ route('admin.generate.pdf', ['application_id' => $application->application_id]) }}" target="_blank" class="btn btn-sm btn-outline-primary btn-view-licence" title="Generated Licence PDF"><i class="fa fa-download me-1"></i> Generated PDF</a>
                                                         @endif
                                                     </div>

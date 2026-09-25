@@ -534,7 +534,7 @@
             }
 
             // English licence PDF (card) for competency/amendment applications
-            const licenceEnUrlTemplate = "{{ route('admin.generateLicensePDF', ['application_id' => '__APP__']) }}";
+            const licenceEnUrlTemplate = "{{ route('admin.licence.stored', ['application_id' => '__APP__']) }}";
             const licenceTaUrlTemplate = "{{ route('admin.licence.ta', ['application_id' => '__APP__']) }}";
             // Form P: single encrypted PDF (English + Tamil merged); any stream route serves the same file.
             const formPLicenceBilingualUrlTemplate = "{{ route('admin.formp.licence.en', ['application_id' => '__APP__']) }}";

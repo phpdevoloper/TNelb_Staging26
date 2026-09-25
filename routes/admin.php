@@ -86,6 +86,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
 
 
     Route::get('/generate-pdf/{application_id}', [LicensepdfController::class, 'generatePDF'])->name('generate.pdf');
+    Route::get('/licence/stored/{application_id}', [LicensepdfController::class, 'streamStoredLicence'])->name('licence.stored');
     Route::get('/generate-licence-tamil/{application_id}', [LicensepdfController::class, 'generateLicenceTamil'])->name('competency-certificate-tamil.pdf');
     // Form P specific licence streaming (encrypted PDFs)
     Route::get('/formp/licence/en/{application_id}', [LicensepdfController::class, 'streamFormPLicenceEn'])->name('formp.licence.en');

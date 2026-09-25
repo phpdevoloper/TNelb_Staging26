@@ -2297,9 +2297,16 @@
                                     // $('#licenseExpiry').text(response.license_expiry);
                                 },
                                 error: function (xhr) {
-                                    let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
-                                    $('#errorMessage').text(errorMessage);
-                                    $('#errorModal').modal('show');
+                                    let errorMessage = xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)
+                                        ? (xhr.responseJSON.error || xhr.responseJSON.message)
+                                        : "An unexpected error occurred.";
+                                    Swal.fire({
+                                        icon: "error",
+                                        title: "Approval failed",
+                                        text: errorMessage,
+                                        confirmButtonText: "OK",
+                                        allowOutsideClick: false
+                                    });
                                 }
                             });
                         }

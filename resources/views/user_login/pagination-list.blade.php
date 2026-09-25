@@ -358,7 +358,7 @@
                             <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
                     @else
-                        <a href="{{ route('admin.generateLicensePDF', ['application_id' => $certPdfAppId]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (English)">
+                        <a href="{{ route('admin.licence.stored', ['application_id' => $certPdfAppId]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="View stored licence">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
                             <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
