@@ -764,6 +764,7 @@ $(document).ready(function () {
 
 });
 
+
 $("#competency_form_a").on("submit",async function (e) {
 
     e.preventDefault();
@@ -3552,84 +3553,6 @@ function showPaymentSuccessPopupformA(
 
     $("#paymentSuccessModalcontractor").modal("show");
 
-    //    Swal.fire({
-    //         title: `<h3 style="color:#198754; font-size:1.5rem;">Payment Successful!</h3>`,
-    //         html: `
-    //         <div style="font-size: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;">
-    //             <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 90%; margin: 0 auto;">
-    //                 <div style="
-    //                         display: grid;
-    //                         grid-template-columns: auto 1fr;
-    //                         gap: 7px 18px;
-    //                         text-align: left;
-    //                         font-size: 14px;
-    //                         max-width: 380px;
-    //                         border-right: 2px solid #0d6efd;
-    //                         padding: 0px 15px;
-    //                 ">
-    //                     <div style="font-weight: bold;">Application ID:</div>
-    //                     <div style="word-break: break-word;">${application_id}</div>
-
-    //                     <div style="font-weight: bold;">Application ID:</div>
-    //                     <div style="word-break: break-word;">${applicantName}</div>
-
-    //                     <div style="font-weight: bold;">Type of Application:</div>
-    //                     <div style="word-break: break-word;">${licenseName}</div>
-
-    //                     <div style="font-weight: bold;">Type of Form:</div>
-    //                     <div style="word-break: break-word;">${form_type}</div>
-
-    //                     <div style="font-weight: bold;">Transaction ID:</div>
-    //                     <div style="word-break: break-word;">${transactionId}</div>
-
-    //                     <div style="font-weight: bold;">Transaction Date:</div>
-    //                     <div>${transactionDate}</div>
-
-    //                     <div style="font-weight: bold;">Amount Paid:</div>
-    //                     <div>${amount}</div>
-    //                 </div>
-    //                 <div style="min-width: 200px; text-align: center;">
-    //                     <p><strong>Download Your Payment Receipt:</strong></p>
-    //                     <button class="btn btn-info btn-sm mb-2" onclick="paymentreceipt('${application_id}')">
-    //                         <i class="fa fa-file-pdf-o text-danger"></i>
-    //                         <i class="fa fa-download text-danger"></i>
-    //                         Download Receipt
-    //                     </button>
-    //                     <p class="mt-2"><strong>Download Your Application PDF:</strong></p>
-    //                     <button class="btn btn-primary btn-sm me-1" onclick="downloadPDFformA('${application_id}')">English PDF</button>
-    //                 </div>
-    //             </div>
-    //         </div>
-    //         `,
-    //         width: '50%',
-    //         customClass: {
-    //             popup: 'swal2-border-radius p-3'
-    //         },
-    //         confirmButtonText: "Go to Dashboard",
-    //         confirmButtonColor: "#0d6efd",
-    //         allowOutsideClick: true,
-    //         allowEscapeKey: true,
-    //         showCloseButton: true,
-    //         didOpen: () => {
-    //             const iconEl = document.querySelector('.swal2-icon');
-    //             if (iconEl) iconEl.style.display = 'none';
-
-    //             const popup = document.querySelector('.swal2-popup');
-    //             if (popup) {
-    //                 popup.style.marginTop = '10px';
-    //                 popup.style.padding = '10px 20px';
-    //             }
-
-    //             const container = document.querySelector('.swal2-container');
-    //             if (container) {
-    //                 container.style.alignItems = 'flex-start';
-    //                 container.style.paddingTop = '20px';
-    //             }
-    //         },
-    //         willClose: () => {
-    //             window.location.href = BASE_URL + '/dashboard';
-    //         }
-    //     });
 }
 
 function paymentreceiptformA() {
@@ -7920,7 +7843,9 @@ function addQCStaffRecord(
 
     consDocLink = "",
 
-    consDocName = ""
+    consDocName = "",
+
+     isExisting = false
 
 ) {
 
@@ -8150,101 +8075,65 @@ function addQCStaffRecord(
 // ============================================================
 // CALCULATE TOTAL QC/QSC FEE
 // ============================================================
-
 function updateQCStaffTotalFee() {
 
     let totalFee = 0;
 
-
-    // ========================================================
-    // LOOP ONLY STAFF ROWS
-    // ========================================================
-
     $("#staffqc-records tr.staffqc-record").each(function () {
 
-        let category = $(this)
+        let $row = $(this);
+
+        // Existing/draft row
+        let isExisting = $row.attr("data-existing") === "1";
+
+        // Existing alteration records are FREE
+        if (isExisting) {
+            return;
+        }
+
+        let category = $row
             .find('input[name="staffqc_category[]"]')
             .val();
 
+        category = $.trim(category).toUpperCase();
 
-        category =
-            $.trim(category).toUpperCase();
-
-
-        // QC = 15000
         if (category === "QC") {
-
             totalFee += 15000;
-
         }
-
-
-        // QSC = 25000
         else if (category === "QSC") {
-
             totalFee += 25000;
-
         }
-
     });
 
 
-    // ========================================================
-    // REMOVE OLD FEE ROW
-    // ========================================================
-
+    // Remove previous fee row
     $("#staffqc-records tr.staffqc-total-fee").remove();
 
 
-    // ========================================================
-    // NO STAFF = NO FEE ROW
-    // ========================================================
-
+    // No NEW staff = no fee
     if (totalFee <= 0) {
-
         return;
-
     }
 
 
-    // ========================================================
-    // CREATE FEE ROW
-    // ========================================================
-
     let feeRow = `
-
         <tr class="staffqc-total-fee">
 
-            <td colspan="7"
-                class="fw-bold text-end">
-
+            <td colspan="7" class="fw-bold text-end">
                 Fees
-
             </td>
 
             <td>
-
                 <span class="btn btn-primary">
-
                     ₹ ${totalFee.toLocaleString("en-IN")}
-
                 </span>
-
             </td>
 
         </tr>
-
     `;
 
-
-    // ========================================================
-    // ALWAYS APPEND FEE AS LAST ROW
-    // ========================================================
-
     $("#staffqc-records").append(feeRow);
-
 }
-
 
 // ============================================================
 // REMOVE QC / QSC STAFF

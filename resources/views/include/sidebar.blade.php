@@ -638,7 +638,7 @@
                                         <a class="sb-nav__child-link {{ $activeContractorAlterationA ? 'is-active' : '' }}"
                                             href="{{ route('apply-form-a_alt') }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
-                                            <span>Alteration</span>
+                                            <span>Alteration/Extension</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -678,7 +678,7 @@
                                         <a class="sb-nav__child-link {{ $activeContractorAlteration ? 'is-active' : '' }}"
                                             href="{{ route('alteration_cl') }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
-                                            <span>Alteration</span>
+                                            <span>Alteration/Extension</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -718,7 +718,7 @@
                                         <a class="sb-nav__child-link {{ $activeContractorAlteration ? 'is-active' : '' }}"
                                             href="{{ route('alteration_cl') }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
-                                            <span>Alteration</span>
+                                            <span>Alteration/Extension</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -758,7 +758,7 @@
                                         <a class="sb-nav__child-link {{ $activeContractorAlteration ? 'is-active' : '' }}"
                                             href="{{ route('alteration_cl') }}">
                                             <i class="fa fa-circle sb-nav__child-bullet" aria-hidden="true"></i>
-                                            <span>Alteration</span>
+                                            <span>Alteration/Extension</span>
                                         </a>
                                     </li>
                                 </ul>

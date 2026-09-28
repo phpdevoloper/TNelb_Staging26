@@ -49,32 +49,32 @@
                             </a>
                             <div class="d-flex breadcrumb-content">
                                 <div class="page-header">
-    
+
                                     <div class="page-title">
                                     </div>
-    
+
                                     <nav class="breadcrumb-style-one" aria-label="breadcrumb">
                                         <ol class="breadcrumb">
                                             <li class="breadcrumb-item"><a href="#"></a></li>
-    
+
                                         </ol>
                                     </nav>
-    
+
                                 </div>
                             </div>
-    
+
                         </header>
                     </div>
                 </div>
                 <!--  END BREADCRUMBS  -->
-    
+
                 <div class="row layout-top-spacing dashboard">
-    
+
                 <h4 class="dashboard_title">Competency Certificate</h4>
                     @foreach($secretary as $form)
-      
+
                 @if($form->category_id == '2')
-                
+
                     <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12 layout-spacing">
                         <div class="widget widget-card-five {{ $formColors[$form->color_code] ?? 'bg-default' }} color_forms">
                             <div class="widget-content">
@@ -99,14 +99,14 @@
                                                     </a>
                                                    <a href="{{ route('admin.view_rejected', ['form_id' => $form->id]) }}" class="" data-form="{{ $form->id }}">
                                                         <h4>Rejected <span class="badge badge-danger">{{ $form->rejected_count }}</span></h4>
-                                                    </a>   
+                                                    </a>
                                                 </div>
                                                <div class="layout-top-spacing" style="text-align: end">
                                                         <!-- Completed Count -->
                                                       <a href="{{ route('admin.secratary_completed', ['form_id' => $form->id]) }}" class="" data-form="{{ $form->id }}">
                                                           <h4>Completed <span class="badge badge-success">{{ $form->completed_count }}</span></h4>
                                                       </a>
-        
+
                                                       <!-- Pending Count -->
                                                       <a href="{{ route('admin.view_secratary', ['form_id' => $form->id]) }}" class="" data-form="{{ $form->id }}">
                                                           <h4>Pending <span class="badge badge-warning">{{ $form->pending_count }}</span></h4>
@@ -119,18 +119,18 @@
                             </div>
                         </div>
                     </div>
-                  
+
                     @endif
                 @endforeach
-                 
+
                      <!-- ------------------------------------- -->
                     <h4 class="dashboard_title">Contractor Licenses</h4>
-    
+
                     <!-- <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12 layout-spacing">
                         <div class="widget widget-card-five bg-thickgreen color_forms">
                             <div class="widget-content">
                                 <div class="account-box">
-    
+
                                     <div class="info-box">
                                         <div class="row">
                                             <div class="col-lg-3 col-3">
@@ -140,12 +140,12 @@
                                                     </span>
                                                 </div>
                                             </div>
-    
+
                                             <div class="col-lg-9 col-9">
                                                 <div class="balance-info">
                                                     <h6>Form EA</h6>
                                                     <h5>License A</h5>
-                                                    
+
                                                      <a href="{{ route('admin.view_sec_forma_completed') }}"><h4> Completed <span class="badge badge-success">{{ $secForma_counts->completed_count }}</span></h4></a>
                                                      <a href="{{ route('admin.view_sec_forma_pending', 'A')  }}" class=""> <h4> Pending <span class="badge badge-warning">{{ $secForma_counts->pending_count }}</span></h4></a>
                                                 </div>
@@ -172,7 +172,7 @@
                                                     </span>
                                                 </div>
                                             </div>
-    
+
                                             <div class="col-lg-9 col-9">
                                                 <div class="balance-info">
                                                     <h6>Form A</h6>
@@ -213,7 +213,7 @@
                                                     </span>
                                                 </div>
                                             </div>
-    
+
                                             <div class="col-lg-9 col-9">
                                                 <div class="balance-info">
                                                     <h6>Form SA</h6>
@@ -256,7 +256,7 @@
                                                     </span>
                                                 </div>
                                             </div>
-    
+
                                             <div class="col-lg-9 col-9">
                                                 <div class="balance-info">
                                                     <h6>Form SB</h6>
@@ -299,7 +299,7 @@
                                                     </span>
                                                 </div>
                                             </div>
-    
+
                                             <div class="col-lg-9 col-9">
                                                 <div class="balance-info">
                                                     <h6>Form B</h6>
@@ -342,7 +342,7 @@
                                             <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">In Progress</button>
                                         </li>
                                     </ul>
-    
+
                                     <div class="tab-content" id="myTabContent">
                                         <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
                                             <table id="zero-config" class="table dt-table-hover table-striped">
@@ -362,7 +362,7 @@
                                                 <tr>
                                                 <td>{{ $i }}</td>
                                                 @php
-                                                    $badge_class = "badge-secondary"; 
+                                                    $badge_class = "badge-secondary";
                                                     if ($row->form_name == 'S') {
                                                         $badge_class = "badge-warning";
                                                     }elseif ($row->form_name == 'EA') {

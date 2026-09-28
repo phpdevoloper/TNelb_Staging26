@@ -8556,8 +8556,8 @@ if ($request->has('staffqc_category')) {
 
         $payment = $request->payment_status;
 
-        dd($payment);
-        exit;
+        // dd($payment);
+        // exit;
 
 
 

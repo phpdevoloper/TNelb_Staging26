@@ -441,6 +441,7 @@
 
                                 <option value="N">New Applications</option>
                                 <option value="R">Renewal Applications</option>
+                                <option value="A">Alteration Applications</option>
 
 
                             </select>
