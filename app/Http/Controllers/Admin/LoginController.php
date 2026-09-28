@@ -21,6 +21,7 @@ use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\CompetencyQcQscService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
@@ -2167,13 +2168,8 @@ class LoginController extends Controller
                 ->first();
         }
 
-        if (($applicant->appl_type ?? '') === 'A' && $parentApplicantForAlter) {
-            if ((int) ($applicant->qc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qc ?? 0) === 1) {
-                $applicant->qc = 1;
-            }
-            if ((int) ($applicant->qsc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qsc ?? 0) === 1) {
-                $applicant->qsc = 1;
-            }
+        if (in_array((string) ($applicant->appl_type ?? ''), ['A', 'R', 'D'], true)) {
+            app(CompetencyQcQscService::class)->overlayOnApplicant($applicant);
         }
 
         $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)
@@ -4061,13 +4057,8 @@ class LoginController extends Controller
                 ->first();
         }
 
-        if (($applicant->appl_type ?? '') === 'A' && $parentApplicantForAlter) {
-            if ((int) ($applicant->qc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qc ?? 0) === 1) {
-                $applicant->qc = 1;
-            }
-            if ((int) ($applicant->qsc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qsc ?? 0) === 1) {
-                $applicant->qsc = 1;
-            }
+        if (in_array((string) ($applicant->appl_type ?? ''), ['A', 'R', 'D'], true)) {
+            app(CompetencyQcQscService::class)->overlayOnApplicant($applicant);
         }
 
         $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)

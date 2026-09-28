@@ -5,6 +5,7 @@ namespace App\Services\FormS;
 use App\Models\CC_Forms_Meta;
 use App\Models\Competency\CC_CompetencyMeta;
 use App\Models\CC_Proof_doc;
+use App\Services\Competency\CompetencyMetaService;
 use App\Models\CC_Doc_Log;
 use App\Models\TnelbApplicantPhoto;
 use App\Services\DocumentVersion\DocumentStorageService;
@@ -499,6 +500,70 @@ class FormSProofDocumentService
     /**
      * Legacy-compatible object for views expecting upload_path.
      */
+    public function loadIdentityDocumentPathForView(string $applicationId, string $proofName): ?string
+    {
+        foreach ($this->applicationIdsWalkingParent($applicationId) as $id) {
+            $path = $this->resolveProofPath($id, $proofName);
+            if ($path) {
+                return $path;
+            }
+
+            $config = self::configFor($proofName);
+            $row = CC_Proof_doc::where('application_id', $id)
+                ->where(function ($q) use ($proofName, $config) {
+                    $q->where('proof_name', $proofName)
+                        ->orWhereRaw("LOWER(TRIM(COALESCE(proof_type, ''))) = ?", [strtolower($config['proof_type'])]);
+                })
+                ->orderByDesc('p_id')
+                ->first();
+
+            if ($row && trim((string) ($row->proof_doc ?? '')) !== '') {
+                return trim((string) $row->proof_doc);
+            }
+
+            $meta = app(CompetencyMetaService::class)->findModel($id);
+            $workflowPk = (int) ($meta->app_id ?? 0);
+            if ($workflowPk > 0) {
+                $log = CC_Doc_Log::query()
+                    ->where('application_id', $workflowPk)
+                    ->where('module_type', $config['module_type'])
+                    ->where(function ($q) use ($config) {
+                        $q->where('document_type', $config['document_type'])
+                            ->orWhere('document_type', $config['module_type']);
+                    })
+                    ->orderByDesc('version_no')
+                    ->orderByDesc('doc_id')
+                    ->first();
+                if ($log && trim((string) ($log->file_path ?? '')) !== '') {
+                    return trim((string) $log->file_path);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function loadIdentityProofNumberForView(string $applicationId, string $proofName): ?string
+    {
+        $config = self::configFor($proofName);
+        foreach ($this->applicationIdsWalkingParent($applicationId) as $id) {
+            $row = CC_Proof_doc::where('application_id', $id)
+                ->where(function ($q) use ($proofName, $config) {
+                    $q->where('proof_name', $proofName)
+                        ->orWhereRaw("LOWER(TRIM(COALESCE(proof_type, ''))) = ?", [strtolower($config['proof_type'])]);
+                })
+                ->orderByDesc('p_id')
+                ->first();
+
+            $number = trim((string) ($row->proof_no ?? ''));
+            if ($number !== '') {
+                return $number;
+            }
+        }
+
+        return null;
+    }
+
     public function loadPhotoForView(string $applicationId): ?object
     {
         foreach ($this->applicationIdsWalkingParent($applicationId) as $id) {
@@ -548,8 +613,8 @@ class FormSProofDocumentService
         while ($currentId !== '' && ! isset($seen[$currentId])) {
             $ids[] = $currentId;
             $seen[$currentId] = true;
-            $oldId = trim((string) (CC_Forms_Meta::where('application_id', $currentId)->value('old_application') ?? ''));
-            $currentId = $oldId;
+            $meta = app(CompetencyMetaService::class)->findModel($currentId);
+            $currentId = trim((string) ($meta->old_application ?? ''));
         }
 
         return $ids;

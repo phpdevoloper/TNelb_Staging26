@@ -90,42 +90,25 @@
                 ? window.isNoPaymentApplType()
                 : false;
 
-            // const formResponse = await $.ajax({
-            //     url: cfg.getFormInstructionUrl,
-            //     type: "POST",
-            //     data: {
-            //         appl_type,
-            //         licence_code,
-            //         _token: $('meta[name="csrf-token"]').attr('content')
-            //     }
-            // });
-
-            // if (formResponse.status == 200) {
-            //     form_instruct = formResponse.data;
-            // } else {
-            //     Swal.fire("Error", "Instruction not available", "error");
-            //     return;
-            // }
-
-            let data = null;
-            if (!noPaymentApplType) {
-                data = await getPaymentsService(licence_code, issued_licence, appl_type);
-            }
-
-            if (!noPaymentApplType && !data) {
-                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
-                return;
-            }
-
-            if (noPaymentApplType) {
-                $('#amount').val('0');
-            }
-
             const boardMemberFeeExempt = !noPaymentApplType
                 && ($('#form_name').val() || '').trim().toUpperCase() === 'S'
                 && ['N', 'R'].includes(String(appl_type || '').trim().toUpperCase())
                 && typeof window.wxHasBoardMemberWorkRow === 'function'
                 && window.wxHasBoardMemberWorkRow();
+
+            let data = null;
+            if (!noPaymentApplType && !boardMemberFeeExempt) {
+                data = await getPaymentsService(licence_code, issued_licence, appl_type);
+            }
+
+            if (!noPaymentApplType && !boardMemberFeeExempt && !data) {
+                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
+                return;
+            }
+
+            if (noPaymentApplType || boardMemberFeeExempt) {
+                $('#amount').val('0');
+            }
 
             if (boardMemberFeeExempt) {
                 $('#amount').val('0');
@@ -184,33 +167,14 @@
                 formFeesEl.textContent = noPaymentApplType
                     ? (applUpper === 'A' ? 'No fee (Alteration)' : 'No fee (Digitization)')
                     : (boardMemberFeeExempt
-                        ? 'No fee (Board Member — fee not applicable)'
+                        ? 'Application fee-exempted for this application'
                         : ('Rs.' + actual_fees + '/-'));
+                formFeesEl.style.color = boardMemberFeeExempt ? '#198754' : '';
             }
-
-            // // Reset state
-            // agreeCheckbox.checked = false;
-            // errorText.classList.add('d-none');
-
-            // // Show modal
-            // const modalBody = modalEl.querySelector('#instructionContent');
-
-
-            // const delta = JSON.parse(form_instruct);
-
-            // const converter = new QuillDeltaToHtmlConverter(delta.ops, {
-            //     inlineStyles: true,
-            //     multiLineParagraph: false,
-            //     listItemTag: "li",
-            //     paragraphTag: "p"
-            // });
-
-            // let html = converter.convert();
-            // /* Stray "@" before (ii) / list markers when Quill split merge-tag text */
-            // html = html.replace(/@(\s*)(\(|\uFF08)/g, '$1$2');
-            // html = html.replace(/<(li|p)([^>]*)>@(\s*)(\(|\uFF08)/gi, '<$1$2>$3$4');
-            // modalBody.innerHTML = html;
-            // const el = document.querySelector("#instructionContent");
+            const exemptNotice = document.getElementById('board-member-fee-exempt-notice');
+            if (exemptNotice) {
+                exemptNotice.classList.toggle('d-none', !boardMemberFeeExempt);
+            }
 
 
             // return false;
@@ -242,7 +206,7 @@
                 }
                 let formData = new FormData($('#competency_form_ws')[0]);
                 // Digitisation / alteration: this is the final submit (no PayU). N/R stay draft until payment.
-                formData.set('form_action', noPaymentApplType ? 'submit' : 'draft');
+                formData.set('form_action', (noPaymentApplType || boardMemberFeeExempt) ? 'submit' : 'draft');
                 if (typeof window.appendWorkTransformerKvaToFormData === 'function') {
                     window.appendWorkTransformerKvaToFormData(formData, $('#competency_form_ws')[0]);
                 }
@@ -320,7 +284,6 @@
                         }
                     });
 
-                    console.log(total_fees);
                     
 
                     if (saveResponse.status === "success") {
@@ -334,11 +297,7 @@
                             $('#cc_digitization_temp_id').val('');
                         }
 
-                        let form_type = isDigitization
-                            ? 'Digitization Application'
-                            : (String(appl_type || '').trim().toUpperCase() === 'A'
-                                ? 'Alteration Application'
-                                : (appl_type === 'R' ? 'Renewal Application' : 'New Application'));
+                        let form_type = isDigitization ? 'Digitisation': (String(appl_type || '').trim().toUpperCase() === 'A' ? 'Alteration' : (appl_type === 'R' ? 'Renewal' : 'New'));
 
                         const login_id = window.login_id || cfg.loginId || '';
                         const application_id = saveResponse.application_id;
@@ -353,8 +312,6 @@
                         const amount = total_fees;
                         const licence_name = saveResponse.licence_name || 'N/A';
                         const feeExemptSubmit = noPaymentApplType || boardMemberFeeExempt;
-
-                        //console.log(transactionDate);
 
                         // const serviceCharge = 10;
                         // let lateFee = typeof lateFee !== "undefined" ? lateFee : 0;
@@ -426,38 +383,20 @@
                         // Zero-fee paths — submit directly (no payment gateway UI)
                         if (feeExemptSubmit) {
                             try {
-                                // Digitisation / Alteration: form save already finalises; do not create payment records.
-                                if (noPaymentApplType) {
-                                    showPaymentSuccessPopup(
-                                        application_id,
-                                        '',
-                                        transactionDate,
-                                        applicantName,
-                                        0,
-                                        form_type,
-                                        licence_name,
-                                        false,
-                                        { feeExempt: true }
-                                    );
-                                    return;
-                                }
-
-                                // Board-member fee exemption (N/R Form S) still records a zero-amount payment.
-                                const paid = await runCompetencyPayment();
                                 showPaymentSuccessPopup(
-                                    paid.application_id,
-                                    paid.transactionId,
-                                    paid.transactionDate,
-                                    paid.applicantName,
-                                    paid.amount,
-                                    paid.form_type,
-                                    paid.licence_name,
+                                    application_id,
+                                    '',
+                                    transactionDate,
+                                    applicantName,
+                                    0,
+                                    form_type,
+                                    licence_name,
                                     false,
-                                    { feeExempt: true }
+                                    { feeExempt: true, boardMemberExempt: boardMemberFeeExempt }
                                 );
                             } catch (err) {
                                 Swal.fire({
-                                    title: noPaymentApplType ? 'Submission Failed' : 'Payment Failed',
+                                    title: (noPaymentApplType || boardMemberFeeExempt) ? 'Submission Failed' : 'Payment Failed',
                                     text: err.message || 'Something went wrong. Please try again.',
                                     icon: 'error'
                                 });
@@ -849,7 +788,7 @@
         $("#ps_applicationId_competency").text(loginId);
         $("#ps_licenceName_competency").text(licence_name);
         $("#ps_transactionDate_competency").text(transactionDate);
-
+        $("#ps_applicationType_competency").text(form_type);
         // Digitisation (D) / Alteration (A) / board-member waiver: never show or retain payment details.
         if (isFeeExemptSubmit) {
             $("#ps_transactionId_competency").text('');
@@ -865,6 +804,13 @@
             $modal.find(".ps-payment-only").removeClass("d-none");
             $modal.find(".ps-transaction-date-label").text("Transaction Date:");
             $modal.find(".ps-app-pdf-heading").addClass("mt-3");
+        }
+        const boardMemberExempt = options.boardMemberExempt === true;
+        const $exemptNotice = $modal.find("#ps_fee_exempt_notice");
+        if (boardMemberExempt) {
+            $exemptNotice.removeClass("d-none");
+        } else {
+            $exemptNotice.addClass("d-none");
         }
 
         // store ID globally for download actions
@@ -916,6 +862,69 @@
     window.paymentreceipt = paymentreceipt;
 
     $(document).ready(function () {
+        var WH_HELPER_EXAM = 'Wireman Helper Examination';
+        var WH_HELPER_EXAM_LEGACY = 'Wireman Helper(H) Certificate';
+        var WH_DEPT_INSTITUTE = 'Dept of Employment & Training';
+
+        function isFormWHPage() {
+            return String($('#form_name').val() || '').toUpperCase() === 'WH';
+        }
+
+        function isWhHelperExamLevel(value) {
+            var selected = String(value || '').trim();
+            return selected === WH_HELPER_EXAM || selected === WH_HELPER_EXAM_LEGACY;
+        }
+
+        function syncWhInstituteForRow(row) {
+            if (!row) {
+                return;
+            }
+            var level = row.querySelector('[name="educational_level[]"]');
+            var inst = row.querySelector('[name="institute_name[]"]');
+            if (!level || !inst) {
+                return;
+            }
+            var current = String(inst.value || '').trim();
+            if (isWhHelperExamLevel(level.value)) {
+                inst.value = WH_DEPT_INSTITUTE;
+                return;
+            }
+            if (current === WH_DEPT_INSTITUTE) {
+                inst.value = '';
+            }
+        }
+
+        function bindWhInstitutePrefill() {
+            if (!isFormWHPage()) {
+                return;
+            }
+            var container = document.getElementById('education-container');
+            if (!container) {
+                return;
+            }
+
+            container.addEventListener('change', function (e) {
+                var select = e.target.closest('[name="educational_level[]"]');
+                if (!select) {
+                    return;
+                }
+                syncWhInstituteForRow(select.closest('tr'));
+            });
+
+            container.querySelectorAll('tr').forEach(function (row) {
+                var level = row.querySelector('[name="educational_level[]"]');
+                var inst = row.querySelector('[name="institute_name[]"]');
+                if (!level || !inst) {
+                    return;
+                }
+                if (isWhHelperExamLevel(level.value) && !String(inst.value || '').trim()) {
+                    inst.value = WH_DEPT_INSTITUTE;
+                }
+            });
+        }
+
+        bindWhInstitutePrefill();
+
         // After PayU return: dashboard?payu_success=1&... → old #paymentSuccessModal
         (function showPayUSuccessPopupFromQuery() {
             try {
@@ -1118,13 +1127,7 @@
                     return;
                 }
 
-                if (formName === 'WH') {
-                    var minTo = new Date(from.getTime());
-                    minTo.setFullYear(minTo.getFullYear() + 2);
-                    if (to < minTo) {
-                        messages.push(prefix + 'Minimum 2 Years Experience needed');
-                    }
-                }
+                /* Form W / WH: no per-row or combined 2-year minimum (Form S only). */
             });
 
             if (messages.length) {
@@ -2164,6 +2167,7 @@
                     border-radius: 6px; min-height: 34px; word-break: break-word;
                 }
                 .prv-sw-modal-root .prv-sw-value.prv-sw-empty { color: #9aa8bf; font-style: italic; font-weight: 400; }
+                .prv-sw-modal-root .prv-sw-7b-not-used { display: none !important; }
 
                 /* Personal & contact — photo + signature column + 2-col details grid */
                 .prv-sw-modal-root .prv-sw-personal-layout {
@@ -2537,19 +2541,19 @@
                                                             <div class="prv-sw-value" id="prvSwWork7bMeetingDetails" style="white-space:pre-line;">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-4">
+                                                    <div class="col-12 col-sm-4 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">From date</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bFrom">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-4">
+                                                    <div class="col-12 col-sm-4 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">To date</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bTo">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-4">
+                                                    <div class="col-12 col-sm-4 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">Duration</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bDuration">&mdash;</div>
@@ -2561,7 +2565,7 @@
                                                             <div class="prv-sw-value" id="prvSwWork7bSupportDoc">&mdash;</div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-12 col-sm-6">
+                                                    <div class="col-12 col-sm-6 prv-sw-7b-not-used">
                                                         <div class="prv-sw-field mb-0">
                                                             <div class="prv-sw-label">Relieving Letter</div>
                                                             <div class="prv-sw-value" id="prvSwWork7bRelieveDoc">&mdash;</div>
@@ -2957,17 +2961,22 @@
             const formFullTitle = formTitleMap[formCode] || ('Form ' + formCode);
             const applicantName = v('Applicant_Name') || valByName('applicant_name');
             const appId = v('application_id') || valByName('application_id');
-            const licenceVal = v('license_number') || valByName('license_number');
+            const issuedLicence = v('license_number') || valByName('license_number');
+            // New applications have no issued licence. license_number on edit is a
+            // previous SCC or wireman number (section 8 / 9), not this application.
+            const licenceVal = applType === 'N'
+                ? formFullTitle
+                : (issuedLicence || formFullTitle);
             setField('prvSwMetaName', applicantName);
             setField('prvSwMetaAppId', appId || 'Draft (not saved yet)');
-            setField('prvSwMetaLicence', licenceVal || ('Certificate ' + formCode));
+            setField('prvSwMetaLicence', licenceVal);
 
             const printTagEl = document.getElementById('prvSwPrintTag');
             if (printTagEl) {
                 const tagParts = [];
                 if (applType === 'R') tagParts.push('Renewal');
                 tagParts.push('Form ' + formCode);
-                if (licenceVal) tagParts.push('Licence: ' + licenceVal);
+                if (applType !== 'N' && issuedLicence) tagParts.push('Licence: ' + issuedLicence);
                 printTagEl.textContent = tagParts.join(' · ');
             }
             const printTitleEl = document.getElementById('prvSwPrintTitle');
@@ -3477,32 +3486,45 @@
                 }
             }
 
-            // Previous same-type certificate section
-            let prevTitle, prevTamil, prevYesValue, prevNumId, prevIssueId, prevFromId, prevExpiryId;
+            // Previous same-type certificate section.
+            // Apply forms use wireman_license_yes + previously_number(_h).
+            // Edit Form W/WH stores the same answer on yesOption + certificate_no (wcc_*).
+            const radioChecked = function (id) {
+                const el = document.getElementById(id);
+                return !!(el && el.checked);
+            };
+            const firstFilled = function () {
+                for (let i = 0; i < arguments.length; i++) {
+                    const raw = v(arguments[i]);
+                    if (raw && raw !== '0') return raw;
+                }
+                return '';
+            };
+            let prevTitle, prevTamil, prevYesValue, prevNo, prevIssue, prevFrom, prevExpiry;
             if (formCode === 'S') {
                 prevTitle = 'Do you already possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.';
                 prevTamil = 'இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக';
-                prevYesValue = !!((document.getElementById('previous_license_yes') || {}).checked);
-                prevNumId = 'previously_number';
-                prevIssueId = 'previously_issue_date';
-                prevFromId = 'previously_valid_from';
-                prevExpiryId = 'previously_valid_to';
+                prevNo = firstFilled('previously_number');
+                prevIssue = firstFilled('previously_issue_date');
+                prevFrom = firstFilled('previously_valid_from');
+                prevExpiry = firstFilled('previously_valid_to');
+                prevYesValue = radioChecked('previous_license_yes') || !!prevNo;
             } else if (formCode === 'W') {
-                prevTitle = 'Previous Wireman / Helper Certificate';
-                prevTamil = 'மின்கம்பியாளர் / உதவியாளர் தகுதி சான்றிதழ் விவரம்';
-                prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
-                prevNumId = 'previously_number';
-                prevIssueId = 'previously_issue_date';
-                prevFromId = 'previously_valid_from';
-                prevExpiryId = 'previously_valid_to';
+                prevTitle = 'Have you applied for and obtained a Certificate of Qualification for Wireman / Wireman Helper? If yes, please state its number and validity.';
+                prevTamil = 'இதற்கு முன்னாள் விண்ணப்பம் செய்து மின்கம்பியாளர் தகுதி சான்றிதழ் / மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் பெறப்பட்டுள்ளதா? ஆம் என்றால் அதன் எண் மற்றும் செல்லத்தக்க காலம் குறிப்பிடுக';
+                prevNo = firstFilled('previously_number', 'certificate_no');
+                prevIssue = firstFilled('previously_issue_date', 'certificate_issue_date');
+                prevFrom = firstFilled('certificate_valid_from', 'previously_valid_from');
+                prevExpiry = firstFilled('previously_date', 'certificate_valid_to', 'certificate_date');
+                prevYesValue = radioChecked('wireman_license_yes') || radioChecked('yesOption') || !!prevNo;
             } else {
-                prevTitle = 'Previous Wireman Helper Certificate';
-                prevTamil = 'மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் விவரம்';
-                prevYesValue = !!((document.getElementById('wireman_license_yes') || {}).checked);
-                prevNumId = 'previously_number_h';
-                prevIssueId = 'previously_issue_date_h';
-                prevFromId = 'previously_valid_from_h';
-                prevExpiryId = 'previously_date_h';
+                prevTitle = 'Have you applied for and obtained a Certificate of Qualification for Wireman Helper? If yes, please state its number and validity.';
+                prevTamil = 'இதற்கு முன்னாள் விண்ணப்பம் செய்து மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் பெறப்பட்டுள்ளதா? ஆம் என்றால் அதன் எண் மற்றும் செல்லத்தக்க காலம் குறிப்பிடுக';
+                prevNo = firstFilled('previously_number_h', 'certificate_no');
+                prevIssue = firstFilled('previously_issue_date_h', 'certificate_issue_date');
+                prevFrom = firstFilled('certificate_valid_from', 'previously_valid_from_h');
+                prevExpiry = firstFilled('previously_date_h', 'certificate_valid_to', 'certificate_date');
+                prevYesValue = radioChecked('wireman_license_yes') || radioChecked('yesOption') || !!prevNo;
             }
             const prevTitleEl = document.getElementById('prvSwSecPrevTitle');
             if (prevTitleEl) prevTitleEl.textContent = prevTitle;
@@ -3517,10 +3539,10 @@
             const prevBlockEl = document.getElementById('prvSwPrevBlock');
             if (prevBlockEl) prevBlockEl.style.display = prevYesValue ? '' : 'none';
             if (prevYesValue) {
-                setField('prvSwPrevNo', v(prevNumId));
-                setField('prvSwPrevIssueDate', fmtDate(v(prevIssueId)));
-                setField('prvSwPrevFromDate', fmtDate(v(prevFromId)));
-                setField('prvSwPrevExpiryDate', fmtDate(v(prevExpiryId)));
+                setField('prvSwPrevNo', prevNo);
+                setField('prvSwPrevIssueDate', fmtDate(prevIssue));
+                setField('prvSwPrevFromDate', fmtDate(prevFrom));
+                setField('prvSwPrevExpiryDate', fmtDate(prevExpiry));
             } else {
                 setField('prvSwPrevNo', '');
                 setField('prvSwPrevIssueDate', '');
@@ -3846,7 +3868,7 @@
             var applType = (typeof resolveCompetencyApplType === 'function')
                 ? resolveCompetencyApplType()
                 : String($('#appl_type').val() || '').trim().toUpperCase();
-            return (formName === 'S' || formName === 'W') && applType === 'D';
+            return (formName === 'S' || formName === 'W' || formName === 'WH') && applType === 'D';
         }
 
         /** Digitisation 7a: matching contractor licence must be a currently-working (Till date) row. */
@@ -3997,7 +4019,7 @@
             if (applicantEmailEl.length) {
                 let ev = readApplicantEmailValue();
                 let formNameEmail = ($('#form_name').val() || '').toString().trim().toUpperCase();
-                let emailRequired = formNameEmail === 'S' || formNameEmail === 'W';
+                let emailRequired = formNameEmail === 'S';
                 if (emailRequired && ev === '') {
                     showCompetencyFieldError(applicantEmailEl, 'Email ID is required.');
                     if (!firstErrorField) firstErrorField = applicantEmailEl;
@@ -4894,8 +4916,8 @@
         $(document).off('click.competencyPay', '#submitPaymentBtn').on('click.competencyPay', '#submitPaymentBtn', async function (e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('submitPaymentBtn clicked');
-            return false;
+
+           
             if ($('#competency_form_ws.fs-alt-form').length) {
                 return;
             }
@@ -5139,13 +5161,6 @@
             if (to < from) {
                 showWorkExpDateRangeError($row, 'To date must be greater than or equal to From date.');
                 return;
-            }
-            if (formName === 'WH') {
-                var minTo = new Date(from.getTime());
-                minTo.setFullYear(minTo.getFullYear() + 2);
-                if (to < minTo) {
-                    showWorkExpDateRangeError($row, 'Minimum 2 Years Experience needed');
-                }
             }
         });
 

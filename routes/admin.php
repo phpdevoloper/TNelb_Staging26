@@ -86,6 +86,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
 
 
     Route::get('/generate-pdf/{application_id}', [LicensepdfController::class, 'generatePDF'])->name('generate.pdf');
+    Route::get('/licence/stored/{application_id}', [LicensepdfController::class, 'streamStoredLicence'])->name('licence.stored');
     Route::get('/generate-licence-tamil/{application_id}', [LicensepdfController::class, 'generateLicenceTamil'])->name('competency-certificate-tamil.pdf');
     // Form P specific licence streaming (encrypted PDFs)
     Route::get('/formp/licence/en/{application_id}', [LicensepdfController::class, 'streamFormPLicenceEn'])->name('formp.licence.en');
@@ -136,6 +137,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
         // Supervisor Routes
         Route::get('/view_applications', [SupervisorController::class, 'view_applications'])->name('view_applications');
         Route::get('/view_completed_applications', [SupervisorController::class, 'view_completed_applications'])->name('view_completed_applications');
+        Route::get('/application_details_modal', [SupervisorController::class, 'applicationDetailsModal'])->name('application_details_modal');
         Route::get('/view_completed_application/{applicant_id}', [LoginController::class, 'viewCompletedApplicationDetail'])->name('view_completed_application');
         Route::get('/view_auditor', [SupervisorController::class, 'view_auditor'])->name('view_auditor');
         Route::get('/get_completed', [SupervisorController::class, 'get_completed'])->name('get_completed');

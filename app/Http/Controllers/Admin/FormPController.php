@@ -28,6 +28,7 @@ use App\Services\Competency\CompetencyWorkflowService;
 use App\Services\Competency\FormPSchema;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\ReturnedApplicationEditScope;
+use App\Http\Controllers\Admin\LicensepdfController;
 
 class FormPController extends Controller
 {
@@ -122,38 +123,9 @@ class FormPController extends Controller
                 ->first();
         }
 
-        $user_entry = DB::table('tnelb_form_p')
-            ->where('application_id', $applicant_id) // Filter by specific application
-            ->select('*')
-            ->first();
-
-
-        $workflows = DB::table('tnelb_workflow')
-            ->leftjoin('tnelb_form_p', 'tnelb_workflow.application_id', '=', 'tnelb_form_p.application_id')
-            ->leftjoin('mst_roles', 'tnelb_workflow.forwarded_to', '=', 'mst_roles.r_id')
-            ->where('tnelb_workflow.application_id', $applicant_id) // Filter by specific application
-            ->select('tnelb_workflow.*', 'mst_roles.role_name as name', 'tnelb_form_p.form_name', 'tnelb_form_p.license_name')
-            ->orderBy('tnelb_workflow.id', 'desc')
-            ->get();
-
-        $workflows1 = DB::table('mst_roles')
-            ->select('*')
-            ->get();
-
-
-
-        $queries = DB::table('tnelb_query_applicable as qa')
-            ->leftJoin('tnelb_form_p as ta', 'qa.application_id', '=', 'ta.application_id')
-            ->where('qa.application_id', $applicant_id)
-            ->where('qa.query_status', 'P')
-            ->select('qa.*')
-            ->orderByDesc('qa.id')
-            ->get();
-=======
         $user_entry = $applicant;
         $workflows = $this->loadFormPWorkflows($applicant_id);
         $queries = $this->loadFormPQueries($applicant_id, true);
->>>>>>> 6c8d5a912fd4fd07ce2dfc80c2cdc80637cee845
 
 
 
@@ -1099,50 +1071,34 @@ class FormPController extends Controller
     {
         $request->validate([
             'application_id' => 'required|string',
-            'processed_by'   => 'required|string',
-            'remarks'        => 'nullable|string',
+            'processed_by' => 'required|string',
+            'remarks' => 'nullable|string',
         ]);
 
         $application = $this->findFormPApplication($request->application_id);
-
-        if (!$application) {
+        if (! $application) {
             return response()->json(['error' => 'Application not found.'], 404);
         }
 
-        $login_id  = $application->login_id ?? null;
-        $appl_type = strtoupper(trim($application->appl_type ?? 'N')); // N or R
-
-        // Get licence config for Form P (cert_licence_code = 'P')
-        $licenceId = (int) DB::table('mst_licences')
-            ->where('cert_licence_code', 'P')
-            ->value('id');
-
+        $appl_type = strtoupper(trim((string) ($application->appl_type ?? 'N')));
+        $licenceId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
         if ($licenceId <= 0) {
             return response()->json(['error' => 'Licence configuration for Form P not found.'], 422);
         }
 
+        $certTable = FormPSchema::CERT_TABLE;
+        $existingCcCert = Schema::hasTable($certTable)
+            ? DB::table($certTable)->where('application_id', $request->application_id)->first()
+            : null;
 
-        // If licence already exists for this Form P application (fresh case),
-        // do not approve again – inform the user instead.
-        if ($appl_type === 'N') {
-            $existingLicence = DB::table('cl_forma_lic')
-
-        $existingCcCert = DB::table('cc_form_p_cert')
-            ->where('application_id', $request->application_id)
-            ->first();
         if ($appl_type === 'N' && $existingCcCert) {
             return response()->json([
                 'error' => 'Licence already exists for this application ID, so it cannot be approved again.',
             ], 422);
         }
 
-        // If licence already exists for this Form P application (legacy fresh case),
-        if ($appl_type === 'N' && ! $existingCcCert) {
-            $existingLicence = DB::table('tnelb_license')
-
-                ->where('application_id', $request->application_id)
-                ->first();
-
+        if ($appl_type === 'N' && ! $existingCcCert && Schema::hasTable('tnelb_license')) {
+            $existingLicence = DB::table('tnelb_license')->where('application_id', $request->application_id)->first();
             if ($existingLicence) {
                 return response()->json([
                     'error' => 'Licence already exists for this application ID, so it cannot be approved again.',
@@ -1151,23 +1107,18 @@ class FormPController extends Controller
         }
 
         DB::beginTransaction();
-
         try {
-            // Determine processed_by based on the current user
             $processed = match (Auth::user()->name) {
                 'President' => 'PR',
                 'Secretary' => 'SE',
-                default     => 'SE',
+                default => 'SE',
             };
 
-            // -------------------- BASIC APPLICATION UPDATE --------------------
             $this->updateFormPApplication($request->application_id, [
-                    'app_status'   => 'A',
-                    'processed_by' => $processed,
-                    'updated_at'   => now(),
-                ]);
-
-        // -------------------- GET LICENCE VALIDITY MONTHS --------------------
+                'app_status' => 'A',
+                'processed_by' => $processed,
+                'updated_at' => now(),
+            ]);
 
             $today = Carbon::today()->toDateString();
             $licenseperiod = DB::table('mst_fees_validity')
@@ -1175,127 +1126,63 @@ class FormPController extends Controller
                 ->where('form_type', $appl_type)
                 ->where('status', 1)
                 ->whereDate('validity_start_date', '<=', $today)
-                ->orderBy('validity_start_date', 'desc')
+                ->orderByDesc('validity_start_date')
                 ->first();
 
-            if ($licenseperiod) {
-                $monthsToAdd = (int) ($licenseperiod->validity ?? 0);
-            } else {
-                // Fallback: no configured validity → treat as 0 months but still approve
-                $monthsToAdd = 0;
+            $monthsToAdd = (int) ($licenseperiod->validity ?? 0);
+            if (! $licenseperiod) {
                 Log::warning('No validity configuration found for Form P licence; defaulting to 0 months', [
                     'licence_id' => $licenceId,
-                    'form_type'  => $appl_type,
+                    'form_type' => $appl_type,
                 ]);
             }
 
-            $issuedAt  = null;
+            $prefix = $application->license_name ?? $application->certificate_name ?? FormPSchema::LICENSE_NAME;
+            $issuedAt = null;
             $expiresAt = null;
             $newSerial = null;
-            $certService = app(CompetencyCertificateService::class);
-            $certTable = FormPSchema::CERT_TABLE;
-            $prefix = $application->license_name ?? $application->certificate_name ?? FormPSchema::LICENSE_NAME;
 
             if ($appl_type === 'R') {
                 $oldApplicationId = $application->old_application ?? null;
                 $oldExpiry = null;
                 if ($oldApplicationId) {
-                    $oldExpiry = DB::table($certTable)->where('application_id', $oldApplicationId)->value('valid_to')
-                        ?: DB::table('cl_forma_lic')->where('application_id', $oldApplicationId)->value('expires_at');
+                    $oldExpiry = (Schema::hasTable($certTable)
+                            ? DB::table($certTable)->where('application_id', $oldApplicationId)->value('valid_to')
+                            : null)
+                        ?: (Schema::hasTable('cl_forma_lic')
+                            ? DB::table('cl_forma_lic')->where('application_id', $oldApplicationId)->value('expires_at')
+                            : null);
                 }
                 $baseExpiry = $oldExpiry ? Carbon::parse($oldExpiry) : now();
-                $issuedAt  = $baseExpiry->copy()->format('Y-m-d H:i:s');
+                $issuedAt = $baseExpiry->copy()->format('Y-m-d H:i:s');
                 $expiresAt = $baseExpiry->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-
-
-                // Prefer existing licence number on the application, otherwise fall back to last licence
-                $newSerial = $application->license_number
-                    ?? DB::table('cl_forma_lic')
-                        ->where('application_id', $oldApplicationId)
-                        ->value('license_number');
-
-                if (!$newSerial) {
-                    // As a final fallback, generate a fresh licence number
-                    $prefix    = $application->license_name ?? 'P';
-                    $yearMonth = now()->format('Ym');
-                    $lastSerial = DB::table('cl_forma_lic')
-                        ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
-                        ->orderBy('license_number', 'desc')
-                        ->value('license_number');
-
-                    if ($lastSerial) {
-                        $lastNumber = (int) substr($lastSerial, -5);
-                        $nextNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-                    } else {
-                        $nextNumber = '00001';
-                    }
-
-                    $newSerial = "L{$prefix}{$yearMonth}{$nextNumber}";
-
                 $newSerial = $application->certificate_no
                     ?? $application->license_number
-                    ?? ($oldApplicationId ? DB::table($certTable)->where('application_id', $oldApplicationId)->value('certificate_no') : null)
-                    ?? ($oldApplicationId ? DB::table('tnelb_license')->where('application_id', $oldApplicationId)->value('license_number') : null);
-
+                    ?? ($oldApplicationId && Schema::hasTable($certTable)
+                        ? DB::table($certTable)->where('application_id', $oldApplicationId)->value('certificate_no')
+                        : null)
+                    ?? ($oldApplicationId && Schema::hasTable('tnelb_license')
+                        ? DB::table('tnelb_license')->where('application_id', $oldApplicationId)->value('license_number')
+                        : null);
                 if (! $newSerial) {
-                    $newSerial = $this->nextFormPCertificateNumber($prefix);
-
+                    $newSerial = $this->nextFormPCertificateNumber((string) $prefix);
                 }
             } else {
-
-                // Fresh → issue today + configured months
-                // First check if licence already exists for this application (idempotent behaviour)
-                $existingLicence = DB::table('cl_forma_lic')
-                    ->where('application_id', $request->application_id)
-                    ->first();
-
-                if ($existingLicence) {
-                    // Reuse existing licence details, do NOT insert again
-                    $newSerial = $existingLicence->license_number;
-                    $issuedAt  = $existingLicence->issued_at;
-                    $expiresAt = $existingLicence->expires_at;
-                } else {
-                    $prefix    = $application->license_name ?? 'P';
-                    $yearMonth = now()->format('Ym');
-
-                    $lastSerial = DB::table('cl_forma_lic')
-                        ->where('license_number', 'LIKE', "L{$prefix}{$yearMonth}%")
-                        ->orderBy('license_number', 'desc')
-                        ->value('license_number');
-
-                    if ($lastSerial) {
-                        $lastNumber = (int) substr($lastSerial, -5);
-                        $nextNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-                    } else {
-                        $nextNumber = '00001';
-                    }
-
-                    $newSerial = "L{$prefix}{$yearMonth}{$nextNumber}";
-                    $issuedAt  = now()->format('Y-m-d H:i:s');
-                    $expiresAt = now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-
-                    DB::table('cl_forma_lic')->insert([
-                        'application_id' => $request->application_id,
-                        'license_number' => $newSerial,
-                        'issued_by'      => $request->processed_by,
-                        'issued_at'      => $issuedAt,
-                        'expires_at'     => $expiresAt,
-                    ]);
-
-                $existingCc = DB::table($certTable)->where('application_id', $request->application_id)->first();
+                $existingCc = Schema::hasTable($certTable)
+                    ? DB::table($certTable)->where('application_id', $request->application_id)->first()
+                    : null;
                 if ($existingCc) {
                     $newSerial = $existingCc->certificate_no;
-                    $issuedAt  = $existingCc->dateof_issue;
+                    $issuedAt = $existingCc->dateof_issue;
                     $expiresAt = $existingCc->valid_to;
                 } else {
-                    $newSerial = $this->nextFormPCertificateNumber($prefix);
-                    $issuedAt  = now()->format('Y-m-d H:i:s');
+                    $newSerial = $this->nextFormPCertificateNumber((string) $prefix);
+                    $issuedAt = now()->format('Y-m-d H:i:s');
                     $expiresAt = now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-
                 }
             }
 
-            $certService->issueOrUpdate('P', [
+            app(CompetencyCertificateService::class)->issueOrUpdate('P', [
                 'application_id' => $request->application_id,
                 'certificate_no' => $newSerial,
                 'dateof_issue' => $issuedAt,
@@ -1315,22 +1202,21 @@ class FormPController extends Controller
 
             $this->recordFormPWorkflow([
                 'application_id' => $request->application_id,
-                'processed_by'   => $request->processed_by,
-                'role_id'        => Auth::user()->roles_id,
-                'appl_status'    => 'A',
-                'remarks'        => $request->remarks ?? 'No remarks provided',
-                'forwarded_to'   => Auth::user()->roles_id,
-                'created_at'     => now(),
+                'processed_by' => $request->processed_by,
+                'role_id' => Auth::user()->roles_id,
+                'appl_status' => 'A',
+                'remarks' => $request->remarks ?? 'No remarks provided',
+                'forwarded_to' => Auth::user()->roles_id,
+                'created_at' => now(),
             ]);
 
-            // -------------------- LICENCE PDF (best-effort) --------------------
             $pdfStoragePath = null;
             try {
                 $pdfStoragePath = app(LicensepdfController::class)->generateFormPLicencePdfs($request->application_id);
             } catch (\Throwable $e) {
                 Log::warning('Failed to generate Form P licence PDF after approval', [
                     'application_id' => $request->application_id,
-                    'error'          => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
             }
 
@@ -1339,24 +1225,23 @@ class FormPController extends Controller
             $appId = $request->application_id;
 
             return response()->json([
-                'status'         => 'success',
-                'message'        => $appl_type === 'R'
-                    ? "Renewal approved till " . date('d/m/Y', strtotime($expiresAt))
-                    : "License issued till " . date('d/m/Y', strtotime($expiresAt)),
+                'status' => 'success',
+                'message' => $appl_type === 'R'
+                    ? 'Renewal approved till '.date('d/m/Y', strtotime((string) $expiresAt))
+                    : 'License issued till '.date('d/m/Y', strtotime((string) $expiresAt)),
                 'license_number' => $newSerial,
-                'issued_at'      => $issuedAt,
-                'expires_at'     => $expiresAt,
-                // Bilingual PDF (EN + TA in one file); EN/TA routes serve the same document when stored as bilingual.
+                'issued_at' => $issuedAt,
+                'expires_at' => $expiresAt,
                 'license_pdf_en_url' => $pdfStoragePath ? route('admin.formp.licence.en', ['application_id' => $appId]) : null,
                 'license_pdf_ta_url' => $pdfStoragePath ? route('admin.formp.licence.ta', ['application_id' => $appId]) : null,
                 'license_pdf_storage_path' => $pdfStoragePath,
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'error' => 'Approval failed',
-                'msg'   => $e->getMessage(),
+                'msg' => $e->getMessage(),
             ], 500);
         }
     }
@@ -1435,12 +1320,35 @@ class FormPController extends Controller
         }
 
         if ($applicant) {
-            if (empty($applicant->applicants_address) && ! empty($applicant->applicant_address)) {
-                $applicant->applicants_address = $applicant->applicant_address;
-            }
-            if (empty($applicant->license_name) && ! empty($applicant->certificate_name)) {
-                $applicant->license_name = $applicant->certificate_name;
-            }
+            $applicant->applicants_address = $applicant->applicants_address
+                ?? $applicant->applicant_address
+                ?? null;
+            $applicant->license_name = $applicant->license_name
+                ?? $applicant->certificate_name
+                ?? null;
+            $applicant->fathers_name = $applicant->fathers_name
+                ?? $applicant->father_name
+                ?? null;
+            $applicant->previously_number = $applicant->previously_number
+                ?? $applicant->previous_scc_no
+                ?? null;
+            $applicant->previously_date = $applicant->previously_date
+                ?? $applicant->previously_valid_to
+                ?? $applicant->scc_to_date
+                ?? null;
+            $applicant->aadhaar = $applicant->aadhaar ?? $applicant->aadhar ?? null;
+            $applicant->aadhaar_doc = $applicant->aadhaar_doc ?? null;
+            $applicant->pancard = $applicant->pancard ?? $applicant->pan_no ?? $applicant->pan ?? null;
+            $applicant->pancard_doc = $applicant->pancard_doc ?? $applicant->pan_doc ?? null;
+            $applicant->pan_doc = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
+            $applicant->appl_type = $applicant->appl_type ?? $applicant->application_type ?? null;
+            $applicant->app_status = $applicant->app_status ?? $applicant->status ?? null;
+            $applicant->late_fees = $applicant->late_fees ?? null;
+            $applicant->late_months = $applicant->late_months ?? null;
+            $applicant->transaction_date = $applicant->transaction_date ?? null;
+            $applicant->transaction_id = $applicant->transaction_id ?? null;
+            $applicant->payment_status = $applicant->payment_status ?? null;
+            $applicant->amount = $applicant->amount ?? null;
             if (Schema::hasTable('cc_payments')) {
                 $payQuery = DB::table('cc_payments')->where('application_id', $applicantId);
                 if (Schema::hasColumn('cc_payments', 'p_id')) {
@@ -1477,14 +1385,14 @@ class FormPController extends Controller
                 $proofType = strtolower((string) ($proof->proof_type ?? ''));
                 $proofName = strtoupper((string) ($proof->proof_name ?? ''));
                 if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
-                    if (! empty($proof->proof_no) && empty($applicant->aadhaar)) {
+                    if (! empty($proof->proof_no) && empty($applicant->aadhaar ?? null)) {
                         $applicant->aadhaar = $proof->proof_no;
                     }
                     if (! empty($proof->proof_doc)) {
                         $applicant->aadhaar_doc = $proof->proof_doc;
                     }
                 } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
-                    if (! empty($proof->proof_no) && empty($applicant->pancard)) {
+                    if (! empty($proof->proof_no) && empty($applicant->pancard ?? null)) {
                         $applicant->pancard = $proof->proof_no;
                     }
                     if (! empty($proof->proof_doc)) {

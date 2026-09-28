@@ -37,6 +37,8 @@ final class ReturnedApplicationEditScope
         'Signature is missing' => [self::SECTION_SIGNATURE],
         'Aadhaar document is missing' => [self::SECTION_AADHAAR_DOC],
         'PAN document is missing' => [self::SECTION_PAN_DOC],
+        'Work Experience' => [self::SECTION_EXPERIENCE],
+        'Personal Details' => [self::SECTION_APPLICANT],
         'Other' => [self::SECTION_FULL],
     ];
 

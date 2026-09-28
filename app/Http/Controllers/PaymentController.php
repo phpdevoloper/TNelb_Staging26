@@ -50,14 +50,23 @@ class PaymentController extends BaseController
 
         $applType = strtoupper(trim((string) ($form->appl_type ?? '')));
         $noPaymentType = in_array($applType, ['D', 'A'], true);
-        $boardMemberExempt = $request->boolean('board_member_fee_exempt')
-            && strtoupper((string) $form->form_name) === 'S'
-            && in_array($applType, ['N', 'R'], true);
+        $storedPayment = strtoupper(trim((string) ($form->payment_status ?? '')));
+
+        if ($storedPayment === 'B') {
+            if (strtoupper(trim((string) ($form->app_status ?? ''))) === 'D') {
+                $form->update(['app_status' => 'P']);
+            }
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Application fee-exempted for this application',
+                'data' => null,
+            ]);
+        }
 
         if (in_array($applType, ['N', 'R'], true)
             && (float) $validated['amount'] <= 0
-            && ! $noPaymentType
-            && ! $boardMemberExempt) {
+            && ! $noPaymentType) {
             return response()->json([
                 'status' => 422,
                 'message' => 'Payment is required for new and renewal applications.',

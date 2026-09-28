@@ -94,17 +94,21 @@
         ? $expRow->releive_document_url
         : ($relieveDoc !== '' ? competency_document_url($relieveDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'relieving_doc') : null);
     $isAlterationNew = !empty($expRow->is_alteration_new);
+    $isRenewalNew = !empty($expRow->is_renewal_new);
     $sno = isset($sno) ? $sno : 1;
     $rowIndex = $rowIndex ?? ($sno - 1);
     $withActions = !empty($withActions);
     $hideVoltageFields = !empty($hideVoltageFields);
+    $rowMarkClass = $isAlterationNew ? ' wx-alteration-alter-row' : ($isRenewalNew ? ' wx-renewal-new-row' : '');
 @endphp
-<tr class="work-exp-summary-tr{{ $isAlterationNew ? ' wx-alteration-alter-row' : '' }}" data-work-row-index="{{ $rowIndex }}">
+<tr class="work-exp-summary-tr{{ $rowMarkClass }}" data-work-row-index="{{ $rowIndex }}">
     <td class="work-row-summary-sno text-center">{{ $sno }}</td>
     <td class="work-row-summary-employment">
         <span class="wx-sum-main">{{ $empTxt }}</span>
         @if($isAlterationNew)
-            <span class="wx-alter-badge ms-1">ALTER</span>
+            <span class="wx-alter-badge ms-1">ALTERED</span>
+        @elseif($isRenewalNew)
+            <span class="wx-renew-badge ms-1">RENEWED</span>
         @endif
         @if($empType === 'electrical_contractor' && $contractorCat !== '')
             <span class="wx-sum-sub">Grade of Licence: {{ $contractorCat }}</span>

@@ -75,7 +75,7 @@ class CompetencyAdminQueryService
     public function paidPaymentConstraint(string $alias = 'ta'): \Closure
     {
         return function ($query) use ($alias) {
-            $query->whereIn(DB::raw("LOWER(TRIM({$alias}.payment_status))"), ['y', 'payment', 'paid']);
+            $query->whereIn(DB::raw("TRIM({$alias}.payment_status)"), ['Y', 'B']);
         };
     }
 

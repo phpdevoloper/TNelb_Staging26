@@ -237,6 +237,7 @@
                             'N' => 'New',
                             'R' => 'Renewal',
                             'D' => 'Digitisation',
+                            'A' => 'Alteration',
                             default => 'Certificate',
                         };
                     @endphp
@@ -320,14 +321,14 @@
                       
                         <a href="{{ route('generateformP.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">Download</span>
+                            <span style="font-size: x-small;">Receipt</span>
                         </a>
                     @else
                      
 
                         <a href="{{ route('generate.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">Download</span>
+                            <span style="font-size: x-small;">Receipt</span>
                         </a>
                     @endif
                 @endif
@@ -357,7 +358,7 @@
                             <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>
                     @else
-                        <a href="{{ route('admin.generateLicensePDF', ['application_id' => $certPdfAppId]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download Licence (English)">
+                        <a href="{{ route('admin.licence.stored', ['application_id' => $certPdfAppId]) }}" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="View stored licence">
                             <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
                             <span class="badge outline-badge-info" style="font-size:10px;">View Certificate</span>
                         </a>

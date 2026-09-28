@@ -561,6 +561,26 @@
     .work-card-field[data-field="relieve"].is-locked .work-relieve-existing .remove-work-relieve-confirm,
     .work-card-field[data-field="relieve"].is-locked .form-s-file-upload-wrap {
         pointer-events: none !important;
+    }
+    /* Till date unchecked: relieving / To date must stay clickable on N, D, R, A, and returned forms. */
+    .work-fields.fs-till-relieve-open .work-card-field[data-field="relieve"],
+    .work-fields.fs-till-relieve-open .work-card-field[data-field="relieve"] *,
+    .work-fields.fs-till-relieve-open .work-card-field[data-field="to-date"],
+    .work-fields.fs-till-relieve-open .work-card-field[data-field="to-date"] *,
+    .work-fields.fs-till-relieve-open .work-card-till-toggle,
+    .work-fields.fs-till-relieve-open .work-date-till,
+    .work-fields.fs-till-relieve-open input.work-date-to:not([type="hidden"]),
+    .work-fields.fs-till-relieve-open .work-row-done-btn {
+        pointer-events: auto !important;
+    }
+    .work-fields.fs-till-relieve-open .work-card-field[data-field="relieve"] .form-s-file-upload-wrap {
+        display: flex !important;
+        pointer-events: auto !important;
+    }
+    .work-fields.fs-till-relieve-open .work-card-field[data-field="relieve"] input[type="file"] {
+        pointer-events: auto !important;
+        opacity: 1 !important;
+    }
         opacity: .55;
         cursor: not-allowed;
     }

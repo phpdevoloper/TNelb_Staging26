@@ -17,6 +17,7 @@ use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbFormP;
 use App\Models\TnelbAppsInstitute;
 use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\SensitiveProofCryptService;
 use Illuminate\Support\Collection;
@@ -241,10 +242,11 @@ class PDFController extends Controller
         // Prefer CC per-form meta (S/W/WH/P) before legacy tnelb_application_tbl.
         $ccMeta = CC_Forms_Meta::findByApplicationId($applicationId);
         if ($ccMeta) {
-            $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+            $proofApplicationId = app(FormSChildDocumentSnapshotService::class)
+                ->preferredIdentityProofApplicationId($ccMeta);
             $applicationDetails = $this->mapFormFields((object) $ccMeta->toArray());
 
-            return $this->addAadhaarPan($applicationDetails, $masterApplicationId);
+            return $this->addAadhaarPan($applicationDetails, $proofApplicationId);
         }
 
         // $legacyForm = DB::table('tnelb_application_tbl')
@@ -261,40 +263,38 @@ class PDFController extends Controller
 
     private function resolveEducationForPdf(string $applicationId): Collection
     {
-        $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+        $ownerId = $this->resolveSnapshotOwnerApplicationId($applicationId, 'education');
 
-        $ccRows = CC_Education::where('application_id', $masterApplicationId)
+        return CC_Education::where('application_id', $ownerId)
             ->orderByDesc('year_of_passing')
             ->get();
-        if ($ccRows->isNotEmpty()) {
-            return $ccRows;
-        }
-
-        $legacyRows = CC_Education::where('application_id', $applicationId)->get();
-        if ($legacyRows->isNotEmpty()) {
-            return $legacyRows;
-        }
-
-        return CC_Education::where('application_id', $masterApplicationId)->get();
     }
 
     private function resolveExperienceForPdf(string $applicationId): Collection
     {
-        $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+        $ownerId = $this->resolveSnapshotOwnerApplicationId($applicationId, 'experience');
 
-        $ccRows = CC_Experience::where('application_id', $masterApplicationId)
+        return CC_Experience::where('application_id', $ownerId)
             ->orderBy('exp_id')
             ->get();
-        if ($ccRows->isNotEmpty()) {
-            return $ccRows;
+    }
+
+    /**
+     * Education and experience for a later alteration live on that alteration
+     * when it has its own snapshot, otherwise on the nearest parent that does.
+     */
+    private function resolveSnapshotOwnerApplicationId(string $applicationId, string $kind): string
+    {
+        $meta = CC_Forms_Meta::findByApplicationId($applicationId);
+        if (! $meta) {
+            return $applicationId;
         }
 
-        $legacyRows = CC_Experience::where('application_id', $applicationId)->get();
-        if ($legacyRows->isNotEmpty()) {
-            return $legacyRows;
-        }
+        $snapshot = app(FormSChildDocumentSnapshotService::class);
 
-        return CC_Experience::where('application_id', $masterApplicationId)->get();
+        return $kind === 'experience'
+            ? $snapshot->preferredExperienceApplicationId($meta)
+            : $snapshot->preferredEducationApplicationId($meta);
     }
 
     /**

@@ -427,7 +427,7 @@
                                                     <option value="ITI Certificate">ITI Certificate</option>
                                                 </select>
                                             </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" maxlength="80" value="Dept of Employment &amp; Training"></td>
+                                            <td><input type="text" class="form-control" name="institute_name[]" maxlength="80"></td>
                                             <td>
                                                 <select name="month_of_passing[]" class="form-control">
                                                     <option value="">Select Month</option>
@@ -848,6 +848,47 @@
 <footer class="main-footer">
     @include('include.footer')
     <script src="{{ url('assets/js/digitization_wh.js') }}?v={{ filemtime(public_path('assets/js/digitization_wh.js')) }}"></script>
+    <script>
+        window.showContractorDetails = window.showContractorDetails || function (details) {
+            var notice = document.getElementById("contractor-details-notice");
+            if (!notice) {
+                return;
+            }
+            var hasDetails = details && (details.licence_no || details.cl_type || details.contractor_name);
+            if (hasDetails) {
+                var cl = document.getElementById("contractor-cl-type");
+                var no = document.getElementById("contractor-licence-no");
+                var name = document.getElementById("contractor-name");
+                if (cl) cl.textContent = details.cl_type || "";
+                if (no) no.textContent = details.licence_no || "";
+                if (name) name.textContent = details.contractor_name || "";
+                notice.classList.remove("d-none");
+                notice.style.removeProperty("display");
+                window.contractorDetails = details;
+            } else {
+                notice.classList.add("d-none");
+                notice.style.setProperty("display", "none", "important");
+                window.contractorDetails = null;
+            }
+        };
+        @if (!empty($contractorDetails) && is_array($contractorDetails))
+        window.showContractorDetails(@json($contractorDetails));
+        @endif
+        $(document).ajaxSuccess(function (event, xhr, settings) {
+            var url = (settings && settings.url) ? String(settings.url) : "";
+            if (url.indexOf("storeDigitization") === -1 && url.indexOf("getContractorDetails") === -1) {
+                return;
+            }
+            try {
+                var response = typeof xhr.responseJSON === "object" && xhr.responseJSON
+                    ? xhr.responseJSON
+                    : JSON.parse(xhr.responseText || "{}");
+                if (response && response.contractorDetails) {
+                    window.showContractorDetails(response.contractorDetails);
+                }
+            } catch (e) {}
+        });
+    </script>
 
     @include('user_login.partials.form-s-work-exp-scripts', [
         'editFormName' => 'WH',
@@ -1025,7 +1066,7 @@
     <option value="Wireman Helper Examination">Wireman Helper Examination</option>
     <option value="ITI Certificate">ITI Certificate</option>
 </select></td>
-<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" value="Dept of Employment &amp; Training" required></td>
+<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" required></td>
 <td><select name="month_of_passing[]" class="form-control" required>
     <option value="">Select Month</option>
     <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>

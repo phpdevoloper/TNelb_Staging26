@@ -131,6 +131,9 @@ class LicensepdfController extends Controller
         // dd($applicant->license_name);exit;
 
         $licence_details = MstLicence::where('cert_licence_code', $applicant->license_name)->first();
+        if (! $licence_details) {
+            throw new \RuntimeException('Licence details were not found for this application.');
+        }
 
         $licence_name = $licence_details->licence_name;
 
@@ -1168,47 +1171,99 @@ class LicensepdfController extends Controller
 
     private function storeEncryptedLicensePdfPath($applicationId, string $encryptedPathEn, ): void
     {
+        $certTable = $this->competencyCertTableForApplication($applicationId);
+        if ($certTable === null || ! Schema::hasTable($certTable)) {
+            throw new \RuntimeException('Certificate table was not found, so the licence PDF was not saved.');
+        }
+
+        $payload = [];
+        if (Schema::hasColumn($certTable, 'license_pdf_en')) {
+            $payload['license_pdf_en'] = $encryptedPathEn;
+        } elseif (Schema::hasColumn($certTable, 'cert_pdf')) {
+            $payload['cert_pdf'] = $encryptedPathEn;
+        }
+
+        if ($payload === []) {
+            throw new \RuntimeException('Certificate table has no licence PDF column, so the licence PDF was not saved.');
+        }
+
+        $updated = DB::table($certTable)
+            ->where('application_id', $applicationId)
+            ->update($payload);
+
+        if ((int) $updated === 0) {
+            throw new \RuntimeException('Issued certificate row was not found, so the licence PDF was not saved.');
+        }
+    }
+
+    /**
+     * Open the licence that approval already encrypted and stored.
+     * The path is read from cert_pdf, then the file is decrypted and streamed.
+     */
+    public function streamStoredLicence(string $application_id)
+    {
+        $applicationId = trim($application_id);
+        if ($applicationId === '') {
+            abort(404, 'Licence PDF not found.');
+        }
+
+        $path = $this->readableStoredLicencePath($applicationId);
+        if ($path === null) {
+            try {
+                $generated = $this->generatePDF($applicationId);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to generate licence PDF before stored stream', [
+                    'application_id' => $applicationId,
+                    'error' => $e->getMessage(),
+                ]);
+                abort(500, 'Unable to open licence PDF.');
+            }
+
+            if (! $generated instanceof \Symfony\Component\HttpFoundation\Response
+                || $generated->isRedirection()
+                || $generated->getStatusCode() >= 400) {
+                abort(404, 'Licence PDF not found.');
+            }
+
+            $path = $this->readableStoredLicencePath($applicationId);
+        }
+
+        if ($path === null) {
+            abort(404, 'Licence PDF not found.');
+        }
+
         try {
-            $certTable = $this->competencyCertTableForApplication($applicationId);
-            if ($certTable === null || ! Schema::hasTable($certTable)) {
-                Log::warning('No competency cert table found for license PDF path storage', [
-                    'application_id' => $applicationId,
-                ]);
-
-                return;
-            }
-
-            $payload = [];
-            if (Schema::hasColumn($certTable, 'license_pdf_en')) {
-                $payload['license_pdf_en'] = $encryptedPathEn;
-
-            } elseif (Schema::hasColumn($certTable, 'cert_pdf')) {
-                $payload['cert_pdf'] = $encryptedPathEn;
-            }
-
-            if ($payload === []) {
-                return;
-            }
-
-            $updated = DB::table($certTable)
-                ->where('application_id', $applicationId)
-                ->update($payload);
-
-            if ((int) $updated === 0) {
-                Log::warning('No competency cert row updated for license PDF paths', [
-                    'application_id' => $applicationId,
-                    'table' => $certTable,
-                    'payload' => $payload,
-                ]);
-            }
+            $pdfBinary = Crypt::decryptString(Storage::disk('local')->get($path));
         } catch (\Throwable $e) {
-            Log::warning('Failed to store encrypted license PDF path', [
+            Log::warning('Failed to decrypt stored licence PDF', [
                 'application_id' => $applicationId,
-                'encryptedPathEn' => $encryptedPathEn,
-
+                'path' => $path,
                 'error' => $e->getMessage(),
             ]);
+            abort(500, 'Unable to open licence PDF.');
         }
+
+        return response($pdfBinary)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . basename($path) . '"');
+    }
+
+    private function readableStoredLicencePath(string $applicationId): ?string
+    {
+        $licence = $this->competencyCertLicenceRow($applicationId);
+        if (! $licence) {
+            return null;
+        }
+
+        $path = trim((string) ($licence->cert_pdf ?? ''));
+        if ($path === '') {
+            $path = trim((string) ($licence->license_pdf_en ?? ''));
+        }
+        if ($path === '' || ! Storage::disk('local')->exists($path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     /**

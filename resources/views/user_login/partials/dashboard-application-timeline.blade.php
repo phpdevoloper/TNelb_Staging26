@@ -28,39 +28,7 @@
     };
 
     $docUrl = static function (?string $path, string $folder): ?string {
-        $path = trim((string) ($path ?? ''));
-        if ($path === '' || strcasecmp($path, 'pending') === 0) {
-            return null;
-        }
-        if (preg_match('#^https?://#i', $path)) {
-            return $path;
-        }
-
-        $normalized = ltrim(str_replace('\\', '/', $path), '/');
-        if (str_starts_with($normalized, 'public/')) {
-            $normalized = substr($normalized, strlen('public/'));
-        }
-
-        $filename = basename($normalized);
-        if ($filename === '' || $filename === '.' || $filename === '..') {
-            return null;
-        }
-
-        $relative = str_contains($normalized, 'uploads/digitization/')
-            ? $normalized
-            : 'uploads/digitization/'.$folder.'/'.$filename;
-
-        if (is_file(public_path($relative))) {
-            return asset($relative);
-        }
-
-        $storageRoot = rtrim((string) config('document_versioning.storage_root', base_path('competency')), DIRECTORY_SEPARATOR);
-        $storedFile = $storageRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relative);
-        if (is_file($storedFile)) {
-            return \App\Services\Competency\CompetencyDocumentSupport::publicUrlForStoredPath($relative);
-        }
-
-        return asset($relative);
+        return digitization_document_url($path, $folder);
     };
 
 

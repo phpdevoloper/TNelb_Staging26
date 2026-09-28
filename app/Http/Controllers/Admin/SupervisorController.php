@@ -17,11 +17,20 @@ use App\Models\CC_Forms_cert;
 use App\Models\CC_Forms_Meta;
 use App\Models\Cl_Checklist_applicant;
 use App\Models\EA_Application_model;
+use App\Models\TnelbApplicantPhoto;
+use App\Models\TnelbApplicantsSign;
+use App\Models\TnelbAppsInstitute;
 use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyQcQscService;
 use App\Services\Competency\CompetencyCertificateService;
+use App\Services\Competency\CompetencyDocumentReviewService;
+use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\CompetencyWorkflowService;
+use App\Services\Competency\FormPSchema;
+use App\Services\FormS\FormSProofDocumentService;
+use Illuminate\Support\Facades\Schema;
 
 
 use Carbon\Carbon;
@@ -157,10 +166,10 @@ class SupervisorController extends Controller
                     ->orderByDesc('ta.id')
                     ->get();
             } else {
-                $twLast = DB::table('cc_workflow_forms')->select('application_id', DB::raw('MAX(id) as max_id'))->groupBy('application_id');
+                $twLast = DB::table('cc_workflow_forms')->select('application_id', DB::raw('MAX(w_id) as max_id'))->groupBy('application_id');
                 $currentAppIds = DB::table('cc_workflow_forms as tw')
                     ->joinSub($twLast, 'tw_last', function ($join) {
-                        $join->on('tw.application_id', '=', 'tw_last.application_id')->on('tw.id', '=', 'tw_last.max_id');
+                        $join->on('tw.application_id', '=', 'tw_last.application_id')->on('tw.w_id', '=', 'tw_last.max_id');
                     })
                     ->where('tw.forwarded_to', $roleId)->whereIn('tw.appl_status', ['F', 'RF'])->select('tw.application_id');
                 $workflows = DB::query()->fromSub($currentAppIds, 'cur')
@@ -182,28 +191,21 @@ class SupervisorController extends Controller
             }
             // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with QU in history) +
             // Form P apps returned to Supervisor/upper staff with an open workflow query (RE + latest tw.query_status P).
-            $twLastFormP = DB::table('cc_workflow_forms')
-                ->select('application_id', DB::raw('MAX(id) as max_id'))
-                ->groupBy('application_id');
-
+            // MAX() must stay in a scalar subquery — joinSub(MAX) inside WHERE EXISTS is invalid in PostgreSQL.
             $returnedQuery = DB::table('tnelb_form_p as ta')
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
-                ->where(function ($q) use ($twLastFormP) {
+                ->where(function ($q) {
                     $q->where('ta.app_status', 'QU')
                         ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM cc_workflow_forms tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))")
-                        ->orWhere(function ($q2) use ($twLastFormP) {
-                            $q2->whereIn('ta.app_status', ['P', 'RE'])
-                                ->whereExists(function ($sub) use ($twLastFormP) {
-                                    $sub->select(DB::raw(1))
-                                        ->from('cc_workflow_forms as tw')
-                                        ->joinSub($twLastFormP, 'tw_last', function ($join) {
-                                            $join->on('tw.application_id', '=', 'tw_last.application_id')
-                                                ->on('tw.id', '=', 'tw_last.max_id');
-                                        })
-                                        ->whereColumn('tw.application_id', 'ta.application_id')
-                                        ->where('tw.query_status', 'P');
-                                });
-                        });
+                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (
+                            SELECT 1 FROM cc_workflow_forms tw
+                            WHERE tw.application_id = ta.application_id
+                              AND tw.query_status = 'P'
+                              AND tw.w_id = (
+                                  SELECT MAX(twx.w_id) FROM cc_workflow_forms twx
+                                  WHERE twx.application_id = ta.application_id
+                              )
+                        ))");
                 })
                 ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))
                 ->orderByDesc('ta.submitted_date')
@@ -525,28 +527,21 @@ class SupervisorController extends Controller
             }
             // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with QU in history) +
             // Form P apps returned to Supervisor/upper staff with an open workflow query (RE + latest tw.query_status P).
-            $twLastFormP = DB::table('tnelb_workflow')
-                ->select('application_id', DB::raw('MAX(id) as max_id'))
-                ->groupBy('application_id');
-
+            // MAX() must stay in a scalar subquery — joinSub(MAX) inside WHERE EXISTS is invalid in PostgreSQL.
             $returnedQuery = DB::table('tnelb_form_p as ta')
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
-                ->where(function ($q) use ($twLastFormP) {
+                ->where(function ($q) {
                     $q->where('ta.app_status', 'QU')
                         ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM tnelb_workflow tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))")
-                        ->orWhere(function ($q2) use ($twLastFormP) {
-                            $q2->whereIn('ta.app_status', ['P', 'RE'])
-                                ->whereExists(function ($sub) use ($twLastFormP) {
-                                    $sub->select(DB::raw(1))
-                                        ->from('tnelb_workflow as tw')
-                                        ->joinSub($twLastFormP, 'tw_last', function ($join) {
-                                            $join->on('tw.application_id', '=', 'tw_last.application_id')
-                                                ->on('tw.id', '=', 'tw_last.max_id');
-                                        })
-                                        ->whereColumn('tw.application_id', 'ta.application_id')
-                                        ->where('tw.query_status', 'P');
-                                });
-                        });
+                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (
+                            SELECT 1 FROM tnelb_workflow tw
+                            WHERE tw.application_id = ta.application_id
+                              AND tw.query_status = 'P'
+                              AND tw.id = (
+                                  SELECT MAX(twx.id) FROM tnelb_workflow twx
+                                  WHERE twx.application_id = ta.application_id
+                              )
+                        ))");
                 })
                 ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))
                 ->orderByDesc('ta.submitted_date')
@@ -915,6 +910,185 @@ class SupervisorController extends Controller
         });
 
         return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal') + ['is_completed_list' => true]);
+    }
+
+    public function applicationDetailsModal(Request $request)
+    {
+        $applicationId = trim((string) $request->query('application_id', ''));
+        if ($applicationId === '') {
+            return response('<p class="text-danger mb-0">Application id is required.</p>', 400);
+        }
+
+        $applicant = app(CompetencyApplicationService::class)->findApplicantWithPayment($applicationId);
+        if (! $applicant) {
+            return response('<p class="text-danger mb-0">Application details were not found.</p>', 404);
+        }
+        app(CompetencyQcQscService::class)->overlayOnApplicant($applicant);
+
+        $formName = strtoupper(trim((string) ($applicant->form_name ?? '')));
+        if (str_starts_with($formName, 'FORM ')) {
+            $formName = trim(substr($formName, 5));
+        }
+        $isFormP = $formName === 'P';
+
+        $educationalQualifications = collect();
+        $workExperience = collect();
+        $uploadedPhoto = null;
+        $uploadedSign = null;
+        $alterationProofs = collect();
+        $parentApplicantForAlter = null;
+        $instituteDetails = collect();
+
+        if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
+            $workflowApp = CC_Forms_Meta::findByApplicationId($applicationId, $formName)
+                ?: CC_Forms_Meta::findByApplicationId($applicationId);
+            if ($workflowApp) {
+                $reviewContext = app(CompetencyDocumentReviewService::class)->buildStaffReviewContext($workflowApp);
+                $educationalQualifications = $reviewContext['educationalQualifications'] ?? collect();
+                $workExperience = $reviewContext['workExperience'] ?? collect();
+                $uploadedPhoto = $reviewContext['uploadedPhoto'] ?? null;
+                $uploadedSign = $reviewContext['uploadedSign'] ?? null;
+                $alterationProofs = $reviewContext['alterationProofs'] ?? collect();
+                $parentApp = $reviewContext['parentApplication'] ?? null;
+                if (($applicant->appl_type ?? '') === 'A') {
+                    $parentApplicantForAlter = $parentApp;
+                    if ($parentApplicantForAlter) {
+                        $parentApplicantForAlter->applicants_address = $parentApplicantForAlter->applicants_address
+                            ?? $parentApplicantForAlter->applicant_address
+                            ?? null;
+                        $parentApplicantForAlter->applicant_name = $parentApplicantForAlter->applicant_name
+                            ?? $parentApplicantForAlter->applicants_name
+                            ?? null;
+                    }
+                }
+            }
+        }
+
+        if ($isFormP) {
+            $formPRelated = $this->loadFormPModalRelated($applicationId, $applicant);
+            if ($educationalQualifications->isEmpty()) {
+                $educationalQualifications = $formPRelated['edu'];
+            }
+            if ($workExperience->isEmpty()) {
+                $workExperience = $formPRelated['exp'];
+            }
+            $uploadedPhoto = $uploadedPhoto ?: $formPRelated['photo'];
+            $uploadedSign = $uploadedSign ?: $formPRelated['sign'];
+            $instituteDetails = $formPRelated['institutes'];
+            $applicant = $formPRelated['applicant'];
+        }
+
+        return view('admin.supervisor.partials.application_details_modal_body', [
+            'applicant' => $applicant,
+            'educationalQualifications' => $educationalQualifications,
+            'workExperience' => $workExperience,
+            'uploadedPhoto' => $uploadedPhoto,
+            'uploadedSign' => $uploadedSign,
+            'alterationProofs' => $alterationProofs,
+            'parentApplicantForAlter' => $parentApplicantForAlter,
+            'instituteDetails' => $instituteDetails,
+            'isFormP' => $isFormP,
+        ]);
+    }
+
+    private function loadFormPModalRelated(string $applicantId, object $applicant): array
+    {
+        $fromCc = Schema::hasTable(FormPSchema::META_TABLE)
+            && DB::table(FormPSchema::META_TABLE)->where('application_id', $applicantId)->exists();
+
+        $edu = collect();
+        $exp = collect();
+        $photo = null;
+        $sign = null;
+
+        if ($fromCc) {
+            $edu = Schema::hasTable('cc_edu')
+                ? DB::table('cc_edu')->where('application_id', $applicantId)->get()
+                : collect();
+            $exp = Schema::hasTable('cc_exp')
+                ? DB::table('cc_exp')->where('application_id', $applicantId)->get()
+                : collect();
+            $proofService = app(FormSProofDocumentService::class);
+            $photo = $proofService->loadPhotoForView($applicantId);
+            $sign = $proofService->loadSignForView($applicantId);
+            $documents = Schema::hasTable('cc_proof_doc')
+                ? DB::table('cc_proof_doc')->where('application_id', $applicantId)->get()
+                : collect();
+            foreach ($documents as $proof) {
+                $proofType = strtolower((string) ($proof->proof_type ?? ''));
+                $proofName = strtoupper((string) ($proof->proof_name ?? ''));
+                if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
+                    if (! empty($proof->proof_no) && empty($applicant->aadhaar)) {
+                        $applicant->aadhaar = $proof->proof_no;
+                    }
+                    if (! empty($proof->proof_doc)) {
+                        $applicant->aadhaar_doc = $proof->proof_doc;
+                    }
+                } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
+                    if (! empty($proof->proof_no) && empty($applicant->pancard)) {
+                        $applicant->pancard = $proof->proof_no;
+                    }
+                    if (! empty($proof->proof_doc)) {
+                        $applicant->pan_doc = $proof->proof_doc;
+                        $applicant->pancard_doc = $proof->proof_doc;
+                    }
+                }
+            }
+        } else {
+            $edu = Schema::hasTable('tnelb_applicants_edu')
+                ? DB::table('tnelb_applicants_edu')->where('application_id', $applicantId)->get()
+                : collect();
+            $exp = Schema::hasTable('tnelb_applicants_exp')
+                ? DB::table('tnelb_applicants_exp')->where('application_id', $applicantId)->get()
+                : collect();
+            $photo = class_exists(TnelbApplicantPhoto::class)
+                ? TnelbApplicantPhoto::where('application_id', $applicantId)->first()
+                : null;
+            $sign = class_exists(TnelbApplicantsSign::class)
+                ? TnelbApplicantsSign::where('application_id', $applicantId)->first()
+                : null;
+        }
+
+        $edu = $edu->map(function ($row) {
+            if (is_object($row) && empty($row->id) && ! empty($row->edu_id)) {
+                $row->id = $row->edu_id;
+            }
+
+            return $row;
+        });
+        $exp = $exp->map(function ($row) {
+            if (! is_object($row)) {
+                return $row;
+            }
+            if (empty($row->id) && ! empty($row->exp_id)) {
+                $row->id = $row->exp_id;
+            }
+            if (empty($row->upload_document) && ! empty($row->support_document)) {
+                $row->upload_document = $row->support_document;
+            }
+            if (empty($row->company_name) && ! empty($row->org_name)) {
+                $row->company_name = $row->org_name;
+            }
+
+            return $row;
+        });
+
+        $institutes = (class_exists(TnelbAppsInstitute::class) && Schema::hasTable('tnelb_applicant_institute'))
+            ? TnelbAppsInstitute::where('application_id', $applicantId)
+                ->where(function ($q) {
+                    $q->where('institute_status', 1)->orWhereNull('institute_status');
+                })
+                ->get()
+            : collect();
+
+        return [
+            'applicant' => $applicant,
+            'edu' => $edu,
+            'exp' => $exp,
+            'photo' => $photo,
+            'sign' => $sign,
+            'institutes' => $institutes,
+        ];
     }
 
     public function view_auditor()
@@ -2278,8 +2452,6 @@ class SupervisorController extends Controller
         $application = $this->resolveCompetencyApplicationForApproval($request->application_id);
 
 
-
-
         if (!$application) {
             return response()->json(['error' => 'Application not found.'], 404);
         }
@@ -2324,18 +2496,42 @@ class SupervisorController extends Controller
 
 
             // Regenerate licence PDF on the issued certificate application (parent for alterations).
+            // A failure here rolls the approval back. Nothing after this point is saved.
             $pdfApplicationId = $appl_type === 'A'
                 ? trim((string) ($application->old_application ?? $request->application_id))
                 : $request->application_id;
 
             try {
-                app(LicensepdfController::class)->generatePDF($pdfApplicationId);
+                $pdfResponse = app(LicensepdfController::class)->generatePDF($pdfApplicationId);
+                $pdfFailed = ! $pdfResponse instanceof \Symfony\Component\HttpFoundation\Response
+                    || $pdfResponse->isRedirection()
+                    || $pdfResponse->getStatusCode() >= 400;
+                if ($pdfFailed) {
+                    throw new \RuntimeException('Licence PDF could not be generated.');
+                }
+
+                $storedPath = 'private_documents/license_pdfs/' . $pdfApplicationId . '.pdf';
+                if (! \Illuminate\Support\Facades\Storage::disk('local')->exists($storedPath)) {
+                    throw new \RuntimeException('Licence PDF file was not stored.');
+                }
             } catch (\Throwable $e) {
+                DB::rollBack();
                 Log::warning('Failed to generate/store encrypted licence PDF after approval', [
                     'application_id' => $pdfApplicationId,
                     'alteration_application_id' => $appl_type === 'A' ? $request->application_id : null,
                     'error' => $e->getMessage(),
                 ]);
+
+                $detail = trim($e->getMessage());
+                $prefix = 'Licence PDF could not be generated.';
+                if (str_starts_with($detail, $prefix)) {
+                    $detail = trim(substr($detail, strlen($prefix)));
+                }
+
+                return response()->json([
+                    'status' => 'error',
+                    'error' => trim($prefix . ' Approval was not saved. ' . $detail),
+                ], 422);
             }
 
 

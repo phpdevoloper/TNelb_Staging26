@@ -53,6 +53,18 @@ class CompetencyDocumentSupport
         return (string) ($folders[$key] ?? $folders[$code] ?? config('document_versioning.default_certificate_folder', 'FORM_S'));
     }
 
+    /**
+     * Digitisation certificate / QC-QSC PDFs: FORM_{S|W|WH|P}/DIGITISATION/QC_QSC
+     */
+    public static function digitizationUploadDirectory(?string $formName): string
+    {
+        $folder = self::certificateFolderForForm($formName);
+        $stage = (string) config('document_versioning.request_folders.DIGITISATION', 'DIGITISATION');
+        $leaf = (string) config('document_versioning.document_folders.supporting', 'QC_QSC');
+
+        return $folder.'/'.$stage.'/'.$leaf;
+    }
+
     public static function documentDownloadRouteName(): string
     {
         return 'competency.documents.download';

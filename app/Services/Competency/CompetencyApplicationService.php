@@ -10,6 +10,8 @@ use App\Models\CC_Proof_doc;
 
 use App\Models\Competency\CC_CompetencyMeta;
 
+use App\Services\FormS\FormSAlterationService;
+
 use App\Services\FormS\FormSApplicationWorkflowService;
 
 use Illuminate\Support\Facades\DB;
@@ -813,15 +815,17 @@ class CompetencyApplicationService
 
 
 
+            [$displayName, $displayAddress] = $this->latestSettledCertificateIdentity($applicationId, $app);
+
             return (object) [
 
                 'application_id' => $applicationId,
 
-                'name' => $app->applicant_name ?? null,
+                'name' => $displayName,
 
                 'fathers_name' => $app->fathers_name ?? null,
 
-                'applicants_address' => $app->applicants_address ?? $app->applicant_address ?? null,
+                'applicants_address' => $displayAddress,
 
                 'd_o_b' => $app->d_o_b ?? null,
 
@@ -857,11 +861,13 @@ class CompetencyApplicationService
             $app->form_name ?? null
         );
 
+        [$displayName, $displayAddress] = $this->latestSettledCertificateIdentity($applicationId, $app);
+
         return (object) [
             'application_id' => $applicationId,
-            'name' => $app->applicant_name ?? null,
+            'name' => $displayName,
             'fathers_name' => $app->fathers_name ?? null,
-            'applicants_address' => $app->applicants_address ?? null,
+            'applicants_address' => $displayAddress,
             'd_o_b' => $app->d_o_b ?? null,
             'age' => $app->age ?? null,
             'license_name' => $app->license_name ?? $app->certificate_name ?? null,
@@ -873,6 +879,37 @@ class CompetencyApplicationService
             'expires_at' => $cert->expires_at ?? null,
         ];
 
+    }
+
+    /**
+     * Certificate PDF is stored on the original application. Later approved
+     * alterations keep the current name and address, so the licence shows those.
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function latestSettledCertificateIdentity(string $applicationId, object $app): array
+    {
+        $name = $app->applicant_name ?? null;
+        $address = $app->applicants_address ?? $app->applicant_address ?? null;
+
+        $meta = $this->metaService->findModel($applicationId);
+        $loginId = trim((string) ($meta->login_id ?? ''));
+        if (! $meta || $loginId === '') {
+            return [$name, $address];
+        }
+
+        $latest = app(FormSAlterationService::class)->latestSettledApplicationForCertificate($meta, $loginId);
+        $latestName = trim((string) ($latest->applicant_name ?? ''));
+        $latestAddress = trim((string) ($latest->applicant_address ?? $latest->applicants_address ?? ''));
+
+        if ($latestName !== '') {
+            $name = $latestName;
+        }
+        if ($latestAddress !== '') {
+            $address = $latestAddress;
+        }
+
+        return [$name, $address];
     }
 
 }

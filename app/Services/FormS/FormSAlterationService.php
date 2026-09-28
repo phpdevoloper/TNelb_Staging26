@@ -10,6 +10,7 @@ use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Models\Mst_experience;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\CompetencyQcQscService;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Models\CC_Proof_doc;
@@ -49,35 +50,164 @@ class FormSAlterationService
             return ['ok' => false, 'message' => 'Application ID or Certificate Number is required.'];
         }
 
-        $paidStatuses = ['payment', 'paid', 'Y', 'y'];
-
-        $parent = CC_Forms_Meta::where('application_id', $parentApplicationId)
-            ->where('login_id', $loginId)
-            ->whereIn('form_name', self::SUPPORTED_FORM_NAMES)
-            ->whereIn('appl_type', ['N', 'R', 'D','A'])
-            ->where(function ($q) use ($paidStatuses) {
-                $q->whereIn('payment_status', $paidStatuses)
-                    ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) IN ('y','payment','paid')");
-            })
-            ->first();
-
-        if (!$parent) {
-            $parent = CC_Forms_Meta::where('certificate_no', $parentApplicationId)
-                ->where('login_id', $loginId)
-                ->whereIn('form_name', self::SUPPORTED_FORM_NAMES)
-                ->whereIn('appl_type', ['N', 'R', 'D','A'])
-                ->where(function ($q) use ($paidStatuses) {
-                    $q->whereIn('payment_status', $paidStatuses)
-                        ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) IN ('y','payment','paid')");
-                })
-                ->first();
-        }
-
-        if (!$parent) {
+        $seed = $this->findParentMeta($parentApplicationId, $loginId);
+        if (! $seed) {
             return ['ok' => false, 'message' => 'No valid issued competency certificate application found for your account.'];
         }
 
-        $pendingAlteration = CC_Forms_Meta::where('old_application', $parent->application_id)
+        $parent = $this->latestSettledApplicationForCertificate($seed, $loginId);
+
+        if ($this->hasSubmittedPendingAlteration($parent, $loginId)) {
+            return ['ok' => false, 'message' => 'An alteration request is already submitted for this certificate.'];
+        }
+
+        return ['ok' => true, 'application' => $parent];
+    }
+
+    /**
+     * Paid N / R / D / A row on the correct form meta table.
+     */
+    protected function findParentMeta(string $applicationIdOrCertificateNo, string $loginId): ?CC_CompetencyMeta
+    {
+        $metaService = app(CompetencyMetaService::class);
+        $found = $metaService->findModel($applicationIdOrCertificateNo);
+        if ($found
+            && (string) ($found->login_id ?? '') === $loginId
+            && $this->isSupportedPaidParent($found)
+        ) {
+            return $found;
+        }
+
+        foreach (array_keys(CompetencyMetaService::FORM_META_TABLES) as $formName) {
+            $class = $metaService->modelClassForForm($formName);
+            $row = $class::where('certificate_no', $applicationIdOrCertificateNo)
+                ->where('login_id', $loginId)
+                ->whereIn('appl_type', ['N', 'R', 'D', 'A'])
+                ->orderByDesc('app_id')
+                ->first();
+            if ($row && $this->isSupportedPaidParent($row)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    protected function isSupportedPaidParent(CC_CompetencyMeta $row): bool
+    {
+        $form = strtoupper(trim((string) ($row->form_name ?? '')));
+        if ($form === 'H') {
+            $form = 'WH';
+        }
+        if (! in_array($form, self::SUPPORTED_FORM_NAMES, true)) {
+            return false;
+        }
+
+        $appl = strtoupper(trim((string) ($row->appl_type ?? '')));
+        if (! in_array($appl, ['N', 'R', 'D', 'A'], true)) {
+            return false;
+        }
+
+        return $this->isPaidStatus($row->payment_status ?? null);
+    }
+
+    protected function isPaidStatus(mixed $paymentStatus): bool
+    {
+        return in_array(strtolower(trim((string) $paymentStatus)), ['payment', 'paid', 'y'], true);
+    }
+
+    /**
+     * Latest settled application for the certificate (approved alteration / renewal
+     * wins over the original issued N/R/D). Pending alteration drafts are skipped.
+     */
+    public function latestSettledApplicationForCertificate(CC_CompetencyMeta $seed, string $loginId): CC_CompetencyMeta
+    {
+        $class = $this->metaClassFor($seed);
+        $lineageIds = $this->collectCertificateLineageIds($seed, $loginId);
+        if ($lineageIds === []) {
+            return $seed;
+        }
+
+        $latest = $class::whereIn('application_id', $lineageIds)
+            ->where('login_id', $loginId)
+            ->where(function ($q) {
+                $q->whereIn('appl_type', ['N', 'R', 'D'])
+                    ->orWhere(function ($q2) {
+                        $q2->where('appl_type', 'A')
+                            ->whereIn('app_status', ['A', 'C']);
+                    });
+            })
+            ->orderByDesc('app_id')
+            ->get()
+            ->first(fn (CC_CompetencyMeta $row) => $this->isPaidStatus($row->payment_status ?? null));
+
+        return $latest instanceof CC_CompetencyMeta ? $latest : $seed;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function collectCertificateLineageIds(CC_CompetencyMeta $seed, string $loginId): array
+    {
+        $class = $this->metaClassFor($seed);
+        $ids = [];
+        $seen = [];
+
+        $current = $seed;
+        while ($current) {
+            $id = trim((string) ($current->application_id ?? ''));
+            if ($id === '' || isset($seen[$id])) {
+                break;
+            }
+            $seen[$id] = true;
+            $ids[] = $id;
+            $parentId = trim((string) ($current->old_application ?? ''));
+            $current = $parentId !== ''
+                ? $class::where('application_id', $parentId)->first()
+                : null;
+        }
+
+        $queue = $ids;
+        while ($queue !== []) {
+            $id = array_shift($queue);
+            $children = $class::where('login_id', $loginId)
+                ->where('old_application', $id)
+                ->pluck('application_id');
+            foreach ($children as $childId) {
+                $childId = trim((string) $childId);
+                if ($childId === '' || isset($seen[$childId])) {
+                    continue;
+                }
+                $seen[$childId] = true;
+                $ids[] = $childId;
+                $queue[] = $childId;
+            }
+        }
+
+        $certNo = trim((string) ($seed->certificate_no ?? ''));
+        if ($certNo !== '') {
+            $sameCert = $class::where('login_id', $loginId)
+                ->where('certificate_no', $certNo)
+                ->pluck('application_id');
+            foreach ($sameCert as $certAppId) {
+                $certAppId = trim((string) $certAppId);
+                if ($certAppId === '' || isset($seen[$certAppId])) {
+                    continue;
+                }
+                $seen[$certAppId] = true;
+                $ids[] = $certAppId;
+            }
+        }
+
+        return $ids;
+    }
+
+    protected function hasSubmittedPendingAlteration(CC_CompetencyMeta $parent, string $loginId): bool
+    {
+        $class = $this->metaClassFor($parent);
+        $lineageIds = $this->collectCertificateLineageIds($parent, $loginId);
+
+        $pending = $class::whereIn('old_application', $lineageIds)
             ->where('appl_type', 'A')
             ->where('login_id', $loginId)
             ->where(function ($q) {
@@ -88,11 +218,54 @@ class FormSAlterationService
             ->latest('app_id')
             ->first();
 
-        if ($pendingAlteration && in_array(strtolower((string) $pendingAlteration->payment_status), ['payment', 'y'], true)) {
-            return ['ok' => false, 'message' => 'An alteration request is already submitted for this certificate.'];
+        return $pending && $this->isPaidStatus($pending->payment_status ?? null);
+    }
+
+    /** @return class-string<CC_CompetencyMeta> */
+    protected function metaClassFor(CC_CompetencyMeta $row): string
+    {
+        $form = (string) ($row->form_name ?? 'S');
+
+        return app(CompetencyMetaService::class)->modelClassForForm($form);
+    }
+
+    protected function findDraftForParent(CC_CompetencyMeta $parent, string $loginId): ?CC_CompetencyMeta
+    {
+        $class = $this->metaClassFor($parent);
+
+        return $class::where('old_application', $parent->application_id)
+            ->where('appl_type', 'A')
+            ->where('login_id', $loginId)
+            ->where('payment_status', 'draft')
+            ->latest('app_id')
+            ->first();
+    }
+
+    protected function issuedCertificateApplicationId(CC_CompetencyMeta $application): string
+    {
+        $certService = app(CompetencyCertificateService::class);
+        $certTable = $certService->certTableForForm((string) ($application->form_name ?? 'S'))
+            ?? self::FORM_S_CERT_TABLE;
+        $current = $application;
+        $seen = [];
+
+        while ($current instanceof CC_CompetencyMeta) {
+            $id = trim((string) ($current->application_id ?? ''));
+            if ($id === '' || isset($seen[$id])) {
+                break;
+            }
+            $seen[$id] = true;
+            $details = $certService->licenseDetailsFromCertTable($certTable, $id);
+            if ($details && trim((string) ($details->license_number ?? '')) !== '') {
+                return $id;
+            }
+            $parentId = trim((string) ($current->old_application ?? ''));
+            $current = $parentId !== ''
+                ? app(CompetencyMetaService::class)->findModel($parentId)
+                : null;
         }
 
-        return ['ok' => true, 'application' => $parent];
+        return (string) $this->workflowService->masterApplication($application)->application_id;
     }
 
     /**
@@ -174,18 +347,27 @@ class FormSAlterationService
             }
         };
 
-        $applLabels = ['N' => 'New', 'R' => 'Renewal', 'D' => 'Digitization'];
+        $applLabels = ['N' => 'New', 'R' => 'Renewal', 'D' => 'Digitization', 'A' => 'Alteration'];
+        $metaService = app(CompetencyMetaService::class);
 
-        return $rows->map(function ($row) use ($fmt, $fmtDisplay, $applLabels) {
+        return $rows->map(function ($row) use ($fmt, $fmtDisplay, $applLabels, $metaService, $loginId) {
             $issue = $fmt($row->dateof_issue ?? null);
             $from = $fmt($row->valid_from ?? null);
             $to = $fmt($row->valid_to ?? null);
             $certNo = trim((string) ($row->certificate_no ?? ''));
+            $issuedAppId = trim((string) ($row->application_id ?? ''));
             $appl = strtoupper(trim((string) ($row->appl_type ?? '')));
+            $resolvedAppId = $issuedAppId;
+            $seed = $issuedAppId !== '' ? $metaService->findModel($issuedAppId) : null;
+            if ($seed instanceof CC_CompetencyMeta) {
+                $latest = $this->latestSettledApplicationForCertificate($seed, $loginId);
+                $resolvedAppId = (string) $latest->application_id;
+                $appl = strtoupper(trim((string) ($latest->appl_type ?? $appl)));
+            }
             $applTxt = $applLabels[$appl] ?? $appl;
 
             return [
-                'application_id' => (string) ($row->application_id ?? ''),
+                'application_id' => $resolvedAppId,
                 'certificate_no' => $certNo,
                 'date_of_issue' => $issue,
                 'valid_from' => $from,
@@ -254,7 +436,19 @@ class FormSAlterationService
 
     public function hasAlterationDraftFor(string $parentApplicationId, string $loginId): bool
     {
-        return CC_Forms_Meta::where('old_application', trim($parentApplicationId))
+        $seed = $this->findParentMeta(trim($parentApplicationId), $loginId)
+            ?? app(CompetencyMetaService::class)->findModel(trim($parentApplicationId));
+        if (! $seed) {
+            return false;
+        }
+
+        $class = $this->metaClassFor($seed);
+        $lineageIds = $this->collectCertificateLineageIds($seed, $loginId);
+        if ($lineageIds === []) {
+            $lineageIds = [trim($parentApplicationId)];
+        }
+
+        return $class::whereIn('old_application', $lineageIds)
             ->where('appl_type', 'A')
             ->where('login_id', $loginId)
             ->where('payment_status', 'draft')
@@ -491,18 +685,11 @@ class FormSAlterationService
 
     public function loadParentContext(CC_CompetencyMeta $parent): array
     {
-        $masterId = $this->workflowService->masterApplication($parent)->application_id;
+        $alterationDraft = $this->findDraftForParent($parent, (string) $parent->login_id);
 
-        $alterationDraft = CC_Forms_Meta::where('old_application', $parent->application_id)
-            ->where('appl_type', 'A')
-            ->where('login_id', $parent->login_id)
-            ->where('payment_status', 'draft')
-            ->latest('app_id')
-            ->first();
-
-        $eduOwnerId = $masterId;
-        $expOwnerId = $masterId;
-        $proofOwnerId = $masterId;
+        $eduOwnerId = $this->childDocumentSnapshot->preferredEducationApplicationId($parent);
+        $expOwnerId = $this->childDocumentSnapshot->preferredExperienceApplicationId($parent);
+        $proofOwnerId = $this->childDocumentSnapshot->preferredIdentityProofApplicationId($parent);
         if ($alterationDraft) {
             $eduOwnerId = $this->childDocumentSnapshot->preferredEducationApplicationId($alterationDraft);
             $expOwnerId = $this->childDocumentSnapshot->preferredExperienceApplicationId($alterationDraft);
@@ -534,7 +721,7 @@ class FormSAlterationService
             ?? self::FORM_S_CERT_TABLE;
         $licenseDetails = app(CompetencyCertificateService::class)->licenseDetailsFromCertTable(
             $parentCertTable,
-            (string) $parent->application_id
+            $this->issuedCertificateApplicationId($parent)
         );
 
         $photoSource = $alterationDraft ?: $parent;
@@ -678,12 +865,7 @@ class FormSAlterationService
             $newAddress,
             $parentAddress
         ) {
-            $child = CC_Forms_Meta::where('old_application', $parent->application_id)
-                ->where('appl_type', 'A')
-                ->where('login_id', $loginId)
-                ->where('payment_status', 'draft')
-                ->latest('app_id')
-                ->first();
+            $child = $this->findDraftForParent($parent, $loginId);
 
             $formName = (string) ($parent->form_name ?? 'S');
             $certName = (string) ($parent->certificate_name ?? $parent->license_name ?? '');
@@ -874,15 +1056,14 @@ class FormSAlterationService
 
     /**
      * Copy parent QC/QSC eligibility onto the alteration application.
+     * Reads the parent meta chain and tnelb_cc_digitization (digitised parents
+     * often have the flags only on the digitisation row).
      *
      * @return array{qc: int, qsc: int}
      */
     protected function alterationQcQscSnapshot(CC_CompetencyMeta $parent): array
     {
-        return [
-            'qc' => $this->qcEligibilityFlag($parent->qc ?? 0),
-            'qsc' => $this->qcEligibilityFlag($parent->qsc ?? 0),
-        ];
+        return app(CompetencyQcQscService::class)->inheritedFlagsFromMeta($parent);
     }
 
     protected function qcEligibilityFlag(mixed $value): int
@@ -904,12 +1085,7 @@ class FormSAlterationService
 
     protected function findOrCreateAlterationDraftChild(CC_CompetencyMeta $parent, string $loginId): CC_CompetencyMeta
     {
-        $child = CC_Forms_Meta::where('old_application', $parent->application_id)
-            ->where('appl_type', 'A')
-            ->where('login_id', $loginId)
-            ->where('payment_status', 'draft')
-            ->latest('app_id')
-            ->first();
+        $child = $this->findDraftForParent($parent, $loginId);
 
         if ($child) {
             return $child;
@@ -967,12 +1143,7 @@ class FormSAlterationService
             return true;
         }
 
-        $draft = CC_Forms_Meta::where('old_application', $parent->application_id)
-            ->where('appl_type', FormSProofDocumentService::ALTERATION_APP_TYPE)
-            ->where('login_id', $parent->login_id)
-            ->where('payment_status', 'draft')
-            ->latest('app_id')
-            ->first();
+        $draft = $this->findDraftForParent($parent, (string) $parent->login_id);
 
         if (! $draft) {
             return false;
@@ -1316,7 +1487,7 @@ class FormSAlterationService
         $anyDatedExcluded650v = false;
         $today = Carbon::now()->startOfDay();
 
-        $masterId = $this->workflowService->masterApplication($parent)->application_id;
+        $masterId = $this->childDocumentSnapshot->experienceSourceApplicationId($parent);
         $existing = CC_Experience::where('application_id', $masterId)->orderBy('exp_id')->get();
 
         $workIds = (array) $request->input('work_id', []);
@@ -1448,7 +1619,7 @@ class FormSAlterationService
 
         $created = 0;
         $copiedSourceIds = [];
-        $masterId = (string) $this->workflowService->masterApplication($parent)->application_id;
+        $masterId = $this->childDocumentSnapshot->experienceSourceApplicationId($parent);
 
         foreach ($existingIndexes as $key) {
             $postedId = (int) (($request->input('work_id', [])[$key] ?? 0));
@@ -1573,7 +1744,8 @@ class FormSAlterationService
 
         $postedExpId = $isExistingRow ? (int) ($workIds[$key] ?? 0) : 0;
         $postedExp = $postedExpId > 0 ? CC_Experience::find($postedExpId) : null;
-        $parentId = (string) $this->workflowService->masterApplication($child)->application_id;
+        $immediateParent = $this->workflowService->masterApplication($child);
+        $parentId = $this->childDocumentSnapshot->experienceSourceApplicationId($immediateParent);
         $master = $this->childDocumentSnapshot->resolveParentExperienceFromPostedId($postedExp, $parentId);
         $isExistingTillMaster = $isExistingRow && $this->experienceIsTillDate($master);
 
@@ -1759,33 +1931,20 @@ class FormSAlterationService
             throw new RuntimeException('Parent application record not found.');
         }
 
-        $parentUpdates = ['updated_at' => now()];
+        $childModel = $metaService->findModel($alterationApplicationId);
+        $certAppId = $childModel instanceof CC_CompetencyMeta
+            ? $this->issuedCertificateApplicationId($childModel)
+            : $parentId;
 
-        $childName = trim((string) ($childRow->applicant_name ?? ''));
-        $parentName = trim((string) ($parentRow->applicant_name ?? ''));
-        if ($childName !== '' && $childName !== $parentName) {
-            $parentUpdates['applicant_name'] = $childName;
+        foreach (array_values(array_unique(array_filter([$parentId, $certAppId]))) as $targetId) {
+            $this->applyApprovedNameAddressToApplication($targetId, $childRow, $metaService);
         }
 
-        $childAddress = trim((string) ($childRow->applicant_address ?? $childRow->applicant_address ?? ''));
-        $parentAddress = trim((string) ($parentRow->applicant_address ?? $parentRow->applicant_address ?? ''));
-        if ($childAddress !== '' && $childAddress !== $parentAddress) {
-            $parentUpdates['applicant_address'] = $childAddress;
-        }
-
-        $parentUpdates['qc'] = $this->qcEligibilityFlag($childRow->qc ?? $parentRow->qc ?? 0);
-        $parentUpdates['qsc'] = $this->qcEligibilityFlag($childRow->qsc ?? $parentRow->qsc ?? 0);
-
-        if (count($parentUpdates) > 1) {
-            DB::table($parentTable)->where('application_id', $parentId)->update($parentUpdates);
-        }
-
-        $this->syncLegacyApplicationProfile($parentId, $parentUpdates);
         $this->syncRegistrationProfile((string) ($childRow->login_id ?? ''), $childRow);
         // Experience/education/proofs stay on the alteration application_id (full snapshot at submit).
 
         $licenseDetails = app(CompetencyCertificateService::class)->asLicenseDetails(
-            $parentId,
+            $certAppId,
             $childRow->form_name ?? null
         );
 
@@ -1799,6 +1958,55 @@ class FormSAlterationService
             'issued_at' => $licenseDetails->issued_at,
             'expires_at' => $licenseDetails->expires_at,
         ];
+    }
+
+    /**
+     * Write the approved alteration name and address onto one application in the chain.
+     * The immediate parent and the application that holds the issued certificate can differ
+     * when the parent is itself an alteration.
+     */
+    protected function applyApprovedNameAddressToApplication(
+        string $targetId,
+        object $childRow,
+        CompetencyMetaService $metaService
+    ): void {
+        $targetId = trim($targetId);
+        if ($targetId === '') {
+            return;
+        }
+
+        $targetTable = $metaService->metaTableForApplicationId($targetId);
+        if (! $targetTable) {
+            return;
+        }
+
+        $targetRow = DB::table($targetTable)->where('application_id', $targetId)->first();
+        if (! $targetRow) {
+            return;
+        }
+
+        $updates = ['updated_at' => now()];
+
+        $childName = trim((string) ($childRow->applicant_name ?? ''));
+        $targetName = trim((string) ($targetRow->applicant_name ?? ''));
+        if ($childName !== '' && $childName !== $targetName) {
+            $updates['applicant_name'] = $childName;
+        }
+
+        $childAddress = trim((string) ($childRow->applicant_address ?? ''));
+        $targetAddress = trim((string) ($targetRow->applicant_address ?? ''));
+        if ($childAddress !== '' && $childAddress !== $targetAddress) {
+            $updates['applicant_address'] = $childAddress;
+        }
+
+        $updates['qc'] = $this->qcEligibilityFlag($childRow->qc ?? $targetRow->qc ?? 0);
+        $updates['qsc'] = $this->qcEligibilityFlag($childRow->qsc ?? $targetRow->qsc ?? 0);
+
+        if (count($updates) > 1) {
+            DB::table($targetTable)->where('application_id', $targetId)->update($updates);
+        }
+
+        $this->syncLegacyApplicationProfile($targetId, $updates);
     }
 
     protected function syncLegacyApplicationProfile(string $parentApplicationId, array $parentUpdates): void

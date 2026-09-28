@@ -1394,9 +1394,10 @@
                                                             @php
                                                                 $isWH = (isset($application_details->form_name) && $application_details->form_name === 'WH');
                                                                 $isDraft = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
+                                                                $isWhHelperExam = trim((string) ($edu_details->educational_level ?? '')) === 'Wireman Helper Examination';
                                                                 $instituteDisplayValue = !empty(trim((string) ($edu_details->institute_name ?? '')))
                                                                     ? $edu_details->institute_name
-                                                                    : ($isDraft && $isWH ? 'Dept of Employment & Training' : '');
+                                                                    : ($isDraft && $isWH && $isWhHelperExam ? 'Dept of Employment & Training' : '');
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($instituteDisplayValue) !!}"></td>
                                                             <td>
@@ -1516,9 +1517,7 @@
                                                                 </select>
                                                             </td>
                                                             @php
-                                                                $isWHEmptyRow = isset($application_details->form_name) && $application_details->form_name === 'WH';
-                                                                $isDraftEmptyRow = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
-                                                                $defaultInstituteForEmptyRow = ($isDraftEmptyRow && $isWHEmptyRow) ? 'Dept of Employment & Training' : '';
+                                                                $defaultInstituteForEmptyRow = '';
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($defaultInstituteForEmptyRow) !!}"></td>
                                                             <td>
@@ -1592,15 +1591,15 @@
                             <div>
                                 <div class="fs-section-title">
                                     Details of Previous and Current Work experiences
-                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
-                                        <span class="section-hint">(Optional)</span>
+                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['WH']))
+                                        <span class="section-hint"></span>
                                     @else
                                         <span class="section-req">*</span>
                                     @endif
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
                                 <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
-                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
+                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['WH']))
                                         <span style="font-size:.72rem;">(விருப்பமெனில் நிரப்பலாம்)</span>
                                     @endif
                                     <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span>
@@ -1614,6 +1613,7 @@
                                 'showContractorNotice' => true,
                                 'hideUploadWhenDocExists' => true,
                                 'lockExistingRows' => $isRenewalDraftEdit,
+                                'lock7bBoardMemberOnReturn' => $isRenewalDraftEdit,
                                 'contractorDetails' => $get_contractor_details,
                             ])
                             @elseif (in_array($editFormName, ['W', 'WH'], true))
@@ -2507,12 +2507,14 @@
                         <option value="">Select Education</option>
                         ${isSForm
                             ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option><option value="AMIE">A pass in AMIE</option>'
-                            : (isWOrWHForm
+                            : (isWHForm
+                                ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper Examination">Wireman Helper Examination</option><option value="ITI Certificate">ITI Certificate</option>'
+                                : (isWOrWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper(H) Certificate">Wireman Helper(H) Certificate</option><option value="ITI Certificate">ITI Certificate</option>'
-                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>' + (isWHForm ? '<option value="8">8</option>' : ''))}
+                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>'))}
                     </select>
                 </td>
-                <td><input type="text" class="form-control" name="institute_name[]" required value="${isWHForm ? 'Dept of Employment & Training' : ''}"></td>
+                <td><input type="text" class="form-control" name="institute_name[]" required></td>
                 <td>
                     <select name="month_of_passing[]" class="form-control" required>
                         <option value="">Select Month</option>
@@ -3097,6 +3099,34 @@
             $input.closest('.fs-segmented-opt').addClass('is-active');
         }
 
+        function lockReturned7bFields($row) {
+            var $root = $('#fs-7b-root');
+            if (!$root.hasClass('fs-7b-return-locked')) return;
+
+            $('.fs-7b-board-toggle').addClass('is-locked').attr('aria-disabled', 'true');
+            $('input[name="current_work_board_member"][type="radio"]').prop('disabled', true);
+            if (!$('input[type="hidden"][name="current_work_board_member"]').length) {
+                $('.fs-7b-board-toggle').after('<input type="hidden" name="current_work_board_member" value="yes">');
+            }
+
+            if (!$row || !$row.length) return;
+
+            $row.find('input, select, textarea').not('[type="hidden"]').each(function () {
+                var type = (this.type || '').toLowerCase();
+                if (type === 'file') {
+                    $(this).prop('disabled', true).prop('required', false);
+                    return;
+                }
+                if ((this.tagName || '').toLowerCase() === 'select') {
+                    $(this).prop('disabled', false).attr('tabindex', '-1');
+                    return;
+                }
+                $(this).prop('readonly', true).prop('disabled', false);
+            });
+            $row.find('.remove-work-doc-confirm').hide();
+            $row.find('.form-s-file-upload-wrap, .work-card-field-hint').hide();
+        }
+
         function apply7bBoardToggle(mode, isInit) {
             var $root = $('#fs-7b-root');
             var $row = get7bWorkRow();
@@ -3126,6 +3156,10 @@
                     $emp.prop('required', false).prop('disabled', true).val('');
                 }
 
+            if ($root.hasClass('fs-7b-return-locked')) {
+                lockReturned7bFields($row);
+            }
+
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                 window.wxSyncBoardMemberRenewalFee();
             }
@@ -3133,6 +3167,12 @@
 
         $(document).ready(function () {
             $('input[name="current_work_board_member"]').on('change', function () {
+                if ($('#fs-7b-root').hasClass('fs-7b-return-locked')) {
+                    $('#current_work_board_member_yes').prop('checked', true);
+                    sync7bSegmentedActive($('#current_work_board_member_yes'));
+                    lockReturned7bFields(get7bWorkRow());
+                    return;
+                }
                 sync7bSegmentedActive($(this));
                 apply7bBoardToggle($(this).val(), false);
             });

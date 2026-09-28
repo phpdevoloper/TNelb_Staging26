@@ -379,6 +379,54 @@ if (!function_exists('competency_document_path_url')) {
     }
 }
 
+if (!function_exists('digitization_document_url')) {
+    /**
+     * Browser URL for Form S/W/WH/P digitisation PDFs.
+     * New files: FORM_(S/W/WH/P)/DIGITISATION/QC_QSC/...
+     * Legacy files: uploads/digitization/scc|qc or a bare filename.
+     */
+    function digitization_document_url(?string $storedPath, string $legacyFolder = 'scc'): ?string
+    {
+        $path = trim((string) ($storedPath ?? ''));
+        if ($path === '' || strcasecmp($path, 'pending') === 0) {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        $normalized = ltrim(str_replace('\\', '/', $path), '/');
+        $normalized = preg_replace('#^/?public/#', '', $normalized) ?? $normalized;
+        $prefix = \App\Services\Competency\CompetencyDocumentSupport::publicUrlPrefix();
+        if ($prefix !== '' && str_starts_with($normalized, $prefix.'/')) {
+            $normalized = substr($normalized, strlen($prefix) + 1);
+        }
+
+        if (preg_match('#^FORM_[A-Z]+/#', $normalized) || str_starts_with($normalized, 'uploads/digitization/')) {
+            return \App\Services\Competency\CompetencyDocumentSupport::publicUrlForStoredPath($normalized);
+        }
+
+        $filename = basename($normalized);
+        if ($filename === '' || $filename === '.' || $filename === '..') {
+            return null;
+        }
+
+        $legacyRelative = 'uploads/digitization/'.trim($legacyFolder, '/').'/'.$filename;
+        if (is_file(public_path($legacyRelative))) {
+            return asset($legacyRelative);
+        }
+
+        $storageRoot = rtrim(\App\Services\Competency\CompetencyDocumentSupport::storageRoot(), DIRECTORY_SEPARATOR);
+        $storedFile = $storageRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $legacyRelative);
+        if (is_file($storedFile)) {
+            return \App\Services\Competency\CompetencyDocumentSupport::publicUrlForStoredPath($legacyRelative);
+        }
+
+        return asset($legacyRelative);
+    }
+}
+
 if (!function_exists('proof_document_url')) {
     /**
      * Browser URL for Aadhaar/PAN uploads (versioned FORM_* or legacy encrypted blob).
@@ -404,10 +452,7 @@ if (!function_exists('proof_document_url')) {
         // Encrypted Aadhaar/PAN must be decrypted by Laravel and shown inline as PDF.
         // Do not use the public /competency/... URL — the raw .bin cannot be viewed.
         if ($isEncryptedBlob && \Illuminate\Support\Facades\Route::has('document.show')) {
-            return route('document.show', [
-                'type' => $legacyType,
-                'filename' => $storedPath,
-            ]);
+            return url('/document/' . $legacyType) . '?file=' . rawurlencode($storedPath);
         }
 
         if (preg_match('#^FORM_[A-Z]+/#', $storedPath) || str_starts_with($storedPath, 'uploads/digitization/')) {
