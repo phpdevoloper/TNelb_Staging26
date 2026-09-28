@@ -10,6 +10,7 @@ use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Models\Mst_experience;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\CompetencyQcQscService;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Models\CC_Proof_doc;
@@ -1055,15 +1056,14 @@ class FormSAlterationService
 
     /**
      * Copy parent QC/QSC eligibility onto the alteration application.
+     * Reads the parent meta chain and tnelb_cc_digitization (digitised parents
+     * often have the flags only on the digitisation row).
      *
      * @return array{qc: int, qsc: int}
      */
     protected function alterationQcQscSnapshot(CC_CompetencyMeta $parent): array
     {
-        return [
-            'qc' => $this->qcEligibilityFlag($parent->qc ?? 0),
-            'qsc' => $this->qcEligibilityFlag($parent->qsc ?? 0),
-        ];
+        return app(CompetencyQcQscService::class)->inheritedFlagsFromMeta($parent);
     }
 
     protected function qcEligibilityFlag(mixed $value): int

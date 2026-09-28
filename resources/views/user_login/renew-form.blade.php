@@ -1262,7 +1262,7 @@
                                                     @endif
                                                 </select>
                                             </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $eduRow->institute_name ?? ($isRenewWH ? 'Dept of Employment & Training' : '') }}"></td>
+                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $eduRow->institute_name ?? ((trim((string) ($eduRow->educational_level ?? '')) === 'Wireman Helper Examination') ? 'Dept of Employment & Training' : '') }}"></td>
                                             <td>
                                                 @php
                                                     $boundMonth = $eduRow->month_of_passing ?? $eduRow->month_passing ?? '';
@@ -1344,7 +1344,7 @@
                                                     @endif
                                                 </select>
                                             </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $isRenewWH ? 'Dept of Employment & Training' : '' }}"></td>
+                                            <td><input type="text" class="form-control" name="institute_name[]" value=""></td>
                                             <td>
                                                 <select name="month_of_passing[]" class="form-control">
                                                     <option value="">Select Month</option>
@@ -2305,7 +2305,7 @@
                         ${eduOptions}
                     </select>
                 </td>
-                <td><input type="text" class="form-control" name="institute_name[]" ${isRenewWH ? 'value="Dept of Employment & Training"' : ''} required></td>
+                <td><input type="text" class="form-control" name="institute_name[]" required></td>
                 ${monthCell}
                 <td>
                     <select name="year_of_passing[]" class="form-control" required>

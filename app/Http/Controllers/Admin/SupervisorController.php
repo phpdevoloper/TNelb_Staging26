@@ -22,6 +22,7 @@ use App\Models\TnelbApplicantsSign;
 use App\Models\TnelbAppsInstitute;
 use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyQcQscService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyDocumentSupport;
@@ -922,6 +923,7 @@ class SupervisorController extends Controller
         if (! $applicant) {
             return response('<p class="text-danger mb-0">Application details were not found.</p>', 404);
         }
+        app(CompetencyQcQscService::class)->overlayOnApplicant($applicant);
 
         $formName = strtoupper(trim((string) ($applicant->form_name ?? '')));
         if (str_starts_with($formName, 'FORM ')) {

@@ -32,6 +32,7 @@ use App\Services\FormS\FormSDocumentUploadHandler;
 use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\CompetencyQcQscService;
 use App\Services\Competency\FormWExperienceRules;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
@@ -3764,6 +3765,7 @@ class FormController extends BaseController
             $this->saveCompetencyProofDocuments($request, $form, $request->form_name ?? null);
 
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+            $this->syncInheritedQcQscOntoForm($form->fresh(), $request);
 
             DB::commit();
 
@@ -4219,6 +4221,7 @@ class FormController extends BaseController
             $this->saveCompetencyProofDocuments($request, $existingForm, $request->form_name ?? null);
 
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+            $this->syncInheritedQcQscOntoForm($existingForm->fresh(), $request);
 
             DB::commit();
 
@@ -4768,6 +4771,7 @@ class FormController extends BaseController
             $this->saveCompetencyProofDocuments($request, $form, $request->form_name ?? null);
 
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+            $this->syncInheritedQcQscOntoForm($form->fresh(), $request);
 
             DB::commit();
 
@@ -5274,6 +5278,13 @@ public function update(Request $request, $id)
             if ($prevScc === '') {
                 $prevScc = '0';
             }
+            $parentForQc = trim((string) ($form?->old_application ?? $parentApplicationId ?? $id ?? ''));
+            $qcFlags = $parentForQc !== ''
+                ? app(CompetencyQcQscService::class)->inheritedFlags($parentForQc)
+                : ['qc' => 0, 'qsc' => 0];
+            if ($form) {
+                $qcFlags = app(CompetencyQcQscService::class)->mergeFlags($form, $qcFlags);
+            }
             $renewalPayload = array_merge([
                     'login_id'           => $loginId,
                     'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
@@ -5307,7 +5318,7 @@ public function update(Request $request, $id)
                     ),
                     'submitted_date'     => $this->dbNow,
                     'updated_at'         => $this->dbNow,
-            ]);
+            ], $qcFlags);
 
 
             $renewal_form = CC_Forms_Meta::updateOrCreateByApplicationId(
@@ -5434,6 +5445,7 @@ public function update(Request $request, $id)
             $this->saveCompetencyProofDocuments($request, $renewal_form, $request->form_name ?? null);
 
             $this->linkCcDigitizationIfNeeded($request, $applicationId, $loginId);
+            $this->syncInheritedQcQscOntoForm($renewal_form->fresh(), $request);
 
             // Process Payment for update
             DB::commit();
@@ -6023,6 +6035,52 @@ public function update(Request $request, $id)
         }
 
         return null;
+    }
+
+    /**
+     * Copy QC/QSC from a New/Digitised parent (or digitisation enrolment) onto
+     * renewal and digitisation applications. Does not clear an existing 1.
+     */
+    private function syncInheritedQcQscOntoForm(?CC_CompetencyMeta $form, Request $request): void
+    {
+        if (! $form instanceof CC_CompetencyMeta) {
+            return;
+        }
+
+        $applType = strtoupper(trim((string) ($form->appl_type ?? $request->appl_type ?? '')));
+        if (! in_array($applType, ['R', 'D', 'A'], true)) {
+            return;
+        }
+
+        $service = app(CompetencyQcQscService::class);
+        if ($applType === 'D') {
+            $flags = $service->flagsFromDigitization(
+                (string) $form->application_id,
+                $request->input('cc_digitization_temp_id'),
+                (string) ($form->login_id ?? $request->login_id ?? '')
+            );
+        } else {
+            $parentId = trim((string) (
+                $form->old_application
+                ?? $request->input('old_application')
+                ?? $request->input('parent_application_id')
+                ?? ''
+            ));
+            $flags = $parentId !== ''
+                ? $service->inheritedFlags($parentId)
+                : $service->inheritedFlagsFromMeta($form);
+        }
+
+        $merged = $service->mergeFlags($form, $flags);
+        if ((int) ($form->qc ?? 0) === $merged['qc'] && (int) ($form->qsc ?? 0) === $merged['qsc']) {
+            return;
+        }
+
+        $form->update([
+            'qc' => $merged['qc'],
+            'qsc' => $merged['qsc'],
+            'updated_at' => $this->dbNow,
+        ]);
     }
 
     private function linkCcDigitizationIfNeeded(Request $request, string $applicationId, string $loginId): void

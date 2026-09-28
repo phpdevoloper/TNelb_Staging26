@@ -427,7 +427,7 @@
                                                     <option value="ITI Certificate">ITI Certificate</option>
                                                 </select>
                                             </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" maxlength="80" value="Dept of Employment &amp; Training"></td>
+                                            <td><input type="text" class="form-control" name="institute_name[]" maxlength="80"></td>
                                             <td>
                                                 <select name="month_of_passing[]" class="form-control">
                                                     <option value="">Select Month</option>
@@ -1065,7 +1065,7 @@
     <option value="Wireman Helper Examination">Wireman Helper Examination</option>
     <option value="ITI Certificate">ITI Certificate</option>
 </select></td>
-<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" value="Dept of Employment &amp; Training" required></td>
+<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" required></td>
 <td><select name="month_of_passing[]" class="form-control" required>
     <option value="">Select Month</option>
     <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>

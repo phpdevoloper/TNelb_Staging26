@@ -862,6 +862,69 @@
     window.paymentreceipt = paymentreceipt;
 
     $(document).ready(function () {
+        var WH_HELPER_EXAM = 'Wireman Helper Examination';
+        var WH_HELPER_EXAM_LEGACY = 'Wireman Helper(H) Certificate';
+        var WH_DEPT_INSTITUTE = 'Dept of Employment & Training';
+
+        function isFormWHPage() {
+            return String($('#form_name').val() || '').toUpperCase() === 'WH';
+        }
+
+        function isWhHelperExamLevel(value) {
+            var selected = String(value || '').trim();
+            return selected === WH_HELPER_EXAM || selected === WH_HELPER_EXAM_LEGACY;
+        }
+
+        function syncWhInstituteForRow(row) {
+            if (!row) {
+                return;
+            }
+            var level = row.querySelector('[name="educational_level[]"]');
+            var inst = row.querySelector('[name="institute_name[]"]');
+            if (!level || !inst) {
+                return;
+            }
+            var current = String(inst.value || '').trim();
+            if (isWhHelperExamLevel(level.value)) {
+                inst.value = WH_DEPT_INSTITUTE;
+                return;
+            }
+            if (current === WH_DEPT_INSTITUTE) {
+                inst.value = '';
+            }
+        }
+
+        function bindWhInstitutePrefill() {
+            if (!isFormWHPage()) {
+                return;
+            }
+            var container = document.getElementById('education-container');
+            if (!container) {
+                return;
+            }
+
+            container.addEventListener('change', function (e) {
+                var select = e.target.closest('[name="educational_level[]"]');
+                if (!select) {
+                    return;
+                }
+                syncWhInstituteForRow(select.closest('tr'));
+            });
+
+            container.querySelectorAll('tr').forEach(function (row) {
+                var level = row.querySelector('[name="educational_level[]"]');
+                var inst = row.querySelector('[name="institute_name[]"]');
+                if (!level || !inst) {
+                    return;
+                }
+                if (isWhHelperExamLevel(level.value) && !String(inst.value || '').trim()) {
+                    inst.value = WH_DEPT_INSTITUTE;
+                }
+            });
+        }
+
+        bindWhInstitutePrefill();
+
         // After PayU return: dashboard?payu_success=1&... → old #paymentSuccessModal
         (function showPayUSuccessPopupFromQuery() {
             try {

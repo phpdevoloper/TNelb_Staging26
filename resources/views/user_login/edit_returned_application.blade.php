@@ -1449,9 +1449,10 @@
                                                             @php
                                                                 $isWH = (isset($application_details->form_name) && $application_details->form_name === 'WH');
                                                                 $isDraft = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
+                                                                $isWhHelperExam = trim((string) ($edu_details->educational_level ?? '')) === 'Wireman Helper Examination';
                                                                 $instituteDisplayValue = !empty(trim((string) ($edu_details->institute_name ?? '')))
                                                                     ? $edu_details->institute_name
-                                                                    : ($isDraft && $isWH ? 'Dept of Employment & Training' : '');
+                                                                    : ($isDraft && $isWH && $isWhHelperExam ? 'Dept of Employment & Training' : '');
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($instituteDisplayValue) !!}"></td>
                                                             <td>
@@ -1567,9 +1568,7 @@
                                                                 </select>
                                                             </td>
                                                             @php
-                                                                $isWHEmptyRow = isset($application_details->form_name) && $application_details->form_name === 'WH';
-                                                                $isDraftEmptyRow = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
-                                                                $defaultInstituteForEmptyRow = ($isDraftEmptyRow && $isWHEmptyRow) ? 'Dept of Employment & Training' : '';
+                                                                $defaultInstituteForEmptyRow = '';
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($defaultInstituteForEmptyRow) !!}"></td>
                                                             <td>
@@ -2594,12 +2593,14 @@
                         <option value="">Select Education</option>
                         ${isSForm
                             ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option>'
-                            : (isWOrWHForm
+                            : (isWHForm
+                                ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper Examination">Wireman Helper Examination</option><option value="ITI Certificate">ITI Certificate</option>'
+                                : (isWOrWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper(H) Certificate">Wireman Helper(H) Certificate</option><option value="ITI Certificate">ITI Certificate</option>'
-                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>' + (isWHForm ? '<option value="8">8</option>' : ''))}
+                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>'))}
                     </select>
                 </td>
-                <td><input type="text" class="form-control" name="institute_name[]" required value="${isWHForm ? 'Dept of Employment & Training' : ''}"></td>
+                <td><input type="text" class="form-control" name="institute_name[]" required></td>
                 <td>
                     <select name="month_of_passing[]" class="form-control" required>
                         <option value="">Select Month</option>
