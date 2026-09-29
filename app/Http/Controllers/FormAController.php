@@ -245,7 +245,7 @@ class FormAController extends BaseController
             ->orderBy('cc_id', 'desc')
             ->first();
 
-            // dd($certificate);exit;
+        // dd($certificate);exit;
 
 
         if (!$certificate) {
@@ -630,423 +630,621 @@ class FormAController extends BaseController
 
         // -----------QC process---------------
 
-//         $processedStaffIdsQC = [];
+        //         $processedStaffIdsQC = [];
 
 
-//         // QC/QSC----------------
+        //         // QC/QSC----------------
 
-//         if ($request->has('staffqc_category')) {
-//             // dd('qc'); exit;
+        //         if ($request->has('staffqc_category')) {
+        //             // dd('qc'); exit;
 
-//             $staffCategories = $request->input('staffqc_category', []);
-//             $staffCcNos = $request->input('staff_cc_no', []);
-//             $staffFirstIssues = $request->input('staff_cc_first_issue', []);
-//             $staffValidityFroms = $request->input('staff_cc_validity_from', []);
-//             $staffValidityTos = $request->input('staff_cc_validity_to', []);
+        //             $staffCategories = $request->input('staffqc_category', []);
+        //             $staffCcNos = $request->input('staff_cc_no', []);
+        //             $staffFirstIssues = $request->input('staff_cc_first_issue', []);
+        //             $staffValidityFroms = $request->input('staff_cc_validity_from', []);
+        //             $staffValidityTos = $request->input('staff_cc_validity_to', []);
 
-//             $staffQcIds = $request->input('staffqc_id', []);
-//             $rowIndexes = $request->input('row_index', []);
+        //             $staffQcIds = $request->input('staffqc_id', []);
+        //             $rowIndexes = $request->input('row_index', []);
 
-//             /*
-//     |--------------------------------------------------------------------------
-//     | GET NEXT ROW INDEX
-//     |--------------------------------------------------------------------------
-//     */
+        //             /*
+        //     |--------------------------------------------------------------------------
+        //     | GET NEXT ROW INDEX
+        //     |--------------------------------------------------------------------------
+        //     */
 
-//             $lastRowIndex = DB::table('cl_staff_tbl')
-//                 ->where('application_id', $applicationId)
-//                 ->max('row_index');
+        //             $lastRowIndex = DB::table('cl_staff_tbl')
+        //                 ->where('application_id', $applicationId)
+        //                 ->max('row_index');
 
-//             $nextRowIndex = ((int) $lastRowIndex) + 1;
+        //             $nextRowIndex = ((int) $lastRowIndex) + 1;
 
-//             /*
-//     |--------------------------------------------------------------------------
-//     | ROW INDEXES PRESENT IN CURRENT FORM
-//     |--------------------------------------------------------------------------
-//     */
+        //             /*
+        //     |--------------------------------------------------------------------------
+        //     | ROW INDEXES PRESENT IN CURRENT FORM
+        //     |--------------------------------------------------------------------------
+        //     */
 
-//             $currentRowIndexes = [];
+        //             $currentRowIndexes = [];
 
-//             foreach ($staffCategories as $index => $category) {
+        //             foreach ($staffCategories as $index => $category) {
 
-//                 $category = strtoupper(trim((string) $category));
+        //                 $category = strtoupper(trim((string) $category));
 
-//                 /*
-//         |--------------------------------------------------------------------------
-//         | Only QC / QSC
-//         |--------------------------------------------------------------------------
-//         */
+        //                 /*
+        //         |--------------------------------------------------------------------------
+        //         | Only QC / QSC
+        //         |--------------------------------------------------------------------------
+        //         */
 
-//                 if (!in_array($category, ['QC', 'QSC'], true)) {
-//                     continue;
-//                 }
+        //                 if (!in_array($category, ['QC', 'QSC'], true)) {
+        //                     continue;
+        //                 }
 
-//                 $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
+        //                 $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
 
-//                 /*
-//         |--------------------------------------------------------------------------
-//         | Ignore empty / undefined certificate number
-//         |--------------------------------------------------------------------------
-//         */
+        //                 /*
+        //         |--------------------------------------------------------------------------
+        //         | Ignore empty / undefined certificate number
+        //         |--------------------------------------------------------------------------
+        //         */
 
-//                 if (
-//                     $ccNo === '' ||
-//                     strtolower($ccNo) === 'undefined' ||
-//                     strtolower($ccNo) === 'null'
-//                 ) {
-//                     continue;
-//                 }
+        //                 if (
+        //                     $ccNo === '' ||
+        //                     strtolower($ccNo) === 'undefined' ||
+        //                     strtolower($ccNo) === 'null'
+        //                 ) {
+        //                     continue;
+        //                 }
 
-//                 $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
-//                 $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
-//                 $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
+        //                 $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
+        //                 $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
+        //                 $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
 
 
 
-//                 $staffId = $staffQcIds[$index] ?? null;
-//                 $submittedRowIndex = $rowIndexes[$index] ?? null;
+        //                 $staffId = $staffQcIds[$index] ?? null;
+        //                 $submittedRowIndex = $rowIndexes[$index] ?? null;
 
-//                 /*
-//         |--------------------------------------------------------------------------
-//         | EXISTING RECORD
-//         |--------------------------------------------------------------------------
-//         */
-
-//                 /*
-// |--------------------------------------------------------------------------
-// | EXISTING RECORD
-// |--------------------------------------------------------------------------
-// */
-
-//                 if (!empty($staffId)) {
-
-//                     $existing = DB::table('cl_staff_tbl')
-//                         ->where('id', $staffId)
-//                         ->where('application_id', $applicationId)
-//                         ->whereIn('staff_category', ['QC', 'QSC'])
-//                         ->first();
+        //                 /*
+        //         |--------------------------------------------------------------------------
+        //         | EXISTING RECORD
+        //         |--------------------------------------------------------------------------
+        //         */
+
+        //                 /*
+        // |--------------------------------------------------------------------------
+        // | EXISTING RECORD
+        // |--------------------------------------------------------------------------
+        // */
+
+        //                 if (!empty($staffId)) {
+
+        //                     $existing = DB::table('cl_staff_tbl')
+        //                         ->where('id', $staffId)
+        //                         ->where('application_id', $applicationId)
+        //                         ->whereIn('staff_category', ['QC', 'QSC'])
+        //                         ->first();
 
-//                     if ($existing) {
+        //                     if ($existing) {
 
-//                         /*
-//         |--------------------------------------------------------------------------
-//         | Keep existing values if POST value is empty
-//         |--------------------------------------------------------------------------
-//         */
+        //                         /*
+        //         |--------------------------------------------------------------------------
+        //         | Keep existing values if POST value is empty
+        //         |--------------------------------------------------------------------------
+        //         */
 
-//                         $updateData = [
-//                             'staff_category' => $category,
-//                             'staff_cc_no' => $ccNo,
-//                             'staff_flag' => '1',
-//                             'updated_at' => now(),
-//                         ];
+        //                         $updateData = [
+        //                             'staff_category' => $category,
+        //                             'staff_cc_no' => $ccNo,
+        //                             'staff_flag' => '1',
+        //                             'updated_at' => now(),
+        //                         ];
 
-//                         if ($firstIssue !== '') {
-//                             $updateData['staff_cc_first_issue'] = $firstIssue;
-//                         }
+        //                         if ($firstIssue !== '') {
+        //                             $updateData['staff_cc_first_issue'] = $firstIssue;
+        //                         }
 
-//                         if ($validityFrom !== '') {
-//                             $updateData['staff_cc_validity_from'] = $validityFrom;
-//                         }
+        //                         if ($validityFrom !== '') {
+        //                             $updateData['staff_cc_validity_from'] = $validityFrom;
+        //                         }
 
-//                         if ($validityTo !== '') {
-//                             $updateData['staff_cc_validity_to'] = $validityTo;
-//                         }
+        //                         if ($validityTo !== '') {
+        //                             $updateData['staff_cc_validity_to'] = $validityTo;
+        //                         }
 
-//                         DB::table('cl_staff_tbl')
-//                             ->where('id', $staffId)
-//                             ->where('application_id', $applicationId)
-//                             ->update($updateData);
+        //                         DB::table('cl_staff_tbl')
+        //                             ->where('id', $staffId)
+        //                             ->where('application_id', $applicationId)
+        //                             ->update($updateData);
 
-//                         $currentRowIndexes[] = (int) $existing->row_index;
-//                     }
-//                 }
+        //                         $currentRowIndexes[] = (int) $existing->row_index;
+        //                     }
+        //                 }
 
-//                 /*
-//         |--------------------------------------------------------------------------
-//         | NEW RECORD
-//         |--------------------------------------------------------------------------
-//         */ else {
-
-//                     // dd('new qc'); exit;
-
-//                     $newRowIndex = $nextRowIndex;
+        //                 /*
+        //         |--------------------------------------------------------------------------
+        //         | NEW RECORD
+        //         |--------------------------------------------------------------------------
+        //         */ else {
+
+        //                     // dd('new qc'); exit;
+
+        //                     $newRowIndex = $nextRowIndex;
 
-//                     DB::table('cl_staff_tbl')->insert([
-//                         'login_id' => $request->input('login_id_store'),
-//                         'application_id' => $applicationId,
-//                         'staff_category' => $category,
-//                         'staff_cc_no' => $ccNo,
+        //                     DB::table('cl_staff_tbl')->insert([
+        //                         'login_id' => $request->input('login_id_store'),
+        //                         'application_id' => $applicationId,
+        //                         'staff_category' => $category,
+        //                         'staff_cc_no' => $ccNo,
 
-//                         'staff_cc_first_issue' =>
-//                         $firstIssue !== '' ? $firstIssue : null,
-
-//                         'staff_cc_validity_from' =>
-//                         $validityFrom !== '' ? $validityFrom : null,
-
-//                         'staff_cc_validity_to' =>
-//                         $validityTo !== '' ? $validityTo : null,
+        //                         'staff_cc_first_issue' =>
+        //                         $firstIssue !== '' ? $firstIssue : null,
 
-//                         'row_index' => $newRowIndex,
-//                         'staff_flag' => '1',
-//                         'staff_status' => 'N',
-//                         'created_at' => now(),
-//                         'updated_at' => now(),
-//                     ]);
+        //                         'staff_cc_validity_from' =>
+        //                         $validityFrom !== '' ? $validityFrom : null,
 
-//                     $currentRowIndexes[] = $newRowIndex;
+        //                         'staff_cc_validity_to' =>
+        //                         $validityTo !== '' ? $validityTo : null,
 
-//                     $nextRowIndex++;
-//                 }
-//             }
+        //                         'row_index' => $newRowIndex,
+        //                         'staff_flag' => '1',
+        //                         'staff_status' => 'N',
+        //                         'created_at' => now(),
+        //                         'updated_at' => now(),
+        //                     ]);
 
-//             /*
-//     |--------------------------------------------------------------------------
-//     | SET MISSING QC / QSC RECORDS TO staff_flag = 0
-//     |--------------------------------------------------------------------------
-//     |
-//     | Existing DB records which are NOT present in the submitted form
-//     | will be marked as 0.
-//     |
-//     */
+        //                     $currentRowIndexes[] = $newRowIndex;
 
-//             DB::table('cl_staff_tbl')
-//                 ->where('application_id', $applicationId)
-//                 ->whereIn('staff_category', ['QC', 'QSC'])
-//                 ->where('staff_flag', '1')
-//                 ->whereNotIn('row_index', $currentRowIndexes)
-//                 ->update([
-//                     'staff_flag' => '0',
-//                     'updated_at' => now(),
-//                 ]);
+        //                     $nextRowIndex++;
+        //                 }
+        //             }
 
+        //             /*
+        //     |--------------------------------------------------------------------------
+        //     | SET MISSING QC / QSC RECORDS TO staff_flag = 0
+        //     |--------------------------------------------------------------------------
+        //     |
+        //     | Existing DB records which are NOT present in the submitted form
+        //     | will be marked as 0.
+        //     |
+        //     */
 
+        //             DB::table('cl_staff_tbl')
+        //                 ->where('application_id', $applicationId)
+        //                 ->whereIn('staff_category', ['QC', 'QSC'])
+        //                 ->where('staff_flag', '1')
+        //                 ->whereNotIn('row_index', $currentRowIndexes)
+        //                 ->update([
+        //                     'staff_flag' => '0',
+        //                     'updated_at' => now(),
+        //                 ]);
 
-//         }
 
 
+        //         }
 
-$processedStaffIdsQC = [];
 
 
-// ==========================================================
-// QC / QSC
-// ==========================================================
+        $processedStaffIdsQC = [];
 
-if ($request->has('staffqc_category')) {
 
-    $staffCategories = $request->input(
-        'staffqc_category',
-        []
-    );
+        // ==========================================================
+        // QC / QSC
+        // ==========================================================
 
-    $staffCcNos = $request->input(
-        'staff_cc_no',
-        []
-    );
+        if ($request->has('staffqc_category')) {
 
-    $staffFirstIssues = $request->input(
-        'staff_cc_first_issue',
-        []
-    );
+            $staffCategories = $request->input(
+                'staffqc_category',
+                []
+            );
 
-    $staffValidityFroms = $request->input(
-        'staff_cc_validity_from',
-        []
-    );
+            $staffCcNos = $request->input(
+                'staff_cc_no',
+                []
+            );
 
-    $staffValidityTos = $request->input(
-        'staff_cc_validity_to',
-        []
-    );
+            $staffFirstIssues = $request->input(
+                'staff_cc_first_issue',
+                []
+            );
 
-    $staffQcIds = $request->input(
-        'staffqc_id',
-        []
-    );
+            $staffValidityFroms = $request->input(
+                'staff_cc_validity_from',
+                []
+            );
 
-    $rowIndexes = $request->input(
-        'row_index',
-        []
-    );
+            $staffValidityTos = $request->input(
+                'staff_cc_validity_to',
+                []
+            );
 
+            $staffQcIds = $request->input(
+                'staffqc_id',
+                []
+            );
 
-    // ==========================================================
-    // GET CURRENT MAX ROW INDEX
-    // ==========================================================
+            $rowIndexes = $request->input(
+                'row_index',
+                []
+            );
 
-    $lastRowIndex = DB::table('cl_staff_tbl')
-        ->where(
-            'application_id',
-            $applicationId
-        )
-        ->max('row_index');
 
-    $nextRowIndex =
-        ((int) $lastRowIndex) + 1;
+            // ==========================================================
+            // GET CURRENT MAX ROW INDEX
+            // ==========================================================
 
-
-    // ==========================================================
-    // ROW INDEXES PRESENT IN CURRENT FORM
-    // ==========================================================
-
-    $currentRowIndexes = [];
-
-
-    // ==========================================================
-    // PROCESS QC / QSC
-    // ==========================================================
-
-    foreach (
-        $staffCategories
-        as $index => $category
-    ) {
-
-        // ------------------------------------------------------
-        // CATEGORY
-        // ------------------------------------------------------
-
-        $category = strtoupper(
-            trim((string) $category)
-        );
-
-
-        // ------------------------------------------------------
-        // ONLY QC / QSC
-        // ------------------------------------------------------
-
-        if (
-            !in_array(
-                $category,
-                ['QC', 'QSC'],
-                true
-            )
-        ) {
-            continue;
-        }
-
-
-        // ------------------------------------------------------
-        // CERTIFICATE NUMBER
-        // ------------------------------------------------------
-
-        $ccNo = trim(
-            (string) (
-                $staffCcNos[$index] ?? ''
-            )
-        );
-
-
-        // ------------------------------------------------------
-        // IGNORE EMPTY CERTIFICATE
-        // ------------------------------------------------------
-
-        if (
-            $ccNo === '' ||
-            strtolower($ccNo) === 'undefined' ||
-            strtolower($ccNo) === 'null'
-        ) {
-            continue;
-        }
-
-
-        // ------------------------------------------------------
-        // OTHER VALUES
-        // ------------------------------------------------------
-
-        $firstIssue = trim(
-            (string) (
-                $staffFirstIssues[$index] ?? ''
-            )
-        );
-
-        $validityFrom = trim(
-            (string) (
-                $staffValidityFroms[$index] ?? ''
-            )
-        );
-
-        $validityTo = trim(
-            (string) (
-                $staffValidityTos[$index] ?? ''
-            )
-        );
-
-
-        // ------------------------------------------------------
-        // STAFF ID
-        // ------------------------------------------------------
-
-        $staffId =
-            $staffQcIds[$index] ?? null;
-
-
-        // ------------------------------------------------------
-        // SUBMITTED ROW INDEX
-        // ------------------------------------------------------
-
-        $submittedRowIndex =
-            $rowIndexes[$index] ?? null;
-
-
-        // ======================================================
-        // NORMALIZE STAFF ID
-        // ======================================================
-
-        if (
-            $staffId !== null &&
-            $staffId !== '' &&
-            strtolower(
-                trim((string) $staffId)
-            ) !== 'undefined' &&
-            strtolower(
-                trim((string) $staffId)
-            ) !== 'null'
-        ) {
-
-            $staffId = (int) $staffId;
-
-        } else {
-
-            $staffId = null;
-        }
-
-
-        // ======================================================
-        // NORMALIZE ROW INDEX
-        // ======================================================
-
-        if (
-            $submittedRowIndex !== null &&
-            $submittedRowIndex !== '' &&
-            strtolower(
-                trim((string) $submittedRowIndex)
-            ) !== 'undefined' &&
-            strtolower(
-                trim((string) $submittedRowIndex)
-            ) !== 'null'
-        ) {
-
-            $submittedRowIndex =
-                (int) $submittedRowIndex;
-
-        } else {
-
-            $submittedRowIndex = null;
-        }
-
-
-        // ======================================================
-        // EXISTING QC / QSC RECORD
-        // ======================================================
-
-        if (!empty($staffId)) {
-
-            $existing = DB::table('cl_staff_tbl')
+            $lastRowIndex = DB::table('cl_staff_tbl')
                 ->where(
-                    'id',
-                    $staffId
+                    'application_id',
+                    $applicationId
                 )
+                ->max('row_index');
+
+            $nextRowIndex =
+                ((int) $lastRowIndex) + 1;
+
+
+            // ==========================================================
+            // ROW INDEXES PRESENT IN CURRENT FORM
+            // ==========================================================
+
+            $currentRowIndexes = [];
+
+
+            // ==========================================================
+            // PROCESS QC / QSC
+            // ==========================================================
+
+            foreach (
+                $staffCategories
+                as $index => $category
+            ) {
+
+                // ------------------------------------------------------
+                // CATEGORY
+                // ------------------------------------------------------
+
+                $category = strtoupper(
+                    trim((string) $category)
+                );
+
+
+                // ------------------------------------------------------
+                // ONLY QC / QSC
+                // ------------------------------------------------------
+
+                if (
+                    !in_array(
+                        $category,
+                        ['QC', 'QSC'],
+                        true
+                    )
+                ) {
+                    continue;
+                }
+
+
+                // ------------------------------------------------------
+                // CERTIFICATE NUMBER
+                // ------------------------------------------------------
+
+                $ccNo = trim(
+                    (string) (
+                        $staffCcNos[$index] ?? ''
+                    )
+                );
+
+
+                // ------------------------------------------------------
+                // IGNORE EMPTY CERTIFICATE
+                // ------------------------------------------------------
+
+                if (
+                    $ccNo === '' ||
+                    strtolower($ccNo) === 'undefined' ||
+                    strtolower($ccNo) === 'null'
+                ) {
+                    continue;
+                }
+
+
+                // ------------------------------------------------------
+                // OTHER VALUES
+                // ------------------------------------------------------
+
+                $firstIssue = trim(
+                    (string) (
+                        $staffFirstIssues[$index] ?? ''
+                    )
+                );
+
+                $validityFrom = trim(
+                    (string) (
+                        $staffValidityFroms[$index] ?? ''
+                    )
+                );
+
+                $validityTo = trim(
+                    (string) (
+                        $staffValidityTos[$index] ?? ''
+                    )
+                );
+
+
+                // ------------------------------------------------------
+                // STAFF ID
+                // ------------------------------------------------------
+
+                $staffId =
+                    $staffQcIds[$index] ?? null;
+
+
+                // ------------------------------------------------------
+                // SUBMITTED ROW INDEX
+                // ------------------------------------------------------
+
+                $submittedRowIndex =
+                    $rowIndexes[$index] ?? null;
+
+
+                // ======================================================
+                // NORMALIZE STAFF ID
+                // ======================================================
+
+                if (
+                    $staffId !== null &&
+                    $staffId !== '' &&
+                    strtolower(
+                        trim((string) $staffId)
+                    ) !== 'undefined' &&
+                    strtolower(
+                        trim((string) $staffId)
+                    ) !== 'null'
+                ) {
+
+                    $staffId = (int) $staffId;
+                } else {
+
+                    $staffId = null;
+                }
+
+
+                // ======================================================
+                // NORMALIZE ROW INDEX
+                // ======================================================
+
+                if (
+                    $submittedRowIndex !== null &&
+                    $submittedRowIndex !== '' &&
+                    strtolower(
+                        trim((string) $submittedRowIndex)
+                    ) !== 'undefined' &&
+                    strtolower(
+                        trim((string) $submittedRowIndex)
+                    ) !== 'null'
+                ) {
+
+                    $submittedRowIndex =
+                        (int) $submittedRowIndex;
+                } else {
+
+                    $submittedRowIndex = null;
+                }
+
+
+                // ======================================================
+                // EXISTING QC / QSC RECORD
+                // ======================================================
+
+                if (!empty($staffId)) {
+
+                    $existing = DB::table('cl_staff_tbl')
+                        ->where(
+                            'id',
+                            $staffId
+                        )
+                        ->where(
+                            'application_id',
+                            $applicationId
+                        )
+                        ->whereIn(
+                            'staff_category',
+                            ['QC', 'QSC']
+                        )
+                        ->first();
+
+
+                    if ($existing) {
+
+                        // --------------------------------------------------
+                        // DO NOT CHANGE EXISTING ROW INDEX
+                        // --------------------------------------------------
+
+                        $existingRowIndex =
+                            (int) $existing->row_index;
+
+
+                        // --------------------------------------------------
+                        // UPDATE DATA
+                        // --------------------------------------------------
+
+                        $updateData = [
+
+                            'staff_category' =>
+                            $category,
+
+                            'staff_cc_no' =>
+                            $ccNo,
+
+                            'staff_flag' =>
+                            '1',
+
+                            'updated_at' =>
+                            now(),
+                        ];
+
+
+                        if ($firstIssue !== '') {
+
+                            $updateData['staff_cc_first_issue'] = $firstIssue;
+                        }
+
+
+                        if ($validityFrom !== '') {
+
+                            $updateData['staff_cc_validity_from'] = $validityFrom;
+                        }
+
+
+                        if ($validityTo !== '') {
+
+                            $updateData['staff_cc_validity_to'] = $validityTo;
+                        }
+
+
+                        // --------------------------------------------------
+                        // UPDATE
+                        // --------------------------------------------------
+
+                        DB::table('cl_staff_tbl')
+                            ->where(
+                                'id',
+                                $staffId
+                            )
+                            ->where(
+                                'application_id',
+                                $applicationId
+                            )
+                            ->update(
+                                $updateData
+                            );
+
+
+                        // --------------------------------------------------
+                        // CURRENT ROW
+                        // --------------------------------------------------
+
+                        $currentRowIndexes[] =
+                            $existingRowIndex;
+
+
+                        $processedStaffIdsQC[] =
+                            $staffId;
+                    }
+                }
+
+
+                // ======================================================
+                // NEW QC / QSC RECORD
+                // ======================================================
+
+                else {
+
+                    // --------------------------------------------------
+                    // USE SUBMITTED ROW INDEX
+                    // --------------------------------------------------
+
+                    if (
+                        $submittedRowIndex !== null
+                    ) {
+
+                        $newRowIndex =
+                            $submittedRowIndex;
+                    } else {
+
+                        $newRowIndex =
+                            $nextRowIndex;
+                    }
+
+
+                    // --------------------------------------------------
+                    // INSERT
+                    // --------------------------------------------------
+
+                    $newStaffId =
+                        DB::table('cl_staff_tbl')
+                        ->insertGetId([
+
+                            'login_id' =>
+                            $request->input(
+                                'login_id_store'
+                            ),
+
+                            'application_id' =>
+                            $applicationId,
+
+                            'staff_category' =>
+                            $category,
+
+                            'staff_cc_no' =>
+                            $ccNo,
+
+                            'staff_cc_first_issue' =>
+                            $firstIssue !== ''
+                                ? $firstIssue
+                                : null,
+
+                            'staff_cc_validity_from' =>
+                            $validityFrom !== ''
+                                ? $validityFrom
+                                : null,
+
+                            'staff_cc_validity_to' =>
+                            $validityTo !== ''
+                                ? $validityTo
+                                : null,
+
+                            'row_index' =>
+                            $newRowIndex,
+
+                            'staff_flag' =>
+                            '1',
+
+                            'staff_status' =>
+                            'N',
+
+                            'created_at' =>
+                            now(),
+
+                            'updated_at' =>
+                            now(),
+                        ]);
+
+
+                    // --------------------------------------------------
+                    // CURRENT ROW
+                    // --------------------------------------------------
+
+                    $currentRowIndexes[] =
+                        $newRowIndex;
+
+
+                    $processedStaffIdsQC[] =
+                        $newStaffId;
+
+
+                    // --------------------------------------------------
+                    // UPDATE NEXT ROW INDEX
+                    // --------------------------------------------------
+
+                    if (
+                        $newRowIndex >= $nextRowIndex
+                    ) {
+
+                        $nextRowIndex =
+                            $newRowIndex + 1;
+                    }
+                }
+            }
+
+
+            // ==========================================================
+            // SET MISSING QC / QSC RECORDS TO FLAG 0
+            // ==========================================================
+
+            DB::table('cl_staff_tbl')
                 ->where(
                     'application_id',
                     $applicationId
@@ -1055,454 +1253,246 @@ if ($request->has('staffqc_category')) {
                     'staff_category',
                     ['QC', 'QSC']
                 )
-                ->first();
-
-
-            if ($existing) {
-
-                // --------------------------------------------------
-                // DO NOT CHANGE EXISTING ROW INDEX
-                // --------------------------------------------------
-
-                $existingRowIndex =
-                    (int) $existing->row_index;
-
-
-                // --------------------------------------------------
-                // UPDATE DATA
-                // --------------------------------------------------
-
-                $updateData = [
-
-                    'staff_category' =>
-                        $category,
-
-                    'staff_cc_no' =>
-                        $ccNo,
+                ->where(
+                    'staff_flag',
+                    '1'
+                )
+                ->whereNotIn(
+                    'row_index',
+                    $currentRowIndexes
+                )
+                ->update([
 
                     'staff_flag' =>
-                        '1',
+                    '0',
 
                     'updated_at' =>
-                        now(),
-                ];
+                    now(),
+                ]);
 
 
-                if ($firstIssue !== '') {
+            // ==========================================================
+            // SYNC TEMP UPLOADED DOCUMENTS
+            // APP DOC / CONS DOC
+            // ==========================================================
 
-                    $updateData[
-                        'staff_cc_first_issue'
-                    ] = $firstIssue;
-                }
-
-
-                if ($validityFrom !== '') {
-
-                    $updateData[
-                        'staff_cc_validity_from'
-                    ] = $validityFrom;
-                }
-
-
-                if ($validityTo !== '') {
-
-                    $updateData[
-                        'staff_cc_validity_to'
-                    ] = $validityTo;
-                }
-
-
-                // --------------------------------------------------
-                // UPDATE
-                // --------------------------------------------------
-
-                DB::table('cl_staff_tbl')
-                    ->where(
-                        'id',
-                        $staffId
+            $tempDocs = DB::table(
+                'tnelb_temp_uploaded_documents'
+            )
+                ->where(
+                    'login_id',
+                    $request->input(
+                        'login_id_store'
                     )
+                )
+                ->where(
+                    'form_name',
+                    $request->input(
+                        'form_name'
+                    )
+                )
+                ->where(
+                    'license_name',
+                    $request->input(
+                        'license_name'
+                    )
+                )
+                ->whereIn(
+                    'document_category',
+                    [
+                        'app_doc',
+                        'cons_doc'
+                    ]
+                )
+                ->where(
+                    'appl_type',
+                    trim(
+                        (string) $request->input(
+                            'appl_type'
+                        )
+                    )
+                )
+                ->get();
+
+
+            // ==========================================================
+            // PROCESS EACH TEMP DOCUMENT
+            // ==========================================================
+
+            foreach ($tempDocs as $tempDoc) {
+
+                // ------------------------------------------------------
+                // ROW INDEX
+                // ------------------------------------------------------
+
+                $tempRowIndex = trim(
+                    (string) (
+                        $tempDoc->row_index ?? ''
+                    )
+                );
+
+
+                if (
+                    $tempRowIndex === '' ||
+                    strtolower($tempRowIndex) === 'undefined' ||
+                    strtolower($tempRowIndex) === 'null'
+                ) {
+                    continue;
+                }
+
+
+                $tempRowIndex =
+                    (int) $tempRowIndex;
+
+
+                // ------------------------------------------------------
+                // BUILD DOCUMENT PATH
+                // ------------------------------------------------------
+
+                $documentPath = rtrim(
+                    (string) (
+                        $tempDoc->file_path ?? ''
+                    ),
+                    '/'
+                );
+
+
+                $fileName = ltrim(
+                    (string) (
+                        $tempDoc->file_name ?? ''
+                    ),
+                    '/'
+                );
+
+
+                if (
+                    $documentPath !== '' &&
+                    $fileName !== ''
+                ) {
+
+                    $documentPath .= '/' .
+                        $fileName;
+                } elseif (
+                    $fileName !== ''
+                ) {
+
+                    $documentPath =
+                        $fileName;
+                }
+
+
+                // ------------------------------------------------------
+                // IGNORE EMPTY DOCUMENT
+                // ------------------------------------------------------
+
+                if (
+                    trim($documentPath) === ''
+                ) {
+                    continue;
+                }
+
+
+                // ======================================================
+                // FIND QC / QSC STAFF BY APPLICATION + ROW INDEX
+                // ======================================================
+
+                $staff = DB::table(
+                    'cl_staff_tbl'
+                )
                     ->where(
                         'application_id',
                         $applicationId
                     )
-                    ->update(
-                        $updateData
-                    );
+                    ->where(
+                        'row_index',
+                        $tempRowIndex
+                    )
+                    ->whereIn(
+                        'staff_category',
+                        ['QC', 'QSC']
+                    )
+                    ->first();
 
 
-                // --------------------------------------------------
-                // CURRENT ROW
-                // --------------------------------------------------
+                // ------------------------------------------------------
+                // STAFF NOT FOUND
+                // ------------------------------------------------------
 
-                $currentRowIndexes[] =
-                    $existingRowIndex;
-
-
-                $processedStaffIdsQC[] =
-                    $staffId;
-            }
-        }
+                if (!$staff) {
+                    continue;
+                }
 
 
-        // ======================================================
-        // NEW QC / QSC RECORD
-        // ======================================================
+                // ======================================================
+                // APP DOC
+                // ======================================================
 
-        else {
+                if (
+                    $tempDoc->document_category ===
+                    'app_doc'
+                ) {
 
-            // --------------------------------------------------
-            // USE SUBMITTED ROW INDEX
-            // --------------------------------------------------
+                    DB::table(
+                        'cl_staff_tbl'
+                    )
+                        ->where(
+                            'id',
+                            $staff->id
+                        )
+                        ->where(
+                            'application_id',
+                            $applicationId
+                        )
+                        ->where(
+                            'row_index',
+                            $tempRowIndex
+                        )
+                        ->update([
 
-            if (
-                $submittedRowIndex !== null
-            ) {
+                            'app_doc' =>
+                            $documentPath,
 
-                $newRowIndex =
-                    $submittedRowIndex;
-
-            } else {
-
-                $newRowIndex =
-                    $nextRowIndex;
-            }
-
-
-            // --------------------------------------------------
-            // INSERT
-            // --------------------------------------------------
-
-            $newStaffId =
-                DB::table('cl_staff_tbl')
-                    ->insertGetId([
-
-                        'login_id' =>
-                            $request->input(
-                                'login_id_store'
-                            ),
-
-                        'application_id' =>
-                            $applicationId,
-
-                        'staff_category' =>
-                            $category,
-
-                        'staff_cc_no' =>
-                            $ccNo,
-
-                        'staff_cc_first_issue' =>
-                            $firstIssue !== ''
-                                ? $firstIssue
-                                : null,
-
-                        'staff_cc_validity_from' =>
-                            $validityFrom !== ''
-                                ? $validityFrom
-                                : null,
-
-                        'staff_cc_validity_to' =>
-                            $validityTo !== ''
-                                ? $validityTo
-                                : null,
-
-                        'row_index' =>
-                            $newRowIndex,
-
-                        'staff_flag' =>
-                            '1',
-
-                        'staff_status' =>
-                            'N',
-
-                        'created_at' =>
+                            'updated_at' =>
                             now(),
+                        ]);
+                }
 
-                        'updated_at' =>
+
+                // ======================================================
+                // CONS DOC
+                // ======================================================
+
+                elseif (
+                    $tempDoc->document_category ===
+                    'cons_doc'
+                ) {
+
+                    DB::table(
+                        'cl_staff_tbl'
+                    )
+                        ->where(
+                            'id',
+                            $staff->id
+                        )
+                        ->where(
+                            'application_id',
+                            $applicationId
+                        )
+                        ->where(
+                            'row_index',
+                            $tempRowIndex
+                        )
+                        ->update([
+
+                            'cons_doc' =>
+                            $documentPath,
+
+                            'updated_at' =>
                             now(),
-                    ]);
-
-
-            // --------------------------------------------------
-            // CURRENT ROW
-            // --------------------------------------------------
-
-            $currentRowIndexes[] =
-                $newRowIndex;
-
-
-            $processedStaffIdsQC[] =
-                $newStaffId;
-
-
-            // --------------------------------------------------
-            // UPDATE NEXT ROW INDEX
-            // --------------------------------------------------
-
-            if (
-                $newRowIndex >= $nextRowIndex
-            ) {
-
-                $nextRowIndex =
-                    $newRowIndex + 1;
+                        ]);
+                }
             }
         }
-    }
-
-
-    // ==========================================================
-    // SET MISSING QC / QSC RECORDS TO FLAG 0
-    // ==========================================================
-
-    DB::table('cl_staff_tbl')
-        ->where(
-            'application_id',
-            $applicationId
-        )
-        ->whereIn(
-            'staff_category',
-            ['QC', 'QSC']
-        )
-        ->where(
-            'staff_flag',
-            '1'
-        )
-        ->whereNotIn(
-            'row_index',
-            $currentRowIndexes
-        )
-        ->update([
-
-            'staff_flag' =>
-                '0',
-
-            'updated_at' =>
-                now(),
-        ]);
-
-
-    // ==========================================================
-    // SYNC TEMP UPLOADED DOCUMENTS
-    // APP DOC / CONS DOC
-    // ==========================================================
-
-    $tempDocs = DB::table(
-            'tnelb_temp_uploaded_documents'
-        )
-        ->where(
-            'login_id',
-            $request->input(
-                'login_id_store'
-            )
-        )
-        ->where(
-            'form_name',
-            $request->input(
-                'form_name'
-            )
-        )
-        ->where(
-            'license_name',
-            $request->input(
-                'license_name'
-            )
-        )
-        ->whereIn(
-            'document_category',
-            [
-                'app_doc',
-                'cons_doc'
-            ]
-        )
-        ->where(
-            'appl_type',
-            trim(
-                (string) $request->input(
-                    'appl_type'
-                )
-            )
-        )
-        ->get();
-
-
-    // ==========================================================
-    // PROCESS EACH TEMP DOCUMENT
-    // ==========================================================
-
-    foreach ($tempDocs as $tempDoc) {
-
-        // ------------------------------------------------------
-        // ROW INDEX
-        // ------------------------------------------------------
-
-        $tempRowIndex = trim(
-            (string) (
-                $tempDoc->row_index ?? ''
-            )
-        );
-
-
-        if (
-            $tempRowIndex === '' ||
-            strtolower($tempRowIndex) === 'undefined' ||
-            strtolower($tempRowIndex) === 'null'
-        ) {
-            continue;
-        }
-
-
-        $tempRowIndex =
-            (int) $tempRowIndex;
-
-
-        // ------------------------------------------------------
-        // BUILD DOCUMENT PATH
-        // ------------------------------------------------------
-
-        $documentPath = rtrim(
-            (string) (
-                $tempDoc->file_path ?? ''
-            ),
-            '/'
-        );
-
-
-        $fileName = ltrim(
-            (string) (
-                $tempDoc->file_name ?? ''
-            ),
-            '/'
-        );
-
-
-        if (
-            $documentPath !== '' &&
-            $fileName !== ''
-        ) {
-
-            $documentPath .= '/' .
-                $fileName;
-
-        } elseif (
-            $fileName !== ''
-        ) {
-
-            $documentPath =
-                $fileName;
-        }
-
-
-        // ------------------------------------------------------
-        // IGNORE EMPTY DOCUMENT
-        // ------------------------------------------------------
-
-        if (
-            trim($documentPath) === ''
-        ) {
-            continue;
-        }
-
-
-        // ======================================================
-        // FIND QC / QSC STAFF BY APPLICATION + ROW INDEX
-        // ======================================================
-
-        $staff = DB::table(
-                'cl_staff_tbl'
-            )
-            ->where(
-                'application_id',
-                $applicationId
-            )
-            ->where(
-                'row_index',
-                $tempRowIndex
-            )
-            ->whereIn(
-                'staff_category',
-                ['QC', 'QSC']
-            )
-            ->first();
-
-
-        // ------------------------------------------------------
-        // STAFF NOT FOUND
-        // ------------------------------------------------------
-
-        if (!$staff) {
-            continue;
-        }
-
-
-        // ======================================================
-        // APP DOC
-        // ======================================================
-
-        if (
-            $tempDoc->document_category ===
-            'app_doc'
-        ) {
-
-            DB::table(
-                'cl_staff_tbl'
-            )
-                ->where(
-                    'id',
-                    $staff->id
-                )
-                ->where(
-                    'application_id',
-                    $applicationId
-                )
-                ->where(
-                    'row_index',
-                    $tempRowIndex
-                )
-                ->update([
-
-                    'app_doc' =>
-                        $documentPath,
-
-                    'updated_at' =>
-                        now(),
-                ]);
-        }
-
-
-        // ======================================================
-        // CONS DOC
-        // ======================================================
-
-        elseif (
-            $tempDoc->document_category ===
-            'cons_doc'
-        ) {
-
-            DB::table(
-                'cl_staff_tbl'
-            )
-                ->where(
-                    'id',
-                    $staff->id
-                )
-                ->where(
-                    'application_id',
-                    $applicationId
-                )
-                ->where(
-                    'row_index',
-                    $tempRowIndex
-                )
-                ->update([
-
-                    'cons_doc' =>
-                        $documentPath,
-
-                    'updated_at' =>
-                        now(),
-                ]);
-        }
-    }
-}
 
 
         if ($request->has('cc_number') || $request->filled('designation')) {
@@ -1787,7 +1777,6 @@ if ($request->has('staffqc_category')) {
                     $nextRowIndex++;
                 }
             }
-
         }
 
 
@@ -2717,6 +2706,518 @@ if ($request->has('staffqc_category')) {
         }
 
 
+        // ==========================================================
+        // 8. SIGNATORY / AUTHORITY
+        // ==========================================================
+
+        $authorityNames = $request->input(
+            'name_of_authorised_to_sign',
+            []
+        );
+
+        $authorityAges = $request->input(
+            'age_of_authorised_to_sign',
+            []
+        );
+
+        $authorityQualifications = $request->input(
+            'qualification_of_authorised_to_sign',
+            []
+        );
+
+        $authorityDesignations = $request->input(
+            'designation_of_authorised_to_sign',
+            []
+        );
+
+
+        // ==========================================================
+        // GET CURRENT MAX ROW INDEX
+        // ==========================================================
+
+        $lastAuthorityRowIndex = DB::table('cl_forma_signs')
+            ->where(
+                'application_id',
+                $applicationId
+            )
+            ->max('row_index');
+
+        $nextAuthorityRowIndex =
+            ((int) $lastAuthorityRowIndex) + 1;
+
+
+        // ==========================================================
+        // GET TEMPORARY SPECIMEN SIGN DOCUMENTS
+        // ==========================================================
+
+        $tempSpecimenSigns = DB::table(
+            'tnelb_temp_uploaded_documents'
+        )
+            ->where(
+                'login_id',
+                $request->input('login_id_store')
+            )
+            ->where(
+                'form_name',
+                $request->input('form_name')
+            )
+            ->where(
+                'license_name',
+                $request->input('license_name')
+            )
+            ->where(
+                'document_category',
+                'specimen_sign'
+            )
+            ->get()
+            ->keyBy('row_index');
+
+
+        // ==========================================================
+        // CURRENT ROW INDEXES
+        // ==========================================================
+
+        $currentAuthorityRowIndexes = [];
+
+
+        // ==========================================================
+        // PROCESS AUTHORITY / SIGNATORY
+        // ==========================================================
+
+        foreach (
+            $authorityNames as $index => $name
+        ) {
+
+            // ------------------------------------------------------
+            // NAME
+            // ------------------------------------------------------
+
+            $name = trim(
+                (string) $name
+            );
+
+
+            // ------------------------------------------------------
+            // IGNORE COMPLETELY EMPTY ROW
+            // ------------------------------------------------------
+
+            if (
+                $name === '' ||
+                strtolower($name) === 'undefined' ||
+                strtolower($name) === 'null'
+            ) {
+                continue;
+            }
+
+
+            // ------------------------------------------------------
+            // AGE
+            // ------------------------------------------------------
+
+            $age = trim(
+                (string) (
+                    $authorityAges[$index] ?? ''
+                )
+            );
+
+
+            // ------------------------------------------------------
+            // QUALIFICATION
+            // ------------------------------------------------------
+
+            $qualification = trim(
+                (string) (
+                    $authorityQualifications[$index] ?? ''
+                )
+            );
+
+
+            // ------------------------------------------------------
+            // DESIGNATION
+            // ------------------------------------------------------
+
+            $designation = trim(
+                (string) (
+                    $authorityDesignations[$index] ?? ''
+                )
+            );
+
+
+            // ======================================================
+            // ROW INDEX
+            // ======================================================
+
+            $submittedRowIndex = $index + 1;
+
+
+            if (
+                $submittedRowIndex !== null &&
+                $submittedRowIndex > 0
+            ) {
+
+                $rowIndex =
+                    (int) $submittedRowIndex;
+            } else {
+
+                $rowIndex =
+                    $nextAuthorityRowIndex;
+            }
+
+
+            // ======================================================
+            // GET TEMP SPECIMEN SIGN
+            // USING SAME ROW INDEX
+            // ======================================================
+
+            $specimenSign = null;
+
+            $tempDoc = null;
+
+
+            if (
+                $tempSpecimenSigns->has(
+                    $rowIndex
+                )
+            ) {
+
+                $tempDoc =
+                    $tempSpecimenSigns->get(
+                        $rowIndex
+                    );
+
+
+                // --------------------------------------------------
+                // FILE PATH + FILE NAME
+                // --------------------------------------------------
+
+                $tempFilePath =
+                    trim(
+                        (string) (
+                            $tempDoc->file_path ?? ''
+                        )
+                    );
+
+
+                $tempFileName =
+                    trim(
+                        (string) (
+                            $tempDoc->file_name ?? ''
+                        )
+                    );
+
+
+                // --------------------------------------------------
+                // CREATE FINAL DATABASE PATH
+                // --------------------------------------------------
+
+                if (
+                    $tempFilePath !== '' &&
+                    $tempFileName !== ''
+                ) {
+
+                    $specimenSign =
+                        rtrim(
+                            $tempFilePath,
+                            '/'
+                        )
+                        . '/'
+                        .
+                        ltrim(
+                            $tempFileName,
+                            '/'
+                        );
+                }
+            }
+
+
+            // ======================================================
+            // CHECK EXISTING AUTHORITY RECORD
+            // ======================================================
+
+            $existingAuthority = DB::table(
+                'cl_forma_signs'
+            )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->where(
+                    'row_index',
+                    $rowIndex
+                )
+                ->first();
+
+
+            // ======================================================
+            // UPDATE EXISTING RECORD
+            // ======================================================
+
+            if ($existingAuthority) {
+
+
+                // --------------------------------------------------
+                // UPDATE DATA
+                // --------------------------------------------------
+
+                $updateData = [
+
+                    'login_id' =>
+                    $request->input(
+                        'login_id_store'
+                    ),
+
+                    'form_name' =>
+                    $request->input(
+                        'form_name'
+                    ),
+
+                    'cert_name' =>
+                    $request->input(
+                        'cert_name'
+                    ),
+
+                    'form_code' =>
+                    $request->input(
+                        'form_code'
+                    ),
+
+                    'name_of_authorised_to_sign' =>
+                    $name,
+
+                    'age_of_authorised_to_sign' =>
+                    $age,
+
+                    'qualification_of_authorised_to_sign' =>
+                    $qualification,
+
+                    'designation_of_authorised_to_sign' =>
+                    $designation,
+
+                    'row_index' =>
+                    $rowIndex,
+
+                    'flag' =>
+                    1,
+
+                    'updated_at' =>
+                    now(),
+                ];
+
+
+                // --------------------------------------------------
+                // UPDATE SPECIMEN SIGN ONLY WHEN NEW FILE EXISTS
+                // --------------------------------------------------
+
+                if (
+                    !empty($specimenSign)
+                ) {
+
+                    $updateData['specimen_sign'] = $specimenSign;
+                }
+
+
+                // --------------------------------------------------
+                // UPDATE DATABASE
+                // --------------------------------------------------
+
+                DB::table(
+                    'cl_forma_signs'
+                )
+                    ->where(
+                        'id',
+                        $existingAuthority->id
+                    )
+                    ->where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->update(
+                        $updateData
+                    );
+
+
+                // --------------------------------------------------
+                // CURRENT ROW
+                // --------------------------------------------------
+
+                $currentAuthorityRowIndexes[] =
+                    $rowIndex;
+            } else {
+
+
+                // ==================================================
+                // INSERT NEW RECORD
+                // ==================================================
+
+                DB::table(
+                    'cl_forma_signs'
+                )
+                    ->insert([
+
+                        'login_id' =>
+                        $request->input(
+                            'login_id_store'
+                        ),
+
+                        'application_id' =>
+                        $applicationId,
+
+                        'form_name' =>
+                        $request->input(
+                            'form_name'
+                        ),
+
+                        'cert_name' =>
+                        $request->input(
+                            'cert_name'
+                        ),
+
+                        'form_code' =>
+                        $request->input(
+                            'form_code'
+                        ),
+
+                        'name_of_authorised_to_sign' =>
+                        $name,
+
+                        'age_of_authorised_to_sign' =>
+                        $age,
+
+                        'qualification_of_authorised_to_sign' =>
+                        $qualification,
+
+                        'designation_of_authorised_to_sign' =>
+                        $designation,
+
+                        // =========================================
+                        // SPECIMEN SIGN
+                        // =========================================
+
+                        'specimen_sign' =>
+                        $specimenSign,
+
+                        'row_index' =>
+                        $rowIndex,
+
+                        'flag' =>
+                        1,
+
+                        'created_at' =>
+                        now(),
+
+                        'updated_at' =>
+                        now(),
+                    ]);
+
+
+                // --------------------------------------------------
+                // CURRENT ROW
+                // --------------------------------------------------
+
+                $currentAuthorityRowIndexes[] =
+                    $rowIndex;
+
+
+                // --------------------------------------------------
+                // UPDATE NEXT ROW INDEX
+                // --------------------------------------------------
+
+                if (
+                    $rowIndex >=
+                    $nextAuthorityRowIndex
+                ) {
+
+                    $nextAuthorityRowIndex =
+                        $rowIndex + 1;
+                }
+            }
+
+
+            // ======================================================
+            // MARK TEMP SPECIMEN SIGN AS FINAL
+            // ======================================================
+
+            if (
+                $tempDoc !== null
+            ) {
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDoc->id
+                    )
+                    ->update([
+
+                        'is_final' =>
+                        '1',
+
+                        'moved_as' =>
+                        $request->input(
+                            'form_action'
+                        ),
+
+                        'record_id_app' =>
+                        $applicationId,
+
+                        'updated_at' =>
+                        now(),
+                    ]);
+            }
+        }
+
+
+        // ==========================================================
+        // OPTIONAL: HANDLE DELETED / REMOVED SIGNATORY ROWS
+        // ==========================================================
+        //
+        // Any existing cl_forma_signs row which is not submitted
+        // in the current form will be set to flag = 0.
+        //
+        // ==========================================================
+
+        if (
+            !empty($currentAuthorityRowIndexes)
+        ) {
+
+            DB::table(
+                'cl_forma_signs'
+            )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->whereNotIn(
+                    'row_index',
+                    $currentAuthorityRowIndexes
+                )
+                ->update([
+
+                    'flag' =>
+                    0,
+
+                    'updated_at' =>
+                    now(),
+                ]);
+        } else {
+
+            DB::table(
+                'cl_forma_signs'
+            )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->update([
+
+                    'flag' =>
+                    0,
+
+                    'updated_at' =>
+                    now(),
+                ]);
+        }
 
 
         if ($existing) {

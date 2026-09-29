@@ -763,7 +763,7 @@ $(document).ready(function () {
 });
 
 
-$("#competency_form_a").on("submit",async function (e) {
+$("#competency_form_a").on("submit", async function (e) {
 
     e.preventDefault();
 
@@ -928,323 +928,323 @@ $("#competency_form_a").on("submit",async function (e) {
 
     let partners = [];
 
-// Collect all partner rows
-$("#partner-section table tbody tr").each(function () {
+    // Collect all partner rows
+    $("#partner-section table tbody tr").each(function () {
 
-    let $tr = $(this);
-    let $tds = $tr.find("td");
+        let $tr = $(this);
+        let $tds = $tr.find("td");
 
-    let id = $tr.data("id") || null;
+        let id = $tr.data("id") || null;
 
-    partners.push({
+        partners.push({
 
-        id: id,
+            id: id,
 
-        proprietor_name:
-            $tds.eq(0).text().trim(),
+            proprietor_name:
+                $tds.eq(0).text().trim(),
 
-        fathers_name:
-            $tds.eq(1).text().trim(),
+            fathers_name:
+                $tds.eq(1).text().trim(),
 
-        dob:
-            $tds.eq(2).attr("data-dob") || "",
+            dob:
+                $tds.eq(2).attr("data-dob") || "",
 
-        age:
-            $tds.eq(2).attr("data-age") || "",
+            age:
+                $tds.eq(2).attr("data-age") || "",
 
-        proprietor_address:
-            $tds.eq(3).text().trim(),
+            proprietor_address:
+                $tds.eq(3).text().trim(),
 
-        qualification:
-            $tds.eq(4).attr("data-qualification") || "",
+            qualification:
+                $tds.eq(4).attr("data-qualification") || "",
 
-        qualification_text:
-            $tds.eq(4).attr("data-qual_text") || "",
+            qualification_text:
+                $tds.eq(4).attr("data-qual_text") || "",
 
-        present_business:
-            $tds.eq(5).text().trim(),
+            present_business:
+                $tds.eq(5).text().trim(),
 
-        competency:
-            $tds.eq(6).attr("data-competency") || "",
+            competency:
+                $tds.eq(6).attr("data-competency") || "",
 
-        competency_certno:
-            $tds.eq(6).attr("data-certno") || "",
+            competency_certno:
+                $tds.eq(6).attr("data-certno") || "",
 
-        ccfirstissue:
-            $tds.eq(6).attr("data-ccfirstissue") || "",
+            ccfirstissue:
+                $tds.eq(6).attr("data-ccfirstissue") || "",
 
-        ccvalidityfrom:
-            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+            ccvalidityfrom:
+                $tds.eq(6).attr("data-ccvalidityfrom") || "",
 
-        ccvalidityto:
-            $tds.eq(6).attr("data-ccvalidityto") || "",
+            ccvalidityto:
+                $tds.eq(6).attr("data-ccvalidityto") || "",
 
-        ccverify:
-            $tds.eq(6).attr("data-ccverify") ?? "",
+            ccverify:
+                $tds.eq(6).attr("data-ccverify") ?? "",
 
-        ownership_type:
-            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
-            $tds.eq(7).attr("data-ownership") ||
-            ""
+            ownership_type:
+                $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+                $tds.eq(7).attr("data-ownership") ||
+                ""
+
+        });
+    });
+
+    // Append partners JSON
+    formData.append(
+        "partners",
+        JSON.stringify(partners)
+    );
+
+    // Append individually indexed partner data
+    partners.forEach((p, index) => {
+
+        formData.append(
+            `partner_id[${index}]`,
+            p.id ?? ""
+        );
+
+        formData.append(
+            `partner_name[${index}]`,
+            p.proprietor_name
+        );
+
+        formData.append(
+            `partner_fathers_name[${index}]`,
+            p.fathers_name
+        );
+
+        formData.append(
+            `partner_ownership_type[${index}]`,
+            p.ownership_type
+        );
+
+        formData.append(
+            `partner_age[${index}]`,
+            p.age
+        );
+
+        formData.append(
+            `partner_dob[${index}]`,
+            p.dob
+        );
+
+        formData.append(
+            `partner_proprietor_address[${index}]`,
+            p.proprietor_address
+        );
+
+        formData.append(
+            `partner_qualification[${index}]`,
+            p.qualification
+        );
+
+        formData.append(
+            `partner_qual_text[${index}]`,
+            p.qualification_text
+        );
+
+        formData.append(
+            `partner_present_business[${index}]`,
+            p.present_business
+        );
+
+        formData.append(
+            `partner_competency[${index}]`,
+            p.competency
+        );
+
+        formData.append(
+            `partner_competency_certno[${index}]`,
+            p.competency_certno
+        );
+
+        formData.append(
+            `partner_ccfirstissue[${index}]`,
+            p.ccfirstissue
+        );
+
+        formData.append(
+            `partner_ccvalidityfrom[${index}]`,
+            p.ccvalidityfrom
+        );
+
+        formData.append(
+            `partner_ccvalidityto[${index}]`,
+            p.ccvalidityto
+        );
+
+        formData.append(
+            `partner_ccverify[${index}]`,
+            p.ccverify
+        );
 
     });
-});
-
-// Append partners JSON
-formData.append(
-    "partners",
-    JSON.stringify(partners)
-);
-
-// Append individually indexed partner data
-partners.forEach((p, index) => {
-
-    formData.append(
-        `partner_id[${index}]`,
-        p.id ?? ""
-    );
-
-    formData.append(
-        `partner_name[${index}]`,
-        p.proprietor_name
-    );
-
-    formData.append(
-        `partner_fathers_name[${index}]`,
-        p.fathers_name
-    );
-
-    formData.append(
-        `partner_ownership_type[${index}]`,
-        p.ownership_type
-    );
-
-    formData.append(
-        `partner_age[${index}]`,
-        p.age
-    );
-
-    formData.append(
-        `partner_dob[${index}]`,
-        p.dob
-    );
-
-    formData.append(
-        `partner_proprietor_address[${index}]`,
-        p.proprietor_address
-    );
-
-    formData.append(
-        `partner_qualification[${index}]`,
-        p.qualification
-    );
-
-    formData.append(
-        `partner_qual_text[${index}]`,
-        p.qualification_text
-    );
-
-    formData.append(
-        `partner_present_business[${index}]`,
-        p.present_business
-    );
-
-    formData.append(
-        `partner_competency[${index}]`,
-        p.competency
-    );
-
-    formData.append(
-        `partner_competency_certno[${index}]`,
-        p.competency_certno
-    );
-
-    formData.append(
-        `partner_ccfirstissue[${index}]`,
-        p.ccfirstissue
-    );
-
-    formData.append(
-        `partner_ccvalidityfrom[${index}]`,
-        p.ccvalidityfrom
-    );
-
-    formData.append(
-        `partner_ccvalidityto[${index}]`,
-        p.ccvalidityto
-    );
-
-    formData.append(
-        `partner_ccverify[${index}]`,
-        p.ccverify
-    );
-
-});
     // ------------director push--------------
 
-   let directors = [];
+    let directors = [];
 
-// Collect all director rows
-$("#director-section table tbody tr").each(function () {
+    // Collect all director rows
+    $("#director-section table tbody tr").each(function () {
 
-    let $tr = $(this);
-    let $tds = $tr.find("td");
+        let $tr = $(this);
+        let $tds = $tr.find("td");
 
-    let id = $tr.data("id") || null;
+        let id = $tr.data("id") || null;
 
-    directors.push({
+        directors.push({
 
-        id: id,
+            id: id,
 
-        proprietor_name:
-            $tds.eq(0).attr("data-name") || "",
+            proprietor_name:
+                $tds.eq(0).attr("data-name") || "",
 
-        managing_director:
-            $tds.eq(0).attr("data-managing_director") || "no",
+            managing_director:
+                $tds.eq(0).attr("data-managing_director") || "no",
 
-        fathers_name:
-            $tds.eq(1).text().trim(),
+            fathers_name:
+                $tds.eq(1).text().trim(),
 
-        dob:
-            $tds.eq(2).attr("data-dob") || "",
+            dob:
+                $tds.eq(2).attr("data-dob") || "",
 
-        age:
-            $tds.eq(2).attr("data-age") || "",
+            age:
+                $tds.eq(2).attr("data-age") || "",
 
-        proprietor_address:
-            $tds.eq(3).text().trim(),
+            proprietor_address:
+                $tds.eq(3).text().trim(),
 
-        qualification:
-            $tds.eq(4).attr("data-qualification") || "",
+            qualification:
+                $tds.eq(4).attr("data-qualification") || "",
 
-        qualification_text:
-            $tds.eq(4).attr("data-qual_text") || "",
+            qualification_text:
+                $tds.eq(4).attr("data-qual_text") || "",
 
-        present_business:
-            $tds.eq(5).text().trim(),
+            present_business:
+                $tds.eq(5).text().trim(),
 
-        competency:
-            $tds.eq(6).attr("data-competency") || "",
+            competency:
+                $tds.eq(6).attr("data-competency") || "",
 
-        competency_certno:
-            $tds.eq(6).attr("data-certno") || "",
+            competency_certno:
+                $tds.eq(6).attr("data-certno") || "",
 
-        ccfirstissue:
-            $tds.eq(6).attr("data-ccfirstissue") || "",
+            ccfirstissue:
+                $tds.eq(6).attr("data-ccfirstissue") || "",
 
-        ccvalidityfrom:
-            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+            ccvalidityfrom:
+                $tds.eq(6).attr("data-ccvalidityfrom") || "",
 
-        ccvalidityto:
-            $tds.eq(6).attr("data-ccvalidityto") || "",
+            ccvalidityto:
+                $tds.eq(6).attr("data-ccvalidityto") || "",
 
-        ccverify:
-            $tds.eq(6).attr("data-ccverify") ?? "",
+            ccverify:
+                $tds.eq(6).attr("data-ccverify") ?? "",
 
-        ownership_type:
-            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
-            $tds.eq(7).attr("data-ownership") ||
-            ""
+            ownership_type:
+                $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+                $tds.eq(7).attr("data-ownership") ||
+                ""
+
+        });
+    });
+
+    // Append directors JSON
+    formData.append(
+        "directors",
+        JSON.stringify(directors)
+    );
+
+    // Append individually indexed data
+    directors.forEach((p, index) => {
+
+        formData.append(
+            `director_id[${index}]`,
+            p.id ?? ""
+        );
+
+        formData.append(
+            `director_name[${index}]`,
+            p.proprietor_name
+        );
+
+        // Managing Director - keep unchanged
+        formData.append(
+            `director_managing_director[${index}]`,
+            p.managing_director
+        );
+
+        formData.append(
+            `director_fathers_name[${index}]`,
+            p.fathers_name
+        );
+
+        formData.append(
+            `director_ownership_type[${index}]`,
+            p.ownership_type
+        );
+
+        formData.append(
+            `director_age[${index}]`,
+            p.age
+        );
+
+        formData.append(
+            `director_dob[${index}]`,
+            p.dob
+        );
+
+        formData.append(
+            `director_proprietor_address[${index}]`,
+            p.proprietor_address
+        );
+
+        formData.append(
+            `director_qualification[${index}]`,
+            p.qualification
+        );
+
+        formData.append(
+            `director_qual_text[${index}]`,
+            p.qualification_text
+        );
+
+        formData.append(
+            `director_present_business[${index}]`,
+            p.present_business
+        );
+
+        formData.append(
+            `director_competency[${index}]`,
+            p.competency
+        );
+
+        formData.append(
+            `director_competency_certno[${index}]`,
+            p.competency_certno
+        );
+
+        formData.append(
+            `director_ccfirstissue[${index}]`,
+            p.ccfirstissue
+        );
+
+        formData.append(
+            `director_ccvalidityfrom[${index}]`,
+            p.ccvalidityfrom
+        );
+
+        formData.append(
+            `director_ccvalidityto[${index}]`,
+            p.ccvalidityto
+        );
+
+        formData.append(
+            `director_ccverify[${index}]`,
+            p.ccverify
+        );
 
     });
-});
-
-// Append directors JSON
-formData.append(
-    "directors",
-    JSON.stringify(directors)
-);
-
-// Append individually indexed data
-directors.forEach((p, index) => {
-
-    formData.append(
-        `director_id[${index}]`,
-        p.id ?? ""
-    );
-
-    formData.append(
-        `director_name[${index}]`,
-        p.proprietor_name
-    );
-
-    // Managing Director - keep unchanged
-    formData.append(
-        `director_managing_director[${index}]`,
-        p.managing_director
-    );
-
-    formData.append(
-        `director_fathers_name[${index}]`,
-        p.fathers_name
-    );
-
-    formData.append(
-        `director_ownership_type[${index}]`,
-        p.ownership_type
-    );
-
-    formData.append(
-        `director_age[${index}]`,
-        p.age
-    );
-
-    formData.append(
-        `director_dob[${index}]`,
-        p.dob
-    );
-
-    formData.append(
-        `director_proprietor_address[${index}]`,
-        p.proprietor_address
-    );
-
-    formData.append(
-        `director_qualification[${index}]`,
-        p.qualification
-    );
-
-    formData.append(
-        `director_qual_text[${index}]`,
-        p.qualification_text
-    );
-
-    formData.append(
-        `director_present_business[${index}]`,
-        p.present_business
-    );
-
-    formData.append(
-        `director_competency[${index}]`,
-        p.competency
-    );
-
-    formData.append(
-        `director_competency_certno[${index}]`,
-        p.competency_certno
-    );
-
-    formData.append(
-        `director_ccfirstissue[${index}]`,
-        p.ccfirstissue
-    );
-
-    formData.append(
-        `director_ccvalidityfrom[${index}]`,
-        p.ccvalidityfrom
-    );
-
-    formData.append(
-        `director_ccvalidityto[${index}]`,
-        p.ccvalidityto
-    );
-
-    formData.append(
-        `director_ccverify[${index}]`,
-        p.ccverify
-    );
-
-});
     // --------------------------------------
 
     //     let proprietor_name = $("input[name='proprietor_name[]']").val();
@@ -1712,109 +1712,132 @@ directors.forEach((p, index) => {
     let qcStaffRecords = [];
 
 
-    // ----------------------------------------------------------
-    // GET ALL QC / QSC STAFF ROWS
-    // ----------------------------------------------------------
+// ==========================================================
+// GET ALL QC / QSC STAFF ROWS
+// ==========================================================
 
-
-$("#staffqc-records tr.staffqc-fields").each(function (index) {
+$("#staffqc-records tr.staffqc-record").each(function (index) {
 
     let $tr = $(this);
 
+    // ------------------------------------------------------
+    // CATEGORY
+    // ------------------------------------------------------
+
+    let category = $tr
+        .find('input[name="staffqc_category[]"]')
+        .val();
+
+    // Fallback for dynamically created rows
+    if (!category) {
+        category = $tr
+            .find('input[name^="staffqc_category["]')
+            .val();
+    }
+
+    if (!category) {
+        category = $tr
+            .find(".staffqc_category")
+            .val();
+    }
+
+    if (!category) {
+        category = $tr.find("td:eq(1)").text().trim();
+    }
+
+    category = String(category || "")
+        .trim()
+        .toUpperCase();
+
+
+    // ------------------------------------------------------
+    // DEBUG
+    // ------------------------------------------------------
+
+    console.log(
+        "QC ROW",
+        index,
+        "Category:",
+        category,
+        "HTML:",
+        $tr.html()
+    );
+
+
+    // ------------------------------------------------------
+    // ONLY QC / QSC
+    // ------------------------------------------------------
+
+    if (category !== "QC" && category !== "QSC") {
+        return;
+    }
+
+
+    // ------------------------------------------------------
+    // CREATE RECORD
+    // ------------------------------------------------------
+
     let record = {
 
-        // --------------------------------------------------
-        // Existing database ID
-        // --------------------------------------------------
+        id:
+            $tr.attr("data-id") ||
+            $tr.data("id") ||
+            null,
 
-        id: $tr.data("id") || null,
-
-
-        // --------------------------------------------------
-        // Category
-        // --------------------------------------------------
 
         staffqc_category:
-            $tr.find(".staffqc_category").val()
-            ||
-            $tr.find('input[name="staffqc_category[]"]').val()
-            ||
-            $tr.find('input[name^="staffqc_category["]').val()
-            ||
-            $tr.find("td:eq(1)").text().trim()
-            ||
-            "",
+            category,
 
-
-        // --------------------------------------------------
-        // Certificate Number
-        // --------------------------------------------------
 
         staff_cc_no:
-            $tr.find(".staff_cc_no").val()
-            ||
-            $tr.find(".cc_number").val()
-            ||
             $tr.find('input[name="staff_cc_no[]"]').val()
             ||
             $tr.find('input[name^="staff_cc_no["]').val()
+            ||
+            $tr.find(".staff_cc_no").val()
+            ||
+            $tr.find(".cc_number").val()
             ||
             $tr.find("td:eq(2)").text().trim()
             ||
             "",
 
 
-        // --------------------------------------------------
-        // First Issue
-        // --------------------------------------------------
-
         staff_cc_first_issue:
-            $tr.find(".staff_cc_first_issue").val()
-            ||
-            $tr.find(".cc_firstissue").val()
-            ||
             $tr.find('input[name="staff_cc_first_issue[]"]').val()
             ||
             $tr.find('input[name^="staff_cc_first_issue["]').val()
             ||
+            $tr.find(".staff_cc_first_issue").val()
+            ||
+            $tr.find(".cc_firstissue").val()
+            ||
             "",
 
 
-        // --------------------------------------------------
-        // Validity From
-        // --------------------------------------------------
-
         staff_cc_validity_from:
-            $tr.find(".staff_cc_validity_from").val()
-            ||
-            $tr.find(".cc_validity_from").val()
-            ||
             $tr.find('input[name="staff_cc_validity_from[]"]').val()
             ||
             $tr.find('input[name^="staff_cc_validity_from["]').val()
             ||
+            $tr.find(".staff_cc_validity_from").val()
+            ||
+            $tr.find(".cc_validity_from").val()
+            ||
             "",
 
 
-        // --------------------------------------------------
-        // Validity To
-        // --------------------------------------------------
-
         staff_cc_validity_to:
-            $tr.find(".staff_cc_validity_to").val()
-            ||
-            $tr.find(".cc_validity_to").val()
-            ||
             $tr.find('input[name="staff_cc_validity_to[]"]').val()
             ||
             $tr.find('input[name^="staff_cc_validity_to["]').val()
             ||
+            $tr.find(".staff_cc_validity_to").val()
+            ||
+            $tr.find(".cc_validity_to").val()
+            ||
             "",
 
-
-        // --------------------------------------------------
-        // Appointment Document
-        // --------------------------------------------------
 
         app_doc:
             $tr.find('input[name="app_doc[]"]').val()
@@ -1824,10 +1847,6 @@ $("#staffqc-records tr.staffqc-fields").each(function (index) {
             "",
 
 
-        // --------------------------------------------------
-        // Consent Document
-        // --------------------------------------------------
-
         cons_doc:
             $tr.find('input[name="cons_doc[]"]').val()
             ||
@@ -1835,10 +1854,6 @@ $("#staffqc-records tr.staffqc-fields").each(function (index) {
             ||
             "",
 
-
-        // --------------------------------------------------
-        // IMPORTANT: ROW INDEX
-        // --------------------------------------------------
 
         row_index:
             $tr.attr("data-row-index")
@@ -1851,102 +1866,56 @@ $("#staffqc-records tr.staffqc-fields").each(function (index) {
     };
 
 
-    // --------------------------------------------------
-    // ADD ONLY QC / QSC
-    // --------------------------------------------------
-
-    let category = String(
-        record.staffqc_category || ""
-    ).trim().toUpperCase();
-
-
-    if (!["QC", "QSC"].includes(category)) {
-        return;
-    }
-
-
-    // --------------------------------------------------
+    // ------------------------------------------------------
     // ADD RECORD
-    // --------------------------------------------------
+    // ------------------------------------------------------
 
     qcStaffRecords.push(record);
 
 });
 
 
-    // ----------------------------------------------------------
-    // DEBUG
-    // ----------------------------------------------------------
+// ==========================================================
+// DEBUG
+// ==========================================================
 
-    console.log("QC/QSC row count:",
-        $("#staffqc-records tr").length
-    );
+console.log(
+    "QC/QSC tbody rows:",
+    $("#staffqc-records tr.staffqc-record").length
+);
 
-    console.log("QC/QSC records:",
-        qcStaffRecords);
+console.log(
+    "QC/QSC records found:",
+    qcStaffRecords.length
+);
 
-
-    // ----------------------------------------------------------
-    // MINIMUM ONE QC / QSC STAFF
-    // ----------------------------------------------------------
-
-    if (qcStaffRecords.length === 0) {
-
-        isValid = false;
-
-        // Add red border
-        $("#qc-staff-table").addClass("qc-table-error");
+console.log(
+    "QC/QSC records:",
+    qcStaffRecords
+);
 
 
-        Swal.fire({
-            icon: "warning",
-            title: "Staff Details Required",
-            text: "Please enter minimum one QC/QSC staff.",
-            confirmButtonText: "OK",
-            width: 450
-        });
+// ==========================================================
+// MINIMUM ONE QC / QSC
+// ==========================================================
+
+if (qcStaffRecords.length === 0) {
+
+    isValid = false;
+
+    $("#qc-staff-table").addClass("qc-table-error");
 
 
-        // Open Staff & Bank Details tab
-        $(".nav-item").each(function () {
-
-            if (
-                $(this)
-                    .text()
-                    .trim()
-                    .includes("Staff & Bank Details")
-            ) {
-
-                $(this).addClass("tab-error-bg");
-
-                $(this).trigger("click");
-
-                return false;
-            }
-
-        });
+    Swal.fire({
+        icon: "warning",
+        title: "Staff Details Required",
+        text: "Please enter minimum one QC/QSC staff.",
+        confirmButtonText: "OK",
+        width: 450
+    });
 
 
-        return;
-    }
-
-
-    // ----------------------------------------------------------
-    // QC/QSC STAFF EXISTS
-    // ----------------------------------------------------------
-
-    console.log(
-        "Minimum QC/QSC requirement satisfied.",
-        qcStaffRecords.length,
-        "record(s) found."
-    );
-
-
-    // Remove previous error border
-    $("#qc-staff-table").removeClass("qc-table-error");
-
-
-    // Remove tab error
+    // Open Staff & Bank Details tab
     $(".nav-item").each(function () {
 
         if (
@@ -1956,28 +1925,65 @@ $("#staffqc-records tr.staffqc-fields").each(function (index) {
                 .includes("Staff & Bank Details")
         ) {
 
-            $(this).removeClass("tab-error-bg");
+            $(this).addClass("tab-error-bg");
+
+            $(this).trigger("click");
 
             return false;
         }
 
     });
 
-    // ----------------------------------------
-    // ADD QC RECORDS TO FORMDATA
-    // ----------------------------------------
 
-    formData.set(
-        "qc_staff_records",
-        JSON.stringify(qcStaffRecords)
-    );
+    return;
+}
 
 
-    console.log(
-        "FINAL QC STAFF:",
-        formData.get("qc_staff_records")
-    );
+// ==========================================================
+// QC/QSC EXISTS
+// ==========================================================
 
+console.log(
+    "Minimum QC/QSC requirement satisfied.",
+    qcStaffRecords.length,
+    "record(s) found."
+);
+
+
+$("#qc-staff-table").removeClass("qc-table-error");
+
+
+$(".nav-item").each(function () {
+
+    if (
+        $(this)
+            .text()
+            .trim()
+            .includes("Staff & Bank Details")
+    ) {
+
+        $(this).removeClass("tab-error-bg");
+
+        return false;
+    }
+
+});
+
+
+// ==========================================================
+// ADD QC RECORDS TO FORMDATA
+// ==========================================================
+
+formData.set(
+    "qc_staff_records",
+    JSON.stringify(qcStaffRecords)
+);
+
+
+console.log(
+    "FINAL QC STAFF:",
+    formData.get("qc_staff_records")
+);
     // ======================================================
     // STAFF B VALIDATION - SECOND PRIORITY
     // FIRST 2 STAFF MUST BE CATEGORY B
@@ -2346,69 +2352,69 @@ $("#staffqc-records tr.staffqc-fields").each(function (index) {
     // ======================================================
 
 
-let results = await Promise.all(staffValidationRequests);
+    let results = await Promise.all(staffValidationRequests);
 
-console.log(
-    "ALL STAFF CERTIFICATE RESULTS:",
-    results
-);
-
-
-// ======================================================
-// CHECK ALL CERTIFICATES
-// ======================================================
-
-let allCertificatesValid = results.every(function (result) {
-    return result === true;
-});
+    console.log(
+        "ALL STAFF CERTIFICATE RESULTS:",
+        results
+    );
 
 
-// ======================================================
-// CERTIFICATE VALIDATION FAILED
-// ======================================================
+    // ======================================================
+    // CHECK ALL CERTIFICATES
+    // ======================================================
 
-if (!allCertificatesValid) {
-
-    isValid = false;
-
-    console.log("Certificate validation failed");
-    console.log("isValid:", isValid);
-
-    Swal.fire({
-        icon: "warning",
-        title: "Invalid Staff Certificate",
-        text: "Please correct the invalid B/C staff certificate details.",
-        confirmButtonText: "OK",
-        width: 500
+    let allCertificatesValid = results.every(function (result) {
+        return result === true;
     });
 
-    $(".nav-item").each(function () {
 
-        if ($(this).text().trim().includes("Staff & Bank Details")) {
+    // ======================================================
+    // CERTIFICATE VALIDATION FAILED
+    // ======================================================
 
-            $(this).addClass("tab-error-bg");
-            $(this).trigger("click");
+    if (!allCertificatesValid) {
 
-            return false;
-        }
+        isValid = false;
 
-    });
+        console.log("Certificate validation failed");
+        console.log("isValid:", isValid);
 
-    setTimeout(function () {
+        Swal.fire({
+            icon: "warning",
+            title: "Invalid Staff Certificate",
+            text: "Please correct the invalid B/C staff certificate details.",
+            confirmButtonText: "OK",
+            width: 500
+        });
 
-        if ($("#staff-table").length) {
+        $(".nav-item").each(function () {
 
-            $("#staff-table")[0].scrollIntoView({
-                behavior: "smooth",
-                block: "center"
-            });
-        }
+            if ($(this).text().trim().includes("Staff & Bank Details")) {
 
-    }, 300);
+                $(this).addClass("tab-error-bg");
+                $(this).trigger("click");
 
-    // VERY IMPORTANT
-    return false;
-}
+                return false;
+            }
+
+        });
+
+        setTimeout(function () {
+
+            if ($("#staff-table").length) {
+
+                $("#staff-table")[0].scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            }
+
+        }, 300);
+
+        // VERY IMPORTANT
+        return false;
+    }
 
     // ======================================================
     // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
@@ -2587,6 +2593,188 @@ if (!allCertificatesValid) {
             $("#bank_amount_error").text("");
         }
     });
+
+  // =====================================================
+// 8. SIGNATORY
+// =====================================================
+// AUTHORITY / SIGNATORY VALIDATION
+// =====================================================
+
+$("#authority-names-table .authority-field-error").remove();
+
+let authorityRows = $("#authority-names-table tbody tr");
+
+authorityRows.each(function (index) {
+
+    let row = $(this);
+
+    let nameInput = row.find(
+        "input[name='name_of_authorised_to_sign[]']"
+    );
+
+    let ageInput = row.find(
+        "input[name='age_of_authorised_to_sign[]']"
+    );
+
+    let qualificationInput = row.find(
+        "input[name='qualification_of_authorised_to_sign[]']"
+    );
+
+    let designationInput = row.find(
+        "input[name='designation_of_authorised_to_sign[]']"
+    );
+
+    let specimenInput = row.find(
+        "input[name='specimen_sign[]'], input[name='specimen_sign']"
+    );
+
+    let name = nameInput.val()
+        ? nameInput.val().trim()
+        : "";
+
+    // =================================================
+    // Only validate the row if NAME is entered
+    // =================================================
+
+    if (name !== "") {
+
+        let age = ageInput.val()
+            ? ageInput.val().trim()
+            : "";
+
+        let qualification = qualificationInput.val()
+            ? qualificationInput.val().trim()
+            : "";
+
+        let designation = designationInput.val()
+            ? designationInput.val().trim()
+            : "";
+
+        // =================================================
+        // NAME
+        // =================================================
+
+        if (name === "") {
+
+            nameInput.after(
+                '<span class="text-danger authority-field-error">' +
+                'Name of authorised signatory is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+        }
+
+        // =================================================
+        // AGE
+        // =================================================
+
+        if (age === "") {
+
+            ageInput.after(
+                '<span class="text-danger authority-field-error">' +
+                'Age of authorised signatory is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+
+        } else if (parseInt(age) < 15 || parseInt(age) > 70) {
+
+            ageInput.after(
+                '<span class="text-danger authority-field-error">' +
+                'Age must be between 15 and 70.' +
+                '</span>'
+            );
+
+            isValid = false;
+        }
+
+        // =================================================
+        // QUALIFICATION
+        // =================================================
+
+        if (qualification === "") {
+
+            qualificationInput.after(
+                '<span class="text-danger authority-field-error">' +
+                'Qualification is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+        }
+
+        // =================================================
+        // DESIGNATION
+        // =================================================
+
+        if (designation === "") {
+
+            designationInput.after(
+                '<span class="text-danger authority-field-error">' +
+                'Designation is required.' +
+                '</span>'
+            );
+
+            isValid = false;
+        }
+
+        // =================================================
+        // SPECIMEN SIGNATURE UPLOAD
+        // =================================================
+
+        let hasSpecimenFile = row.find(
+            ".file-link a"
+        ).length > 0;
+
+        if (!hasSpecimenFile) {
+
+            // Prevent duplicate error
+            row.find(".specimen-sign-error").remove();
+
+            specimenInput.after(
+                '<span class="text-danger authority-field-error specimen-sign-error">' +
+                'Specimen signature must be uploaded.' +
+                '</span>'
+            );
+
+            isValid = false;
+        }
+    }
+});
+
+
+// =====================================================
+// IF AUTHORITY / SIGNATORY VALIDATION FAILED
+// =====================================================
+
+if (!isValid) {
+
+    $(".nav-item").each(function () {
+
+          if ($(this).text().trim() === "Staff & Bank Details") {
+
+            $(this).addClass("tab-error-bg");
+            $(this).trigger("click");
+        }
+    });
+
+    const authorityError = document.querySelector(
+        "#authority-names-table .authority-field-error"
+    );
+
+    if (authorityError) {
+
+        authorityError.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+    }
+
+    return;
+}
+
 
     // -----------------Address proof------------------------------
 
@@ -3143,7 +3331,7 @@ function showDeclarationPopupformA(formData) {
 
 
 
-                submitFormAFinal(formData, "submit");
+            submitFormAFinal(formData, "submit");
 
 
 
@@ -4248,7 +4436,7 @@ function fillProprietorForm(data) {
 
 // -------------------------form a Return---------------------------------------------------
 
-$("#competency_form_a_return").on("submit",async function (e) {
+$("#competency_form_a_return").on("submit", async function (e) {
     e.preventDefault();
 
 
@@ -4406,323 +4594,323 @@ $("#competency_form_a_return").on("submit",async function (e) {
 
     let partners = [];
 
-// Collect all partner rows
-$("#partner-section table tbody tr").each(function () {
+    // Collect all partner rows
+    $("#partner-section table tbody tr").each(function () {
 
-    let $tr = $(this);
-    let $tds = $tr.find("td");
+        let $tr = $(this);
+        let $tds = $tr.find("td");
 
-    let id = $tr.data("id") || null;
+        let id = $tr.data("id") || null;
 
-    partners.push({
+        partners.push({
 
-        id: id,
+            id: id,
 
-        proprietor_name:
-            $tds.eq(0).text().trim(),
+            proprietor_name:
+                $tds.eq(0).text().trim(),
 
-        fathers_name:
-            $tds.eq(1).text().trim(),
+            fathers_name:
+                $tds.eq(1).text().trim(),
 
-        dob:
-            $tds.eq(2).attr("data-dob") || "",
+            dob:
+                $tds.eq(2).attr("data-dob") || "",
 
-        age:
-            $tds.eq(2).attr("data-age") || "",
+            age:
+                $tds.eq(2).attr("data-age") || "",
 
-        proprietor_address:
-            $tds.eq(3).text().trim(),
+            proprietor_address:
+                $tds.eq(3).text().trim(),
 
-        qualification:
-            $tds.eq(4).attr("data-qualification") || "",
+            qualification:
+                $tds.eq(4).attr("data-qualification") || "",
 
-        qualification_text:
-            $tds.eq(4).attr("data-qual_text") || "",
+            qualification_text:
+                $tds.eq(4).attr("data-qual_text") || "",
 
-        present_business:
-            $tds.eq(5).text().trim(),
+            present_business:
+                $tds.eq(5).text().trim(),
 
-        competency:
-            $tds.eq(6).attr("data-competency") || "",
+            competency:
+                $tds.eq(6).attr("data-competency") || "",
 
-        competency_certno:
-            $tds.eq(6).attr("data-certno") || "",
+            competency_certno:
+                $tds.eq(6).attr("data-certno") || "",
 
-        ccfirstissue:
-            $tds.eq(6).attr("data-ccfirstissue") || "",
+            ccfirstissue:
+                $tds.eq(6).attr("data-ccfirstissue") || "",
 
-        ccvalidityfrom:
-            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+            ccvalidityfrom:
+                $tds.eq(6).attr("data-ccvalidityfrom") || "",
 
-        ccvalidityto:
-            $tds.eq(6).attr("data-ccvalidityto") || "",
+            ccvalidityto:
+                $tds.eq(6).attr("data-ccvalidityto") || "",
 
-        ccverify:
-            $tds.eq(6).attr("data-ccverify") ?? "",
+            ccverify:
+                $tds.eq(6).attr("data-ccverify") ?? "",
 
-        ownership_type:
-            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
-            $tds.eq(7).attr("data-ownership") ||
-            ""
+            ownership_type:
+                $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+                $tds.eq(7).attr("data-ownership") ||
+                ""
+
+        });
+    });
+
+    // Append partners JSON
+    formData.append(
+        "partners",
+        JSON.stringify(partners)
+    );
+
+    // Append individually indexed partner data
+    partners.forEach((p, index) => {
+
+        formData.append(
+            `partner_id[${index}]`,
+            p.id ?? ""
+        );
+
+        formData.append(
+            `partner_name[${index}]`,
+            p.proprietor_name
+        );
+
+        formData.append(
+            `partner_fathers_name[${index}]`,
+            p.fathers_name
+        );
+
+        formData.append(
+            `partner_ownership_type[${index}]`,
+            p.ownership_type
+        );
+
+        formData.append(
+            `partner_age[${index}]`,
+            p.age
+        );
+
+        formData.append(
+            `partner_dob[${index}]`,
+            p.dob
+        );
+
+        formData.append(
+            `partner_proprietor_address[${index}]`,
+            p.proprietor_address
+        );
+
+        formData.append(
+            `partner_qualification[${index}]`,
+            p.qualification
+        );
+
+        formData.append(
+            `partner_qual_text[${index}]`,
+            p.qualification_text
+        );
+
+        formData.append(
+            `partner_present_business[${index}]`,
+            p.present_business
+        );
+
+        formData.append(
+            `partner_competency[${index}]`,
+            p.competency
+        );
+
+        formData.append(
+            `partner_competency_certno[${index}]`,
+            p.competency_certno
+        );
+
+        formData.append(
+            `partner_ccfirstissue[${index}]`,
+            p.ccfirstissue
+        );
+
+        formData.append(
+            `partner_ccvalidityfrom[${index}]`,
+            p.ccvalidityfrom
+        );
+
+        formData.append(
+            `partner_ccvalidityto[${index}]`,
+            p.ccvalidityto
+        );
+
+        formData.append(
+            `partner_ccverify[${index}]`,
+            p.ccverify
+        );
 
     });
-});
-
-// Append partners JSON
-formData.append(
-    "partners",
-    JSON.stringify(partners)
-);
-
-// Append individually indexed partner data
-partners.forEach((p, index) => {
-
-    formData.append(
-        `partner_id[${index}]`,
-        p.id ?? ""
-    );
-
-    formData.append(
-        `partner_name[${index}]`,
-        p.proprietor_name
-    );
-
-    formData.append(
-        `partner_fathers_name[${index}]`,
-        p.fathers_name
-    );
-
-    formData.append(
-        `partner_ownership_type[${index}]`,
-        p.ownership_type
-    );
-
-    formData.append(
-        `partner_age[${index}]`,
-        p.age
-    );
-
-    formData.append(
-        `partner_dob[${index}]`,
-        p.dob
-    );
-
-    formData.append(
-        `partner_proprietor_address[${index}]`,
-        p.proprietor_address
-    );
-
-    formData.append(
-        `partner_qualification[${index}]`,
-        p.qualification
-    );
-
-    formData.append(
-        `partner_qual_text[${index}]`,
-        p.qualification_text
-    );
-
-    formData.append(
-        `partner_present_business[${index}]`,
-        p.present_business
-    );
-
-    formData.append(
-        `partner_competency[${index}]`,
-        p.competency
-    );
-
-    formData.append(
-        `partner_competency_certno[${index}]`,
-        p.competency_certno
-    );
-
-    formData.append(
-        `partner_ccfirstissue[${index}]`,
-        p.ccfirstissue
-    );
-
-    formData.append(
-        `partner_ccvalidityfrom[${index}]`,
-        p.ccvalidityfrom
-    );
-
-    formData.append(
-        `partner_ccvalidityto[${index}]`,
-        p.ccvalidityto
-    );
-
-    formData.append(
-        `partner_ccverify[${index}]`,
-        p.ccverify
-    );
-
-});
     // ------------director push--------------
 
-   let directors = [];
+    let directors = [];
 
-// Collect all director rows
-$("#director-section table tbody tr").each(function () {
+    // Collect all director rows
+    $("#director-section table tbody tr").each(function () {
 
-    let $tr = $(this);
-    let $tds = $tr.find("td");
+        let $tr = $(this);
+        let $tds = $tr.find("td");
 
-    let id = $tr.data("id") || null;
+        let id = $tr.data("id") || null;
 
-    directors.push({
+        directors.push({
 
-        id: id,
+            id: id,
 
-        proprietor_name:
-            $tds.eq(0).attr("data-name") || "",
+            proprietor_name:
+                $tds.eq(0).attr("data-name") || "",
 
-        managing_director:
-            $tds.eq(0).attr("data-managing_director") || "no",
+            managing_director:
+                $tds.eq(0).attr("data-managing_director") || "no",
 
-        fathers_name:
-            $tds.eq(1).text().trim(),
+            fathers_name:
+                $tds.eq(1).text().trim(),
 
-        dob:
-            $tds.eq(2).attr("data-dob") || "",
+            dob:
+                $tds.eq(2).attr("data-dob") || "",
 
-        age:
-            $tds.eq(2).attr("data-age") || "",
+            age:
+                $tds.eq(2).attr("data-age") || "",
 
-        proprietor_address:
-            $tds.eq(3).text().trim(),
+            proprietor_address:
+                $tds.eq(3).text().trim(),
 
-        qualification:
-            $tds.eq(4).attr("data-qualification") || "",
+            qualification:
+                $tds.eq(4).attr("data-qualification") || "",
 
-        qualification_text:
-            $tds.eq(4).attr("data-qual_text") || "",
+            qualification_text:
+                $tds.eq(4).attr("data-qual_text") || "",
 
-        present_business:
-            $tds.eq(5).text().trim(),
+            present_business:
+                $tds.eq(5).text().trim(),
 
-        competency:
-            $tds.eq(6).attr("data-competency") || "",
+            competency:
+                $tds.eq(6).attr("data-competency") || "",
 
-        competency_certno:
-            $tds.eq(6).attr("data-certno") || "",
+            competency_certno:
+                $tds.eq(6).attr("data-certno") || "",
 
-        ccfirstissue:
-            $tds.eq(6).attr("data-ccfirstissue") || "",
+            ccfirstissue:
+                $tds.eq(6).attr("data-ccfirstissue") || "",
 
-        ccvalidityfrom:
-            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+            ccvalidityfrom:
+                $tds.eq(6).attr("data-ccvalidityfrom") || "",
 
-        ccvalidityto:
-            $tds.eq(6).attr("data-ccvalidityto") || "",
+            ccvalidityto:
+                $tds.eq(6).attr("data-ccvalidityto") || "",
 
-        ccverify:
-            $tds.eq(6).attr("data-ccverify") ?? "",
+            ccverify:
+                $tds.eq(6).attr("data-ccverify") ?? "",
 
-        ownership_type:
-            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
-            $tds.eq(7).attr("data-ownership") ||
-            ""
+            ownership_type:
+                $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+                $tds.eq(7).attr("data-ownership") ||
+                ""
+
+        });
+    });
+
+    // Append directors JSON
+    formData.append(
+        "directors",
+        JSON.stringify(directors)
+    );
+
+    // Append individually indexed data
+    directors.forEach((p, index) => {
+
+        formData.append(
+            `director_id[${index}]`,
+            p.id ?? ""
+        );
+
+        formData.append(
+            `director_name[${index}]`,
+            p.proprietor_name
+        );
+
+        // Managing Director - keep unchanged
+        formData.append(
+            `director_managing_director[${index}]`,
+            p.managing_director
+        );
+
+        formData.append(
+            `director_fathers_name[${index}]`,
+            p.fathers_name
+        );
+
+        formData.append(
+            `director_ownership_type[${index}]`,
+            p.ownership_type
+        );
+
+        formData.append(
+            `director_age[${index}]`,
+            p.age
+        );
+
+        formData.append(
+            `director_dob[${index}]`,
+            p.dob
+        );
+
+        formData.append(
+            `director_proprietor_address[${index}]`,
+            p.proprietor_address
+        );
+
+        formData.append(
+            `director_qualification[${index}]`,
+            p.qualification
+        );
+
+        formData.append(
+            `director_qual_text[${index}]`,
+            p.qualification_text
+        );
+
+        formData.append(
+            `director_present_business[${index}]`,
+            p.present_business
+        );
+
+        formData.append(
+            `director_competency[${index}]`,
+            p.competency
+        );
+
+        formData.append(
+            `director_competency_certno[${index}]`,
+            p.competency_certno
+        );
+
+        formData.append(
+            `director_ccfirstissue[${index}]`,
+            p.ccfirstissue
+        );
+
+        formData.append(
+            `director_ccvalidityfrom[${index}]`,
+            p.ccvalidityfrom
+        );
+
+        formData.append(
+            `director_ccvalidityto[${index}]`,
+            p.ccvalidityto
+        );
+
+        formData.append(
+            `director_ccverify[${index}]`,
+            p.ccverify
+        );
 
     });
-});
-
-// Append directors JSON
-formData.append(
-    "directors",
-    JSON.stringify(directors)
-);
-
-// Append individually indexed data
-directors.forEach((p, index) => {
-
-    formData.append(
-        `director_id[${index}]`,
-        p.id ?? ""
-    );
-
-    formData.append(
-        `director_name[${index}]`,
-        p.proprietor_name
-    );
-
-    // Managing Director - keep unchanged
-    formData.append(
-        `director_managing_director[${index}]`,
-        p.managing_director
-    );
-
-    formData.append(
-        `director_fathers_name[${index}]`,
-        p.fathers_name
-    );
-
-    formData.append(
-        `director_ownership_type[${index}]`,
-        p.ownership_type
-    );
-
-    formData.append(
-        `director_age[${index}]`,
-        p.age
-    );
-
-    formData.append(
-        `director_dob[${index}]`,
-        p.dob
-    );
-
-    formData.append(
-        `director_proprietor_address[${index}]`,
-        p.proprietor_address
-    );
-
-    formData.append(
-        `director_qualification[${index}]`,
-        p.qualification
-    );
-
-    formData.append(
-        `director_qual_text[${index}]`,
-        p.qualification_text
-    );
-
-    formData.append(
-        `director_present_business[${index}]`,
-        p.present_business
-    );
-
-    formData.append(
-        `director_competency[${index}]`,
-        p.competency
-    );
-
-    formData.append(
-        `director_competency_certno[${index}]`,
-        p.competency_certno
-    );
-
-    formData.append(
-        `director_ccfirstissue[${index}]`,
-        p.ccfirstissue
-    );
-
-    formData.append(
-        `director_ccvalidityfrom[${index}]`,
-        p.ccvalidityfrom
-    );
-
-    formData.append(
-        `director_ccvalidityto[${index}]`,
-        p.ccvalidityto
-    );
-
-    formData.append(
-        `director_ccverify[${index}]`,
-        p.ccverify
-    );
-
-});
     // --------------------------------------
 
     //     let proprietor_name = $("input[name='proprietor_name[]']").val();
@@ -5187,274 +5375,6 @@ directors.forEach((p, index) => {
     // ======================================================
     // QC / QSC STAFF VALIDATION
     // ======================================================
-    let qcStaffRecords = [];
-
-
-    // ----------------------------------------------------------
-    // GET ALL QC / QSC STAFF ROWS
-    // ----------------------------------------------------------
-
-
-$("#staffqc-records tr.staffqc-fields").each(function (index) {
-
-    let $tr = $(this);
-
-    let record = {
-
-        // --------------------------------------------------
-        // Existing database ID
-        // --------------------------------------------------
-
-        id: $tr.data("id") || null,
-
-
-        // --------------------------------------------------
-        // Category
-        // --------------------------------------------------
-
-        staffqc_category:
-            $tr.find(".staffqc_category").val()
-            ||
-            $tr.find('input[name="staffqc_category[]"]').val()
-            ||
-            $tr.find('input[name^="staffqc_category["]').val()
-            ||
-            $tr.find("td:eq(1)").text().trim()
-            ||
-            "",
-
-
-        // --------------------------------------------------
-        // Certificate Number
-        // --------------------------------------------------
-
-        staff_cc_no:
-            $tr.find(".staff_cc_no").val()
-            ||
-            $tr.find(".cc_number").val()
-            ||
-            $tr.find('input[name="staff_cc_no[]"]').val()
-            ||
-            $tr.find('input[name^="staff_cc_no["]').val()
-            ||
-            $tr.find("td:eq(2)").text().trim()
-            ||
-            "",
-
-
-        // --------------------------------------------------
-        // First Issue
-        // --------------------------------------------------
-
-        staff_cc_first_issue:
-            $tr.find(".staff_cc_first_issue").val()
-            ||
-            $tr.find(".cc_firstissue").val()
-            ||
-            $tr.find('input[name="staff_cc_first_issue[]"]').val()
-            ||
-            $tr.find('input[name^="staff_cc_first_issue["]').val()
-            ||
-            "",
-
-
-        // --------------------------------------------------
-        // Validity From
-        // --------------------------------------------------
-
-        staff_cc_validity_from:
-            $tr.find(".staff_cc_validity_from").val()
-            ||
-            $tr.find(".cc_validity_from").val()
-            ||
-            $tr.find('input[name="staff_cc_validity_from[]"]').val()
-            ||
-            $tr.find('input[name^="staff_cc_validity_from["]').val()
-            ||
-            "",
-
-
-        // --------------------------------------------------
-        // Validity To
-        // --------------------------------------------------
-
-        staff_cc_validity_to:
-            $tr.find(".staff_cc_validity_to").val()
-            ||
-            $tr.find(".cc_validity_to").val()
-            ||
-            $tr.find('input[name="staff_cc_validity_to[]"]').val()
-            ||
-            $tr.find('input[name^="staff_cc_validity_to["]').val()
-            ||
-            "",
-
-
-        // --------------------------------------------------
-        // Appointment Document
-        // --------------------------------------------------
-
-        app_doc:
-            $tr.find('input[name="app_doc[]"]').val()
-            ||
-            $tr.find('input[name^="app_doc["]').val()
-            ||
-            "",
-
-
-        // --------------------------------------------------
-        // Consent Document
-        // --------------------------------------------------
-
-        cons_doc:
-            $tr.find('input[name="cons_doc[]"]').val()
-            ||
-            $tr.find('input[name^="cons_doc["]').val()
-            ||
-            "",
-
-
-        // --------------------------------------------------
-        // IMPORTANT: ROW INDEX
-        // --------------------------------------------------
-
-        row_index:
-            $tr.attr("data-row-index")
-            ||
-            $tr.data("row-index")
-            ||
-            $tr.find('input[name="row_index[]"]').val()
-            ||
-            ""
-    };
-
-
-    // --------------------------------------------------
-    // ADD ONLY QC / QSC
-    // --------------------------------------------------
-
-    let category = String(
-        record.staffqc_category || ""
-    ).trim().toUpperCase();
-
-
-    if (!["QC", "QSC"].includes(category)) {
-        return;
-    }
-
-
-    // --------------------------------------------------
-    // ADD RECORD
-    // --------------------------------------------------
-
-    qcStaffRecords.push(record);
-
-});
-
-
-    // ----------------------------------------------------------
-    // DEBUG
-    // ----------------------------------------------------------
-
-    console.log("QC/QSC row count:",
-        $("#staffqc-records tr").length
-    );
-
-    console.log("QC/QSC records:",
-        qcStaffRecords);
-
-
-    // ----------------------------------------------------------
-    // MINIMUM ONE QC / QSC STAFF
-    // ----------------------------------------------------------
-
-    if (qcStaffRecords.length === 0) {
-
-        isValid = false;
-
-        // Add red border
-        $("#qc-staff-table").addClass("qc-table-error");
-
-
-        Swal.fire({
-            icon: "warning",
-            title: "Staff Details Required",
-            text: "Please enter minimum one QC/QSC staff.",
-            confirmButtonText: "OK",
-            width: 450
-        });
-
-
-        // Open Staff & Bank Details tab
-        $(".nav-item").each(function () {
-
-            if (
-                $(this)
-                    .text()
-                    .trim()
-                    .includes("Staff & Bank Details")
-            ) {
-
-                $(this).addClass("tab-error-bg");
-
-                $(this).trigger("click");
-
-                return false;
-            }
-
-        });
-
-
-        return;
-    }
-
-
-    // ----------------------------------------------------------
-    // QC/QSC STAFF EXISTS
-    // ----------------------------------------------------------
-
-    console.log(
-        "Minimum QC/QSC requirement satisfied.",
-        qcStaffRecords.length,
-        "record(s) found."
-    );
-
-
-    // Remove previous error border
-    $("#qc-staff-table").removeClass("qc-table-error");
-
-
-    // Remove tab error
-    $(".nav-item").each(function () {
-
-        if (
-            $(this)
-                .text()
-                .trim()
-                .includes("Staff & Bank Details")
-        ) {
-
-            $(this).removeClass("tab-error-bg");
-
-            return false;
-        }
-
-    });
-
-    // ----------------------------------------
-    // ADD QC RECORDS TO FORMDATA
-    // ----------------------------------------
-
-    formData.set(
-        "qc_staff_records",
-        JSON.stringify(qcStaffRecords)
-    );
-
-
-    console.log(
-        "FINAL QC STAFF:",
-        formData.get("qc_staff_records")
-    );
 
     // ======================================================
     // STAFF B VALIDATION - SECOND PRIORITY
@@ -5815,7 +5735,7 @@ $("#staffqc-records tr.staffqc-fields").each(function (index) {
 
         }, 300);
 
-            return false;
+        return false;
     }
 
 
@@ -5823,69 +5743,69 @@ $("#staffqc-records tr.staffqc-fields").each(function (index) {
     // WAIT FOR ALL B + C CERTIFICATE CHECKS
     // ======================================================
 
-let results = await Promise.all(staffValidationRequests);
+    let results = await Promise.all(staffValidationRequests);
 
-console.log(
-    "ALL STAFF CERTIFICATE RESULTS:",
-    results
-);
-
-
-// ======================================================
-// CHECK ALL CERTIFICATES
-// ======================================================
-
-let allCertificatesValid = results.every(function (result) {
-    return result === true;
-});
+    console.log(
+        "ALL STAFF CERTIFICATE RESULTS:",
+        results
+    );
 
 
-// ======================================================
-// CERTIFICATE VALIDATION FAILED
-// ======================================================
+    // ======================================================
+    // CHECK ALL CERTIFICATES
+    // ======================================================
 
-if (!allCertificatesValid) {
-
-    isValid = false;
-
-    console.log("Certificate validation failed");
-    console.log("isValid:", isValid);
-
-    Swal.fire({
-        icon: "warning",
-        title: "Invalid Staff Certificate",
-        text: "Please correct the invalid B/C staff certificate details.",
-        confirmButtonText: "OK",
-        width: 500
+    let allCertificatesValid = results.every(function (result) {
+        return result === true;
     });
 
-    $(".nav-item").each(function () {
 
-        if ($(this).text().trim().includes("Staff & Bank Details")) {
+    // ======================================================
+    // CERTIFICATE VALIDATION FAILED
+    // ======================================================
 
-            $(this).addClass("tab-error-bg");
-            $(this).trigger("click");
+    if (!allCertificatesValid) {
 
-            return false;
-        }
+        isValid = false;
 
-    });
+        console.log("Certificate validation failed");
+        console.log("isValid:", isValid);
 
-    setTimeout(function () {
+        Swal.fire({
+            icon: "warning",
+            title: "Invalid Staff Certificate",
+            text: "Please correct the invalid B/C staff certificate details.",
+            confirmButtonText: "OK",
+            width: 500
+        });
 
-        if ($("#staff-table").length) {
+        $(".nav-item").each(function () {
 
-            $("#staff-table")[0].scrollIntoView({
-                behavior: "smooth",
-                block: "center"
-            });
-        }
+            if ($(this).text().trim().includes("Staff & Bank Details")) {
 
-    }, 300);
+                $(this).addClass("tab-error-bg");
+                $(this).trigger("click");
 
-    // VERY IMPORTANT
-    return false;
-}
+                return false;
+            }
+
+        });
+
+        setTimeout(function () {
+
+            if ($("#staff-table").length) {
+
+                $("#staff-table")[0].scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            }
+
+        }, 300);
+
+        // VERY IMPORTANT
+        return false;
+    }
 
     // ======================================================
     // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
@@ -7425,7 +7345,7 @@ flatpickr('input[name="competency_certificate_validity_from[]"]', {
 });
 
 flatpickr('input[name="dob[]"]', {
-     dateFormat: "d-m-Y"
+    dateFormat: "d-m-Y"
 });
 
 flatpickr('input[name="competency_certificate_validity_to[]"]', {
@@ -7843,7 +7763,7 @@ function addQCStaffRecord(
 
     consDocName = "",
 
-     isExisting = false
+    isExisting = false
 
 ) {
 

@@ -405,12 +405,19 @@ class EA_RenewalController extends BaseController
                 ->orderBy('id')
                 ->first();
 
+            $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('login_id', Auth::user()->login_id)
+                ->where('application_id', $application_id)
+                  ->where('flag', 1)
+                   ->orderBy('row_index', 'asc')
+                ->get();
+
             // var_dump()
         }
 
         // return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency' , 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails','Qcstaffs'));
 
-          return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType'));
+          return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType','authoritysignatory'));
     }
 
 
