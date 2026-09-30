@@ -1786,15 +1786,19 @@
                         <div class="fs-section-body">
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ !empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    @php
+                                        $hasSupervisorCert = trim((string) ($application_details->previous_scc_no ?? $application_details->previously_number ?? '')) !== ''
+                                            && trim((string) ($application_details->previous_scc_no ?? $application_details->previously_number ?? '')) !== '0';
+                                    @endphp
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ $hasSupervisorCert ? 'checked' : '' }}>
                                     <label class="form-check-label" for="previous_license_yes">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ $hasSupervisorCert ? '' : 'checked' }}>
                                     <label class="form-check-label" for="previous_license_no">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasSupervisorCert ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C12345 / CC2026041234)</span></div>
@@ -1811,7 +1815,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
-                                               value="{{ $application_details->first_issue_date }}">
+                                               value="{{ calendar_date_ymd($application_details->first_issue_date ?? null) }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1819,7 +1823,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
                                                id="previously_valid_from" name="previously_valid_from" type="date"
                                                data-error="#previouslyFromDateError"
-                                               value="{{ $application_details->scc_from_date ?? '' }}">
+                                               value="{{ calendar_date_ymd($application_details->scc_from_date ?? null) }}">
                                         <span id="previouslyFromDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1827,7 +1831,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
                                                id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
-                                               value="{{ $application_details->scc_to_date ?? '' }}">
+                                               value="{{ calendar_date_ymd($application_details->scc_to_date ?? null) }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     {{-- <div class="col-12 col-md-2">
@@ -1883,15 +1887,19 @@
                         <div class="fs-section-body">
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ !empty($application_details->certificate_no) ? 'checked' : '' }}>
+                                    @php
+                                        $hasWiremanCert = trim((string) ($application_details->wcc_no ?? '')) !== ''
+                                            && trim((string) ($application_details->wcc_no ?? '')) !== '0';
+                                    @endphp
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ $hasWiremanCert ? 'checked' : '' }}>
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_valid_to ?? $application_details->certificate_date) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ $hasWiremanCert ? '' : 'checked' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->wcc_no) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ $hasWiremanCert ? 'block' : 'none' }};">
                                                         @php
                                                             if($application_details->form_name == 'S'){
                                                                 $cert_type = 'supervisor';
@@ -1918,7 +1926,7 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ $application_details->wcc_issue_date }}">
+                                                                   value="{{ calendar_date_ymd($application_details->wcc_issue_date ?? null) }}">
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1926,7 +1934,7 @@
                                                             <input class="form-control text-box single-line verify-valid-from"
                                                                    id="certificate_valid_from" name="certificate_valid_from"
                                                                    data-error="#certFromDateError" type="date"
-                                                                   value="{{ $application_details->wcc_from ?? '' }}">
+                                                                   value="{{ calendar_date_ymd($application_details->wcc_from ?? null) }}">
                                                             <span id="certFromDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1934,7 +1942,7 @@
                                                             <input class="form-control text-box single-line verify-date"
                                                                    id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->wcc_to }}"
+                                                                   value="{{ calendar_date_ymd($application_details->wcc_to ?? null) }}"
                                                                    >
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>

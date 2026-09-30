@@ -693,12 +693,9 @@
                                         <tr>
                                             <th>S.No</th>
                                             <th>Power Station</th>
-                                            <th>
-                                                <div>Year of Experience</div>
-                                                <div class="d-flex justify-content-between" style="gap:6px;font-size:.72rem;font-weight:400;">
-                                                    <span>From (date)</span><span>To (date)</span><span>Year / Month / Day</span>
-                                                </div>
-                                            </th>
+                                            <th>From (date)</th>
+                                            <th>To (date)</th>
+                                            <th>Year / Month / Day</th>
                                             <th>Designation</th>
                                             <th class="text-center">Upload Document<br><span class="file-limit">File type: PDF, PNG (Max 200 KB)</span></th>
                                             <th class="text-center p-1">
@@ -722,11 +719,13 @@
                                                         <input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $exp->company_name ?? $exp->emp_cate ?? '' }}">
                                                     </td>
                                                     <td>
-                                                        <div class="d-flex" style="gap:6px;">
-                                                            <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $expFromDate }}">
-                                                            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $expToDate }}">
-                                                            @include('user_login.partials.form-p-ymd')
-                                                        </div>
+                                                        <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $expFromDate }}">
+                                                    </td>
+                                                    <td>
+                                                        <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $expToDate }}">
+                                                    </td>
+                                                    <td>
+                                                        @include('user_login.partials.form-p-ymd')
                                                         <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $expTotal }}">
                                                         <input type="hidden" name="experience[]" class="experience-sync" value="{{ $exp->experience ?? $exp->total_exp ?? '' }}">
                                                     </td>
@@ -760,12 +759,10 @@
                                             <tr class="work-fields text-center">
                                                 <td>1</td>
                                                 <td><input autocomplete="off" class="form-control" name="work_level[]" type="text"></td>
+                                                <td><input type="date" class="form-control work-date-from" name="work_date_from[]"></td>
+                                                <td><input type="date" class="form-control work-date-to" name="work_date_to[]"></td>
                                                 <td>
-                                                    <div class="d-flex" style="gap:6px;">
-                                                        <input type="date" class="form-control work-date-from" name="work_date_from[]">
-                                                        <input type="date" class="form-control work-date-to" name="work_date_to[]">
-                                                        @include('user_login.partials.form-p-ymd')
-                                                    </div>
+                                                    @include('user_login.partials.form-p-ymd')
                                                     <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
                                                     <input type="hidden" name="experience[]" class="experience-sync">
                                                 </td>
@@ -1364,12 +1361,10 @@
                     <tr class="work-fields text-center">
                         <td>${serialNo}</td>
                         <td><input type="text" class="form-control" name="work_level[]"></td>
+                        <td><input type="date" class="form-control work-date-from" name="work_date_from[]"></td>
+                        <td><input type="date" class="form-control work-date-to" name="work_date_to[]"></td>
                         <td>
-                            <div class="d-flex" style="gap:6px;">
-                                <input type="date" class="form-control work-date-from" name="work_date_from[]">
-                                <input type="date" class="form-control work-date-to" name="work_date_to[]">
-                                ${formPYmdBoxHtml()}
-                            </div>
+                            ${formPYmdBoxHtml()}
                             <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
                             <input type="hidden" name="experience[]" class="experience-sync">
                         </td>

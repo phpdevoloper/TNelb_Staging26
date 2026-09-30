@@ -329,6 +329,52 @@ class FormController extends BaseController
         );
     }
 
+    /**
+     * Certificate number from the request. An empty post means the applicant cleared it.
+     * Fall back to the saved value only when that field was not posted.
+     */
+    private function postedOptionalCertificateNumber(Request $request, string $key, mixed $existing): ?string
+    {
+        $value = $request->exists($key) ? $request->input($key) : $existing;
+        $value = trim((string) ($value ?? ''));
+        if ($value === '' || $value === '0') {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Questions 8 and 9. No clears the number and the three dates.
+     * An empty number is not written back from the previous save.
+     *
+     * @return array<string, mixed>
+     */
+    private function competencyCertificateFieldsForSave(Request $request, ?object $existingForm = null): array
+    {
+        $declineSupervisor = strtolower(trim((string) $request->input('previous_license', ''))) === 'no';
+        $declineWireman = strtolower(trim((string) $request->input('previous_certificate', ''))) === 'no';
+
+        return [
+            'previous_scc_no' => $declineSupervisor
+                ? null
+                : $this->postedOptionalCertificateNumber($request, 'previously_number', $existingForm->previous_scc_no ?? null),
+            'first_issue_date' => $declineSupervisor ? null : $this->calendarDateYmd($request->previously_issue_date),
+            'scc_from_date' => $declineSupervisor ? null : $this->calendarDateYmd($request->previously_valid_from),
+            'scc_to_date' => $declineSupervisor
+                ? null
+                : $this->calendarDateYmd($request->previously_valid_to ?: ($request->previously_date ?: null)),
+            'wcc_no' => $declineWireman
+                ? null
+                : $this->postedOptionalCertificateNumber($request, 'competency_certificate_no', $existingForm->wcc_no ?? null),
+            'wcc_to' => $declineWireman
+                ? null
+                : $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
+            'wcc_issue_date' => $declineWireman ? null : $this->calendarDateYmd($request->certificate_issue_date),
+            'wcc_from' => $declineWireman ? null : $this->calendarDateYmd($request->certificate_valid_from),
+        ];
+    }
+
     private function buildCcFormsMetaPayload(
         Request $request,
         string $applicationId,
@@ -344,23 +390,15 @@ class FormController extends BaseController
             'applicant_address'   => $this->resolveApplicantAddress($request, $existingForm),
             'd_o_b'               => $this->calendarDateYmd($request->d_o_b ?? $request->dob ?? $existingForm?->d_o_b),
             'age'                 => $request->age ?? $existingForm?->age,
-            'previous_scc_no'     => $request->previously_number ?? $existingForm?->previous_scc_no ?? 0,
-            'first_issue_date'    => $this->calendarDateYmd($request->previously_issue_date),
-            'scc_from_date'       => $this->calendarDateYmd($request->previously_valid_from),
-            'scc_to_date'         => $this->calendarDateYmd($request->previously_valid_to ?: ($request->previously_date ?: null)),
             'form_name'           => $request->form_name,
             'form_id'             => $request->form_id,
             'certificate_name'    => $request->license_name ?? $existingForm?->certificate_name,
-            'wcc_no'              => $request->competency_certificate_no ?? $existingForm?->wcc_no,
-            'wcc_to'              => $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
-            'wcc_issue_date'      => $this->calendarDateYmd($request->certificate_issue_date),
-            'wcc_from'            => $this->calendarDateYmd($request->certificate_valid_from),
             'appl_type'           => $request->appl_type ?? $existingForm?->appl_type,
             'app_status'          => 'P',
             'old_application'     => $existingForm?->old_application ?? $request->input('old_application'),
             'submitted_date'      => $this->dbNow,
             'updated_at'          => $this->dbNow,
-        ], $overrides);
+        ], $this->competencyCertificateFieldsForSave($request, $existingForm), $overrides);
 
         $ownId = trim((string) ($payload['application_id'] ?? ''));
         $oldId = trim((string) ($payload['old_application'] ?? ''));
@@ -3641,7 +3679,7 @@ class FormController extends BaseController
                 'submitted_date'      => $this->dbNow,
                 'updated_at'          => $this->dbNow,
                 'created_at'          => $this->dbNow
-            ]));
+            ], $this->competencyCertificateFieldsForSave($request)));
 
 
             $applicationId = $form->application_id;
@@ -4108,19 +4146,11 @@ class FormController extends BaseController
                 'applicant_address' => $this->resolveApplicantAddress($request, $existingForm),
                 'd_o_b'             => $this->calendarDateYmd($request->d_o_b),
                 'age'               => $request->age,
-                'previous_scc_no'   => $request->previously_number,
-                'first_issue_date'  => $this->calendarDateYmd($request->previously_issue_date),
-                'scc_from_date'     => $this->calendarDateYmd($request->previously_valid_from),
-                'scc_to_date'       => $this->calendarDateYmd($request->previously_valid_to ?: ($request->previously_date ?: null)),
-                'wcc_no'            => $request->competency_certificate_no,
-                'wcc_to'            => $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
-                'wcc_issue_date'    => $this->calendarDateYmd($request->certificate_issue_date),
-                'wcc_from'          => $this->calendarDateYmd($request->certificate_valid_from),
                 'app_status'        => $paymentStatus === 'B' ? 'P' : 'D',
                 'payment_status'    => $paymentStatus,
                 'submitted_date'    => $this->dbNow,
                 'updated_at'        => $this->dbNow,
-            ]));
+            ], $this->competencyCertificateFieldsForSave($request, $existingForm)));
             $this->persistFormPMetaExtras((string) $applicationId, $request);
 
             if ($this->shouldSnapshotChildDocuments($existingForm, $request->form_name ?? null)) {
@@ -5314,13 +5344,7 @@ public function update(Request $request, $id)
                 trim((string) ($form?->old_application ?? $id ?? '')),
                 $request->form_name ?? null
             );
-            $prevScc = trim((string) ($request->previously_number
-                ?? $request->previous_scc_no
-                ?? $form?->previous_scc_no
-                ?? ''));
-            if ($prevScc === '') {
-                $prevScc = '0';
-            }
+            $certificateFields = $this->competencyCertificateFieldsForSave($request, $form);
             $parentForQc = trim((string) ($form?->old_application ?? ''));
             if ($parentForQc === '' && ! $form) {
                 $parentForQc = trim((string) $id);
@@ -5353,18 +5377,10 @@ public function update(Request $request, $id)
                     'd_o_b'              => $this->calendarDateYmd($request->d_o_b ?? $request->dob ?? $form?->d_o_b),
                     'age'                => $request->age,
                     'app_status'         => $appStatusOnSave,
-                    'previous_scc_no'    => $prevScc,
-                    'first_issue_date'   => $this->calendarDateYmd($request->previously_issue_date),
-                    'scc_from_date'      => $this->calendarDateYmd($request->previously_valid_from),
-                    'scc_to_date'        => $this->calendarDateYmd($request->previously_valid_to ?: ($request->previously_date ?: null)),
                     'form_name'          => $request->form_name,
                     'form_id'            => $request->form_id,
                     'certificate_name'   => $request->license_name ?? $request->certificate_name ?? $form?->certificate_name,
                     'certificate_no'     => $issuedCertificateNo ?? $form?->certificate_no,
-                    'wcc_no'             => $request->competency_certificate_no ?? $request->wcc_no ?? null,
-                    'wcc_to'             => $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
-                    'wcc_issue_date'     => $this->calendarDateYmd($request->certificate_issue_date),
-                    'wcc_from'           => $this->calendarDateYmd($request->certificate_valid_from),
                     'appl_type'          => $appl_type,
                     'old_application'    => $parentForQc !== '' ? $parentForQc : ($form?->old_application ?: null),
                     'payment_status'     => $this->resolveCompetencyPaymentStatusOnSave(
@@ -5375,7 +5391,7 @@ public function update(Request $request, $id)
                     ),
                     'submitted_date'     => $this->dbNow,
                     'updated_at'         => $this->dbNow,
-            ], $qcFlags);
+            ], $certificateFields, $qcFlags);
 
 
             $renewal_form = CC_Forms_Meta::updateOrCreateByApplicationId(
