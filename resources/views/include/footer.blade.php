@@ -148,6 +148,7 @@
 <script src="{{ url('assets/js/custom.js') }}?v={{ filemtime(public_path('assets/js/custom.js')) }}"></script>
 <script src="{{ url('assets/js/form_p_script.js') }}?v={{ filemtime(public_path('assets/js/form_p_script.js')) }}"></script>
 <script src="{{ url('assets/js/forma.js') }}"></script>
+<script src="{{ url('assets/js/forma_alt.js') }}"></script>
 <script src="{{ url('assets/js/formsa.js') }}"></script>
 <script src="{{ url('assets/js/formsb.js') }}"></script>
 <script src="{{ url('assets/js/formb.js') }}"></script>
@@ -2939,6 +2940,33 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         }
     });
 
+// --------------------- alteration_clSubmit --------------------
+// --------------------- alteration_clSubmit --------------------
+$(document).on('click', '#alteration_clSubmit', function () {
+
+    let applicationId = $('#application_id').val();
+
+    if (!applicationId || applicationId === '0') {
+        $('#cert_name_error').text('Please select a licence.');
+        return;
+    }
+
+    $('#cert_name_error').text('');
+
+    let selectedOption = $('#application_id').find(':selected');
+
+    let licenseNumber = selectedOption.data('license-number');
+
+
+
+    // Redirect to forma_alter()
+    let url = "{{ route('forma_alter') }}";
+
+    url += '?application_id=' + encodeURIComponent(applicationId);
+    url += '&license_number=' + encodeURIComponent(licenseNumber);
+
+    window.location.href = url;
+});
 </script>
 
 </body>

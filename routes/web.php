@@ -193,6 +193,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/apply-form-a_alt', [FormAAlteration::class, 'index'])->name('apply-form-a_alt');
 
 
+   Route::get('/alteration_cl_main', [FormAAlteration::class, 'index'])
+    ->name('alteration_cl_main');
+
+    // Route::get('/forma_alter', [FormAAlteration::class, 'forma_alter'])->name('forma_alter');
+
+    Route::get('/forma-alter', [FormAAlteration::class, 'forma_alter'])
+    ->name('forma_alter');
+
+    Route::get('/get-form-instructions_alter', [FormAAlteration::class, 'getFormInstructions_alter']);
+
+     Route::get('/forma-alter_draft/{application_id}', [FormAAlteration::class, 'forma_alter_draft'])
+    ->name('forma_alter_draft');
+
+
 
     Route::get('/apply-form-a_return/{application_id}', [ReturnapplicantController::class, 'returnforma'])->name('apply-form-a_return');
 
@@ -201,6 +215,10 @@ Route::middleware(['auth'])->group(function () {
     // -----------------Return store ea------------------------
     Route::post('/forma/storereturn', [ReturnapplicantController::class, 'storereturn'])->name('forma.storereturn');
     Route::post('/forma/storerenewalreturn', [ReturnapplicantController::class, 'storerenewalreturn'])->name('forma.storerenewalreturn');
+
+
+    // ------------------Alter store------------------------
+     Route::post('/forma/storeAlter', [FormAAlteration::class, 'storeAlter'])->name('forma.storeAlter');
 
 
     // ---------formSA-----------------

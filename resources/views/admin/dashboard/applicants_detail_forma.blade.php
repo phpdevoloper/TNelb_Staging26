@@ -946,7 +946,13 @@
                         <div class="widget-header applicant_details {{ trim($applicant->appl_type) == 'D' ? 'digitization-header' : '' }}"">
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For : <span style="color:#098501;"> {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span> </h4>
+                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For : <span style="color:#098501;"> {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span> 
+                                    @if(trim($applicant->appl_type) == 'A' )
+                                    Parent Application ID: <span style="color:#098501;">{{ $applicant->old_application }}
+                                        </span>
+
+                                    @endif
+                                    </h4>
                                 </div>
 
                                 @if(trim($applicant->appl_type) == 'D')
@@ -2180,7 +2186,7 @@
                                         </button>
 
 
-                                        @if(trim($applicant->appl_type) !='D')
+                                       @if(trim($applicant->appl_type) != 'D' && trim($applicant->appl_type) != 'A')
 
 
                                     {{-- <button id="confirmReturnBtn" class="btn btn-warning">

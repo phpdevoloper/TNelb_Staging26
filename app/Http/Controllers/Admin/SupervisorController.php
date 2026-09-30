@@ -1800,21 +1800,24 @@ class SupervisorController extends Controller
                 );
             }
 
-            $validity = DB::table('mst_fees_validity')
-                ->where('licence_id', $form->id)
-                ->where('form_type', $appl_type)
-                ->where('status', 1)
-                ->whereDate('validity_start_date', '<=', now())
-                ->orderBy('validity_start_date', 'desc')
-                ->first();
+            if($appl_type != 'A')
+                {
+                    $validity = DB::table('mst_fees_validity')
+                        ->where('licence_id', $form->id)
+                        ->where('form_type', $appl_type)
+                        ->where('status', 1)
+                        ->whereDate('validity_start_date', '<=', now())
+                        ->orderBy('validity_start_date', 'desc')
+                        ->first();
 
-            if (!$validity) {
-                throw new \Exception(
-                    'Licence validity configuration not found.'
-                );
-            }
+                    if (!$validity) {
+                        throw new \Exception(
+                            'Licence validity configuration not found.'
+                        );
+                    }
 
-            $monthsToAdd = $validity->validity;
+                    $monthsToAdd = $validity->validity;
+                }
 
 
             /* -------------------- NORMAL EXPIRY CALCULATION -------------------- */
@@ -1835,7 +1838,22 @@ class SupervisorController extends Controller
                     ->copy()
                     ->addMonths($monthsToAdd)
                     ->toDateString();
-            } else {
+            }elseif($appl_type === 'A') {
+
+            
+                $oldExpiry = DB::table('cl_forma_lic')
+                    ->where('application_id', $request->oldapplicationId)
+                    ->value('valid_to');
+
+                    // dd($oldExpiry); exit;
+
+
+                $expiresAt = $oldExpiry ;
+
+                    // dd($expiresAt); exit;
+            } 
+            
+            else {
 
                 // Fresh → today + months
 

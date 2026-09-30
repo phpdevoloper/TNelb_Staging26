@@ -132,7 +132,7 @@ class DocumentUploadController extends Controller
         try {
 
 
-        
+
 
             // --------------------------------------------------
             // 1. CHECK FILE EXISTENCE
@@ -268,21 +268,28 @@ class DocumentUploadController extends Controller
 
                  if ($request->document_sub_category === 'OHD') {
                     $existingQuery->where('ownership_type', $request->ownership_type);
-                                
+
                 }
 
                  if ($request->document_sub_category === 'QAD') {
 
                     $existingQuery->where('document_sub_category', 'QAD')
                                 ->where('row_index', $request->row_index);
-                                
+
                 }
 
                    if ($request->document_sub_category === 'QCD') {
 
                     $existingQuery->where('document_sub_category', 'QCD')
                                 ->where('row_index', $request->row_index);
-                                
+
+                }
+
+                  if ($request->document_sub_category === 'SS') {
+
+                    $existingQuery->where('document_sub_category', 'SS')
+                                ->where('row_index', $request->row_index);
+
                 }
 
                 $existing = $existingQuery->first();
@@ -344,7 +351,7 @@ class DocumentUploadController extends Controller
                     // exit;
                      $moduleCode = strtoupper($dbFilePath_modulecode);
 
-                    
+
                     $random = str_pad(rand(0, 99999), 5, '0', STR_PAD_LEFT);
                     // ---------------------------------
                     // Filename Format
@@ -367,10 +374,10 @@ class DocumentUploadController extends Controller
                                 strtoupper($request->ownership_type).
                                 $moduleCode.$request->row_index . '.pdf';
 
-                           
+
 
                             // dd($fileName);exit;
- 
+
                         } elseif ($request->document_sub_category === 'AP') {
 
                             // $fileName = $date . '_' . $time . '_' . $loginId . '_' .
@@ -382,11 +389,11 @@ class DocumentUploadController extends Controller
                                 strtoupper($request->ownership_type).
                                 $moduleCode.$request->row_index . '.pdf';
 
-                           
+
 
                             // dd($fileName);exit;
 
-                        } 
+                        }
 
                         elseif ($request->document_sub_category === 'QAD') {
 
@@ -397,24 +404,34 @@ class DocumentUploadController extends Controller
                                 $moduleCode.$request->row_index . '.pdf';
 
 
-                        } 
+                        }
 
                         elseif ($request->document_sub_category === 'QCD') {
                         // dd($request->row_index); exit;
-                     
+
                              $fileName = $date . '_' . $time . '_' . $loginId . '_' .
                                 'L' . $form_code . '_' .
                                 $moduleCode.$request->row_index . '.pdf';
 
 
-                        } 
-                        
-                        
-                        
-                        
+                        }
+
+                            elseif ($request->document_sub_category === 'SS') {
+                        // dd($request->row_index); exit;
+
+                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                                'L' . $form_code . '_' .
+                                $moduleCode.$request->row_index . '.pdf';
+
+
+                        }
+
+
+
+
                         elseif($request->document_sub_category === 'OHD') {
 
-                                       
+
                            // yyyymmdd_time(11.30)login_id_L(license)1_ownership_type_document_sub_category(OT).pdf
                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
                                         'L' . $form_code . '_' . $request->ownership_type . '_'.
@@ -429,17 +446,17 @@ class DocumentUploadController extends Controller
                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
                                         'L' . $form_code . '_' . $request->ownership_type . '_'.
                                         $moduleCode . $equip_code . '.pdf';
-                        } 
-                        
+                        }
+
                           elseif($request->document_sub_category === 'QD') {
 
                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
                                         'L' . $form_code .$moduleCode . $qc_code . '.pdf';
-                        } 
-                        
+                        }
+
                         else {
 
-                            
+
                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
                                         'L' . $form_code . '_' .
                                         $moduleCode . '.pdf';
@@ -452,9 +469,9 @@ class DocumentUploadController extends Controller
                     $qc_code = is_numeric($request->qc_code) ? $request->qc_code : null;
 
                     $file->move($folderPath, $fileName);
-                    
 
-                    
+
+
 
                     DB::table('tnelb_temp_uploaded_documents')->insert([
                         'login_id'              => $loginId,
@@ -473,7 +490,7 @@ class DocumentUploadController extends Controller
                         'appl_type'             => $request->appl_type,
 
                         'row_index' =>            is_numeric($request->row_index) ? (int)$request->row_index : null,
-                        
+
                         'equip_code'             => $equip_code,
                         'qc_code'               => $qc_code,
                         'uploaded_at'           => now(),
@@ -490,7 +507,7 @@ class DocumentUploadController extends Controller
                     'file_url'  => asset($dbFilePath .'/'. $fileName),
                 ];
             }
-             
+
 
             // --------------------------------------------------
             // 7. RESPONSE
