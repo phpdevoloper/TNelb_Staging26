@@ -225,12 +225,19 @@ class FormAAlteration extends BaseController
                 ->orderBy('id')
                 ->first();
 
+                  $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('login_id', Auth::user()->login_id)
+                ->where('application_id', $application_id)
+                  ->where('flag', 1)
+                   ->orderBy('row_index', 'asc')
+                ->get();
+
             // var_dump()
         }
         // dd($application->old_application); exit;
         // return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency' , 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails','Qcstaffs'));
 
-        return view('user_login.alteration.EA.form_ea', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType'));
+        return view('user_login.alteration.EA.form_ea', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType', 'authoritysignatory'));
     }
 
 
@@ -379,6 +386,12 @@ class FormAAlteration extends BaseController
                 ->first();
         }
 
+         $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('login_id', Auth::user()->login_id)
+                ->where('application_id', $application_id)
+                  ->where('flag', 1)
+                   ->orderBy('row_index', 'asc')
+                ->get();
         // dd($license_number); exit;
 
         return view(
@@ -402,7 +415,7 @@ class FormAAlteration extends BaseController
                 'old_license_number',
                 'license_details',
                 'application_id',
-                'license_number'
+                'license_number',  'authoritysignatory'
             )
         );
     }
@@ -713,6 +726,520 @@ class FormAAlteration extends BaseController
             } else {
                 Tnelb_banksolvency_a::create($bankData);
             }
+        }
+
+
+        // ==========================================================
+        // 8. SIGNATORY / AUTHORITY
+        // ==========================================================
+
+        $authorityNames = $request->input(
+            'name_of_authorised_to_sign',
+            []
+        );
+
+        $authorityAges = $request->input(
+            'age_of_authorised_to_sign',
+            []
+        );
+
+        $authorityQualifications = $request->input(
+            'qualification_of_authorised_to_sign',
+            []
+        );
+
+        $authorityDesignations = $request->input(
+            'designation_of_authorised_to_sign',
+            []
+        );
+
+
+        // ==========================================================
+        // GET CURRENT MAX ROW INDEX
+        // ==========================================================
+
+        $lastAuthorityRowIndex = DB::table('cl_forma_signs')
+            ->where(
+                'application_id',
+                $applicationId
+            )
+            ->max('row_index');
+
+        $nextAuthorityRowIndex =
+            ((int) $lastAuthorityRowIndex) + 1;
+
+
+        // ==========================================================
+        // GET TEMPORARY SPECIMEN SIGN DOCUMENTS
+        // ==========================================================
+
+        $tempSpecimenSigns = DB::table(
+            'tnelb_temp_uploaded_documents'
+        )
+            ->where(
+                'login_id',
+                $request->input('login_id_store')
+            )
+            ->where(
+                'form_name',
+                $request->input('form_name')
+            )
+            ->where(
+                'license_name',
+                $request->input('license_name')
+            )
+            ->where(
+                'document_category',
+                'specimen_sign'
+            )
+            ->get()
+            ->keyBy('row_index');
+
+
+        // ==========================================================
+        // CURRENT ROW INDEXES
+        // ==========================================================
+
+        $currentAuthorityRowIndexes = [];
+
+
+        // ==========================================================
+        // PROCESS AUTHORITY / SIGNATORY
+        // ==========================================================
+
+        foreach (
+            $authorityNames as $index => $name
+        ) {
+
+            // ------------------------------------------------------
+            // NAME
+            // ------------------------------------------------------
+
+            $name = trim(
+                (string) $name
+            );
+
+
+            // ------------------------------------------------------
+            // IGNORE COMPLETELY EMPTY ROW
+            // ------------------------------------------------------
+
+            if (
+                $name === '' ||
+                strtolower($name) === 'undefined' ||
+                strtolower($name) === 'null'
+            ) {
+                continue;
+            }
+
+
+            // ------------------------------------------------------
+            // AGE
+            // ------------------------------------------------------
+
+            $age = trim(
+                (string) (
+                    $authorityAges[$index] ?? ''
+                )
+            );
+
+
+            // ------------------------------------------------------
+            // QUALIFICATION
+            // ------------------------------------------------------
+
+            $qualification = trim(
+                (string) (
+                    $authorityQualifications[$index] ?? ''
+                )
+            );
+
+
+            // ------------------------------------------------------
+            // DESIGNATION
+            // ------------------------------------------------------
+
+            $designation = trim(
+                (string) (
+                    $authorityDesignations[$index] ?? ''
+                )
+            );
+
+
+            // ======================================================
+            // ROW INDEX
+            // ======================================================
+
+            $submittedRowIndex = $index + 1;
+
+
+            if (
+                $submittedRowIndex !== null &&
+                $submittedRowIndex > 0
+            ) {
+
+                $rowIndex =
+                    (int) $submittedRowIndex;
+            } else {
+
+                $rowIndex =
+                    $nextAuthorityRowIndex;
+            }
+
+
+            // ======================================================
+            // GET TEMP SPECIMEN SIGN
+            // USING SAME ROW INDEX
+            // ======================================================
+
+            $specimenSign = null;
+
+            $tempDoc = null;
+
+
+            if (
+                $tempSpecimenSigns->has(
+                    $rowIndex
+                )
+            ) {
+
+                $tempDoc =
+                    $tempSpecimenSigns->get(
+                        $rowIndex
+                    );
+
+
+                // --------------------------------------------------
+                // FILE PATH + FILE NAME
+                // --------------------------------------------------
+
+                $tempFilePath =
+                    trim(
+                        (string) (
+                            $tempDoc->file_path ?? ''
+                        )
+                    );
+
+
+                $tempFileName =
+                    trim(
+                        (string) (
+                            $tempDoc->file_name ?? ''
+                        )
+                    );
+
+
+                // --------------------------------------------------
+                // CREATE FINAL DATABASE PATH
+                // --------------------------------------------------
+
+                if (
+                    $tempFilePath !== '' &&
+                    $tempFileName !== ''
+                ) {
+
+                    $specimenSign =
+                        rtrim(
+                            $tempFilePath,
+                            '/'
+                        )
+                        . '/'
+                        .
+                        ltrim(
+                            $tempFileName,
+                            '/'
+                        );
+                }
+            }
+
+
+            // ======================================================
+            // CHECK EXISTING AUTHORITY RECORD
+            // ======================================================
+
+            $existingAuthority = DB::table(
+                'cl_forma_signs'
+            )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->where(
+                    'row_index',
+                    $rowIndex
+                )
+                ->first();
+
+
+            // ======================================================
+            // UPDATE EXISTING RECORD
+            // ======================================================
+
+            if ($existingAuthority) {
+
+
+                // --------------------------------------------------
+                // UPDATE DATA
+                // --------------------------------------------------
+
+                $updateData = [
+
+                    'login_id' =>
+                    $request->input(
+                        'login_id_store'
+                    ),
+
+                    'form_name' =>
+                    $request->input(
+                        'form_name'
+                    ),
+
+                    'cert_name' =>
+                    $request->input(
+                        'cert_name'
+                    ),
+
+                    'form_code' =>
+                    $request->input(
+                        'form_code'
+                    ),
+
+                    'name_of_authorised_to_sign' =>
+                    $name,
+
+                    'age_of_authorised_to_sign' =>
+                    $age,
+
+                    'qualification_of_authorised_to_sign' =>
+                    $qualification,
+
+                    'designation_of_authorised_to_sign' =>
+                    $designation,
+
+                    'row_index' =>
+                    $rowIndex,
+
+                    'flag' =>
+                    1,
+
+                    'updated_at' =>
+                    now(),
+                ];
+
+
+                // --------------------------------------------------
+                // UPDATE SPECIMEN SIGN ONLY WHEN NEW FILE EXISTS
+                // --------------------------------------------------
+
+                if (
+                    !empty($specimenSign)
+                ) {
+
+                    $updateData['specimen_sign'] = $specimenSign;
+                }
+
+
+                // --------------------------------------------------
+                // UPDATE DATABASE
+                // --------------------------------------------------
+
+                DB::table(
+                    'cl_forma_signs'
+                )
+                    ->where(
+                        'id',
+                        $existingAuthority->id
+                    )
+                    ->where(
+                        'application_id',
+                        $applicationId
+                    )
+                    ->update(
+                        $updateData
+                    );
+
+
+                // --------------------------------------------------
+                // CURRENT ROW
+                // --------------------------------------------------
+
+                $currentAuthorityRowIndexes[] =
+                    $rowIndex;
+            } else {
+
+
+                // ==================================================
+                // INSERT NEW RECORD
+                // ==================================================
+
+                DB::table(
+                    'cl_forma_signs'
+                )
+                    ->insert([
+
+                        'login_id' =>
+                        $request->input(
+                            'login_id_store'
+                        ),
+
+                        'application_id' =>
+                        $applicationId,
+
+                        'form_name' =>
+                        $request->input(
+                            'form_name'
+                        ),
+
+                        'cert_name' =>
+                        $request->input(
+                            'cert_name'
+                        ),
+
+                        'form_code' =>
+                        $request->input(
+                            'form_code'
+                        ),
+
+                        'name_of_authorised_to_sign' =>
+                        $name,
+
+                        'age_of_authorised_to_sign' =>
+                        $age,
+
+                        'qualification_of_authorised_to_sign' =>
+                        $qualification,
+
+                        'designation_of_authorised_to_sign' =>
+                        $designation,
+
+                        // =========================================
+                        // SPECIMEN SIGN
+                        // =========================================
+
+                        'specimen_sign' =>
+                        $specimenSign,
+
+                        'row_index' =>
+                        $rowIndex,
+
+                        'flag' =>
+                        1,
+
+                        'created_at' =>
+                        now(),
+
+                        'updated_at' =>
+                        now(),
+                    ]);
+
+
+                // --------------------------------------------------
+                // CURRENT ROW
+                // --------------------------------------------------
+
+                $currentAuthorityRowIndexes[] =
+                    $rowIndex;
+
+
+                // --------------------------------------------------
+                // UPDATE NEXT ROW INDEX
+                // --------------------------------------------------
+
+                if (
+                    $rowIndex >=
+                    $nextAuthorityRowIndex
+                ) {
+
+                    $nextAuthorityRowIndex =
+                        $rowIndex + 1;
+                }
+            }
+
+
+            // ======================================================
+            // MARK TEMP SPECIMEN SIGN AS FINAL
+            // ======================================================
+
+            if (
+                $tempDoc !== null
+            ) {
+
+                DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where(
+                        'id',
+                        $tempDoc->id
+                    )
+                    ->update([
+
+                        'is_final' =>
+                        '1',
+
+                        'moved_as' =>
+                        $request->input(
+                            'form_action'
+                        ),
+
+                        'record_id_app' =>
+                        $applicationId,
+
+                        'updated_at' =>
+                        now(),
+                    ]);
+            }
+        }
+
+
+        // ==========================================================
+        // OPTIONAL: HANDLE DELETED / REMOVED SIGNATORY ROWS
+        // ==========================================================
+        //
+        // Any existing cl_forma_signs row which is not submitted
+        // in the current form will be set to flag = 0.
+        //
+        // ==========================================================
+
+        if (
+            !empty($currentAuthorityRowIndexes)
+        ) {
+
+            DB::table(
+                'cl_forma_signs'
+            )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->whereNotIn(
+                    'row_index',
+                    $currentAuthorityRowIndexes
+                )
+                ->update([
+
+                    'flag' =>
+                    0,
+
+                    'updated_at' =>
+                    now(),
+                ]);
+        } else {
+
+            DB::table(
+                'cl_forma_signs'
+            )
+                ->where(
+                    'application_id',
+                    $applicationId
+                )
+                ->update([
+
+                    'flag' =>
+                    0,
+
+                    'updated_at' =>
+                    now(),
+                ]);
         }
 
 
@@ -2788,7 +3315,7 @@ class FormAAlteration extends BaseController
                 'late_months'    => $fees_details['late_months'] ?? 0,
                 'application_fee'     => $fees_details['basic_fees'],
                 // 'qcfees'     => $qcFee,
-                  'dbNow' => $dbNow,
+                'dbNow' => $dbNow,
                 'form_name'      => $request->form_name,
                 'license_name'   => $request->license_name,
             ]);
@@ -2811,7 +3338,7 @@ class FormAAlteration extends BaseController
                 'login_id' => $applicationId,
                 'transaction_id' => $transactionId,
                 'qcfees'     => $qcFee,
-                  'dbNow' => $dbNow,
+                'dbNow' => $dbNow,
 
             ]);
         }
@@ -2821,7 +3348,7 @@ class FormAAlteration extends BaseController
             'login_id' => $applicationId,
             'transaction_id' => $isDraft ? 'DRAFT' . rand(100000, 999999) : 'TXN' . rand(100000, 999999),
             'draft_status' => $isDraft,
-            
+
 
         ]);
     }

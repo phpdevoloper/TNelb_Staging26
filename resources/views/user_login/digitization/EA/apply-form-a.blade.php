@@ -3245,7 +3245,7 @@ exit; -->
                             </div>
 
                             <div class="col-12">
-                               <table class="table table-bordered" id="authority-names-table">
+                                <table class="table table-bordered" id="authority-names-table">
                                     <thead>
                                         <tr>
                                             <th>Name of Signatory</th>
@@ -4671,7 +4671,6 @@ let proprietorCount = initialDraftCount || 0;
         //         }
         //     });
         // });
-
 $(document).on("click", "#add-more-authority-name", function () {
 
     // ==========================================================
