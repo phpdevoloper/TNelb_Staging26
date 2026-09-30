@@ -2448,9 +2448,9 @@ function submitFormAFinalalter(formData, actionType) {
 
             let form_type = $("#appl_type").val();
 
-           
+
                 form_type = "Alteration Application";
-            
+
 
             let basic_fees = formData.get("basic_fees") || 0;
 
@@ -2482,7 +2482,7 @@ function submitFormAFinalalter(formData, actionType) {
                             `;
             }
 
-         
+
             if (actionType === "draft") {
                 Swal.fire({
                     width: 450,
@@ -2493,23 +2493,46 @@ function submitFormAFinalalter(formData, actionType) {
                     window.location.href = BASE_URL + "/dashboard";
                 });
             } else {
-                showPaymentInitiationPopupformAalter(
-                    application_id,
-                    loginId,
-                    transactionId,
-                    transactionDate,
-                    licence_name,
-                    form_type,
-                    basic_fees,
-                    lateFees,
-                    lateFeeRow,
-                    applicantName,
-                    amount,
-                    dbNow,
-                    qcfees,
-                    licenseName,
-                    formName,
-                );
+             if (parseFloat(qcfees) === 0) {
+
+    // QC fee is 0 → directly show payment success
+    showPaymentSuccessPopupformAalter(
+        application_id,
+        loginId,
+        transactionId,
+        transactionDate,
+        licence_name,
+        form_type,
+        basic_fees,
+        lateFees,
+        lateFeeRow,
+        applicantName,
+        amount,
+        dbNow,
+        licenseName,
+        formName
+    );
+
+} else {
+
+    // QC fee exists → initiate payment
+    showPaymentInitiationPopupformAalter(
+        application_id,
+        loginId,
+        transactionId,
+        transactionDate,
+        licence_name,
+        form_type,
+        basic_fees,
+        lateFees,
+        lateFeeRow,
+        applicantName,
+        amount,
+        dbNow,
+        licenseName,
+        formName
+    );
+}
             }
 
             $(".save-draft, .submit-payment").prop("disabled", false);

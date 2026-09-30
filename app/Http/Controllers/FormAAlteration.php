@@ -604,19 +604,34 @@ class FormAAlteration extends BaseController
         $applicationId = null;
         $existingcheck = null;
 
-        if ($recordId) {
-            $existingcheck = EA_Application_model::where('application_id', $recordId)->first();
-            if ($existingcheck) {
-                $applicationId = $existingcheck->application_id;
+        // if ($recordId) {
+        //     $existingcheck = EA_Application_model::where('application_id', $recordId)->first();
+        //     if ($existingcheck) {
+        //         $applicationId = $existingcheck->application_id;
+        //     }
+        // }
+        // dd($applicationId); exit;
+       if ($recordId) {
+        // dd($recordId); exit;
+          $existing = EA_Application_model::where('application_id', $recordId)
+                ->where(function ($query) {
+                    $query->where('application_status', '!=', 'A')
+                        ->orWhereNull('application_status');
+                })
+                ->where(function ($query) {
+                    $query->where('payment_status', '!=', 'paid')
+                        ->orWhereNull('payment_status');
+                })
+                ->first();
+
+                // dd($existing); exit;
+            if ($existing) {
+                $applicationId = $existing->application_id;
             }
         }
+
         // dd($applicationId); exit;
-        if (empty($applicationId) || !str_starts_with($applicationId, 'A')) {
-
-
-            // dd( $dataToSave['old_application']);exit;
-            //   $formData['old_application'] = $recordId;
-
+        if (!$applicationId) {
             $applicationId = $this->generateApplicationId(
                 $request->appl_type,
                 $request->form_name,

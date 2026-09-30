@@ -3405,7 +3405,6 @@ exit; -->
                                 <hr>
                                 <div class="row mt-3">
 
-
                                    <div class="col-md-12" id="authorized_signatory_section">
                                         <div class="row border-right-12">
                                             <div class="col-12">
@@ -3428,7 +3427,7 @@ exit; -->
                                             <th>Qualification of Signatory</th>
                                             <th>Designation</th>
                                             <th>Specimen Signature</th>
-                                            <th width="10%">Action</th>
+                                            <th width="10%">Action   <button class="btn btn-danger" type="button" id="signatory_details"><i class="fa fa-pencil"></i> Edit </button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -9704,6 +9703,126 @@ $("#authorized_signatory_edit").on("click", function () {
     $(this)
         .removeClass("btn-danger")
         .addClass("btn-success")
+        .html('<i class="fa fa-check"></i> Allow Editing');
+
+});
+
+
+$("#signatory_details").on("click", function () {
+
+    let signatorySection = $("#authorized_signatory_section");
+
+    // ==========================================
+    // ENABLE TEXT INPUTS
+    // ==========================================
+    signatorySection.find("input[type=text]").each(function () {
+
+        $(this).prop("readonly", false);
+        $(this).prop("disabled", false);
+
+        $(this).css({
+            "background": "",
+            "cursor": ""
+        });
+
+    });
+
+
+    // ==========================================
+    // ENABLE NUMBER INPUTS
+    // ==========================================
+    signatorySection.find("input[type=number]").each(function () {
+
+        $(this).prop("readonly", false);
+        $(this).prop("disabled", false);
+
+        $(this).css({
+            "background": "",
+            "cursor": ""
+        });
+
+    });
+
+
+    // ==========================================
+    // ENABLE DATE INPUTS
+    // ==========================================
+    signatorySection.find("input[type=date]").each(function () {
+
+        $(this).prop("readonly", false);
+        $(this).prop("disabled", false);
+
+        $(this).css({
+            "background": "",
+            "cursor": ""
+        });
+
+    });
+
+
+    // ==========================================
+    // ENABLE FILE INPUTS
+    // ==========================================
+    signatorySection.find("input[type=file]").each(function () {
+
+        $(this).prop("disabled", false);
+
+        $(this).css({
+            "pointer-events": "auto",
+            "background": "",
+            "cursor": "pointer"
+        });
+
+    });
+
+
+    // ==========================================
+    // ENABLE UPLOAD BUTTONS
+    // ==========================================
+    signatorySection.find(".upload-btn").each(function () {
+
+        $(this).prop("disabled", false);
+
+        $(this).css({
+            "pointer-events": "auto",
+            "cursor": "pointer"
+        });
+
+    });
+
+
+    // ==========================================
+    // ENABLE ADD / REMOVE BUTTONS
+    // ==========================================
+    signatorySection.find("#add-more-authority-name").each(function () {
+
+        $(this).prop("disabled", false);
+
+        $(this).css({
+            "pointer-events": "auto",
+            "cursor": "pointer"
+        });
+
+    });
+
+    signatorySection.find(".remove-authority-name").each(function () {
+
+        $(this).prop("disabled", false);
+
+        $(this).css({
+            "pointer-events": "auto",
+            "cursor": "pointer"
+        });
+
+    });
+
+
+    // ==========================================
+    // CHANGE EDIT BUTTON
+    // ==========================================
+    $(this)
+        .removeClass("btn-danger")
+        .addClass("btn-secondary")
         .html('<i class="fa fa-check"></i> Allow Editing');
 
 });
