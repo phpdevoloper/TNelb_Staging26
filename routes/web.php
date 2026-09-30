@@ -349,12 +349,13 @@ Route::post('/forma/storerenewal', [FormAController::class, 'storerenewal'])->na
 
 Route::put('/forma/update/{appl_id}', [FormAController::class, 'update'])->name('forma.update');
 
-Route::get('/generate-pdf/{login_id}', [PDFController::class, 'generatePDF'])->name('generate.pdf');
+Route::get('/payment-receipt/{login_id}', [PDFController::class, 'paymentDetails'])->name('payment-receipt.pdf');
 Route::get('/generateTamilPDF/{login_id}', [PDFController::class, 'generateTamilPDF'])->name('generate.tamil.pdf');
 
 Route::get('/generatea-pdf/{login_id}', [PDFFormAController::class, 'generateaPDF'])->name('generatea.pdf');
 Route::get('/generateaTamilPDF/{login_id}', [PDFFormAController::class, 'generateaTamilPDF'])->name('generatea.tamil.pdf');
 
+Route::get('/test-pdf/{login_id}', [LicensepdfController::class, 'generateLicensePDF'])->name('test.pdf');
 // ------------------------ Dynamic Form Access ------------------------
 
 Route::get('/apply-form/{form_name}/{application_id}', [RegisterController::class, 'apply_form'])->name('apply-form');

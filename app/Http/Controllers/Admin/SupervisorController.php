@@ -120,107 +120,11 @@ class SupervisorController extends Controller
             ]);
         }
 
-        $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
-        if ($formPId > 0 && $selectedFormId === $formPId) {
-            $roleLevel = (int) (optional($staff->role)->role_level ?? 0);
-            $roleId = (int) ($staff->roles_id ?? 0);
-            $applTypeFilter = in_array($request->input('form_type', ''), ['N', 'R', 'D', 'A'], true) ? strtoupper((string) $request->input('form_type')) : null;
-            if ($roleLevel === 1) {
-                $query = DB::table('tnelb_form_p as ta')
-                    ->whereIn('ta.payment_status', ['payment', 'paid'])
-                    ->whereIn('ta.app_status', ['P', 'RE'])
-                    ->whereNotExists(function ($q) {
-                        $q->select(DB::raw(1))->from('cc_workflow_forms as tw')->whereRaw('tw.application_id = ta.application_id');
-                    })
-                    ->select(
-                        'ta.*',
-                        DB::raw("'Form P' as form_name"),
-                        DB::raw('ta.license_name as license_name'),
-                        DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
-                    );
-                if ($applTypeFilter) {
-                    $query->where('ta.appl_type', $applTypeFilter);
-                }
-                $workflows = $query
-                    ->orderByDesc('ta.submitted_date')
-                    ->orderByDesc('ta.id')
-                    ->get();
-            } elseif ($roleLevel === 3) {
-                $query = DB::table('tnelb_form_p as ta')
-                    ->whereIn('ta.payment_status', ['payment', 'paid'])
-                    ->whereIn('ta.app_status', ['P', 'PRE'])
-                    ->whereNotExists(function ($q) {
-                        $q->select(DB::raw(1))->from('cc_workflow_forms as tw')->whereRaw('tw.application_id = ta.application_id');
-                    })
-                    ->select(
-                        'ta.*',
-                        DB::raw("'Form P' as form_name"),
-                        DB::raw('ta.license_name as license_name'),
-                        DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
-                    );
-                if ($applTypeFilter) {
-                    $query->where('ta.appl_type', $applTypeFilter);
-                }
-                $workflows = $query
-                    ->orderByDesc('ta.submitted_date')
-                    ->orderByDesc('ta.id')
-                    ->get();
-            } else {
-                $twLast = DB::table('cc_workflow_forms')->select('application_id', DB::raw('MAX(w_id) as max_id'))->groupBy('application_id');
-                $currentAppIds = DB::table('cc_workflow_forms as tw')
-                    ->joinSub($twLast, 'tw_last', function ($join) {
-                        $join->on('tw.application_id', '=', 'tw_last.application_id')->on('tw.w_id', '=', 'tw_last.max_id');
-                    })
-                    ->where('tw.forwarded_to', $roleId)->whereIn('tw.appl_status', ['F', 'RF'])->select('tw.application_id');
-                $workflows = DB::query()->fromSub($currentAppIds, 'cur')
-                    ->join('tnelb_form_p as ta', 'ta.application_id', '=', 'cur.application_id')
-                    ->whereIn('ta.payment_status', ['payment', 'paid'])
-                    ->select(
-                        'ta.*',
-                        DB::raw("'Form P' as form_name"),
-                        DB::raw('ta.license_name as license_name'),
-                        DB::raw("EXISTS (SELECT 1 FROM cc_workflow_forms tw2 WHERE tw2.application_id = ta.application_id AND tw2.appl_status = 'QU') AS has_return_history")
-                    )
-                    ->orderByDesc('ta.id')
-                    ->get();
-                if ($applTypeFilter) {
-                    $workflows = collect($workflows)->filter(function ($row) use ($applTypeFilter) {
-                        return strtoupper((string) ($row->appl_type ?? '')) === $applTypeFilter;
-                    })->values();
-                }
-            }
-            // Returned tab: QU (waiting for applicant) + resubmitted (P/RE with QU in history) +
-            // Form P apps returned to Supervisor/upper staff with an open workflow query (RE + latest tw.query_status P).
-            // MAX() must stay in a scalar subquery — joinSub(MAX) inside WHERE EXISTS is invalid in PostgreSQL.
-            $returnedQuery = DB::table('tnelb_form_p as ta')
-                ->whereIn('ta.payment_status', ['payment', 'paid'])
-                ->where(function ($q) {
-                    $q->where('ta.app_status', 'QU')
-                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (SELECT 1 FROM cc_workflow_forms tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))")
-                        ->orWhereRaw("(ta.app_status IN ('P','RE') AND EXISTS (
-                            SELECT 1 FROM cc_workflow_forms tw
-                            WHERE tw.application_id = ta.application_id
-                              AND tw.query_status = 'P'
-                              AND tw.w_id = (
-                                  SELECT MAX(twx.w_id) FROM cc_workflow_forms twx
-                                  WHERE twx.application_id = ta.application_id
-                              )
-                        ))");
-                })
-                ->select('ta.*', DB::raw("'Form P' as form_name"), DB::raw('ta.license_name as license_name'))
-                ->orderByDesc('ta.submitted_date')
-                ->orderByDesc('ta.id');
-            if ($applTypeFilter) {
-                $returnedQuery->where('ta.appl_type', $applTypeFilter);
-            }
-
-            $returned_applications = $returnedQuery->get();
-
-            [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
-                return strtoupper((string) ($row->appl_type ?? '')) === 'R';
-            });
-            return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
+        $formPLicenceId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
+        if ($formPLicenceId > 0 && $selectedFormId === $formPLicenceId) {
+            $selectedFormId = FormPSchema::FORM_ID;
         }
+
 
         $requestedType = strtoupper((string) $request->input('form_type', ''));
         $applTypeFilter = in_array($requestedType, ['N', 'R', 'D', 'A'], true) ? $requestedType : null;
@@ -818,27 +722,9 @@ class SupervisorController extends Controller
         $licence = DB::table('mst_licences')->where('id', $selectedFormId)->first();
         $formCode = $licence ? strtoupper((string) ($licence->cert_licence_code ?? '')) : '';
 
-        $formPId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
-
-        if ($formPId > 0 && $selectedFormId === $formPId) {
-            $query = DB::table('tnelb_form_p as ta')
-                ->where('ta.app_status', 'A')
-                ->select(
-                    'ta.*',
-                    DB::raw("'Form P' as form_name"),
-                    DB::raw('ta.license_name as license_name'),
-                    'ta.license_number',
-                    'ta.issued_at',
-                    'ta.expires_at'
-                );
-            if ($applTypeFilter) {
-                $query->where('ta.appl_type', $applTypeFilter);
-            }
-            $workflows = $query->orderByDesc('ta.id')->get();
-            [$renewal, $new_applications] = collect($workflows)->partition(function ($row) {
-                return strtoupper((string) ($row->appl_type ?? '')) === 'R';
-            });
-            return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal') + ['is_completed_list' => true]);
+        $formPLicenceId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
+        if ($formPLicenceId > 0 && $selectedFormId === $formPLicenceId) {
+            $selectedFormId = FormPSchema::FORM_ID;
         }
 
         // Contractor forms: EA, SA, B, SB etc. use separate tables
@@ -2267,6 +2153,7 @@ class SupervisorController extends Controller
                 'app_status' => $cc->app_status,
                 'payment_status' => $cc->payment_status,
                 'processed_by' => $cc->processed_by,
+                '_application_source' => $metaTable,
                 '_approval_source' => $metaTable,
             ];
         }
@@ -2344,6 +2231,58 @@ class SupervisorController extends Controller
     private function competencyCertificateService(): CompetencyCertificateService
     {
         return app(CompetencyCertificateService::class);
+    }
+
+    /**
+     * The alteration being approved needs its own certificate row before the PDF is stored.
+     * Dates and the certificate number come from the earlier issued row in the chain.
+     */
+    private function ensureAlterationCertificateRow(
+        object $application,
+        string $applicationId,
+        string $licenseNumber,
+        mixed $issuedAt,
+        mixed $expiresAt
+    ): void {
+        $applicationId = trim($applicationId);
+        $formName = (string) ($application->form_name ?? '');
+        $certService = $this->competencyCertificateService();
+        $existing = $certService->asLicenseDetails($applicationId, $formName);
+        if ($existing && trim((string) ($existing->license_number ?? '')) !== '') {
+            return;
+        }
+
+        $dateOfIssue = $issuedAt;
+        $validFrom = $issuedAt;
+        $validTo = $expiresAt;
+        $sourceId = trim((string) ($application->old_application ?? ''));
+        $seen = [];
+
+        while ($sourceId !== '' && ! isset($seen[$sourceId])) {
+            $seen[$sourceId] = true;
+            $source = $certService->asLicenseDetails($sourceId, $formName);
+            if ($source && trim((string) ($source->license_number ?? '')) !== '') {
+                $dateOfIssue = $source->issued_at ?? $dateOfIssue;
+                $validFrom = $source->valid_from ?? $source->issued_from ?? $validFrom;
+                $validTo = $source->expires_at ?? $validTo;
+                if (trim($licenseNumber) === '') {
+                    $licenseNumber = (string) $source->license_number;
+                }
+                break;
+            }
+
+            $parent = app(CompetencyMetaService::class)->findModel($sourceId);
+            $sourceId = trim((string) ($parent->old_application ?? ''));
+        }
+
+        $this->persistCompetencyCertificate(
+            $application,
+            $applicationId,
+            $licenseNumber,
+            $dateOfIssue,
+            $validFrom,
+            $validTo
+        );
     }
 
     /** Persist issued certificate into the per-form cc_*_cert table (N/R/D share one table). */
@@ -2457,11 +2396,23 @@ class SupervisorController extends Controller
             // Normalize application type once (N = New, R = Renewal)
             $appl_type = strtoupper(preg_replace('/\s+/', '', (string) $application->appl_type));
 
+            $qcForApproval = $request->input('qc');
+            $qscForApproval = $request->input('qsc');
+            if (strtoupper(trim((string) ($application->form_name ?? ''))) === 'S') {
+                $qcService = app(CompetencyQcQscService::class);
+                $mergedQc = $qcService->mergeFlags(
+                    ['qc' => $qcForApproval, 'qsc' => $qscForApproval],
+                    $qcService->inheritedFlags((string) $request->application_id)
+                );
+                $qcForApproval = $mergedQc['qc'];
+                $qscForApproval = $mergedQc['qsc'];
+            }
+
             $this->markCompetencyApplicationApproved(
                 $application,
                 $processed ?: 'PR',
-                $request->input('qc'),
-                $request->input('qsc')
+                $qcForApproval,
+                $qscForApproval
             );
 
 
@@ -2477,14 +2428,22 @@ class SupervisorController extends Controller
 
 
 
-            // Regenerate licence PDF on the issued certificate application (parent for alterations).
+            // Alteration: the PDF belongs on the application being approved, including a
+            // second alteration. The previous certificate row is left unchanged.
             // A failure here rolls the approval back. Nothing after this point is saved.
-            $pdfApplicationId = $appl_type === 'A'
-                ? trim((string) ($application->old_application ?? $request->application_id))
-                : $request->application_id;
+            if ($appl_type === 'A') {
+                $this->ensureAlterationCertificateRow(
+                    $application,
+                    (string) $request->application_id,
+                    (string) $licenseNumber,
+                    $issuedAt,
+                    $expiresAt
+                );
+            }
+            $pdfApplicationId = (string) $request->application_id;
 
             try {
-                $pdfResponse = app(LicensepdfController::class)->generatePDF($pdfApplicationId);
+                $pdfResponse = app(LicensepdfController::class)->generateLicensePDF($pdfApplicationId);
                 $pdfFailed = ! $pdfResponse instanceof \Symfony\Component\HttpFoundation\Response
                     || $pdfResponse->isRedirection()
                     || $pdfResponse->getStatusCode() >= 400;
@@ -2492,9 +2451,8 @@ class SupervisorController extends Controller
                     throw new \RuntimeException('Licence PDF could not be generated.');
                 }
 
-                $storedPath = 'private_documents/license_pdfs/' . $pdfApplicationId . '.pdf';
-                if (! \Illuminate\Support\Facades\Storage::disk('local')->exists($storedPath)) {
-                    throw new \RuntimeException('Licence PDF file was not stored.');
+                if (! app(LicensepdfController::class)->hasStoredLicencePdf($pdfApplicationId)) {
+                    throw new \RuntimeException('Licence PDF was not saved in the certificate record.');
                 }
             } catch (\Throwable $e) {
                 DB::rollBack();
@@ -2543,39 +2501,6 @@ class SupervisorController extends Controller
                 ];
             }
 
-
-            if ($appl_type == 'A') {
-                $formName = (string) ($application->form_name ?? '');
-                $certTable = $this->competencyCertificateService()->certTableForForm($formName) ?: 'cc_forms_cert';
-                $metaService = app(CompetencyMetaService::class);
-                $metaTable = $metaService->tableForForm($formName)
-                    ?: $metaService->metaTableForApplicationId($request->application_id);
-
-                $alter_insert = DB::table($certTable)->where('application_id', $request->application_id)->first();
-
-                if (! $alter_insert && $metaTable) {
-                    $metadata = DB::table($metaTable)->where('application_id', $request->application_id)->first();
-                    $parentId = trim((string) ($metadata->old_application ?? $application->old_application ?? ''));
-                    $licensedetails = $parentId !== ''
-                        ? DB::table($certTable)
-                        ->where('application_id', $parentId)
-                        ->orderByDesc('cc_id')
-                        ->first()
-                        : null;
-
-                    if ($licensedetails) {
-                        DB::table($certTable)->insert([
-                            'application_id' => $request->application_id,
-                            'certificate_no' => $licenseNumber,
-                            'dateof_issue' => $licensedetails->dateof_issue,
-                            'valid_from' => $licensedetails->valid_from,
-                            'valid_to' => $licensedetails->valid_to,
-                            'cert_status' => 'A',
-                            'created_at' => $this->dbNow,
-                        ]);
-                    }
-                }
-            }
 
             $appService = app(CompetencyApplicationService::class);
 
@@ -2640,14 +2565,12 @@ class SupervisorController extends Controller
             ]);
 
 
-            $payload = [
-                'qc' => $request->qc,
-                'qsc' => $request->qsc,
-                'updated_at' => $this->dbNow,
-            ];
-
-            if (CC_Forms_cert::where('certificate_no', $licenseNumber)->exists()) {
-                $updated = CC_Forms_cert::where('certificate_no', $licenseNumber)->update($payload);
+            if (strtoupper(trim((string) ($application->form_name ?? ''))) === 'S') {
+                CC_Forms_cert::where('application_id', $request->application_id)->update([
+                    'qc' => $qcForApproval,
+                    'qsc' => $qscForApproval,
+                    'updated_at' => $this->dbNow,
+                ]);
             }
 
 

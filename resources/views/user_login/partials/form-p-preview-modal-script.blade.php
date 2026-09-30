@@ -1,6 +1,9 @@
 <script>
 (function () {
-    if (!document.getElementById('competency_form_p') || !document.getElementById('appPreviewModalFormP')) {
+    if (!document.getElementById('competency_form_p') && !(document.getElementById('form_name') && document.getElementById('form_name').value === 'P' && document.getElementById('competency_form_ws'))) {
+        return;
+    }
+    if (!document.getElementById('appPreviewModalFormP')) {
         return;
     }
 
@@ -30,8 +33,26 @@
 
     function fmtDate(v) {
         if (!v) return '';
-        var p = v.split('-');
-        return p.length === 3 ? (p[2] + '-' + p[1] + '-' + p[0]) : v;
+        var s = String(v).trim();
+        var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (iso) return iso[3] + '-' + iso[2] + '-' + iso[1];
+        var dmy = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+        if (dmy) {
+            return String(dmy[1]).padStart(2, '0') + '-' + String(dmy[2]).padStart(2, '0') + '-' + dmy[3];
+        }
+        return s;
+    }
+
+    function ymdText(row) {
+        var y = row.querySelector('.fp-years');
+        var m = row.querySelector('.fp-months');
+        var d = row.querySelector('.fp-days');
+        if (!y && !m && !d) return '';
+        var yv = y ? String(y.value || '').trim() : '';
+        var mv = m ? String(m.value || '').trim() : '';
+        var dv = d ? String(d.value || '').trim() : '';
+        if (yv === '' && mv === '' && dv === '') return '';
+        return (yv || '0') + ' Y, ' + (mv || '0') + ' M, ' + (dv || '0') + ' D';
     }
 
     function setField(id, text) {
@@ -52,28 +73,46 @@
         return base + '/' + path.replace(/^\/+/, '');
     }
 
-    function docCellFromRow(row, fileSel, existingSel) {
-        var inp = row.querySelector(fileSel);
+    function usableHref(link) {
+        if (!link) return '';
+        var href = (link.getAttribute('href') || '').trim();
+        if (!href || href === '#' || href.indexOf('javascript:') === 0) return '';
+        return href;
+    }
+
+    function docPill(href, label) {
+        return '<a class="prv-fp-doc-pill" href="' + escHtml(href) + '" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> ' + escHtml(label || 'View') + '</a>';
+    }
+
+    function docCellFromRow(row, filePrefix) {
+        var inp = row.querySelector('input[type="file"][name^="' + filePrefix + '"]');
         if (inp && inp.files && inp.files[0]) {
             var blob = URL.createObjectURL(inp.files[0]);
-            var name = inp.files[0].name;
-            return '<a class="prv-fp-doc-pill" href="' + blob + '" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> ' + escHtml(name) + '</a>';
+            return docPill(blob, 'View');
         }
-        var existing = row.querySelector(existingSel);
-        if (existing && existing.value && existing.value.trim()) {
-            var href = resolveAssetUrl(existing.value.trim());
-            return '<a class="prv-fp-doc-pill" href="' + escHtml(href) + '" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View</a>';
-        }
-        var link = row.querySelector('.fs-doc-existing a, .local-file-preview a');
-        if (link && link.getAttribute('href')) {
-            return '<a class="prv-fp-doc-pill" href="' + escHtml(link.getAttribute('href')) + '" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View</a>';
+        var links = row.querySelectorAll('a[href]');
+        for (var i = 0; i < links.length; i++) {
+            var href = usableHref(links[i]);
+            if (href) return docPill(href, 'View');
         }
         return '<span class="prv-fp-doc-empty">—</span>';
     }
 
+    function existingDocLink(selector) {
+        var link = document.querySelector(selector);
+        if (!link || !link.getAttribute('href')) return '';
+        return '<a class="prv-fp-doc-pill" href="' + escHtml(link.getAttribute('href')) + '" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View</a>';
+    }
+
     function docLabelForInput(inputId) {
+        var savedSelectors = {
+            aadhaar_doc: '.aadhaar-doc-container a[href]',
+            pancard_doc: '.pan-doc-container a[href]'
+        };
         var inp = document.getElementById(inputId);
-        if (!inp) return '—';
+        if (!inp) {
+            return savedSelectors[inputId] ? (existingDocLink(savedSelectors[inputId]) || '<span class="prv-fp-doc-empty">—</span>') : '<span class="prv-fp-doc-empty">—</span>';
+        }
         if (inp.files && inp.files[0]) {
             return '<span class="prv-fp-doc-pill" style="cursor:default;"><i class="fa fa-file-pdf-o"></i> ' + escHtml(inp.files[0].name) + '</span>';
         }
@@ -88,9 +127,9 @@
         }
         var wrap = inp.closest('td, .fs-upload-card, tr');
         if (wrap) {
-            var viewA = wrap.querySelector('.fs-doc-existing a, a[href*="private_documents"], a[href*="attached_documents"]');
-            if (viewA) {
-                return '<a class="prv-fp-doc-pill" href="' + escHtml(viewA.getAttribute('href')) + '" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View</a>';
+            var viewA = wrap.querySelector('.aadhaar-doc-container a[href], .pan-doc-container a[href], .fs-doc-existing a[href], a[href*="private_documents"], a[href*="attached_documents"], a[href*="/document/"]');
+            if (viewA && usableHref(viewA)) {
+                return docPill(usableHref(viewA), 'View');
             }
         }
         return '<span class="prv-fp-doc-empty">—</span>';
@@ -119,8 +158,22 @@
 
     function populateFormPPreview() {
         var applType = val('appl_type') || 'N';
+        var isAlteration = applType === 'A' || !!document.querySelector('#competency_form_p.fs-alt-form, #competency_form_ws.fs-alt-form');
         var renewBadge = document.getElementById('prvFpRenewBadge');
         if (renewBadge) renewBadge.style.display = (applType === 'R') ? '' : 'none';
+        var altBadge = document.getElementById('prvFpAltBadge');
+        if (altBadge) altBadge.style.display = isAlteration ? '' : 'none';
+        var subtitle = document.getElementById('prvFpSubtitle');
+        if (subtitle) {
+            subtitle.innerHTML = isAlteration
+                ? 'Review every section carefully before submitting this alteration. Use <strong>Back to Edit</strong> if anything needs correction.'
+                : 'Review every section carefully before proceeding to payment. Use <strong>Back to Edit</strong> if anything needs correction.';
+        }
+        if (confirmBtn) {
+            confirmBtn.innerHTML = isAlteration
+                ? '<i class="fa fa-check"></i> Confirm &amp; Submit'
+                : '<i class="fa fa-check"></i> Confirm &amp; Proceed';
+        }
 
         var applicantName = val('Applicant_Name') || val('applicant_name');
         setField('prvFpMetaName', applicantName);
@@ -131,6 +184,7 @@
         if (printTag) {
             var tagParts = [];
             if (applType === 'R') tagParts.push('Renewal');
+            if (isAlteration) tagParts.push('Alteration');
             tagParts.push('Form P');
             var lic = val('license_number');
             if (lic) tagParts.push('Licence: ' + lic);
@@ -170,7 +224,7 @@
                     + '<td>' + escHtml(monText) + '</td>'
                     + '<td>' + escHtml(yrText) + '</td>'
                     + '<td>' + escHtml(cert ? cert.value || '—' : '—') + '</td>'
-                    + '<td>' + docCellFromRow(row, '[name="education_document[]"]', '[name="existing_document[]"]') + '</td>'
+                    + '<td>' + docCellFromRow(row, 'education_document') + '</td>'
                     + '</tr>';
             });
         }
@@ -186,14 +240,14 @@
                 var nm = row.querySelector('[name="institute_name_address[]"]');
                 var fr = row.querySelector('[name="from_date[]"]');
                 var to = row.querySelector('[name="to_date[]"]');
-                var dur = row.querySelector('[name="duration[]"]');
+                var durText = ymdText(row);
                 instBody.innerHTML += '<tr>'
                     + '<td>' + (i + 1) + '</td>'
                     + '<td class="prv-fp-td-left">' + escHtml(nm ? nm.value || '—' : '—') + '</td>'
                     + '<td>' + escHtml(fmtDate(fr ? fr.value : '') || '—') + '</td>'
                     + '<td>' + escHtml(fmtDate(to ? to.value : '') || '—') + '</td>'
-                    + '<td>' + escHtml(dur ? dur.value || '—' : '—') + '</td>'
-                    + '<td>' + docCellFromRow(row, '[name="institute_document[]"]', '[name="exist_institute_document[]"]') + '</td>'
+                    + '<td>' + escHtml(durText || '—') + '</td>'
+                    + '<td>' + docCellFromRow(row, 'institute_document') + '</td>'
                     + '</tr>';
             });
         }
@@ -205,28 +259,43 @@
         if (!workRows.length) {
             workBody.innerHTML = '<tr><td colspan="7" class="text-muted py-3">No power station entries</td></tr>';
         } else {
-            workRows.forEach(function (row, i) {
+            var workShown = 0;
+            workRows.forEach(function (row) {
                 var station = row.querySelector('[name="work_level[]"]');
                 var fr = row.querySelector('[name="work_date_from[]"]');
                 var to = row.querySelector('[name="work_date_to[]"]');
-                var tot = row.querySelector('.work-year-total-display');
                 var des = row.querySelector('[name="designation[]"]');
+                var stationText = station ? String(station.value || '').trim() : '';
+                var fromText = fr ? String(fr.value || '').trim() : '';
+                var toText = to ? String(to.value || '').trim() : '';
+                var desText = des ? String(des.value || '').trim() : '';
+                var hasFile = row.querySelector('input[type="file"][name^="work_document"]');
+                var hasUpload = hasFile && hasFile.files && hasFile.files[0];
+                if (!stationText && !fromText && !toText && !desText && !hasUpload && !row.querySelector('a[href]')) {
+                    return;
+                }
+                var totText = ymdText(row);
+                workShown += 1;
                 workBody.innerHTML += '<tr>'
-                    + '<td>' + (i + 1) + '</td>'
-                    + '<td class="prv-fp-td-left">' + escHtml(station ? station.value || '—' : '—') + '</td>'
-                    + '<td>' + escHtml(fmtDate(fr ? fr.value : '') || '—') + '</td>'
-                    + '<td>' + escHtml(fmtDate(to ? to.value : '') || '—') + '</td>'
-                    + '<td>' + escHtml(tot ? tot.value || '—' : '—') + '</td>'
-                    + '<td class="prv-fp-td-left">' + escHtml(des ? des.value || '—' : '—') + '</td>'
-                    + '<td>' + docCellFromRow(row, '[name="work_document[]"]', '[name="existing_work_document[]"]') + '</td>'
+                    + '<td>' + workShown + '</td>'
+                    + '<td class="prv-fp-td-left">' + escHtml(stationText || '—') + '</td>'
+                    + '<td>' + escHtml(fmtDate(fromText) || '—') + '</td>'
+                    + '<td>' + escHtml(fmtDate(toText) || '—') + '</td>'
+                    + '<td>' + escHtml(totText || '—') + '</td>'
+                    + '<td class="prv-fp-td-left">' + escHtml(desText || '—') + '</td>'
+                    + '<td>' + docCellFromRow(row, 'work_document') + '</td>'
                     + '</tr>';
             });
+            if (!workShown) {
+                workBody.innerHTML = '<tr><td colspan="7" class="text-muted py-3">No power station entries</td></tr>';
+            }
         }
 
         setField('prvFpEmployer', val('employer_name'));
 
-        var prevYes = document.getElementById('previous_license_yes');
-        var isPrev = prevYes && prevYes.checked;
+        var prevYes = document.querySelector('#previous_license_yes, input[name="previous_license"][value="yes"]');
+        var hasPrevData = val('previously_number') !== '' || val('previously_date') !== '';
+        var isPrev = (prevYes && prevYes.checked) || hasPrevData;
         var yn = document.getElementById('prvFpPrevYn');
         if (yn) {
             yn.innerHTML = isPrev

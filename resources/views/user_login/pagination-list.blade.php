@@ -306,9 +306,6 @@
                         title="Verify with PayU">
                         <i class="fa fa-refresh"></i> Status
                     </button>
-                    {{-- @if ($payuGatewayStatus)
-                        <small class="d-block text-muted" style="font-size:10px;">PayU: {{ $payuGatewayStatus }}</small>
-                    @endif --}}
                 @endif
             </td>
 
@@ -316,21 +313,13 @@
             <td>
                 @if ($isEditingDraft)
                     <p>-</p>
+                @elseif(in_array(strtoupper($workflow->appl_type ?? ''), ['N', 'R']))
+                        <a href="{{ route('payment-receipt.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
+                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
+                            <span style="font-size: x-small;">Receipt</span>
+                        </a>
                 @else
-                    @if ($workflow->form_name == 'P')
-                      
-                        <a href="{{ route('generateformP.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
-                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">Receipt</span>
-                        </a>
-                    @else
-                     
-
-                        <a href="{{ route('generate.pdf', ['login_id' => $workflow->application_id]) }}" target="_blank">
-                            <i class="fa fa-file-pdf-o" style="font-size:14px;color:red"></i>
-                            <span style="font-size: x-small;">Receipt</span>
-                        </a>
-                    @endif
+                    <p>-</p>
                 @endif
             </td>
 
@@ -375,38 +364,44 @@
                     @if (!empty($workflow->renewal_application_id))
                         <strong>Renewal Application</strong><br>
                         ID :
-                        <a href="{{ route('generate.pdf', ['login_id' => $workflow->renewal_application_id]) }}"
+                        <a href="{{ route('dashboard.application.preview', ['application_id' => $workflow->renewal_application_id]) }}"
                             target="_blank" class="text-success">
                             {{ $workflow->renewal_application_id }}
                         </a>
                     @else
                         @php
-                            $isFormW = strtoupper((string) ($workflow->form_name ?? '')) === 'W';
-                            $hasCertificateC = false;
-
-                            if ($isFormW && !empty($workflow->login_id)) {
-                                $hasCertificateC = DB::table('cc_form_w_meta as ta')
-                                    ->leftJoin('cc_form_w_cert as l', 'l.application_id', '=', 'ta.application_id')
-                                    ->where('ta.login_id', $workflow->login_id)
-                                    ->where('ta.form_name', 'W')
-                                    ->where('ta.app_status', 'A')
-                                    ->whereNotNull('l.certificate_no')
-                                    ->exists();
-                            }
                             $showRenewalLink = !empty($workflow->can_apply_renewal);
+                            // Form W Certificate C check is commented so renewal can be tested.
+                            // $isFormW = strtoupper((string) ($workflow->form_name ?? '')) === 'W';
+                            // $hasCertificateC = false;
+                            // if ($isFormW && !empty($workflow->login_id)) {
+                            //     $hasCertificateC = DB::table('cc_form_w_meta as ta')
+                            //         ->leftJoin('cc_form_w_cert as l', 'l.application_id', '=', 'ta.application_id')
+                            //         ->where('ta.login_id', $workflow->login_id)
+                            //         ->where('ta.form_name', 'W')
+                            //         ->whereRaw("TRIM(COALESCE(ta.app_status, '')) = 'A'")
+                            //         ->whereNotNull('l.certificate_no')
+                            //         ->whereRaw("TRIM(COALESCE(l.certificate_no, '')) <> ''")
+                            //         ->exists();
+                            // }
                         @endphp
-                        @if ($showRenewalLink && !($isFormW && $hasCertificateC))
+                        @if ($showRenewalLink)
                             <a href="{{ route(strtoupper($workflow->form_name ?? '') === 'P' ? 'renew_form_p' : 'cc_renew_form', ['application_id' => $workflow->application_id]) }}"
                                 class="text-primary">
                                 (Apply for renewal)
                             </a>
-                        @elseif ($showRenewalLink && $isFormW && $hasCertificateC)
+                        {{-- @elseif ($showRenewalLink && $isFormW && $hasCertificateC)
                             <span class="text-danger" style="font-size: 12px;">(Renewal not allowed: Certificate C already issued)</span>
+                        --}}
                         @endif
                     @endif
                 @elseif (!empty($workflow->renewal_application_id))
                     <strong>Renewal Application</strong><br>
-                    ID : <span class="text-success">{{ $workflow->renewal_application_id }}</span>
+                    ID :
+                    <a href="{{ route('dashboard.application.preview', ['application_id' => $workflow->renewal_application_id]) }}"
+                        target="_blank" class="text-success">
+                        {{ $workflow->renewal_application_id }}
+                    </a>
                 @elseif($sts == 'QU')
                     <a href="{{ route(in_array(strtoupper($workflow->form_name ?? ''), ['P']) ? 'edit_returned_application_p' : 'edit_returned_application', ['application_id' => $workflow->application_id]) }}">
                         <button class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i> Edit</button>

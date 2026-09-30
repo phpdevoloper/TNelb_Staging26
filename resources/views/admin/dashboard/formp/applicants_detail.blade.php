@@ -40,6 +40,19 @@
         max-width: 100%;
         height: auto;
     }
+    .status-switch {
+        background-color: #645e5e !important;
+        border-color: #645e5e !important;
+        cursor: pointer;
+    }
+    .status-switch:checked {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+    }
+    .checklist_chk .form-check-input:checked {
+        background-color: #4361ee !important;
+        border-color: #4361ee !important;
+    }
 </style>
 <div id="content" class="main-content">
     <div class="layout-px-spacing">
@@ -273,7 +286,7 @@
                                                             <th>Institute Name & Address</th>
                                                             <th>From Date</th>
                                                             <th>To Date</th>
-                                                            <th>Duration(Years)</th>
+                                                            <th>Year / Month / Day</th>
                                                             <th>Document Upload</th>
                                                         </tr>
                                                     </thead>
@@ -283,7 +296,7 @@
                                                             <td>{{ $institutes->institute_name_address }}</td>
                                                             <td>{{ format_date( $institutes->from_date) }} </td>
                                                             <td>{{ format_date($institutes->to_date) }}</td>
-                                                            <td>{{ $institutes->duration }} years</td>
+                                                            <td>{{ format_institute_duration($institutes->duration ?? '', $institutes->from_date ?? null, $institutes->to_date ?? null) }}</td>
                                                             <td style="text-align:center;">
 
                                                                 @if($institutes->upload_doc)
@@ -352,35 +365,36 @@
                                                 </div>
                                             </div>
 
+                                            @php
+                                                $prevNumber = trim((string) ($applicant->previously_number ?? ''));
+                                                if ($prevNumber === '0') {
+                                                    $prevNumber = '';
+                                                }
+                                                $prevDate = $applicant->previously_date ?? $applicant->first_issue_date ?? $applicant->previously_valid_to ?? $applicant->scc_to_date ?? null;
+                                                $hasPreviousApplication = $prevNumber !== '' || !empty($prevDate);
+                                            @endphp
                                             <div class="row">
                                                 <div class="col-lg-8 col-6">
                                                     <h6 class="mt-3 mb-2 fw-bold pb-1">
                                                         Have you made any previous application? If so, State reference No. and date
                                                     </h6>
                                                 </div>
-                                                <div class="col-lg-4 col-6">
-                                                    <p class="mt-2 mb-1 mt-lg-2">
-                                                        @php
-                                                        $prevNumber = trim((string) ($applicant->previously_number ?? ''));
-                                                        $prevDate = $applicant->previously_date ?? $applicant->previously_valid_to ?? $applicant->scc_to_date ?? null;
-                                                        if ($prevNumber === '' && empty($prevDate)) {
-                                                            $prev_val = 'No';
-                                                        } else {
-                                                            $prev_val = 'Yes, ' . $prevNumber . ' , ' .
-                                                                (!empty($prevDate) ? format_date($prevDate) : '');
-                                                        }
-                                                    @endphp
-                                                    </p>
+                                                <div class="col-lg-4 col-6 text-end">
+                                                    @if ($hasPreviousApplication)
+                                                        <span class="badge badge-success mt-3">Yes</span>
+                                                    @else
+                                                        <span class="badge badge-secondary mt-3">No</span>
+                                                    @endif
                                                 </div>
-                                                @if (!empty($prev_val))
+                                                @if ($hasPreviousApplication)
                                                     <div class="col-12">
                                                         <div class="row justify-content-center">
                                                             <div class="col-6 col-md-5 col-lg-4 text-center">
                                                                 <p class="mb-1">
-                                                                    <strong>Application Number :</strong> {{ $prevNumber !== '' ? $prevNumber : 'No' }}
+                                                                    <strong>Application Number :</strong> {{ $prevNumber !== '' ? $prevNumber : '—' }}
                                                                 </p>
                                                             </div>
-                                        
+
                                                             <div class="col-6 col-md-5 col-lg-4 text-center">
                                                                 <p class="mb-1">
                                                                     <strong>Date :</strong> {{ !empty($prevDate) ? (format_date($prevDate) ?: '—') : '—' }}
@@ -477,57 +491,56 @@
                                                 </div>
                                             </div> --}}
                                             <div class="col-12" id="specific-class">
-                                                <div class="row">
-                                                @php
-                                                    $checkboxes = [
-                                                        'signature_form' => 'Applicant Signature in Application Form',
-                                                        'sign_attached' => 'Applicant Sign attached by Officer',
-                                                        'edu_certificate' => 'Educational Qualification Certificate',
-                                                        'dob_proof' => 'Proof of D.O.B',
-                                                        'photograph' => 'Photograph',
-                                                        'specimen_signature' => 'Specimen Signature',
-                                                        'fees_details' => 'Fees Details',
-                                                        'age_details' => 'Age 18',
-                                                        'experience_details' => 'Two Years Experience after Degree/Diploma',
-                                                        'all_doc_verification' => 'All Documents Filled by Applicant',
-                                                        'safety_certificate' => 'Safety Certificate/ List of Equipment',
-                                                        'contract_copy' => 'Contract Copy of HT Works',
-                                                        'ht_experience_cert' => 'HT Experience Certificate in Specimen Format/ Transformer Details',
-                                                        'experience_in_tamilnadu' => 'Experience in TamilNadu',
-                                                        'intimation_letter' => 'Intimation Letter',
-                                                        'complete_experience_details' => 'Complete Experience Details',
-                                                        'required_qualification_certificate' => 'Required Qualification Certificate',
-                                                    ];
-                                                    $checkHalf = (int) ceil(count($checkboxes) / 2);
-                                                    $checkboxesCol1 = array_slice($checkboxes, 0, $checkHalf, true);
-                                                    $checkboxesCol2 = array_slice($checkboxes, $checkHalf, null, true);
-                                                @endphp
-
-                                                <div class="col-md-6">
-                                                    @foreach($checkboxesCol1 as $id => $label)
-                                                        <div class="form-check">
-                                                            <input type="checkbox"
-                                                                id="{{ $id }}"
-                                                                name="{{ $id }}"
-                                                                class="form-check-input"
-                                                                @if($isVerified) checked disabled @endif>
-                                                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                                <div class="col-md-6">
-                                                    @foreach($checkboxesCol2 as $id => $label)
-                                                        <div class="form-check">
-                                                            <input type="checkbox"
-                                                                id="{{ $id }}"
-                                                                name="{{ $id }}"
-                                                                class="form-check-input"
-                                                                @if($isVerified) checked disabled @endif>
-                                                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped align-middle">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Checklist Name</th>
+                                                                <th width="10%" class="text-center">Checked</th>
+                                                                <th width="25%" class="text-center">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        @forelse(($checklist ?? []) as $item)
+                                                        <tr>
+                                                            <td>
+                                                                <label for="checklist_{{ $item->id }}">{{ $item->checklist_name }}</label>
+                                                                <input type="hidden" name="check_id[{{ $item->id }}]" value="{{ $item->id }}">
+                                                            </td>
+                                                            <td class="text-center checklist_chk">
+                                                                <input type="checkbox"
+                                                                    class="form-check-input"
+                                                                    id="checklist_{{ $item->id }}"
+                                                                    name="checklists[{{ $item->id }}]"
+                                                                    value="1"
+                                                                    {{ ($checkedList_1[$item->id] ?? 0) == 1 ? 'checked' : '' }}
+                                                                    @if($isVerified) disabled @endif>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <span id="statusText_{{ $item->id }}"
+                                                                        class="badge {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'bg-success' : 'bg-danger' }}">
+                                                                        {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'Correct' : 'Incorrect' }}
+                                                                    </span>
+                                                                    <div class="form-check form-switch mb-0">
+                                                                        <input class="form-check-input status-switch"
+                                                                            type="checkbox"
+                                                                            id="status_{{ $item->id }}"
+                                                                            name="status[{{ $item->id }}]"
+                                                                            value="1"
+                                                                            {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'checked' : '' }}
+                                                                            @if($isVerified) disabled @endif>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        @empty
+                                                        <tr>
+                                                            <td colspan="3" class="text-center">No Checklist Available</td>
+                                                        </tr>
+                                                        @endforelse
+                                                        </tbody>
+                                                    </table>
                                                 </div>
                                             </div>
                                         </div>
@@ -580,15 +593,18 @@
                                                         <p><strong> Payment Status</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p class="badge badge-success">{{ strtoupper($applicant->payment_status) }}</p>
+                                                        @if(in_array(strtoupper(trim((string) ($applicant->payment_status ?? ''))), ['Y', 'SUCCESS', 'PAID', 'PAYMENT'], true))
+                                                        <p class="badge badge-success">Success</p>
+                                                        @endif
                                                     </div>
-
+                                                    @if(!in_array(strtoupper($applicant->appl_type), ['D','A']))
                                                     <div class="col-lg-6">
                                                         <p><strong> Transaction Id</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p>{{ $applicant->transaction_id }}</p>
                                                     </div>
+                                                    @endif
                                                     <div class="col-lg-6">
                                                         <p><strong>Amount</strong></p>
                                                     </div>
@@ -685,7 +701,7 @@
 
                                 @if ($role == 'Supervisor')
                                     {{-- Forward to Assistant Secretary --}}
-                                    <button class="btn btn-success" id="forwardbtn" {{ $isVerified == 'Yes'? '' : 'disabled' }} >
+                                    <button class="btn btn-success" id="forwardbtn">
                                         Forward to {{ $workflow[$role] }}
                                     </button>
                                     <button class="btn btn-warning">On Hold</button>
@@ -699,19 +715,14 @@
 
                                 @elseif ($role == 'Secretary')
 
-                                    @if ($applicant->form_name !== 'S')
-                                        <button class="btn btn-success" id="confirmApprovalBtn">
-                                            Submit / Approve
-                                        </button>
-                                    @else
-                                        <button class="btn btn-success" id="confirmForwardPres">
-                                            Forward to {{ $workflow[$role] }}
-                                        </button>
-                                    @endif
-
-                                    <button id="confirmReturnBtn" class="btn btn-warning">
-                                        Return to Supervisor
+                                    <button class="btn btn-success" id="confirmForwardPres">
+                                        Forward to {{ $workflow[$role] }}
                                     </button>
+                                    
+
+                                    {{-- <button id="confirmReturnBtn" class="btn btn-warning">
+                                        Return to Supervisor
+                                    </button> --}}
                                     <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
                                         Return to Applicant
                                     </button>
@@ -721,15 +732,15 @@
                                     <button class="btn btn-success" id="confirmApprovalBtn">
                                         Submit / Approve
                                     </button>
-                                    <button id="confirmReturnBtn" class="btn btn-warning">
+                                    {{-- <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Supervisor
-                                    </button>
-                                    <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
+                                    </button> --}}
+                                    {{-- <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
                                         Return to Applicant
-                                    </button>
-                                    <!-- <button id="returntoSecretary" class="btn btn-warning">
+                                    </button> --}}
+                                    {{-- <button id="returntoSecretary" class="btn btn-warning">
                                         Return to Secretary
-                                    </button> -->
+                                    </button> --}}
                                     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectionModal">Reject</button>
                                 @endif
 
@@ -1182,7 +1193,34 @@
         var confirmForward = $("#confirmForward");
         var confirmVerification = $('#confirmVerification');
         // var individualCheckboxes = $('.form-check-input:not(#check_all):not(#reset_all)');
-        var individualCheckboxes = $('#specific-class .form-check-input:not(#check_all, #reset_all)');
+        var individualCheckboxes = $('#specific-class input[name^="checklists"]');
+
+        function formPChecklistPayload() {
+            var checklists = {};
+            var status = {};
+            var check_id = {};
+            $('#specific-class tbody tr').each(function () {
+                var checkbox = $(this).find('input[name^="checklists"]');
+                if (!checkbox.length) {
+                    return;
+                }
+                var id = checkbox.attr('name').match(/\d+/)[0];
+                checklists[id] = checkbox.is(':checked') ? 1 : 0;
+                status[id] = $(this).find('input[name^="status"]').is(':checked') ? 1 : 0;
+                check_id[id] = $(this).find('input[name^="check_id"]').val();
+            });
+            return { checklists: checklists, status: status, check_id: check_id };
+        }
+
+        $('.status-switch').on('change', function () {
+            var id = this.id.replace('status_', '');
+            var badge = $('#statusText_' + id);
+            if ($(this).is(':checked')) {
+                badge.removeClass('bg-danger').addClass('bg-success').text('Correct');
+            } else {
+                badge.removeClass('bg-success').addClass('bg-danger').text('Incorrect');
+            }
+        });
 
         //forwardbtn
         var approveButton = $('#confirmApprovalBtn');
@@ -1210,35 +1248,19 @@
         checkAllBox.change(function() {
             if ($(this).prop('checked')) {
                 individualCheckboxes.prop('checked', true);
-                resetAllBox.prop('disabled', false).prop('checked', false); // Enable Reset All
-                forwardbtn.prop('disabled', false);
+                resetAllBox.prop('disabled', false).prop('checked', false);
             } else {
                 individualCheckboxes.prop('checked', false);
-                resetAllBox.prop('disabled', true).prop('checked', false); // Disable Reset All
-                forwardbtn.prop('disabled', true);
+                resetAllBox.prop('disabled', true).prop('checked', false);
             }
         });
 
-        // "Reset All" functionality
         resetAllBox.change(function() {
             if ($(this).prop('checked')) {
                 individualCheckboxes.prop('checked', false);
-                checkAllBox.prop('checked', false); // Uncheck Check All
-                checkAllBox.prop('disabled', false); // Enable Check All
-                resetAllBox.prop('disabled', true); // Disable Reset All after use
-                forwardbtn.prop('disabled', true);
-            }
-        });
-
-        // If any individual checkbox is manually unchecked, uncheck "Check All"
-        individualCheckboxes.change(function() {
-            // console.log($('#specific-class input[type="checkbox"].form-check-input:checked').length);
-            // console.log(individualCheckboxes.length);
-            // return false;
-            if ($('#specific-class input[type="checkbox"].form-check-input:checked').length === individualCheckboxes.length) {
-                forwardbtn.prop('disabled', false);
-            } else {
-                forwardbtn.prop('disabled', true);
+                checkAllBox.prop('checked', false);
+                checkAllBox.prop('disabled', false);
+                resetAllBox.prop('disabled', true);
             }
         });
         
@@ -1324,6 +1346,7 @@
             var remarks         = $("#remarks").val().trim();
             var queryswitch     = $("#Queryswitch").prop("checked");
             var checkboxStatus  = "Yes";
+            var checklistPayload = formPChecklistPayload();
 
             var queryType = null;
             var query_status = "No";
@@ -1363,7 +1386,10 @@
                             forwarded_to: forwardedTo,
                             role_id: role_id,
                             remarks: remarks || "No remarks provided",
-                            checkboxes: checkboxStatus, // Only "Yes" or "No"
+                            checkboxes: checkboxStatus,
+                            check_id: checklistPayload.check_id,
+                            checklists: checklistPayload.checklists,
+                            status: checklistPayload.status,
                             queryswitch: query_status, // Only "Yes" or "No"
                             "queryType[]": queryType 
                         },
@@ -1427,6 +1453,7 @@
                     var remarks = $("#remarks").val().trim();
 
                     var checkboxStatus = "Yes";
+                    var checklistPayload = formPChecklistPayload();
                     let queryswitch = $("#Queryswitch").prop("checked");
                     queryType = $("#queryType").val();
                     let errorBox = $("#query_error");
@@ -1455,6 +1482,9 @@
                             role_id: role_id,
                             remarks: remarks || "No remarks provided",
                             checkboxes: checkboxStatus,
+                            check_id: checklistPayload.check_id,
+                            checklists: checklistPayload.checklists,
+                            status: checklistPayload.status,
                             queryswitch: queryswitch ? "Yes" : "No",
                             "queryType[]": queryType
                         },
@@ -1500,6 +1530,7 @@
 
 
             var checkboxStatus = "Yes";
+            var checklistPayload = formPChecklistPayload();
             
             let queryswitch = $("#Queryswitch").prop("checked");
             queryType = $("#queryType").val();
@@ -1527,6 +1558,9 @@
                             forwarded_to    : forwardedTo,
                             remarks         : remarks || "No remarks provided",
                             checkboxes      : checkboxStatus,
+                            check_id        : checklistPayload.check_id,
+                            checklists      : checklistPayload.checklists,
+                            status          : checklistPayload.status,
                             queryswitch     : queryswitch ? "Yes" : "No",
                             "queryType[]": queryType 
                         },

@@ -4,6 +4,8 @@ namespace App\Services\Competency;
 
 use App\Models\Competency\CC_CompetencyMeta;
 use App\Models\Tnelb_CC_Digitization;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * QC / QSC eligibility for competency applications.
@@ -27,8 +29,8 @@ final class CompetencyQcQscService
     }
 
     /**
-     * Walk this application and each old_application parent. A 1 on meta or
-     * on the linked digitisation row is kept (eligibility is not cleared).
+     * Walk this application and each old_application parent. A 1 on meta,
+     * the linked digitisation row, or the Form S certificate row is kept.
      *
      * @return array{qc: int, qsc: int}
      */
@@ -49,31 +51,80 @@ final class CompetencyQcQscService
             }
             $seen[$id] = true;
 
-            if ((int) ($current->qc ?? 0) === 1) {
-                $qc = 1;
-            }
-            if ((int) ($current->qsc ?? 0) === 1) {
-                $qsc = 1;
-            }
-
-            $fromDigi = $this->flagsFromDigitization($id);
-            if ($fromDigi['qc'] === 1) {
-                $qc = 1;
-            }
-            if ($fromDigi['qsc'] === 1) {
-                $qsc = 1;
-            }
+            [$qc, $qsc] = array_values($this->mergeFlags(
+                ['qc' => $qc, 'qsc' => $qsc],
+                $this->normalizeFlags($current->qc ?? 0, $current->qsc ?? 0)
+            ));
+            [$qc, $qsc] = array_values($this->mergeFlags(
+                ['qc' => $qc, 'qsc' => $qsc],
+                $this->flagsFromDigitization($id)
+            ));
+            [$qc, $qsc] = array_values($this->mergeFlags(
+                ['qc' => $qc, 'qsc' => $qsc],
+                $this->flagsFromFormSCertificate($current)
+            ));
 
             $parentId = trim((string) ($current->old_application ?? ''));
             $current = $parentId !== '' ? $metaService->findModel($parentId) : null;
         }
 
         if (($qc !== 1 || $qsc !== 1) && $applicationId !== '' && ! isset($seen[$applicationId])) {
-            $fromDigi = $this->flagsFromDigitization($applicationId);
-            if ($fromDigi['qc'] === 1) {
+            [$qc, $qsc] = array_values($this->mergeFlags(
+                ['qc' => $qc, 'qsc' => $qsc],
+                $this->flagsFromDigitization($applicationId)
+            ));
+            [$qc, $qsc] = array_values($this->mergeFlags(
+                ['qc' => $qc, 'qsc' => $qsc],
+                $this->flagsFromFormSCertificate(null, $applicationId)
+            ));
+        }
+
+        return ['qc' => $qc, 'qsc' => $qsc];
+    }
+
+    /**
+     * Form S approval stores QC/QSC on cc_forms_cert, sometimes only on one
+     * row that shares the certificate number. A 1 anywhere on that licence counts.
+     *
+     * @return array{qc: int, qsc: int}
+     */
+    public function flagsFromFormSCertificate(?CC_CompetencyMeta $row = null, ?string $applicationId = null): array
+    {
+        $formName = strtoupper(trim((string) ($row->form_name ?? '')));
+        $applicationId = trim((string) ($applicationId ?? $row->application_id ?? ''));
+        if ($row && $formName !== '' && $formName !== 'S') {
+            return ['qc' => 0, 'qsc' => 0];
+        }
+
+        if (! Schema::hasTable('cc_forms_cert')
+            || ! Schema::hasColumn('cc_forms_cert', 'qc')
+            || ! Schema::hasColumn('cc_forms_cert', 'qsc')) {
+            return ['qc' => 0, 'qsc' => 0];
+        }
+
+        $certificateNo = trim((string) ($row->certificate_no ?? ''));
+        if ($applicationId === '' && ($certificateNo === '' || $certificateNo === '0')) {
+            return ['qc' => 0, 'qsc' => 0];
+        }
+
+        $certs = DB::table('cc_forms_cert')
+            ->where(function ($query) use ($applicationId, $certificateNo) {
+                if ($applicationId !== '') {
+                    $query->orWhere('application_id', $applicationId);
+                }
+                if ($certificateNo !== '' && $certificateNo !== '0') {
+                    $query->orWhere('certificate_no', $certificateNo);
+                }
+            })
+            ->get(['qc', 'qsc']);
+
+        $qc = 0;
+        $qsc = 0;
+        foreach ($certs as $cert) {
+            if ((int) ($cert->qc ?? 0) === 1) {
                 $qc = 1;
             }
-            if ($fromDigi['qsc'] === 1) {
+            if ((int) ($cert->qsc ?? 0) === 1) {
                 $qsc = 1;
             }
         }

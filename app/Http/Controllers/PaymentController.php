@@ -194,6 +194,10 @@ class PaymentController extends BaseController
             if (empty($form->submitted_date)) {
                 $formUpdate['submitted_date'] = $this->dbNow;
             }
+            $appStatus = strtoupper(trim((string) ($form->app_status ?? '')));
+            if ($appStatus === '' || $appStatus === 'D') {
+                $formUpdate['app_status'] = 'P';
+            }
             $form->update($formUpdate);
             if (! $form instanceof \App\Models\TnelbFormP) {
                 TnelbFormP::where('application_id', $validated['application_id'])->update($formUpdate);

@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Resolves issued certificates for competency forms S, W, WH, P.
@@ -105,13 +106,47 @@ class CompetencyCertificateService
     {
         $cert = $this->findByApplicationId($applicationId, $formName);
         if (!$cert) {
-            return null;
+            return $this->legacyFormPWorkflowLicense($applicationId, $formName);
         }
 
         return (object) [
             'license_number' => $cert->certificate_no,
             'expires_at' => $cert->valid_to,
         ];
+    }
+
+    private function legacyFormPWorkflowLicense(string $applicationId, ?string $formName): ?object
+    {
+        $formName = strtoupper(trim((string) ($formName ?? '')));
+        $isFormP = $formName === 'P'
+            || ($formName === '' && Schema::hasTable('cc_form_p_meta')
+                && DB::table('cc_form_p_meta')->where('application_id', $applicationId)->exists());
+        if (! $isFormP) {
+            return null;
+        }
+
+        if (Schema::hasTable('tnelb_license')) {
+            $legacy = DB::table('tnelb_license')->where('application_id', $applicationId)->first();
+            $number = trim((string) ($legacy->license_number ?? ''));
+            if ($number !== '') {
+                return (object) [
+                    'license_number' => $number,
+                    'expires_at' => $legacy->expires_at ?? null,
+                ];
+            }
+        }
+
+        if (Schema::hasColumn('cc_form_p_meta', 'certificate_no')) {
+            $number = trim((string) DB::table('cc_form_p_meta')->where('application_id', $applicationId)->value('certificate_no'));
+            if ($number !== '') {
+                return (object) [
+                    'license_number' => $number,
+                    'expires_at' => null,
+                ];
+            }
+        }
+
+        return null;
     }
 
     /**

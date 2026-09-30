@@ -561,7 +561,7 @@
                                     <td>{{ $institutes->institute_name_address ?? '—' }}</td>
                                     <td>{{ !empty($institutes->from_date) ? format_date($institutes->from_date) : '—' }}</td>
                                     <td>{{ !empty($institutes->to_date) ? format_date($institutes->to_date) : '—' }}</td>
-                                    <td>{{ $institutes->duration ?? '—' }} years</td>
+                                    <td>{{ format_institute_duration($institutes->duration ?? '', $institutes->from_date ?? null, $institutes->to_date ?? null) }}</td>
                                     <td class="text-center">
                                         @if(!empty($institutes->upload_doc))
                                             <a href="{{ competency_document_url($institutes->upload_doc, 'experience', (int) ($institutes->id ?? 0), 'supporting') }}" target="_blank" rel="noopener noreferrer">

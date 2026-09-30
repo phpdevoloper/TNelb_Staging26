@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 use App\Models\B_Application;
+use App\Models\CC_Checklist_applicant;
+use App\Models\CC_Digitisation_Map;
 use App\Models\MstLicence;
 use App\Models\TnelbFormP;
 use App\Models\Admin\SupervisorModel;
@@ -40,11 +42,6 @@ class FormPController extends Controller
     }
     public function view_application_formp($applicant_id)
     {
-
-
-        // $roles = DB::table('tnelb_registers')
-        //     ->select('*')
-        //         ->get();
 
 
         $returnForwardUser = null;
@@ -126,6 +123,10 @@ class FormPController extends Controller
         $user_entry = $applicant;
         $workflows = $this->loadFormPWorkflows($applicant_id);
         $queries = $this->loadFormPQueries($applicant_id, true);
+        $checklistState = $this->formPChecklistState($applicant);
+        $checklist = $checklistState['checklist'];
+        $checkedList_1 = $checklistState['checked'];
+        $verifyList = $checklistState['verify'];
 
 
 
@@ -139,7 +140,7 @@ class FormPController extends Controller
             default                                => abort(403, 'Unauthorized'),
         };
 
-        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff','institute_details'));
+        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff','institute_details', 'checklist', 'checkedList_1', 'verifyList'));
     }
 
     /**
@@ -168,6 +169,10 @@ class FormPController extends Controller
         $user_entry = $applicant;
         $workflows = $this->loadFormPWorkflows($applicant_id);
         $queries = $this->loadFormPQueries($applicant_id, false);
+        $checklistState = $this->formPChecklistState($applicant);
+        $checklist = $checklistState['checklist'];
+        $checkedList_1 = $checklistState['checked'];
+        $verifyList = $checklistState['verify'];
 
         return view('admin.dashboard.formp.applicants_detail_completed', compact(
             'applicant',
@@ -180,7 +185,10 @@ class FormPController extends Controller
             'queries',
             'user_entry',
             'staff',
-            'institute_details'
+            'institute_details',
+            'checklist',
+            'checkedList_1',
+            'verifyList'
         ));
     }
 
@@ -240,6 +248,8 @@ class FormPController extends Controller
             default               => 'F',
         };
 
+        $this->saveFormPChecklist($request, $applicant);
+
         $this->recordFormPWorkflow([
             'application_id' => $request->application_id,
             'appl_status'    => $app_status_workflow,
@@ -285,9 +295,12 @@ class FormPController extends Controller
             'remarks'        => 'nullable|string',
         ]);
 
-        if (! $this->findFormPApplication($request->application_id)) {
+        $applicant = $this->findFormPApplication($request->application_id);
+        if (! $applicant) {
             return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
         }
+
+        $this->saveFormPChecklist($request, $applicant);
 
         $query_status = null;
         $queryTypeJson = $request->queryType ? json_encode($request->queryType) : null;
@@ -1137,36 +1150,24 @@ class FormPController extends Controller
                 ]);
             }
 
-            $prefix = $application->license_name ?? $application->certificate_name ?? FormPSchema::LICENSE_NAME;
             $issuedAt = null;
             $expiresAt = null;
             $newSerial = null;
+            $kept = $this->formPKeptCertificate($application, (string) $request->application_id, $appl_type);
 
             if ($appl_type === 'R') {
-                $oldApplicationId = $application->old_application ?? null;
-                $oldExpiry = null;
-                if ($oldApplicationId) {
-                    $oldExpiry = (Schema::hasTable($certTable)
-                            ? DB::table($certTable)->where('application_id', $oldApplicationId)->value('valid_to')
-                            : null)
-                        ?: (Schema::hasTable('cl_forma_lic')
-                            ? DB::table('cl_forma_lic')->where('application_id', $oldApplicationId)->value('expires_at')
-                            : null);
-                }
+                $oldExpiry = $this->formPCertificateExpiry((string) ($application->old_application ?? ''));
                 $baseExpiry = $oldExpiry ? Carbon::parse($oldExpiry) : now();
                 $issuedAt = $baseExpiry->copy()->format('Y-m-d H:i:s');
                 $expiresAt = $baseExpiry->copy()->addMonths($monthsToAdd)->format('Y-m-d');
-                $newSerial = $application->certificate_no
-                    ?? $application->license_number
-                    ?? ($oldApplicationId && Schema::hasTable($certTable)
-                        ? DB::table($certTable)->where('application_id', $oldApplicationId)->value('certificate_no')
-                        : null)
-                    ?? ($oldApplicationId && Schema::hasTable('tnelb_license')
-                        ? DB::table('tnelb_license')->where('application_id', $oldApplicationId)->value('license_number')
-                        : null);
-                if (! $newSerial) {
-                    $newSerial = $this->nextFormPCertificateNumber((string) $prefix);
+                $newSerial = $kept['number'] ?: $this->nextFormPCertificateNumber();
+            } elseif (in_array($appl_type, ['A', 'D'], true)) {
+                if ($kept['number'] === null) {
+                    throw new \RuntimeException('The existing certificate number was not found, so this application was not approved.');
                 }
+                $newSerial = $kept['number'];
+                $issuedAt = $kept['issued_at'] ?: now()->format('Y-m-d H:i:s');
+                $expiresAt = $kept['expires_at'] ?: now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
             } else {
                 $existingCc = Schema::hasTable($certTable)
                     ? DB::table($certTable)->where('application_id', $request->application_id)->first()
@@ -1176,7 +1177,7 @@ class FormPController extends Controller
                     $issuedAt = $existingCc->dateof_issue;
                     $expiresAt = $existingCc->valid_to;
                 } else {
-                    $newSerial = $this->nextFormPCertificateNumber((string) $prefix);
+                    $newSerial = $this->nextFormPCertificateNumber();
                     $issuedAt = now()->format('Y-m-d H:i:s');
                     $expiresAt = now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
                 }
@@ -1210,19 +1211,20 @@ class FormPController extends Controller
                 'created_at' => now(),
             ]);
 
-            $pdfStoragePath = null;
-            try {
-                $pdfStoragePath = app(LicensepdfController::class)->generateFormPLicencePdfs($request->application_id);
-            } catch (\Throwable $e) {
-                Log::warning('Failed to generate Form P licence PDF after approval', [
-                    'application_id' => $request->application_id,
-                    'error' => $e->getMessage(),
-                ]);
+            $pdfApplicationId = (string) $request->application_id;
+            $licencePdf = app(LicensepdfController::class);
+            $pdfResponse = $licencePdf->generateLicensePDF($pdfApplicationId);
+            $pdfFailed = ! $pdfResponse instanceof \Symfony\Component\HttpFoundation\Response
+                || $pdfResponse->isRedirection()
+                || $pdfResponse->getStatusCode() >= 400;
+            if ($pdfFailed || ! $licencePdf->hasStoredLicencePdf($pdfApplicationId)) {
+                throw new \RuntimeException('The Certificate PDF was not saved, so the application was not approved.');
             }
 
             DB::commit();
 
             $appId = $request->application_id;
+            $storedLicenceUrl = route('admin.licence.stored', ['application_id' => $appId]);
 
             return response()->json([
                 'status' => 'success',
@@ -1232,9 +1234,9 @@ class FormPController extends Controller
                 'license_number' => $newSerial,
                 'issued_at' => $issuedAt,
                 'expires_at' => $expiresAt,
-                'license_pdf_en_url' => $pdfStoragePath ? route('admin.formp.licence.en', ['application_id' => $appId]) : null,
-                'license_pdf_ta_url' => $pdfStoragePath ? route('admin.formp.licence.ta', ['application_id' => $appId]) : null,
-                'license_pdf_storage_path' => $pdfStoragePath,
+                'license_pdf_en_url' => $storedLicenceUrl,
+                'license_pdf_ta_url' => $storedLicenceUrl,
+                'license_pdf_storage_path' => null,
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1284,19 +1286,159 @@ class FormPController extends Controller
         SupervisorModel::create($payload);
     }
 
-    private function nextFormPCertificateNumber(string $prefix): string
+    private function nextFormPCertificateNumber(): string
     {
         $yearMonth = now()->format('Ym');
-        $like = 'C'.$prefix.$yearMonth.'%';
-        $lastSerial = DB::table(FormPSchema::CERT_TABLE)
-            ->where('certificate_no', 'LIKE', $like)
-            ->orderByDesc('certificate_no')
-            ->value('certificate_no');
+        $like = 'CP'.$yearMonth.'%';
+        $lastSerial = null;
+        foreach ([
+            FormPSchema::CERT_TABLE => 'certificate_no',
+            FormPSchema::META_TABLE => 'certificate_no',
+        ] as $table => $column) {
+            if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column)) {
+                continue;
+            }
+            $value = DB::table($table)
+                ->where($column, 'LIKE', $like)
+                ->orderByDesc($column)
+                ->value($column);
+            if ($value !== null && ($lastSerial === null || strcmp((string) $value, (string) $lastSerial) > 0)) {
+                $lastSerial = $value;
+            }
+        }
         $nextNumber = $lastSerial
             ? str_pad((int) substr((string) $lastSerial, -5) + 1, 5, '0', STR_PAD_LEFT)
             : '00001';
 
-        return 'C'.$prefix.$yearMonth.$nextNumber;
+        return 'LP'.$yearMonth.$nextNumber;
+    }
+
+    /**
+     * @return array{number: ?string, issued_at: mixed, expires_at: mixed}
+     */
+    private function formPKeptCertificate(object $application, string $applicationId, string $applType): array
+    {
+        $number = trim((string) ($application->certificate_no ?? $application->license_number ?? ''));
+        $issuedAt = null;
+        $expiresAt = null;
+
+        if ($applType === 'D') {
+            $digitized = $this->formPDigitizationRow($applicationId);
+            if ($digitized) {
+                $digitizedNumber = trim((string) ($digitized->ccnumber ?? $digitized->old_cc_no ?? ''));
+                if ($number === '' && $digitizedNumber !== '') {
+                    $number = $digitizedNumber;
+                }
+                $issuedAt = $digitized->fissue ?? $digitized->from_date ?? null;
+                $expiresAt = $digitized->to_date ?? null;
+            }
+        }
+
+        $parentId = trim((string) ($application->old_application ?? ''));
+        if ($parentId !== '' && strcasecmp($parentId, $applicationId) !== 0) {
+            if ($number === '') {
+                $number = (string) ($this->formPIssuedNumber($parentId) ?? '');
+            }
+            if ($applType !== 'D') {
+                $issuedAt = $issuedAt ?: $this->formPCertificateIssuedAt($parentId);
+                $expiresAt = $expiresAt ?: $this->formPCertificateExpiry($parentId);
+            }
+        }
+
+        if ($number === '') {
+            $number = (string) ($this->formPIssuedNumber($applicationId) ?? '');
+        }
+        if (! $issuedAt) {
+            $issuedAt = $this->formPCertificateIssuedAt($applicationId);
+        }
+        if (! $expiresAt) {
+            $expiresAt = $this->formPCertificateExpiry($applicationId);
+        }
+
+        return [
+            'number' => $number !== '' ? $number : null,
+            'issued_at' => $issuedAt,
+            'expires_at' => $expiresAt,
+        ];
+    }
+
+    private function formPDigitizationRow(string $applicationId): ?object
+    {
+        if (Schema::hasTable('tnelb_cc_digitization')) {
+            $row = DB::table('tnelb_cc_digitization')
+                ->where('application_id', $applicationId)
+                ->orderByDesc('id')
+                ->first();
+            if ($row) {
+                return $row;
+            }
+        }
+
+        $map = CC_Digitisation_Map::where('application_id', $applicationId)->orderByDesc('id')->first();
+        if ($map && trim((string) ($map->old_cc_no ?? '')) !== '') {
+            return (object) ['ccnumber' => $map->old_cc_no];
+        }
+
+        return null;
+    }
+
+    private function formPIssuedNumber(string $applicationId): ?string
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return null;
+        }
+
+        $certTable = FormPSchema::CERT_TABLE;
+        $number = Schema::hasTable($certTable)
+            ? DB::table($certTable)->where('application_id', $applicationId)->value('certificate_no')
+            : null;
+        if (! $number && Schema::hasTable('tnelb_license')) {
+            $number = DB::table('tnelb_license')->where('application_id', $applicationId)->value('license_number');
+        }
+        if (! $number && Schema::hasColumn(FormPSchema::META_TABLE, 'certificate_no')) {
+            $number = DB::table(FormPSchema::META_TABLE)->where('application_id', $applicationId)->value('certificate_no');
+        }
+
+        $number = trim((string) $number);
+
+        return $number !== '' ? $number : null;
+    }
+
+    private function formPCertificateExpiry(string $applicationId): mixed
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return null;
+        }
+
+        $certTable = FormPSchema::CERT_TABLE;
+        $expiry = Schema::hasTable($certTable)
+            ? DB::table($certTable)->where('application_id', $applicationId)->value('valid_to')
+            : null;
+        if (! $expiry && Schema::hasTable('tnelb_license') && Schema::hasColumn('tnelb_license', 'expires_at')) {
+            $expiry = DB::table('tnelb_license')->where('application_id', $applicationId)->value('expires_at');
+        }
+
+        return $expiry ?: null;
+    }
+
+    private function formPCertificateIssuedAt(string $applicationId): mixed
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return null;
+        }
+
+        $certTable = FormPSchema::CERT_TABLE;
+        $issued = Schema::hasTable($certTable)
+            ? DB::table($certTable)->where('application_id', $applicationId)->value('dateof_issue')
+            : null;
+        if (! $issued && Schema::hasTable('tnelb_license') && Schema::hasColumn('tnelb_license', 'issued_at')) {
+            $issued = DB::table('tnelb_license')->where('application_id', $applicationId)->value('issued_at');
+        }
+
+        return $issued ?: null;
     }
 
     /**
@@ -1333,6 +1475,7 @@ class FormPController extends Controller
                 ?? $applicant->previous_scc_no
                 ?? null;
             $applicant->previously_date = $applicant->previously_date
+                ?? $applicant->first_issue_date
                 ?? $applicant->previously_valid_to
                 ?? $applicant->scc_to_date
                 ?? null;
@@ -1343,12 +1486,13 @@ class FormPController extends Controller
             $applicant->pan_doc = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
             $applicant->appl_type = $applicant->appl_type ?? $applicant->application_type ?? null;
             $applicant->app_status = $applicant->app_status ?? $applicant->status ?? null;
-            $applicant->late_fees = $applicant->late_fees ?? null;
+            $applicant->late_fees = $applicant->late_fees ?? $applicant->late_fee ?? null;
             $applicant->late_months = $applicant->late_months ?? null;
             $applicant->transaction_date = $applicant->transaction_date ?? null;
             $applicant->transaction_id = $applicant->transaction_id ?? null;
+            $applicant->payment_mode = $applicant->payment_mode ?? null;
             $applicant->payment_status = $applicant->payment_status ?? null;
-            $applicant->amount = $applicant->amount ?? null;
+            $applicant->amount = $applicant->amount ?? $applicant->application_fee ?? null;
             if (Schema::hasTable('cc_payments')) {
                 $payQuery = DB::table('cc_payments')->where('application_id', $applicantId);
                 if (Schema::hasColumn('cc_payments', 'p_id')) {
@@ -1356,8 +1500,18 @@ class FormPController extends Controller
                 }
                 $pay = $payQuery->first();
                 if ($pay) {
-                    $applicant->payment_status = $applicant->payment_status ?? ($pay->payment_status ?? null);
-                    $applicant->amount = $applicant->amount ?? ($pay->amount_paid ?? $pay->amount ?? null);
+                    $applicant->transaction_id = $pay->transaction_id ?? $applicant->transaction_id;
+                    $applicant->transaction_date = $pay->transaction_date ?? $applicant->transaction_date;
+                    $applicant->payment_mode = $pay->payment_mode ?? $applicant->payment_mode;
+                    $applicant->late_fees = $pay->late_fee ?? $applicant->late_fees;
+                    $applicant->late_months = $pay->late_months ?? $applicant->late_months;
+                    $applicant->amount = $pay->amount_paid ?? $pay->application_fee ?? $applicant->amount;
+                    $paid = strtolower(trim((string) ($pay->payment_status ?? '')));
+                    if (in_array($paid, ['success', 'paid', 'payment', 'y'], true)) {
+                        $applicant->payment_status = 'Y';
+                    } elseif (trim((string) ($applicant->payment_status ?? '')) === '') {
+                        $applicant->payment_status = $pay->payment_status ?? null;
+                    }
                 }
             }
         }
@@ -1464,35 +1618,137 @@ class FormPController extends Controller
         ];
     }
 
+    /**
+     * @return array{checklist: \Illuminate\Support\Collection, checked: array<int|string, int>, verify: array<int|string, int>}
+     */
+    private function formPChecklistState(object $applicant): array
+    {
+        $licenceCode = trim((string) ($applicant->license_name ?: ($applicant->certificate_name ?: FormPSchema::LICENSE_NAME)));
+        $certificateName = trim((string) ($applicant->certificate_name ?: $licenceCode));
+        $applType = strtoupper(trim((string) ($applicant->appl_type ?? 'N')));
+
+        $checklist = collect();
+        if (Schema::hasTable('mst_checklists') && Schema::hasTable('mst_licences')) {
+            $checklist = DB::table('mst_checklists as mc')
+                ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
+                ->where('ml.cert_licence_code', $licenceCode)
+                ->where('mc.appl_type', $applType)
+                ->where('mc.status', 1)
+                ->select('mc.*', 'ml.licence_name', 'ml.cert_licence_code')
+                ->get();
+        }
+
+        $checked = [];
+        $verify = [];
+        $existing = CC_Checklist_applicant::where('applicant_id', $applicant->application_id)
+            ->where('certificate_name', $certificateName)
+            ->first();
+        if ($existing && $existing->checklist_json) {
+            $json = json_decode($existing->checklist_json, true);
+            if (is_array($json)) {
+                foreach ($json as $row) {
+                    if (! is_array($row) || ! isset($row['id'])) {
+                        continue;
+                    }
+                    $checked[$row['id']] = (int) ($row['checked'] ?? 0);
+                    $verify[$row['id']] = (int) ($row['verify'] ?? 1);
+                }
+            }
+        }
+
+        return [
+            'checklist' => $checklist,
+            'checked' => $checked,
+            'verify' => $verify,
+        ];
+    }
+
+    private function saveFormPChecklist(Request $request, object $applicant): void
+    {
+        $checkIds = $request->input('check_id');
+        if (! is_array($checkIds) || $checkIds === []) {
+            return;
+        }
+
+        $checks = $request->input('checklists', []);
+        $statuses = $request->input('status', []);
+        $checklistData = [];
+        foreach ($checkIds as $id => $checkId) {
+            $checklistData[] = [
+                'id' => $checkId,
+                'checked' => (int) (is_array($checks) ? ($checks[$id] ?? 0) : 0),
+                'verify' => (int) (is_array($statuses) ? ($statuses[$id] ?? 0) : 0),
+            ];
+        }
+
+        $certificateName = trim((string) ($applicant->certificate_name ?: ($applicant->license_name ?: FormPSchema::LICENSE_NAME)));
+        $existing = CC_Checklist_applicant::where('applicant_id', $request->application_id)
+            ->where('certificate_name', $certificateName)
+            ->first();
+
+        if ($existing) {
+            $existing->update([
+                'checklist_json' => json_encode($checklistData),
+                'updated_by' => Auth::id(),
+            ]);
+
+            return;
+        }
+
+        $licenceId = Schema::hasTable('mst_licences')
+            ? DB::table('mst_licences')->where('cert_licence_code', $certificateName)->value('id')
+            : null;
+
+        CC_Checklist_applicant::create([
+            'login_id' => Auth::id(),
+            'applicant_id' => $request->application_id,
+            'cert_license_id' => $licenceId ?: ($applicant->app_id ?? null),
+            'certificate_name' => $certificateName,
+            'checklist_json' => json_encode($checklistData),
+            'updated_by' => Auth::id(),
+        ]);
+    }
+
     private function loadFormPWorkflows(string $applicationId)
     {
-        $workflows = app(CompetencyWorkflowService::class)->historyForApplication('P', $applicationId);
-        if ($workflows->isNotEmpty()) {
-            return $workflows;
+        if (Schema::hasTable(FormPSchema::WORKFLOW_TABLE)) {
+            $workflowService = app(CompetencyWorkflowService::class);
+            $workflows = $workflowService->historyForApplication('P', $applicationId);
+            if ($workflows->isNotEmpty()) {
+                $plain = $workflows->map(function ($row) {
+                    $data = $row instanceof \Illuminate\Database\Eloquent\Model
+                        ? $row->getAttributes()
+                        : (array) $row;
+
+                    return (object) $data;
+                });
+
+                return $workflowService
+                    ->hydrateProcessedByForDisplay($plain, FormPSchema::WORKFLOW_TABLE)
+                    ->values();
+            }
         }
 
-        if (! Schema::hasTable('tnelb_workflow')) {
-            return collect();
-        }
-
-        return DB::table('tnelb_workflow')
-            ->where('application_id', $applicationId)
-            ->orderByDesc('id')
-            ->get();
+        return Schema::hasTable('tnelb_workflow')
+            ? DB::table('tnelb_workflow')->where('application_id', $applicationId)->orderByDesc('id')->get()
+            : collect();
     }
 
     private function latestFormPWorkflow(string $applicationId): ?object
     {
-        if (Schema::hasTable(FormPSchema::WORKFLOW_TABLE)
-            && DB::table(FormPSchema::WORKFLOW_TABLE)->where('application_id', $applicationId)->exists()
-        ) {
-            return DB::table(FormPSchema::WORKFLOW_TABLE)
+        if (Schema::hasTable(FormPSchema::WORKFLOW_TABLE)) {
+            $current = DB::table(FormPSchema::WORKFLOW_TABLE)
                 ->where('application_id', $applicationId)
                 ->orderByDesc('w_id')
                 ->first();
+            if ($current) {
+                return $current;
+            }
         }
 
-        return SupervisorModel::where('application_id', $applicationId)->orderByDesc('id')->first();
+        return Schema::hasTable('tnelb_workflow')
+            ? DB::table('tnelb_workflow')->where('application_id', $applicationId)->orderByDesc('id')->first()
+            : null;
     }
 
     private function loadFormPQueries(string $applicationId, bool $pendingOnly = false)

@@ -468,8 +468,6 @@ class LoginController extends Controller
 
                 foreach ($contractorTables as $tbl) {
 
-                    // dd($staff);exit;
-
                     if ($staff->role_id == '1') {
 
 
@@ -567,7 +565,6 @@ class LoginController extends Controller
                 }
             }
         }
-
         // Build a detailed flat list combining ID + type + licence details
         $assignedForms = $assignedRows
             ->flatMap(function ($row) use ($licences) {
@@ -602,7 +599,7 @@ class LoginController extends Controller
 
 
 
-
+    
         $assignedFormSummary = $assignedForms
             ->groupBy('id')
             ->map(function ($items) use ($pendingCountsMap) {
@@ -733,23 +730,9 @@ class LoginController extends Controller
                 ->select('application_id', 'form_name', 'created_at', 'updated_at', 'processed_by')
                 ->orderByDesc('created_at')
                 ->get();
-            $receivedFromFormP = DB::table('cc_form_p_meta')
-                ->whereIn('app_status', ['F', 'RF'])
-                ->where('processed_by', 'A')
-                ->whereIn('payment_status', ['payment', 'paid'])
-                ->select(
-                    'application_id',
-                    DB::raw("'P' as form_name"),
-                    'created_at',
-                    'updated_at',
-                    'processed_by'
-                )
-                ->orderByDesc('created_at')
-                ->get();
             $recieved_apps = $receivedFromCc
                 ->merge($receivedFromLegacy)
                 ->merge($receivedFromEa)
-                ->merge($receivedFromFormP)
                 ->sortByDesc('created_at')
                 ->values();
 
@@ -775,23 +758,9 @@ class LoginController extends Controller
                 ->select('application_id', 'form_name', 'created_at', 'updated_at', 'processed_by', DB::raw('application_status as status'))
                 ->orderByDesc('updated_at')
                 ->get();
-            $inprogressFromFormP = DB::table('cc_form_p_meta')
-                ->whereIn('app_status', ['F', 'RF', 'QU'])
-                ->whereIn('payment_status', ['payment', 'paid'])
-                ->select(
-                    'application_id',
-                    DB::raw("'P' as form_name"),
-                    'created_at',
-                    'updated_at',
-                    'processed_by',
-                    DB::raw('app_status as status')
-                )
-                ->orderByDesc('updated_at')
-                ->get();
             $inprogress = $inprogressFromCc
                 ->merge($inprogressFromLegacy)
                 ->merge($inprogressFromEa)
-                ->merge($inprogressFromFormP)
                 ->sortByDesc('updated_at')
                 ->values();
         }
@@ -816,7 +785,7 @@ class LoginController extends Controller
      */
     public function completedApplications()
     {
-
+        
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');

@@ -446,8 +446,9 @@
                     Application Preview
                     <span class="prv-fp-badge">FORM P</span>
                     <span class="prv-fp-badge prv-fp-badge--renew" id="prvFpRenewBadge" style="{{ $formPPreviewIsRenewal ? '' : 'display:none;' }}">Renewal</span>
+                    <span class="prv-fp-badge prv-fp-badge--renew" id="prvFpAltBadge" style="display:none;">Alteration</span>
                 </h2>
-                <div class="prv-fp-subtitle">Review every section carefully before proceeding to payment. Use <strong>Back to Edit</strong> if anything needs correction.</div>
+                <div class="prv-fp-subtitle" id="prvFpSubtitle">Review every section carefully before proceeding to payment. Use <strong>Back to Edit</strong> if anything needs correction.</div>
             </div>
             <button type="button" class="prv-fp-close" id="prvFpCloseBtn" title="Close preview" aria-label="Close preview">&times;</button>
         </div>
@@ -560,7 +561,7 @@
                                     <th>Institute Name &amp; Address</th>
                                     <th>From</th>
                                     <th>To</th>
-                                    <th>Duration (yrs)</th>
+                                    <th>Year / Month / Day</th>
                                     <th>Document</th>
                                 </tr>
                             </thead>
@@ -577,7 +578,7 @@
                                     <th>Power Station</th>
                                     <th>From</th>
                                     <th>To</th>
-                                    <th>Total Yrs</th>
+                                    <th>Year / Month / Day</th>
                                     <th>Designation</th>
                                     <th>Document</th>
                                 </tr>

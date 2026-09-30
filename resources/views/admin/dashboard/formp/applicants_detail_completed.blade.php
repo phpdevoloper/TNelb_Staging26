@@ -196,7 +196,7 @@
                                                 <div class="col-lg-6 col-6">
                                                     @php
                                                         $prevNumber = trim((string) ($applicant->previously_number ?? ''));
-                                                        $prevDate = $applicant->previously_date ?? $applicant->previously_valid_to ?? $applicant->scc_to_date ?? null;
+                                                        $prevDate = $applicant->previously_date ?? $applicant->first_issue_date ?? $applicant->previously_valid_to ?? $applicant->scc_to_date ?? null;
                                                         if ($prevNumber === '' || empty($prevDate)) {
                                                             $value = 'No';
                                                         } else {
@@ -329,7 +329,34 @@
                                     <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
                                         <div class="row mt-3">
                                             <div class="col-lg-12">
-                                                <p>This checklist is available only for reference in completed view.</p>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped align-middle">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Checklist Name</th>
+                                                                <th width="10%" class="text-center">Checked</th>
+                                                                <th width="25%" class="text-center">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        @forelse(($checklist ?? []) as $item)
+                                                        <tr>
+                                                            <td>{{ $item->checklist_name }}</td>
+                                                            <td class="text-center">{{ ($checkedList_1[$item->id] ?? 0) == 1 ? 'Yes' : 'No' }}</td>
+                                                            <td class="text-center">
+                                                                <span class="badge {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'bg-success' : 'bg-danger' }}">
+                                                                    {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'Correct' : 'Incorrect' }}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                        @empty
+                                                        <tr>
+                                                            <td colspan="3" class="text-center">No Checklist Available</td>
+                                                        </tr>
+                                                        @endforelse
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

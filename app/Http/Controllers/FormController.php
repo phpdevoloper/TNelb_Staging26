@@ -132,6 +132,13 @@ class FormController extends BaseController
         if (! $request->filled('form_name')) {
             $request->merge(['form_name' => FormPSchema::FORM_NAME]);
         }
+
+        // Question 7 date is the previous-application date. Form P stores it in first_issue_date.
+        if ($request->exists('previously_date')) {
+            $request->merge([
+                'previously_issue_date' => $request->input('previously_date'),
+            ]);
+        }
     }
 
     private function persistFormPMetaExtras(string $applicationId, Request $request): void
@@ -328,7 +335,7 @@ class FormController extends BaseController
         ?CC_CompetencyMeta $existingForm = null,
         array $overrides = []
     ): array {
-        return array_merge([
+        $payload = array_merge([
             'login_id'            => $request->login_id,
             'application_id'      => $applicationId,
             'applicant_name'      => $this->resolveApplicantName($request, $existingForm),
@@ -354,6 +361,14 @@ class FormController extends BaseController
             'submitted_date'      => $this->dbNow,
             'updated_at'          => $this->dbNow,
         ], $overrides);
+
+        $ownId = trim((string) ($payload['application_id'] ?? ''));
+        $oldId = trim((string) ($payload['old_application'] ?? ''));
+        if ($oldId === '' || ($ownId !== '' && strcasecmp($oldId, $ownId) === 0)) {
+            $payload['old_application'] = null;
+        }
+
+        return $payload;
     }
 
     private function formSMasterApplicationId(CC_CompetencyMeta $workflowForm): string
@@ -853,6 +868,13 @@ class FormController extends BaseController
     private function calendarDateYmd(mixed $value): ?string
     {
         return CalendarDate::ymd($value);
+    }
+
+    private function applicantEmailValidationRule(bool $required, ?string $formName): string
+    {
+        $max = FormPSchema::isFormP($formName) ? 50 : 191;
+
+        return ($required ? 'required' : 'nullable').'|email|max:'.$max;
     }
 
     /** Start-of-day Carbon in app timezone from a date-only value. */
@@ -3034,11 +3056,22 @@ class FormController extends BaseController
                     ?? $legacyP->previously_date;
             }
             if (Schema::hasTable('tnelb_applicant_institute')) {
-                $institutes = TnelbAppsInstitute::where('application_id', $application_id)
+                $instituteOwnerId = $application_id;
+                $institutes = TnelbAppsInstitute::where('application_id', $instituteOwnerId)
                     ->where(function ($q) {
                         $q->where('institute_status', 1)->orWhereNull('institute_status');
                     })
                     ->get();
+                if ($institutes->isEmpty()) {
+                    $parentInstituteId = trim((string) ($application_details->old_application ?? ''));
+                    if ($parentInstituteId !== '' && $parentInstituteId !== $application_id) {
+                        $institutes = TnelbAppsInstitute::where('application_id', $parentInstituteId)
+                            ->where(function ($q) {
+                                $q->where('institute_status', 1)->orWhereNull('institute_status');
+                            })
+                            ->get();
+                    }
+                }
             }
         }
 
@@ -3331,9 +3364,10 @@ class FormController extends BaseController
             'certificate_date'              => 'nullable|date',
             'certificate_issue_date'        => 'nullable|date',
 
-            'applicant_email'      => (in_array($request->form_name, ['S', 'W'], true))
-                ? 'required|email|max:191'
-                : 'nullable|email|max:191',
+            'applicant_email'      => $this->applicantEmailValidationRule(
+                in_array($request->form_name, ['S', 'W'], true),
+                $request->form_name
+            ),
 
             // education arrays
             'educational_level'    => 'required|array|min:1',
@@ -3942,9 +3976,10 @@ class FormController extends BaseController
             'existing_work_relieving_document' => 'nullable|array',
             'existing_work_relieving_document.*' => 'nullable|string|max:500',
 
-            'applicant_email'      => (in_array($request->form_name, ['S', 'W'], true))
-                ? 'required|email|max:191'
-                : 'nullable|email|max:191',
+            'applicant_email'      => $this->applicantEmailValidationRule(
+                in_array($request->form_name, ['S', 'W'], true),
+                $request->form_name
+            ),
         ];
 
         $messages = [
@@ -4496,7 +4531,7 @@ class FormController extends BaseController
                 'login_id'           => 'nullable|string',
                 'applicant_name'     => 'nullable|string|max:255',
                 'fathers_name'       => 'nullable|string|max:255',
-                'applicant_email'    => 'nullable|email|max:191',
+                'applicant_email'    => $this->applicantEmailValidationRule(false, $request->form_name),
                 'applicants_address' => 'nullable|string|max:500',
                 'd_o_b'              => 'nullable|date',
                 'age'                => 'nullable|integer|min:18|max:100',
@@ -4951,6 +4986,14 @@ class FormController extends BaseController
                     (string) ($loginId ?? ''),
                     $request->form_name ?? null
                 );
+                if (! empty($resolved['already_submitted'])) {
+                    DB::rollBack();
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'A renewal application is already in progress for this certificate.',
+                    ], 422);
+                }
                 $form = $resolved['form'];
                 $applicationId = $resolved['application_id'];
                 $parentApplicationId = $resolved['parent_application_id'];
@@ -5168,7 +5211,7 @@ public function update(Request $request, $id)
                 'login_id'           => 'nullable|string',
                 'applicant_name'     => 'nullable|string|max:255',
                 'fathers_name'       => 'nullable|string|max:255',
-                'applicant_email'    => 'nullable|email|max:191',
+                'applicant_email'    => $this->applicantEmailValidationRule(false, $request->form_name),
                 'applicants_address' => 'nullable|string|max:500',
                 'd_o_b'              => 'nullable|date',
                 'age'                => 'integer|min:18|max:100',
@@ -5229,10 +5272,10 @@ public function update(Request $request, $id)
         ]);
         $this->assertFormPInstituteDates($request, true);
 
-        $action = $request->form_action;
+        $action = strtolower(trim((string) $request->input('form_action', '')));
         $applTypeForStatus = strtoupper(trim((string) ($request->appl_type ?? $existingForm?->appl_type ?? '')));
-        // This endpoint is the final submit for fee-exempt D/A (no PayU callback to mark paid).
-        if (in_array($applTypeForStatus, ['D', 'A'], true)) {
+        // Final submit for fee-exempt digitisation/alteration. An explicit draft stays a draft.
+        if (in_array($applTypeForStatus, ['D', 'A'], true) && $action !== 'draft') {
             $action = 'submit';
         }
 
@@ -5278,12 +5321,25 @@ public function update(Request $request, $id)
             if ($prevScc === '') {
                 $prevScc = '0';
             }
-            $parentForQc = trim((string) ($form?->old_application ?? $parentApplicationId ?? $id ?? ''));
+            $parentForQc = trim((string) ($form?->old_application ?? ''));
+            if ($parentForQc === '' && ! $form) {
+                $parentForQc = trim((string) $id);
+            }
+            if ($parentForQc === (string) $applicationId) {
+                $parentForQc = '';
+            }
             $qcFlags = $parentForQc !== ''
                 ? app(CompetencyQcQscService::class)->inheritedFlags($parentForQc)
                 : ['qc' => 0, 'qsc' => 0];
             if ($form) {
                 $qcFlags = app(CompetencyQcQscService::class)->mergeFlags($form, $qcFlags);
+            }
+            $existingAppStatus = strtoupper(trim((string) ($form?->app_status ?? '')));
+            $appStatusOnSave = 'P';
+            if ($action === 'draft' && in_array($applTypeForStatus, ['D', 'A'], true)) {
+                $appStatusOnSave = in_array($existingAppStatus, ['P', 'A', 'F', 'RF', 'QU', 'RE', 'C'], true)
+                    ? $existingAppStatus
+                    : 'D';
             }
             $renewalPayload = array_merge([
                     'login_id'           => $loginId,
@@ -5296,7 +5352,7 @@ public function update(Request $request, $id)
                         ?? '',
                     'd_o_b'              => $this->calendarDateYmd($request->d_o_b ?? $request->dob ?? $form?->d_o_b),
                     'age'                => $request->age,
-                    'app_status'         => 'P',
+                    'app_status'         => $appStatusOnSave,
                     'previous_scc_no'    => $prevScc,
                     'first_issue_date'   => $this->calendarDateYmd($request->previously_issue_date),
                     'scc_from_date'      => $this->calendarDateYmd($request->previously_valid_from),
@@ -5310,6 +5366,7 @@ public function update(Request $request, $id)
                     'wcc_issue_date'     => $this->calendarDateYmd($request->certificate_issue_date),
                     'wcc_from'           => $this->calendarDateYmd($request->certificate_valid_from),
                     'appl_type'          => $appl_type,
+                    'old_application'    => $parentForQc !== '' ? $parentForQc : ($form?->old_application ?: null),
                     'payment_status'     => $this->resolveCompetencyPaymentStatusOnSave(
                         (string) ($action ?? 'draft'),
                         $appl_type,
@@ -5815,21 +5872,41 @@ public function update(Request $request, $id)
                 ];
             }
 
-            /* Paid / closed renewal — start a new draft under the same parent. */
+            /* Next renewal belongs to this renewal, not to the alteration it replaced. */
             return [
                 'form' => null,
                 'application_id' => null,
-                'parent_application_id' => trim((string) ($found->old_application ?? $found->application_id)) ?: $routeApplicationId,
+                'parent_application_id' => (string) $found->application_id,
             ];
         }
 
+        // Keep the application the user opened. masterApplication() walks up to the
+        // previous alteration, which stored the renewal on the older certificate row.
         $parentApplicationId = $routeApplicationId;
-        if ($found) {
-            try {
-                $master = app(FormSApplicationWorkflowService::class)->masterApplication($found);
-                $parentApplicationId = (string) ($master->application_id ?? $found->application_id);
-            } catch (\Throwable $e) {
-                $parentApplicationId = (string) $found->application_id;
+        if ($found && $applType !== 'R') {
+            $parentApplicationId = (string) $found->application_id;
+        }
+
+        $latestRenewal = $this->findLatestFamilyRenewal($parentApplicationId, $loginId, $formName);
+        if ($latestRenewal && ! $this->renewalIsClosed($latestRenewal)) {
+            $latestParent = trim((string) ($latestRenewal->old_application ?? '')) ?: $parentApplicationId;
+            if ($this->isCompetencyRenewalDraftOpen($latestRenewal)) {
+                return [
+                    'form' => $latestRenewal,
+                    'application_id' => (string) $latestRenewal->application_id,
+                    'parent_application_id' => $latestParent,
+                ];
+            }
+
+            $latestStatus = strtoupper(trim((string) ($latestRenewal->app_status ?? '')));
+            $latestApproved = in_array($latestStatus, ['A', 'APPROVED'], true);
+            if (! $latestApproved || $parentApplicationId !== (string) $latestRenewal->application_id) {
+                return [
+                    'form' => $latestRenewal,
+                    'application_id' => (string) $latestRenewal->application_id,
+                    'parent_application_id' => $latestParent,
+                    'already_submitted' => true,
+                ];
             }
         }
 
@@ -5866,6 +5943,111 @@ public function update(Request $request, $id)
         }
 
         return true;
+    }
+
+    public function renewalAlreadyInProgress(string $applicationId, string $loginId): bool
+    {
+        $renewal = $this->findLatestFamilyRenewal($applicationId, $loginId, null);
+        if (! $renewal || $this->isCompetencyRenewalDraftOpen($renewal) || $this->renewalIsClosed($renewal)) {
+            return false;
+        }
+
+        $status = strtoupper(trim((string) ($renewal->app_status ?? '')));
+        if (in_array($status, ['A', 'APPROVED'], true)) {
+            return trim($applicationId) !== (string) $renewal->application_id;
+        }
+
+        return true;
+    }
+
+    private function renewalIsClosed(CC_CompetencyMeta $renewal): bool
+    {
+        $status = strtoupper(trim((string) ($renewal->app_status ?? '')));
+
+        return in_array($status, ['C', 'CANCELLED', 'RJ', 'RE', 'R', 'REJECTED'], true);
+    }
+
+    private function findLatestFamilyRenewal(
+        string $applicationId,
+        string $loginId,
+        ?string $formName
+    ): ?CC_CompetencyMeta {
+        $loginId = trim($loginId);
+        if ($loginId === '') {
+            return null;
+        }
+
+        $metaService = app(CompetencyMetaService::class);
+        $root = $this->renewalChainRootId($applicationId);
+        if ($root === '') {
+            return null;
+        }
+
+        $seen = [];
+        $queue = [$root];
+        $latest = null;
+        $latestSort = -1;
+
+        while ($queue !== []) {
+            $current = array_shift($queue);
+            if ($current === '' || isset($seen[$current])) {
+                continue;
+            }
+            $seen[$current] = true;
+
+            foreach ($metaService->allMetaTables() as $table) {
+                $children = DB::table($table)
+                    ->where('old_application', $current)
+                    ->orderByDesc('app_id')
+                    ->get(['application_id', 'appl_type', 'app_id', 'login_id', 'form_name', 'app_status', 'payment_status']);
+
+                foreach ($children as $child) {
+                    $childId = trim((string) ($child->application_id ?? ''));
+                    if ($childId === '' || isset($seen[$childId])) {
+                        continue;
+                    }
+                    $queue[] = $childId;
+
+                    if (strtoupper(trim((string) ($child->appl_type ?? ''))) !== 'R') {
+                        continue;
+                    }
+                    if ((string) ($child->login_id ?? '') !== $loginId) {
+                        continue;
+                    }
+                    if ($formName !== null && trim($formName) !== ''
+                        && strtoupper(trim((string) ($child->form_name ?? ''))) !== strtoupper(trim($formName))
+                    ) {
+                        continue;
+                    }
+
+                    $sort = (int) ($child->app_id ?? 0);
+                    if ($sort > $latestSort) {
+                        $latestSort = $sort;
+                        $latest = $metaService->findModel($childId, $formName);
+                    }
+                }
+            }
+        }
+
+        return $latest;
+    }
+
+    private function renewalChainRootId(string $applicationId): string
+    {
+        $metaService = app(CompetencyMetaService::class);
+        $current = trim($applicationId);
+        $seen = [];
+
+        while ($current !== '' && ! isset($seen[$current])) {
+            $seen[$current] = true;
+            $parent = trim((string) ($metaService->findModel($current)?->old_application ?? ''));
+            if ($parent === '' || $parent === $current) {
+                return $current;
+            }
+            $current = $parent;
+        }
+
+        return trim($applicationId);
     }
 
     private function findOpenCompetencyRenewalDraft(

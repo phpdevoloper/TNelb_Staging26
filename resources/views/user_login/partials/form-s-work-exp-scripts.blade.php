@@ -762,18 +762,15 @@
 
             function syncWorkDateRaw($input) {
                 var iso = readWorkDateFromInput($input);
-                if (iso && $input && $input.length) {
-                    $input.get(0).setAttribute('data-raw', iso);
-                }
+                if (!iso || !$input || !$input.length || !workDateYearIsPlausible(iso)) return;
+                $input.get(0).setAttribute('data-raw', iso);
             }
 
-            var WORK_DATE_MAX_ISO = '9999-12-31';
-
-            /** True when ISO year is a real 4-digit year (not 0097 / 0006 from partial typing). */
+            /** True when the year is finished. Padded keystrokes (0002, 0202 while typing 2026) are not. */
             function workDateYearIsPlausible(iso) {
                 if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
                 var y = parseInt(iso.slice(0, 4), 10);
-                return y >= 1000 && y <= 9999;
+                return y >= 1900 && y <= 9999;
             }
 
             /** Trim year only when it already has more than 4 digits. Do not rewrite the value while typing. */
@@ -799,48 +796,26 @@
 
             function clampWorkToDateNotFuture(el) {
                 if (!el || el.type === 'hidden' || !el.classList.contains('work-date-to')) return;
-                var max = todayIso();
-                el.setAttribute('max', max);
-                var iso = String(el.getAttribute('data-raw') || '').trim();
-                if (!iso) {
-                    if (el.type === 'date') {
-                        iso = String(el.value || '').trim();
-                    } else {
-                        var v = String(el.value || '').trim();
-                        var m = v.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
-                        if (m) {
-                            iso = m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
-                        }
-                    }
-                }
-                if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso) || iso <= max) return;
-                el.setAttribute('data-raw', max);
-                if (el.type === 'date') {
-                    el.value = max;
-                } else {
-                    var p = max.split('-');
-                    el.value = p[2] + '-' + p[1] + '-' + p[0];
-                }
+                /* A max of today makes the browser drop year keystrokes. Keep a far max so the year can be typed. */
+                el.removeAttribute('min');
+                el.setAttribute('max', '9999-12-31');
             }
 
             function applyWorkDateYearCap(el) {
                 if (!el || el.type === 'hidden') return;
                 el.removeAttribute('min');
-                if (el.classList.contains('work-date-to')) {
-                    el.setAttribute('max', todayIso());
-                    clampWorkToDateNotFuture(el);
-                    return;
-                }
-                if (!el.getAttribute('max')) {
-                    el.setAttribute('max', WORK_DATE_MAX_ISO);
+                if (el.classList.contains('work-date-to') || el.classList.contains('work-date-from')) {
+                    el.setAttribute('max', '9999-12-31');
                 }
             }
 
-            /** Reset cloned work date fields to native date inputs (clone may copy type="text" from initDateDisplay). */
+            /** Reset cloned work date fields to native date inputs. */
             function resetWorkRowDateInputs(row) {
                 if (!row) return;
                 row.querySelectorAll('.work-date-from, .work-date-to').forEach(function(inp) {
                     inp.removeAttribute('data-raw');
+                    inp.removeAttribute('placeholder');
+                    inp.removeAttribute('maxlength');
                     inp.value = '';
                     inp.type = 'date';
                     applyWorkDateYearCap(inp);
@@ -2832,24 +2807,45 @@
                 syncTransformerKvaHidden($workRow(this));
                 updateRowHeader($workRow(this));
             });
-            $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
-                var $field = $(this);
-                clampWorkDateYearDigits($field.get(0));
-                syncWorkDateRaw($field);
-                clearWorkDateFieldErrors($field);
-                updateTotalYears($workRow(this));
-            });
-            $(document).on('change blur', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
-                var $field = $(this);
-                clampWorkDateYearDigits($field.get(0));
+            function clearWorkDateLimits(el) {
+                if (!el) return;
+                el.removeAttribute('min');
+                el.setAttribute('max', '9999-12-31');
+            }
+            function finishWorkDateEdit(el) {
+                if (!el || document.activeElement === el) return;
+                var $field = $(el);
+                if (el.type !== 'date') {
+                    clampWorkDateYearDigits(el);
+                }
                 if ($field.hasClass('work-date-to')) {
-                    clampWorkToDateNotFuture($field.get(0));
+                    clampWorkToDateNotFuture(el);
                 }
                 syncWorkDateRaw($field);
                 clearWorkDateFieldErrors($field);
-                var $tr = $workRow(this);
+                var $tr = $workRow(el);
                 updateTotalYears($tr);
                 validateWorkContainerDateSequence(workContainerFor($tr));
+            }
+            $(document).on('focus', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
+                clearWorkDateLimits(this);
+            });
+            $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
+                /* Do not rewrite the date while the year is being typed. */
+            });
+            $(document).on('change', '.js-work-container .work-date-to, #work-container .work-date-to', function() {
+                if (this.type === 'hidden' || !workDateYearIsPlausible(String(this.value || '').trim())) return;
+                syncWorkDateRaw($(this));
+                var $tr = $workRow(this);
+                updateTotalYears($tr);
+                validateWorkRowDateRange($tr);
+            });
+            $(document).on('blur', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
+                var el = this;
+                setTimeout(function() {
+                    if (document.activeElement === el) return;
+                    finishWorkDateEdit(el);
+                }, 200);
             });
             /* Any field change refreshes the live row header + status pill. */
             $(document).on('input change', '.js-work-container .work-employer-input, #work-container .work-employer-input', function() {
@@ -2857,6 +2853,9 @@
                 syncLegacyHidden($tr); updateRowHeader($tr);
             });
             $(document).on('input change', '.js-work-container .work-fields :input, #work-container .work-fields :input', function() {
+                if (this.classList && (this.classList.contains('work-date-from') || this.classList.contains('work-date-to'))) {
+                    return;
+                }
                 var $tr = $workRow(this);
                 clearWorkRowRequiredError($(this));
                 if (!$tr.find('.work-row-required-error, .work-relieve-required-error').length) {

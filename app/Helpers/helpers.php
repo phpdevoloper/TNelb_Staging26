@@ -15,6 +15,58 @@ if (!function_exists('calendar_date_ymd')) {
     }
 }
 
+if (!function_exists('institute_calendar_ymd')) {
+    /**
+     * Inclusive calendar length as years.months.days. From/To are Y-m-d.
+     */
+    function institute_calendar_ymd(?string $from, ?string $to): string
+    {
+        $from = trim((string) $from);
+        $to = trim((string) $to);
+        if ($from === '' || $to === '') {
+            return '';
+        }
+
+        try {
+            $fromDt = Carbon::parse($from)->startOfDay();
+            $toDt = Carbon::parse($to)->startOfDay();
+            if ($toDt->lt($fromDt)) {
+                return '';
+            }
+            $diff = $fromDt->diff($toDt->copy()->addDay());
+            if ($diff->invert || $diff->y < 0) {
+                return '';
+            }
+
+            return $diff->y.'.'.$diff->m.'.'.$diff->d;
+        } catch (\Throwable $e) {
+            return '';
+        }
+    }
+}
+
+if (!function_exists('format_institute_duration')) {
+    /**
+     * Display text for an institute period. Dates win over a stored value.
+     * Legacy numeric duration 2.11 is 2 years and 11 months.
+     */
+    function format_institute_duration($duration, $from = null, $to = null): string
+    {
+        $computed = institute_calendar_ymd(calendar_date_ymd($from), calendar_date_ymd($to));
+        $raw = $computed !== '' ? $computed : trim((string) $duration);
+        if ($raw === '') {
+            return '—';
+        }
+
+        $parts = array_map('intval', explode('.', $raw));
+        $years = $parts[0] ?? 0;
+        $months = $parts[1] ?? 0;
+        $days = $parts[2] ?? 0;
+
+        return $years.' Y, '.$months.' M, '.$days.' D';
+    }
+}
+
 if (!function_exists('format_date_input')) {
     function format_date_input($date)
     {
