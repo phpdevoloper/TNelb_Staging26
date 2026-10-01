@@ -352,6 +352,13 @@ class CompetencyDocumentReviewService
 
     protected function resolveApplicantPhoto(CC_CompetencyMeta $application, array $workflowAppPks = []): ?\App\Models\TnelbApplicantPhoto
     {
+        if ($this->workflowService->isRenewalApplication($application)) {
+            $own = $this->resolvePhotoFromProofApplicationId((string) $application->application_id);
+            if ($own) {
+                return $own;
+            }
+        }
+
         $fromLog = $this->resolvePhotoFromDocLog($workflowAppPks);
         if ($fromLog) {
             return $fromLog;
@@ -471,24 +478,38 @@ class CompetencyDocumentReviewService
 
     protected function resolvePhotoFromProofDoc(CC_CompetencyMeta $application): ?\App\Models\TnelbApplicantPhoto
     {
-        $proofService = app(FormSProofDocumentService::class);
-
         foreach ($this->mediaApplicationIds($application) as $applicationId) {
-            $path = $proofService->resolveProofPath($applicationId, FormSProofDocumentService::PROOF_PHOTO);
-            if (! $path) {
-                continue;
+            $photo = $this->resolvePhotoFromProofApplicationId($applicationId);
+            if ($photo) {
+                return $photo;
             }
-
-            $photo = new \App\Models\TnelbApplicantPhoto([
-                'application_id' => $applicationId,
-                'upload_path' => $path,
-            ]);
-            $photo->setAttribute('media_url', competency_media_url($path));
-
-            return $photo;
         }
 
         return null;
+    }
+
+    protected function resolvePhotoFromProofApplicationId(string $applicationId): ?\App\Models\TnelbApplicantPhoto
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return null;
+        }
+
+        $path = app(FormSProofDocumentService::class)->resolveProofPath(
+            $applicationId,
+            FormSProofDocumentService::PROOF_PHOTO
+        );
+        if (! $path) {
+            return null;
+        }
+
+        $photo = new \App\Models\TnelbApplicantPhoto([
+            'application_id' => $applicationId,
+            'upload_path' => $path,
+        ]);
+        $photo->setAttribute('media_url', competency_media_url($path));
+
+        return $photo;
     }
 
     protected function resolveSignFromProofDoc(CC_CompetencyMeta $application): ?\App\Models\TnelbApplicantsSign

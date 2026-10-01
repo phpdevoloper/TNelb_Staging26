@@ -76,6 +76,11 @@ class FormSDocumentUploadHandler
             'Experience document upload'
         );
 
+        $childPath = $this->storedPathForChildExperience($workflowApp, $masterExperience, $log);
+        if ($childPath !== null) {
+            return $childPath;
+        }
+
         $masterExperience->refresh();
 
         return $this->resolveMasterPathAfterUpload($log, null, $masterExperience, 'support_document');
@@ -124,6 +129,11 @@ class FormSDocumentUploadHandler
             'Relieving letter upload'
         );
 
+        $childPath = $this->storedPathForChildExperience($workflowApp, $masterExperience, $log);
+        if ($childPath !== null) {
+            return $childPath;
+        }
+
         $masterExperience->refresh();
 
         return $this->resolveMasterPathAfterUpload($log, null, $masterExperience, 'relieve_document');
@@ -149,6 +159,14 @@ class FormSDocumentUploadHandler
             $replacementReason,
             ucfirst(strtolower((string) $proof->proof_name)) . ' document upload'
         );
+
+        // Renewal/alteration uploads stay pending. The proof row that belongs to this
+        // application must keep the new file. Looking the log up by app_id alone can
+        // hit another form's row with the same number and leave the copied parent path.
+        $childPath = $this->storedPathForChildProof($workflowApp, $proof, $log);
+        if ($childPath !== null) {
+            return $childPath;
+        }
 
         return $this->resolveProofPathAfterUpload($log, $proof);
     }
@@ -312,6 +330,32 @@ class FormSDocumentUploadHandler
      * New files on a renewal/alteration experience row belong to that application — return the
      * pending child-workflow storage path so it can be stored on the child cc_exp row.
      */
+    /**
+     * Alteration/renewal uploads are pending, so the new path lives on cc_doc_log only.
+     * Return that path for the child cc_exp row. Do not resolve the log by app_id alone:
+     * cc_form_s_meta is searched first and a Form W/WH app_id can match the wrong form,
+     * which leaves support_document empty.
+     */
+    protected function storedPathForChildExperience(
+        CC_CompetencyMeta $workflowApp,
+        CC_Experience $experience,
+        CC_Doc_Log $log
+    ): ?string {
+        if (! $this->workflowService->isChildWorkflow($workflowApp)) {
+            return null;
+        }
+        if ((int) $log->application_id !== $this->workflowService->workflowPk($workflowApp)) {
+            return null;
+        }
+        if ((string) ($experience->application_id ?? '') !== (string) $workflowApp->application_id) {
+            return null;
+        }
+
+        $path = trim((string) ($log->file_path ?? ''));
+
+        return $path !== '' ? $path : null;
+    }
+
     protected function pendingPathForAlterationExperience(CC_Doc_Log $log, CC_Experience $experience): ?string
     {
         return $this->pendingPathForChildOwnedRow($log, (string) ($experience->application_id ?? ''));
@@ -325,6 +369,30 @@ class FormSDocumentUploadHandler
     protected function pendingPathForChildOwnedProof(CC_Doc_Log $log, CC_Proof_doc $proof): ?string
     {
         return $this->pendingPathForChildOwnedRow($log, (string) ($proof->application_id ?? ''));
+    }
+
+    /**
+     * New photo/signature on a renewal or alteration belongs to that application.
+     * Use the workflow already in hand so a shared app_id cannot select another form.
+     */
+    protected function storedPathForChildProof(
+        CC_CompetencyMeta $workflowApp,
+        CC_Proof_doc $proof,
+        CC_Doc_Log $log
+    ): ?string {
+        if (! $this->workflowService->isChildWorkflow($workflowApp)) {
+            return null;
+        }
+        if ((int) $log->application_id !== $this->workflowService->workflowPk($workflowApp)) {
+            return null;
+        }
+        if ((string) ($proof->application_id ?? '') !== (string) $workflowApp->application_id) {
+            return null;
+        }
+
+        $path = trim((string) ($log->file_path ?? ''));
+
+        return $path !== '' ? $path : null;
     }
 
     protected function pendingPathForChildOwnedRow(CC_Doc_Log $log, string $rowApplicationId): ?string

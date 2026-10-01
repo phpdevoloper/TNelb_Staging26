@@ -427,7 +427,7 @@ class CompetencyApplicationService
 
     {
 
-        $source = (string) ($application->_application_source ?? '');
+        $source = (string) ($application->_application_source ?? $application->_approval_source ?? '');
 
 
 

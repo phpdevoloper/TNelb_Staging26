@@ -1828,12 +1828,18 @@
                         : persistUrls.store;
                 }
             } else if (formPEl) {
+                const formPNoPayment = String(applType || '').trim().toUpperCase() === 'D'
+                    || String(applType || '').trim().toUpperCase() === 'A';
                 if (applicationId) {
                     if (applType === 'R') {
                         formUrl = String(cfg.formPDraftRenewalUrlTemplate || '').replace('__APPL_ID__', applicationId);
+                    } else if (formPNoPayment) {
+                        formUrl = cfg.formPDraftSubmitUrl;
                     } else {
                         formUrl = cfg.formPUpdateUrl;
                     }
+                } else if (formPNoPayment) {
+                    formUrl = cfg.formPDraftSubmitUrl;
                 } else {
                     formUrl = cfg.formPStoreUrl;
                 }
@@ -5094,6 +5100,9 @@
         /* Form S, WH — From/To only: date order + minimum 2 calendar years (matches Pay / server). WH: only when the row is partially filled. Form W: no client work-date rules.
            Form S supports a "Till date" checkbox on the To-date that suppresses the To-date input. */
         $(document).on('change blur input', '#work-container .work-fields .work-date-from, #work-container .work-fields .work-date-to, #work-container .work-fields .work-date-till', function (e) {
+            if (e.type === 'input') {
+                return;
+            }
             var formName = String($('#form_name').val() || '').trim().toUpperCase();
             if (formName !== 'S') {
                 return;
@@ -5169,7 +5178,8 @@
                 const $field = $(this);
                 if ($field.is('.work-date-from, .work-date-to')) {
                     var iso = readWorkDateIsoFormS($field);
-                    if (iso) {
+                    var typedYear = iso ? parseInt(iso.slice(0, 4), 10) : 0;
+                    if (iso && typedYear >= 1900 && typedYear <= 9999) {
                         $field.get(0).setAttribute('data-raw', iso);
                         clearWorkDateRequiredErrors($field);
                     }

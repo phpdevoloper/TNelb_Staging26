@@ -142,7 +142,7 @@ class FormPController extends BaseController
             'cert_name' => FormPSchema::LICENSE_NAME,
         ]);
         $request->validate([
-            'ccnumber' => 'required|digits_between:1,5',
+            'ccnumber' => ['required', 'string', 'max:25', 'regex:/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,24}$/'],
             'fissue' => 'required|date',
             'from_date' => 'required|date|after_or_equal:fissue',
             'to_date' => 'required|date|after_or_equal:from_date',
@@ -161,7 +161,7 @@ class FormPController extends BaseController
             return response()->json([
                 'errors' => [
                     'to_date' => [
-                        'To date must be less than or equal to 1 year from today.',
+                        'Validity To cannot be more than one year before today.',
                     ],
                 ],
             ], 422);
@@ -321,6 +321,10 @@ class FormPController extends BaseController
             return redirect()->route('dashboard')->with('error', 'Only approved applications can be renewed.');
         }
 
+        if (app(FormController::class)->renewalAlreadyInProgress((string) $appl_id, (string) $loginId)) {
+            return redirect()->route('dashboard')->with('error', 'A renewal application is already in progress for this certificate.');
+        }
+
         $renewalDraft = $this->findFormPRenewalDraft((string) $appl_id, (string) $loginId);
         $dataSourceId = $renewalDraft ? (string) $renewalDraft->application_id : (string) $appl_id;
 
@@ -409,6 +413,7 @@ class FormPController extends BaseController
 
         return view('user_login.renew-form-p', array_merge($viewData, compact(
             'old_application',
+            'old_application_id',
             'applicationid'
         )));
     }
@@ -501,6 +506,7 @@ class FormPController extends BaseController
             true
         );
         $this->decryptPanForDisplay($viewData['application_details']);
+        $viewData['institute_details'] = $this->alterationInstituteRows($viewData);
         $viewData['alterStoreUrl'] = route('form_p_alt.store');
         $viewData['alterDraftUrl'] = route('form_p_alt.draft');
 
@@ -858,6 +864,9 @@ class FormPController extends BaseController
             $application_details->previously_number = $application_details->previously_number
                 ?? $application_details->previous_scc_no
                 ?? null;
+            $application_details->previously_date = $application_details->first_issue_date
+                ?? $application_details->previously_date
+                ?? null;
             $application_details->id = $application_details->id ?? $application_details->app_id ?? null;
             if ($legacy) {
                 $application_details->employer_detail = $application_details->employer_detail ?? $legacy->employer_detail;
@@ -1017,9 +1026,35 @@ class FormPController extends BaseController
         ], static fn ($v) => $v !== null && $v !== ''));
         $request->attributes->set(FormPSchema::VIA_CONTROLLER_ATTR, true);
 
-        $response = app(FormController::class)->{$method}($request, ...$args);
+        DB::beginTransaction();
+        try {
+            $response = app(FormController::class)->{$method}($request, ...$args);
+            $response = $this->afterPersistSaveInstitutes($request, $response);
+            if ($this->persistResponseFailed($response)) {
+                DB::rollBack();
 
-        return $this->afterPersistSaveInstitutes($request, $response);
+                return $response;
+            }
+            DB::commit();
+
+            return $response;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    private function persistResponseFailed($response): bool
+    {
+        if (! $response instanceof JsonResponse) {
+            return false;
+        }
+        if ($response->getStatusCode() >= 400) {
+            return true;
+        }
+        $payload = $response->getData(true);
+
+        return ($payload['status'] ?? null) === 'error';
     }
 
     private function afterPersistSaveInstitutes(Request $request, $response)
@@ -1044,7 +1079,7 @@ class FormPController extends BaseController
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Application saved but institute documents failed: '.$e->getMessage(),
+                'message' => 'Institute documents could not be saved, so the application was not saved.',
             ], 500);
         }
 
@@ -1076,10 +1111,9 @@ class FormPController extends BaseController
             $institute = trim((string) ($institute ?? ''));
             $from = $this->instituteDateYmd($fromDates[$key] ?? null);
             $to = $this->instituteDateYmd($toDates[$key] ?? null);
-            $duration = trim((string) ($durations[$key] ?? ''));
-            if ($duration === '' && $from && $to) {
-                $duration = $this->computeInstituteDurationYm($from, $to);
-            }
+            $duration = ($from && $to)
+                ? institute_calendar_ymd($from, $to)
+                : trim((string) ($durations[$key] ?? ''));
 
             if ($institute === '' && $from === null && $to === null && $duration === '') {
                         continue;
@@ -1120,29 +1154,18 @@ class FormPController extends BaseController
             }
 
             if ($file) {
-                $stored = null;
-                try {
-                    if ($workflowApp) {
-                        $stored = $this->documentHandler->handleInstituteDocumentUpload(
-                            $workflowApp,
-                            (int) $row->id,
-                            $file
-                        );
-                    }
-                } catch (\Throwable $e) {
-                    $stored = null;
+                if (! $workflowApp) {
+                    throw new \RuntimeException('The application record was not found, so the institute document was not saved.');
                 }
-                if ($stored) {
-                    $row->update(['upload_doc' => $stored]);
-                    } else {
-                    $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
-                    $dest = public_path('institute_document');
-                    if (! is_dir($dest)) {
-                        mkdir($dest, 0755, true);
-                    }
-                    $file->move($dest, $filename);
-                    $row->update(['upload_doc' => 'institute_document/'.$filename]);
+                $stored = $this->documentHandler->handleInstituteDocumentUpload(
+                    $workflowApp,
+                    (int) $row->id,
+                    $file
+                );
+                if (! $stored) {
+                    throw new \RuntimeException('The institute document was not saved.');
                 }
+                $row->update(['upload_doc' => $stored]);
             }
 
             $keptIds[] = (int) $row->id;
@@ -1160,33 +1183,6 @@ class FormPController extends BaseController
         $ymd = calendar_date_ymd($value);
 
         return $ymd !== '' ? $ymd : null;
-    }
-
-    private function computeInstituteDurationYm(string $from, string $to): string
-    {
-        try {
-            $fromDt = Carbon::parse($from)->startOfDay();
-            $toDt = Carbon::parse($to)->startOfDay();
-            if ($toDt->lt($fromDt)) {
-                return '';
-            }
-            $years = $toDt->year - $fromDt->year;
-            $months = $toDt->month - $fromDt->month;
-            if ($toDt->day < $fromDt->day) {
-                $months--;
-            }
-            if ($months < 0) {
-                $years--;
-                $months += 12;
-            }
-            if ($years < 0) {
-                return '';
-            }
-
-            return $years.'.'.$months;
-        } catch (\Throwable $e) {
-            return '';
-        }
     }
 
     private function instituteUploadedFile(Request $request, int $key): ?UploadedFile
@@ -1214,5 +1210,35 @@ class FormPController extends BaseController
         } catch (\Throwable $e) {
             // Keep legacy/plain values as-is when not encrypted.
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $viewData
+     */
+    private function alterationInstituteRows(array $viewData)
+    {
+        if (! Schema::hasTable('tnelb_applicant_institute')) {
+            return collect();
+        }
+
+        $ownerIds = array_values(array_unique(array_filter([
+            $viewData['alteration_draft']->application_id ?? null,
+            $viewData['application_details']->application_id ?? null,
+        ])));
+
+        foreach ($ownerIds as $ownerId) {
+            $rows = DB::table('tnelb_applicant_institute')
+                ->where('application_id', $ownerId)
+                ->where(function ($query) {
+                    $query->where('institute_status', 1)->orWhereNull('institute_status');
+                })
+                ->orderBy('id')
+                ->get();
+            if ($rows->isNotEmpty()) {
+                return $rows;
+            }
+        }
+
+        return collect();
     }
 }

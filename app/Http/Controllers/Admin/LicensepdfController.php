@@ -624,18 +624,8 @@ class LicensepdfController extends Controller
         // Build Tamil PDF in the same request
         $pdfBinaryTa = $this->generateLicenceTamil($application_id, true);
 
-        // Encrypt and store both securely
-        $encryptedPathEn = 'private_documents/license_pdfs/' . $application_id . '.pdf';
-        Storage::disk('local')->put($encryptedPathEn, Crypt::encryptString($pdfBinaryEn));
-
-        // $encryptedPathTa = null;
-        // if (is_string($pdfBinaryTa) && $pdfBinaryTa !== '') {
-        //     $encryptedPathTa = 'private_documents/license_pdfs/' . $application_id . '_ta.pdf.enc';
-        //     Storage::disk('local')->put($encryptedPathTa, Crypt::encryptString($pdfBinaryTa));
-        // }
-
-        // Save paths to cc_form_*_cert (cert_pdf / license_pdf_*)
-        $this->storeEncryptedLicensePdfPath($application_id, $encryptedPathEn);
+        // Encrypt the PDF and save that string in cert_pdf. The file is not written to disk.
+        $this->storeEncryptedLicensePdf($application_id, Crypt::encryptString($pdfBinaryEn));
 
         // Stream English PDF to browser (existing behavior)
         return response($pdfBinaryEn)
@@ -1169,36 +1159,36 @@ class LicensepdfController extends Controller
         ];
     }
 
-    private function storeEncryptedLicensePdfPath($applicationId, string $encryptedPathEn, ): void
+    private function storeEncryptedLicensePdf(string $applicationId, string $encryptedPdf): void
     {
         $certTable = $this->competencyCertTableForApplication($applicationId);
         if ($certTable === null || ! Schema::hasTable($certTable)) {
             throw new \RuntimeException('Certificate table was not found, so the licence PDF was not saved.');
         }
 
-        $payload = [];
-        if (Schema::hasColumn($certTable, 'license_pdf_en')) {
-            $payload['license_pdf_en'] = $encryptedPathEn;
-        } elseif (Schema::hasColumn($certTable, 'cert_pdf')) {
-            $payload['cert_pdf'] = $encryptedPathEn;
-        }
-
-        if ($payload === []) {
+        if (! Schema::hasColumn($certTable, 'cert_pdf')) {
             throw new \RuntimeException('Certificate table has no licence PDF column, so the licence PDF was not saved.');
         }
 
         $updated = DB::table($certTable)
             ->where('application_id', $applicationId)
-            ->update($payload);
+            ->update(['cert_pdf' => $encryptedPdf]);
 
         if ((int) $updated === 0) {
             throw new \RuntimeException('Issued certificate row was not found, so the licence PDF was not saved.');
         }
     }
 
+    public function hasStoredLicencePdf(string $applicationId): bool
+    {
+        $stored = $this->storedLicenceColumnValue($applicationId);
+
+        return $stored !== null && $this->openStoredLicencePdf($stored) !== null;
+    }
+
     /**
-     * Open the licence that approval already encrypted and stored.
-     * The path is read from cert_pdf, then the file is decrypted and streamed.
+     * Open the licence saved in cert_pdf.
+     * Older rows may still hold a file path; those are read from disk.
      */
     public function streamStoredLicence(string $application_id)
     {
@@ -1207,10 +1197,10 @@ class LicensepdfController extends Controller
             abort(404, 'Licence PDF not found.');
         }
 
-        $path = $this->readableStoredLicencePath($applicationId);
-        if ($path === null) {
+        $pdfBinary = $this->openStoredLicencePdf($this->storedLicenceColumnValue($applicationId));
+        if ($pdfBinary === null) {
             try {
-                $generated = $this->generatePDF($applicationId);
+                $generated = $this->generateLicensePDF($applicationId);
             } catch (\Throwable $e) {
                 Log::warning('Failed to generate licence PDF before stored stream', [
                     'application_id' => $applicationId,
@@ -1225,45 +1215,67 @@ class LicensepdfController extends Controller
                 abort(404, 'Licence PDF not found.');
             }
 
-            $path = $this->readableStoredLicencePath($applicationId);
+            $pdfBinary = $this->openStoredLicencePdf($this->storedLicenceColumnValue($applicationId));
         }
 
-        if ($path === null) {
+        if ($pdfBinary === null) {
             abort(404, 'Licence PDF not found.');
-        }
-
-        try {
-            $pdfBinary = Crypt::decryptString(Storage::disk('local')->get($path));
-        } catch (\Throwable $e) {
-            Log::warning('Failed to decrypt stored licence PDF', [
-                'application_id' => $applicationId,
-                'path' => $path,
-                'error' => $e->getMessage(),
-            ]);
-            abort(500, 'Unable to open licence PDF.');
         }
 
         return response($pdfBinary)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="' . basename($path) . '"');
+            ->header('Content-Disposition', 'inline; filename="' . $applicationId . '.pdf"');
     }
 
-    private function readableStoredLicencePath(string $applicationId): ?string
+    private function storedLicenceColumnValue(string $applicationId): ?string
     {
-        $licence = $this->competencyCertLicenceRow($applicationId);
-        if (! $licence) {
+        $certTable = $this->competencyCertTableForApplication($applicationId);
+        if ($certTable === null || ! Schema::hasTable($certTable) || ! Schema::hasColumn($certTable, 'cert_pdf')) {
             return null;
         }
 
-        $path = trim((string) ($licence->cert_pdf ?? ''));
-        if ($path === '') {
-            $path = trim((string) ($licence->license_pdf_en ?? ''));
-        }
-        if ($path === '' || ! Storage::disk('local')->exists($path)) {
+        $stored = DB::table($certTable)
+            ->where('application_id', $applicationId)
+            ->value('cert_pdf');
+
+        $stored = trim((string) $stored);
+
+        return $stored !== '' ? $stored : null;
+    }
+
+    private function isLegacyLicenceFilePath(string $stored): bool
+    {
+        return strlen($stored) < 500
+            && (str_starts_with($stored, 'private_documents/')
+                || str_starts_with($stored, 'storage/')
+                || str_ends_with(strtolower($stored), '.pdf')
+                || str_ends_with(strtolower($stored), '.enc'));
+    }
+
+    private function openStoredLicencePdf(?string $stored): ?string
+    {
+        $stored = trim((string) $stored);
+        if ($stored === '') {
             return null;
         }
 
-        return $path;
+        try {
+            if ($this->isLegacyLicenceFilePath($stored)) {
+                if (! Storage::disk('local')->exists($stored)) {
+                    return null;
+                }
+
+                return Crypt::decryptString(Storage::disk('local')->get($stored));
+            }
+
+            return Crypt::decryptString($stored);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to open licence PDF from cert_pdf', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**
@@ -1275,7 +1287,36 @@ class LicensepdfController extends Controller
             return null;
         }
 
-        return $this->competencyCertLicenceRow($applicationId, 'P');
+        return $this->competencyCertLicenceRow($applicationId, 'P')
+            ?? $this->legacyTnelbFormPLicenceRow($applicationId);
+    }
+
+    /**
+     * Issued Form P rows that still live on tnelb_license.
+     */
+    private function legacyTnelbFormPLicenceRow(string $applicationId): ?object
+    {
+        if (! Schema::hasTable('tnelb_license')) {
+            return null;
+        }
+
+        $row = DB::table('tnelb_license')->where('application_id', $applicationId)->first();
+        if (! $row || trim((string) ($row->license_number ?? '')) === '') {
+            return null;
+        }
+
+        return (object) [
+            'application_id' => $applicationId,
+            'license_number' => $row->license_number,
+            'issued_by' => $row->issued_by ?? null,
+            'issued_at' => $row->issued_at ?? null,
+            'expires_at' => $row->expires_at ?? null,
+            'valid_from' => $row->issued_at ?? null,
+            'license_pdf_en' => $row->license_pdf_en ?? null,
+            'license_pdf_ta' => $row->license_pdf_ta ?? null,
+            'license_pdf_bilingual' => null,
+            'cert_pdf' => $row->license_pdf_en ?? null,
+        ];
     }
 
     private function formPLicenceTableForApplType(string $applType): string
@@ -1363,11 +1404,40 @@ class LicensepdfController extends Controller
         $label = $requestedLocale === 'ta' ? 'Tamil' : 'English';
         $licence = $this->getFormPLicenceRow($applicationId);
 
+        $storedLicence = $licence
+            ? trim((string) ($licence->cert_pdf ?? $licence->license_pdf_en ?? ''))
+            : '';
+        $storedPdf = $this->openStoredLicencePdf($storedLicence);
+        if ($storedPdf !== null && ! $this->isLegacyLicenceFilePath($storedLicence)) {
+            return response($storedPdf)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="' . $applicationId . '.pdf"');
+        }
+
         $encryptedPath = $licence ? $this->resolveFormPLicenceEncryptedPath($licence, $requestedLocale) : null;
+        if ($licence && $requestedLocale === 'ta') {
+            $tamilPath = trim((string) ($licence->license_pdf_ta ?? ''));
+            if ($tamilPath === '') {
+                $legacyTamil = $this->legacyTnelbFormPLicenceRow($applicationId);
+                $tamilPath = trim((string) ($legacyTamil?->license_pdf_ta ?? ''));
+            }
+            if ($tamilPath !== '') {
+                $encryptedPath = $tamilPath;
+            }
+        }
 
         if (! $licence || empty($encryptedPath)) {
             $this->generateFormPLicencePdfs($applicationId);
-            $licence       = $this->getFormPLicenceRow($applicationId);
+            $licence = $this->getFormPLicenceRow($applicationId);
+            $storedLicence = $licence
+                ? trim((string) ($licence->cert_pdf ?? ''))
+                : '';
+            $storedPdf = $this->openStoredLicencePdf($storedLicence);
+            if ($storedPdf !== null && ! $this->isLegacyLicenceFilePath($storedLicence)) {
+                return response($storedPdf)
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'inline; filename="' . $applicationId . '.pdf"');
+            }
             $encryptedPath = $licence ? $this->resolveFormPLicenceEncryptedPath($licence, $requestedLocale) : null;
         }
 
@@ -1436,7 +1506,8 @@ class LicensepdfController extends Controller
 
         $applType = strtoupper(trim($formP->appl_type ?? 'N')); // N or R
 
-        $licence = $this->competencyCertLicenceRow($applicationId, 'P');
+        $licence = $this->competencyCertLicenceRow($applicationId, 'P')
+            ?? $this->legacyTnelbFormPLicenceRow($applicationId);
 
         if (!$licence) {
             Log::warning('generateFormPLicencePdfs: licence record not found for Form P', [
@@ -1447,6 +1518,14 @@ class LicensepdfController extends Controller
         }
 
         $licenceTable = $this->formPLicenceTableForApplType($applType);
+
+        $existingBlob = trim((string) ($licence->cert_pdf ?? ''));
+        if ($existingBlob !== ''
+            && ! $this->isLegacyLicenceFilePath($existingBlob)
+            && $this->openStoredLicencePdf($existingBlob) !== null
+        ) {
+            return 'cc_form_p_cert.cert_pdf';
+        }
 
         // Already have a single bilingual file (generate once per application).
         if (
@@ -1477,11 +1556,11 @@ class LicensepdfController extends Controller
             'application_id'    => $formP->application_id,
             'name'              => $formP->applicant_name,
             'fathers_name'      => $formP->fathers_name,
-            'applicants_address' => $formP->applicants_address,
+            'applicants_address' => $formP->applicant_address ?? $formP->applicants_address ?? '',
             'd_o_b'             => $formP->d_o_b,
             'age'               => $formP->age,
-            'license_name'      => $formP->license_name,
-            'form_name'         => $formP->form_name,
+            'license_name'      => $formP->certificate_name ?? $formP->license_name ?? 'P',
+            'form_name'         => $formP->form_name ?? 'P',
             'license_number'    => $licence->license_number,
             'issued_by'         => $licence->issued_by,
             'issued_at'         => $licence->issued_at,
@@ -1531,7 +1610,7 @@ class LicensepdfController extends Controller
                         <td width="70%" valign="top">
                             <table class="info-table">
                                 <tr>
-                                    <td class="lbl">WH.No</td>
+                                    <td class="lbl">P.No</td>
                                     <td class="colon">:</td>
                                     <td class="val">' . $applicant->license_number . '</td>
                                 </tr>
@@ -1573,7 +1652,7 @@ class LicensepdfController extends Controller
                                     <td align="center">
                                         <div class="photo">
                                             ' . ($photoPath
-            ? '<img src="' . $photoPath . '" style="width:38mm; height:38mm; object-fit:cover;">'
+            ? '<img src="' . $photoPath . '" style="width:22mm; height:22mm; object-fit:cover;">'
             : '') . '
                                         </div>
                                     </td>
@@ -1821,32 +1900,20 @@ class LicensepdfController extends Controller
             return $encryptedPathBl;
         }
 
-        // Legacy: separate encrypted EN / TA files
-        $encryptedPathEn = 'private_documents/license_pdfs/' . $fileNameEn . '.enc';
-        $encryptedPathTa = 'private_documents/license_pdfs/' . $fileNameTa . '.enc';
-        Storage::disk('local')->put($encryptedPathEn, Crypt::encryptString($pdfBinaryEn));
-        Storage::disk('local')->put($encryptedPathTa, Crypt::encryptString($pdfBinaryTa));
-
         try {
-            $legacyPayload = [
-                'license_pdf_en' => $encryptedPathEn,
-                'license_pdf_ta' => $encryptedPathTa,
-            ];
-            if (! Schema::hasColumn($licenceTable, 'license_pdf_en') && Schema::hasColumn($licenceTable, 'cert_pdf')) {
-                $legacyPayload = ['cert_pdf' => $encryptedPathEn];
-            }
-            $this->updateCompetencyCertPdfPayload($applicationId, $legacyPayload, 'P');
+            $pdfMerged = $this->mergePdfBinaries($pdfBinaryEn, $pdfBinaryTa);
+            $this->storeEncryptedLicensePdf($applicationId, Crypt::encryptString($pdfMerged));
         } catch (\Throwable $e) {
-            Log::warning('Failed to update licence PDF paths for Form P', [
+            Log::error('Form P licence PDF was not stored', [
                 'application_id' => $applicationId,
                 'table'          => $licenceTable,
-                'path_en'        => $encryptedPathEn,
-                'path_ta'        => $encryptedPathTa,
                 'error'          => $e->getMessage(),
             ]);
+
+            return null;
         }
 
-        return $encryptedPathEn;
+        return 'cc_form_p_cert.cert_pdf';
     }
 
     public function generateLicensePDF($application_id)
@@ -1868,13 +1935,13 @@ class LicensepdfController extends Controller
 
 
         if ($application && $application->appl_type === 'R') {
-            $appltye = 'Renewal Application';
+            $appltye = 'Renewal';
         } else if ($application && $application->appl_type === 'N') {
-            $appltye = 'New Application';
+            $appltye = 'New';
         } else if ($application && $application->appl_type === 'D') {
-            $appltye = 'Digitization Application';
+            $appltye = 'Digitization';
         } else {
-            $appltye = 'Alteration Application';
+            $appltye = 'Alteration';
         }
 
 
@@ -2300,7 +2367,7 @@ class LicensepdfController extends Controller
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of First Issue</div><div class="lbl-ta" lang="ta">வழங்கப்பட்ட தேதி</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . date('d M Y', strtotime($applicant->issued_at)) . '</td>
+                                    <td class="val">' . date('d-m-Y', strtotime($applicant->issued_at)) . '</td>
                                 </tr>
                                  <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Validity</div><div class="lbl-ta" lang="ta">செல்லுபடியாகும் காலம்</div></div></td>
@@ -2440,7 +2507,12 @@ class LicensepdfController extends Controller
         );
 
         $mpdf->WriteHTML($html);
-        return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
+        $pdfBinary = $mpdf->Output('Application_Details.pdf', 'S');
+        $this->storeEncryptedLicensePdf((string) $application_id, Crypt::encryptString($pdfBinary));
+
+        return response($pdfBinary)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="Application_Details.pdf"');
     }
 
 

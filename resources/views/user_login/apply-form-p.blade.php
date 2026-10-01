@@ -268,7 +268,7 @@
                                             <div class="fs-section-tamil">மின்னஞ்சல் முகவரி</div>
                                         </div>
                                     </div>
-                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email" maxlength="191"
+                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email" maxlength="50"
                                         value="{{ old('applicant_email', isset($application) ? ($application->applicant_email ?? '') : (Auth::user()->email ?? '')) }}">
                                     <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
@@ -415,7 +415,7 @@
                                             <th style="width:22%">Institute Name &amp; Address</th>
                                             <th>From date</th>
                                             <th>To date</th>
-                                            <th>Duration</th>
+                                            <th>Year / Month / Day</th>
                                             <th class="text-center">Upload Document<br><span class="file-limit">File type: PDF, PNG (Max 200 KB)</span></th>
                                             <th class="text-center p-1">
                                                 <div class="form-s-actions-stack">
@@ -429,7 +429,10 @@
                                             <td><textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3" maxlength="255"></textarea></td>
                                             <td><input autocomplete="off" class="form-control" name="from_date[]" type="date"></td>
                                             <td><input autocomplete="off" class="form-control" name="to_date[]" type="date"></td>
-                                            <td><input autocomplete="off" class="form-control" name="duration[]" type="text" maxlength="8" readonly placeholder="Y.M"></td>
+                                            <td>
+                                                @include('user_login.partials.form-p-ymd')
+                                                <input type="hidden" name="duration[]" value="">
+                                            </td>
                                             <td><input class="form-control" name="institute_document[]" type="file" accept=".pdf,application/pdf"></td>
                                             <td class="text-center p-1">
                                                 <div class="form-s-actions-stack">
@@ -461,7 +464,7 @@
                                         <tr>
                                             <th class="text-center" style="font-size:.72rem;font-weight:500;">From (date)</th>
                                             <th class="text-center" style="font-size:.72rem;font-weight:500;">To (date)</th>
-                                            <th class="text-center" style="font-size:.72rem;font-weight:500;width:90px;">Total yrs</th>
+                                            <th class="text-center" style="font-size:.72rem;font-weight:500;">Year / Month / Day</th>
                                         </tr>
                                     </thead>
                                     <tbody id="work-container">
@@ -470,7 +473,7 @@
                                             <td><input type="date" class="form-control work-date-from" name="work_date_from[]"></td>
                                             <td><input type="date" class="form-control work-date-to" name="work_date_to[]"></td>
                                             <td>
-                                                <input type="text" class="form-control work-year-total-display text-center" placeholder="—" readonly tabindex="-1">
+                                                @include('user_login.partials.form-p-ymd')
                                                 <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
                                             </td>
                                             <td><input autocomplete="off" class="form-control" name="designation[]" type="text" maxlength="80"></td>
@@ -522,8 +525,8 @@
                             <div id="previously_details" class="fs-toggle-panel" style="display:none;">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
-                                        <div class="fs-field-label">Application Number <span class="req">*</span></div>
-                                        <input autocomplete="off" class="form-control" id="previously_number" name="previously_number" type="text" data-type="license" placeholder="Application Number" maxlength="80">
+                                        <div class="fs-field-label">Application Number</div>
+                                        <input autocomplete="off" class="form-control" id="previously_number" name="previously_number" type="text" placeholder="Application Number" maxlength="80">
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-4">
@@ -886,10 +889,7 @@
 <td><input autocomplete="off" class="form-control" name="work_level[]" type="text" maxlength="80"></td>
 <td><input type="date" class="form-control work-date-from" name="work_date_from[]"></td>
 <td><input type="date" class="form-control work-date-to" name="work_date_to[]"></td>
-<td>
-    <input type="text" class="form-control work-year-total-display text-center" placeholder="—" readonly tabindex="-1">
-    <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
-</td>
+<td>${formPYmdBoxHtml()}<input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]"></td>
 <td><input autocomplete="off" class="form-control" name="designation[]" type="text" maxlength="80"></td>
 <td><input class="form-control" name="work_document[]" type="file" accept=".pdf,application/pdf"></td>
 <td class="text-center p-1"><div class="form-s-actions-stack"><button type="button" class="btn-tbl-remove remove-work py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button></div></td>`;
@@ -900,32 +900,6 @@
                 e.target.closest("tr").remove();
             }
         });
-
-        function calcWorkTotalYearsP(fromVal, toVal) {
-            if (!fromVal || !toVal) return '';
-            var from = new Date(fromVal + 'T12:00:00');
-            var to = new Date(toVal + 'T12:00:00');
-            if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return '';
-            if (to < from) return 'Invalid range';
-            var years = (to - from) / 86400000 / 365.25;
-            return (Math.round(years * 10) / 10).toFixed(1);
-        }
-        function refreshWorkTotalP(row) {
-            if (!row) return;
-            var fromInput = row.querySelector('.work-date-from');
-            var toInput = row.querySelector('.work-date-to');
-            var displayInput = row.querySelector('.work-year-total-display');
-            var hiddenInput = row.querySelector('.work-experience-total-hidden');
-            if (!fromInput || !toInput || !displayInput) return;
-            var total = calcWorkTotalYearsP(fromInput.value, toInput.value);
-            displayInput.value = total;
-            if (hiddenInput) hiddenInput.value = (total === 'Invalid range') ? '' : total;
-        }
-        document.addEventListener('change', function (e) {
-            if (!e.target.matches('.work-date-from, .work-date-to')) return;
-            refreshWorkTotalP(e.target.closest('.work-fields'));
-        });
-        document.querySelectorAll('#work-container .work-fields').forEach(refreshWorkTotalP);
 
         document.addEventListener("click", function(e) {
             let container = document.getElementById("institute-container");
@@ -944,7 +918,7 @@
                 <td><textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3" maxlength="255"></textarea></td>
                 <td><input type="date" class="form-control" name="from_date[]"></td>
                 <td><input type="date" class="form-control" name="to_date[]"></td>
-                <td><input type="text" class="form-control" name="duration[]" maxlength="8" readonly placeholder="Y.M"></td>
+                <td>${formPYmdBoxHtml()}<input type="hidden" name="duration[]" value=""></td>
                 <td><input type="file" class="form-control" name="institute_document[]" accept=".pdf,.png,.jpg,.jpeg"></td>
                 <td class="text-center p-1"><div class="form-s-actions-stack"><button type="button" class="btn-tbl-remove remove-institute py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button></div></td>`;
                     container.appendChild(newRow);
@@ -960,42 +934,6 @@
                 e.target.closest("tr").remove();
             }
         });
-
-        // Returns the institute attendance duration as a "Y.M" string where the
-        // decimal point is just a separator (NOT a math decimal):
-        //   2 years exactly       -> "2.0"
-        //   1 year 2 months       -> "1.2"
-        //   3 years 5 months      -> "3.5"
-        //   1 year 11 months      -> "1.11"
-        // The day-component is honoured (Feb 15 -> Apr 1 counts as 1 month, not 2).
-        function calculateInstituteDurationYears(fromDate, toDate) {
-            if (!fromDate || !toDate) return '';
-            const from = new Date(fromDate + 'T00:00:00');
-            const to = new Date(toDate + 'T00:00:00');
-            if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from) return '';
-            let years = to.getFullYear() - from.getFullYear();
-            let months = to.getMonth() - from.getMonth();
-            if (to.getDate() < from.getDate()) months -= 1;
-            if (months < 0) { years -= 1; months += 12; }
-            if (years < 0) return '';
-            return years + '.' + months;
-        }
-
-        function updateInstituteDuration(row) {
-            if (!row) return;
-            const fromInput = row.querySelector('input[name="from_date[]"]');
-            const toInput = row.querySelector('input[name="to_date[]"]');
-            const durationInput = row.querySelector('input[name="duration[]"]');
-            if (!fromInput || !toInput || !durationInput) return;
-            durationInput.value = calculateInstituteDurationYears(fromInput.value, toInput.value);
-        }
-
-        document.addEventListener('change', function (e) {
-            if (!e.target.matches('input[name="from_date[]"], input[name="to_date[]"]')) return;
-            updateInstituteDuration(e.target.closest('.institute-fields'));
-        });
-
-        document.querySelectorAll('#institute-container .institute-fields').forEach(updateInstituteDuration);
     </script>
     @include('user_login.partials.form-p-preview-modal-script')
 </footer>

@@ -2665,26 +2665,41 @@
 <script>
     function initDateDisplay(inp) {
         if (!inp) return;
-        function toDisplay(raw) {
-            if (!raw) return;
-            var p = String(raw).split('-');
-            if (p.length === 3) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        /* Work From/To stay type=date. Switching to text on blur drops year keystrokes. */
+        if (inp.classList && (inp.classList.contains('work-date-from') || inp.classList.contains('work-date-to'))) {
+            return;
         }
-        if (inp.value && /^\d{4}-\d{2}-\d{2}$/.test(inp.value)) {
+        function yearOk(raw) {
+            var y = parseInt(String(raw || '').slice(0, 4), 10);
+            return y >= 1900 && y <= 9999;
+        }
+        function toDisplay(raw) {
+            if (!raw || !yearOk(raw)) return;
+            var p = String(raw).split('-');
+            if (p.length === 3 && p[0].length === 4) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        }
+        if (inp.value && yearOk(inp.value)) {
             inp.setAttribute('data-raw', inp.value);
             toDisplay(inp.value);
         }
         inp.addEventListener('focus', function() {
             var raw = this.getAttribute('data-raw') || '';
-            this.type = 'date'; if (raw) this.value = raw;
+            this.type = 'date';
+            if (raw && yearOk(raw)) this.value = raw;
+            if (this.classList.contains('work-date-to')) this.removeAttribute('max');
         });
         inp.addEventListener('blur', function() {
-            if (this.type === 'date' && this.value) {
-                this.setAttribute('data-raw', this.value); toDisplay(this.value);
+            if (this.type !== 'date') return;
+            if (this.value && yearOk(this.value)) {
+                this.setAttribute('data-raw', this.value);
+                toDisplay(this.value);
+                return;
             }
+            var raw = this.getAttribute('data-raw') || '';
+            if (raw && yearOk(raw)) { this.value = raw; toDisplay(raw); }
         });
         inp.addEventListener('change', function() {
-            if (this.type === 'date' && this.value) this.setAttribute('data-raw', this.value);
+            if (this.type === 'date' && this.value && yearOk(this.value)) this.setAttribute('data-raw', this.value);
         });
     }
     document.querySelectorAll('#competency_form_ws .work-date-from, #competency_form_ws .work-date-to').forEach(initDateDisplay);

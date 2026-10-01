@@ -253,7 +253,12 @@ $(document).ready(function() {
 
         // Only attach flatpickr + DD-MM-YYYY validation on non-native date inputs.
         // On pages using <input type="date"> we rely on the browser picker and page-specific logic.
-        if (dobInput && dobInput.type !== 'date') {
+        if (dobInput && dobInput.type !== 'date' && dobInput.type !== 'hidden') {
+            var storedDob = (dobInput.value || '').trim();
+            var storedIso = storedDob.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (storedIso) {
+                dobInput.value = storedIso[3] + '-' + storedIso[2] + '-' + storedIso[1];
+            }
             flatpickr(dobInput, {
                 dateFormat: "d-m-Y",
                 onChange: function (_selectedDates, dateStr) {
@@ -271,6 +276,11 @@ $(document).ready(function() {
 
 
         $('#previously_number').on('keyup', function () {
+            if (this.closest && this.closest('#competency_form_p')) {
+                var formPLicenseError = document.getElementById('licenseError');
+                if (formPLicenseError) formPLicenseError.textContent = '';
+                return;
+            }
             const value = $(this).val().trim().toUpperCase();
             $(this).val(value);
             const regex = /^(B|H|LB|LWH)\d+$/;
@@ -307,7 +317,7 @@ $(document).ready(function() {
         const errorMessage = $('.error-message').first().text('');
 
         // If the page uses native date input, don't run DD-MM-YYYY validation here.
-        if (dobInput && dobInput.type === 'date') {
+        if (dobInput && (dobInput.type === 'date' || dobInput.type === 'hidden')) {
             return;
         }
 

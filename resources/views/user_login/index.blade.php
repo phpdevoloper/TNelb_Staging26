@@ -932,10 +932,10 @@
                                                     <span class="license-card__chip">Form {{ $workflow->license_name ?? 'N/A' }}</span>
                                                 </div>
 
-                                                @if ($isExpired && $expiresAt)
+                                                @if ($isExpired && $expiry)
                                                     <div class="license-card__reason">
                                                         <i class="fa fa-exclamation-triangle"></i>
-                                                        <span>Expired on {{ Carbon::parse($expiresAt)->format('d-m-Y') }}</span>
+                                                        <span>Expired on {{ Carbon::parse($expiry)->format('d-m-Y') }}</span>
                                                     </div>
                                                 @endif
                                             </article>
@@ -1004,10 +1004,10 @@
                                                     <span class="license-card__chip">Form {{ $workflow->license_name ?? 'N/A' }}</span>
                                                 </div>
 
-                                                @if ($isExpired && $expiresAt)
+                                                @if ($isExpired && $expiry)
                                                     <div class="license-card__reason">
                                                         <i class="fa fa-exclamation-triangle"></i>
-                                                        <span>Expired on {{ Carbon::parse($expiresAt)->format('d-m-Y') }}</span>
+                                                        <span>Expired on {{ Carbon::parse($expiry)->format('d-m-Y') }}</span>
                                                     </div>
                                                 @elseif ($hasBankExpired || $hasStaffExpired)
                                                     <div class="license-card__reason">

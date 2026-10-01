@@ -40,7 +40,7 @@
                                         'SE' => 'Secretary',
                                         'PR' => 'President',
                                         'S', 'S2' => 'Supervisor',
-                                        'A', 'AC' => 'Assistant Secretary',
+                                        'A', 'AC', 'AS' => 'Assistant Secretary',
                                         'AP' => 'Applicant',
                                         'Assistant Secretary' => 'Assistant Secretary',
                                         default => $processedBy,
@@ -55,7 +55,7 @@
                                             'SE' => 'Secretary',
                                             'PR' => 'President',
                                             'S', 'S2' => 'Supervisor',
-                                            'A', 'AC' => 'Assistant Secretary',
+                                            'A', 'AC', 'AS' => 'Assistant Secretary',
                                             default => $raisedByRaw,
                                         };
                                     } else {

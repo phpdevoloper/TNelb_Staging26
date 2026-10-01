@@ -368,7 +368,7 @@
                                 <div class="col-12 col-md-6 mt-1">
                                     <div class="fs-field-label">Email ID</div>
                                     <div class="fs-field-tamil">மின்னஞ்சல் முகவரி</div>
-                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email" maxlength="191" value="{{ old('applicant_email', $emailValFormP) }}">
+                                    <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email" maxlength="50" value="{{ old('applicant_email', $emailValFormP) }}">
                                     <span class="error-message text-danger"></span>
                                 </div>
                             </div>
@@ -568,7 +568,7 @@
                                             <th style="width:22%">Institute Name &amp; Address</th>
                                             <th>From date</th>
                                             <th>To date</th>
-                                            <th>Duration</th>
+                                            <th>Year / Month / Day</th>
                                             <th class="text-center">Upload Document<br><span class="file-limit">File type: PDF, PNG (Max 200 KB)</span></th>
                                             <th class="text-center p-1">
                                                 <div class="form-s-actions-stack">
@@ -592,7 +592,8 @@
                                                         <input autocomplete="off" class="form-control" name="to_date[]" type="date" value="{{ calendar_date_ymd($institute->to_date ?? '') }}">
                                                     </td>
                                                     <td>
-                                                        <input autocomplete="off" class="form-control" name="duration[]" type="text" value="{{ $institute->duration ?? '' }}" readonly>
+                                                        @include('user_login.partials.form-p-ymd')
+                                                        <input type="hidden" name="duration[]" value="{{ $institute->duration ?? '' }}">
                                                     </td>
                                                     <td>
                                                         @if (!empty($institute->upload_doc))
@@ -624,7 +625,10 @@
                                                 <td><textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3" maxlength="255"></textarea></td>
                                                 <td><input autocomplete="off" class="form-control" name="from_date[]" type="date"></td>
                                                 <td><input autocomplete="off" class="form-control" name="to_date[]" type="date"></td>
-                                                <td><input autocomplete="off" class="form-control" name="duration[]" type="text" readonly></td>
+                                                <td>
+                                                    @include('user_login.partials.form-p-ymd')
+                                                    <input type="hidden" name="duration[]" value="">
+                                                </td>
                                                 <td><input class="form-control" name="institute_document[]" type="file" accept=".pdf,application/pdf"></td>
                                                 <td class="text-center p-1">
                                                     <div class="form-s-actions-stack">
@@ -652,7 +656,7 @@
                                             <th>
                                                 <div>Year of Experience</div>
                                                 <div class="d-flex justify-content-between" style="gap:6px;font-size:.72rem;font-weight:400;">
-                                                    <span>From (date)</span><span>To (date)</span><span>Total yrs</span>
+                                                    <span>From (date)</span><span>To (date)</span><span>Year / Month / Day</span>
                                                 </div>
                                             </th>
                                             <th>Designation</th>
@@ -681,7 +685,7 @@
                                                         <div class="d-flex" style="gap:6px;">
                                                             <input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $expFromDate }}">
                                                             <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $expToDate }}">
-                                                            <input type="text" class="form-control work-year-total-display" placeholder="—" readonly tabindex="-1" value="{{ $expTotal }}">
+                                                            @include('user_login.partials.form-p-ymd')
                                                         </div>
                                                         <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $expTotal }}">
                                                         <input type="hidden" name="experience[]" class="experience-sync" value="{{ $exp->experience ?? $exp->total_exp ?? '' }}">
@@ -720,7 +724,7 @@
                                                     <div class="d-flex" style="gap:6px;">
                                                         <input type="date" class="form-control work-date-from" name="work_date_from[]">
                                                         <input type="date" class="form-control work-date-to" name="work_date_to[]">
-                                                        <input type="text" class="form-control work-year-total-display" placeholder="—" readonly tabindex="-1">
+                                                        @include('user_login.partials.form-p-ymd')
                                                     </div>
                                                     <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
                                                     <input type="hidden" name="experience[]" class="experience-sync">
@@ -778,7 +782,7 @@
                             <div id="previously_details" class="fs-toggle-panel" style="display: {{ $hasPreviousApplication ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
-                                        <div class="fs-field-label">Application Number <span class="req">*</span></div>
+                                        <div class="fs-field-label">Application Number</div>
                                         <input autocomplete="off" class="form-control" id="previously_number" name="previously_number" type="text" placeholder="Application Number" maxlength="80" value="{{ $application_details->previously_number ?? '' }}">
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
@@ -974,7 +978,7 @@
                     @csrf
                     <input type="hidden" class="form-control text-box single-line" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id" value="{{ $applicationid ?? ($application_details->application_id ?? '') }}">
-                    <input type="hidden" id="old_application" name="old_application" value="{{ $old_application_id ?? ($application_details->old_application ?? '') }}">
+                    <input type="hidden" id="old_application" name="old_application" value="{{ $old_application_id ?? ($old_application ?? ($application_details->old_application ?? '')) }}">
                     <input type="hidden" id="license_number" name="license_number" value="{{ $license_details->license_number ?? '' }}">
                     <input type="hidden" id="form_name" name="form_name" value="P">
                     <input type="hidden" id="license_name" name="license_name" value="{{ $application_details->license_name ?? 'P' }}">
@@ -1279,7 +1283,7 @@
                             <div class="d-flex" style="gap:6px;">
                                 <input type="date" class="form-control work-date-from" name="work_date_from[]">
                                 <input type="date" class="form-control work-date-to" name="work_date_to[]">
-                                <input type="text" class="form-control work-year-total-display" placeholder="—" readonly tabindex="-1">
+                                ${formPYmdBoxHtml()}
                             </div>
                             <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]">
                             <input type="hidden" name="experience[]" class="experience-sync">
@@ -1312,36 +1316,6 @@
         }
     });
 
-    // Form P work-experience total years calculator
-    function calcWorkTotalYearsP(fromVal, toVal) {
-        if (!fromVal || !toVal) return '';
-        var from = new Date(fromVal + 'T12:00:00');
-        var to = new Date(toVal + 'T12:00:00');
-        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return '';
-        if (to < from) return 'Invalid range';
-        var years = (to - from) / 86400000 / 365.25;
-        return (Math.round(years * 10) / 10).toFixed(1);
-    }
-    function refreshWorkTotalP(row) {
-        if (!row) return;
-        var fromInput = row.querySelector('.work-date-from');
-        var toInput = row.querySelector('.work-date-to');
-        var displayInput = row.querySelector('.work-year-total-display');
-        var hiddenInput = row.querySelector('.work-experience-total-hidden');
-        var legacyInput = row.querySelector('.experience-sync');
-        if (!fromInput || !toInput || !displayInput) return;
-        var total = calcWorkTotalYearsP(fromInput.value, toInput.value);
-        displayInput.value = total;
-        var clean = (total === 'Invalid range') ? '' : total;
-        if (hiddenInput) hiddenInput.value = clean;
-        if (legacyInput) legacyInput.value = clean;
-    }
-    $(document).on('change', '.work-date-from, .work-date-to', function () {
-        refreshWorkTotalP(this.closest('.work-fields'));
-    });
-    $(function () {
-        document.querySelectorAll('#work-container .work-fields').forEach(refreshWorkTotalP);
-    });
 
     $(document).on('click', function(e) {
 
@@ -1372,7 +1346,7 @@
                         <td><textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3"></textarea></td>
                         <td><input type="date" class="form-control" name="from_date[]"></td>
                         <td><input type="date" class="form-control" name="to_date[]"></td>
-                        <td><input type="text" class="form-control" name="duration[]" readonly></td>
+                        <td>${formPYmdBoxHtml()}<input type="hidden" name="duration[]" value=""></td>
                         <td class="text-center">
                             <input type="file" class="form-control institute-file" name="institute_document[]" accept=".pdf,.png,.jpg,.jpeg">
                         </td>
@@ -1417,43 +1391,6 @@
             $row.find('input[name="exist_institute_document[]"]').val('');
             uploadCell.html('<input type="file" class="form-control institute-file" name="institute_document[]" accept=".pdf,.png,.jpg,.jpeg">');
         });
-    });
-
-    // Returns the institute attendance duration as a "Y.M" string where the
-    // decimal point is just a separator (NOT a math decimal):
-    //   2 years exactly       -> "2.0"
-    //   1 year 2 months       -> "1.2"
-    //   3 years 5 months      -> "3.5"
-    //   1 year 11 months      -> "1.11"
-    // The day-component is honoured (Feb 15 -> Apr 1 counts as 1 month, not 2).
-    function calculateInstituteDurationYears(fromDate, toDate) {
-        if (!fromDate || !toDate) return '';
-        var from = new Date(fromDate + 'T00:00:00');
-        var to = new Date(toDate + 'T00:00:00');
-        if (isNaN(from.getTime()) || isNaN(to.getTime()) || to < from) return '';
-
-        var years = to.getFullYear() - from.getFullYear();
-        var months = to.getMonth() - from.getMonth();
-        if (to.getDate() < from.getDate()) months -= 1;
-        if (months < 0) { years -= 1; months += 12; }
-        if (years < 0) return '';
-        return years + '.' + months;
-    }
-
-    function updateInstituteDuration($row) {
-        var fromDate = $row.find('input[name="from_date[]"]').val();
-        var toDate = $row.find('input[name="to_date[]"]').val();
-        var duration = calculateInstituteDurationYears(fromDate, toDate);
-        $row.find('input[name="duration[]"]').val(duration);
-    }
-
-    $(document).on('change input', 'input[name="from_date[]"], input[name="to_date[]"]', function () {
-        var $row = $(this).closest('tr.institute-fields');
-        if ($row.length) updateInstituteDuration($row);
-    });
-
-    $('#institute-container tr.institute-fields').each(function () {
-        updateInstituteDuration($(this));
     });
 
     function clearLocalFilePreviewEditP($input) {

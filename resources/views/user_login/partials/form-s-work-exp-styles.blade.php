@@ -1053,6 +1053,10 @@
         padding: 0 4px 4px;
         overflow: visible;
     }
+    /* Collapsed summary rows stay in the form, but must not leave a blank band. */
+    .work-rows > .work-entry-block:has(> .work-row.is-complete:not(.work-row--expanded)) {
+        display: none;
+    }
     .work-exp-wrap .work-entry-block > .work-row-date-validation .work-exp-date-range-error {
         font-size: .78rem;
         font-weight: 600;

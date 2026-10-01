@@ -8,16 +8,12 @@
 
 <style>
     /* Existing experience stays read-only; only new rows can be added. */
-    .fs-alt-form .fs-alt-existing-work input,
-    .fs-alt-form .fs-alt-existing-work select,
-    .fs-alt-form .fs-alt-existing-work textarea,
-    .fs-alt-form .fs-alt-existing-work button { pointer-events: none !important; }
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work input,
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work select,
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work textarea,
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work button { pointer-events: none !important; }
     .fs-alt-form .fs-alt-existing-work { background: #f8fafc; }
-    .fs-alt-existing-work .remove-work { display: none !important; }
-    .fs-alt-form .work-fields.fs-alt-existing-work,
-    .fs-alt-form .work-entry-block:has(.fs-alt-existing-work) {
-        display: none !important;
-    }
+    .fs-alt-form:not(.fs-alt-work-unlocked) .fs-alt-existing-work .remove-work { display: none !important; }
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-till-toggle,
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-date-till,
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit input.work-date-to:not([type="hidden"]),
@@ -1157,7 +1153,7 @@
     .fs-form #checkboxError {
         font-size: .78rem !important;
         line-height: 1.3;
-        display: block;
+        /* display: block; */
         margin-top: 2px;
     }
 
@@ -1306,7 +1302,7 @@
                 <span class="fs-alt-options-error" id="fsAltOptionsError" role="alert" aria-live="polite"></span>
                 @endif
 
-                <form id="competency_form_ws" enctype="multipart/form-data" class="{{ $isAlterationMode ? 'fs-alt-form' : '' }}{{ $isAlterationEditable ? ' fs-alt-form--editable' : '' }}">
+                <form id="competency_form_p" enctype="multipart/form-data" class="{{ $isAlterationMode ? 'fs-alt-form' : '' }}{{ $isAlterationEditable ? ' fs-alt-form--editable' : '' }}">
 
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id"
@@ -1509,7 +1505,7 @@
                                             </div>
                                         </div>
                                         <input autocomplete="email" class="form-control" id="applicant_email" name="applicant_email" type="email"
-                                            maxlength="191" {{ $formName === 'S' ? 'required' : '' }} value="{{ $emailVal }}">
+                                            maxlength="50" {{ $formName === 'S' ? 'required' : '' }} value="{{ $emailVal }}">
                                         <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
@@ -1560,7 +1556,7 @@
                     {{-- ═══ SECTION 5 — Education ═══ --}}
                     <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
                         <div class="fs-section-header">
-                            <span class="fs-section-num">{{ $formName === 'S' ? 6 : 5 }}</span>
+                            <span class="fs-section-num">{{ in_array($formName, ['S', 'P'], true) ? 6 : 5 }}</span>
                             <div>
                                 <div class="fs-section-title">
                                     Details of Technical Qualification passed by the applicant.
@@ -1816,10 +1812,147 @@
                                                     </tbody>
                                                 </table>
                                             </div>
+                            @if(($application_details->form_name ?? '') === 'P')
+                            <div class="fs-field-label mb-2 mt-4">(ii) Institute in which the applicant has undergone training and the period</div>
+                            <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் பயிற்சி பெற்ற காலம்</div>
+                            <div class="fs-table-wrap mb-2">
+                                <table class="table table-bordered" id="institute-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Institute Name &amp; Address</th>
+                                            <th>From date</th>
+                                            <th>To date</th>
+                                            <th>Year / Month / Day</th>
+                                            <th class="text-center">Document</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="institute-container">
+                                        @forelse(($institute_details ?? collect()) as $institute)
+                                        <tr class="institute-fields">
+                                            <td><textarea class="form-control" name="institute_name_address[]" rows="2" readonly>{{ $institute->institute_name_address ?? '' }}</textarea></td>
+                                            <td><input class="form-control" name="from_date[]" type="date" value="{{ !empty($institute->from_date) ? \Carbon\Carbon::parse($institute->from_date)->format('Y-m-d') : '' }}" readonly></td>
+                                            <td><input class="form-control" name="to_date[]" type="date" value="{{ !empty($institute->to_date) ? \Carbon\Carbon::parse($institute->to_date)->format('Y-m-d') : '' }}" readonly></td>
+                                            <td>
+                                                @include('user_login.partials.form-p-ymd')
+                                                <input type="hidden" name="duration[]" value="{{ $institute->duration ?? '' }}">
+                                            </td>
+                                            <td class="text-center">
+                                                @if(!empty($institute->upload_doc ?? $institute->upload_document ?? null))
+                                                    <a href="{{ competency_document_url($institute->upload_doc ?? $institute->upload_document, 'institute', (int) ($institute->id ?? 0), 'institute_doc') }}" target="_blank"><i class="fa fa-file-pdf-o text-danger"></i> View Document</a>
+                                                @else
+                                                    —
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr><td colspan="5" class="text-center text-muted">No institute details available.</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                            @endif
                         </div>
                     </div>
                     {{-- /SECTION 5 --}}
 
+                    @if(($application_details->form_name ?? '') === 'P')
+                    <div class="fs-section" id="fsAltSectionWork">
+                        <div class="fs-section-header">
+                            <div>
+                                <div class="fs-section-title">
+                                    (iii) Power Station to which he is attached at present
+                                    <span class="section-hint">(Upload the documents)</span>
+                                    @if($isAlterationMode)
+                                    <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeWork" data-alt-opt="work" aria-pressed="false" title="Edit power station experience">
+                                        <i class="fa fa-pencil" aria-hidden="true"></i> <span class="fs-alt-edit-badge__label">Edit</span>
+                                    </button>
+                                    @endif
+                                </div>
+                                <div class="fs-section-tamil">தற்போது இணைக்கப்பட்டுள்ள மின் நிலையம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                            </div>
+                        </div>
+                        <div class="fs-section-body">
+                            <div class="fs-table-wrap">
+                                <table class="table table-bordered" id="work-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Power Station</th>
+                                            <th>From (date)</th>
+                                            <th>To (date)</th>
+                                            <th>Year / Month / Day</th>
+                                            <th>Designation</th>
+                                            <th class="text-center">Document</th>
+                                            <th class="text-center p-1">
+                                                <button type="button" class="btn-tbl-add add-more-work py-1 px-2" title="Add row"><i class="fa fa-plus"></i></button>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="work-container" class="js-work-container">
+                                        @forelse($exp_details as $expRow)
+                                        @php
+                                            $pFrom = !empty($expRow->from_date) ? \Carbon\Carbon::parse($expRow->from_date)->format('Y-m-d') : '';
+                                            $pTo = !empty($expRow->to_date) ? \Carbon\Carbon::parse($expRow->to_date)->format('Y-m-d') : '';
+                                            $pStation = $expRow->company_name ?? $expRow->org_name ?? $expRow->emp_cate ?? '';
+                                            $pDoc = $expRow->upload_document ?? $expRow->support_document ?? '';
+                                        @endphp
+                                        <tr class="work-fields fs-alt-existing-work">
+                                            <td><input autocomplete="off" class="form-control" name="work_level[]" type="text" maxlength="80" value="{{ $pStation }}"></td>
+                                            <td><input type="date" class="form-control work-date-from" name="work_date_from[]" value="{{ $pFrom }}"></td>
+                                            <td><input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $pTo }}"></td>
+                                            <td>
+                                                @include('user_login.partials.form-p-ymd')
+                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $expRow->total_exp ?? $expRow->experience ?? '' }}">
+                                            </td>
+                                            <td><input autocomplete="off" class="form-control" name="designation[]" type="text" maxlength="80" value="{{ $expRow->designation ?? '' }}"></td>
+                                            <td class="text-center">
+                                                @if($pDoc !== '')
+                                                    <a href="{{ competency_document_url($pDoc, 'experience', (int) ($expRow->id ?? 0), 'experience_doc') }}" target="_blank"><i class="fa fa-file-pdf-o text-danger"></i> View Document</a>
+                                                @else
+                                                    —
+                                                @endif
+                                                <input type="hidden" name="existing_work_document[]" value="{{ $pDoc }}">
+                                            </td>
+                                            <td class="text-center p-1">
+                                                <button type="button" class="btn btn-danger btn-sm remove-work py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button>
+                                            </td>
+                                            <input type="hidden" name="work_id[]" value="{{ $expRow->id ?? '' }}">
+                                            <input type="hidden" name="fs_alt_existing_work[]" value="1">
+                                            <input type="hidden" name="removed_document_work[]" value="0">
+                                        </tr>
+                                        @empty
+                                        <tr class="work-fields">
+                                            <td><input autocomplete="off" class="form-control" name="work_level[]" type="text" maxlength="80"></td>
+                                            <td><input type="date" class="form-control work-date-from" name="work_date_from[]"></td>
+                                            <td><input type="date" class="form-control work-date-to" name="work_date_to[]"></td>
+                                            <td>
+                                                @include('user_login.partials.form-p-ymd')
+                                                <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="">
+                                            </td>
+                                            <td><input autocomplete="off" class="form-control" name="designation[]" type="text" maxlength="80"></td>
+                                            <td><input class="form-control" name="work_document[]" type="file" accept=".pdf,application/pdf"></td>
+                                            <td class="text-center p-1">
+                                                <button type="button" class="btn btn-danger btn-sm remove-work py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button>
+                                            </td>
+                                            <input type="hidden" name="work_id[]" value="">
+                                            <input type="hidden" name="existing_work_document[]" value="">
+                                            <input type="hidden" name="removed_document_work[]" value="0">
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="row align-items-start mt-3">
+                                <div class="col-12 col-md-3">
+                                    <div class="fs-field-label">(iv) Name of the employer</div>
+                                    <div class="fs-field-tamil">தொழில் வழங்குநரின் பெயர்</div>
+                                </div>
+                                <div class="col-12 col-md-9">
+                                    <textarea class="form-control" name="employer_name" id="employer_name" rows="3" maxlength="255" readonly>{{ $application_details->employer_detail ?? $application_details->employer_name ?? '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @else
                     @php
                         $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
                     @endphp
@@ -2201,6 +2334,7 @@
                             @endif
                         </div>
                     </div>
+                    @endif
                     
                     @if(isset($application_details->form_name) && $application_details->form_name == 'S')
                     {{-- ═══ SECTION 7 — Previous License (Form S only) ═══ --}}
@@ -2275,6 +2409,47 @@
                     {{-- /SECTION 7 --}}
                     @endif
 
+                    @if(($application_details->form_name ?? '') === 'P')
+                    @php
+                        $prevNumber = trim((string) ($application_details->previously_number ?? $application_details->previous_scc_no ?? ''));
+                        $prevDateRaw = $application_details->first_issue_date ?? $application_details->previously_date ?? null;
+                        $prevDateVal = !empty($prevDateRaw) ? \Carbon\Carbon::parse($prevDateRaw)->format('Y-m-d') : '';
+                        $hasPrev = $prevNumber !== '' || $prevDateVal !== '';
+                    @endphp
+                    <div class="fs-section fs-alt-frozen-section">
+                        <div class="fs-section-header">
+                            <span class="fs-section-num">7</span>
+                            <div>
+                                <div class="fs-section-title">Have you made any previous application? If so, state reference No. and date.</div>
+                                <div class="fs-section-tamil">இதற்கு முன்னாள் விண்ணப்பம் செய்துள்ளீர்களா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
+                            </div>
+                        </div>
+                        <div class="fs-section-body">
+                            <div class="fs-radio-group mb-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="previous_license" value="yes" {{ $hasPrev ? 'checked' : '' }} disabled>
+                                    <label class="form-check-label">Yes</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="previous_license" value="no" {{ $hasPrev ? '' : 'checked' }} disabled>
+                                    <label class="form-check-label">No</label>
+                                </div>
+                            </div>
+                            @if($hasPrev)
+                            <div class="row g-2">
+                                <div class="col-12 col-md-4">
+                                    <div class="fs-field-label">Application Number</div>
+                                    <input class="form-control" id="previously_number" name="previously_number" type="text" maxlength="80" value="{{ $prevNumber }}" readonly>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <div class="fs-field-label">Date</div>
+                                    <input class="form-control" id="previously_date" name="previously_date" type="date" value="{{ $prevDateVal }}" readonly>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @else
                     @php
                         if (isset($application_details->form_name) && $application_details->form_name == 'S') {
                             $questionNumber = 9;
@@ -2384,6 +2559,7 @@
                         </div>{{-- /fs-section-body --}}
                     </div>
                     {{-- /SECTION 8 --}}
+                    @endif
 
                     @php
                         if ($formName === 'S') {
@@ -2393,7 +2569,7 @@
                         } elseif ($formName === 'WH') {
                             $uploadQuestionNo = 7;
                         } elseif ($formName === 'P') {
-                            $uploadQuestionNo = 7;
+                            $uploadQuestionNo = 8;
                         } else {
                             $uploadQuestionNo = 9;
                         }
@@ -2564,7 +2740,11 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                @if ($isAlterationMode)
+                                @if ($isAlterationMode && $formName === 'P')
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span><br>
+                                    I request that the selected alteration(s) to my Power Generating Station Operation and Maintenance Competency Certificate may be processed.
+                                    <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன்.<br>எனது மின்சாரம் உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழில் தேர்ந்தெடுத்த மாற்றம்(கள்) செயல்படுத்தப்பட வேண்டும் என்று கேட்டுக்கொள்கிறேன்.</span>
+                                @elseif ($isAlterationMode)
                                     I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<br>
                                     I request that the selected alteration(s) to my Supervisor Competency Certificate may be processed.<span class="req">*</span>
                                     <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.<br>எனது மேற்பார்வையாளர் திறன் சான்றிதழில் தேர்ந்தெடுத்த மாற்றம்(கள்) செயல்படுத்தப்பட வேண்டும் என்று கேட்டுக்கொள்கிறேன்.</span>
@@ -2636,8 +2816,11 @@
     </div>{{-- /container --}}
 </div>{{-- /fs-page-wrap --}}
 
+@include('user_login.partials.form-p-preview-modal')
+
 <footer class="main-footer">
     @include('include.footer')
+    @include('user_login.partials.form-p-preview-modal-script')
     
     <script>
         window.formSAltStoreUrl = "{{ $alterStoreUrl ?? route('form_p_alt.store') }}";
@@ -3502,15 +3685,32 @@
 
                 var first = container.querySelector('.work-fields');
                 var newRow = first.cloneNode(true);
+                newRow.classList.remove('fs-alt-existing-work');
+                newRow.querySelectorAll('input, textarea, select, button').forEach(function (el) {
+                    if (el.type === 'hidden') return;
+                    var calculated = el.classList.contains('fp-years') || el.classList.contains('fp-months') || el.classList.contains('fp-days');
+                    el.disabled = false;
+                    el.readOnly = calculated;
+                    if (!calculated) {
+                        el.removeAttribute('readonly');
+                        el.removeAttribute('disabled');
+                    }
+                });
                 newRow.querySelectorAll('input[type="file"]').forEach(function(el) { el.value = ''; });
-                // Reset all date inputs back to native date pickers. The source row may have
-                // been switched to type="text" by initDateDisplay (DD-MM-YYYY display mode);
-                // cloneNode preserves that mutated state, so we explicitly restore type="date".
                 newRow.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(function(inp) {
                     inp.type = 'date';
                     inp.value = '';
                     inp.removeAttribute('data-raw');
                 });
+                newRow.querySelectorAll('.fp-years, .fp-months, .fp-days').forEach(function(el) { el.value = ''; });
+                var stationIn = newRow.querySelector('input[name="work_level[]"]');
+                if (stationIn) stationIn.value = '';
+                var existingFlag = newRow.querySelector('input[name="fs_alt_existing_work[]"]');
+                if (existingFlag) existingFlag.remove();
+                var docCell = newRow.querySelector('td.text-center');
+                if (docCell && !docCell.querySelector('input[type="file"]')) {
+                    docCell.innerHTML = '<input class="form-control" name="work_document[]" type="file" accept=".pdf,application/pdf"><input type="hidden" name="existing_work_document[]" value="">';
+                }
                 var typeSel = newRow.querySelector('.work-employment-type');
                 if (typeSel) typeSel.value = '';
                 newRow.querySelectorAll('.work-duration-y, .work-duration-m, .work-duration-d').forEach(function(el) { el.value = ''; });
@@ -3597,7 +3797,9 @@
             if (this.type === 'date' && this.value) this.setAttribute('data-raw', this.value);
         });
     }
-    document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
+    if ((document.getElementById('form_name') || {}).value !== 'P') {
+        document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
+    }
 
 </script>
 </body>

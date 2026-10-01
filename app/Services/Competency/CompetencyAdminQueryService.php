@@ -363,6 +363,7 @@ class CompetencyAdminQueryService
             }
 
             $metaTable = $this->metaTableForFormId($formId);
+            var_dump($metaTable); 
             if ($metaTable === null) {
                 continue;
             }
@@ -370,10 +371,9 @@ class CompetencyAdminQueryService
             $twLast = DB::table($workflowTable)
                 ->select('application_id', DB::raw('MAX(w_id) as max_id'))
                 ->groupBy('application_id');
-// dd($roleId); exit;
+
             if ($isSupervisorRole) {
 
-            // dd($roleLevel); exit;
                 $query = DB::table("{$metaTable} as ta")
                     ->leftJoinSub($twLast, 'tw_last', function ($join) {
                         $join->on('ta.application_id', '=', 'tw_last.application_id');
@@ -398,15 +398,12 @@ class CompetencyAdminQueryService
 
             } else {
 
-            // dd($roleLevel); exit;
                 $previousProcessedBy = match ($roleLevel) {
                     2 => ['S', 'S2'],
                     3 => ['A'],
                     4 => ['SE'],
                     default => [],
                 };
-
-                // dd($previousProcessedBy); exit;
 
                 $currentAppIds = DB::table("{$workflowTable} as tw")
                     ->joinSub($twLast, 'tw_last', function ($join) {
@@ -434,14 +431,6 @@ class CompetencyAdminQueryService
                     ->join("{$metaTable} as ta", 'ta.application_id', '=', 'cur.application_id')
                     ->where('ta.form_id', $formId)
                     ->where($this->paidPaymentConstraint('ta'));
-
-                    // if ($roleId == 3) {
-
-                    //     $query->where(function ($q) {
-                    //         $q->where('ta.app_status', 'PRE');
-                    //         // ->Where('ta.processed_by', 'PR');
-                    //     });
-                    // }
 
 
             }
@@ -537,7 +526,12 @@ class CompetencyAdminQueryService
                 DB::table("{$metaTable} as ta")
                     ->leftJoin('mst_licences as f', 'ta.form_id', '=', 'f.id')
                     ->whereIn(DB::raw('TRIM(ta.app_status)'), ['F', 'RF'])
-                    ->where('ta.processed_by', 'A')
+                    ->where(function ($query) use ($metaTable) {
+                        $query->where('ta.processed_by', 'A');
+                        if ($metaTable === 'cc_form_p_meta') {
+                            $query->orWhere('ta.processed_by', 'AS');
+                        }
+                    })
                     ->where($this->paidPaymentConstraint('ta'))
                     ->select(
                         'ta.application_id',

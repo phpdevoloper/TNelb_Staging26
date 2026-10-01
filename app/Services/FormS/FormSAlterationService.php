@@ -11,6 +11,7 @@ use App\Models\Mst_experience;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\CompetencyQcQscService;
+use App\Services\Competency\FormPSchema;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Models\CC_Proof_doc;
@@ -29,6 +30,14 @@ class FormSAlterationService
 
     /** Marker stored on copied parent experience rows (not a newly added alteration row). */
     public const ALT_SRC_EXP_PREFIX = '__ALT_SRC_EXP__:';
+
+    /**
+     * File-input keys already bound to an experience row in this request.
+     * Packed uploads arrive as 0,1,… even when the new card is a later row.
+     *
+     * @var array<string, array<string, true>>
+     */
+    private array $claimedWorkUploads = [];
 
     public function __construct(
         protected FormSApplicationWorkflowService $workflowService,
@@ -712,6 +721,8 @@ class FormSAlterationService
             ->map(function (CC_Experience $exp) {
                 $row = (object) $exp->toArray();
                 $row->id = $exp->exp_id;
+                $row->upload_document = $exp->support_document ?: null;
+                $row->company_name = $exp->org_name ?: null;
                 $row->releive_document = $exp->relieve_document ?? $exp->releive_document ?? null;
 
                 return $row;
@@ -930,7 +941,7 @@ class FormSAlterationService
 
             if ($alterWork) {
                 $this->assertFormSExperienceDateSequence($request);
-                if (! FormWSchema::isFormW($formName) && ! FormWHSchema::isFormWH($formName)) {
+                if (! FormWSchema::isFormW($formName) && ! FormWHSchema::isFormWH($formName) && ! FormPSchema::isFormP($formName)) {
                     $this->assertFormSCountableExperienceMinimum($parent, $request);
                 }
                 CC_Experience::where('application_id', $child->application_id)->delete();
@@ -1619,6 +1630,7 @@ class FormSAlterationService
 
         $created = 0;
         $copiedSourceIds = [];
+        $this->claimedWorkUploads = [];
         $masterId = $this->childDocumentSnapshot->experienceSourceApplicationId($parent);
 
         foreach ($existingIndexes as $key) {
@@ -1835,7 +1847,9 @@ class FormSAlterationService
             'relieve_document' => $master?->relieve_document ?? $master?->releive_document,
         ]);
 
-        $supportFile = $isExistingTillMaster ? null : $this->uploadedFileAt($request, 'work_document', $key);
+        $supportFile = $isExistingTillMaster
+            ? null
+            : $this->uploadedWorkFileForRow($request, 'work_document', $key, ! $isExistingRow);
         if ($supportFile) {
             $path = $this->documentHandler->handleExperienceSupportUpload(
                 $child,
@@ -1847,7 +1861,7 @@ class FormSAlterationService
             }
         }
 
-        $relieveFile = $this->uploadedFileAt($request, 'work_relieving_letter', $key);
+        $relieveFile = $this->uploadedWorkFileForRow($request, 'work_relieving_letter', $key, ! $isExistingRow);
         if ($relieveFile) {
             $relievePath = $this->documentHandler->handleExperienceRelieveUpload(
                 $child,
@@ -1872,6 +1886,52 @@ class FormSAlterationService
         }
 
         return ($file instanceof UploadedFile && $file->isValid()) ? $file : null;
+    }
+
+    /**
+     * Bind a work file to this row. A new alteration card often posts its file at
+     * index 0 because empty inputs on the earlier cards are omitted. That file is
+     * used when this row's own index has no upload and no earlier row claimed it.
+     */
+    protected function uploadedWorkFileForRow(
+        Request $request,
+        string $field,
+        int|string $key,
+        bool $allowPackedFallback
+    ): ?UploadedFile {
+        $exact = $this->uploadedFileAt($request, $field, $key);
+        if ($exact) {
+            $this->claimedWorkUploads[$field][(string) $key] = true;
+
+            return $exact;
+        }
+
+        if (! $allowPackedFallback) {
+            return null;
+        }
+
+        $files = $request->file($field);
+        if ($files instanceof UploadedFile) {
+            $files = [0 => $files];
+        }
+        if (! is_array($files)) {
+            return null;
+        }
+
+        ksort($files, SORT_NATURAL);
+        foreach ($files as $fileKey => $file) {
+            if (isset($this->claimedWorkUploads[$field][(string) $fileKey])) {
+                continue;
+            }
+            if (! $file instanceof UploadedFile || ! $file->isValid()) {
+                continue;
+            }
+            $this->claimedWorkUploads[$field][(string) $fileKey] = true;
+
+            return $file;
+        }
+
+        return null;
     }
 
     /**
@@ -1999,8 +2059,18 @@ class FormSAlterationService
             $updates['applicant_address'] = $childAddress;
         }
 
-        $updates['qc'] = $this->qcEligibilityFlag($childRow->qc ?? $targetRow->qc ?? 0);
-        $updates['qsc'] = $this->qcEligibilityFlag($childRow->qsc ?? $targetRow->qsc ?? 0);
+        if (strtoupper(trim((string) ($childRow->form_name ?? $targetRow->form_name ?? ''))) === 'S') {
+            $mergedFlags = app(CompetencyQcQscService::class)->mergeFlags($targetRow, [
+                'qc' => $childRow->qc ?? 0,
+                'qsc' => $childRow->qsc ?? 0,
+            ]);
+            if ((int) ($targetRow->qc ?? 0) !== $mergedFlags['qc']) {
+                $updates['qc'] = $mergedFlags['qc'];
+            }
+            if ((int) ($targetRow->qsc ?? 0) !== $mergedFlags['qsc']) {
+                $updates['qsc'] = $mergedFlags['qsc'];
+            }
+        }
 
         if (count($updates) > 1) {
             DB::table($targetTable)->where('application_id', $targetId)->update($updates);
