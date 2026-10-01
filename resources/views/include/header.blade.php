@@ -2001,7 +2001,7 @@ use Illuminate\Support\Facades\Auth;
                                     <div class="col-lg-8">
 
 
-                                    <select class="form-control" id="application_id" name="application_id">
+                                    <select class="form-control" id="alteration_cl_application_id" name="alteration_cl_application_id">
                                         <option value="0">---Select Licence---</option>
 
                                       @if(!empty($licenseNumbers))

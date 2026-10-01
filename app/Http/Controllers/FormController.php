@@ -3357,6 +3357,11 @@ class FormController extends BaseController
             return $dispatched;
         }
 
+        $existingDraftId = trim((string) $request->input('application_id', ''));
+        if ($existingDraftId !== '' && $existingDraftId !== '0' && CC_Forms_Meta::findByApplicationId($existingDraftId)) {
+            return $this->update($request, $existingDraftId);
+        }
+
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);

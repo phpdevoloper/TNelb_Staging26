@@ -363,7 +363,6 @@ class CompetencyAdminQueryService
             }
 
             $metaTable = $this->metaTableForFormId($formId);
-            var_dump($metaTable); 
             if ($metaTable === null) {
                 continue;
             }
