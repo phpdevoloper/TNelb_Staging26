@@ -132,6 +132,17 @@
     };
     $expPrevious = $exp_previous ?? collect();
     $expBoard = $exp_board ?? collect();
+    $alterationPreview = $alterationPreview ?? [];
+    $isAlterationPreview = ! empty($alterationPreview['is_alteration']);
+    $nameAltered = $isAlterationPreview && ! empty($alterationPreview['name_altered']);
+    $addressAltered = $isAlterationPreview && ! empty($alterationPreview['address_altered']);
+    $hasAlteredWork = $isAlterationPreview && ! empty($alterationPreview['has_altered_work']);
+    $hasAlterationProofs = $isAlterationPreview && ! empty($alterationPreview['has_proofs']);
+    $previousApplicantName = trim((string) ($alterationPreview['previous_name'] ?? ''));
+    $previousApplicantAddress = trim((string) ($alterationPreview['previous_address'] ?? ''));
+    $nameProofUrl = $alterationPreview['name_proof_url'] ?? null;
+    $addressProofUrl = $alterationPreview['address_proof_url'] ?? null;
+    $showAlterationSummary = $isAlterationPreview && ($nameAltered || $addressAltered || $hasAlteredWork || $hasAlterationProofs);
 @endphp
 <div class="dash-prv">
     <div class="dash-prv-meta">
@@ -148,6 +159,26 @@
             <div class="dash-prv-meta-value">{{ $licenceLabel }} · {{ $applTypeLabel }}</div>
         </div>
     </div>
+
+    @if ($showAlterationSummary)
+        <div class="dash-prv-alter">
+            <div class="dash-prv-alter-title">Altered in this request</div>
+            <ul>
+                @if ($nameAltered)
+                    <li>Applicant name <span class="dash-prv-alter-badge">Altered</span></li>
+                @endif
+                @if ($addressAltered)
+                    <li>Address <span class="dash-prv-alter-badge">Altered</span></li>
+                @endif
+                @if ($hasAlteredWork)
+                    <li>{{ $isFormP ? 'Power station experience' : 'Work experience' }} — rows marked <span class="dash-prv-alter-badge">Altered</span> below</li>
+                @endif
+                @if ($hasAlterationProofs)
+                    <li>Supporting documents uploaded for the name or address change</li>
+                @endif
+            </ul>
+        </div>
+    @endif
 
     <section class="dash-prv-section">
         <div class="dash-prv-section-hd">
@@ -182,9 +213,15 @@
                     </div>
                 </div>
                 <div class="dash-prv-details">
-                    <div class="dash-prv-field">
-                        <div class="dash-prv-label">Applicant's Name</div>
+                    <div class="dash-prv-field {{ $nameAltered ? 'is-altered' : '' }}">
+                        <div class="dash-prv-label">Applicant's Name @if ($nameAltered)<span class="dash-prv-alter-badge">Altered</span>@endif</div>
                         <div class="dash-prv-value {{ $dashTxt($application_details->applicant_name) === '' ? 'is-empty' : '' }}">{{ $dashTxt($application_details->applicant_name) !== '' ? $application_details->applicant_name : '—' }}</div>
+                        @if ($nameAltered && $previousApplicantName !== '')
+                            <div class="dash-prv-prev">Previously: {{ $previousApplicantName }}</div>
+                        @endif
+                        @if ($nameProofUrl)
+                            <div class="mt-1"><a class="dash-prv-doc-pill" href="{{ $nameProofUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View name proof</a></div>
+                        @endif
                     </div>
                     <div class="dash-prv-field">
                         <div class="dash-prv-label">Father's Name</div>
@@ -202,9 +239,15 @@
                         <div class="dash-prv-label">Age</div>
                         <div class="dash-prv-value {{ $dashTxt($application_details->age ?? '') === '' ? 'is-empty' : '' }}">{{ $dashTxt($application_details->age ?? '') !== '' ? $application_details->age : '—' }}</div>
                     </div>
-                    <div class="dash-prv-field dash-prv-field--full">
-                        <div class="dash-prv-label">Address</div>
+                    <div class="dash-prv-field dash-prv-field--full {{ $addressAltered ? 'is-altered' : '' }}">
+                        <div class="dash-prv-label">Address @if ($addressAltered)<span class="dash-prv-alter-badge">Altered</span>@endif</div>
                         <div class="dash-prv-value {{ $dashTxt($application_details->applicants_address ?? '') === '' ? 'is-empty' : '' }}" style="white-space:pre-line;">{{ $dashTxt($application_details->applicants_address ?? '') !== '' ? $application_details->applicants_address : '—' }}</div>
+                        @if ($addressAltered && $previousApplicantAddress !== '')
+                            <div class="dash-prv-prev">Previously: {{ $previousApplicantAddress }}</div>
+                        @endif
+                        @if ($addressProofUrl)
+                            <div class="mt-1"><a class="dash-prv-doc-pill" href="{{ $addressProofUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View address proof</a></div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -339,8 +382,13 @@
                                         $durTxt = '';
                                     }
                                 @endphp
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
+                                <tr class="{{ !empty($exp->is_alteration_new) ? 'is-altered' : '' }}">
+                                    <td>
+                                        {{ $loop->iteration }}
+                                        @if (!empty($exp->is_alteration_new))
+                                            <div><span class="dash-prv-alter-badge">Altered</span></div>
+                                        @endif
+                                    </td>
                                     <td class="dash-prv-td-left">{{ $dashTxt($station) !== '' ? $station : '—' }}</td>
                                     <td>{{ $fmtDate($exp->from_date ?? null) !== '' ? $fmtDate($exp->from_date) : '—' }}</td>
                                     <td>{{ $fmtDate($exp->to_date ?? null) !== '' ? $fmtDate($exp->to_date) : '—' }}</td>

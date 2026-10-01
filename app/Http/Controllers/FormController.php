@@ -43,6 +43,7 @@ use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
 use App\Services\DocumentVersion\DocumentStorageService;
 use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Models\Tnelb_CC_Digitization;
 use App\Models\TnelbAppsInstitute;
@@ -3116,6 +3117,24 @@ class FormController extends BaseController
         $licence_name = DB::table('mst_licences')->where('form_code', $formCode)->first();
         $applicant_photo = $this->loadApplicantPhotoForView((string) $proofApplicationId);
         $proof_doc = $this->loadApplicantSignForView((string) $proofApplicationId);
+        $alterationPreview = [
+            'is_alteration' => false,
+            'name_altered' => false,
+            'address_altered' => false,
+            'previous_name' => '',
+            'previous_address' => '',
+            'name_proof_url' => null,
+            'address_proof_url' => null,
+            'has_altered_work' => false,
+            'has_proofs' => false,
+        ];
+        if ($ccBundle && strtoupper((string) ($application_details->appl_type ?? '')) === 'A') {
+            $alterationMeta = CC_Forms_Meta::findByApplicationId($application_id);
+            if ($alterationMeta) {
+                $alterationPreview = app(CompetencyDocumentReviewService::class)
+                    ->previewAlterationContext($alterationMeta, $exp_details);
+            }
+        }
         $expPartition = FormSExperiencePartition::partition($exp_details);
 
         $viewData = [
@@ -3129,6 +3148,7 @@ class FormController extends BaseController
             'applicant_photo' => $applicant_photo,
             'proof_doc' => $proof_doc,
             'formCode' => $formCode,
+            'alterationPreview' => $alterationPreview,
         ];
 
         return view('user_login.application-preview', $viewData);
@@ -3635,16 +3655,16 @@ class FormController extends BaseController
             $appl_type = $request->appl_type ?? '';
             if (in_array($appl_type, ['R', 'D'], true)) {
                 $metaService = app(CompetencyMetaService::class);
-        $lastApplication = $metaService->latestApplicationId();
+                $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
-                    $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
+                    $newApplicationId = $appl_type . $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
                 } else {
-                    $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . '1111111';
+                    $newApplicationId = $appl_type . $request->form_name . $request->license_name . date('y') . '1111111';
                 }
-            }else{
+            } else {
                 $metaService = app(CompetencyMetaService::class);
-        $lastApplication = $metaService->latestApplicationId();
+                $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
                     $newApplicationId = $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
@@ -5334,14 +5354,14 @@ public function update(Request $request, $id)
             } else {
 
                 $metaService = app(CompetencyMetaService::class);
-        $lastApplication = $metaService->latestApplicationId();
+                $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
-                    $applicationId = $appl_type . $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
+                    $applicationId = $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
                 } else {
-                    $applicationId = $appl_type . $request->form_name . $request->license_name . date('y') . '1111111';
+                    $applicationId = $request->form_name . $request->license_name . date('y') . '1111111';
                 }
-                }
+            }
 
             $issuedCertificateNo = $this->resolveIssuedCertificateNoForRenewal(
                 $request,
@@ -5684,8 +5704,8 @@ public function update(Request $request, $id)
 
         $candidates = [$filename, basename($filename)];
         if (preg_match('/\.pdf$/i', $filename)) {
-            $candidates[] = (string) preg_replace('/\.pdf$/i', '.bin', $filename);
-            $candidates[] = basename((string) preg_replace('/\.pdf$/i', '.bin', $filename));
+            $candidates[] = (string) preg_replace('/\.pdf$/i', '.pdf', $filename);
+            $candidates[] = basename((string) preg_replace('/\.pdf$/i', '.pdf', $filename));
         } elseif (preg_match('/\.bin$/i', $filename)) {
             $candidates[] = (string) preg_replace('/\.bin$/i', '.pdf', $filename);
         }

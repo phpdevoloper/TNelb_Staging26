@@ -635,4 +635,156 @@ class CompetencyDocumentReviewService
 
         return $ordered->values();
     }
+
+    /**
+     * Marks new experience rows and returns name, address, and proof changes
+     * for an alteration preview. Forms S, W, WH, and P share this comparison.
+     *
+     * @param  Collection<int, object>  $experienceRows
+     * @return array{
+     *     is_alteration: bool,
+     *     name_altered: bool,
+     *     address_altered: bool,
+     *     previous_name: string,
+     *     previous_address: string,
+     *     name_proof_url: ?string,
+     *     address_proof_url: ?string,
+     *     has_altered_work: bool,
+     *     has_proofs: bool
+     * }
+     */
+    public function previewAlterationContext(CC_CompetencyMeta $application, Collection $experienceRows): array
+    {
+        $empty = [
+            'is_alteration' => false,
+            'name_altered' => false,
+            'address_altered' => false,
+            'previous_name' => '',
+            'previous_address' => '',
+            'name_proof_url' => null,
+            'address_proof_url' => null,
+            'has_altered_work' => false,
+            'has_proofs' => false,
+        ];
+
+        if (! $this->workflowService->isAlterationApplication($application)) {
+            return $empty;
+        }
+
+        $parent = $this->workflowService->masterApplication($application);
+        $parentId = (string) $parent->application_id;
+        $childId = (string) $application->application_id;
+        $hasParent = $parentId !== '' && $parentId !== $childId;
+
+        $previousName = $hasParent ? trim((string) ($parent->applicant_name ?? '')) : '';
+        $currentName = trim((string) ($application->applicant_name ?? ''));
+        $previousAddress = $hasParent
+            ? trim((string) ($parent->applicant_address ?? $parent->applicants_address ?? ''))
+            : '';
+        $currentAddress = trim((string) ($application->applicant_address ?? $application->applicants_address ?? ''));
+
+        $nameAltered = $previousName !== '' && $this->previewText($currentName) !== $this->previewText($previousName);
+        $addressAltered = $previousAddress !== '' && $this->previewText($currentAddress) !== $this->previewText($previousAddress);
+
+        $parentKeys = [];
+        $parentFromKeys = [];
+        $parentExpIds = [];
+        if ($hasParent) {
+            foreach (CC_Experience::where('application_id', $parentId)->orderBy('exp_id')->get() as $parentRow) {
+                $parentExpIds[(int) $parentRow->exp_id] = true;
+                $key = $this->previewExperienceKey($parentRow);
+                if ($key !== '|||') {
+                    $parentKeys[$key] = true;
+                }
+                $fromKey = $this->previewExperienceFromKey($parentRow);
+                if ($fromKey !== '||') {
+                    $parentFromKeys[$fromKey] = true;
+                }
+            }
+        }
+
+        $snapshot = app(FormSChildDocumentSnapshotService::class);
+        $hasAlteredWork = false;
+        foreach ($experienceRows as $row) {
+            if (! is_object($row) || ! $this->previewExperienceStarted($row)) {
+                continue;
+            }
+            $sourceId = $snapshot->decodeCopiedExperienceSourceId((string) ($row->board_meeting_details ?? ''));
+            $key = $this->previewExperienceKey($row);
+            $fromKey = $this->previewExperienceFromKey($row);
+            $copied = ($sourceId > 0 && isset($parentExpIds[$sourceId]))
+                || ($key !== '|||' && isset($parentKeys[$key]))
+                || ($fromKey !== '||' && isset($parentFromKeys[$fromKey]));
+            $row->is_alteration_new = ! $copied;
+            if ($row->is_alteration_new) {
+                $hasAlteredWork = true;
+            }
+        }
+
+        $workflowAppPks = array_values(array_unique(array_filter([
+            $this->workflowService->workflowPk($application),
+            $hasParent ? $this->workflowService->workflowPk($parent) : 0,
+        ])));
+        $proofs = collect(app(FormSProofDocumentService::class)->collectAlterationProofsForReview($childId, $workflowAppPks));
+        $nameProof = $proofs->first(fn ($proof) => ($proof->document_type ?? '') === 'name_proof');
+        $addressProof = $proofs->first(fn ($proof) => ($proof->document_type ?? '') === 'address_proof');
+
+        return [
+            'is_alteration' => true,
+            'name_altered' => $nameAltered,
+            'address_altered' => $addressAltered,
+            'previous_name' => $previousName,
+            'previous_address' => $previousAddress,
+            'name_proof_url' => $nameProof->url ?? null,
+            'address_proof_url' => $addressProof->url ?? null,
+            'has_altered_work' => $hasAlteredWork,
+            'has_proofs' => $proofs->isNotEmpty(),
+        ];
+    }
+
+    protected function previewText(string $value): string
+    {
+        return preg_replace('/\s+/', ' ', strtolower(trim($value))) ?? '';
+    }
+
+    protected function previewDateKey(mixed $value): string
+    {
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return '';
+        }
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $raw, $match)) {
+            return $match[1];
+        }
+
+        return strtolower($raw);
+    }
+
+    protected function previewExperienceKey(object $row): string
+    {
+        $org = trim((string) ($row->org_name ?? $row->company_name ?? ''));
+
+        return strtolower($org . '|'
+            . trim((string) ($row->designation ?? '')) . '|'
+            . $this->previewDateKey($row->from_date ?? '') . '|'
+            . $this->previewDateKey($row->to_date ?? ''));
+    }
+
+    protected function previewExperienceFromKey(object $row): string
+    {
+        $org = trim((string) ($row->org_name ?? $row->company_name ?? ''));
+
+        return strtolower($org . '|'
+            . trim((string) ($row->designation ?? '')) . '|'
+            . $this->previewDateKey($row->from_date ?? ''));
+    }
+
+    protected function previewExperienceStarted(object $row): bool
+    {
+        $org = trim((string) ($row->org_name ?? $row->company_name ?? $row->emp_cate ?? ''));
+        $designation = trim((string) ($row->designation ?? ''));
+        $from = $this->previewDateKey($row->from_date ?? '');
+
+        return $org !== '' || $designation !== '' || $from !== '';
+    }
 }

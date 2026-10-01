@@ -3415,8 +3415,11 @@
                     var idIn = newRow.querySelector('input[name="work_id[]"]'); if (idIn) idIn.value = '';
                     var docIn = newRow.querySelector('input[name="existing_work_document[]"]'); if (docIn) docIn.value = '';
                     container.appendChild(newRow);
-                    if (typeof initDateDisplay === 'function') {
+                    if (typeof initDateDisplay === 'function' && (document.getElementById('form_name') || {}).value !== 'P') {
                         newRow.querySelectorAll('.work-date-from, .work-date-to').forEach(initDateDisplay);
+                    }
+                    if (typeof window.refreshFormPWorkYears === 'function') {
+                        window.refreshFormPWorkYears();
                     }
                     refreshWorkSerials();
                 }
@@ -3748,8 +3751,11 @@
                 // Re-bind the date display formatter on the cloned date inputs so they
                 // behave the same as the original row (native picker on focus,
                 // DD-MM-YYYY display on blur once a value is chosen).
-                if (typeof initDateDisplay === 'function') {
+                if (typeof initDateDisplay === 'function' && (document.getElementById('form_name') || {}).value !== 'P') {
                     newRow.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
+                }
+                if (typeof window.refreshFormPWorkYears === 'function') {
+                    window.refreshFormPWorkYears();
                 }
                 initWorkRow($(newRow));
                 refreshWorkSerials();

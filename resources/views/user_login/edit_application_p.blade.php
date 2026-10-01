@@ -1083,9 +1083,7 @@
                                 <button type="button" class="btn-fs-submit" id="DraftBtn">Submit</button>
                             </span>
                         @else
-                            <button type="button" class="btn-fs-draft" id="DraftBtn">
-                                <i class="fa fa-floppy-o"></i> Save As Draft
-                            </button>
+                        
                             <button type="button" class="btn-fs-submit" id="ProceedtoPayment">
                                 @if (in_array(strtoupper(trim((string) ($application_details->appl_type ?? ''))), ['D', 'A'], true))
                                     <i class="fa fa-eye"></i> Preview &amp; Submit

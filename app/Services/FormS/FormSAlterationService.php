@@ -16,11 +16,13 @@ use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Models\CC_Proof_doc;
 use App\Models\Payment;
+use App\Models\TnelbAppsInstitute;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use RuntimeException;
 
@@ -1035,6 +1037,74 @@ class FormSAlterationService
         CC_Education::where('application_id', $child->application_id)->delete();
         $this->childDocumentSnapshot->copyParentEducationToChild($child, $loginId);
         $this->childDocumentSnapshot->copyParentIdentityProofsToChild($child);
+        $this->copyParentInstitutesToAlterationChild($child);
+    }
+
+    /**
+     * Form P training institutes live on tnelb_applicant_institute, not with education.
+     * Copy the nearest ancestor rows onto the alteration. Parent rows stay unchanged.
+     */
+    protected function copyParentInstitutesToAlterationChild(CC_CompetencyMeta $child): void
+    {
+        if (! FormPSchema::isFormP($child->form_name ?? null) || ! Schema::hasTable('tnelb_applicant_institute')) {
+            return;
+        }
+
+        $sourceId = $this->instituteSourceApplicationId($child);
+        if ($sourceId === null) {
+            return;
+        }
+
+        $rows = DB::table('tnelb_applicant_institute')
+            ->where('application_id', $sourceId)
+            ->where(function ($query) {
+                $query->where('institute_status', 1)->orWhereNull('institute_status');
+            })
+            ->orderBy('id')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        DB::table('tnelb_applicant_institute')->where('application_id', $child->application_id)->delete();
+
+        foreach ($rows as $row) {
+            TnelbAppsInstitute::create([
+                'login_id' => $child->login_id,
+                'application_id' => $child->application_id,
+                'institute_name_address' => $row->institute_name_address,
+                'duration' => $row->duration,
+                'from_date' => $row->from_date,
+                'to_date' => $row->to_date,
+                'upload_doc' => $row->upload_doc ?? null,
+                'institute_status' => 1,
+            ]);
+        }
+    }
+
+    private function instituteSourceApplicationId(CC_CompetencyMeta $child): ?string
+    {
+        $currentId = trim((string) ($child->old_application ?? ''));
+        $seen = [trim((string) $child->application_id) => true];
+
+        while ($currentId !== '' && ! isset($seen[$currentId])) {
+            $seen[$currentId] = true;
+            $hasRows = DB::table('tnelb_applicant_institute')
+                ->where('application_id', $currentId)
+                ->where(function ($query) {
+                    $query->where('institute_status', 1)->orWhereNull('institute_status');
+                })
+                ->exists();
+            if ($hasRows) {
+                return $currentId;
+            }
+
+            $parent = CC_Forms_Meta::findByApplicationId($currentId);
+            $currentId = trim((string) ($parent->old_application ?? ''));
+        }
+
+        return null;
     }
 
     /**

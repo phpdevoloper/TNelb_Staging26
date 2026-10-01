@@ -325,12 +325,24 @@ async function showInstructPopup(licence_code,login_id) {
     }
 }
 
+function formPDateFieldRaw($input) {
+    var el = $input && $input.length ? $input.get(0) : null;
+    var stored = el ? String(el.getAttribute('data-raw') || '').trim() : '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(stored)) {
+        return stored;
+    }
+    return ($input && $input.length ? ($input.val() || '') : '').trim();
+}
+
 function parseFormPInstituteIsoDate(value) {
     var raw = (value || '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    var iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var dmy = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    var ymd = iso ? raw : (dmy ? (dmy[3] + '-' + dmy[2] + '-' + dmy[1]) : '');
+    if (!ymd) {
         return null;
     }
-    var parsed = new Date(raw + 'T12:00:00');
+    var parsed = new Date(ymd + 'T12:00:00');
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -503,8 +515,8 @@ function validateFormPWorkDateRows(required) {
         var wl = ($row.find('input[name="work_level[]"]').val() || '').trim();
         var des = ($row.find('input[name="designation[]"]').val() || '').trim();
         var ex = ($row.find('input[name="experience[]"]').val() || '').trim();
-        var fromVal = ($from.val() || '').trim();
-        var toVal = ($to.val() || '').trim();
+        var fromVal = formPDateFieldRaw($from);
+        var toVal = formPDateFieldRaw($to);
         var rowStarted = wl !== '' || des !== '' || ex !== '' || fromVal !== '' || toVal !== '';
         if (!rowStarted) {
             return;
@@ -552,8 +564,8 @@ function validateFormPWorkDateRows(required) {
 }
 
 function formPWorkRowOverlaps($row) {
-    var fromDate = parseFormPInstituteIsoDate(($row.find('.work-date-from').val() || '').trim());
-    var toDate = parseFormPInstituteIsoDate(($row.find('.work-date-to').val() || '').trim());
+    var fromDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-from').first()));
+    var toDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-to').first()));
     if (!fromDate || !toDate || toDate < fromDate) {
         return false;
     }
@@ -562,8 +574,8 @@ function formPWorkRowOverlaps($row) {
         if (this === $row.get(0)) {
             return;
         }
-        var otherFrom = parseFormPInstituteIsoDate(($(this).find('.work-date-from').val() || '').trim());
-        var otherTo = parseFormPInstituteIsoDate(($(this).find('.work-date-to').val() || '').trim());
+        var otherFrom = parseFormPInstituteIsoDate(formPDateFieldRaw($(this).find('.work-date-from').first()));
+        var otherTo = parseFormPInstituteIsoDate(formPDateFieldRaw($(this).find('.work-date-to').first()));
         if (!otherFrom || !otherTo || otherTo < otherFrom) {
             return;
         }
@@ -579,16 +591,14 @@ function refreshFormPWorkYears() {
     $rows.find('.work-date-overlap').remove();
     $rows.each(function () {
         var $row = $(this);
-        var fromDate = parseFormPInstituteIsoDate(($row.find('.work-date-from').val() || '').trim());
-        var toDate = parseFormPInstituteIsoDate(($row.find('.work-date-to').val() || '').trim());
+        var fromDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-from').first()));
+        var toDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-to').first()));
         var year = '';
         var overlaps = false;
         if (fromDate && toDate && toDate >= fromDate) {
+            var workDiff = applyFormPRowYmd($row, fromDate, toDate);
+            year = workDiff ? String(workDiff.y) : '';
             overlaps = formPWorkRowOverlaps($row);
-            if (!overlaps) {
-                var workDiff = applyFormPRowYmd($row, fromDate, toDate);
-                year = workDiff ? String(workDiff.y) : '';
-            }
         }
         if (!year) {
             applyFormPRowYmd($row, null, null);
@@ -599,6 +609,7 @@ function refreshFormPWorkYears() {
         }
     });
 }
+window.refreshFormPWorkYears = refreshFormPWorkYears;
 
 // Proceed for Payment
 $(document).ready(function () {
@@ -646,8 +657,8 @@ $(document).ready(function () {
         var $to = $row.find('.work-date-to').first();
         $from.next('.error-message').remove();
         $to.next('.error-message').remove();
-        var fromDate = parseFormPInstituteIsoDate(($from.val() || '').trim());
-        var toDate = parseFormPInstituteIsoDate(($to.val() || '').trim());
+        var fromDate = parseFormPInstituteIsoDate(formPDateFieldRaw($from));
+        var toDate = parseFormPInstituteIsoDate(formPDateFieldRaw($to));
         if (fromDate && toDate && toDate < fromDate) {
             showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', null);
         }
