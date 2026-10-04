@@ -448,7 +448,8 @@ class FormPController extends Controller
         if (!$app) {
             return response()->json(['status' => 'error', 'message' => 'Application not found.'], 404);
         }
-        if ((string) $app->app_status !== 'QU') {
+
+        if ((string) trim($app->app_status) !== 'QU') {
             return response()->json(['status' => 'error', 'message' => 'This Form P application is not under query.'], 400);
         }
 
