@@ -121,7 +121,7 @@
                                             <label for="inputEmail4" class="form-label">Category<span class="text-danger">*</span> </label>
                                             <select class="form-select" name="form_cate" id="form_cate">
                                                 <option value="">Please select category</option>
-                                              
+
                                             </select>
                                             <small class="text-danger d-none error-form_cate">Please choose the category</small>
                                         </div>
@@ -153,7 +153,7 @@
                                             </select>
                                             <small class="text-danger d-none error-form_status">Please choose the Form status</small>
                                         </div>
-                                        
+
                                         <button type="submit" class="btn btn-primary">Create</button>
                                     </form>
                                 </div>
@@ -373,12 +373,12 @@
                                   @foreach ($all_licences as $item)
                                     <option value="{{ $item->id }}">{{ $item->licence_name }}</option>
                                  @endforeach
-                               
+
                             </select>
                             <small class="text-danger d-none error-form_cate">Choose the Licence Name</small>
                         </div>
 
-                       
+
                     </div> -->
                     <div class="row">
                         <div class="col-lg-12 mb-2">
@@ -441,6 +441,7 @@
 
                                 <option value="N">New Applications</option>
                                 <option value="R">Renewal Applications</option>
+                                <option value="D">Digitisation  Applications</option>
                                 <option value="A">Alteration Applications</option>
 
 
@@ -454,7 +455,7 @@
                                 <option value="" data-code="">Select Module Name</option>
 
                                 @foreach ($all_formmodule as $item)
-                                    <option 
+                                    <option
                                         value="{{ $item->module_name }}"
                                         data-code="{{ $item->module_code }}">
                                         {{ $item->module_name }}

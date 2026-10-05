@@ -235,7 +235,6 @@ class FormAController extends BaseController
         // -------------------------------------------------
         // STEP 1: Check certificate details
         // -------------------------------------------------
-
         $certificate = DB::table('cc_forms_cert')
             ->where('certificate_no', $request->certificate_no)
             ->where('dateof_issue', $dateofIssue)
@@ -245,42 +244,10 @@ class FormAController extends BaseController
             ->orderBy('cc_id', 'desc')
             ->first();
 
-        // dd($certificate);exit;
-
-
         if (!$certificate) {
             return response()->json([
                 'status' => false,
                 'message' => 'Staff Certificate details are not valid.'
-            ]);
-        }
-
-
-        // -------------------------------------------------
-        // STEP 2: Check QC / QSC eligibility
-        // -------------------------------------------------
-
-        if ($request->staffcategory === 'QC') {
-
-            if ($certificate->qc != 1) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'This certificate is not eligible for QC.'
-                ]);
-            }
-        } elseif ($request->staffcategory === 'QSC') {
-
-            if ($certificate->qsc != 1) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'This certificate is not eligible for QSC.'
-                ]);
-            }
-        } else {
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid staff category.'
             ]);
         }
 
@@ -470,7 +437,7 @@ class FormAController extends BaseController
 
         if ($recordId) {
 
-        // dd($recordId); exit;
+            // dd($recordId); exit;
             $existing = EA_Application_model::where('application_id', $recordId)->first();
             if ($existing) {
                 $applicationId = $existing->application_id;

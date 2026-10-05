@@ -599,7 +599,7 @@ class LoginController extends Controller
 
 
 
-    
+
         $assignedFormSummary = $assignedForms
             ->groupBy('id')
             ->map(function ($items) use ($pendingCountsMap) {
@@ -765,7 +765,7 @@ class LoginController extends Controller
                 ->values();
         }
 
-     
+
 
         return view('admin.dashboard.president_dashboard', compact(
             'staff',
@@ -787,7 +787,7 @@ class LoginController extends Controller
      */
     public function completedApplications()
     {
-        
+
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');
@@ -2290,21 +2290,15 @@ class LoginController extends Controller
         if ($appl_type === 'R') {
             // dd($applicant->old_application);
             // exit;
-            $old_issuedat = DB::table('tnelb_license')
-                ->select('issued_at', 'created_at', 'expires_at')
+            $old_issuedat = DB::table('cl_forma_lic')
+                ->select('dateof_issue', 'created_at', 'valid_from',  'valid_to')
                 ->where('application_id', $applicant->old_application)
 
-                ->unionAll(
 
-                    DB::table('cl_forma_lic')
-                        ->select('issued_at', 'created_at', 'expires_at')
-                        ->where('application_id', $applicant->old_application)
-
-                )
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            $old_issued_at_date = $old_issuedat->expires_at;
+            $old_issued_at_date = $old_issuedat->valid_to;
 
             // dd($old_issuedat->issued_at);
             // exit;
