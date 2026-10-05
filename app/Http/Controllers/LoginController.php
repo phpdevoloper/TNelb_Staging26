@@ -1119,8 +1119,6 @@ class LoginController extends BaseController
 
                     $form_name = str_replace(' ', '', $workflow->form_name);
 
-                    // dd($form_name); exit;
-
                     // ------------------------------------------------
                     // NEW APPLICATION
                     // ------------------------------------------------

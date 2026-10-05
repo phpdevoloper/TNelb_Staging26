@@ -117,8 +117,13 @@
                             ? competency_document_url($relieveDoc, 'experience', (int) ($expRow->id ?? $expRow->exp_id ?? 0), 'relieving_doc')
                             : null;
                     @endphp
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
+                    <tr class="{{ !empty($expRow->is_alteration_new) ? 'is-altered' : '' }}">
+                        <td>
+                            {{ $loop->iteration }}
+                            @if (!empty($expRow->is_alteration_new))
+                                <div><span class="dash-prv-alter-badge">Altered</span></div>
+                            @endif
+                        </td>
                         <td class="dash-prv-td-left">
                             <strong>{{ $empTxt }}</strong>
                             @if ($empType === 'electrical_contractor' && $contractorCat !== '')

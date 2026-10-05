@@ -43,6 +43,7 @@ use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
 use App\Services\DocumentVersion\DocumentStorageService;
 use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Models\Tnelb_CC_Digitization;
 use App\Models\TnelbAppsInstitute;
@@ -3116,6 +3117,24 @@ class FormController extends BaseController
         $licence_name = DB::table('mst_licences')->where('form_code', $formCode)->first();
         $applicant_photo = $this->loadApplicantPhotoForView((string) $proofApplicationId);
         $proof_doc = $this->loadApplicantSignForView((string) $proofApplicationId);
+        $alterationPreview = [
+            'is_alteration' => false,
+            'name_altered' => false,
+            'address_altered' => false,
+            'previous_name' => '',
+            'previous_address' => '',
+            'name_proof_url' => null,
+            'address_proof_url' => null,
+            'has_altered_work' => false,
+            'has_proofs' => false,
+        ];
+        if ($ccBundle && strtoupper((string) ($application_details->appl_type ?? '')) === 'A') {
+            $alterationMeta = CC_Forms_Meta::findByApplicationId($application_id);
+            if ($alterationMeta) {
+                $alterationPreview = app(CompetencyDocumentReviewService::class)
+                    ->previewAlterationContext($alterationMeta, $exp_details);
+            }
+        }
         $expPartition = FormSExperiencePartition::partition($exp_details);
 
         $viewData = [
@@ -3129,6 +3148,7 @@ class FormController extends BaseController
             'applicant_photo' => $applicant_photo,
             'proof_doc' => $proof_doc,
             'formCode' => $formCode,
+            'alterationPreview' => $alterationPreview,
         ];
 
         return view('user_login.application-preview', $viewData);
@@ -3355,6 +3375,11 @@ class FormController extends BaseController
     {
         if ($dispatched = $this->dispatchFormWIfNeeded($request, 'store')) {
             return $dispatched;
+        }
+
+        $existingDraftId = trim((string) $request->input('application_id', ''));
+        if ($existingDraftId !== '' && $existingDraftId !== '0' && CC_Forms_Meta::findByApplicationId($existingDraftId)) {
+            return $this->update($request, $existingDraftId);
         }
 
         $request->merge([
@@ -3630,16 +3655,16 @@ class FormController extends BaseController
             $appl_type = $request->appl_type ?? '';
             if (in_array($appl_type, ['R', 'D'], true)) {
                 $metaService = app(CompetencyMetaService::class);
-        $lastApplication = $metaService->latestApplicationId();
+                $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
-                    $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
+                    $newApplicationId = $appl_type . $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
                 } else {
-                    $newApplicationId = $appl_type.$request->form_name . $request->license_name . date('y') . '1111111';
+                    $newApplicationId = $appl_type . $request->form_name . $request->license_name . date('y') . '1111111';
                 }
-            }else{
+            } else {
                 $metaService = app(CompetencyMetaService::class);
-        $lastApplication = $metaService->latestApplicationId();
+                $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
                     $newApplicationId = $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
@@ -5329,14 +5354,14 @@ public function update(Request $request, $id)
             } else {
 
                 $metaService = app(CompetencyMetaService::class);
-        $lastApplication = $metaService->latestApplicationId();
+                $lastApplication = $metaService->latestApplicationId();
                 if ($lastApplication) {
                     $lastNumber = (int) substr($lastApplication, -7);
-                    $applicationId = $appl_type . $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
+                    $applicationId = $request->form_name . $request->license_name . date('y') . str_pad($lastNumber + 1, 7, '0', STR_PAD_LEFT);
                 } else {
-                    $applicationId = $appl_type . $request->form_name . $request->license_name . date('y') . '1111111';
+                    $applicationId = $request->form_name . $request->license_name . date('y') . '1111111';
                 }
-                }
+            }
 
             $issuedCertificateNo = $this->resolveIssuedCertificateNoForRenewal(
                 $request,
@@ -5659,7 +5684,7 @@ public function update(Request $request, $id)
 
     public function showEncryptedDocument(Request $request, $type, $filename = null)
     {
-        $filename = $filename ?: $request->query('file');
+        $filename = $request->query('file') ?: $filename;
 
         return $this->streamIdentityProofFile((string) $type, (string) $filename);
     }
@@ -5679,25 +5704,35 @@ public function update(Request $request, $id)
 
         $candidates = [$filename, basename($filename)];
         if (preg_match('/\.pdf$/i', $filename)) {
-            $candidates[] = (string) preg_replace('/\.pdf$/i', '.bin', $filename);
-            $candidates[] = basename((string) preg_replace('/\.pdf$/i', '.bin', $filename));
+            $binPath = (string) preg_replace('/\.pdf$/i', '.bin', $filename);
+            $candidates[] = $binPath;
+            $candidates[] = basename($binPath);
         } elseif (preg_match('/\.bin$/i', $filename)) {
-            $candidates[] = (string) preg_replace('/\.bin$/i', '.pdf', $filename);
+            $pdfPath = (string) preg_replace('/\.bin$/i', '.pdf', $filename);
+            $candidates[] = $pdfPath;
+            $candidates[] = basename($pdfPath);
         }
-        
+
         $storage = app(DocumentStorageService::class);
+        $crypt = app(SensitiveProofCryptService::class);
 
         foreach (array_unique(array_filter($candidates)) as $relative) {
             $resolved = $storage->resolveExistingPath($relative);
             if ($resolved !== null) {
-                return $storage->download($resolved, basename($resolved));
+                return $storage->download(
+                    $resolved,
+                    $crypt->displayFileNameForProofDocument(basename($resolved))
+                );
             }
         }
 
         foreach (array_unique(array_filter($candidates)) as $relative) {
             $legacyPath = storage_path('app/private_documents/' . basename((string) $relative));
             if (is_file($legacyPath)) {
-                return $this->streamLegacyEncryptedProof($legacyPath, basename((string) $relative));
+                return $this->streamLegacyEncryptedProof(
+                    $legacyPath,
+                    $crypt->displayFileNameForProofDocument(basename((string) $relative))
+                );
             }
 
             $publicPath = public_path(ltrim((string) $relative, '/'));
@@ -5723,11 +5758,8 @@ public function update(Request $request, $id)
         }
 
         $crypt = app(SensitiveProofCryptService::class);
-        $displayName = $crypt->displayFileNameForProofDocument($downloadName);
 
-        return response($decrypted)
-            ->header('Content-Type', $crypt->inlineMimeTypeForProofDocument($downloadName, $displayName))
-            ->header('Content-Disposition', 'inline; filename="' . $displayName . '"');
+        return $crypt->browserInlineResponse($decrypted, $downloadName);
     }
 
 

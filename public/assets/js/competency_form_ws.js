@@ -12,6 +12,17 @@
 
     var cfg = window.COMPETENCY_FORM_CONFIG || {};
 
+    function competencyDraftApplicationId() {
+        var scoped = document.querySelector('#competency_form_ws input[name="application_id"], #competency_form_p input[name="application_id"]');
+        var raw = scoped ? scoped.value : '';
+        raw = String(raw || '').trim();
+        if (!raw || raw === '0') {
+            return '';
+        }
+        return raw;
+    }
+    window.competencyDraftApplicationId = competencyDraftApplicationId;
+
     function competencyPersistUrls() {
         var formName = String($('#form_name').val() || '').toUpperCase();
         var isW = formName === 'W';
@@ -225,7 +236,7 @@
                 if (typeof window.appendCompetencyPhotoSignToFormData === 'function') {
                     window.appendCompetencyPhotoSignToFormData(formData, $('#competency_form_ws')[0]);
                 }
-                let applicationId = $('#application_id').val();
+                let applicationId = competencyDraftApplicationId();
                 let formUrl;
                 const persistUrls = competencyPersistUrls();
 
@@ -1809,7 +1820,7 @@
             }
 
             const applType = $('#appl_type').val();
-            const applicationId = ($('#application_id').val() || '').trim();
+            const applicationId = competencyDraftApplicationId();
             let formUrl = '';
 
             const persistUrls = competencyPersistUrls();

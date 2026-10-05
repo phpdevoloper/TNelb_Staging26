@@ -866,7 +866,8 @@
                         @php
                         use Carbon\Carbon;
                         $today = Carbon::today();
-                        $competencyCodes = ['C', 'B', 'W', 'WH'];
+                        $competencyCodes = ['C', 'B', 'H', 'P'];
+                        $contractorCodes = ['A'];
                         $allLicenses = collect($present_license);
                         $competencyLicenses = $allLicenses->filter(function ($l) use ($competencyCodes) {
                             return in_array($l->license_name, $competencyCodes);
@@ -874,6 +875,8 @@
                         $contractorLicenses = $allLicenses->reject(function ($l) use ($competencyCodes) {
                             return in_array($l->license_name, $competencyCodes);
                         });
+
+                        
                         @endphp
 
                         <div class="projects-section-login license-board">

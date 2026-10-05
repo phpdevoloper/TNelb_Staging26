@@ -645,10 +645,10 @@ class FormPController extends BaseController
 
     public function editApplication($appl_id)
     {
-        if (! Auth::check()) {
+        if (!Auth::check()) {
             return redirect()->route('logout');
         }
-        if (! $appl_id) {
+        if (!$appl_id) {
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
 
@@ -664,7 +664,12 @@ class FormPController extends BaseController
 
         $applicationid = $appl_id;
         $user = $this->formPUserPayload(Auth::user());
-        $appStatus = strtoupper(trim((string) ($application_details->app_status ?? '')));
+        $appStatusRaw = strtoupper(trim((string) ($application_details->app_status ?? '')));
+        $legacyStatus = strtoupper(trim((string) ($application_details->status ?? '')));
+        $appStatus = ($appStatusRaw === 'QU' || $legacyStatus === 'QU')
+            ? 'QU'
+            : ($appStatusRaw !== '' ? $appStatusRaw : $legacyStatus);
+        $isReturnedRoute = request()->routeIs('edit_returned_application_p');
 
         $queries = collect();
         $queryReasonsForValidation = [];
@@ -673,38 +678,45 @@ class FormPController extends BaseController
         $returnedFormPSectionKeys = [];
         $returnedIsPartialEdit = false;
 
-        if ($appStatus === 'QU') {
+        if ($appStatus === 'QU' || $isReturnedRoute) {
             $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
             if ($returnLogRow) {
                 $returnRemarks = trim((string) ($returnLogRow->remarks ?? ''));
                 $queryReasonsForValidation = ReturnedApplicationEditScope::parseQueryTypesJson($returnLogRow->query_types ?? null);
                 if ($queryReasonsForValidation !== [] || $returnRemarks !== '') {
-                    $queries = collect([(object) [
-                        'query_type' => json_encode($queryReasonsForValidation),
-                        'raised_by' => $returnLogRow->returned_by_role ?? null,
-                    ]]);
+                    $queries = collect([
+                        (object) [
+                            'query_type' => json_encode($queryReasonsForValidation),
+                            'raised_by' => $returnLogRow->returned_by_role ?? null,
+                        ]
+                    ]);
                 }
             }
             if ($queries->isEmpty()) {
-        $queries = DB::table('tnelb_query_applicable')
-            ->where('application_id', $appl_id)
-            ->where('query_status', 'P')
-            ->orderByDesc('id')
-            ->get();
+                $queries = DB::table('tnelb_query_applicable')
+                    ->where('application_id', $appl_id)
+                    ->where('query_status', 'P')
+                    ->orderByDesc('id')
+                    ->get();
             }
             $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForValidation);
             $returnedFormPSectionKeys = $this->mapReturnedFormPSectionKeys($returnedEditableSections);
             $returnedIsPartialEdit = $returnedFormPSectionKeys !== [];
 
+            $isReturnedApplication = true;
+            $application_details->app_status = 'QU';
+            $viewData['application_details'] = $application_details;
+
             return view('user_login.edit_returned_application_p', array_merge($viewData, compact(
-            'applicationid',
+                'applicationid',
                 'user',
-            'queries',
-            'queryReasonsForValidation',
+                'queries',
+                'queryReasonsForValidation',
                 'returnRemarks',
-            'returnedEditableSections',
-            'returnedFormPSectionKeys',
-            'returnedIsPartialEdit'
+                'returnedEditableSections',
+                'returnedFormPSectionKeys',
+                'returnedIsPartialEdit',
+                'isReturnedApplication'
             )));
         }
 

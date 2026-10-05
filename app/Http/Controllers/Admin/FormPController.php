@@ -24,7 +24,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
+use App\Models\CC_Forms_Meta;
+use App\Models\Competency\CC_CompetencyMeta;
 use App\Services\Competency\CompetencyApplicationService;
+use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Services\Competency\FormPSchema;
@@ -127,10 +130,7 @@ class FormPController extends Controller
         $checklist = $checklistState['checklist'];
         $checkedList_1 = $checklistState['checked'];
         $verifyList = $checklistState['verify'];
-
-
-
-
+        $alterationPreview = $this->formPAlterationPreview($applicant, $workExperience);
 
         // Determine view based on user role
         $view = match ($staff->name) {
@@ -140,7 +140,7 @@ class FormPController extends Controller
             default                                => abort(403, 'Unauthorized'),
         };
 
-        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff','institute_details', 'checklist', 'checkedList_1', 'verifyList'));
+        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff','institute_details', 'checklist', 'checkedList_1', 'verifyList', 'alterationPreview'));
     }
 
     /**
@@ -173,6 +173,7 @@ class FormPController extends Controller
         $checklist = $checklistState['checklist'];
         $checkedList_1 = $checklistState['checked'];
         $verifyList = $checklistState['verify'];
+        $alterationPreview = $this->formPAlterationPreview($applicant, $workExperience);
 
         return view('admin.dashboard.formp.applicants_detail_completed', compact(
             'applicant',
@@ -188,7 +189,8 @@ class FormPController extends Controller
             'institute_details',
             'checklist',
             'checkedList_1',
-            'verifyList'
+            'verifyList',
+            'alterationPreview'
         ));
     }
 
@@ -446,7 +448,8 @@ class FormPController extends Controller
         if (!$app) {
             return response()->json(['status' => 'error', 'message' => 'Application not found.'], 404);
         }
-        if ((string) $app->app_status !== 'QU') {
+
+        if ((string) trim($app->app_status) !== 'QU') {
             return response()->json(['status' => 'error', 'message' => 'This Form P application is not under query.'], 400);
         }
 
@@ -1616,6 +1619,49 @@ class FormPController extends Controller
             'sign' => $sign,
             'institutes' => $institutes,
         ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, object>  $workExperience
+     * @return array{
+     *     is_alteration: bool,
+     *     name_altered: bool,
+     *     address_altered: bool,
+     *     previous_name: string,
+     *     previous_address: string,
+     *     name_proof_url: ?string,
+     *     address_proof_url: ?string,
+     *     has_altered_work: bool,
+     *     has_proofs: bool
+     * }
+     */
+    private function formPAlterationPreview(object $applicant, $workExperience): array
+    {
+        $empty = [
+            'is_alteration' => false,
+            'name_altered' => false,
+            'address_altered' => false,
+            'previous_name' => '',
+            'previous_address' => '',
+            'name_proof_url' => null,
+            'address_proof_url' => null,
+            'has_altered_work' => false,
+            'has_proofs' => false,
+        ];
+        if (strtoupper((string) ($applicant->appl_type ?? '')) !== 'A') {
+            return $empty;
+        }
+
+        $meta = CC_Forms_Meta::findByApplicationId((string) ($applicant->application_id ?? ''));
+        if (! $meta instanceof CC_CompetencyMeta) {
+            return $empty;
+        }
+
+        $rows = $workExperience instanceof \Illuminate\Support\Collection
+            ? $workExperience
+            : collect($workExperience);
+
+        return app(CompetencyDocumentReviewService::class)->previewAlterationContext($meta, $rows);
     }
 
     /**

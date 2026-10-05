@@ -107,7 +107,6 @@ class LoginController extends Controller
     //     if (!$staff || !$staff->name) {
     //         return abort(403, 'Unauthorized');
     //     }
-    //     // var_dump($staff);die;
 
     //     $assignedFormID = $staff->form_id;
     //     $processed_by   = $this->getProcessedByRole($staff->name);
@@ -229,6 +228,7 @@ class LoginController extends Controller
      */
     public function dashboard()
     {
+
 
         $staff = Auth::user();
 
@@ -438,6 +438,7 @@ class LoginController extends Controller
                 );
             }
 
+
             // Contractor licences (Form A/B & their variants) use dedicated EA/EB tables.
             // Add their pending counts so contractor cards can display New/Renewal correctly.
             $contractorLicences = $licences->filter(function ($lic) use ($contractorCategoryIds) {
@@ -534,11 +535,6 @@ class LoginController extends Controller
 
                     $contractorCounts = $contractorCounts->merge($rows);
                 }
-
-                // dd($contractorCounts);exit;
-
-
-
 
                 foreach ($contractorCounts as $row) {
                     $formCode = strtoupper((string) ($row->form_name ?? ''));
@@ -1784,8 +1780,6 @@ class LoginController extends Controller
         }
 
 
-        // var_dump($applicant->form_id);die;
-
         if ($applicant->appl_type == "R") {
 
             // $ids = [$applicant->old_application, $applicant_id];
@@ -1810,8 +1804,6 @@ class LoginController extends Controller
                 ->whereNotNull('upload_path')
                 ->orderByDesc('id')
                 ->first();
-
-            // var_dump($workExperience);die;
 
         } else {
 
@@ -2021,8 +2013,6 @@ class LoginController extends Controller
 
         // Get the current user's role ID
         $staff = Auth::user();
-
-        // dd($staff->name);exit;
 
         if (!$staff || !$staff->roles_id) {
             return abort(403, 'Unauthorized');
@@ -2514,8 +2504,6 @@ class LoginController extends Controller
             ->orderBy('tnelb_workflow_a.id', 'desc')
             ->get();
 
-        // var_dump($workflows);die;
-
         $queries = DB::table('tnelb_query_applicable as qa')
             ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
             ->where('qa.application_id', $applicant_id)
@@ -2926,8 +2914,6 @@ class LoginController extends Controller
             ->orderBy('tnelb_workflow_a.id', 'desc')
             ->get();
 
-        // var_dump($workflows);die;
-
         $queries = DB::table('tnelb_query_applicable as qa')
             ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
             ->where('qa.application_id', $applicant_id)
@@ -3269,8 +3255,6 @@ class LoginController extends Controller
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
 
-    //     // var_dump($workflows);die;
-
     //     $queries = DB::table('tnelb_query_applicable as qa')
     //         ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
     //         ->where('qa.application_id', $applicant_id)
@@ -3442,8 +3426,6 @@ class LoginController extends Controller
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
 
-    //     // var_dump($workflows);die;
-
     //     $queries = DB::table('tnelb_query_applicable as qa')
     //         ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
     //         ->where('qa.application_id', $applicant_id)
@@ -3603,8 +3585,6 @@ class LoginController extends Controller
         }
 
 
-        // var_dump($applicant->form_id);die;
-
         if ($applicant->appl_type == "R") {
 
             // $ids = [$applicant->old_application, $applicant_id];
@@ -3629,8 +3609,6 @@ class LoginController extends Controller
                 ->whereNotNull('upload_path')
                 ->orderByDesc('id')
                 ->first();
-
-            // var_dump($workExperience);die;
 
         } else {
 
@@ -3891,8 +3869,6 @@ class LoginController extends Controller
         // Get the current user's role ID
         $staff = Auth::user();
 
-        // dd($staff->name);exit;
-
         if (!$staff || !$staff->roles_id) {
             return abort(403, 'Unauthorized');
         }
@@ -3919,7 +3895,6 @@ class LoginController extends Controller
 
 
 
-        // dd($applicant->status);exit;
         if ($staff->name === "Assistant Secretary") {
 
 
@@ -4049,7 +4024,6 @@ class LoginController extends Controller
         // Determine view based on user role
 
 
-        // var_dump($nextForwardUser);exit;
         return view('admin.completed_appl_view', compact(
             'applicant',
             'educationalQualifications',
@@ -4075,7 +4049,6 @@ class LoginController extends Controller
     }
     public function viewCompletedApplicationDetail_bk($applicant_id)
     {
-        // dd($applicant_id);exit;
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');

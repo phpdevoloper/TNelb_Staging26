@@ -402,3 +402,42 @@
     color: #12233f;
     font-weight: 600;
 }
+.dash-prv-alter {
+    background: #fffbeb;
+    border: 1px solid #f5d48a;
+    border-radius: 0.65rem;
+    padding: 0.8rem 1rem;
+}
+.dash-prv-alter-title {
+    font-weight: 700;
+    color: #b45309;
+}
+.dash-prv-alter ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1.15rem;
+}
+.dash-prv-alter-badge,
+.dash-prv .asp-alter-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #f59e0b;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+.dash-prv-field.is-altered,
+.dash-prv-table tr.is-altered td {
+    background: #fffbeb;
+    box-shadow: inset 3px 0 0 #f59e0b;
+}
+.dash-prv-prev {
+    margin-top: 0.25rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 600;
+}

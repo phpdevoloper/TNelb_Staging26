@@ -53,6 +53,30 @@
         background-color: #4361ee !important;
         border-color: #4361ee !important;
     }
+    .fp-alter-summary {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+    .fp-alter-summary strong { color: #b45309; }
+    .fp-alter-summary ul { margin: 0.35rem 0 0; padding-left: 1.15rem; }
+    td.fp-alter-highlight { background: #fffbeb; box-shadow: inset 3px 0 0 #f59e0b; }
+    .fp-alter-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.1rem 0.45rem;
+        border-radius: 4px;
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #f59e0b;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        vertical-align: middle;
+    }
+    tr.fp-alter-row > td { background: #fffbeb !important; box-shadow: inset 3px 0 0 #f59e0b; }
 </style>
 <div id="content" class="main-content">
     <div class="layout-px-spacing">
@@ -98,14 +122,19 @@
                         </div>
                         <div class="widget-content widget-content-area">
                             <div class="simple-tab">
+                                @php
+                                    $fpHidePaymentTab = in_array(strtoupper(trim((string) ($applicant->appl_type ?? ''))), ['D', 'A'], true);
+                                @endphp
                                 <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Personal Details</button>
                                     </li>
 
+                                    @unless($fpHidePaymentTab)
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link " id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Payment Status</button>
                                     </li>
+                                    @endunless
 
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Check List</button>
@@ -114,6 +143,38 @@
 
                                 <div class="tab-content" id="myTabContent">
                                     <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+                                        @php
+                                            $fpAlter = $alterationPreview ?? [];
+                                            $fpIsAlter = ! empty($fpAlter['is_alteration']);
+                                            $fpNameAltered = $fpIsAlter && ! empty($fpAlter['name_altered']);
+                                            $fpAddressAltered = $fpIsAlter && ! empty($fpAlter['address_altered']);
+                                            $fpHasAlteredWork = $fpIsAlter && ! empty($fpAlter['has_altered_work']);
+                                            $fpHasProofs = $fpIsAlter && ! empty($fpAlter['has_proofs']);
+                                            $fpPrevName = trim((string) ($fpAlter['previous_name'] ?? ''));
+                                            $fpPrevAddress = trim((string) ($fpAlter['previous_address'] ?? ''));
+                                            $fpNameProofUrl = $fpAlter['name_proof_url'] ?? null;
+                                            $fpAddressProofUrl = $fpAlter['address_proof_url'] ?? null;
+                                            $fpShowAlterSummary = $fpIsAlter && ($fpNameAltered || $fpAddressAltered || $fpHasAlteredWork || $fpHasProofs);
+                                        @endphp
+                                        @if ($fpShowAlterSummary)
+                                            <div class="fp-alter-summary mt-3 mb-2">
+                                                <strong>Altered in this request</strong>
+                                                <ul class="mb-0">
+                                                    @if ($fpNameAltered)
+                                                        <li>Applicant name <span class="fp-alter-badge">Altered</span></li>
+                                                    @endif
+                                                    @if ($fpAddressAltered)
+                                                        <li>Address <span class="fp-alter-badge">Altered</span></li>
+                                                    @endif
+                                                    @if ($fpHasAlteredWork)
+                                                        <li>Power station experience — rows marked <span class="fp-alter-badge">Altered</span> below</li>
+                                                    @endif
+                                                    @if ($fpHasProofs)
+                                                        <li>Supporting documents uploaded for the name or address change</li>
+                                                    @endif
+                                                </ul>
+                                            </div>
+                                        @endif
                                         <div class="row mt-3 ">
                                             <div class="row">
                                                 <!-- Left Side: Applicant Details -->
@@ -127,7 +188,22 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">Applicant Name:</td>
-                                                                    <td>{{ $applicant->applicant_name }}</td>
+                                                                    <td class="{{ $fpNameAltered ? 'fp-alter-highlight' : '' }}">
+                                                                        {{ $applicant->applicant_name }}
+                                                                        @if ($fpNameAltered)
+                                                                            <span class="fp-alter-badge ms-1">Alter</span>
+                                                                            @if ($fpPrevName !== '')
+                                                                                <div class="text-muted small mt-1">Previously: {{ $fpPrevName }}</div>
+                                                                            @endif
+                                                                        @endif
+                                                                        @if ($fpNameProofUrl)
+                                                                            <div class="mt-1">
+                                                                                <a href="{{ $fpNameProofUrl }}" target="_blank" rel="noopener" class="text-primary small">
+                                                                                    <i class="fa fa-file-pdf-o text-danger"></i> View name proof
+                                                                                </a>
+                                                                            </div>
+                                                                        @endif
+                                                                    </td>
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">Father's Name:</td>
@@ -135,13 +211,26 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold align-top">Address:</td>
-                                                                    <td style="white-space: normal; word-break: break-word;">
+                                                                    <td class="{{ $fpAddressAltered ? 'fp-alter-highlight' : '' }}" style="white-space: normal; word-break: break-word;">
                                                                         {{ $applicant->applicants_address }}
+                                                                        @if ($fpAddressAltered)
+                                                                            <span class="fp-alter-badge ms-1">Alter</span>
+                                                                            @if ($fpPrevAddress !== '')
+                                                                                <div class="text-muted small mt-1">Previously: {{ $fpPrevAddress }}</div>
+                                                                            @endif
+                                                                        @endif
+                                                                        @if ($fpAddressProofUrl)
+                                                                            <div class="mt-1">
+                                                                                <a href="{{ $fpAddressProofUrl }}" target="_blank" rel="noopener" class="text-primary small">
+                                                                                    <i class="fa fa-file-pdf-o text-danger"></i> View address proof
+                                                                                </a>
+                                                                            </div>
+                                                                        @endif
                                                                     </td>
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">D.O.B & Age:</td>
-                                                                    <td>{{ $applicant->d_o_b }} ({{ $applicant->age }} years old)</td>
+                                                                    <td>{{ format_date($applicant->d_o_b) }} ({{ $applicant->age }} years old)</td>
                                                                 </tr>
                                                             </tbody>
                                                         </table>
@@ -333,8 +422,13 @@
                                                     </thead>
                                                     <tbody>
                                                         @forelse ($workExperience as $exp)
-                                                        <tr>
-                                                            <td>{{ $exp->company_name ?? $exp->emp_cate ?? '—' }}</td>
+                                                        <tr class="{{ !empty($exp->is_alteration_new) ? 'fp-alter-row' : '' }}">
+                                                            <td>
+                                                                {{ $exp->company_name ?? $exp->emp_cate ?? '—' }}
+                                                                @if (!empty($exp->is_alteration_new))
+                                                                    <span class="fp-alter-badge ms-1">Altered</span>
+                                                                @endif
+                                                            </td>
                                                             <td>{{ $exp->designation ?? '—' }}</td>
                                                             <td>{{ format_total_exp_years($exp->experience ?? $exp->total_exp) ?? '—' }}</td>
                                                             <td style="text-align:center;">
@@ -427,6 +521,7 @@
                                                                     {{ $masked }}
                                                                     (<a href="{{ proof_document_url($applicant->aadhaar_doc, 'aadhaar') }}"
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open Aadhaar document">
                                                                         <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
@@ -448,6 +543,7 @@
                                                                     {{ $maskedPan }}
                                                                     (<a href="{{ proof_document_url($panDocFile, 'pan') }}"
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open PAN document">
                                                                         <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
@@ -547,6 +643,7 @@
 
                                     </div>
                                     <?php //var_dump($workflows);die; ?>
+                                    @unless($fpHidePaymentTab)
                                     <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
                                         <div class="row text-center fw-bold border-bottom pb-2 mb-3 mt-3">
                                             <div class="col-lg-6 text-primary">
@@ -627,6 +724,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @endunless
                                 </div>
                             </div>
                         </div>
@@ -1309,7 +1407,7 @@
                                     title: "Success",
                                     html: `
                                         <p>${response.message}</p>
-                                        <p><b>License Number:</b> ${response.license_number}</p>
+                                        <p><b>Certificate No:</b> ${response.license_number}</p>
                                     `,
                                     confirmButtonText: "OK",
                                     allowOutsideClick: false

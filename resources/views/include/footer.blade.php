@@ -2165,7 +2165,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 if (typeof window.appendCompetencyPhotoSignToFormData === 'function') {
                     window.appendCompetencyPhotoSignToFormData(formData, $('#competency_form_ws')[0]);
                 }
-                let applicationId = $('#application_id').val();
+                let applicationId = (typeof window.competencyDraftApplicationId === 'function')
+                    ? window.competencyDraftApplicationId()
+                    : ($('#competency_form_ws input[name="application_id"]').val() || '');
                 let formUrl;
 
                 if (applicationId) {
@@ -2944,7 +2946,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
 // --------------------- alteration_clSubmit --------------------
 $(document).on('click', '#alteration_clSubmit', function () {
 
-    let applicationId = $('#application_id').val();
+    let applicationId = $('#alteration_cl_application_id').val();
 
     if (!applicationId || applicationId === '0') {
         $('#cert_name_error').text('Please select a licence.');
@@ -2953,7 +2955,7 @@ $(document).on('click', '#alteration_clSubmit', function () {
 
     $('#cert_name_error').text('');
 
-    let selectedOption = $('#application_id').find(':selected');
+    let selectedOption = $('#alteration_cl_application_id').find(':selected');
 
     let licenseNumber = selectedOption.data('license-number');
 
