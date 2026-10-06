@@ -168,9 +168,12 @@ class CompetencyAdminQueryService
             ->leftJoin('mst_licences as ml', 'ta.form_id', '=', 'ml.id')
             ->where('ta.form_id', $formId)
             ->where($this->paidPaymentConstraint('ta'))
-            ->where(function ($q) use ($workflowTable) {
-                $q->where(DB::raw('TRIM(ta.app_status)'), 'QU')
-                    ->orWhereRaw("(TRIM(ta.app_status) IN ('P','RE') AND EXISTS (SELECT 1 FROM {$workflowTable} tw WHERE tw.application_id = ta.application_id AND TRIM(tw.appl_status) = 'QU'))");
+            ->whereIn(DB::raw('TRIM(ta.app_status)'), ['P', 'RE'])
+            ->whereExists(function ($exists) use ($workflowTable) {
+                $exists->select(DB::raw(1))
+                    ->from("{$workflowTable} as tw")
+                    ->whereColumn('tw.application_id', 'ta.application_id')
+                    ->whereRaw("TRIM(tw.appl_status) = 'QU'");
             });
 
         if ($applTypeFilter) {

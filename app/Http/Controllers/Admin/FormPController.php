@@ -217,6 +217,12 @@ class FormPController extends Controller
         if (!$applicant) {
             return response()->json(['status' => 'error', 'message' => 'Applicant not found.'], 404);
         }
+        if (strtoupper(trim((string) ($applicant->app_status ?? $applicant->status ?? ''))) === 'QU') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This application was returned to the applicant. It cannot be forwarded until the applicant resubmits.',
+            ], 422);
+        }
 
         $queryTypeJson = $request->queryType && is_array($request->queryType) && count($request->queryType) > 0
             ? json_encode($request->queryType) : null;
@@ -1154,6 +1160,7 @@ class FormPController extends Controller
 
             $issuedAt = null;
             $expiresAt = null;
+            $validFrom = null;
             $newSerial = null;
             $kept = $this->formPKeptCertificate($application, (string) $request->application_id, $appl_type);
 
@@ -1163,13 +1170,39 @@ class FormPController extends Controller
                 $issuedAt = $baseExpiry->copy()->format('Y-m-d H:i:s');
                 $expiresAt = $baseExpiry->copy()->addMonths($monthsToAdd)->format('Y-m-d');
                 $newSerial = $kept['number'] ?: $this->nextFormPCertificateNumber();
-            } elseif (in_array($appl_type, ['A', 'D'], true)) {
+            } elseif ($appl_type === 'A') {
                 if ($kept['number'] === null) {
                     throw new \RuntimeException('The existing certificate number was not found, so this application was not approved.');
                 }
                 $newSerial = $kept['number'];
                 $issuedAt = $kept['issued_at'] ?: now()->format('Y-m-d H:i:s');
                 $expiresAt = $kept['expires_at'] ?: now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
+            } elseif ($appl_type === 'D') {
+                $digitized = $this->formPDigitizationRow(
+                    (string) $request->application_id,
+                    (string) ($application->login_id ?? '')
+                );
+                $oldNumber = trim((string) ($digitized->ccnumber ?? $digitized->old_cc_no ?? ''));
+                if ($oldNumber === '' || $oldNumber === '0') {
+                    throw new \RuntimeException('The old certificate number was not found, so this digitisation was not approved.');
+                }
+                $issuedAt = $digitized->fissue ?? $digitized->from_date ?? now()->format('Y-m-d H:i:s');
+                $validFrom = $digitized->from_date ?? $issuedAt;
+                $expiresAt = $digitized->to_date ?? null;
+                if ($expiresAt === null || trim((string) $expiresAt) === '') {
+                    throw new \RuntimeException('The old certificate validity dates were not found, so this digitisation was not approved.');
+                }
+                $existingSerial = trim((string) ($existingCcCert->certificate_no ?? ''));
+                if ($existingSerial !== '' && strcasecmp($existingSerial, $oldNumber) !== 0) {
+                    $newSerial = $existingSerial;
+                } else {
+                    $newSerial = $this->nextFormPCertificateNumber();
+                }
+                $this->recordFormPDigitizationNewNumber(
+                    (string) $request->application_id,
+                    $oldNumber,
+                    $newSerial
+                );
             } else {
                 $existingCc = Schema::hasTable($certTable)
                     ? DB::table($certTable)->where('application_id', $request->application_id)->first()
@@ -1185,11 +1218,13 @@ class FormPController extends Controller
                 }
             }
 
+            $validFrom = $validFrom ?: $issuedAt;
+
             app(CompetencyCertificateService::class)->issueOrUpdate('P', [
                 'application_id' => $request->application_id,
                 'certificate_no' => $newSerial,
                 'dateof_issue' => $issuedAt,
-                'valid_from' => $issuedAt,
+                'valid_from' => $validFrom,
                 'valid_to' => $expiresAt,
                 'cert_status' => 'A',
             ]);
@@ -1288,6 +1323,60 @@ class FormPController extends Controller
         SupervisorModel::create($payload);
     }
 
+    private function recordFormPDigitizationNewNumber(string $applicationId, string $oldNumber, string $newSerial): void
+    {
+        $now = now();
+        $updatedBy = Auth::user()->roles_id ?? 0;
+
+        if (Schema::hasTable('tnelb_cc_digitization')) {
+            $digiUpdate = ['updated_at' => $now];
+            if (Schema::hasColumn('tnelb_cc_digitization', 'new_cc_no')) {
+                $digiUpdate['new_cc_no'] = $newSerial;
+            }
+            DB::table('tnelb_cc_digitization')
+                ->where('application_id', $applicationId)
+                ->update($digiUpdate);
+        }
+
+        if (! Schema::hasTable('cc_digitisation_map')) {
+            return;
+        }
+
+        $mapQuery = DB::table('cc_digitisation_map')->where('application_id', $applicationId);
+        $payload = ['updated_at' => $now];
+        if (Schema::hasColumn('cc_digitisation_map', 'new_cc_no')) {
+            $payload['new_cc_no'] = $newSerial;
+        }
+        if (Schema::hasColumn('cc_digitisation_map', 'updated_by')) {
+            $payload['updated_by'] = $updatedBy;
+        }
+
+        if ($mapQuery->exists()) {
+            $mapQuery->update($payload);
+
+            return;
+        }
+
+        $insert = [
+            'application_id' => $applicationId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+        if (Schema::hasColumn('cc_digitisation_map', 'old_cc_no') && preg_match('/^\d+$/', $oldNumber)) {
+            $insert['old_cc_no'] = $oldNumber;
+        }
+        if (Schema::hasColumn('cc_digitisation_map', 'new_cc_no')) {
+            $insert['new_cc_no'] = $newSerial;
+        }
+        if (Schema::hasColumn('cc_digitisation_map', 'cc_type')) {
+            $insert['cc_type'] = FormPSchema::LICENSE_NAME;
+        }
+        if (Schema::hasColumn('cc_digitisation_map', 'updated_by')) {
+            $insert['updated_by'] = $updatedBy;
+        }
+        DB::table('cc_digitisation_map')->insert($insert);
+    }
+
     private function nextFormPCertificateNumber(): string
     {
         $yearMonth = now()->format('Ym');
@@ -1312,7 +1401,7 @@ class FormPController extends Controller
             ? str_pad((int) substr((string) $lastSerial, -5) + 1, 5, '0', STR_PAD_LEFT)
             : '00001';
 
-        return 'LP'.$yearMonth.$nextNumber;
+        return 'CP'.$yearMonth.$nextNumber;
     }
 
     /**
@@ -1325,10 +1414,10 @@ class FormPController extends Controller
         $expiresAt = null;
 
         if ($applType === 'D') {
-            $digitized = $this->formPDigitizationRow($applicationId);
+            $digitized = $this->formPDigitizationRow($applicationId, (string) ($application->login_id ?? ''));
             if ($digitized) {
                 $digitizedNumber = trim((string) ($digitized->ccnumber ?? $digitized->old_cc_no ?? ''));
-                if ($number === '' && $digitizedNumber !== '') {
+                if ($digitizedNumber !== '') {
                     $number = $digitizedNumber;
                 }
                 $issuedAt = $digitized->fissue ?? $digitized->from_date ?? null;
@@ -1364,9 +1453,10 @@ class FormPController extends Controller
         ];
     }
 
-    private function formPDigitizationRow(string $applicationId): ?object
+    private function formPDigitizationRow(string $applicationId, string $loginId = ''): ?object
     {
-        if (Schema::hasTable('tnelb_cc_digitization')) {
+        $applicationId = trim($applicationId);
+        if ($applicationId !== '' && Schema::hasTable('tnelb_cc_digitization')) {
             $row = DB::table('tnelb_cc_digitization')
                 ->where('application_id', $applicationId)
                 ->orderByDesc('id')
@@ -1376,9 +1466,55 @@ class FormPController extends Controller
             }
         }
 
-        $map = CC_Digitisation_Map::where('application_id', $applicationId)->orderByDesc('id')->first();
-        if ($map && trim((string) ($map->old_cc_no ?? '')) !== '') {
-            return (object) ['ccnumber' => $map->old_cc_no];
+        $map = null;
+        if ($applicationId !== '' && Schema::hasTable('cc_digitisation_map')) {
+            $mapQuery = DB::table('cc_digitisation_map')->where('application_id', $applicationId);
+            if (Schema::hasColumn('cc_digitisation_map', 'm_id')) {
+                $mapQuery->orderByDesc('m_id');
+            } else {
+                $mapQuery->orderByDesc('id');
+            }
+            $map = $mapQuery->first();
+        }
+
+        $tempId = trim((string) ($map->temp_id ?? ''));
+        if ($tempId !== '' && Schema::hasTable('tnelb_cc_digitization')) {
+            $byTemp = DB::table('tnelb_cc_digitization')
+                ->where('temp_app_id', $tempId)
+                ->orderByDesc('id')
+                ->first();
+            if ($byTemp) {
+                return $byTemp;
+            }
+        }
+
+        $mapNumber = trim((string) ($map->old_cc_no ?? ''));
+        if ($mapNumber !== '' && $mapNumber !== '0') {
+            return (object) [
+                'ccnumber' => $mapNumber,
+                'fissue' => $map->fissue ?? null,
+                'from_date' => $map->from_date ?? null,
+                'to_date' => $map->to_date ?? null,
+            ];
+        }
+
+        $loginId = trim($loginId);
+        if ($loginId !== '' && Schema::hasTable('tnelb_cc_digitization')) {
+            $latest = DB::table('tnelb_cc_digitization')
+                ->where('login_id', $loginId)
+                ->where('form_name', FormPSchema::FORM_NAME)
+                ->where(function ($q) use ($applicationId) {
+                    if ($applicationId !== '') {
+                        $q->where('application_id', $applicationId);
+                    } else {
+                        $q->whereNull('application_id');
+                    }
+                })
+                ->orderByDesc('id')
+                ->first();
+            if ($latest) {
+                return $latest;
+            }
         }
 
         return null;

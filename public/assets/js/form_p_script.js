@@ -38,16 +38,20 @@ async function showInstructPopup(licence_code,login_id) {
             $('#competency_form_p select[name="month_of_passing[]"]').each(function () {
                 formData.append('month_passing[]', $(this).val() || '');
             });
-            let applicationId = $('#application_id').val();
+            let applicationId = ($('#competency_form_p input[name="application_id"]').val()
+                || $('#application_id').val()
+                || '').trim();
+            const isRenewal = applTypeUpper === 'R'
+                || (typeof window.isRenewFormP !== 'undefined' && window.isRenewFormP);
             let formUrl;
 
-            if (applicationId) {
-                // if (appl_type === 'R') {
-                //     formUrl = "{{ route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}"
-                //         .replace('__APPL_ID__', applicationId);
-                // } else {
+            if (isRenewal) {
+                formData.set('appl_type', 'R');
+                const parentId = ($('#old_application').val() || applicationId || '').trim();
+                const renewId = applicationId || parentId;
+                formUrl = BASE_URL + "/form_p/draft_renewal_submit/" + encodeURIComponent(renewId);
+            } else if (applicationId) {
                 formUrl = BASE_URL + "/form_p/update";
-                    // }
             } else {
                 formUrl = BASE_URL + "/form_p/store";
             }
@@ -254,7 +258,7 @@ async function showInstructPopup(licence_code,login_id) {
                                 timer: 3000, // Auto close in 3 seconds
                                 timerProgressBar: true
                             }).then(() => {
-                                window.location.href = "/dashboard";
+                                window.location.href = BASE_URL + "/dashboard";
                             }); // your redirect URL
                         }
                     });
@@ -1438,10 +1442,16 @@ $(document).ready(function () {
             return; 
 
         } else {
-            let applicationId = $('#application_id').val();
+            let applicationId = ($('#competency_form_p input[name="application_id"]').val()
+                || $('#application_id').val()
+                || '').trim();
 
-            let applType = $('#appl_type').val();
+            let applType = ($('#appl_type').val() || '').trim();
             let formData = new FormData($('#competency_form_p')[0]);
+            if ((typeof window.isRenewFormP !== 'undefined') && window.isRenewFormP) {
+                applType = 'R';
+                formData.set('appl_type', 'R');
+            }
             formData.delete('month_passing[]');
             $('#competency_form_p select[name="month_of_passing[]"]').each(function () {
                 formData.append('month_passing[]', $(this).val() || '');
