@@ -664,7 +664,12 @@ class FormPController extends BaseController
 
         $applicationid = $appl_id;
         $user = $this->formPUserPayload(Auth::user());
-        $appStatus = strtoupper(trim((string) ($application_details->app_status ?? '')));
+        $appStatusRaw = strtoupper(trim((string) ($application_details->app_status ?? '')));
+        $legacyStatus = strtoupper(trim((string) ($application_details->status ?? '')));
+        $appStatus = ($appStatusRaw === 'QU' || $legacyStatus === 'QU')
+            ? 'QU'
+            : ($appStatusRaw !== '' ? $appStatusRaw : $legacyStatus);
+        $isReturnedRoute = request()->routeIs('edit_returned_application_p');
 
         $queries = collect();
         $queryReasonsForValidation = [];
@@ -673,7 +678,7 @@ class FormPController extends BaseController
         $returnedFormPSectionKeys = [];
         $returnedIsPartialEdit = false;
 
-        if ($appStatus === 'QU') {
+        if ($appStatus === 'QU' || $isReturnedRoute) {
             $returnLogRow = ReturnedApplicationEditScope::latestReturnLogRow($appl_id);
             if ($returnLogRow) {
                 $returnRemarks = trim((string) ($returnLogRow->remarks ?? ''));
@@ -698,6 +703,10 @@ class FormPController extends BaseController
             $returnedFormPSectionKeys = $this->mapReturnedFormPSectionKeys($returnedEditableSections);
             $returnedIsPartialEdit = $returnedFormPSectionKeys !== [];
 
+            $isReturnedApplication = true;
+            $application_details->app_status = 'QU';
+            $viewData['application_details'] = $application_details;
+
             return view('user_login.edit_returned_application_p', array_merge($viewData, compact(
                 'applicationid',
                 'user',
@@ -706,7 +715,8 @@ class FormPController extends BaseController
                 'returnRemarks',
                 'returnedEditableSections',
                 'returnedFormPSectionKeys',
-                'returnedIsPartialEdit'
+                'returnedIsPartialEdit',
+                'isReturnedApplication'
             )));
         }
 

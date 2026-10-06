@@ -366,12 +366,7 @@ class DocumentStorageService
                 abort(500, 'Could not decrypt document.');
             }
 
-            $displayName = $crypt->displayFileNameForProofDocument($safeName);
-
-            return response($decrypted, 200, [
-                'Content-Type' => $crypt->inlineMimeTypeForProofDocument($relativePath, $safeName),
-                'Content-Disposition' => 'inline; filename="' . $displayName . '"',
-            ]);
+            return $crypt->browserInlineResponse($decrypted, $safeName);
         }
 
         return $disk->response($relativePath, $safeName, [

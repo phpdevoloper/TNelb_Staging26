@@ -3,6 +3,7 @@
 namespace App\Services\FormS;
 
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Crypt;
 
 class SensitiveProofCryptService
@@ -79,13 +80,70 @@ class SensitiveProofCryptService
         };
     }
 
-    public function displayFileNameForProofDocument(string $downloadName): string
+    public function detectInlineMimeFromBytes(string $bytes): string
     {
-        if (self::isEncryptedProofDocumentPath($downloadName)) {
-            return preg_replace('/\.bin$/i', '.pdf', $downloadName) ?: $downloadName;
+        if (strncmp($bytes, '%PDF', 4) === 0) {
+            return 'application/pdf';
+        }
+        if (strncmp($bytes, "\xFF\xD8\xFF", 3) === 0) {
+            return 'image/jpeg';
+        }
+        if (strncmp($bytes, "\x89PNG\r\n\x1A\n", 8) === 0) {
+            return 'image/png';
+        }
+        if (strncmp($bytes, 'GIF87a', 6) === 0 || strncmp($bytes, 'GIF89a', 6) === 0) {
+            return 'image/gif';
         }
 
-        return $downloadName;
+        return 'application/pdf';
+    }
+
+    public function displayFileNameForProofDocument(string $downloadName, ?string $mime = null): string
+    {
+        $name = self::isEncryptedProofDocumentPath($downloadName)
+            ? (preg_replace('/\.bin$/i', '.pdf', $downloadName) ?: $downloadName)
+            : $downloadName;
+
+        if ($mime !== null) {
+            $ext = match ($mime) {
+                'application/pdf' => 'pdf',
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                default => null,
+            };
+            if ($ext !== null) {
+                $base = preg_replace('/\.(bin|pdf|jpe?g|png|gif)$/i', '', $name) ?: $name;
+
+                return $base.'.'.$ext;
+            }
+        }
+
+        return $name;
+    }
+
+    /**
+     * Inline Aadhaar/PAN bytes so Firefox/Edge/Safari can preview (Chrome is more lenient).
+     */
+    public function browserInlineResponse(string $bytes, string $downloadName): Response
+    {
+        $mime = $this->detectInlineMimeFromBytes($bytes);
+        $fileName = str_replace(['"', '\\', "\r", "\n"], '', $this->displayFileNameForProofDocument($downloadName, $mime));
+        $encodedName = rawurlencode($fileName);
+
+        $response = response($bytes, 200);
+        $response->headers->set('Content-Type', $mime);
+        $response->headers->set('Content-Length', (string) strlen($bytes));
+        $response->headers->set(
+            'Content-Disposition',
+            'inline; filename="'.$fileName.'"; filename*=UTF-8\'\''.$encodedName
+        );
+        $response->headers->set('Accept-Ranges', 'none');
+        $response->headers->set('Cache-Control', 'private, no-store, no-transform');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        return $response;
     }
 
     protected function looksLikeEncryptedPayload(string $value): bool

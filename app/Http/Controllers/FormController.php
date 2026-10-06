@@ -5684,7 +5684,7 @@ public function update(Request $request, $id)
 
     public function showEncryptedDocument(Request $request, $type, $filename = null)
     {
-        $filename = $filename ?: $request->query('file');
+        $filename = $request->query('file') ?: $filename;
 
         return $this->streamIdentityProofFile((string) $type, (string) $filename);
     }
@@ -5704,25 +5704,35 @@ public function update(Request $request, $id)
 
         $candidates = [$filename, basename($filename)];
         if (preg_match('/\.pdf$/i', $filename)) {
-            $candidates[] = (string) preg_replace('/\.pdf$/i', '.pdf', $filename);
-            $candidates[] = basename((string) preg_replace('/\.pdf$/i', '.pdf', $filename));
+            $binPath = (string) preg_replace('/\.pdf$/i', '.bin', $filename);
+            $candidates[] = $binPath;
+            $candidates[] = basename($binPath);
         } elseif (preg_match('/\.bin$/i', $filename)) {
-            $candidates[] = (string) preg_replace('/\.bin$/i', '.pdf', $filename);
+            $pdfPath = (string) preg_replace('/\.bin$/i', '.pdf', $filename);
+            $candidates[] = $pdfPath;
+            $candidates[] = basename($pdfPath);
         }
-        
+
         $storage = app(DocumentStorageService::class);
+        $crypt = app(SensitiveProofCryptService::class);
 
         foreach (array_unique(array_filter($candidates)) as $relative) {
             $resolved = $storage->resolveExistingPath($relative);
             if ($resolved !== null) {
-                return $storage->download($resolved, basename($resolved));
+                return $storage->download(
+                    $resolved,
+                    $crypt->displayFileNameForProofDocument(basename($resolved))
+                );
             }
         }
 
         foreach (array_unique(array_filter($candidates)) as $relative) {
             $legacyPath = storage_path('app/private_documents/' . basename((string) $relative));
             if (is_file($legacyPath)) {
-                return $this->streamLegacyEncryptedProof($legacyPath, basename((string) $relative));
+                return $this->streamLegacyEncryptedProof(
+                    $legacyPath,
+                    $crypt->displayFileNameForProofDocument(basename((string) $relative))
+                );
             }
 
             $publicPath = public_path(ltrim((string) $relative, '/'));
@@ -5748,11 +5758,8 @@ public function update(Request $request, $id)
         }
 
         $crypt = app(SensitiveProofCryptService::class);
-        $displayName = $crypt->displayFileNameForProofDocument($downloadName);
 
-        return response($decrypted)
-            ->header('Content-Type', $crypt->inlineMimeTypeForProofDocument($downloadName, $displayName))
-            ->header('Content-Disposition', 'inline; filename="' . $displayName . '"');
+        return $crypt->browserInlineResponse($decrypted, $downloadName);
     }
 
 

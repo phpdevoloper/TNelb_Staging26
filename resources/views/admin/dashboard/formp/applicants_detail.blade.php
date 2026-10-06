@@ -122,14 +122,19 @@
                         </div>
                         <div class="widget-content widget-content-area">
                             <div class="simple-tab">
+                                @php
+                                    $fpHidePaymentTab = in_array(strtoupper(trim((string) ($applicant->appl_type ?? ''))), ['D', 'A'], true);
+                                @endphp
                                 <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Personal Details</button>
                                     </li>
 
+                                    @unless($fpHidePaymentTab)
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link " id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Payment Status</button>
                                     </li>
+                                    @endunless
 
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Check List</button>
@@ -225,7 +230,7 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">D.O.B & Age:</td>
-                                                                    <td>{{ $applicant->d_o_b }} ({{ $applicant->age }} years old)</td>
+                                                                    <td>{{ format_date($applicant->d_o_b) }} ({{ $applicant->age }} years old)</td>
                                                                 </tr>
                                                             </tbody>
                                                         </table>
@@ -516,6 +521,7 @@
                                                                     {{ $masked }}
                                                                     (<a href="{{ proof_document_url($applicant->aadhaar_doc, 'aadhaar') }}"
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open Aadhaar document">
                                                                         <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
@@ -537,6 +543,7 @@
                                                                     {{ $maskedPan }}
                                                                     (<a href="{{ proof_document_url($panDocFile, 'pan') }}"
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open PAN document">
                                                                         <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
@@ -636,6 +643,7 @@
 
                                     </div>
                                     <?php //var_dump($workflows);die; ?>
+                                    @unless($fpHidePaymentTab)
                                     <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
                                         <div class="row text-center fw-bold border-bottom pb-2 mb-3 mt-3">
                                             <div class="col-lg-6 text-primary">
@@ -716,6 +724,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @endunless
                                 </div>
                             </div>
                         </div>
