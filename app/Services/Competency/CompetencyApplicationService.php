@@ -14,6 +14,8 @@ use App\Services\FormS\FormSAlterationService;
 
 use App\Services\FormS\FormSApplicationWorkflowService;
 
+use App\Services\FormS\FormSProofDocumentService;
+
 use Illuminate\Support\Facades\DB;
 
 
@@ -144,14 +146,16 @@ class CompetencyApplicationService
 
                 $meta = $this->findMeta($applicationId);
 
-
+                $masterApplicationId = $applicationId;
+                if ($meta) {
+                    $masterApplicationId = (string) app(FormSApplicationWorkflowService::class)
+                        ->masterApplication($meta)
+                        ->application_id;
+                }
 
                 return $this->enrichCcMetaProofFields(
-
                     $this->normalizeMetaRowForAdmin($row, $metaTable, $applicationId),
-
-                    (string) app(FormSApplicationWorkflowService::class)->masterApplication($meta)->application_id
-
+                    $masterApplicationId
                 );
 
             }
@@ -178,7 +182,10 @@ class CompetencyApplicationService
 
         if ($formP) {
 
-            return $this->normalizeFormPRowForAdmin($formP, $applicationId);
+            return $this->enrichCcMetaProofFields(
+                $this->normalizeFormPRowForAdmin($formP, $applicationId),
+                $applicationId
+            );
 
         }
 
@@ -308,59 +315,77 @@ class CompetencyApplicationService
 
 
     private function enrichCcMetaProofFields(object $applicationDetails, string $masterApplicationId): object
-
     {
+        $currentId = trim((string) ($applicationDetails->application_id ?? ''));
+        $masterApplicationId = trim($masterApplicationId);
+        $applicationIds = array_values(array_unique(array_filter(
+            [$masterApplicationId, $currentId],
+            static fn ($id) => $id !== ''
+        )));
 
-        $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
-
-            ->whereIn('proof_type', ['aadhaar', 'pan'])
-
-            ->get();
-
-
-
-        foreach ($proofRows as $proof) {
-
-            $proofType = strtolower((string) ($proof->proof_type ?? ''));
-
-            if ($proofType === 'aadhaar') {
-
-                if (! empty($proof->proof_no)) {
-
-                    $applicationDetails->aadhaar = $proof->proof_no;
-
-                }
-
-                if (! empty($proof->proof_doc)) {
-
-                    $applicationDetails->aadhaar_doc = $proof->proof_doc;
-
-                }
-
-            } elseif ($proofType === 'pan') {
-
-                if (! empty($proof->proof_no)) {
-
-                    $applicationDetails->pancard = $proof->proof_no;
-
-                }
-
-                if (! empty($proof->proof_doc)) {
-
-                    $applicationDetails->pan_doc = $proof->proof_doc;
-
-                    $applicationDetails->pancard_doc = $proof->proof_doc;
-
-                }
-
-            }
-
+        if ($applicationIds === []) {
+            return $applicationDetails;
         }
 
+        $proofRows = CC_Proof_doc::whereIn('application_id', $applicationIds)->get();
+        $proofRows = $proofRows->sortBy(function ($proof) use ($currentId) {
+            return trim((string) ($proof->application_id ?? '')) === $currentId ? 1 : 0;
+        })->values();
 
+        foreach ($proofRows as $proof) {
+            $proofType = strtolower((string) ($proof->proof_type ?? ''));
+            $proofName = strtoupper((string) ($proof->proof_name ?? ''));
+            $isAadhaar = $proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR;
+            $isPan = $proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN;
+
+            if ($isAadhaar) {
+                if (! empty($proof->proof_no)) {
+                    $applicationDetails->aadhaar = $proof->proof_no;
+                }
+                if (! empty($proof->proof_doc)) {
+                    $applicationDetails->aadhaar_doc = $proof->proof_doc;
+                }
+            } elseif ($isPan) {
+                if (! empty($proof->proof_no)) {
+                    $applicationDetails->pancard = $proof->proof_no;
+                }
+                if (! empty($proof->proof_doc)) {
+                    $applicationDetails->pan_doc = $proof->proof_doc;
+                    $applicationDetails->pancard_doc = $proof->proof_doc;
+                }
+            }
+        }
+
+        $proofService = app(FormSProofDocumentService::class);
+        $aadhaarPath = $this->firstExistingProofPath($proofService, $applicationIds, FormSProofDocumentService::PROOF_AADHAAR);
+        if ($aadhaarPath) {
+            $applicationDetails->aadhaar_doc = $aadhaarPath;
+        }
+        $panPath = $this->firstExistingProofPath($proofService, $applicationIds, FormSProofDocumentService::PROOF_PAN);
+        if ($panPath) {
+            $applicationDetails->pan_doc = $panPath;
+            $applicationDetails->pancard_doc = $panPath;
+        }
 
         return $applicationDetails;
+    }
 
+    /**
+     * Prefer the current application file (resubmit/renewal child), then the parent.
+     *
+     * @param  list<string>  $applicationIds
+     */
+    private function firstExistingProofPath(FormSProofDocumentService $proofService, array $applicationIds, string $proofName): ?string
+    {
+        $orderedIds = array_reverse($applicationIds);
+        foreach ($orderedIds as $applicationId) {
+            $path = $proofService->resolveProofPath($applicationId, $proofName);
+            if (! empty($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
 

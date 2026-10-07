@@ -921,6 +921,15 @@ class SupervisorController extends Controller
                     }
                 }
             }
+            $aadhaarPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_AADHAAR);
+            if ($aadhaarPath) {
+                $applicant->aadhaar_doc = $aadhaarPath;
+            }
+            $panPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_PAN);
+            if ($panPath) {
+                $applicant->pan_doc = $panPath;
+                $applicant->pancard_doc = $panPath;
+            }
         } else {
             $edu = Schema::hasTable('tnelb_applicants_edu')
                 ? DB::table('tnelb_applicants_edu')->where('application_id', $applicantId)->get()

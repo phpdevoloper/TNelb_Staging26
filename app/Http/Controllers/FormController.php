@@ -2534,7 +2534,7 @@ class FormController extends BaseController
             $request->merge(['aadhaar_doc_removed' => '0']);
         }
 
-        if ($this->isCompetencyForm($formName)) {
+        if (! isset($editable[ReturnedApplicationEditScope::SECTION_PAN_DOC])) {
             $request->files->remove('pancard_doc');
         }
     }
