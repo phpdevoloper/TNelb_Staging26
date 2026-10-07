@@ -7429,6 +7429,229 @@ $(document).on("click", "#add_qc_staff", function () {
 // SAVE QC / QSC STAFF
 // ============================================================
 
+$(document).on("click", "#verify_qc_staff", function () {
+
+    let $section = $("#staffqc_datasection");
+
+    let certificateNo = $section
+        .find('input[name="staff_cc_no[]"]')
+        .val()
+        .trim();
+
+    let firstIssue = $section
+        .find('input[name="staff_cc_first_issue[]"]')
+        .val()
+        .trim();
+
+    let validityFrom = $section
+        .find('input[name="staff_cc_validity_from[]"]')
+        .val()
+        .trim();
+
+    let validityTo = $section
+        .find('input[name="staff_cc_validity_to[]"]')
+        .val()
+        .trim();
+
+
+    // =====================================================
+    // CLEAR PREVIOUS RESULT
+    // =====================================================
+
+    $("#certificate-holder-name").text("");
+
+    $(".staff-verify-error").text("");
+
+    $("#qc_upload_section").hide();
+
+    $("#save_qc")
+        .prop("disabled", true);
+
+
+    // =====================================================
+    // VALIDATION
+    // =====================================================
+
+    let hasError = false;
+
+    if (!certificateNo) {
+
+        $section.find(".staff-cc-error")
+            .text("Please enter Certificate Number.");
+
+        hasError = true;
+    }
+
+    if (!firstIssue) {
+
+        $section.find(".staff-first-issue-error")
+            .text("Please enter Certificate First Issue.");
+
+        hasError = true;
+    }
+
+    if (!validityFrom) {
+
+        $section.find(".staff-validity-from-error")
+            .text("Please enter Validity From Date.");
+
+        hasError = true;
+    }
+
+    if (!validityTo) {
+
+        $section.find(".staff-validity-to-error")
+            .text("Please enter Validity To Date.");
+
+        hasError = true;
+    }
+
+
+    if (hasError) {
+        return;
+    }
+
+
+    // =====================================================
+    // VERIFY
+    // =====================================================
+
+    let $button = $(this);
+
+    $.ajax({
+
+        url: BASE_URL + "/check-qc-certificate",
+
+        type: "POST",
+
+        data: {
+
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            staffcategory: "QC",
+
+            certificate_no: certificateNo,
+
+            dateof_issue: firstIssue,
+
+            valid_from: validityFrom,
+
+            valid_to: validityTo
+        },
+
+
+        beforeSend: function () {
+
+            $button
+                .prop("disabled", true)
+                .text("Verifying...");
+
+            $(".staff-verify-error").text("");
+
+            $("#certificate-holder-name")
+                .text("Checking...");
+        },
+
+
+        success: function (response) {
+
+            if (response.status === true && response.data) {
+
+                // ==========================================
+                // CERTIFICATE VERIFIED
+                // ==========================================
+
+                $("#certificate-holder-name")
+                    .text(response.data.applicant_name);
+
+
+                // ==========================================
+                // SHOW UPLOAD SECTION
+                // ==========================================
+
+                $("#qc_upload_section")
+                    .slideDown();
+
+
+                // ==========================================
+                // ENABLE SAVE
+                // ==========================================
+
+                $("#save_qc")
+                    .prop("disabled", false);
+
+
+                // Optional hidden application ID
+                if ($("#qc_application_id").length === 0) {
+
+                    $("<input>", {
+                        type: "hidden",
+                        id: "qc_application_id",
+                        name: "qc_application_id",
+                        value: response.data.application_id
+                    }).appendTo($section);
+
+                } else {
+
+                    $("#qc_application_id")
+                        .val(response.data.application_id);
+                }
+
+            } else {
+
+                // ==========================================
+                // VERIFICATION FAILED
+                // ==========================================
+
+                $("#certificate-holder-name")
+                    .text("");
+
+                $("#qc_upload_section")
+                    .hide();
+
+                $("#save_qc")
+                    .prop("disabled", true);
+
+                $(".staff-verify-error")
+                    .text(
+                        response.message ||
+                        "Certificate verification failed."
+                    );
+            }
+        },
+
+
+        error: function (xhr) {
+
+            console.log(xhr.responseText);
+
+            $("#certificate-holder-name")
+                .text("");
+
+            $("#qc_upload_section")
+                .hide();
+
+            $("#save_qc")
+                .prop("disabled", true);
+
+            $(".staff-verify-error")
+                .text(
+                    "Unable to verify certificate. Please try again."
+                );
+        },
+
+
+        complete: function () {
+
+            $button
+                .prop("disabled", false)
+                .text("Verify Staff");
+        }
+
+    });
+
+});
+
 $(document).on("click", "#save_qc", function () {
 
     let $section = $("#staffqc_datasection");
@@ -7439,33 +7662,39 @@ $(document).on("click", "#save_qc", function () {
     let hasError = false;
 
 
-    // ========================================================
-    // CATEGORY
-    // ========================================================
+    // =====================================================
+    // CERTIFICATE MUST BE VERIFIED
+    // =====================================================
 
-    let category =
-        $section.find(".staffqc_category").val();
+    let applicationId = $("#qc_application_id").val();
 
-    if (!category) {
+    if (!applicationId) {
 
-        $section.find(".staff-category-error")
-            .text("Please select staff category.");
+        $section.find(".staff-verify-error")
+            .text("Please verify the QC certificate first.");
 
-        hasError = true;
+        return;
     }
 
 
-    // ========================================================
+    // =====================================================
+    // CATEGORY
+    // =====================================================
+
+    let category = "QC";
+
+
+    // =====================================================
     // APPLICATION TYPE
-    // ========================================================
+    // =====================================================
 
     let appl_type =
         ($("#appl_type").val() || "").trim();
 
 
-    // ========================================================
+    // =====================================================
     // CERTIFICATE NUMBER
-    // ========================================================
+    // =====================================================
 
     let ccNo = $section
         .find('input[name="staff_cc_no[]"]')
@@ -7481,9 +7710,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // ========================================================
+    // =====================================================
     // FIRST ISSUE
-    // ========================================================
+    // =====================================================
 
     let firstIssue = $section
         .find('input[name="staff_cc_first_issue[]"]')
@@ -7499,9 +7728,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // ========================================================
+    // =====================================================
     // VALIDITY FROM
-    // ========================================================
+    // =====================================================
 
     let validityFrom = $section
         .find('input[name="staff_cc_validity_from[]"]')
@@ -7517,9 +7746,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // ========================================================
+    // =====================================================
     // VALIDITY TO
-    // ========================================================
+    // =====================================================
 
     let validityTo = $section
         .find('input[name="staff_cc_validity_to[]"]')
@@ -7535,9 +7764,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // ========================================================
+    // =====================================================
     // APPOINTMENT DOCUMENT
-    // ========================================================
+    // =====================================================
 
     let appFileLink = $section
         .find(".app-doc-file")
@@ -7554,9 +7783,9 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // ========================================================
+    // =====================================================
     // CONSENT DOCUMENT
-    // ========================================================
+    // =====================================================
 
     let consFileLink = $section
         .find(".cons-doc-file")
@@ -7573,164 +7802,83 @@ $(document).on("click", "#save_qc", function () {
     }
 
 
-    // ========================================================
+    // =====================================================
     // STOP IF ERROR
-    // ========================================================
+    // =====================================================
 
     if (hasError) {
         return;
     }
 
 
-    // ========================================================
-    // CATEGORY FEE
-    // ========================================================
+    // =====================================================
+    // QC FEE
+    // =====================================================
 
-    let fee =
-        category === "QC"
-            ? 15000
-            : 25000;
+    let fee = 15000;
 
 
-    // ========================================================
-    // CHECK CERTIFICATE
-    // ========================================================
+    // =====================================================
+    // DOCUMENT LINKS
+    // =====================================================
 
-    $.ajax({
-
-        url: BASE_URL + "/check-qc-certificate",
-
-        type: "POST",
-
-        data: {
-
-            _token:
-                $('meta[name="csrf-token"]').attr("content"),
-
-            staffcategory:
-                category,
-
-            certificate_no:
-                ccNo,
-
-            dateof_issue:
-                firstIssue,
-
-            valid_from:
-                validityFrom,
-
-            valid_to:
-                validityTo
-        },
+    let appDocLink = $section
+        .find(".app-doc-file")
+        .siblings(".file-link")
+        .find("a")
+        .attr("href") || "";
 
 
-        success: function (response) {
-
-            if (response.status === true) {
-
-
-                // ============================================
-                // FEE
-                // ============================================
-
-                let fee =
-                    category === "QC"
-                        ? 15000
-                        : 25000;
+    let consDocLink = $section
+        .find(".cons-doc-file")
+        .siblings(".file-link")
+        .find("a")
+        .attr("href") || "";
 
 
-                // ============================================
-                // APPOINTMENT DOCUMENT
-                // ============================================
+    // =====================================================
+    // ADD QC RECORD
+    // =====================================================
 
-                let appDocLink = $section
-                    .find(".app-doc-file")
-                    .siblings(".file-link")
-                    .find("a")
-                    .attr("href") || "";
+    addQCStaffRecord(
 
+        category,
 
-                // ============================================
-                // CONSENT DOCUMENT
-                // ============================================
+        ccNo,
 
-                let consDocLink = $section
-                    .find(".cons-doc-file")
-                    .siblings(".file-link")
-                    .find("a")
-                    .attr("href") || "";
+        firstIssue,
 
+        validityFrom,
 
-                // ============================================
-                // ADD STAFF ROW
-                // ============================================
+        validityTo,
 
-                addQCStaffRecord(
+        fee,
 
-                    category,
+        appl_type,
 
-                    ccNo,
+        appDocLink,
 
-                    firstIssue,
+        "Appointment Letter",
 
-                    validityFrom,
+        consDocLink,
 
-                    validityTo,
+        "Consent Letter"
 
-                    fee,
-
-                    appl_type,
-
-                    appDocLink,
-
-                    "Appointment Letter",
-
-                    consDocLink,
-
-                    "Consent Letter"
-
-                );
+    );
 
 
-                // ============================================
-                // HIDE FORM
-                // ============================================
+    // =====================================================
+    // HIDE FORM
+    // =====================================================
 
-                $section.slideUp();
-
-
-                // ============================================
-                // RESET FORM
-                // ============================================
-
-                resetQCStaffForm();
+    $section.slideUp();
 
 
-            }
-            else {
+    // =====================================================
+    // RESET
+    // =====================================================
 
-                $section
-                    .find(".qc-staff-errors")
-                    .text(response.message);
-
-            }
-
-        },
-
-
-        error: function (xhr) {
-
-            console.log(xhr.responseText);
-
-            $section
-                .find(".qc-staff-errors")
-                .text(
-                    "Unable to verify certificate. Please try again."
-                );
-
-        }
-
-    });
+    resetQCStaffForm();
 
 });
 
