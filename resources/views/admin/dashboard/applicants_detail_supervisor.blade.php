@@ -2003,10 +2003,15 @@
                                         'Secretary' => 'President',
                                         'President' => null, // last step
                                     ];
+                                    $isWaitingOnApplicant = strtoupper(trim((string) ($applicant->app_status ?? $applicant->status ?? $applicant->application_status ?? ''))) === 'QU';
 
                                 @endphp
 
-                                @if ($role == 'Supervisor')
+                                @if ($isWaitingOnApplicant)
+                                    <div class="alert alert-warning mb-0">
+                                        This application was returned to the applicant. Forward is not available until the applicant resubmits.
+                                    </div>
+                                @elseif ($role == 'Supervisor')
                                     <div class="row justify-content-center">
                                         <div class="col-12">
                                             <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">

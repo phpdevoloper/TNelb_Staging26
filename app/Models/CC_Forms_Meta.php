@@ -27,7 +27,6 @@ class CC_Forms_Meta extends CC_Form_S_Meta
 {
 
     public static function findByApplicationId(string $applicationId, ?string $formName = null): ?Model
-
     {
 
         return app(CompetencyMetaService::class)->findModel($applicationId, $formName);

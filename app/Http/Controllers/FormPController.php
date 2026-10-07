@@ -279,23 +279,24 @@ class FormPController extends BaseController
         ]);
     }
 
-    public function renew($appl_id)
+    public function renew(string $appl_id)
     {
         return $this->renew_form_p($appl_id);
     }
 
-    public function renew_form_p($appl_id)
+    public function renew_form_p(string $appl_id)
     {
+        
         if (! Auth::check()) {
             return redirect()->route('logout');
         }
 
-        if (! $appl_id) {
+        if (!$appl_id) {
             return redirect()->route('dashboard')->with('error', 'Application ID is required.');
         }
 
-        $original = CC_Forms_Meta::findByApplicationId((string) $appl_id)
-            ?: TnelbFormP::where('application_id', $appl_id)->first();
+        $original = CC_Forms_Meta::findByApplicationId($appl_id);
+        
         if (! $original) {
             return redirect()->route('dashboard')->with('error', 'Application not found.');
         }
@@ -316,11 +317,9 @@ class FormPController extends BaseController
         if (strtoupper((string) ($original->form_name ?? '')) !== 'P') {
             return redirect()->route('dashboard')->with('error', 'Invalid form type for renewal.');
         }
-
-        if (strtoupper((string) ($original->app_status ?? '')) !== 'A') {
+        if (strtoupper((string) trim($original->app_status ?? '')) !== 'A') {
             return redirect()->route('dashboard')->with('error', 'Only approved applications can be renewed.');
         }
-
         if (app(FormController::class)->renewalAlreadyInProgress((string) $appl_id, (string) $loginId)) {
             return redirect()->route('dashboard')->with('error', 'A renewal application is already in progress for this certificate.');
         }
@@ -414,7 +413,8 @@ class FormPController extends BaseController
         return view('user_login.renew-form-p', array_merge($viewData, compact(
             'old_application',
             'old_application_id',
-            'applicationid'
+            'applicationid',
+            'isRenewFormP'
         )));
     }
 

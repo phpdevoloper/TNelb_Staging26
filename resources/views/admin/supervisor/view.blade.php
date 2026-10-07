@@ -27,10 +27,21 @@
         }
     }
     if (!$isCompletedList) {
-        $allApplications = $allApplications->merge($returnedApplications);
+        $allApplications = $allApplications->merge(
+            collect($returnedApplications)->filter(function ($row) {
+                $st = strtoupper(trim((string) ($row->status ?? $row->application_status ?? $row->app_status ?? '')));
+
+                return $st !== 'QU';
+            })
+        );
     }
     $allApplications = $allApplications
         ->unique('application_id')
+        ->filter(function ($row) {
+            $st = strtoupper(trim((string) ($row->status ?? $row->application_status ?? $row->app_status ?? '')));
+
+            return $st !== 'QU';
+        })
         ->sortByDesc(function ($r) {
             return (string) ($r->submitted_date ?? $r->created_at ?? $r->dt_submit ?? '');
         })

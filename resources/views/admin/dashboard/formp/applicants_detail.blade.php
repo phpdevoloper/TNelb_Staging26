@@ -794,10 +794,15 @@
                                     'Secretary'           => 'President',
                                     'President'           => null, // last step
                                 ];
+                                $isWaitingOnApplicant = strtoupper(trim((string) ($applicant->app_status ?? $applicant->status ?? ''))) === 'QU';
 
                                 @endphp
 
-                                @if ($role == 'Supervisor')
+                                @if ($isWaitingOnApplicant)
+                                    <div class="alert alert-warning mb-0">
+                                        This application was returned to the applicant. Forward is not available until the applicant resubmits.
+                                    </div>
+                                @elseif ($role == 'Supervisor')
                                     {{-- Forward to Assistant Secretary --}}
                                     <button class="btn btn-success" id="forwardbtn">
                                         Forward to {{ $workflow[$role] }}

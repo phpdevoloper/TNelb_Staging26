@@ -159,6 +159,8 @@ class SupervisorController extends Controller
                 })
                 ->values();
 
+            // var_dump($returned_applications); exit;
+
             return view('admin.supervisor.view', compact('workflows', 'new_applications', 'renewal', 'returned_applications'));
         }
 
@@ -248,8 +250,7 @@ class SupervisorController extends Controller
                 ->where('ta.form_id', $selectedFormId)
                 ->whereIn('ta.payment_status', ['payment', 'paid'])
                 ->where(function ($q) {
-                    $q->where('ta.status', 'QU')
-                        ->orWhereRaw("(ta.status IN ('P','RE') AND EXISTS (SELECT 1 FROM cc_workflow_forms tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))");
+                    $q->whereRaw("(ta.status IN ('P','RE') AND EXISTS (SELECT 1 FROM cc_workflow_forms tw WHERE tw.application_id = ta.application_id AND tw.appl_status = 'QU'))");
                 })
                 ->when($applTypeFilter, function ($q) use ($applTypeFilter) {
                     return $q->where('ta.appl_type', $applTypeFilter);
@@ -1178,6 +1179,12 @@ class SupervisorController extends Controller
         }
 
         $applicantStatus = $appService->applicationStatus($applicant);
+        if (strtoupper(trim((string) $applicantStatus)) === 'QU') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This application was returned to the applicant. It cannot be forwarded until the applicant resubmits.',
+            ], 422);
+        }
         $isReturnedApplication = $applicantStatus === 'RE';
 
         $queryTypeJson = $request->queryType && is_array($request->queryType) && count($request->queryType) > 0
