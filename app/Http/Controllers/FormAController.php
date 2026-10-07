@@ -123,15 +123,52 @@ class FormAController extends BaseController
         // STEP 1: Check certificate details
         // -------------------------------------------------
 
-        $certificate = DB::table('cc_forms_cert')
-            ->where('certificate_no', $request->certificate_no)
-            ->where('dateof_issue', $dateofIssue)
-            ->where('valid_from', $validFrom)
-            ->where('valid_to', $validTo)
-            ->where('cert_status', 'A')
+
+        $certificate = DB::query()
+            ->fromSub(
+                DB::table('cc_forms_cert')
+                    ->select(
+                        'certificate_no',
+                        'dateof_issue',
+                        'valid_from',
+                        'valid_to',
+                        'cert_status',
+
+                    )
+                    ->where('certificate_no', $request->certificate_no)
+                    ->where('dateof_issue', $dateofIssue)
+                    ->where('valid_from', $validFrom)
+                    ->where('valid_to', $validTo)
+                    ->where('cert_status', 'A')
+
+                    ->unionAll(
+
+                        DB::table('cc_form_w_cert')
+                            ->select(
+                                'certificate_no',
+                                'dateof_issue',
+                                'valid_from',
+                                'valid_to',
+                                'cert_status',
+
+                            )
+                            ->where('certificate_no', $request->certificate_no)
+                            ->where('dateof_issue', $dateofIssue)
+                            ->where('valid_from', $validFrom)
+                            ->where('valid_to', $validTo)
+                            ->where('cert_status', 'A')
+                    ),
+                'certificates'
+            )
             ->first();
 
-        // dd($certificate);exit;
+
+        if (!$certificate) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Staff Certificate details are not valid.'
+            ]);
+        }        // dd($certificate);exit;
 
 
         if (!$certificate) {
@@ -152,25 +189,25 @@ class FormAController extends BaseController
         // STEP 3: Check certificate already mapped
         // -------------------------------------------------
 
-        $existingStaff = DB::table('cl_staff_tbl')
-            ->where('staff_cc_no', $request->certificate_no)
-            ->where('staff_cc_first_issue', $dateofIssue)
-            ->where('staff_cc_validity_from', $validFrom)
-            ->where('staff_cc_validity_to', $validTo)
-            // ->whereIn('staff_status', ['A', 'P'])
-            ->where('staff_status', 'A')
+        // $existingStaff = DB::table('cl_staff_tbl')
+        //     ->where('staff_cc_no', $request->certificate_no)
+        //     ->where('staff_cc_first_issue', $dateofIssue)
+        //     ->where('staff_cc_validity_from', $validFrom)
+        //     ->where('staff_cc_validity_to', $validTo)
+        //     // ->whereIn('staff_status', ['A', 'P'])
+        //     ->where('staff_status', 'A')
 
-            ->exists();
+        //     ->exists();
 
 
 
-        $existingStaffpending = DB::table('cl_staff_tbl')
-            ->where('staff_cc_no', $request->certificate_no)
-            ->where('staff_cc_first_issue', $dateofIssue)
-            ->where('staff_cc_validity_from', $validFrom)
-            ->where('staff_cc_validity_to', $validTo)
-            ->where('staff_status',  'P')
-            ->exists();
+        // $existingStaffpending = DB::table('cl_staff_tbl')
+        //     ->where('staff_cc_no', $request->certificate_no)
+        //     ->where('staff_cc_first_issue', $dateofIssue)
+        //     ->where('staff_cc_validity_from', $validFrom)
+        //     ->where('staff_cc_validity_to', $validTo)
+        //     ->where('staff_status',  'P')
+        //     ->exists();
 
 
         // dd($existingStaff);exit;
@@ -199,8 +236,11 @@ class FormAController extends BaseController
             'message' => 'Certificate verified successfully.'
         ]);
     }
+
     public function checkQCCertificate(Request $request)
     {
+
+
         // $dateofIssue = Carbon::createFromFormat(
         //     'd-m-Y',
         //     $request->dateof_issue
@@ -235,19 +275,15 @@ class FormAController extends BaseController
         // -------------------------------------------------
         // STEP 1: Check certificate details
         // -------------------------------------------------
-
         $certificate = DB::table('cc_forms_cert')
             ->where('certificate_no', $request->certificate_no)
-            ->where('dateof_issue', $dateofIssue)
-            ->where('valid_from', $validFrom)
-            ->where('valid_to', $validTo)
-            ->where('cert_status', 'A')
-            ->orderBy('cc_id', 'desc')
+            // ->where('dateof_issue', $dateofIssue)
+            // ->where('valid_from', $validFrom)
+            // ->where('valid_to', $validTo)
+            // ->where('cert_status', 'A')
+            // ->orderBy('cc_id', 'desc')
             ->first();
-
-        // dd($certificate);exit;
-
-
+//   dd($certificate);exit;
         if (!$certificate) {
             return response()->json([
                 'status' => false,
@@ -256,31 +292,20 @@ class FormAController extends BaseController
         }
 
 
-        // -------------------------------------------------
-        // STEP 2: Check QC / QSC eligibility
-        // -------------------------------------------------
 
-        if ($request->staffcategory === 'QC') {
+          // =====================================================
+        // STEP 2: GET APPLICANT NAME
+        // =====================================================
 
-            if ($certificate->qc != 1) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'This certificate is not eligible for QC.'
-                ]);
-            }
-        } elseif ($request->staffcategory === 'QSC') {
+        $applicant = DB::table('cc_form_s_meta')
+            ->where('application_id', $certificate->application_id)
+            ->first();
 
-            if ($certificate->qsc != 1) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'This certificate is not eligible for QSC.'
-                ]);
-            }
-        } else {
+        if (!$applicant) {
 
             return response()->json([
                 'status' => false,
-                'message' => 'Invalid staff category.'
+                'message' => 'Certificate found, but applicant details are not available.'
             ]);
         }
 
@@ -327,14 +352,27 @@ class FormAController extends BaseController
         }
 
 
+        // =====================================================
+        // STEP 4: SUCCESS
+        // =====================================================
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Certificate verified successfully.',
+            'data' => [
+                'application_id' => $certificate->application_id,
+                'applicant_name' => $applicant->applicant_name
+            ]
+        ]);
+
         // -------------------------------------------------
         // Certificate verified
         // -------------------------------------------------
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Certificate verified successfully.'
-        ]);
+        // return response()->json([
+        //     'status' => true,
+        //     'message' => 'Certificate verified successfully.'
+        // ]);
     }
 
     public function store(Request $request)
@@ -470,7 +508,7 @@ class FormAController extends BaseController
 
         if ($recordId) {
 
-        // dd($recordId); exit;
+            // dd($recordId); exit;
             $existing = EA_Application_model::where('application_id', $recordId)->first();
             if ($existing) {
                 $applicationId = $existing->application_id;

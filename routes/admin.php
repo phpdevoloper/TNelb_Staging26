@@ -115,7 +115,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
         Route::get('/payment_reports', [PaymentReports::class, 'index'])->name('payment_reports');
 
         Route::get('/completed_applications', [LoginController::class, 'completedApplications'])->name('completed_applications');
-        
+
         Route::get('/completed_applications/data', [LoginController::class, 'completedApplicationsData'])->name('completed_applications.data');
         Route::get('/completed_applications/timeline/{application_id}', [LoginController::class, 'applicationTimeline'])->name('application.timeline');
 
@@ -636,5 +636,12 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
 
 
         Route::post('/check-competency-certificate_admin', [FormAprocessController::class, 'checkCompetencyCertificateadmin'])->name('checkCompetencyCertificateadmin');
+
+        Route::post('/check-competency-othercertificate_admin', [FormAprocessController::class, 'checkCompetencyotherCertificateadmin'])->name('checkCompetencyotherCertificateadmin');
+
+
+
+
+
     });
 });

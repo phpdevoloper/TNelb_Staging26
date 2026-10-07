@@ -971,10 +971,10 @@ class SupervisorController extends Controller
 
         $institutes = (class_exists(TnelbAppsInstitute::class) && Schema::hasTable('tnelb_applicant_institute'))
             ? TnelbAppsInstitute::where('application_id', $applicantId)
-                ->where(function ($q) {
-                    $q->where('institute_status', 1)->orWhereNull('institute_status');
-                })
-                ->get()
+            ->where(function ($q) {
+                $q->where('institute_status', 1)->orWhereNull('institute_status');
+            })
+            ->get()
             : collect();
 
         return [
@@ -1092,7 +1092,7 @@ class SupervisorController extends Controller
     |--------------------------------------------------------------------------
     */ elseif ($roleName === 'Secretary') {
 
-            $query->whereIn('ta.application_status', ['F', 'RF', 'RE','PRE'])
+            $query->whereIn('ta.application_status', ['F', 'RF', 'RE', 'PRE'])
                 ->whereIn('ta.processed_by', ['A', 'PR']);
         }
 
@@ -1742,215 +1742,542 @@ class SupervisorController extends Controller
 
 
 
-    public function approveApplicationForma(Request $request)
-    {
-        // dd($request->all()); exit;
+   public function approveApplicationForma(Request $request)
+{
+    $request->validate([
+        'application_id'    => 'required|string',
+        'processed_by'      => 'required|string',
+        'forwarded_to'      => 'nullable|integer',
+        'remarks'           => 'nullable|string',
+        'validity_override' => 'nullable|string',
+        'oldapplicationId'  => 'nullable|string',
+        'qc_validity_date'  => 'nullable|date',
+        'bank_validity'     => 'nullable|date',
+        'licensename'       => 'required|string',
+    ]);
 
-        $request->validate([
-            'application_id'    => 'required|string',
-            'processed_by'      => 'required|string',
-            'forwarded_to'      => 'nullable|integer',
-            'remarks'           => 'nullable|string',
-            'validity_override' => 'nullable|string',
-            'oldapplicationId'  => 'nullable|string',
-            'qc_validity_date'  => 'nullable|date',
-            'bank_validity'     => 'nullable|date',
-            'licensename'       => 'required|string',
-        ]);
+    /* ----------------------------------------------------------
+     * GET APPLICATION
+     * ---------------------------------------------------------- */
 
-        $application = DB::table('ccl_forma_meta')
+    $application = DB::table('ccl_forma_meta')
+        ->where('application_id', $request->application_id)
+        ->first();
+
+    if (!$application) {
+        return response()->json([
+            'error' => 'Application not found'
+        ], 404);
+    }
+
+    $old_license_number = $application->license_number;
+
+    DB::beginTransaction();
+
+    try {
+
+        /* ======================================================
+         * BASIC UPDATE
+         * ====================================================== */
+
+        $processed = Auth::user()->name === 'President'
+            ? 'PR'
+            : 'SE';
+
+        DB::table('ccl_forma_meta')
             ->where('application_id', $request->application_id)
+            ->update([
+                'application_status' => 'A',
+                'processed_by'       => $processed,
+                'updated_at'         => now(),
+            ]);
+
+
+        /* ======================================================
+         * BASIC VARIABLES
+         * ====================================================== */
+
+        $appl_type = trim($application->appl_type);
+
+        $issuedAt  = now()->format('Y-m-d H:i:s');
+        $expiresAt = null;
+        $newSerial = null;
+
+        // Always initialize this so response does not fail
+        $digitisationMapping = null;
+
+
+        /* ======================================================
+         * GET LICENCE MASTER
+         * ====================================================== */
+
+        $form = DB::table('mst_licences')
+            ->where('cert_licence_code', $request->licensename)
+            ->where('status', 1)
             ->first();
 
-            $old_license_number = $application->license_number;
-
-            // dd($old_license_number); exit;
-
-        if (!$application) {
-            return response()->json([
-                'error' => 'Application not found'
-            ], 404);
+        if (!$form) {
+            throw new \Exception(
+                'Licence master record not found.'
+            );
         }
 
-        DB::beginTransaction();
 
-        try {
+        /* ======================================================
+         * GET VALIDITY MONTHS
+         *
+         * A and D don't use normal validity configuration here
+         * ====================================================== */
 
-            /* -------------------- BASIC UPDATE -------------------- */
+        $monthsToAdd = null;
 
-            $processed = Auth::user()->name === 'President' ? 'PR' : 'SE';
+        if ($appl_type !== 'A' && $appl_type !== 'D') {
 
-
-
-           $dataupdate = DB::table('ccl_forma_meta')
-                ->where('application_id', $request->application_id)
-                ->update([
-                    'application_status' => 'A',
-                    'processed_by'       => $processed,
-                    'updated_at'         => now(),
-                ]);
-
-
-
-                // dd($dataupdate); exit;
-
-            $appl_type = trim($application->appl_type); // R or N
-
-            $issuedAt = now()->format('Y-m-d H:i:s');
-            // $issuedAt  = $application->dt_submit;
-
-            $expiresAt = null;
-            $newSerial = null;
-
-
-            /* -------------------- GET LICENCE VALIDITY MONTHS -------------------- */
-
-            $form = DB::table('mst_licences')
-                ->where('cert_licence_code', $request->licensename)
+            $validity = DB::table('mst_fees_validity')
+                ->where('licence_id', $form->id)
+                ->where('form_type', $appl_type)
                 ->where('status', 1)
+                ->whereDate(
+                    'validity_start_date',
+                    '<=',
+                    now()
+                )
+                ->orderBy(
+                    'validity_start_date',
+                    'desc'
+                )
                 ->first();
 
-            if (!$form) {
+            if (!$validity) {
                 throw new \Exception(
-                    'Licence master record not found.'
+                    'Licence validity configuration not found.'
                 );
             }
 
-            if($appl_type != 'A')
-                {
-                    $validity = DB::table('mst_fees_validity')
-                        ->where('licence_id', $form->id)
-                        ->where('form_type', $appl_type)
-                        ->where('status', 1)
-                        ->whereDate('validity_start_date', '<=', now())
-                        ->orderBy('validity_start_date', 'desc')
-                        ->first();
-
-                    if (!$validity) {
-                        throw new \Exception(
-                            'Licence validity configuration not found.'
-                        );
-                    }
-
-                    $monthsToAdd = $validity->validity;
-                }
+            $monthsToAdd = $validity->validity;
+        }
 
 
-            /* -------------------- NORMAL EXPIRY CALCULATION -------------------- */
+        /* ======================================================
+         * EXPIRY CALCULATION
+         * ====================================================== */
 
-            if ($appl_type === 'R') {
+        if ($appl_type === 'R') {
 
-                // Renewal → old expiry + months
+            /*
+             * Renewal
+             * Old expiry + configured validity
+             */
 
-                $oldExpiry = DB::table('cl_forma_lic')
-                    ->where('application_id', $request->oldapplicationId)
-                    ->value('valid_to');
+            $oldExpiry = DB::table('cl_forma_lic')
+                ->where(
+                    'application_id',
+                    $request->oldapplicationId
+                )
+                ->value('valid_to');
 
-                $baseExpiry = $oldExpiry
-                    ? Carbon::parse($oldExpiry)
-                    : now();
+            $baseExpiry = $oldExpiry
+                ? Carbon::parse($oldExpiry)
+                : now();
 
-                $expiresAt = $baseExpiry
-                    ->copy()
-                    ->addMonths($monthsToAdd)
-                    ->toDateString();
-            }elseif($appl_type === 'A') {
-
-            
-                $oldExpiry = DB::table('cl_forma_lic')
-                    ->where('application_id', $request->oldapplicationId)
-                    ->value('valid_to');
-
-                    // dd($oldExpiry); exit;
-
-
-                $expiresAt = $oldExpiry ;
-
-                    // dd($expiresAt); exit;
-            } 
-            
-            else {
-
-                // Fresh → today + months
-
-                $expiresAt = now()
-                    ->addMonths($monthsToAdd)
-                    ->toDateString();
-
-                    // dd($expiresAt); exit;
-            }
+            $expiresAt = $baseExpiry
+                ->copy()
+                ->addMonths($monthsToAdd)
+                ->toDateString();
 
 
-            /* -------------------- OVERRIDE (POPUP CONFIRMED) -------------------- */
+        } elseif ($appl_type === 'A') {
 
-            if ($request->validity_override === 'YES') {
+            /*
+             * Alteration
+             * Keep old licence expiry
+             */
 
-                $qcValidity = $request->qc_validity_date
-                    ? Carbon::parse($request->qc_validity_date)
-                    : null;
+            $oldExpiry = DB::table('cl_forma_lic')
+                ->where(
+                    'application_id',
+                    $request->oldapplicationId
+                )
+                ->value('valid_to');
 
-                $bankValidity = $request->bank_validity
-                    ? Carbon::parse($request->bank_validity)
-                    : null;
+            $expiresAt = $oldExpiry;
 
-                $expiresAt = collect([
-                    Carbon::parse($expiresAt),
-                    $qcValidity,
-                    $bankValidity,
-                ])
-                    ->filter()
+
+        } elseif ($appl_type === 'D') {
+
+            /*
+             * Digitisation
+             *
+             * No normal validity calculation
+             */
+
+            $expiresAt = null;
+
+
+        } else {
+
+            /*
+             * N = New / Fresh application
+             *
+             * Today + configured validity
+             */
+
+            $expiresAt = now()
+                ->addMonths($monthsToAdd)
+                ->toDateString();
+        }
+
+
+        /* ======================================================
+         * VALIDITY OVERRIDE
+         * ====================================================== */
+
+        if (
+            $request->validity_override === 'YES'
+            && $expiresAt !== null
+        ) {
+
+            $qcValidity = $request->qc_validity_date
+                ? Carbon::parse(
+                    $request->qc_validity_date
+                )
+                : null;
+
+            $bankValidity = $request->bank_validity
+                ? Carbon::parse(
+                    $request->bank_validity
+                )
+                : null;
+
+            $expiryDates = collect([
+                Carbon::parse($expiresAt),
+                $qcValidity,
+                $bankValidity,
+            ])
+                ->filter();
+
+            if ($expiryDates->isNotEmpty()) {
+
+                $expiresAt = $expiryDates
                     ->min()
                     ->toDateString();
             }
+        }
 
 
-            /* -------------------- LICENSE INSERT / UPDATE -------------------- */
+        /* ======================================================
+         * LICENSE INSERT / UPDATE
+         * ====================================================== */
 
-            if ($appl_type === 'R') {
 
-            // $issuedAt = $old_license_number->dateof_issue;
+        /*
+         * ======================================================
+         * R = RENEWAL
+         * ======================================================
+         */
+
+        if ($appl_type === 'R') {
 
             $license_validitydetails = DB::table('cl_forma_lic')
-            ->where('license_number', $old_license_number)
-            ->orderByDesc('id')
-            ->first();
+                ->where(
+                    'license_number',
+                    $old_license_number
+                )
+                ->orderByDesc('id')
+                ->first();
 
-            // dd($license_validitydetails); exit;
+            if (!$license_validitydetails) {
+                throw new \Exception(
+                    'Previous license record not found.'
+                );
+            }
 
-            $issuedAt = $license_validitydetails->dateof_issue;
+            /*
+             * Keep original issue date
+             */
 
-             $validityfrom = now()->format('Y-m-d');
+            $issuedAt =
+                $license_validitydetails->dateof_issue;
 
-            //  dd($issuedAt, $validityfrom, $expiresAt); exit;
+            $validityfrom =
+                now()->format('Y-m-d');
 
+
+            DB::table('cl_forma_lic')->insert([
+
+                'application_id' =>
+                    $request->application_id,
+
+                'license_number' =>
+                    $application->license_number,
+
+                'issued_by' =>
+                    $request->roleid,
+
+                'dateof_issue' =>
+                    $issuedAt,
+
+                'valid_from' =>
+                    $validityfrom,
+
+                'valid_to' =>
+                    $expiresAt,
+
+                'cert_status' =>
+                    'A',
+
+                'cert_pdf' =>
+                    '',
+
+                'created_at' =>
+                    now(),
+
+                'updated_at' =>
+                    now(),
+            ]);
+
+
+            /*
+             * Response license number
+             */
+
+            $newSerial =
+                $application->license_number;
+        }
+
+
+        /*
+         * ======================================================
+         * D = DIGITISATION
+         * ======================================================
+         */
+
+        elseif ($appl_type === 'D') {
+
+            $prefix =
+                $application->license_name;
+
+            $yearMonth =
+                now()->format('Ym');
+
+
+            /*
+             * Find last generated licence
+             */
+
+            $lastSerial = DB::table('cl_forma_lic')
+                ->where(
+                    'license_number',
+                    'LIKE',
+                    "L{$prefix}{$yearMonth}%"
+                )
+                ->orderByDesc('license_number')
+                ->value('license_number');
+
+
+            /*
+             * Generate next serial
+             */
+
+            $next = $lastSerial
+                ? str_pad(
+                    (int) substr(
+                        $lastSerial,
+                        -5
+                    ) + 1,
+                    5,
+                    '0',
+                    STR_PAD_LEFT
+                )
+                : '00001';
+
+
+            $newSerial =
+                "L{$prefix}{$yearMonth}{$next}";
+
+
+            /*
+             * Check digitisation mapping
+             */
+
+            $digitisationCL = DB::table(
+                'mapping_digi_cls'
+            )
+                ->where(
+                    'application_id',
+                    $request->application_id
+                )
+                ->first();
+
+
+            /*
+             * OLD CL EXISTS
+             */
+
+            if (
+                $digitisationCL
+                && !empty($digitisationCL->clnumber)
+            ) {
+
+                $oldCLNumber =
+                    $digitisationCL->clnumber;
+
+
+                /*
+                 * IMPORTANT:
+                 * Explicit public schema
+                 */
+
+                DB::table(
+                    'public.cc_digitisation_map'
+                )->insert([
+
+                    'application_id' =>
+                        $request->application_id,
+
+                    'old_cl_no' =>
+                        $oldCLNumber,
+
+                    'new_cl_no' =>
+                        $newSerial,
+
+                    'updated_by' =>
+                        $request->roleid,
+
+                    'created_at' =>
+                        now(),
+
+                    'updated_at' =>
+                        now(),
+                ]);
+
+
+                /*
+                 * Response mapping
+                 */
+
+                $digitisationMapping = [
+
+                    'old_cl_no' =>
+                        $oldCLNumber,
+
+                    'new_cl_no' =>
+                        $newSerial,
+                ];
+
+
+                /*
+                 * Create the NEW licence also
+                 *
+                 * If your requirement is that mapping-only
+                 * should happen here, remove this block.
+                 */
 
                 DB::table('cl_forma_lic')->insert([
 
-                    // 'login_id'       => $application->login_id,
-                    'application_id' => $request->application_id,
+                    'application_id' =>
+                        $request->application_id,
 
-                      'license_number' => $application->license_number,
+                    'license_number' =>
+                        $newSerial,
 
-                    'issued_by'      => $request->roleid,
+                    'issued_by' =>
+                        $request->roleid,
 
-                    'dateof_issue'      => $issuedAt,
+                    'dateof_issue' =>
+                        $issuedAt,
 
-                    'valid_from'      => $validityfrom,
+                    'valid_from' =>
+                        $issuedAt,
 
-                    'valid_to'     => $expiresAt,
-                    'cert_status' => 'A',
-                    'cert_pdf' => '',
-                    'created_at' => now(),
-                    'updated_at' => now()
+                    'valid_to' =>
+                        $expiresAt,
 
+                    'cert_status' =>
+                        'A',
+
+                    'cert_pdf' =>
+                        '',
+
+                    'created_at' =>
+                        now(),
+
+                    'updated_at' =>
+                        now(),
                 ]);
+            }
 
-                // $newSerial = $application->license_number;
-            } else {
 
-                $prefix    = $application->license_name;
+            /*
+             * OLD CL DOES NOT EXIST
+             */
 
-                $yearMonth = now()->format('Ym');
+            else {
+
+                DB::table('cl_forma_lic')->insert([
+
+                    'application_id' =>
+                        $request->application_id,
+
+                    'license_number' =>
+                        $newSerial,
+
+                    'issued_by' =>
+                        $request->roleid,
+
+                    'dateof_issue' =>
+                        $issuedAt,
+
+                    'valid_from' =>
+                        $issuedAt,
+
+                    'valid_to' =>
+                        $expiresAt,
+
+                    'cert_status' =>
+                        'A',
+
+                    'cert_pdf' =>
+                        '',
+
+                    'created_at' =>
+                        now(),
+
+                    'updated_at' =>
+                        now(),
+                ]);
+            }
+        }
+
+
+        /*
+         * ======================================================
+         * N = NEW / FRESH APPLICATION
+         * ======================================================
+         */
+
+        elseif ($appl_type === 'N') {
+
+            /*
+             * If N already has a generated licence number
+             * in ccl_forma_meta, use it.
+             */
+
+            $newSerial =
+                $application->license_number;
+
+
+            /*
+             * If no licence number exists, generate one.
+             */
+
+            if (empty($newSerial)) {
+
+                $prefix =
+                    $application->license_name;
+
+                $yearMonth =
+                    now()->format('Ym');
 
 
                 $lastSerial = DB::table('cl_forma_lic')
@@ -1965,7 +2292,10 @@ class SupervisorController extends Controller
 
                 $next = $lastSerial
                     ? str_pad(
-                        (int) substr($lastSerial, -5) + 1,
+                        (int) substr(
+                            $lastSerial,
+                            -5
+                        ) + 1,
                         5,
                         '0',
                         STR_PAD_LEFT
@@ -1973,180 +2303,184 @@ class SupervisorController extends Controller
                     : '00001';
 
 
-                $newSerial = "L{$prefix}{$yearMonth}{$next}";
-
-
-
-
-                DB::table('cl_forma_lic')->insert([
-
-                    'application_id' => $request->application_id,
-
-                    'license_number' => $newSerial,
-
-                    'issued_by'      => $request->roleid,
-
-                    'dateof_issue'      => $issuedAt,
-
-                    'valid_from'      => $issuedAt,
-
-                    'valid_to'     => $expiresAt,
-                    'cert_status' => 'A',
-                    'cert_pdf' => '',
-                    'created_at' => now(),
-                    'updated_at' => now()
-
-
-                ]);
+                $newSerial =
+                    "L{$prefix}{$yearMonth}{$next}";
             }
 
-
-            /* =========================================================
-           CL DIGITISATION MAPPING
-           ========================================================= */
-            $digitisationMapping = null;
 
             /*
-           * Find mapping_digi_cls record using the current
-           * application_id.
-           */
-            if (trim($application->appl_type) === 'D') {
-
-                $digitisationCL = DB::table('mapping_digi_cls')
-                    ->where(
-                        'application_id',
-                        $request->application_id
-                    )
-                    ->first();
-
-
-                if ($digitisationCL && !empty($digitisationCL->clnumber)) {
-
-                    $oldCLNumber = $digitisationCL->clnumber;
-
-
-                    /*
-             * Store:
-             *
-             * old_cl_no = old CL number
-             * new_cl_no = generated licence number
+             * Insert NEW licence
              */
 
-                    DB::table('cc_digitisation_map')->insert([
+            DB::table('cl_forma_lic')->insert([
 
-                        'old_cl_no' => $oldCLNumber,
+                'application_id' =>
+                    $request->application_id,
 
-                        'new_cl_no'  => $newSerial,
+                'license_number' =>
+                    $newSerial,
 
-                        'created_at' => now(),
+                'issued_by' =>
+                    $request->roleid,
 
-                        'updated_at' => now(),
+                'dateof_issue' =>
+                    $issuedAt,
 
-                    ]);
+                'valid_from' =>
+                    $issuedAt,
+
+                'valid_to' =>
+                    $expiresAt,
+
+                'cert_status' =>
+                    'A',
+
+                'cert_pdf' =>
+                    '',
+
+                'created_at' =>
+                    now(),
+
+                'updated_at' =>
+                    now(),
+            ]);
+        }
 
 
-                    /*
-             * Data sent back to AJAX
-             */
-
-                    $digitisationMapping = [
-
-                        'old_cl_no' => $oldCLNumber,
-
-                        'new_cl_no'  => $newSerial,
-
-                    ];
-                }
-            }
+        /*
+         * ======================================================
+         * A = ALTERATION
+         * ======================================================
+         *
+         * Your original code did not insert/update cl_forma_lic
+         * for A. So we leave the existing licence untouched.
+         *
+         * ======================================================
+         */
 
 
-            /* -------------------- WORKFLOW -------------------- */
+        /* ======================================================
+         * WORKFLOW
+         *
+         * IMPORTANT:
+         * This is OUTSIDE R/D/N/A blocks.
+         * ====================================================== */
 
-            $workflowId = DB::table('tnelb_workflow_a')->insertGetId([
+        $workflowId = DB::table(
+            'tnelb_workflow_a'
+        )->insertGetId([
 
-                'application_id' => $request->application_id,
+            'application_id' =>
+                $request->application_id,
 
-                'processed_by'   => $request->processed_by,
+            'processed_by' =>
+                $request->processed_by,
 
-                'role_id'        => Auth::user()->roles_id,
+            'role_id' =>
+                Auth::user()->roles_id,
 
-                'appl_status'    => 'A',
+            'appl_status' =>
+                'A',
 
-                'remarks'        => $request->remarks
-                    ?? 'No remarks provided',
+            'remarks' =>
+                $request->remarks
+                ?? 'No remarks provided',
 
-                'forwarded_to'   => $request->forwarded_to,
+            'forwarded_to' =>
+                $request->forwarded_to,
 
-                'created_at'     => now(),
+            'created_at' =>
+                now(),
 
-                'updated_at'     => now(),
+            'updated_at' =>
+                now(),
+        ]);
 
+
+        /* ======================================================
+         * UPDATE WORKFLOW TIMESTAMP
+         * ====================================================== */
+
+        DB::table('tnelb_workflow_a')
+            ->where('id', $workflowId)
+            ->update([
+
+                'created_at' =>
+                    DB::raw('NOW()'),
+
+                'updated_at' =>
+                    DB::raw('NOW()'),
             ]);
 
 
-            // UPDATE SAME RECORD
+        /* ======================================================
+         * COMMIT
+         * ====================================================== */
 
-            DB::table('tnelb_workflow_a')
-                ->where('id', $workflowId)
-                ->update([
-
-                    'created_at' => DB::raw('NOW()'),
-
-                    'updated_at' => DB::raw('NOW()'),
-
-                ]);
+        DB::commit();
 
 
-            DB::commit();
+        /* ======================================================
+         * SUCCESS RESPONSE
+         * ====================================================== */
 
-//   $datacheck = DB::table('ccl_forma_meta')
-//                 ->where('application_id', $request->application_id)
-//                 ->first();
+        return response()->json([
 
-//                 dd($datacheck); exit;
-            /* -------------------- SUCCESS RESPONSE -------------------- */
+            'status' =>
+                'success',
 
-            return response()->json([
-
-                'status' => 'success',
-
-                'message' => $appl_type === 'R'
-
+            'message' =>
+                $appl_type === 'R'
+                && $expiresAt
                     ? "Renewal expires on "
                     . date(
                         'd/m/Y',
                         strtotime($expiresAt)
                     )
-
-                    : "License expires on "
-                    . date(
-                        'd/m/Y',
-                        strtotime($expiresAt)
+                    : (
+                        $expiresAt
+                        ? "License expires on "
+                        . date(
+                            'd/m/Y',
+                            strtotime($expiresAt)
+                        )
+                        : 'Application approved successfully.'
                     ),
 
-                'license_number' => $newSerial,
+            'license_number' =>
+                $newSerial,
 
-                'issued_at' => $issuedAt,
+            'issued_at' =>
+                $issuedAt,
 
-                'expires_at' => $expiresAt,
+            'expires_at' =>
+                $expiresAt,
 
-
-                'digitisation' => $digitisationMapping,
-
-            ], 200);
-        } catch (\Exception $e) {
-
-            DB::rollBack();
-
-            return response()->json([
-
-                'error' => 'Approval failed',
-
-                'msg'   => $e->getMessage(),
-
-            ], 500);
-        }
+            'digitisation' =>
+                $digitisationMapping,
+        ], 200);
     }
+
+
+    /* ==========================================================
+     * ERROR
+     * ========================================================== */
+
+    catch (\Exception $e) {
+
+        DB::rollBack();
+
+        return response()->json([
+
+            'error' =>
+                'Approval failed',
+
+            'msg' =>
+                $e->getMessage(),
+
+        ], 500);
+    }
+}
 
     /**
      * Resolve application for secretary/president approval — CC meta first, legacy fallback.

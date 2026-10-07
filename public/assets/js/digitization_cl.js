@@ -49,7 +49,7 @@ async function loadInstructions() {
 
     try {
         let instructionResponse = await $.ajax({
-            url: "/licences/getFormInstruction",
+            url: BASE_URL +"/licences/getFormInstruction",
             type: "POST",
 
             data: {
@@ -157,7 +157,7 @@ $(document).on("click", "#digitization_clSubmit", function () {
     // -----------------------------------------
 
     if (fissue === "") {
-        
+
 
         $(".fissue_error")
             .html("Date of First Issue is required");

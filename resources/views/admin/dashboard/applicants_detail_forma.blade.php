@@ -946,7 +946,7 @@
                         <div class="widget-header applicant_details {{ trim($applicant->appl_type) == 'D' ? 'digitization-header' : '' }}"">
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For : <span style="color:#098501;"> {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span> 
+                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For : <span style="color:#098501;"> {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span>
                                     @if(trim($applicant->appl_type) == 'A' )
                                     Parent Application ID: <span style="color:#098501;">{{ $applicant->old_application }}
                                         </span>
@@ -1575,7 +1575,7 @@
                                                         @else
 
 
-
+                                                        {{ $staff->staff_cc_no }}<br>
                                                         {{ $staff->staff_cc_first_issue
                                                             ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
                                                             : ''
@@ -1606,7 +1606,7 @@
 
 
                                                         <button type="button"
-                                                            class="btn btn-primary verify-staff"
+                                                            class="btn btn-primary verify-otherstaff"
 
 
 
@@ -4158,326 +4158,186 @@ $(document).on("click", ".verify-cert_ownership", function () {
         },
 
 
-        success: function (response) {
+       success: function (response) {
 
-            console.log(
-                "ADMIN VERIFY RESPONSE:",
-                response
-            );
+    console.log("ADMIN VERIFY RESPONSE:", response);
 
+    if (response.status === true && response.certificate) {
 
-            // Certificate found
-            if (
-                response.status === true &&
-                response.certificate
-            ) {
+        let certificate = response.certificate;
+        let records = Array.isArray(response.data) ? response.data : [];
 
-                let certificate =
-                    response.certificate;
+        console.log("Certificate:", certificate);
+        console.log("Experience Records:", records);
+        console.log("Experience Count:", records.length);
 
-                let records =
-                    response.data || [];
+        let result = `
+            <div class="competency-result-box">
 
-
-                // ----------------------------------
-                // Certificate Details
-                // ----------------------------------
-
-                let result = `
-
-                    <div class="competency-result-box">
-
-
-                        <!-- CERTIFICATE DETAILS -->
-
-                        <div class="table-responsive mb-4">
-
-                            <table class="table table-bordered">
-
-                                <tbody>
-
-                                    <tr>
-
-                                        <th width="20%">
-                                            Certificate No
-                                        </th>
-
-                                        <td width="30%">
-                                            ${
-                                                certificate.certificate_no
-                                                ?? '-'
-                                            }
-                                        </td>
-
-
-                                        <th width="20%">
-                                            Date of Issue
-                                        </th>
-
-                                        <td width="30%">
-                                            ${
-                                                certificate.dateof_issue
-                                                ?? '-'
-                                            }
-                                        </td>
-
-                                    </tr>
-
-
-                                    <tr>
-
-                                        <th>
-                                            Validity From
-                                        </th>
-
-                                        <td>
-                                            ${
-                                                certificate.valid_from
-                                                ?? '-'
-                                            }
-                                        </td>
-
-
-                                        <th>
-                                            Validity To
-                                        </th>
-
-                                        <td>
-                                            ${
-                                                certificate.valid_to
-                                                ?? '-'
-                                            }
-                                        </td>
-
-                                    </tr>
-
-                                </tbody>
-
-                            </table>
-
-                        </div>
-
-
-                        <!-- EXPERIENCE TITLE -->
-
-                        <div class="competency-result-title">
-                            Experience Details
-                        </div>
-                `;
-
-
-                // ----------------------------------
-                // Experience Records
-                // ----------------------------------
-
-                if (records.length > 0) {
-
-                    result += `
-
-                        <div class="table-responsive">
-
-                            <table class="table table-bordered table-striped">
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>
-                                            S.No
-                                        </th>
-
-                                        <th>
-                                            Employee Type
-                                        </th>
-
-                                        <th>
-                                            Licence Category
-                                        </th>
-
-                                        <th>
-                                            Organisation Name
-                                        </th>
-
-                                        <th>
-                                            Designation
-                                        </th>
-
-                                        <th>
-                                            Address
-                                        </th>
-
-                                        <th>
-                                            Nature of Work
-                                        </th>
-
-                                        <th>
-                                            Voltage Level
-                                        </th>
-
-                                        <th>
-                                            Transformer (kVA)
-                                        </th>
-
-                                        <th>
-                                            From Date
-                                        </th>
-
-                                        <th>
-                                            To Date
-                                        </th>
-
-                                        <th>
-                                            Total Experience
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody>
-
-                    `;
-
-
-                    records.forEach(function (data, index) {
-
-                        result += `
+                <!-- CERTIFICATE DETAILS -->
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered">
+                        <tbody>
 
                             <tr>
-
-                                <td>
-                                    ${index + 1}
+                                <th width="20%">Certificate No</th>
+                                <td width="30%">
+                                    ${certificate.certificate_no ?? '-'}
                                 </td>
 
-
-                                <td>
-                                    ${data.emp_type ?? '-'}
+                                <th width="20%">Date of Issue</th>
+                                <td width="30%">
+                                    ${certificate.dateof_issue ?? '-'}
                                 </td>
-
-
-                                <td>
-                                    ${
-                                        data.emp_type === 'emp_cate'
-                                            ? (data.emp_cate ?? '-')
-                                            : '-'
-                                    }
-                                </td>
-
-
-                                <td>
-                                    ${data.org_name ?? '-'}
-                                </td>
-
-
-                                <td>
-                                    ${data.designation ?? '-'}
-                                </td>
-
-
-                                <td>
-                                    ${data.org_address ?? '-'}
-                                </td>
-
-
-                                <td>
-                                    ${data.nature_work ?? '-'}
-                                </td>
-
-
-                                <td>
-                                    ${data.voltage_level ?? '-'}
-                                </td>
-
-
-                                <td>
-                                    ${
-                                        data.voltage_level != 'up_to_650v'
-                                            ? (data.transformer_kva ?? '-')
-                                            : '-'
-                                    }
-                                </td>
-
-
-                                <td>
-                                    ${data.from_date ?? '-'}
-                                </td>
-
-
-                                <td>
-                                    ${data.to_date ?? '-'}
-                                </td>
-
-
-                                <td>
-                                    ${data.total_exp ?? '-'}
-                                </td>
-
                             </tr>
 
-                        `;
+                            <tr>
+                                <th>Validity From</th>
+                                <td>
+                                    ${certificate.valid_from ?? '-'}
+                                </td>
 
-                    });
+                                <th>Validity To</th>
+                                <td>
+                                    ${certificate.valid_to ?? '-'}
+                                </td>
+                            </tr>
 
+                        </tbody>
+                    </table>
+                </div>
 
-                    result += `
+                <!-- EXPERIENCE TITLE -->
+                <div class="competency-result-title">
+                    Experience Details
+                </div>
+        `;
 
-                                </tbody>
+        if (records.length > 0) {
 
-                            </table>
+            result += `
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
 
-                        </div>
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Employee Type</th>
+                                <th>Licence Category</th>
+                                <th>Organisation Name</th>
+                                <th>Designation</th>
+                                <th>Address</th>
+                                <th>Nature of Work</th>
+                                <th>Voltage Level</th>
+                                <th>Transformer (kVA)</th>
+                                <th>From Date</th>
+                                <th>To Date</th>
+                                <th>Total Experience</th>
+                            </tr>
+                        </thead>
 
-                    `;
+                        <tbody>
+            `;
 
-                } else {
+            records.forEach(function (data, index) {
 
-                    result += `
+                let licenceCategory = data.emp_cate ?? '-';
 
-                        <div class="alert alert-info">
+                let transformer = '-';
 
-                            Certificate found, but no
-                            experience data found.
-
-                        </div>
-
-                    `;
-
+                if (
+                    data.voltage_level &&
+                    data.voltage_level !== 'up_to_650v'
+                ) {
+                    transformer = data.transformer_kva ?? '-';
                 }
 
-
-                // Close main box
                 result += `
+                    <tr>
 
-                    </div>
+                        <td>
+                            ${index + 1}
+                        </td>
 
+                        <td>
+                            ${data.emp_type ?? '-'}
+                        </td>
+
+                        <td>
+                            ${licenceCategory}
+                        </td>
+
+                        <td>
+                            ${data.org_name ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.designation ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.org_address ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.nature_work ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.voltage_level ?? '-'}
+                        </td>
+
+                        <td>
+                            ${transformer}
+                        </td>
+
+                        <td>
+                            ${data.from_date ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.to_date ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.total_exp ?? '-'}
+                        </td>
+
+                    </tr>
                 `;
+            });
 
+            result += `
+                        </tbody>
 
-                // Display result
-                $("#competencyVerifyModalBody")
-                    .html(result);
+                    </table>
+                </div>
+            `;
 
+        } else {
 
-            } else {
+            result += `
+                <div class="alert alert-info">
+                    Certificate found, but no experience data found.
+                </div>
+            `;
+        }
 
-                // Certificate not found
+        result += `
+            </div>
+        `;
 
-                $("#competencyVerifyModalBody").html(`
+        $("#competencyVerifyModalBody").html(result);
 
-                    <div class="alert alert-warning">
+    } else {
 
-                        ${
-                            response.message ??
-                            "Certificate not found."
-                        }
-
-                    </div>
-
-                `);
-
-            }
-
-        },
+        $("#competencyVerifyModalBody").html(`
+            <div class="alert alert-warning">
+                ${response.message ?? "Certificate not found."}
+            </div>
+        `);
+    }
+},
 
 
         error: function (xhr) {
@@ -5001,6 +4861,480 @@ $(document).on("click", ".verify-staff", function () {
     });
 
 });
+
+
+// ---------other staff----------------------------------------
+
+$(document).on("click", ".verify-otherstaff", function () {
+
+    let $button = $(this);
+
+    let id = $button.data("id");
+
+    let certificate_no =
+        $button.attr("data-license") || "";
+
+    let dateof_issue =
+        $button.attr("data-dateofissue") || "";
+
+    let valid_from =
+        $button.attr("data-validfrom") || "";
+
+    let valid_to =
+        $button.attr("data-validto") || "";
+
+
+    console.log("========== ADMIN CC VERIFY ==========");
+    console.log("ID:", id);
+    console.log("Certificate No:", certificate_no);
+    console.log("Date of Issue:", dateof_issue);
+    console.log("Validity From:", valid_from);
+    console.log("Validity To:", valid_to);
+
+
+    // Check required values
+    if (
+        !certificate_no ||
+        !dateof_issue ||
+        !valid_from ||
+        !valid_to
+    ) {
+
+        $("#competencyVerifyModalBody").html(`
+
+            <div class="alert alert-warning">
+                Certificate details are incomplete.
+            </div>
+
+        `);
+
+        $("#competencyVerifyModal").modal("show");
+
+        return;
+    }
+
+
+    // Show loading
+    $("#competencyVerifyModalBody").html(`
+
+        <div class="text-center py-5">
+
+            <div class="spinner-border text-primary mb-3"
+                role="status">
+            </div>
+
+            <div class="text-info">
+                Checking competency certificate...
+            </div>
+
+        </div>
+
+    `);
+
+
+    // Open modal
+    $("#competencyVerifyModal").modal("show");
+
+
+    // Disable button
+    $button
+        .prop("disabled", true)
+        .text("Verifying...");
+
+
+    $.ajax({
+
+        url: "{{ route('admin.checkCompetencyotherCertificateadmin') }}",
+
+        type: "POST",
+
+        data: {
+
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            certificate_no: certificate_no,
+
+            dateof_issue: dateof_issue,
+
+            valid_from: valid_from,
+
+            valid_to: valid_to
+
+        },
+
+
+        success: function (response) {
+
+            console.log(
+                "ADMIN VERIFY RESPONSE:",
+                response
+            );
+
+
+            // Certificate found
+            if (
+                response.status === true &&
+                response.certificate
+            ) {
+
+                let certificate =
+                    response.certificate;
+
+                let records =
+                    response.data || [];
+
+
+                // ----------------------------------
+                // Certificate Details
+                // ----------------------------------
+
+                let result = `
+
+                    <div class="competency-result-box">
+
+
+                        <!-- CERTIFICATE DETAILS -->
+
+                        <div class="table-responsive mb-4">
+
+                            <table class="table table-bordered">
+
+                                <tbody>
+
+                                    <tr>
+
+                                        <th width="20%">
+                                            Certificate No
+                                        </th>
+
+                                        <td width="30%">
+                                            ${
+                                                certificate.certificate_no
+                                                ?? '-'
+                                            }
+                                        </td>
+
+
+                                        <th width="20%">
+                                            Date of Issue
+                                        </th>
+
+                                        <td width="30%">
+                                            ${
+                                                certificate.dateof_issue
+                                                ?? '-'
+                                            }
+                                        </td>
+
+                                    </tr>
+
+
+                                    <tr>
+
+                                        <th>
+                                            Validity From
+                                        </th>
+
+                                        <td>
+                                            ${
+                                                certificate.valid_from
+                                                ?? '-'
+                                            }
+                                        </td>
+
+
+                                        <th>
+                                            Validity To
+                                        </th>
+
+                                        <td>
+                                            ${
+                                                certificate.valid_to
+                                                ?? '-'
+                                            }
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <!-- EXPERIENCE TITLE -->
+
+                        <div class="competency-result-title">
+                            Experience Details
+                        </div>
+                `;
+
+
+                // ----------------------------------
+                // Experience Records
+                // ----------------------------------
+
+                if (records.length > 0) {
+
+                    result += `
+
+                        <div class="table-responsive">
+
+                            <table class="table table-bordered table-striped">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            S.No
+                                        </th>
+
+                                        <th>
+                                            Employee Type
+                                        </th>
+
+                                        <th>
+                                            Licence Category
+                                        </th>
+
+                                        <th>
+                                            Organisation Name
+                                        </th>
+
+                                        <th>
+                                            Designation
+                                        </th>
+
+                                        <th>
+                                            Address
+                                        </th>
+
+                                        <th>
+                                            Nature of Work
+                                        </th>
+
+                                        <th>
+                                            Voltage Level
+                                        </th>
+
+                                        <th>
+                                            Transformer (kVA)
+                                        </th>
+
+                                        <th>
+                                            From Date
+                                        </th>
+
+                                        <th>
+                                            To Date
+                                        </th>
+
+                                        <th>
+                                            Total Experience
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                    `;
+
+
+                    records.forEach(function (data, index) {
+
+                        result += `
+
+                            <tr>
+
+                                <td>
+                                    ${index + 1}
+                                </td>
+
+
+                                <td>
+                                    ${data.emp_type ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${
+                                        data.emp_type === 'emp_cate'
+                                            ? (data.emp_cate ?? '-')
+                                            : '-'
+                                    }
+                                </td>
+
+
+                                <td>
+                                    ${data.org_name ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.designation ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.org_address ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.nature_work ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.voltage_level ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${
+                                        data.voltage_level != 'up_to_650v'
+                                            ? (data.transformer_kva ?? '-')
+                                            : '-'
+                                    }
+                                </td>
+
+
+                                <td>
+                                    ${data.from_date ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.to_date ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.total_exp ?? '-'}
+                                </td>
+
+                            </tr>
+
+                        `;
+
+                    });
+
+
+                    result += `
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    `;
+
+                } else {
+
+                    result += `
+
+                        <div class="alert alert-info">
+
+                            Certificate found, but no
+                            experience data found.
+
+                        </div>
+
+                    `;
+
+                }
+
+
+                // Close main box
+                result += `
+
+                    </div>
+
+                `;
+
+
+                // Display result
+                $("#competencyVerifyModalBody")
+                    .html(result);
+
+
+            } else {
+
+                // Certificate not found
+
+                $("#competencyVerifyModalBody").html(`
+
+                    <div class="alert alert-warning">
+
+                        ${
+                            response.message ??
+                            "Certificate not found."
+                        }
+
+                    </div>
+
+                `);
+
+            }
+
+        },
+
+
+        error: function (xhr) {
+
+            console.log(
+                "ADMIN VERIFY ERROR:",
+                xhr.responseText
+            );
+
+
+            let message =
+                "Unable to check competency certificate.";
+
+
+            // Laravel validation error
+            if (
+                xhr.responseJSON &&
+                xhr.responseJSON.message
+            ) {
+
+                message =
+                    xhr.responseJSON.message;
+
+            }
+
+
+            $("#competencyVerifyModalBody").html(`
+
+                <div class="alert alert-danger">
+
+                    ${message}
+
+                </div>
+
+            `);
+
+        },
+
+
+        complete: function () {
+
+            $button
+                .prop("disabled", false)
+                .text("Verify");
+
+        }
+
+    });
+
+});
+
+// ----------------------------------
 
 $(document).on('change', '.staff-status-switch', function () {
 
