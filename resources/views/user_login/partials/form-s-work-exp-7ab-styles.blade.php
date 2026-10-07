@@ -1,14 +1,21 @@
     /* Renewal: existing experience is locked; Till date rows allow only Till / To date / Relieving. */
-    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work input,
-    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work select,
-    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work textarea,
-    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work button { pointer-events: none !important; }
+    #competency_form_ws:not(.fs-alt-form):not(.fs-returned-form) .fs-alt-existing-work input,
+    #competency_form_ws:not(.fs-alt-form):not(.fs-returned-form) .fs-alt-existing-work select,
+    #competency_form_ws:not(.fs-alt-form):not(.fs-returned-form) .fs-alt-existing-work textarea,
+    #competency_form_ws:not(.fs-alt-form):not(.fs-returned-form) .fs-alt-existing-work button { pointer-events: none !important; }
     #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-till-toggle,
     #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-date-till,
     #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit input.work-date-to:not([type="hidden"]),
     #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] input,
     #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] button,
-    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn {
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] .form-s-file-upload-wrap,
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn,
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-relieve-open .work-card-till-toggle,
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-relieve-open .work-date-till,
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-relieve-open input.work-date-to:not([type="hidden"]),
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-relieve-open .work-card-field[data-field="relieve"],
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-relieve-open .work-card-field[data-field="relieve"] *,
+    #competency_form_ws:not(.fs-alt-form) .fs-alt-existing-work.fs-till-relieve-open .work-row-done-btn {
         pointer-events: auto !important;
     }
     .fs-question-part + .fs-question-part {
@@ -325,5 +332,15 @@
     }
     #work-container-current .work-fields.fs-alt-existing-work .work-row-remove,
     #work-exp-summary-panel-current .work-exp-summary-tr--frozen .work-row-remove {
+        display: none !important;
+    }
+    #fs-7b-root.fs-7b-return-locked .work-card-field .form-control,
+    #fs-7b-root.fs-7b-return-locked .work-card-field textarea {
+        background: #eef1f4;
+        pointer-events: none;
+    }
+    #fs-7b-root.fs-7b-return-locked .remove-work-doc-confirm,
+    #fs-7b-root.fs-7b-return-locked .form-s-file-upload-wrap,
+    #fs-7b-root.fs-7b-return-locked .work-card-field-hint {
         display: none !important;
     }

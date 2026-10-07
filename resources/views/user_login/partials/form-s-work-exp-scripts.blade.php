@@ -6,6 +6,7 @@
     $lockExistingRows = !empty($lockExistingRows) || $isAlterationMode;
     // Form W serial-7 has no Voltage Level / Nature of Work / Transformer (kVA) fields.
     $hideVoltageFields = !empty($hideVoltageFields);
+    $isReturnedApplication = !empty($isReturnedApplication);
 @endphp
 <script>
         (function() {
@@ -14,9 +15,17 @@
             var VOLTAGE_DISABLES_KVA = 'up_to_650v';
             var MAX_WORK_ROWS = 3;
             var TWO_YEARS_MS = 730 * 86400000;
+            var WX_FORM_NAME = @json(strtoupper((string) ($editFormName ?? ($application_details->form_name ?? ''))));
+            function wxFormName() {
+                return String($('#form_name').val() || WX_FORM_NAME || '').trim().toUpperCase();
+            }
+            function wxUsesFormSTwoYearMinimum() {
+                return wxFormName() === 'S';
+            }
             var hideUploadWhenDocExists = @json($hideUploadWhenDocExists);
             var isAlterationMode = @json($isAlterationMode);
             var lockExistingRows = @json($lockExistingRows);
+            var isReturnedApplication = @json($isReturnedApplication);
             /* Form W: Voltage / Nature of Work / Transformer (kVA) fields are absent. */
             var WX_HIDE_VOLTAGE_FIELDS = @json($hideVoltageFields);
             var DOCUMENT_PUBLIC_URL_PREFIX = @json(trim((string) config('document_versioning.public_url_prefix', 'competency'), '/'));
@@ -753,18 +762,15 @@
 
             function syncWorkDateRaw($input) {
                 var iso = readWorkDateFromInput($input);
-                if (iso && $input && $input.length) {
-                    $input.get(0).setAttribute('data-raw', iso);
-                }
+                if (!iso || !$input || !$input.length || !workDateYearIsPlausible(iso)) return;
+                $input.get(0).setAttribute('data-raw', iso);
             }
 
-            var WORK_DATE_MAX_ISO = '9999-12-31';
-
-            /** True when ISO year is a real 4-digit year (not 0097 / 0006 from partial typing). */
+            /** True when the year is finished. Padded keystrokes (0002, 0202 while typing 2026) are not. */
             function workDateYearIsPlausible(iso) {
                 if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
                 var y = parseInt(iso.slice(0, 4), 10);
-                return y >= 1000 && y <= 9999;
+                return y >= 1900 && y <= 9999;
             }
 
             /** Trim year only when it already has more than 4 digits. Do not rewrite the value while typing. */
@@ -790,48 +796,26 @@
 
             function clampWorkToDateNotFuture(el) {
                 if (!el || el.type === 'hidden' || !el.classList.contains('work-date-to')) return;
-                var max = todayIso();
-                el.setAttribute('max', max);
-                var iso = String(el.getAttribute('data-raw') || '').trim();
-                if (!iso) {
-                    if (el.type === 'date') {
-                        iso = String(el.value || '').trim();
-                    } else {
-                        var v = String(el.value || '').trim();
-                        var m = v.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
-                        if (m) {
-                            iso = m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
-                        }
-                    }
-                }
-                if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso) || iso <= max) return;
-                el.setAttribute('data-raw', max);
-                if (el.type === 'date') {
-                    el.value = max;
-                } else {
-                    var p = max.split('-');
-                    el.value = p[2] + '-' + p[1] + '-' + p[0];
-                }
+                /* A max of today makes the browser drop year keystrokes. Keep a far max so the year can be typed. */
+                el.removeAttribute('min');
+                el.setAttribute('max', '9999-12-31');
             }
 
             function applyWorkDateYearCap(el) {
                 if (!el || el.type === 'hidden') return;
                 el.removeAttribute('min');
-                if (el.classList.contains('work-date-to')) {
-                    el.setAttribute('max', todayIso());
-                    clampWorkToDateNotFuture(el);
-                    return;
-                }
-                if (!el.getAttribute('max')) {
-                    el.setAttribute('max', WORK_DATE_MAX_ISO);
+                if (el.classList.contains('work-date-to') || el.classList.contains('work-date-from')) {
+                    el.setAttribute('max', '9999-12-31');
                 }
             }
 
-            /** Reset cloned work date fields to native date inputs (clone may copy type="text" from initDateDisplay). */
+            /** Reset cloned work date fields to native date inputs. */
             function resetWorkRowDateInputs(row) {
                 if (!row) return;
                 row.querySelectorAll('.work-date-from, .work-date-to').forEach(function(inp) {
                     inp.removeAttribute('data-raw');
+                    inp.removeAttribute('placeholder');
+                    inp.removeAttribute('maxlength');
                     inp.value = '';
                     inp.type = 'date';
                     applyWorkDateYearCap(inp);
@@ -1131,7 +1115,7 @@
                 var $msg = workExpTotalMsgEl();
 
                 if ($msg.length) {
-                    var needsTwoYears = t.hasAny || t.hasExcluded650vOnly;
+                    var needsTwoYears = wxUsesFormSTwoYearMinimum() && (t.hasAny || t.hasExcluded650vOnly);
 
                     if (!needsTwoYears || t.ms >= TWO_YEARS_MS) {
                         $msg.empty();
@@ -1270,6 +1254,37 @@
                 if (fieldName) {
                     setFieldLock($tr, fieldName, false);
                 }
+            }
+
+            /** Disabled file inputs often ignore clicks after they are re-enabled; replace with a fresh enabled input. */
+            function refreshEnabledFileInput($input) {
+                if (!$input || !$input.length) return $();
+                var $clone = $input.clone();
+                $clone.prop('disabled', false).removeAttr('disabled').removeClass('is-locked').val('');
+                $clone.removeAttr('data-has-local-file');
+                $input.replaceWith($clone);
+                return $clone;
+            }
+
+            function unlockRelievingUpload($tr) {
+                if (!$tr || !$tr.length) return $();
+                $tr.addClass('fs-till-relieve-open');
+                var $field = $tr.find('[data-field="relieve"]');
+                $field.removeClass('d-none is-locked');
+                $field.find('.lock-icon').hide();
+                var $wrap = $field.find('.form-s-file-upload-wrap');
+                $wrap.removeClass('d-none work-upload-hidden-until-remove is-locked');
+                $field.find('.work-card-field-hint[data-hint="relieve-default"]')
+                    .removeClass('d-none work-upload-hint-hidden-until-remove')
+                    .show();
+                var $rel = $tr.find('.work-relieve-input');
+                if ($rel.length && ($rel.prop('disabled') || $rel.is('[disabled]') || $rel.hasClass('is-locked'))) {
+                    $rel = refreshEnabledFileInput($rel);
+                } else if ($rel.length) {
+                    $rel.prop('disabled', false).removeAttr('disabled').removeClass('is-locked');
+                }
+                setFieldLock($tr, 'relieve', false);
+                return $rel;
             }
 
             /** Show or hide board-meeting sub-question panel for Board Member employment type. */
@@ -1934,11 +1949,9 @@
                 /* Unchecking Till date: hide View/Remove and show a fresh file input (field is mandatory). */
                 if (forceNew) {
                     $field.find('.work-relieve-existing').addClass('d-none');
-                    $wrap.removeClass('d-none work-upload-hidden-until-remove');
-                    $field.find('.work-card-field-hint[data-hint="relieve-default"]')
-                        .removeClass('d-none work-upload-hint-hidden-until-remove');
-                    unlockWorkField($tr, $rel, 'relieve');
-                    $rel.prop('disabled', false).removeClass('is-locked');
+                    unlockRelievingUpload($tr);
+                    $rel = $tr.find('.work-relieve-input');
+                    $wrap = $field.find('.form-s-file-upload-wrap');
                     if (workInputHasFile($rel)) {
                         clearWorkRelieveRequiredError($tr);
                     }
@@ -2208,6 +2221,7 @@
 
                 var $relieve = $tr.find('.work-relieve-input');
                 if (checked) {
+                    $tr.removeClass('fs-till-relieve-open');
                     $relieve.val('').prop('disabled', true).prop('required', false).addClass('is-locked');
                     var $wrap = $relieve.closest('.form-s-file-upload-wrap');
                     var $preview = $wrap.nextAll('.local-file-preview').first();
@@ -2219,7 +2233,7 @@
                     $relieve.removeAttr('data-has-local-file');
                     clearWorkRelieveRequiredError($tr);
                 } else {
-                    $relieve.prop('disabled', false).removeClass('is-locked');
+                    unlockRelievingUpload($tr);
                 }
                 setFieldLock($tr, 'relieve', checked);
                 syncWorkRelieveRequirement($tr);
@@ -2582,6 +2596,14 @@
                 refreshWorkSerials();
                 syncSummaryTable();
                 updateOverallTotalYears();
+                if (isReturnedApplication) {
+                    allWorkFields().each(function () {
+                        var $row = $(this);
+                        if (!$row.find('.work-date-till').is(':checked')) {
+                            unlockRelievingUpload($row);
+                        }
+                    });
+                }
                 if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                     window.wxSyncBoardMemberRenewalFee();
                 }
@@ -2708,6 +2730,25 @@
                     window.wxSyncBoardMemberRenewalFee();
                 }
             });
+            $(document).on('change', '.js-work-container .work-relieve-input, #work-container .work-relieve-input', function () {
+                var $tr = $workRow(this);
+                if (!$tr.length) return;
+                if (this.files && this.files.length > 0) {
+                    namedInputs($tr, 'removed_document_work_relieving[]').val('0');
+                    $tr.removeData('wxRelieveNeedsNewUpload');
+                }
+            });
+            $(document).on('click', '#competency_form_ws.fs-returned-form [data-field="relieve"] .form-s-file-upload-wrap', function (e) {
+                var $wrap = $(this);
+                var $tr = $workRow($wrap);
+                if ($tr.find('.work-date-till').is(':checked')) return;
+                unlockRelievingUpload($tr);
+                var $inp = $tr.find('.work-relieve-input').first();
+                if (!$inp.length) return;
+                if (e.target === $inp.get(0)) return;
+                e.preventDefault();
+                $inp.trigger('click');
+            });
             $(document).on('change', '.js-work-container .work-date-till, #work-container .work-date-till', function() {
                 var $tr = $workRow(this);
                 var $existingRel = namedInputs($tr, 'existing_work_relieving_document[]');
@@ -2734,6 +2775,13 @@
                     clearWorkRelieveRequiredError($tr);
                 }
                 applyTillDate($tr);
+                if (!$tr.find('.work-date-till').is(':checked')) {
+                    unlockRelievingUpload($tr);
+                    $tr.addClass('work-row--expanded').removeClass('work-row--compact work-row--in-summary');
+                    if (typeof applyRowLayout === 'function') {
+                        applyRowLayout($tr);
+                    }
+                }
                 if (($tr.find('.work-employment-type').val() || '').trim() === BOARD_MEMBER_TYPE && !$tr.find('.work-date-till').is(':checked')) {
                     unlockWorkField($tr, $tr.find('.work-relieve-input'), 'relieve');
                     $tr.find('.work-relieve-input').prop('required', false);
@@ -2759,24 +2807,45 @@
                 syncTransformerKvaHidden($workRow(this));
                 updateRowHeader($workRow(this));
             });
-            $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
-                var $field = $(this);
-                clampWorkDateYearDigits($field.get(0));
-                syncWorkDateRaw($field);
-                clearWorkDateFieldErrors($field);
-                updateTotalYears($workRow(this));
-            });
-            $(document).on('change blur', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
-                var $field = $(this);
-                clampWorkDateYearDigits($field.get(0));
+            function clearWorkDateLimits(el) {
+                if (!el) return;
+                el.removeAttribute('min');
+                el.setAttribute('max', '9999-12-31');
+            }
+            function finishWorkDateEdit(el) {
+                if (!el || document.activeElement === el) return;
+                var $field = $(el);
+                if (el.type !== 'date') {
+                    clampWorkDateYearDigits(el);
+                }
                 if ($field.hasClass('work-date-to')) {
-                    clampWorkToDateNotFuture($field.get(0));
+                    clampWorkToDateNotFuture(el);
                 }
                 syncWorkDateRaw($field);
                 clearWorkDateFieldErrors($field);
-                var $tr = $workRow(this);
+                var $tr = $workRow(el);
                 updateTotalYears($tr);
                 validateWorkContainerDateSequence(workContainerFor($tr));
+            }
+            $(document).on('focus', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
+                clearWorkDateLimits(this);
+            });
+            $(document).on('input', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
+                /* Do not rewrite the date while the year is being typed. */
+            });
+            $(document).on('change', '.js-work-container .work-date-to, #work-container .work-date-to', function() {
+                if (this.type === 'hidden' || !workDateYearIsPlausible(String(this.value || '').trim())) return;
+                syncWorkDateRaw($(this));
+                var $tr = $workRow(this);
+                updateTotalYears($tr);
+                validateWorkRowDateRange($tr);
+            });
+            $(document).on('blur', '.js-work-container .work-date-from, .js-work-container .work-date-to, #work-container .work-date-from, #work-container .work-date-to', function() {
+                var el = this;
+                setTimeout(function() {
+                    if (document.activeElement === el) return;
+                    finishWorkDateEdit(el);
+                }, 200);
             });
             /* Any field change refreshes the live row header + status pill. */
             $(document).on('input change', '.js-work-container .work-employer-input, #work-container .work-employer-input', function() {
@@ -2784,6 +2853,9 @@
                 syncLegacyHidden($tr); updateRowHeader($tr);
             });
             $(document).on('input change', '.js-work-container .work-fields :input, #work-container .work-fields :input', function() {
+                if (this.classList && (this.classList.contains('work-date-from') || this.classList.contains('work-date-to'))) {
+                    return;
+                }
                 var $tr = $workRow(this);
                 clearWorkRowRequiredError($(this));
                 if (!$tr.find('.work-row-required-error, .work-relieve-required-error').length) {
@@ -3113,6 +3185,9 @@
              */
             window.wxValidateFormSCountableExperience = function () {
                 var t = totalDurationAcrossRows();
+                if (!wxUsesFormSTwoYearMinimum()) {
+                    return { ok: true, total: t };
+                }
                 var needsTwoYears = t.hasAny || t.hasExcluded650vOnly;
                 if (!needsTwoYears || t.ms >= TWO_YEARS_MS) {
                     return { ok: true, total: t };

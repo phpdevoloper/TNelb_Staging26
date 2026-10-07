@@ -345,6 +345,19 @@
                             ]);
 
 
+                        $alter = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'A'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'A'
+                            ]);
+
+                            // completed_alteration_count
+
+
 
                                 @endphp
                                 @php
@@ -369,6 +382,8 @@
                                                     $completedRenewal = (int) ($summary['completed_renewal_count'] ?? 0);
 
                                                     $completedDigi = (int) ($summary['completed_digi_count'] ?? 0);
+
+                                                    $completedalter = (int) ($summary['completed_alteration_count'] ?? 0);
                                                 @endphp
                                                 <span class="fw-semibold text-muted me-1">Completed :</span>
                                                 <a href="#"
@@ -388,13 +403,23 @@
                                                     <span class="ms-1 fw-bold text-danger">{{ $completedRenewal }}</span>
                                                 </a>
 
-                                                     <a href="#"
+                                                <a href="#"
                                                     class="badge outline-badge-info fw-semibold text-decoration-none js-completed-badge"
                                                     data-form-id="{{ $summary['id'] ?? '' }}"
                                                     data-form-type="D"
                                                     data-licence-name="{{ $summary['licence_name'] ?? '' }}">
                                                     Digitisation
                                                     <span class="ms-1 fw-bold text-danger">{{ $completedDigi }}</span>
+                                                </a>
+
+
+                                                    <a href="#"
+                                                    class="badge outline-badge-info fw-semibold text-decoration-none js-completed-badge"
+                                                    data-form-id="{{ $summary['id'] ?? '' }}"
+                                                    data-form-type="A"
+                                                    data-licence-name="{{ $summary['licence_name'] ?? '' }}">
+                                                    Alteration
+                                                    <span class="ms-1 fw-bold text-danger">{{ $completedalter }}</span>
                                                 </a>
 
 
@@ -534,7 +559,7 @@
             }
 
             // English licence PDF (card) for competency/amendment applications
-            const licenceEnUrlTemplate = "{{ route('admin.generateLicensePDF', ['application_id' => '__APP__']) }}";
+            const licenceEnUrlTemplate = "{{ route('admin.licence.stored', ['application_id' => '__APP__']) }}";
             const licenceTaUrlTemplate = "{{ route('admin.licence.ta', ['application_id' => '__APP__']) }}";
             // Form P: single encrypted PDF (English + Tamil merged); any stream route serves the same file.
             const formPLicenceBilingualUrlTemplate = "{{ route('admin.formp.licence.en', ['application_id' => '__APP__']) }}";

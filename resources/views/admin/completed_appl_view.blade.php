@@ -192,6 +192,26 @@
         box-shadow: inset 3px 0 0 #f59e0b;
     }
 
+    .applicant-supervisor-page .wx-renew-badge,
+    .applicant-supervisor-page .asp-renew-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.1rem 0.45rem;
+        border-radius: 4px;
+        background: #ccfbf1;
+        color: #0f766e;
+        border: 1px solid #14b8a6;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        vertical-align: middle;
+    }
+
+    .applicant-supervisor-page .wx-renewal-new-row>td {
+        background: #f0fdfa !important;
+        box-shadow: inset 3px 0 0 #14b8a6;
+    }
+
     /* ---------- Personal details mini-table ---------- */
     .applicant-supervisor-page .home-tab-pane .table-sm tbody td {
         padding: 0.45rem 0.5rem;
@@ -836,7 +856,7 @@
                                                     <tr>
                                                         <th>Certificate Document</th>
                                                         <td>
-                                                            <a href="{{ asset('uploads/digitization/scc/' . $cc_digitization->cc_doc) }}"
+                                                            <a href="{{ digitization_document_url($cc_digitization->cc_doc, 'scc') }}"
                                                                 target="_blank">
                                                                 <i class="fa fa-file-pdf-o text-danger"></i>
                                                                 View Document
@@ -873,7 +893,7 @@
                                                         <tr>
                                                             <th> Document</th>
                                                             <td>
-                                                                <a href="{{ asset('uploads/digitization/qc/' . $cc_digitization->qc_doc) }}"
+                                                                <a href="{{ digitization_document_url($cc_digitization->qc_doc, 'qc') }}"
                                                                     target="_blank">
                                                                     <i class="fa fa-file-pdf-o text-danger"></i>
                                                                     View Document
@@ -1307,6 +1327,11 @@
                                                         certificate is shown below. Rows marked <span
                                                             class="asp-alter-badge">ALTER</span> were added or changed in this
                                                         alteration request.</p>
+                                                @elseif($applicant->appl_type == 'R')
+                                                    <p class="text-muted small mb-2">Existing experience from the parent
+                                                        certificate is shown below. Rows marked <span
+                                                            class="asp-renew-badge">RENEW</span> were added or changed in this
+                                                        renewal request.</p>
                                                 @endif
                                                 @if ($isFormS)
                                                     @include('admin.partials.form-s-work-exp-readonly', ['workExperience' => $workExperience ?? collect()])
@@ -1419,7 +1444,11 @@
 
                                             @if (in_array($applicant->form_name, ['WH']))
                                                 @php
-                                                    $hasWiremanBoardCert = !empty($applicant->certificate_no) && !empty($applicant->certificate_date);
+                                                    $whCertNo = $applicant->wcc_no ?? $applicant->certificate_no ?? null;
+                                                    $whCertIssue = $applicant->wcc_issue_date ?? $applicant->certificate_issue_date ?? null;
+                                                    $whCertFrom = $applicant->wcc_from ?? $applicant->certificate_valid_from ?? null;
+                                                    $whCertTo = $applicant->wcc_to ?? $applicant->certificate_valid_to ?? $applicant->certificate_date ?? null;
+                                                    $hasWiremanBoardCert = !empty($whCertNo) && !empty($whCertTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -1438,25 +1467,25 @@
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">License Number</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
+                                                                    class="asp-detail-value">{{ $whCertNo ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($whCertIssue) ? format_date($whCertIssue) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of Expiry</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ format_date($applicant->certificate_date) }}</span>
+                                                                    class="asp-detail-value">{{ !empty($whCertTo) ? format_date($whCertTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->certificate_no }}"
-                                                                data-license_from_date="{{ $applicant->certificate_valid_from }}"
-                                                                data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}"
-                                                                data-license_issue_date="{{ $applicant->certificate_issue_date }}"
+                                                                data-license_number="{{ $whCertNo }}"
+                                                                data-license_from_date="{{ $whCertFrom }}"
+                                                                data-license_date="{{ $whCertTo }}"
+                                                                data-license_issue_date="{{ $whCertIssue }}"
                                                                 data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
@@ -1464,7 +1493,11 @@
                                             @endif
                                             @if (in_array($applicant->form_name, ['W']))
                                                 @php
-                                                    $hasWiremanBoardCert = !empty($applicant->certificate_no) && !empty($applicant->certificate_date);
+                                                    $wCertNo = $applicant->wcc_no ?? $applicant->certificate_no ?? null;
+                                                    $wCertIssue = $applicant->wcc_issue_date ?? $applicant->certificate_issue_date ?? null;
+                                                    $wCertFrom = $applicant->wcc_from ?? $applicant->certificate_valid_from ?? null;
+                                                    $wCertTo = $applicant->wcc_to ?? $applicant->certificate_valid_to ?? $applicant->certificate_date ?? null;
+                                                    $hasWiremanBoardCert = !empty($wCertNo) && !empty($wCertTo);
                                                 @endphp
                                                 <div class="asp-qa-card">
                                                     <div class="asp-qa-head">
@@ -1483,25 +1516,25 @@
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">License Number</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ $applicant->certificate_no ?: '—' }}</span>
+                                                                    class="asp-detail-value">{{ $wCertNo ?: '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of First Issue</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ !empty($applicant->certificate_issue_date) ? format_date($applicant->certificate_issue_date) : '—' }}</span>
+                                                                    class="asp-detail-value">{{ !empty($wCertIssue) ? format_date($wCertIssue) : '—' }}</span>
                                                             </div>
                                                             <div class="asp-detail-cell">
                                                                 <span class="asp-detail-label">Date of Expiry</span>
                                                                 <span
-                                                                    class="asp-detail-value">{{ format_date($applicant->certificate_date) }}</span>
+                                                                    class="asp-detail-value">{{ !empty($wCertTo) ? format_date($wCertTo) : '—' }}</span>
                                                             </div>
                                                         </div>
                                                         <div class="asp-verify-row">
                                                             <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->certificate_no }}"
-                                                                data-license_from_date="{{ $applicant->certificate_valid_from }}"
-                                                                data-license_date="{{ $applicant->certificate_valid_to ?? $applicant->certificate_date }}"
-                                                                data-license_issue_date="{{ $applicant->certificate_issue_date }}"
+                                                                data-license_number="{{ $wCertNo }}"
+                                                                data-license_from_date="{{ $wCertFrom }}"
+                                                                data-license_date="{{ $wCertTo }}"
+                                                                data-license_issue_date="{{ $wCertIssue }}"
                                                                 data-type="certificate" style="cursor: pointer;">Verify</span>
                                                         </div>
                                                     @endif
@@ -1749,11 +1782,12 @@
                                                         @php
                                                             $paymentStatusRaw = strtoupper(trim((string) ($applicant->payment_status ?? '')));
                                                             $paymentStatusLabel = match ($paymentStatusRaw) {
+                                                                'B' => 'Fee exempt',
                                                                 'Y', 'PAYMENT', 'PAID', 'SUCCESS' => 'Success',
                                                                 'N', 'DRAFT' => 'Draft',
                                                                 default => $paymentStatusRaw !== '' ? $paymentStatusRaw : 'N/A',
                                                             };
-                                                            $paymentStatusBadge = in_array($paymentStatusRaw, ['Y', 'PAYMENT', 'PAID', 'SUCCESS'], true)
+                                                            $paymentStatusBadge = in_array($paymentStatusRaw, ['B', 'Y', 'PAYMENT', 'PAID', 'SUCCESS'], true)
                                                                 ? 'badge-success'
                                                                 : 'badge-warning';
                                                         @endphp
@@ -1762,6 +1796,7 @@
                                                         </p>
                                                     </div>
 
+                                                    @if ($paymentStatusRaw !== 'B')
                                                     <div class="col-lg-6">
                                                         <p><strong> Transaction Id</strong></p>
                                                     </div>
@@ -1786,6 +1821,7 @@
                                                     <div class="col-lg-6">
                                                         <p>{{ format_date($applicant->transaction_date) }}</p>
                                                     </div>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -1935,8 +1971,13 @@
                             </div>
                             <div class="form-check mb-2">
                                 <input class="form-check-input return-to-applicant-query" type="checkbox"
-                                    name="return_applicant_query[]" id="query_other" value="Other">
-                                <label class="form-check-label" for="query_other">Other</label>
+                                    name="return_applicant_query[]" id="query_work_exp" value="Work Experience">
+                                <label class="form-check-label" for="query_work_exp">Work Experience</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input return-to-applicant-query" type="checkbox"
+                                    name="return_applicant_query[]" id="query_personal" value="Personal Details">
+                                <label class="form-check-label" for="query_personal">Personal Details</label>
                             </div>
                         </div>
                         <div class="form-group mt-3">
@@ -2256,9 +2297,16 @@
                                     // $('#licenseExpiry').text(response.license_expiry);
                                 },
                                 error: function (xhr) {
-                                    let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
-                                    $('#errorMessage').text(errorMessage);
-                                    $('#errorModal').modal('show');
+                                    let errorMessage = xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)
+                                        ? (xhr.responseJSON.error || xhr.responseJSON.message)
+                                        : "An unexpected error occurred.";
+                                    Swal.fire({
+                                        icon: "error",
+                                        title: "Approval failed",
+                                        text: errorMessage,
+                                        confirmButtonText: "OK",
+                                        allowOutsideClick: false
+                                    });
                                 }
                             });
                         }

@@ -901,6 +901,57 @@
         opacity: 0.72;
         filter: grayscale(0.06);
     }
+    .fs-section.fs-return-section-locked .btn-fs-change,
+    .fs-section.fs-return-section-locked .remove-aadhaar-doc,
+    .fs-section.fs-return-section-locked .remove-pan-doc,
+    .fs-section.fs-return-section-locked .remove-doc_edu_confirm,
+    .fs-section.fs-return-section-locked input[type="file"],
+    .fs-section.fs-return-section-locked .form-s-file-upload-wrap,
+    .fs-section.fs-return-section-locked .file-limit {
+        display: none !important;
+    }
+    /* Returned + Till date off: relieving upload must stay visible and clickable. */
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"] {
+        pointer-events: auto !important;
+    }
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"].d-none {
+        display: block !important;
+    }
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"] .form-s-file-upload-wrap {
+        display: flex !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    #competency_form_ws.fs-returned-form .fs-section[data-return-section="experience"]:not(.fs-return-section-locked)
+        .work-fields:not(:has(.work-date-till:checked)) [data-field="relieve"] input[type="file"] {
+        display: block !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    #fs-7b-root.fs-7b-return-locked .work-card-field .form-control,
+    #fs-7b-root.fs-7b-return-locked .work-card-field textarea {
+        background: #eef1f4;
+        pointer-events: none;
+    }
+    #fs-7b-root.fs-7b-return-locked .remove-work-doc-confirm,
+    #fs-7b-root.fs-7b-return-locked .form-s-file-upload-wrap,
+    #fs-7b-root.fs-7b-return-locked .work-card-field-hint {
+        display: none !important;
+    }
+    .fs-return-section-locked a[href] {
+        pointer-events: auto;
+    }
+    .fs-docs-table #aadhaar,
+    .fs-docs-table #pancard {
+        border: 1px solid #c5d0e6;
+        background: #fff;
+        min-height: 38px;
+    }
 
     @if (in_array($editFormName, ['S', 'W', 'WH'], true))
     @include('user_login.partials.form-s-work-exp-styles', ['editFormName' => $editFormName])
@@ -1109,7 +1160,7 @@
             {{-- ── Form body ── --}}
             <div class="fs-form-body fs-form apply-card">
 
-                <form id="competency_form_ws" enctype="multipart/form-data">
+                <form id="competency_form_ws" class="fs-returned-form" enctype="multipart/form-data">
 
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id"
@@ -1398,9 +1449,10 @@
                                                             @php
                                                                 $isWH = (isset($application_details->form_name) && $application_details->form_name === 'WH');
                                                                 $isDraft = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
+                                                                $isWhHelperExam = trim((string) ($edu_details->educational_level ?? '')) === 'Wireman Helper Examination';
                                                                 $instituteDisplayValue = !empty(trim((string) ($edu_details->institute_name ?? '')))
                                                                     ? $edu_details->institute_name
-                                                                    : ($isDraft && $isWH ? 'Dept of Employment & Training' : '');
+                                                                    : ($isDraft && $isWH && $isWhHelperExam ? 'Dept of Employment & Training' : '');
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($instituteDisplayValue) !!}"></td>
                                                             <td>
@@ -1516,9 +1568,7 @@
                                                                 </select>
                                                             </td>
                                                             @php
-                                                                $isWHEmptyRow = isset($application_details->form_name) && $application_details->form_name === 'WH';
-                                                                $isDraftEmptyRow = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
-                                                                $defaultInstituteForEmptyRow = ($isDraftEmptyRow && $isWHEmptyRow) ? 'Dept of Employment & Training' : '';
+                                                                $defaultInstituteForEmptyRow = '';
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($defaultInstituteForEmptyRow) !!}"></td>
                                                             <td>
@@ -1614,6 +1664,7 @@
                                 'hideUploadWhenDocExists' => true,
                                 'showContractorNotice' => true,
                                 'contractorDetails' => $get_contractor_details ?? null,
+                                'lock7bBoardMemberOnReturn' => true,
                             ])
                             @elseif (in_array($editFormName, ['W', 'WH'], true))
                             @include('user_login.partials.form-w-work-exp-7ab-body', [
@@ -1621,6 +1672,7 @@
                                 'showContractorNotice' => true,
                                 'contractorDetails' => $get_contractor_details ?? null,
                                 'hideUploadWhenDocExists' => true,
+                                'showAddRow' => $retCanEdit('experience'),
                             ])
                             @else
                             <div class="fs-table-wrap">
@@ -1990,6 +2042,7 @@
                                             <div class="fs-return-upload-cell{{ $retLockClass('photo') }}" data-return-section="photo">
                                             <div class="fs-upload-card p-3">
                                                 <div class="fs-upload-controls">
+                                                    @if($retCanEdit('photo'))
                                                     <div id="photo-input-wrapper" style="{{ $hasPhoto ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
                                                             <input autocomplete="off" class="form-control" id="upload_photo" name="upload_photo" type="file" accept=".jpg,.jpeg,.png">
@@ -2003,6 +2056,7 @@
                                                                 <i class="fa fa-pencil"></i> Change Photo
                                                             </button>
                                                         </div>
+                                                    @endif
                                                     @endif
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--photo">
@@ -2021,8 +2075,8 @@
                                             <div class="fs-field-tamil">ஆதார் எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-aadhaar-no">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="applicant-aadhaar-no">
+                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}" @unless($retCanEdit('aadhaar_doc')) readonly tabindex="-1" data-return-locked="1" @endunless>
                                             <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
                                             </div>
                                         </td>
@@ -2037,9 +2091,12 @@
                                                     <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
+                                                    @if($retCanEdit('aadhaar_doc'))
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
+                                                    @endif
                                                 </div>
                                             @endif
+                                            @if($retCanEdit('aadhaar_doc'))
                                             <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
                                                 <div class="form-s-file-upload-wrap" style="max-width:280px;">
                                                     <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
@@ -2047,6 +2104,7 @@
                                                 <span class="file-limit">File type: PDF (Max 250 KB)</span>
                                                 <small class="text-danger file-error d-block"></small>
                                             </div>
+                                            @endif
                                             <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
                                             </div>
                                         </td>
@@ -2059,8 +2117,8 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('applicant') }}" data-return-section="applicant-pan-no">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
+                                            <div class="fs-return-upload-cell{{ $retLockClass('pan_doc') }}" data-return-section="applicant-pan-no">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}" @unless($retCanEdit('pan_doc')) readonly tabindex="-1" data-return-locked="1" @endunless>
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                             </div>
                                         </td>
@@ -2075,9 +2133,12 @@
                                                     <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
+                                                    @if($retCanEdit('pan_doc'))
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
+                                                    @endif
                                                 </div>
                                             @endif
+                                            @if($retCanEdit('pan_doc'))
                                             <div class="pan-doc-input {{ !empty($existingPanDoc) ? 'd-none' : '' }}">
                                                 <div class="form-s-file-upload-wrap" style="max-width:280px;">
                                                     <input autocomplete="off" class="form-control" id="pancard_doc" name="pancard_doc" type="file" accept=".pdf,application/pdf">
@@ -2085,6 +2146,7 @@
                                                 <span class="file-limit">File type: PDF (Max 250 KB)</span>
                                                 <small class="text-danger file-error d-block"></small>
                                             </div>
+                                            @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -2099,6 +2161,7 @@
                                             <div class="fs-return-upload-cell{{ $retLockClass('signature') }}" data-return-section="signature">
                                             <div class="fs-upload-card p-3">
                                                 <div class="fs-upload-controls">
+                                                    @if($retCanEdit('signature'))
                                                     <div id="sign-input-wrapper" style="{{ $hasSign ? 'display:none;' : 'display:block;' }}">
                                                         <div class="form-s-file-upload-wrap fs-upload-input">
                                                             <input autocomplete="off" class="form-control" id="upload_sign" name="upload_sign" type="file" accept=".jpg,.jpeg,.png">
@@ -2112,6 +2175,7 @@
                                                                 <i class="fa fa-pencil"></i> Change Signature
                                                             </button>
                                                         </div>
+                                                    @endif
                                                     @endif
                                                 </div>
                                                 <div class="fs-upload-preview fs-upload-preview--sign">
@@ -2279,6 +2343,33 @@
             var signUploadedState = document.getElementById('sign-uploaded-state');
             if (signUploadedState) signUploadedState.style.display = 'none';
         };
+    })();
+</script>
+<script>
+    (function () {
+        function lockReturnIdentityField(id) {
+            var el = document.getElementById(id);
+            if (!el || el.getAttribute('data-return-locked') !== '1') {
+                return;
+            }
+            var lockedVal = el.value;
+            function restore(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+                el.value = lockedVal;
+                return false;
+            }
+            ['keydown', 'keypress', 'keyup', 'input', 'beforeinput', 'paste', 'cut', 'drop'].forEach(function (evt) {
+                el.addEventListener(evt, restore, true);
+            });
+            el.addEventListener('focus', function () {
+                el.blur();
+            });
+        }
+        lockReturnIdentityField('aadhaar');
+        lockReturnIdentityField('pancard');
     })();
 </script>
 <script>
@@ -2502,12 +2593,14 @@
                         <option value="">Select Education</option>
                         ${isSForm
                             ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option>'
-                            : (isWOrWHForm
+                            : (isWHForm
+                                ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper Examination">Wireman Helper Examination</option><option value="ITI Certificate">ITI Certificate</option>'
+                                : (isWOrWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper(H) Certificate">Wireman Helper(H) Certificate</option><option value="ITI Certificate">ITI Certificate</option>'
-                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>' + (isWHForm ? '<option value="8">8</option>' : ''))}
+                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>'))}
                     </select>
                 </td>
-                <td><input type="text" class="form-control" name="institute_name[]" required value="${isWHForm ? 'Dept of Employment & Training' : ''}"></td>
+                <td><input type="text" class="form-control" name="institute_name[]" required></td>
                 <td>
                     <select name="month_of_passing[]" class="form-control" required>
                         <option value="">Select Month</option>
@@ -3039,23 +3132,38 @@
 
     // ── Date display formatter: show DD-MM-YYYY, revert to picker on focus ──
     function initDateDisplay(inp) {
-        function toDisplay(raw) {
-            if (!raw) return;
-            var p = raw.split('-');
-            if (p.length === 3) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        /* Work From/To stay type=date. Switching to text on blur drops year keystrokes. */
+        if (inp && inp.classList && (inp.classList.contains('work-date-from') || inp.classList.contains('work-date-to'))) {
+            return;
         }
-        if (inp.value) { inp.setAttribute('data-raw', inp.value); toDisplay(inp.value); }
+        function yearOk(raw) {
+            var y = parseInt(String(raw || '').slice(0, 4), 10);
+            return y >= 1900 && y <= 9999;
+        }
+        function toDisplay(raw) {
+            if (!raw || !yearOk(raw)) return;
+            var p = String(raw).split('-');
+            if (p.length === 3 && p[0].length === 4) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        }
+        if (inp.value && yearOk(inp.value)) { inp.setAttribute('data-raw', inp.value); toDisplay(inp.value); }
         inp.addEventListener('focus', function() {
             var raw = this.getAttribute('data-raw') || '';
-            this.type = 'date'; if (raw) this.value = raw;
+            this.type = 'date';
+            if (raw && yearOk(raw)) this.value = raw;
+            if (this.classList.contains('work-date-to')) this.removeAttribute('max');
         });
         inp.addEventListener('blur', function() {
-            if (this.type === 'date' && this.value) {
-                this.setAttribute('data-raw', this.value); toDisplay(this.value);
+            if (this.type !== 'date') return;
+            if (this.value && yearOk(this.value)) {
+                this.setAttribute('data-raw', this.value);
+                toDisplay(this.value);
+                return;
             }
+            var raw = this.getAttribute('data-raw') || '';
+            if (raw && yearOk(raw)) { this.value = raw; toDisplay(raw); }
         });
         inp.addEventListener('change', function() {
-            if (this.type === 'date' && this.value) this.setAttribute('data-raw', this.value);
+            if (this.type === 'date' && this.value && yearOk(this.value)) this.setAttribute('data-raw', this.value);
         });
     }
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
@@ -3068,6 +3176,7 @@
     'enableBoardMemberFeeExempt' => $editShowBoardMember,
     'enableBoardMemberRenewalFeeExempt' => $editShowBoardMember,
     'hideUploadWhenDocExists' => true,
+    'isReturnedApplication' => true,
     'hideVoltageFields' => in_array($editFormName, ['W', 'WH'], true),
 ])
 <script>
@@ -3082,6 +3191,34 @@
             var $toggle = $('.fs-7b-board-toggle');
             $toggle.find('.fs-segmented-opt').removeClass('is-active');
             $input.closest('.fs-segmented-opt').addClass('is-active');
+        }
+
+        function lockReturned7bFields($row) {
+            var $root = $('#fs-7b-root');
+            if (!$root.hasClass('fs-7b-return-locked')) return;
+
+            $('.fs-7b-board-toggle').addClass('is-locked').attr('aria-disabled', 'true');
+            $('input[name="current_work_board_member"][type="radio"]').prop('disabled', true);
+            if (!$('input[type="hidden"][name="current_work_board_member"]').length) {
+                $('.fs-7b-board-toggle').after('<input type="hidden" name="current_work_board_member" value="yes">');
+            }
+
+            if (!$row || !$row.length) return;
+
+            $row.find('input, select, textarea').not('[type="hidden"]').each(function () {
+                var type = (this.type || '').toLowerCase();
+                if (type === 'file') {
+                    $(this).prop('disabled', true).prop('required', false);
+                    return;
+                }
+                if ((this.tagName || '').toLowerCase() === 'select') {
+                    $(this).prop('disabled', false).attr('tabindex', '-1');
+                    return;
+                }
+                $(this).prop('readonly', true).prop('disabled', false);
+            });
+            $row.find('.remove-work-doc-confirm').hide();
+            $row.find('.form-s-file-upload-wrap, .work-card-field-hint').hide();
         }
 
         function apply7bBoardToggle(mode, isInit) {
@@ -3122,6 +3259,10 @@
                 $parallel.prop('disabled', true);
             }
 
+            if ($root.hasClass('fs-7b-return-locked')) {
+                lockReturned7bFields($row);
+            }
+
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                 window.wxSyncBoardMemberRenewalFee();
             }
@@ -3129,6 +3270,12 @@
 
         $(document).ready(function () {
             $('input[name="current_work_board_member"]').on('change', function () {
+                if ($('#fs-7b-root').hasClass('fs-7b-return-locked')) {
+                    $('#current_work_board_member_yes').prop('checked', true);
+                    sync7bSegmentedActive($('#current_work_board_member_yes'));
+                    lockReturned7bFields(get7bWorkRow());
+                    return;
+                }
                 sync7bSegmentedActive($(this));
                 apply7bBoardToggle($(this).val(), false);
             });

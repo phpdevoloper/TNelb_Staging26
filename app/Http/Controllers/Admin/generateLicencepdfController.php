@@ -206,6 +206,19 @@ class generateLicencepdfController extends Controller
         } elseif ($grade_name == 'EB') {
             $grade_name_txt = 'EB Grade Contractor Licence ';
         }
+
+
+        if($appltype == 'R'){
+            $appl_txt = 'Renewal';
+        } elseif ($appltype == 'A') {
+             $appl_txt = 'Alteration';
+        }elseif ($appltype == 'N') {
+             $appl_txt = 'New';
+        }else{
+             $appl_txt = 'Digitisation';
+        }
+
+
         $qrData = url('/verify-certificate/' . $applicant->application_id);
 
 
@@ -229,9 +242,9 @@ class generateLicencepdfController extends Controller
                 </h3>
                 <br>
 
-                <p class="license_name orange mt-10 text-uppercase">
-                    ' . $grade_name_txt . '
-                </p>
+            <p class="license_name orange mt-10 text-uppercase">
+                ' . $grade_name_txt . ' (' . $appl_txt . ')
+            </p>
             </div>
 
         </td>

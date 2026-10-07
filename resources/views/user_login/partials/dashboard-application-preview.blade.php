@@ -59,25 +59,90 @@
     };
     $aadhaarPlain = displayProofNumber($application_details->aadhaar ?? '');
     $panPlain = displayProofNumber($application_details->pancard ?? '');
-    $aadhaarDocUrl = proof_document_url($application_details->aadhaar_doc ?? null, 'aadhaar');
-    $panDocUrl = proof_document_url($application_details->pan_doc ?? $application_details->pancard_doc ?? null, 'pan');
+    $previewAppId = trim((string) ($application_details->application_id ?? ''));
+    $proofService = app(\App\Services\FormS\FormSProofDocumentService::class);
+    $aadhaarDocPath = trim((string) ($application_details->aadhaar_doc ?? ''));
+    $panDocPath = trim((string) ($application_details->pan_doc ?? $application_details->pancard_doc ?? ''));
+    if ($previewAppId !== '') {
+        if ($aadhaarDocPath === '') {
+            $aadhaarDocPath = (string) ($proofService->loadIdentityDocumentPathForView(
+                $previewAppId,
+                \App\Services\FormS\FormSProofDocumentService::PROOF_AADHAAR
+            ) ?? '');
+        }
+        if ($panDocPath === '') {
+            $panDocPath = (string) ($proofService->loadIdentityDocumentPathForView(
+                $previewAppId,
+                \App\Services\FormS\FormSProofDocumentService::PROOF_PAN
+            ) ?? '');
+        }
+        if ($aadhaarPlain === '') {
+            $aadhaarPlain = displayProofNumber($proofService->loadIdentityProofNumberForView(
+                $previewAppId,
+                \App\Services\FormS\FormSProofDocumentService::PROOF_AADHAAR
+            ));
+        }
+        if ($panPlain === '') {
+            $panPlain = displayProofNumber($proofService->loadIdentityProofNumberForView(
+                $previewAppId,
+                \App\Services\FormS\FormSProofDocumentService::PROOF_PAN
+            ));
+        }
+    }
+    $aadhaarDocUrl = null;
+    $panDocUrl = null;
+    if ($previewAppId !== '') {
+        if ($aadhaarDocPath !== '') {
+            $aadhaarDocUrl = route('dashboard.application.proof', [
+                'application_id' => $previewAppId,
+                'type' => 'aadhaar',
+            ]);
+        }
+        if ($panDocPath !== '') {
+            $panDocUrl = route('dashboard.application.proof', [
+                'application_id' => $previewAppId,
+                'type' => 'pan',
+            ]);
+        }
+    }
+    if (! $aadhaarDocUrl) {
+        $aadhaarDocUrl = proof_document_url($aadhaarDocPath !== '' ? $aadhaarDocPath : null, 'aadhaar');
+    }
+    if (! $panDocUrl) {
+        $panDocUrl = proof_document_url($panDocPath !== '' ? $panDocPath : null, 'pan');
+    }
 
-    $hasPrevCert = $dashTxt($application_details->previously_number ?? '') !== '';
-    $hasWiremanCert = $isFormS && $dashTxt($application_details->competency_certificate_no ?? $application_details->certificate_no ?? '') !== '';
+    $prevSccNo = $dashTxt($application_details->previously_number ?? $application_details->previous_scc_no ?? '');
+    $wccNo = $dashTxt($application_details->wcc_no ?? '');
+    $hasPrevCert = $isFormS
+        ? ($prevSccNo !== '' && $prevSccNo !== '0')
+        : ($wccNo !== '' && $wccNo !== '0');
+    $hasWiremanCert = $isFormS && $wccNo !== '' && $wccNo !== '0';
     $prevCertTitle = match ($formCode) {
         'S' => 'Do you already possess a Supervisor Competency Certificate issued by this Board? If yes, please furnish the details.',
-        'W' => 'Previous Wireman / Helper Certificate',
-        'WH' => 'Previous Wireman Helper Certificate',
+        'W' => 'Have you applied for and obtained a Certificate of Qualification for Wireman / Wireman Helper? If yes, please state its number and validity.',
+        'WH' => 'Have you applied for and obtained a Certificate of Qualification for Wireman Helper? If yes, please state its number and validity.',
         default => 'Previous Certificate',
     };
     $prevCertTamil = match ($formCode) {
         'S' => 'இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக',
-        'W' => 'மின்கம்பியாளர் / உதவியாளர் தகுதி சான்றிதழ் விவரம்',
-        'WH' => 'மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் விவரம்',
+        'W' => 'இதற்கு முன்னாள் விண்ணப்பம் செய்து மின்கம்பியாளர் தகுதி சான்றிதழ் / மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் பெறப்பட்டுள்ளதா? ஆம் என்றால் அதன் எண் மற்றும் செல்லத்தக்க காலம் குறிப்பிடுக',
+        'WH' => 'இதற்கு முன்னாள் விண்ணப்பம் செய்து மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் பெறப்பட்டுள்ளதா? ஆம் என்றால் அதன் எண் மற்றும் செல்லத்தக்க காலம் குறிப்பிடுக',
         default => '',
     };
     $expPrevious = $exp_previous ?? collect();
     $expBoard = $exp_board ?? collect();
+    $alterationPreview = $alterationPreview ?? [];
+    $isAlterationPreview = ! empty($alterationPreview['is_alteration']);
+    $nameAltered = $isAlterationPreview && ! empty($alterationPreview['name_altered']);
+    $addressAltered = $isAlterationPreview && ! empty($alterationPreview['address_altered']);
+    $hasAlteredWork = $isAlterationPreview && ! empty($alterationPreview['has_altered_work']);
+    $hasAlterationProofs = $isAlterationPreview && ! empty($alterationPreview['has_proofs']);
+    $previousApplicantName = trim((string) ($alterationPreview['previous_name'] ?? ''));
+    $previousApplicantAddress = trim((string) ($alterationPreview['previous_address'] ?? ''));
+    $nameProofUrl = $alterationPreview['name_proof_url'] ?? null;
+    $addressProofUrl = $alterationPreview['address_proof_url'] ?? null;
+    $showAlterationSummary = $isAlterationPreview && ($nameAltered || $addressAltered || $hasAlteredWork || $hasAlterationProofs);
 @endphp
 <div class="dash-prv">
     <div class="dash-prv-meta">
@@ -94,6 +159,26 @@
             <div class="dash-prv-meta-value">{{ $licenceLabel }} · {{ $applTypeLabel }}</div>
         </div>
     </div>
+
+    @if ($showAlterationSummary)
+        <div class="dash-prv-alter">
+            <div class="dash-prv-alter-title">Altered in this request</div>
+            <ul>
+                @if ($nameAltered)
+                    <li>Applicant name <span class="dash-prv-alter-badge">Altered</span></li>
+                @endif
+                @if ($addressAltered)
+                    <li>Address <span class="dash-prv-alter-badge">Altered</span></li>
+                @endif
+                @if ($hasAlteredWork)
+                    <li>{{ $isFormP ? 'Power station experience' : 'Work experience' }} — rows marked <span class="dash-prv-alter-badge">Altered</span> below</li>
+                @endif
+                @if ($hasAlterationProofs)
+                    <li>Supporting documents uploaded for the name or address change</li>
+                @endif
+            </ul>
+        </div>
+    @endif
 
     <section class="dash-prv-section">
         <div class="dash-prv-section-hd">
@@ -128,9 +213,15 @@
                     </div>
                 </div>
                 <div class="dash-prv-details">
-                    <div class="dash-prv-field">
-                        <div class="dash-prv-label">Applicant's Name</div>
+                    <div class="dash-prv-field {{ $nameAltered ? 'is-altered' : '' }}">
+                        <div class="dash-prv-label">Applicant's Name @if ($nameAltered)<span class="dash-prv-alter-badge">Altered</span>@endif</div>
                         <div class="dash-prv-value {{ $dashTxt($application_details->applicant_name) === '' ? 'is-empty' : '' }}">{{ $dashTxt($application_details->applicant_name) !== '' ? $application_details->applicant_name : '—' }}</div>
+                        @if ($nameAltered && $previousApplicantName !== '')
+                            <div class="dash-prv-prev">Previously: {{ $previousApplicantName }}</div>
+                        @endif
+                        @if ($nameProofUrl)
+                            <div class="mt-1"><a class="dash-prv-doc-pill" href="{{ $nameProofUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View name proof</a></div>
+                        @endif
                     </div>
                     <div class="dash-prv-field">
                         <div class="dash-prv-label">Father's Name</div>
@@ -148,9 +239,15 @@
                         <div class="dash-prv-label">Age</div>
                         <div class="dash-prv-value {{ $dashTxt($application_details->age ?? '') === '' ? 'is-empty' : '' }}">{{ $dashTxt($application_details->age ?? '') !== '' ? $application_details->age : '—' }}</div>
                     </div>
-                    <div class="dash-prv-field dash-prv-field--full">
-                        <div class="dash-prv-label">Address</div>
+                    <div class="dash-prv-field dash-prv-field--full {{ $addressAltered ? 'is-altered' : '' }}">
+                        <div class="dash-prv-label">Address @if ($addressAltered)<span class="dash-prv-alter-badge">Altered</span>@endif</div>
                         <div class="dash-prv-value {{ $dashTxt($application_details->applicants_address ?? '') === '' ? 'is-empty' : '' }}" style="white-space:pre-line;">{{ $dashTxt($application_details->applicants_address ?? '') !== '' ? $application_details->applicants_address : '—' }}</div>
+                        @if ($addressAltered && $previousApplicantAddress !== '')
+                            <div class="dash-prv-prev">Previously: {{ $previousApplicantAddress }}</div>
+                        @endif
+                        @if ($addressProofUrl)
+                            <div class="mt-1"><a class="dash-prv-doc-pill" href="{{ $addressProofUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View address proof</a></div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -186,7 +283,13 @@
                                 @php
                                     $eduDoc = $edu->upload_document ?? $edu->education_document ?? null;
                                     $eduDocUrl = $eduDoc ? competency_document_url($eduDoc, 'education', (int) ($edu->id ?? $edu->edu_id ?? 0), 'certificate', [$appPk]) : null;
-                                    $level = $edu->educational_level ?? $edu->education_level ?? '';
+                                    $levelCode = $edu->educational_level ?? $edu->education_level ?? '';
+                                    $level = [
+                                        'BEM' => 'B.E (Mechanical)',
+                                        'BEE' => 'B.E (Electrical)',
+                                        'DiplomaM' => 'Diploma (Mechanical)',
+                                        'DiplomaE' => 'Diploma (Electrical)',
+                                    ][$levelCode] ?? $levelCode;
                                     $institute = $edu->institute_name ?? $edu->university ?? '';
                                     $month = $monthLabel($edu->month_passing ?? $edu->month_of_passing ?? '');
                                     $year = $dashTxt($edu->year_of_passing ?? '');
@@ -223,22 +326,22 @@
                                 <th>Institute Name &amp; Address</th>
                                 <th>From</th>
                                 <th>To</th>
-                                <th>Duration (yrs)</th>
+                                <th>Year / Month / Day</th>
                                 <th>Document</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($institutes as $inst)
                                 @php
-                                    $instDoc = $inst->upload_doc ?? null;
-                                    $instDocUrl = $instDoc ? competency_document_url($instDoc, 'institute', (int) ($inst->id ?? 0), 'certificate', [$appPk]) : null;
+                                    $instDoc = $inst->upload_doc ?? $inst->upload_document ?? null;
+                                    $instDocUrl = $instDoc ? competency_document_url($instDoc, 'institute', (int) ($inst->id ?? 0), 'institute_doc', [$appPk]) : null;
                                 @endphp
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td class="dash-prv-td-left">{{ $dashTxt($inst->institute_name_address ?? '') !== '' ? $inst->institute_name_address : '—' }}</td>
                                     <td>{{ $fmtDate($inst->from_date ?? null) !== '' ? $fmtDate($inst->from_date) : '—' }}</td>
                                     <td>{{ $fmtDate($inst->to_date ?? null) !== '' ? $fmtDate($inst->to_date) : '—' }}</td>
-                                    <td>{{ $dashTxt($inst->duration ?? '') !== '' ? $inst->duration : '—' }}</td>
+                                    <td>{{ format_institute_duration($inst->duration ?? '', $inst->from_date ?? null, $inst->to_date ?? null) }}</td>
                                     <td>
                                         @if ($instDocUrl)
                                             <a class="dash-prv-doc-pill" href="{{ $instDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
@@ -263,7 +366,7 @@
                                 <th>Power Station</th>
                                 <th>From</th>
                                 <th>To</th>
-                                <th>Duration</th>
+                                <th>Year / Month / Day</th>
                                 <th>Designation</th>
                                 <th>Document</th>
                             </tr>
@@ -274,14 +377,18 @@
                                     $station = $exp->org_name ?? $exp->company_name ?? $exp->emp_cate ?? '';
                                     $supportDoc = $exp->support_document ?? $exp->upload_document ?? '';
                                     $supportUrl = $supportDoc !== '' ? competency_document_url($supportDoc, 'experience', (int) ($exp->id ?? $exp->exp_id ?? 0), 'experience_doc') : null;
-                                    $durParts = [];
-                                    if ((int) ($exp->total_y ?? 0) > 0) { $durParts[] = (int) $exp->total_y . 'y'; }
-                                    if ((int) ($exp->total_m ?? 0) > 0) { $durParts[] = (int) $exp->total_m . 'm'; }
-                                    if ((int) ($exp->total_d ?? 0) > 0) { $durParts[] = (int) $exp->total_d . 'd'; }
-                                    $durTxt = implode(' ', $durParts);
+                                    $durTxt = format_institute_duration(null, $exp->from_date ?? null, $exp->to_date ?? null);
+                                    if ($durTxt === '—') {
+                                        $durTxt = '';
+                                    }
                                 @endphp
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
+                                <tr class="{{ !empty($exp->is_alteration_new) ? 'is-altered' : '' }}">
+                                    <td>
+                                        {{ $loop->iteration }}
+                                        @if (!empty($exp->is_alteration_new))
+                                            <div><span class="dash-prv-alter-badge">Altered</span></div>
+                                        @endif
+                                    </td>
                                     <td class="dash-prv-td-left">{{ $dashTxt($station) !== '' ? $station : '—' }}</td>
                                     <td>{{ $fmtDate($exp->from_date ?? null) !== '' ? $fmtDate($exp->from_date) : '—' }}</td>
                                     <td>{{ $fmtDate($exp->to_date ?? null) !== '' ? $fmtDate($exp->to_date) : '—' }}</td>
@@ -313,27 +420,32 @@
             <div class="dash-prv-section-hd">
                 <span class="dash-prv-section-num">7</span>
                 <div>
-                    <div class="dash-prv-section-title">Previous Application</div>
-                    <div class="dash-prv-section-tamil">முந்தைய விண்ணப்பம் பற்றிய விவரம்</div>
+                    <div class="dash-prv-section-title">Have you made any previous application? If so, state reference No. and date.</div>
+                    <div class="dash-prv-section-tamil">இதற்கு முன்னாள் விண்ணப்பம் செய்துள்ளீர்களா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக</div>
                 </div>
             </div>
             <div class="dash-prv-section-body">
+                @php
+                    $formPPrevNo = $dashTxt($application_details->previously_number ?? $application_details->previous_scc_no ?? '');
+                    $formPPrevDate = $fmtDate($application_details->first_issue_date ?? null);
+                    $hasFormPPrev = ($formPPrevNo !== '' && $formPPrevNo !== '0') || $formPPrevDate !== '';
+                @endphp
                 <div class="mb-2">
-                    @if ($hasPrevCert)
+                    @if ($hasFormPPrev)
                         <span class="dash-prv-yes">Yes</span>
                     @else
                         <span class="dash-prv-no">No</span>
                     @endif
                 </div>
-                @if ($hasPrevCert)
+                @if ($hasFormPPrev)
                     <div class="dash-prv-grid-2">
                         <div class="dash-prv-field mb-0">
                             <div class="dash-prv-label">Application Number</div>
-                            <div class="dash-prv-value">{{ $application_details->previously_number }}</div>
+                            <div class="dash-prv-value">{{ $formPPrevNo !== '' ? $formPPrevNo : '—' }}</div>
                         </div>
                         <div class="dash-prv-field mb-0">
                             <div class="dash-prv-label">Date</div>
-                            <div class="dash-prv-value">{{ $fmtDate($application_details->previously_valid_to ?? $application_details->previously_date ?? null) !== '' ? $fmtDate($application_details->previously_valid_to ?? $application_details->previously_date) : '—' }}</div>
+                            <div class="dash-prv-value">{{ $formPPrevDate !== '' ? $formPPrevDate : '—' }}</div>
                         </div>
                     </div>
                 @endif
@@ -400,10 +512,10 @@
         <section class="dash-prv-section">
             <div class="dash-prv-question">
                 <div class="dash-prv-section-hd">
-                    <span class="dash-prv-section-num dash-prv-section-num--sub">7a</span>
+                    <span class="dash-prv-section-num dash-prv-section-num--sub">{{ $isFormS ? '7a' : '7' }}</span>
                     <div>
-                        <div class="dash-prv-section-title">Previous Work Experience</div>
-                        <div class="dash-prv-section-tamil">முந்தைய பணி அனுபவ விவரங்கள்</div>
+                        <div class="dash-prv-section-title">{{ $isFormS ? 'Previous and Current Work experiences' : 'Details of Previous and Current Work experiences' }}</div>
+                        <div class="dash-prv-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்</div>
                     </div>
                 </div>
                 <div class="dash-prv-section-body">
@@ -413,6 +525,7 @@
                     ])
                 </div>
             </div>
+            @if ($isFormS)
             <div class="dash-prv-question">
                 <div class="dash-prv-section-hd">
                     <span class="dash-prv-section-num dash-prv-section-num--sub">7b</span>
@@ -425,6 +538,7 @@
                     @include('user_login.partials.form-s-board-member-view', ['boardMemberRows' => $expBoard])
                 </div>
             </div>
+            @endif
         </section>
 
         <section class="dash-prv-section">
@@ -446,22 +560,36 @@
                     @endif
                 </div>
                 @if ($hasPrevCert)
+                    @php
+                        $prevCertNo = $isFormS
+                            ? ($application_details->previously_number ?? $application_details->previous_scc_no)
+                            : $application_details->wcc_no;
+                        $prevIssue = $isFormS
+                            ? ($application_details->previously_issue_date ?? $application_details->first_issue_date ?? null)
+                            : ($application_details->wcc_issue_date ?? $application_details->certificate_issue_date ?? null);
+                        $prevFrom = $isFormS
+                            ? ($application_details->previously_valid_from ?? $application_details->scc_from_date ?? null)
+                            : ($application_details->wcc_from ?? $application_details->certificate_valid_from ?? null);
+                        $prevTo = $isFormS
+                            ? ($application_details->previously_valid_to ?? $application_details->scc_to_date ?? null)
+                            : ($application_details->wcc_to ?? $application_details->certificate_valid_to ?? $application_details->certificate_date ?? null);
+                    @endphp
                     <div class="dash-prv-grid-4">
                         <div class="dash-prv-field mb-0">
                             <div class="dash-prv-label">Certificate Number</div>
-                            <div class="dash-prv-value">{{ $application_details->previously_number }}</div>
+                            <div class="dash-prv-value">{{ $dashTxt($prevCertNo) !== '' ? $prevCertNo : '—' }}</div>
                         </div>
                         <div class="dash-prv-field mb-0">
                             <div class="dash-prv-label">Date of First Issue</div>
-                            <div class="dash-prv-value">{{ $fmtDate($application_details->previously_issue_date ?? null) !== '' ? $fmtDate($application_details->previously_issue_date) : '—' }}</div>
+                            <div class="dash-prv-value">{{ $fmtDate($prevIssue) !== '' ? $fmtDate($prevIssue) : '—' }}</div>
                         </div>
                         <div class="dash-prv-field mb-0">
                             <div class="dash-prv-label">From date</div>
-                            <div class="dash-prv-value">{{ $fmtDate($application_details->previously_valid_from ?? null) !== '' ? $fmtDate($application_details->previously_valid_from) : '—' }}</div>
+                            <div class="dash-prv-value">{{ $fmtDate($prevFrom) !== '' ? $fmtDate($prevFrom) : '—' }}</div>
                         </div>
                         <div class="dash-prv-field mb-0">
                             <div class="dash-prv-label">To date</div>
-                            <div class="dash-prv-value">{{ $fmtDate($application_details->previously_valid_to ?? $application_details->previously_date ?? null) !== '' ? $fmtDate($application_details->previously_valid_to ?? $application_details->previously_date) : '—' }}</div>
+                            <div class="dash-prv-value">{{ $fmtDate($prevTo) !== '' ? $fmtDate($prevTo) : '—' }}</div>
                         </div>
                     </div>
                 @endif
@@ -489,7 +617,7 @@
                         <div class="dash-prv-grid-4">
                             <div class="dash-prv-field mb-0">
                                 <div class="dash-prv-label">Certificate Number</div>
-                                <div class="dash-prv-value">{{ $application_details->competency_certificate_no ?? $application_details->certificate_no }}</div>
+                                <div class="dash-prv-value">{{ $dashTxt($application_details->wcc_no ?? '') !== '' ? $application_details->wcc_no : '—' }}</div>
                             </div>
                             <div class="dash-prv-field mb-0">
                                 <div class="dash-prv-label">Date of First Issue</div>

@@ -40,6 +40,43 @@
         max-width: 100%;
         height: auto;
     }
+    .status-switch {
+        background-color: #645e5e !important;
+        border-color: #645e5e !important;
+        cursor: pointer;
+    }
+    .status-switch:checked {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+    }
+    .checklist_chk .form-check-input:checked {
+        background-color: #4361ee !important;
+        border-color: #4361ee !important;
+    }
+    .fp-alter-summary {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+    .fp-alter-summary strong { color: #b45309; }
+    .fp-alter-summary ul { margin: 0.35rem 0 0; padding-left: 1.15rem; }
+    td.fp-alter-highlight { background: #fffbeb; box-shadow: inset 3px 0 0 #f59e0b; }
+    .fp-alter-badge {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.1rem 0.45rem;
+        border-radius: 4px;
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #f59e0b;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        vertical-align: middle;
+    }
+    tr.fp-alter-row > td { background: #fffbeb !important; box-shadow: inset 3px 0 0 #f59e0b; }
 </style>
 <div id="content" class="main-content">
     <div class="layout-px-spacing">
@@ -85,14 +122,19 @@
                         </div>
                         <div class="widget-content widget-content-area">
                             <div class="simple-tab">
+                                @php
+                                    $fpHidePaymentTab = in_array(strtoupper(trim((string) ($applicant->appl_type ?? ''))), ['D', 'A'], true);
+                                @endphp
                                 <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Personal Details</button>
                                     </li>
 
+                                    @unless($fpHidePaymentTab)
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link " id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Payment Status</button>
                                     </li>
+                                    @endunless
 
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Check List</button>
@@ -101,6 +143,38 @@
 
                                 <div class="tab-content" id="myTabContent">
                                     <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+                                        @php
+                                            $fpAlter = $alterationPreview ?? [];
+                                            $fpIsAlter = ! empty($fpAlter['is_alteration']);
+                                            $fpNameAltered = $fpIsAlter && ! empty($fpAlter['name_altered']);
+                                            $fpAddressAltered = $fpIsAlter && ! empty($fpAlter['address_altered']);
+                                            $fpHasAlteredWork = $fpIsAlter && ! empty($fpAlter['has_altered_work']);
+                                            $fpHasProofs = $fpIsAlter && ! empty($fpAlter['has_proofs']);
+                                            $fpPrevName = trim((string) ($fpAlter['previous_name'] ?? ''));
+                                            $fpPrevAddress = trim((string) ($fpAlter['previous_address'] ?? ''));
+                                            $fpNameProofUrl = $fpAlter['name_proof_url'] ?? null;
+                                            $fpAddressProofUrl = $fpAlter['address_proof_url'] ?? null;
+                                            $fpShowAlterSummary = $fpIsAlter && ($fpNameAltered || $fpAddressAltered || $fpHasAlteredWork || $fpHasProofs);
+                                        @endphp
+                                        @if ($fpShowAlterSummary)
+                                            <div class="fp-alter-summary mt-3 mb-2">
+                                                <strong>Altered in this request</strong>
+                                                <ul class="mb-0">
+                                                    @if ($fpNameAltered)
+                                                        <li>Applicant name <span class="fp-alter-badge">Altered</span></li>
+                                                    @endif
+                                                    @if ($fpAddressAltered)
+                                                        <li>Address <span class="fp-alter-badge">Altered</span></li>
+                                                    @endif
+                                                    @if ($fpHasAlteredWork)
+                                                        <li>Power station experience — rows marked <span class="fp-alter-badge">Altered</span> below</li>
+                                                    @endif
+                                                    @if ($fpHasProofs)
+                                                        <li>Supporting documents uploaded for the name or address change</li>
+                                                    @endif
+                                                </ul>
+                                            </div>
+                                        @endif
                                         <div class="row mt-3 ">
                                             <div class="row">
                                                 <!-- Left Side: Applicant Details -->
@@ -114,7 +188,22 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">Applicant Name:</td>
-                                                                    <td>{{ $applicant->applicant_name }}</td>
+                                                                    <td class="{{ $fpNameAltered ? 'fp-alter-highlight' : '' }}">
+                                                                        {{ $applicant->applicant_name }}
+                                                                        @if ($fpNameAltered)
+                                                                            <span class="fp-alter-badge ms-1">Alter</span>
+                                                                            @if ($fpPrevName !== '')
+                                                                                <div class="text-muted small mt-1">Previously: {{ $fpPrevName }}</div>
+                                                                            @endif
+                                                                        @endif
+                                                                        @if ($fpNameProofUrl)
+                                                                            <div class="mt-1">
+                                                                                <a href="{{ $fpNameProofUrl }}" target="_blank" rel="noopener" class="text-primary small">
+                                                                                    <i class="fa fa-file-pdf-o text-danger"></i> View name proof
+                                                                                </a>
+                                                                            </div>
+                                                                        @endif
+                                                                    </td>
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">Father's Name:</td>
@@ -122,13 +211,26 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold align-top">Address:</td>
-                                                                    <td style="white-space: normal; word-break: break-word;">
+                                                                    <td class="{{ $fpAddressAltered ? 'fp-alter-highlight' : '' }}" style="white-space: normal; word-break: break-word;">
                                                                         {{ $applicant->applicants_address }}
+                                                                        @if ($fpAddressAltered)
+                                                                            <span class="fp-alter-badge ms-1">Alter</span>
+                                                                            @if ($fpPrevAddress !== '')
+                                                                                <div class="text-muted small mt-1">Previously: {{ $fpPrevAddress }}</div>
+                                                                            @endif
+                                                                        @endif
+                                                                        @if ($fpAddressProofUrl)
+                                                                            <div class="mt-1">
+                                                                                <a href="{{ $fpAddressProofUrl }}" target="_blank" rel="noopener" class="text-primary small">
+                                                                                    <i class="fa fa-file-pdf-o text-danger"></i> View address proof
+                                                                                </a>
+                                                                            </div>
+                                                                        @endif
                                                                     </td>
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">D.O.B & Age:</td>
-                                                                    <td>{{ $applicant->d_o_b }} ({{ $applicant->age }} years old)</td>
+                                                                    <td>{{ format_date($applicant->d_o_b) }} ({{ $applicant->age }} years old)</td>
                                                                 </tr>
                                                             </tbody>
                                                         </table>
@@ -273,7 +375,7 @@
                                                             <th>Institute Name & Address</th>
                                                             <th>From Date</th>
                                                             <th>To Date</th>
-                                                            <th>Duration(Years)</th>
+                                                            <th>Year / Month / Day</th>
                                                             <th>Document Upload</th>
                                                         </tr>
                                                     </thead>
@@ -283,7 +385,7 @@
                                                             <td>{{ $institutes->institute_name_address }}</td>
                                                             <td>{{ format_date( $institutes->from_date) }} </td>
                                                             <td>{{ format_date($institutes->to_date) }}</td>
-                                                            <td>{{ $institutes->duration }} years</td>
+                                                            <td>{{ format_institute_duration($institutes->duration ?? '', $institutes->from_date ?? null, $institutes->to_date ?? null) }}</td>
                                                             <td style="text-align:center;">
 
                                                                 @if($institutes->upload_doc)
@@ -320,8 +422,13 @@
                                                     </thead>
                                                     <tbody>
                                                         @forelse ($workExperience as $exp)
-                                                        <tr>
-                                                            <td>{{ $exp->company_name ?? $exp->emp_cate ?? '—' }}</td>
+                                                        <tr class="{{ !empty($exp->is_alteration_new) ? 'fp-alter-row' : '' }}">
+                                                            <td>
+                                                                {{ $exp->company_name ?? $exp->emp_cate ?? '—' }}
+                                                                @if (!empty($exp->is_alteration_new))
+                                                                    <span class="fp-alter-badge ms-1">Altered</span>
+                                                                @endif
+                                                            </td>
                                                             <td>{{ $exp->designation ?? '—' }}</td>
                                                             <td>{{ format_total_exp_years($exp->experience ?? $exp->total_exp) ?? '—' }}</td>
                                                             <td style="text-align:center;">
@@ -352,36 +459,39 @@
                                                 </div>
                                             </div>
 
+                                            @php
+                                                $prevNumber = trim((string) ($applicant->previously_number ?? ''));
+                                                if ($prevNumber === '0') {
+                                                    $prevNumber = '';
+                                                }
+                                                $prevDate = $applicant->previously_date ?? $applicant->first_issue_date ?? $applicant->previously_valid_to ?? $applicant->scc_to_date ?? null;
+                                                $hasPreviousApplication = $prevNumber !== '' || !empty($prevDate);
+                                            @endphp
                                             <div class="row">
                                                 <div class="col-lg-8 col-6">
                                                     <h6 class="mt-3 mb-2 fw-bold pb-1">
                                                         Have you made any previous application? If so, State reference No. and date
                                                     </h6>
                                                 </div>
-                                                <div class="col-lg-4 col-6">
-                                                    <p class="mt-2 mb-1 mt-lg-2">
-                                                        @php
-                                                        if (empty($applicant->previously_number) && empty($applicant->previously_date)) {
-                                                            $prev_val = 'No';
-                                                        } else {
-                                                            $prev_val = 'Yes, ' . ($applicant->previously_number ?? '') . ' , ' .
-                                                                (!empty($applicant->previously_date) ? format_date($applicant->previously_date) : '');
-                                                        }
-                                                    @endphp
-                                                    </p>
+                                                <div class="col-lg-4 col-6 text-end">
+                                                    @if ($hasPreviousApplication)
+                                                        <span class="badge badge-success mt-3">Yes</span>
+                                                    @else
+                                                        <span class="badge badge-secondary mt-3">No</span>
+                                                    @endif
                                                 </div>
-                                                @if (!empty($prev_val))
+                                                @if ($hasPreviousApplication)
                                                     <div class="col-12">
                                                         <div class="row justify-content-center">
                                                             <div class="col-6 col-md-5 col-lg-4 text-center">
                                                                 <p class="mb-1">
-                                                                    <strong>Application Number :</strong> {{ !empty($applicant->previously_number) ? $applicant->previously_number : 'No' }}
+                                                                    <strong>Application Number :</strong> {{ $prevNumber !== '' ? $prevNumber : '—' }}
                                                                 </p>
                                                             </div>
-                                        
+
                                                             <div class="col-6 col-md-5 col-lg-4 text-center">
                                                                 <p class="mb-1">
-                                                                    <strong>Date :</strong> {{ format_date($applicant->previously_date) ?: '—' }}
+                                                                    <strong>Date :</strong> {{ !empty($prevDate) ? (format_date($prevDate) ?: '—') : '—' }}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -389,10 +499,12 @@
                                                 @endif
                                             </div>
                                             @php
-                                                $decryptedaadhar = $applicant->aadhaar ? safeDecrypt($applicant->aadhaar) : '';
-                                                $masked          = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : ($applicant->aadhaar ? 'Invalid Aadhaar' : '—');
-                                                $decryptedPanRow = $applicant->pancard ? safeDecrypt($applicant->pancard) : '';
-                                                $maskedPan       = strlen((string) $decryptedPanRow) === 10 ? str_repeat('X', 6) . substr($decryptedPanRow, -4) : ($applicant->pancard ? 'Invalid PAN' : '—');
+                                                $aadhaarRaw = $applicant->aadhaar ?? $applicant->aadhar ?? null;
+                                                $panRaw = $applicant->pancard ?? $applicant->pan_no ?? $applicant->pan ?? null;
+                                                $decryptedaadhar = $aadhaarRaw ? safeDecrypt($aadhaarRaw) : '';
+                                                $masked          = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : ($aadhaarRaw ? 'Invalid Aadhaar' : '—');
+                                                $decryptedPanRow = $panRaw ? safeDecrypt($panRaw) : '';
+                                                $maskedPan       = strlen((string) $decryptedPanRow) === 10 ? str_repeat('X', 6) . substr($decryptedPanRow, -4) : ($panRaw ? 'Invalid PAN' : '—');
                                                 $panDocFile      = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
                                             @endphp
 
@@ -409,6 +521,7 @@
                                                                     {{ $masked }}
                                                                     (<a href="{{ proof_document_url($applicant->aadhaar_doc, 'aadhaar') }}"
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open Aadhaar document">
                                                                         <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
@@ -430,6 +543,7 @@
                                                                     {{ $maskedPan }}
                                                                     (<a href="{{ proof_document_url($panDocFile, 'pan') }}"
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         class="text-primary applicant-inline-doc-link"
                                                                         title="Open PAN document">
                                                                         <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
@@ -473,63 +587,63 @@
                                                 </div>
                                             </div> --}}
                                             <div class="col-12" id="specific-class">
-                                                <div class="row">
-                                                @php
-                                                    $checkboxes = [
-                                                        'signature_form' => 'Applicant Signature in Application Form',
-                                                        'sign_attached' => 'Applicant Sign attached by Officer',
-                                                        'edu_certificate' => 'Educational Qualification Certificate',
-                                                        'dob_proof' => 'Proof of D.O.B',
-                                                        'photograph' => 'Photograph',
-                                                        'specimen_signature' => 'Specimen Signature',
-                                                        'fees_details' => 'Fees Details',
-                                                        'age_details' => 'Age 18',
-                                                        'experience_details' => 'Two Years Experience after Degree/Diploma',
-                                                        'all_doc_verification' => 'All Documents Filled by Applicant',
-                                                        'safety_certificate' => 'Safety Certificate/ List of Equipment',
-                                                        'contract_copy' => 'Contract Copy of HT Works',
-                                                        'ht_experience_cert' => 'HT Experience Certificate in Specimen Format/ Transformer Details',
-                                                        'experience_in_tamilnadu' => 'Experience in TamilNadu',
-                                                        'intimation_letter' => 'Intimation Letter',
-                                                        'complete_experience_details' => 'Complete Experience Details',
-                                                        'required_qualification_certificate' => 'Required Qualification Certificate',
-                                                    ];
-                                                    $checkHalf = (int) ceil(count($checkboxes) / 2);
-                                                    $checkboxesCol1 = array_slice($checkboxes, 0, $checkHalf, true);
-                                                    $checkboxesCol2 = array_slice($checkboxes, $checkHalf, null, true);
-                                                @endphp
-
-                                                <div class="col-md-6">
-                                                    @foreach($checkboxesCol1 as $id => $label)
-                                                        <div class="form-check">
-                                                            <input type="checkbox"
-                                                                id="{{ $id }}"
-                                                                name="{{ $id }}"
-                                                                class="form-check-input"
-                                                                @if($isVerified) checked disabled @endif>
-                                                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                                <div class="col-md-6">
-                                                    @foreach($checkboxesCol2 as $id => $label)
-                                                        <div class="form-check">
-                                                            <input type="checkbox"
-                                                                id="{{ $id }}"
-                                                                name="{{ $id }}"
-                                                                class="form-check-input"
-                                                                @if($isVerified) checked disabled @endif>
-                                                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped align-middle">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Checklist Name</th>
+                                                                <th width="10%" class="text-center">Checked</th>
+                                                                <th width="25%" class="text-center">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        @forelse(($checklist ?? []) as $item)
+                                                        <tr>
+                                                            <td>
+                                                                <label for="checklist_{{ $item->id }}">{{ $item->checklist_name }}</label>
+                                                                <input type="hidden" name="check_id[{{ $item->id }}]" value="{{ $item->id }}">
+                                                            </td>
+                                                            <td class="text-center checklist_chk">
+                                                                <input type="checkbox"
+                                                                    class="form-check-input"
+                                                                    id="checklist_{{ $item->id }}"
+                                                                    name="checklists[{{ $item->id }}]"
+                                                                    value="1"
+                                                                    {{ ($checkedList_1[$item->id] ?? 0) == 1 ? 'checked' : '' }}
+                                                                    @if($isVerified) disabled @endif>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <span id="statusText_{{ $item->id }}"
+                                                                        class="badge {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'bg-success' : 'bg-danger' }}">
+                                                                        {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'Correct' : 'Incorrect' }}
+                                                                    </span>
+                                                                    <div class="form-check form-switch mb-0">
+                                                                        <input class="form-check-input status-switch"
+                                                                            type="checkbox"
+                                                                            id="status_{{ $item->id }}"
+                                                                            name="status[{{ $item->id }}]"
+                                                                            value="1"
+                                                                            {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'checked' : '' }}
+                                                                            @if($isVerified) disabled @endif>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        @empty
+                                                        <tr>
+                                                            <td colspan="3" class="text-center">No Checklist Available</td>
+                                                        </tr>
+                                                        @endforelse
+                                                        </tbody>
+                                                    </table>
                                                 </div>
                                             </div>
                                         </div>
 
                                     </div>
                                     <?php //var_dump($workflows);die; ?>
+                                    @unless($fpHidePaymentTab)
                                     <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
                                         <div class="row text-center fw-bold border-bottom pb-2 mb-3 mt-3">
                                             <div class="col-lg-6 text-primary">
@@ -576,15 +690,18 @@
                                                         <p><strong> Payment Status</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p class="badge badge-success">{{ strtoupper($applicant->payment_status) }}</p>
+                                                        @if(in_array(strtoupper(trim((string) ($applicant->payment_status ?? ''))), ['Y', 'SUCCESS', 'PAID', 'PAYMENT'], true))
+                                                        <p class="badge badge-success">Success</p>
+                                                        @endif
                                                     </div>
-
+                                                    @if(!in_array(strtoupper($applicant->appl_type), ['D','A']))
                                                     <div class="col-lg-6">
                                                         <p><strong> Transaction Id</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p>{{ $applicant->transaction_id }}</p>
                                                     </div>
+                                                    @endif
                                                     <div class="col-lg-6">
                                                         <p><strong>Amount</strong></p>
                                                     </div>
@@ -607,6 +724,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @endunless
                                 </div>
                             </div>
                         </div>
@@ -676,12 +794,17 @@
                                     'Secretary'           => 'President',
                                     'President'           => null, // last step
                                 ];
+                                $isWaitingOnApplicant = strtoupper(trim((string) ($applicant->app_status ?? $applicant->status ?? ''))) === 'QU';
 
                                 @endphp
 
-                                @if ($role == 'Supervisor')
+                                @if ($isWaitingOnApplicant)
+                                    <div class="alert alert-warning mb-0">
+                                        This application was returned to the applicant. Forward is not available until the applicant resubmits.
+                                    </div>
+                                @elseif ($role == 'Supervisor')
                                     {{-- Forward to Assistant Secretary --}}
-                                    <button class="btn btn-success" id="forwardbtn" {{ $isVerified == 'Yes'? '' : 'disabled' }} >
+                                    <button class="btn btn-success" id="forwardbtn">
                                         Forward to {{ $workflow[$role] }}
                                     </button>
                                     <button class="btn btn-warning">On Hold</button>
@@ -695,19 +818,14 @@
 
                                 @elseif ($role == 'Secretary')
 
-                                    @if ($applicant->form_name !== 'S')
-                                        <button class="btn btn-success" id="confirmApprovalBtn">
-                                            Submit / Approve
-                                        </button>
-                                    @else
-                                        <button class="btn btn-success" id="confirmForwardPres">
-                                            Forward to {{ $workflow[$role] }}
-                                        </button>
-                                    @endif
-
-                                    <button id="confirmReturnBtn" class="btn btn-warning">
-                                        Return to Supervisor
+                                    <button class="btn btn-success" id="confirmForwardPres">
+                                        Forward to {{ $workflow[$role] }}
                                     </button>
+                                    
+
+                                    {{-- <button id="confirmReturnBtn" class="btn btn-warning">
+                                        Return to Supervisor
+                                    </button> --}}
                                     <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
                                         Return to Applicant
                                     </button>
@@ -717,15 +835,15 @@
                                     <button class="btn btn-success" id="confirmApprovalBtn">
                                         Submit / Approve
                                     </button>
-                                    <button id="confirmReturnBtn" class="btn btn-warning">
+                                    {{-- <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Supervisor
-                                    </button>
-                                    <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
+                                    </button> --}}
+                                    {{-- <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
                                         Return to Applicant
-                                    </button>
-                                    <!-- <button id="returntoSecretary" class="btn btn-warning">
+                                    </button> --}}
+                                    {{-- <button id="returntoSecretary" class="btn btn-warning">
                                         Return to Secretary
-                                    </button> -->
+                                    </button> --}}
                                     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectionModal">Reject</button>
                                 @endif
 
@@ -964,8 +1082,12 @@
                         <label class="form-check-label" for="query_aadhaar">Aadhaar document is missing</label>
                     </div>
                     <div class="form-check mb-2">
-                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_other" value="Other">
-                        <label class="form-check-label" for="query_other">Other</label>
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_work_exp" value="Work Experience">
+                        <label class="form-check-label" for="query_work_exp">Work Experience</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_personal" value="Personal Details">
+                        <label class="form-check-label" for="query_personal">Personal Details</label>
                     </div>
                 </div>
                 <div class="form-group mt-3">
@@ -1174,7 +1296,34 @@
         var confirmForward = $("#confirmForward");
         var confirmVerification = $('#confirmVerification');
         // var individualCheckboxes = $('.form-check-input:not(#check_all):not(#reset_all)');
-        var individualCheckboxes = $('#specific-class .form-check-input:not(#check_all, #reset_all)');
+        var individualCheckboxes = $('#specific-class input[name^="checklists"]');
+
+        function formPChecklistPayload() {
+            var checklists = {};
+            var status = {};
+            var check_id = {};
+            $('#specific-class tbody tr').each(function () {
+                var checkbox = $(this).find('input[name^="checklists"]');
+                if (!checkbox.length) {
+                    return;
+                }
+                var id = checkbox.attr('name').match(/\d+/)[0];
+                checklists[id] = checkbox.is(':checked') ? 1 : 0;
+                status[id] = $(this).find('input[name^="status"]').is(':checked') ? 1 : 0;
+                check_id[id] = $(this).find('input[name^="check_id"]').val();
+            });
+            return { checklists: checklists, status: status, check_id: check_id };
+        }
+
+        $('.status-switch').on('change', function () {
+            var id = this.id.replace('status_', '');
+            var badge = $('#statusText_' + id);
+            if ($(this).is(':checked')) {
+                badge.removeClass('bg-danger').addClass('bg-success').text('Correct');
+            } else {
+                badge.removeClass('bg-success').addClass('bg-danger').text('Incorrect');
+            }
+        });
 
         //forwardbtn
         var approveButton = $('#confirmApprovalBtn');
@@ -1202,35 +1351,19 @@
         checkAllBox.change(function() {
             if ($(this).prop('checked')) {
                 individualCheckboxes.prop('checked', true);
-                resetAllBox.prop('disabled', false).prop('checked', false); // Enable Reset All
-                forwardbtn.prop('disabled', false);
+                resetAllBox.prop('disabled', false).prop('checked', false);
             } else {
                 individualCheckboxes.prop('checked', false);
-                resetAllBox.prop('disabled', true).prop('checked', false); // Disable Reset All
-                forwardbtn.prop('disabled', true);
+                resetAllBox.prop('disabled', true).prop('checked', false);
             }
         });
 
-        // "Reset All" functionality
         resetAllBox.change(function() {
             if ($(this).prop('checked')) {
                 individualCheckboxes.prop('checked', false);
-                checkAllBox.prop('checked', false); // Uncheck Check All
-                checkAllBox.prop('disabled', false); // Enable Check All
-                resetAllBox.prop('disabled', true); // Disable Reset All after use
-                forwardbtn.prop('disabled', true);
-            }
-        });
-
-        // If any individual checkbox is manually unchecked, uncheck "Check All"
-        individualCheckboxes.change(function() {
-            // console.log($('#specific-class input[type="checkbox"].form-check-input:checked').length);
-            // console.log(individualCheckboxes.length);
-            // return false;
-            if ($('#specific-class input[type="checkbox"].form-check-input:checked').length === individualCheckboxes.length) {
-                forwardbtn.prop('disabled', false);
-            } else {
-                forwardbtn.prop('disabled', true);
+                checkAllBox.prop('checked', false);
+                checkAllBox.prop('disabled', false);
+                resetAllBox.prop('disabled', true);
             }
         });
         
@@ -1279,7 +1412,7 @@
                                     title: "Success",
                                     html: `
                                         <p>${response.message}</p>
-                                        <p><b>License Number:</b> ${response.license_number}</p>
+                                        <p><b>Certificate No:</b> ${response.license_number}</p>
                                     `,
                                     confirmButtonText: "OK",
                                     allowOutsideClick: false
@@ -1316,6 +1449,7 @@
             var remarks         = $("#remarks").val().trim();
             var queryswitch     = $("#Queryswitch").prop("checked");
             var checkboxStatus  = "Yes";
+            var checklistPayload = formPChecklistPayload();
 
             var queryType = null;
             var query_status = "No";
@@ -1355,7 +1489,10 @@
                             forwarded_to: forwardedTo,
                             role_id: role_id,
                             remarks: remarks || "No remarks provided",
-                            checkboxes: checkboxStatus, // Only "Yes" or "No"
+                            checkboxes: checkboxStatus,
+                            check_id: checklistPayload.check_id,
+                            checklists: checklistPayload.checklists,
+                            status: checklistPayload.status,
                             queryswitch: query_status, // Only "Yes" or "No"
                             "queryType[]": queryType 
                         },
@@ -1419,6 +1556,7 @@
                     var remarks = $("#remarks").val().trim();
 
                     var checkboxStatus = "Yes";
+                    var checklistPayload = formPChecklistPayload();
                     let queryswitch = $("#Queryswitch").prop("checked");
                     queryType = $("#queryType").val();
                     let errorBox = $("#query_error");
@@ -1447,6 +1585,9 @@
                             role_id: role_id,
                             remarks: remarks || "No remarks provided",
                             checkboxes: checkboxStatus,
+                            check_id: checklistPayload.check_id,
+                            checklists: checklistPayload.checklists,
+                            status: checklistPayload.status,
                             queryswitch: queryswitch ? "Yes" : "No",
                             "queryType[]": queryType
                         },
@@ -1492,6 +1633,7 @@
 
 
             var checkboxStatus = "Yes";
+            var checklistPayload = formPChecklistPayload();
             
             let queryswitch = $("#Queryswitch").prop("checked");
             queryType = $("#queryType").val();
@@ -1519,6 +1661,9 @@
                             forwarded_to    : forwardedTo,
                             remarks         : remarks || "No remarks provided",
                             checkboxes      : checkboxStatus,
+                            check_id        : checklistPayload.check_id,
+                            checklists      : checklistPayload.checklists,
+                            status          : checklistPayload.status,
                             queryswitch     : queryswitch ? "Yes" : "No",
                             "queryType[]": queryType 
                         },

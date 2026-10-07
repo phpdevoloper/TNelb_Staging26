@@ -1321,6 +1321,18 @@ use Illuminate\Support\Facades\Auth;
             text-decoration: underline;
         }
 
+        .form_alt_css .form-check{
+            padding: 10px;
+        }
+
+        .form_alt_css .form-check input{
+            height: 15px;
+            width: 15px;
+        }
+
+        .form_alt_css .form-check-label{
+            font-size: 15px;
+        }
 
         /* --------digi CL---------- */
 
@@ -1989,103 +2001,98 @@ use Illuminate\Support\Facades\Auth;
                                     <div class="col-lg-8">
 
 
+                                    <select class="form-control" id="alteration_cl_application_id" name="alteration_cl_application_id">
+                                        <option value="0">---Select Licence---</option>
 
-                                        <select class="form-control" id="cert_name" name="cert_name">
-                                            <option value="0">---Select Type---</option>
-                                            <option value="EA">Electrical Contractor's Licence-Grade 'A' [Form A]</option>
-                                            <option value="ESA">Electrical Contractors Licence Grade Super 'A' [Form SA]</option>
-                                            <option value="ESB">Electrical Contractor's Licence-Grade `SB' [Form SB]</option>
-                                            <option value="EB">Electrical Contractor License 'EB' [Form B]</option>
+                                      @if(!empty($licenseNumbers))
 
-                                        </select>
+                                     @foreach ($licenseNumbers as $license)
+
+                                        @php
+                                            $appl_type = trim($license->appl_type);
+
+                                            if ($appl_type == 'D') {
+                                                $appl_type_name = 'Digitisation';
+                                            } elseif ($appl_type == 'R') {
+                                                $appl_type_name = 'Renewal';
+                                            } elseif ($appl_type == 'N') {
+                                                $appl_type_name = 'New';
+                                            } else {
+                                                $appl_type_name = 'Alteration';
+                                            }
+                                        @endphp
+
+                                  <option
+                                            value="{{ $license->application_id }}"
+                                            data-license-number="{{ $license->license_number }}"
+                                            data-appl-type="{{ $license->appl_type }}"
+                                            data-form-name="{{ $license->form_name }}"
+                                            data-valid-from="{{ $license->valid_from }}"
+                                            data-valid-to="{{ $license->valid_to }}"
+                                        >
+                                            {{ $license->license_number }}
+                                            | ({{ $appl_type_name }})
+                                            | Issue {{ $license->dateof_issue }}
+                                            | From {{ $license->valid_from }}
+                                            | To {{ $license->valid_to }}
+                                        </option>
+
+                                    @endforeach
+                                    @endif
+                                    </select>
 
 
-                                        <span class="error text-danger" id="cert_name_error"></span>
+                                        <span class="error text-danger" id="licence_name_error"></span>
 
                                     </div>
 
                                 </div>
 
                             </div>
-                            <div class="form-group">
+                            {{-- <div class="form-group form_alt_css">
                                 <div class="row mb-2">
                                     <div class="col-lg-12">
                                         <label style="float: left;">Choose the Fields to Alter <span class="fill">*</span></label>
 
                                     </div>
-                                    <div class="col-lg-6">
-
-
-                                        <div class="form-check ">
-                                            <input type="checkbox" id="basic_details" name="return_reasons[]" value="basic_details" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="basic_details"> 1 &amp; 2) Applicant Basic Detail (Name &amp; Address)</label>
-                                        </div>
-
-                                    </div>
 
                                     <div class="col-lg-6">
-
-
                                         <div class="form-check">
-                                            <input type="checkbox" id="ownership_details" name="return_reasons[]" value="ownership_details" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="ownership_details">3) Applicant Ownership Details </label>
+                                            <input type="checkbox" id="qc-staff-table" name="return_reasons[]" value="qc-staff-table" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="qc-staff-table">1) QC/QSC Staff Details</label>
                                         </div>
 
                                     </div>
 
-                                    <div class="col-lg-6">
-
-
-                                        <div class="form-check">
-                                            <input type="checkbox" id="authorized_sign" name="return_reasons[]" value="authorized_sign" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="authorized_sign">4) Name and details of authorised signatory </label>
-                                        </div>
-
-                                    </div>
-
-                                    <div class="col-lg-6">
-
-                                        <div class="form-check">
-                                            <input type="checkbox" id="previous_licence" name="return_reasons[]" value="previous_licence" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="previous_licence">5) Previous Contractor's Licence Details </label>
-                                        </div>
-
-                                    </div>
 
                                     <div class="col-lg-6">
                                         <div class="form-check">
                                             <input type="checkbox" id="staff_details" name="return_reasons[]" value="staff_details" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="staff_details">6) Staff Details</label>
+                                            <label class="form-check-label" for="staff_details">2) Other Staff Details</label>
                                         </div>
 
                                     </div>
                                     <div class="col-lg-6">
                                         <div class="form-check">
                                             <input type="checkbox" id="bank_solvency" name="return_reasons[]" value="bank_solvency" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="bank_solvency">7) Bank Solvency </label>
+                                            <label class="form-check-label" for="bank_solvency">3) Bank Solvency </label>
                                         </div>
 
                                     </div>
 
                                     <div class="col-lg-6">
                                         <div class="form-check">
-                                            <input type="checkbox" id="atachment_points" name="return_reasons[]" value="atachment_points" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="bank_solvency">8 to 11) Attachments Points </label>
+                                            <input type="checkbox" id="authorized_signatory" name="return_reasons[]" value="authorized_signatory" class="form-check-input return-checkbox">
+                                            <label class="form-check-label" for="authorized_signatory">4) Authorized Signatory </label>
                                         </div>
 
                                     </div>
-                                    <div class="col-lg-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" id="address_proof" name="return_reasons[]" value="address_proof" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="address_proof">12) Address Proof </label>
-                                        </div>
 
-                                    </div>
 
                                     <div class="col-lg-6">
                                         <div class="form-check">
                                             <input type="checkbox" id="equipments_details" name="return_reasons[]" value="equipments_details" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="equipments_details">13) Equipments Details </label>
+                                            <label class="form-check-label" for="equipments_details">5) Equipments Details </label>
                                         </div>
 
                                     </div>
@@ -2095,7 +2102,7 @@ use Illuminate\Support\Facades\Auth;
                                 </div>
                                 <span class="error text-danger" id="alter_fields_error"></span>
 
-                            </div>
+                            </div> --}}
 
 
 
@@ -2149,6 +2156,9 @@ use Illuminate\Support\Facades\Auth;
                 </div>
 
                 <div class="modal-body">
+                    <p id="board-member-fee-exempt-notice" class="d-none text-center fw-bold mb-3" style="color:#198754;font-size:1.05rem;">
+                        Application fee-exempted for this application
+                    </p>
                     <div class="instructions-card">
                         <div class="card-header-strip">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2317,11 +2327,6 @@ use Illuminate\Support\Facades\Auth;
     </div>
 
     <!-- --------------------------------------------- -->
-
-
-
-
-
     <!-- Payment Success Modal -->
     <div class="modal fade" id="paymentSuccessModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -2331,6 +2336,9 @@ use Illuminate\Support\Facades\Auth;
                     <h4 class="text-success w-100 text-center m-0" id="ps_success_modal_title">
                         Payment Successful!
                     </h4>
+                    <p id="ps_fee_exempt_notice" class="d-none text-center fw-bold mb-0 mt-2" style="color:#198754;">
+                        Application fee-exempted for this application
+                    </p>
                 </div>
 
                 <div class="modal-body">
@@ -2346,6 +2354,9 @@ use Illuminate\Support\Facades\Auth;
                                 <div class="value" id="ps_applicantName_competency"></div>
 
                                 <div class="label">Type of Application:</div>
+                                <div class="value" id="ps_applicationType_competency"></div>
+
+                                <div class="label">Type of certificate:</div>
                                 <div class="value" id="ps_licenceName_competency"></div>
 
                                 <div class="label ps-payment-only">Transaction ID:</div>

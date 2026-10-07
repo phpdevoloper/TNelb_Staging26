@@ -2,14 +2,24 @@ async function showInstructPopup(licence_code,login_id) {
 
     try {
 
-        let total_fees, lateFee, lateMonths;
+        let total_fees, lateFee, lateMonths, actual_fees;
 
         const appl_type = $('#appl_type').val();
+        const applTypeUpper = String(appl_type || '').trim().toUpperCase();
+        const noPaymentApplType = applTypeUpper === 'D' || applTypeUpper === 'A';
         const issued_licence = $('#license_number').val();
 
-        const data = await getPaymentsService(licence_code, issued_licence, appl_type);
+        let data = null;
+        if (!noPaymentApplType) {
+            data = await getPaymentsService(licence_code, issued_licence, appl_type);
+        }
 
-        if (data) {
+        if (noPaymentApplType) {
+            actual_fees = 0;
+            total_fees = 0;
+            lateFee = 0;
+            lateMonths = 0;
+        } else if (data) {
             if (data.lateFees < 0) {
                 actual_fees = data.basic_fees;
                 total_fees = data.total_fees;
@@ -23,20 +33,25 @@ async function showInstructPopup(licence_code,login_id) {
         }
 
             let formData = new FormData($('#competency_form_p')[0]);
+            formData.set('form_action', noPaymentApplType ? 'submit' : 'draft');
             formData.delete('month_passing[]');
             $('#competency_form_p select[name="month_of_passing[]"]').each(function () {
                 formData.append('month_passing[]', $(this).val() || '');
             });
-            let applicationId = $('#application_id').val();
+            let applicationId = ($('#competency_form_p input[name="application_id"]').val()
+                || $('#application_id').val()
+                || '').trim();
+            const isRenewal = applTypeUpper === 'R'
+                || (typeof window.isRenewFormP !== 'undefined' && window.isRenewFormP);
             let formUrl;
 
-            if (applicationId) {
-                // if (appl_type === 'R') {
-                //     formUrl = "{{ route('form.draft_renewal_submit', ['appl_id' => '__APPL_ID__']) }}"
-                //         .replace('__APPL_ID__', applicationId);
-                // } else {
+            if (isRenewal) {
+                formData.set('appl_type', 'R');
+                const parentId = ($('#old_application').val() || applicationId || '').trim();
+                const renewId = applicationId || parentId;
+                formUrl = BASE_URL + "/form_p/draft_renewal_submit/" + encodeURIComponent(renewId);
+            } else if (applicationId) {
                 formUrl = BASE_URL + "/form_p/update";
-                    // }
             } else {
                 formUrl = BASE_URL + "/form_p/store";
             }
@@ -67,7 +82,9 @@ async function showInstructPopup(licence_code,login_id) {
 
                     // Backend already sends form_type as "FRESH" or "RENEWAL" – use that,
                     // and fall back to appl_type-based inference if missing.
-                    let form_type = saveResponse.form_type || (appl_type === 'R' ? 'RENEWAL' : 'FRESH');
+                    let form_type = noPaymentApplType
+                        ? (applTypeUpper === 'D' ? 'Digitisation' : 'Alteration')
+                        : (saveResponse.form_type || (appl_type === 'R' ? 'RENEWAL' : 'FRESH'));
                     const application_id = saveResponse.application_id;
                     const transactionDate = saveResponse.date_apps;
                     const applicantName = saveResponse.applicantName || 'N/A';
@@ -92,6 +109,36 @@ async function showInstructPopup(licence_code,login_id) {
                         : (form_type === 'RENEWAL' || form_type === 'Renewal Application'
                             ? 'Renewal Application'
                             : form_type);
+
+                    if (noPaymentApplType) {
+                        if (applTypeUpper === 'D') {
+                            try { sessionStorage.removeItem('cc_digitization_temp_id'); } catch (e) {}
+                            $('#cc_digitization_temp_id').val('');
+                        }
+                        if (typeof window.showPaymentSuccessPopup === 'function') {
+                            window.showPaymentSuccessPopup(
+                                application_id,
+                                '',
+                                transactionDate,
+                                applicantName,
+                                0,
+                                formTypeLabel,
+                                licence_name,
+                                true,
+                                { feeExempt: true }
+                            );
+                        } else {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Application Submitted',
+                                text: 'Your application has been submitted.',
+                                confirmButtonText: 'OK'
+                            }).then(function () {
+                                window.location.href = '/dashboard';
+                            });
+                        }
+                        return;
+                    }
 
                     // 🔹 Show payment popup then open PayU (same as Form S/W/WH)
                     Swal.fire({
@@ -211,7 +258,7 @@ async function showInstructPopup(licence_code,login_id) {
                                 timer: 3000, // Auto close in 3 seconds
                                 timerProgressBar: true
                             }).then(() => {
-                                window.location.href = "/dashboard";
+                                window.location.href = BASE_URL + "/dashboard";
                             }); // your redirect URL
                         }
                     });
@@ -282,34 +329,89 @@ async function showInstructPopup(licence_code,login_id) {
     }
 }
 
+function formPDateFieldRaw($input) {
+    var el = $input && $input.length ? $input.get(0) : null;
+    var stored = el ? String(el.getAttribute('data-raw') || '').trim() : '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(stored)) {
+        return stored;
+    }
+    return ($input && $input.length ? ($input.val() || '') : '').trim();
+}
+
 function parseFormPInstituteIsoDate(value) {
     var raw = (value || '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    var iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var dmy = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    var ymd = iso ? raw : (dmy ? (dmy[3] + '-' + dmy[2] + '-' + dmy[1]) : '');
+    if (!ymd) {
         return null;
     }
-    var parsed = new Date(raw + 'T12:00:00');
+    var parsed = new Date(ymd + 'T12:00:00');
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function calculateFormPInstituteDuration(fromDate, toDate) {
-    var from = parseFormPInstituteIsoDate(fromDate);
-    var to = parseFormPInstituteIsoDate(toDate);
-    if (!from || !to || to < from) {
-        return '';
+function formPCalendarYmd(fromDate, toDate) {
+    if (!fromDate || !toDate || toDate < fromDate) {
+        return null;
     }
-    var years = to.getFullYear() - from.getFullYear();
-    var months = to.getMonth() - from.getMonth();
-    if (to.getDate() < from.getDate()) {
+    var end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + 1, 12, 0, 0);
+    var years = end.getFullYear() - fromDate.getFullYear();
+    var months = end.getMonth() - fromDate.getMonth();
+    var days = end.getDate() - fromDate.getDate();
+    if (days < 0) {
         months -= 1;
+        days += new Date(end.getFullYear(), end.getMonth(), 0).getDate();
     }
     if (months < 0) {
         years -= 1;
         months += 12;
     }
-    if (years < 0) {
-        return '';
+    if (days < 0) {
+        months -= 1;
+        if (months < 0) {
+            years -= 1;
+            months += 12;
+        }
+        days += new Date(end.getFullYear(), end.getMonth(), 0).getDate();
     }
-    return years + '.' + months;
+    if (years < 0) {
+        return null;
+    }
+    return { y: years, m: months, d: days };
+}
+
+function applyFormPRowYmd($row, fromDate, toDate) {
+    var diff = formPCalendarYmd(fromDate, toDate);
+    $row.find('.fp-years').val(diff ? String(diff.y) : '');
+    $row.find('.fp-months').val(diff ? String(diff.m) : '');
+    $row.find('.fp-days').val(diff ? String(diff.d) : '');
+    return diff;
+}
+
+function formPYmdBoxHtml() {
+    return '<div class="fp-ymd" aria-label="Years, months and days">'
+        + '<div><span>Y</span><input type="text" class="form-control fp-years" readonly tabindex="-1" placeholder="0" aria-label="Years"></div>'
+        + '<div><span>M</span><input type="text" class="form-control fp-months" readonly tabindex="-1" placeholder="0" aria-label="Months"></div>'
+        + '<div><span>D</span><input type="text" class="form-control fp-days" readonly tabindex="-1" placeholder="0" aria-label="Days"></div>'
+        + '</div>';
+}
+
+function calculateFormPInstituteDuration(fromDate, toDate) {
+    var diff = formPCalendarYmd(
+        parseFormPInstituteIsoDate(fromDate),
+        parseFormPInstituteIsoDate(toDate)
+    );
+    return diff ? (diff.y + '.' + diff.m + '.' + diff.d) : '';
+}
+
+function refreshFormPInstituteDurations() {
+    $('#competency_form_p #institute-container .institute-fields').each(function () {
+        var $row = $(this);
+        var fromDate = parseFormPInstituteIsoDate(($row.find('input[name="from_date[]"]').val() || '').trim());
+        var toDate = parseFormPInstituteIsoDate(($row.find('input[name="to_date[]"]').val() || '').trim());
+        var diff = applyFormPRowYmd($row, fromDate, toDate);
+        $row.find('input[name="duration[]"]').val(diff ? (diff.y + '.' + diff.m + '.' + diff.d) : '');
+    });
 }
 
 function showFormPInstituteFieldError($field, message, firstErrorField) {
@@ -378,15 +480,18 @@ function validateFormPInstituteDateRows(required) {
         if (fromDate && toDate && toDate < fromDate) {
             firstErrorField = showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', firstErrorField);
             isValid = false;
+            applyFormPRowYmd($row, null, null);
             $duration.val('');
             return;
         }
         if (fromDate && toDate) {
-            var duration = calculateFormPInstituteDuration(fromVal, toVal);
+            var instituteDiff = applyFormPRowYmd($row, fromDate, toDate);
+            var duration = instituteDiff ? (instituteDiff.y + '.' + instituteDiff.m + '.' + instituteDiff.d) : '';
             $duration.val(duration);
-            var years = parseInt((duration.split('.')[0] || ''), 10);
+            var years = instituteDiff ? instituteDiff.y : NaN;
+            var $durationTarget = $row.find('.fp-ymd').length ? $row.find('.fp-ymd') : $duration;
             if (required && (Number.isNaN(years) || years < 0 || years > 50)) {
-                firstErrorField = showFormPInstituteFieldError($duration, 'Duration must be between 0 and 50 years.', firstErrorField);
+                firstErrorField = showFormPInstituteFieldError($durationTarget, 'Duration must be between 0 and 50 years.', firstErrorField);
                 isValid = false;
             } else {
                 completeRows += 1;
@@ -414,8 +519,8 @@ function validateFormPWorkDateRows(required) {
         var wl = ($row.find('input[name="work_level[]"]').val() || '').trim();
         var des = ($row.find('input[name="designation[]"]').val() || '').trim();
         var ex = ($row.find('input[name="experience[]"]').val() || '').trim();
-        var fromVal = ($from.val() || '').trim();
-        var toVal = ($to.val() || '').trim();
+        var fromVal = formPDateFieldRaw($from);
+        var toVal = formPDateFieldRaw($to);
         var rowStarted = wl !== '' || des !== '' || ex !== '' || fromVal !== '' || toVal !== '';
         if (!rowStarted) {
             return;
@@ -449,10 +554,66 @@ function validateFormPWorkDateRows(required) {
             firstErrorField = showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', firstErrorField);
             isValid = false;
         }
+        if (fromDate && toDate && toDate >= fromDate && formPWorkRowOverlaps($row)) {
+            firstErrorField = showFormPInstituteFieldError($to, 'Experience periods must not overlap. Each From date must be after the other row\'s To date.', firstErrorField);
+            isValid = false;
+        }
     });
+
+    if (isValid) {
+        refreshFormPWorkYears();
+    }
 
     return { isValid: isValid, firstErrorField: firstErrorField };
 }
+
+function formPWorkRowOverlaps($row) {
+    var fromDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-from').first()));
+    var toDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-to').first()));
+    if (!fromDate || !toDate || toDate < fromDate) {
+        return false;
+    }
+    var overlaps = false;
+    $('#competency_form_p #work-container .work-fields').each(function () {
+        if (this === $row.get(0)) {
+            return;
+        }
+        var otherFrom = parseFormPInstituteIsoDate(formPDateFieldRaw($(this).find('.work-date-from').first()));
+        var otherTo = parseFormPInstituteIsoDate(formPDateFieldRaw($(this).find('.work-date-to').first()));
+        if (!otherFrom || !otherTo || otherTo < otherFrom) {
+            return;
+        }
+        if (fromDate <= otherTo && otherFrom <= toDate) {
+            overlaps = true;
+        }
+    });
+    return overlaps;
+}
+
+function refreshFormPWorkYears() {
+    var $rows = $('#competency_form_p #work-container .work-fields');
+    $rows.find('.work-date-overlap').remove();
+    $rows.each(function () {
+        var $row = $(this);
+        var fromDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-from').first()));
+        var toDate = parseFormPInstituteIsoDate(formPDateFieldRaw($row.find('.work-date-to').first()));
+        var year = '';
+        var overlaps = false;
+        if (fromDate && toDate && toDate >= fromDate) {
+            var workDiff = applyFormPRowYmd($row, fromDate, toDate);
+            year = workDiff ? String(workDiff.y) : '';
+            overlaps = formPWorkRowOverlaps($row);
+        }
+        if (!year) {
+            applyFormPRowYmd($row, null, null);
+        }
+        $row.find('.work-experience-total-hidden, .experience-sync').val(year);
+        if (overlaps) {
+            $row.find('.work-date-to').first().after('<span class="error-message text-danger d-block mt-1 work-date-overlap">Experience periods must not overlap. Each From date must be after the other row\'s To date.</span>');
+        }
+    });
+}
+window.refreshFormPWorkYears = refreshFormPWorkYears;
 
 // Proceed for Payment
 $(document).ready(function () {
@@ -467,13 +628,29 @@ $(document).ready(function () {
         $to.next('.error-message').remove();
         var fromVal = ($from.val() || '').trim();
         var toVal = ($to.val() || '').trim();
-        $row.find('input[name="duration[]"]').val(calculateFormPInstituteDuration(fromVal, toVal));
         var fromDate = parseFormPInstituteIsoDate(fromVal);
         var toDate = parseFormPInstituteIsoDate(toVal);
+        var instituteDiff = applyFormPRowYmd($row, fromDate, toDate);
+        $row.find('input[name="duration[]"]').val(instituteDiff ? (instituteDiff.y + '.' + instituteDiff.m + '.' + instituteDiff.d) : '');
         if (fromDate && toDate && toDate < fromDate) {
             showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', null);
         }
     });
+
+    $(document).on('click', '#competency_form_p .remove-work', function () {
+        setTimeout(refreshFormPWorkYears, 0);
+    });
+    $(document).on('click', '#competency_form_p .remove-institute', function () {
+        setTimeout(refreshFormPInstituteDurations, 0);
+    });
+    if (!document.getElementById('fp-ymd-style')) {
+        var ymdStyle = document.createElement('style');
+        ymdStyle.id = 'fp-ymd-style';
+        ymdStyle.textContent = '.fp-ymd{display:flex;gap:4px;width:50px;}.fp-ymd>div{flex:1;min-width:36px;text-align:center;}.fp-ymd span{display:block;font-size:.62rem;font-weight:700;color:#5a7299;line-height:1;margin-bottom:2px;}.fp-ymd input{text-align:center;padding:.2rem .15rem;font-size:.8rem;min-width:0;}';
+        document.head.appendChild(ymdStyle);
+    }
+    refreshFormPInstituteDurations();
+    refreshFormPWorkYears();
 
     $(document).on('change', '#competency_form_p .work-date-from, #competency_form_p .work-date-to', function () {
         var $row = $(this).closest('.work-fields');
@@ -484,11 +661,12 @@ $(document).ready(function () {
         var $to = $row.find('.work-date-to').first();
         $from.next('.error-message').remove();
         $to.next('.error-message').remove();
-        var fromDate = parseFormPInstituteIsoDate(($from.val() || '').trim());
-        var toDate = parseFormPInstituteIsoDate(($to.val() || '').trim());
+        var fromDate = parseFormPInstituteIsoDate(formPDateFieldRaw($from));
+        var toDate = parseFormPInstituteIsoDate(formPDateFieldRaw($to));
         if (fromDate && toDate && toDate < fromDate) {
             showFormPInstituteFieldError($to, 'To date must be greater than or equal to From date.', null);
         }
+        refreshFormPWorkYears();
     });
 
     $(document).on('click', '#ProceedtoPayment', async function (e) {
@@ -937,7 +1115,9 @@ $(document).ready(function () {
         function () {
             const $field = $(this);
             if ($field.val().trim() !== '') {
-                $field.nextAll('.error-message').first().remove();
+                $field.nextAll('.error-message').filter(function () {
+                    return !$(this).hasClass('work-date-overlap');
+                }).first().remove();
                 $field.closest('.work-fields').find('.error-message').filter(function () {
                     return $(this).text().includes("Please fill in at least one field");
                 }).remove();
@@ -1262,10 +1442,16 @@ $(document).ready(function () {
             return; 
 
         } else {
-            let applicationId = $('#application_id').val();
+            let applicationId = ($('#competency_form_p input[name="application_id"]').val()
+                || $('#application_id').val()
+                || '').trim();
 
-            let applType = $('#appl_type').val();
+            let applType = ($('#appl_type').val() || '').trim();
             let formData = new FormData($('#competency_form_p')[0]);
+            if ((typeof window.isRenewFormP !== 'undefined') && window.isRenewFormP) {
+                applType = 'R';
+                formData.set('appl_type', 'R');
+            }
             formData.delete('month_passing[]');
             $('#competency_form_p select[name="month_of_passing[]"]').each(function () {
                 formData.append('month_passing[]', $(this).val() || '');

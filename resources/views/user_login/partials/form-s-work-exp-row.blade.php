@@ -9,12 +9,6 @@
     ];
     $hasRow = isset($expRow) && $expRow;
 
-    $tilldate = $expRow->till_date ?? null;
-
-    $tilldate = '111';
-
-    // var_dump($tilldate); exit;
-
     $empTypeRaw = $hasRow ? (string) ($expRow->emp_type ?? '') : '';
     $empType = $legacyEmpMap[$empTypeRaw] ?? $empTypeRaw;
     $contractorCat = '';
@@ -103,7 +97,7 @@
     $meetingDateName = $isBoardMemberRow ? 'work_board_meeting_date[]' : '';
     $hideUploadWhenDocExists = !empty($hideUploadWhenDocExists);
     $hideSupportUpload = $hideUploadWhenDocExists && $supportDoc !== '';
-    $hideRelieveUpload = $relieveDoc !== '';
+    $hideRelieveUpload = $hideUploadWhenDocExists && $relieveDoc !== '';
 @endphp
 <div class="work-entry-block">
 <div class="work-fields work-row{{ $storedRowClass }}" data-row-index="{{ $rowIndex }}">
@@ -205,7 +199,7 @@
         </div>
         <div class="{{ $bxCol('col-12 col-md-4') }} work-card-field" data-field="to-date">
             <label class="work-card-field-label">To date <span class="req">*</span> <span class="lock-icon" aria-hidden="true" style="display:none;"><i class="fa fa-lock"></i></span></label>
-            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" max="{{ now()->toDateString() }}" title="To date" aria-label="Period of experience: to date" @if($isTill) readonly @endif disabled>
+            <input type="date" class="form-control work-date-to" name="work_date_to[]" value="{{ $workToDate }}" max="9999-12-31" title="To date" aria-label="Period of experience: to date" @if($isTill) readonly @endif disabled>
             <label class="work-card-till-toggle">
                 <input type="checkbox" class="work-date-till" {{ $isTill ? 'checked' : '' }}>
                 <span>Till date (currently working)</span>

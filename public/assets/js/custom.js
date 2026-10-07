@@ -480,7 +480,9 @@ $(document).ready(function () {
         }
         }
 
-            let applicationId = $('#application_id').val();
+            let applicationId = (typeof window.competencyDraftApplicationId === 'function')
+                ? window.competencyDraftApplicationId()
+                : ($('#competency_form_ws input[name="application_id"]').val() || '');
 
             let applType = $('#appl_type').val();
 

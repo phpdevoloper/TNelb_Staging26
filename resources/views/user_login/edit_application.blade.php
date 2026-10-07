@@ -1394,9 +1394,10 @@
                                                             @php
                                                                 $isWH = (isset($application_details->form_name) && $application_details->form_name === 'WH');
                                                                 $isDraft = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
+                                                                $isWhHelperExam = trim((string) ($edu_details->educational_level ?? '')) === 'Wireman Helper Examination';
                                                                 $instituteDisplayValue = !empty(trim((string) ($edu_details->institute_name ?? '')))
                                                                     ? $edu_details->institute_name
-                                                                    : ($isDraft && $isWH ? 'Dept of Employment & Training' : '');
+                                                                    : ($isDraft && $isWH && $isWhHelperExam ? 'Dept of Employment & Training' : '');
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($instituteDisplayValue) !!}"></td>
                                                             <td>
@@ -1516,9 +1517,7 @@
                                                                 </select>
                                                             </td>
                                                             @php
-                                                                $isWHEmptyRow = isset($application_details->form_name) && $application_details->form_name === 'WH';
-                                                                $isDraftEmptyRow = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
-                                                                $defaultInstituteForEmptyRow = ($isDraftEmptyRow && $isWHEmptyRow) ? 'Dept of Employment & Training' : '';
+                                                                $defaultInstituteForEmptyRow = '';
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($defaultInstituteForEmptyRow) !!}"></td>
                                                             <td>
@@ -1592,15 +1591,15 @@
                             <div>
                                 <div class="fs-section-title">
                                     Details of Previous and Current Work experiences
-                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
-                                        <span class="section-hint">(Optional)</span>
+                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['WH']))
+                                        <span class="section-hint"></span>
                                     @else
                                         <span class="section-req">*</span>
                                     @endif
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
                                 <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
-                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
+                                    @if(isset($application_details->form_name) && in_array($application_details->form_name, ['WH']))
                                         <span style="font-size:.72rem;">(விருப்பமெனில் நிரப்பலாம்)</span>
                                     @endif
                                     <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span>
@@ -1614,6 +1613,7 @@
                                 'showContractorNotice' => true,
                                 'hideUploadWhenDocExists' => true,
                                 'lockExistingRows' => $isRenewalDraftEdit,
+                                'lock7bBoardMemberOnReturn' => $isRenewalDraftEdit,
                                 'contractorDetails' => $get_contractor_details,
                             ])
                             @elseif (in_array($editFormName, ['W', 'WH'], true))
@@ -1786,15 +1786,19 @@
                         <div class="fs-section-body">
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ !empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    @php
+                                        $hasSupervisorCert = trim((string) ($application_details->previous_scc_no ?? $application_details->previously_number ?? '')) !== ''
+                                            && trim((string) ($application_details->previous_scc_no ?? $application_details->previously_number ?? '')) !== '0';
+                                    @endphp
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ $hasSupervisorCert ? 'checked' : '' }}>
                                     <label class="form-check-label" for="previous_license_yes">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ empty($application_details->previously_number) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ $hasSupervisorCert ? '' : 'checked' }}>
                                     <label class="form-check-label" for="previous_license_no">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasSupervisorCert ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C12345 / CC2026041234)</span></div>
@@ -1811,7 +1815,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
-                                               value="{{ $application_details->first_issue_date }}">
+                                               value="{{ calendar_date_ymd($application_details->first_issue_date ?? null) }}">
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1819,7 +1823,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
                                                id="previously_valid_from" name="previously_valid_from" type="date"
                                                data-error="#previouslyFromDateError"
-                                               value="{{ $application_details->scc_from_date ?? '' }}">
+                                               value="{{ calendar_date_ymd($application_details->scc_from_date ?? null) }}">
                                         <span id="previouslyFromDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1827,7 +1831,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
                                                id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
-                                               value="{{ $application_details->scc_to_date ?? '' }}">
+                                               value="{{ calendar_date_ymd($application_details->scc_to_date ?? null) }}">
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     {{-- <div class="col-12 col-md-2">
@@ -1883,15 +1887,19 @@
                         <div class="fs-section-body">
                             <div class="fs-radio-group mb-2">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ !empty($application_details->certificate_no) ? 'checked' : '' }}>
+                                    @php
+                                        $hasWiremanCert = trim((string) ($application_details->wcc_no ?? '')) !== ''
+                                            && trim((string) ($application_details->wcc_no ?? '')) !== '0';
+                                    @endphp
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ $hasWiremanCert ? 'checked' : '' }}>
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ empty($application_details->certificate_valid_to ?? $application_details->certificate_date) ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ $hasWiremanCert ? '' : 'checked' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
-                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ !empty($application_details->wcc_no) ? 'block' : 'none' }};">
+                            <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ $hasWiremanCert ? 'block' : 'none' }};">
                                                         @php
                                                             if($application_details->form_name == 'S'){
                                                                 $cert_type = 'supervisor';
@@ -1918,7 +1926,7 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ $application_details->wcc_issue_date }}">
+                                                                   value="{{ calendar_date_ymd($application_details->wcc_issue_date ?? null) }}">
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1926,7 +1934,7 @@
                                                             <input class="form-control text-box single-line verify-valid-from"
                                                                    id="certificate_valid_from" name="certificate_valid_from"
                                                                    data-error="#certFromDateError" type="date"
-                                                                   value="{{ $application_details->wcc_from ?? '' }}">
+                                                                   value="{{ calendar_date_ymd($application_details->wcc_from ?? null) }}">
                                                             <span id="certFromDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1934,7 +1942,7 @@
                                                             <input class="form-control text-box single-line verify-date"
                                                                    id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ $application_details->wcc_to }}"
+                                                                   value="{{ calendar_date_ymd($application_details->wcc_to ?? null) }}"
                                                                    >
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
@@ -2507,12 +2515,14 @@
                         <option value="">Select Education</option>
                         ${isSForm
                             ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option><option value="AMIE">A pass in AMIE</option>'
-                            : (isWOrWHForm
+                            : (isWHForm
+                                ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper Examination">Wireman Helper Examination</option><option value="ITI Certificate">ITI Certificate</option>'
+                                : (isWOrWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper(H) Certificate">Wireman Helper(H) Certificate</option><option value="ITI Certificate">ITI Certificate</option>'
-                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>' + (isWHForm ? '<option value="8">8</option>' : ''))}
+                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>'))}
                     </select>
                 </td>
-                <td><input type="text" class="form-control" name="institute_name[]" required value="${isWHForm ? 'Dept of Employment & Training' : ''}"></td>
+                <td><input type="text" class="form-control" name="institute_name[]" required></td>
                 <td>
                     <select name="month_of_passing[]" class="form-control" required>
                         <option value="">Select Month</option>
@@ -3051,23 +3061,38 @@
 
     // ── Date display formatter: show DD-MM-YYYY, revert to picker on focus ──
     function initDateDisplay(inp) {
-        function toDisplay(raw) {
-            if (!raw) return;
-            var p = raw.split('-');
-            if (p.length === 3) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        /* Work From/To stay type=date. Switching to text on blur drops year keystrokes. */
+        if (inp && inp.classList && (inp.classList.contains('work-date-from') || inp.classList.contains('work-date-to'))) {
+            return;
         }
-        if (inp.value) { inp.setAttribute('data-raw', inp.value); toDisplay(inp.value); }
+        function yearOk(raw) {
+            var y = parseInt(String(raw || '').slice(0, 4), 10);
+            return y >= 1900 && y <= 9999;
+        }
+        function toDisplay(raw) {
+            if (!raw || !yearOk(raw)) return;
+            var p = String(raw).split('-');
+            if (p.length === 3 && p[0].length === 4) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        }
+        if (inp.value && yearOk(inp.value)) { inp.setAttribute('data-raw', inp.value); toDisplay(inp.value); }
         inp.addEventListener('focus', function() {
             var raw = this.getAttribute('data-raw') || '';
-            this.type = 'date'; if (raw) this.value = raw;
+            this.type = 'date';
+            if (raw && yearOk(raw)) this.value = raw;
+            if (this.classList.contains('work-date-to')) this.removeAttribute('max');
         });
         inp.addEventListener('blur', function() {
-            if (this.type === 'date' && this.value) {
-                this.setAttribute('data-raw', this.value); toDisplay(this.value);
+            if (this.type !== 'date') return;
+            if (this.value && yearOk(this.value)) {
+                this.setAttribute('data-raw', this.value);
+                toDisplay(this.value);
+                return;
             }
+            var raw = this.getAttribute('data-raw') || '';
+            if (raw && yearOk(raw)) { this.value = raw; toDisplay(raw); }
         });
         inp.addEventListener('change', function() {
-            if (this.type === 'date' && this.value) this.setAttribute('data-raw', this.value);
+            if (this.type === 'date' && this.value && yearOk(this.value)) this.setAttribute('data-raw', this.value);
         });
     }
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);
@@ -3095,6 +3120,34 @@
             var $toggle = $('.fs-7b-board-toggle');
             $toggle.find('.fs-segmented-opt').removeClass('is-active');
             $input.closest('.fs-segmented-opt').addClass('is-active');
+        }
+
+        function lockReturned7bFields($row) {
+            var $root = $('#fs-7b-root');
+            if (!$root.hasClass('fs-7b-return-locked')) return;
+
+            $('.fs-7b-board-toggle').addClass('is-locked').attr('aria-disabled', 'true');
+            $('input[name="current_work_board_member"][type="radio"]').prop('disabled', true);
+            if (!$('input[type="hidden"][name="current_work_board_member"]').length) {
+                $('.fs-7b-board-toggle').after('<input type="hidden" name="current_work_board_member" value="yes">');
+            }
+
+            if (!$row || !$row.length) return;
+
+            $row.find('input, select, textarea').not('[type="hidden"]').each(function () {
+                var type = (this.type || '').toLowerCase();
+                if (type === 'file') {
+                    $(this).prop('disabled', true).prop('required', false);
+                    return;
+                }
+                if ((this.tagName || '').toLowerCase() === 'select') {
+                    $(this).prop('disabled', false).attr('tabindex', '-1');
+                    return;
+                }
+                $(this).prop('readonly', true).prop('disabled', false);
+            });
+            $row.find('.remove-work-doc-confirm').hide();
+            $row.find('.form-s-file-upload-wrap, .work-card-field-hint').hide();
         }
 
         function apply7bBoardToggle(mode, isInit) {
@@ -3126,6 +3179,10 @@
                     $emp.prop('required', false).prop('disabled', true).val('');
                 }
 
+            if ($root.hasClass('fs-7b-return-locked')) {
+                lockReturned7bFields($row);
+            }
+
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                 window.wxSyncBoardMemberRenewalFee();
             }
@@ -3133,6 +3190,12 @@
 
         $(document).ready(function () {
             $('input[name="current_work_board_member"]').on('change', function () {
+                if ($('#fs-7b-root').hasClass('fs-7b-return-locked')) {
+                    $('#current_work_board_member_yes').prop('checked', true);
+                    sync7bSegmentedActive($('#current_work_board_member_yes'));
+                    lockReturned7bFields(get7bWorkRow());
+                    return;
+                }
                 sync7bSegmentedActive($(this));
                 apply7bBoardToggle($(this).val(), false);
             });

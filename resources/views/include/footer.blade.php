@@ -148,6 +148,7 @@
 <script src="{{ url('assets/js/custom.js') }}?v={{ filemtime(public_path('assets/js/custom.js')) }}"></script>
 <script src="{{ url('assets/js/form_p_script.js') }}?v={{ filemtime(public_path('assets/js/form_p_script.js')) }}"></script>
 <script src="{{ url('assets/js/forma.js') }}"></script>
+<script src="{{ url('assets/js/forma_alt.js') }}"></script>
 <script src="{{ url('assets/js/formsa.js') }}"></script>
 <script src="{{ url('assets/js/formsb.js') }}"></script>
 <script src="{{ url('assets/js/formb.js') }}"></script>
@@ -252,7 +253,12 @@ $(document).ready(function() {
 
         // Only attach flatpickr + DD-MM-YYYY validation on non-native date inputs.
         // On pages using <input type="date"> we rely on the browser picker and page-specific logic.
-        if (dobInput && dobInput.type !== 'date') {
+        if (dobInput && dobInput.type !== 'date' && dobInput.type !== 'hidden') {
+            var storedDob = (dobInput.value || '').trim();
+            var storedIso = storedDob.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (storedIso) {
+                dobInput.value = storedIso[3] + '-' + storedIso[2] + '-' + storedIso[1];
+            }
             flatpickr(dobInput, {
                 dateFormat: "d-m-Y",
                 onChange: function (_selectedDates, dateStr) {
@@ -270,6 +276,11 @@ $(document).ready(function() {
 
 
         $('#previously_number').on('keyup', function () {
+            if (this.closest && this.closest('#competency_form_p')) {
+                var formPLicenseError = document.getElementById('licenseError');
+                if (formPLicenseError) formPLicenseError.textContent = '';
+                return;
+            }
             const value = $(this).val().trim().toUpperCase();
             $(this).val(value);
             const regex = /^(B|H|LB|LWH)\d+$/;
@@ -306,7 +317,7 @@ $(document).ready(function() {
         const errorMessage = $('.error-message').first().text('');
 
         // If the page uses native date input, don't run DD-MM-YYYY validation here.
-        if (dobInput && dobInput.type === 'date') {
+        if (dobInput && (dobInput.type === 'date' || dobInput.type === 'hidden')) {
             return;
         }
 
@@ -2002,25 +2013,25 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 return;
             }
 
-            let data = null;
-            if (!noPaymentApplType) {
-                data = await getPaymentsService(licence_code, issued_licence, appl_type);
-            }
-
-            if (!noPaymentApplType && !data) {
-                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
-                return;
-            }
-
-            if (noPaymentApplType) {
-                $('#amount').val('0');
-            }
-
             const boardMemberFeeExempt = !noPaymentApplType
                 && ($('#form_name').val() || '').trim().toUpperCase() === 'S'
                 && ['N', 'R'].includes(String(appl_type || '').trim().toUpperCase())
                 && typeof window.wxHasBoardMemberWorkRow === 'function'
                 && window.wxHasBoardMemberWorkRow();
+
+            let data = null;
+            if (!noPaymentApplType && !boardMemberFeeExempt) {
+                data = await getPaymentsService(licence_code, issued_licence, appl_type);
+            }
+
+            if (!noPaymentApplType && !boardMemberFeeExempt && !data) {
+                Swal.fire("Error", "Unable to load payment details. Please try again.", "error");
+                return;
+            }
+
+            if (noPaymentApplType || boardMemberFeeExempt) {
+                $('#amount').val('0');
+            }
 
             if (boardMemberFeeExempt) {
                 $('#amount').val('0');
@@ -2079,8 +2090,13 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 formFeesEl.textContent = noPaymentApplType
                     ? (applUpper === 'A' ? 'No fee (Alteration)' : 'No fee (Digitization)')
                     : (boardMemberFeeExempt
-                        ? 'No fee (Board Member — fee not applicable)'
+                        ? 'Application fee-exempted for this application'
                         : ('Rs.' + actual_fees + '/-'));
+                formFeesEl.style.color = boardMemberFeeExempt ? '#198754' : '';
+            }
+            const exemptNotice = document.getElementById('board-member-fee-exempt-notice');
+            if (exemptNotice) {
+                exemptNotice.classList.toggle('d-none', !boardMemberFeeExempt);
             }
 
             // Reset state
@@ -2136,7 +2152,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                     window.normalizeIsoDateInputs('#competency_form_ws');
                 }
                 let formData = new FormData($('#competency_form_ws')[0]);
-                formData.set('form_action', 'draft');
+                formData.set('form_action', (noPaymentApplType || boardMemberFeeExempt) ? 'submit' : 'draft');
                 if (typeof window.appendWorkExperienceDateFieldsToFormData === 'function') {
                     window.appendWorkExperienceDateFieldsToFormData(formData, $('#competency_form_ws')[0]);
                 }
@@ -2149,7 +2165,9 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                 if (typeof window.appendCompetencyPhotoSignToFormData === 'function') {
                     window.appendCompetencyPhotoSignToFormData(formData, $('#competency_form_ws')[0]);
                 }
-                let applicationId = $('#application_id').val();
+                let applicationId = (typeof window.competencyDraftApplicationId === 'function')
+                    ? window.competencyDraftApplicationId()
+                    : ($('#competency_form_ws input[name="application_id"]').val() || '');
                 let formUrl;
 
                 if (applicationId) {
@@ -2304,38 +2322,20 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
                         // Zero-fee paths — submit directly (no payment gateway UI)
                         if (feeExemptSubmit) {
                             try {
-                                // Digitisation / Alteration: form save already finalises; do not create payment records.
-                                if (noPaymentApplType) {
-                                    showPaymentSuccessPopup(
-                                        application_id,
-                                        '',
-                                        transactionDate,
-                                        applicantName,
-                                        0,
-                                        form_type,
-                                        licence_name,
-                                        false,
-                                        { feeExempt: true }
-                                    );
-                                    return;
-                                }
-
-                                // Board-member fee exemption (N/R Form S) still records a zero-amount payment.
-                                const paid = await runCompetencyPayment();
                                 showPaymentSuccessPopup(
-                                    paid.application_id,
-                                    paid.transactionId,
-                                    paid.transactionDate,
-                                    paid.applicantName,
-                                    paid.amount,
-                                    paid.form_type,
-                                    paid.licence_name,
+                                    application_id,
+                                    '',
+                                    transactionDate,
+                                    applicantName,
+                                    0,
+                                    form_type,
+                                    licence_name,
                                     false,
-                                    { feeExempt: true }
+                                    { feeExempt: true, boardMemberExempt: boardMemberFeeExempt }
                                 );
                             } catch (err) {
                                 Swal.fire({
-                                    title: noPaymentApplType ? 'Submission Failed' : 'Payment Failed',
+                                    title: (noPaymentApplType || boardMemberFeeExempt) ? 'Submission Failed' : 'Payment Failed',
                                     text: err.message || 'Something went wrong. Please try again.',
                                     icon: 'error'
                                 });
@@ -2532,6 +2532,13 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
             $modal.find(".ps-payment-only").removeClass("d-none");
             $modal.find(".ps-transaction-date-label").text("Transaction Date:");
             $modal.find(".ps-app-pdf-heading").addClass("mt-3");
+        }
+        const boardMemberExempt = options.boardMemberExempt === true;
+        const $exemptNotice = $modal.find("#ps_fee_exempt_notice");
+        if (boardMemberExempt) {
+            $exemptNotice.removeClass("d-none");
+        } else {
+            $exemptNotice.addClass("d-none");
         }
 
         // store ID globally for download actions
@@ -2935,6 +2942,33 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         }
     });
 
+// --------------------- alteration_clSubmit --------------------
+// --------------------- alteration_clSubmit --------------------
+$(document).on('click', '#alteration_clSubmit', function () {
+
+    let applicationId = $('#alteration_cl_application_id').val();
+
+    if (!applicationId || applicationId === '0') {
+        $('#cert_name_error').text('Please select a licence.');
+        return;
+    }
+
+    $('#cert_name_error').text('');
+
+    let selectedOption = $('#alteration_cl_application_id').find(':selected');
+
+    let licenseNumber = selectedOption.data('license-number');
+
+
+
+    // Redirect to forma_alter()
+    let url = "{{ route('forma_alter') }}";
+
+    url += '?application_id=' + encodeURIComponent(applicationId);
+    url += '&license_number=' + encodeURIComponent(licenseNumber);
+
+    window.location.href = url;
+});
 </script>
 
 </body>

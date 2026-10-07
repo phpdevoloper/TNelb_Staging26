@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\CC_Digitisation_Map;
 use App\Models\Tnelb_CC_Digitization;
+use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\FileUploadService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -193,13 +194,14 @@ class FormSDigitizationController extends BaseController
             ]);
 
             $temp_app_id = 'TEMP' . date('Ymd') . str_pad($row->id, 4, '0', STR_PAD_LEFT);
+            $digiDir = CompetencyDocumentSupport::digitizationUploadDirectory($request->form_name);
 
             if ($request->hasFile('cc_doc')) {
                 $file = $request->file('cc_doc');
                 $original_name = $file->getClientOriginalName();
                 $extension = $file->getClientOriginalExtension();
                 $fileName = $temp_app_id . '_' . time() . '_' . $request->cert_name . '.' . $extension;
-                $fileName = $this->fileUpload->upload($file, 'uploads/digitization/scc', $fileName);
+                $fileName = $this->fileUpload->upload($file, $digiDir, $fileName);
             }
 
             if ($request->hasFile('qc_doc')) {
@@ -207,7 +209,7 @@ class FormSDigitizationController extends BaseController
                 $qcOriginalName = $qcFile->getClientOriginalName();
                 $extension = $qcFile->getClientOriginalExtension();
                 $qcFileName = $temp_app_id . '_QC_' . time() . '.' . $extension;
-                $qcFileName = $this->fileUpload->upload($qcFile, 'uploads/digitization/qc/', $qcFileName);
+                $qcFileName = $this->fileUpload->upload($qcFile, $digiDir, $qcFileName);
             }
 
             CC_Digitisation_Map::create([

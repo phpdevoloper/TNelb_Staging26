@@ -21,6 +21,8 @@ class CC_Digitisation_Map extends Model
         'application_id',
         'old_cc_no',
         'new_cc_no',
+        'old_cl_no',
+        'new_cl_no',
         'updated_by',
         'updated_at',
         'created_at',
@@ -30,6 +32,7 @@ class CC_Digitisation_Map extends Model
 
     protected $casts = [
         'old_cc_no' => 'integer',
+        'old_cl_no' => 'integer',
         'updated_by' => 'integer',
         'created_at' => 'date',
         'updated_at' => 'date',

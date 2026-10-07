@@ -361,7 +361,8 @@ final class ReturnedApplicationPayloadMerge
             'employer_name' => $form->employer_detail ?? $form->employer_name ?? null,
             'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
             'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) (safeDecrypt($form->pancard ?? null) ?? ''))),
-            'certificate_no' => $form->certificate_no ?? $form->wcc_no ?? null,
+            // Do not merge into certificate_no — that key is education certificate_no[].
+            'competency_certificate_no' => $form->wcc_no ?? $form->certificate_no ?? null,
             'certificate_valid_to' => $fmtDate($form->certificate_valid_to ?? $form->certificate_date ?? $form->wcc_to ?? null),
             'certificate_issue_date' => $fmtDate($form->certificate_issue_date ?? $form->wcc_issue_date ?? null),
             'certificate_valid_from' => $fmtDate($form->certificate_valid_from ?? $form->wcc_from ?? null),

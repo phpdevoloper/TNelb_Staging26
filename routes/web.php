@@ -193,6 +193,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/apply-form-a_alt', [FormAAlteration::class, 'index'])->name('apply-form-a_alt');
 
 
+   Route::get('/alteration_cl_main', [FormAAlteration::class, 'index'])
+    ->name('alteration_cl_main');
+
+    // Route::get('/forma_alter', [FormAAlteration::class, 'forma_alter'])->name('forma_alter');
+
+    Route::get('/forma-alter', [FormAAlteration::class, 'forma_alter'])
+    ->name('forma_alter');
+
+    Route::get('/get-form-instructions_alter', [FormAAlteration::class, 'getFormInstructions_alter']);
+
+     Route::get('/forma-alter_draft/{application_id}', [FormAAlteration::class, 'forma_alter_draft'])
+    ->name('forma_alter_draft');
+
+
 
     Route::get('/apply-form-a_return/{application_id}', [ReturnapplicantController::class, 'returnforma'])->name('apply-form-a_return');
 
@@ -201,6 +215,10 @@ Route::middleware(['auth'])->group(function () {
     // -----------------Return store ea------------------------
     Route::post('/forma/storereturn', [ReturnapplicantController::class, 'storereturn'])->name('forma.storereturn');
     Route::post('/forma/storerenewalreturn', [ReturnapplicantController::class, 'storerenewalreturn'])->name('forma.storerenewalreturn');
+
+
+    // ------------------Alter store------------------------
+     Route::post('/forma/storeAlter', [FormAAlteration::class, 'storeAlter'])->name('forma.storeAlter');
 
 
     // ---------formSA-----------------
@@ -257,13 +275,16 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/editApplication/{application_id}', [FormController::class, 'editApplication'])->name('edit-application');
     Route::get('/application-preview/{application_id}', [FormController::class, 'previewApplication'])->name('dashboard.application.preview');
+    Route::get('/application-preview/{application_id}/proof/{type}', [FormController::class, 'previewApplicationProof'])
+        ->where('type', 'aadhaar|pan')
+        ->name('dashboard.application.proof');
     Route::get('/application-timeline/{application_id}', [FormController::class, 'previewApplicationTimeline'])->name('dashboard.application.timeline');
 
     Route::get('/edit_application/{application_id}', [FormController::class, 'edit_application'])->name('edit_application');
     Route::get('/edit_returned_application/{application_id}', [FormController::class, 'editReturnedApplication'])->name('edit_returned_application');
     Route::get('/cc_renew_form/{application_id}', [RegisterController::class, 'cc_renew_form'])->name('cc_renew_form');
     Route::get('/renew-form_ea/{application_id}', [EA_RenewalController::class, 'renew_form_ea'])->name('renew-form_ea');
-    Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])
+    Route::get('/document/{type}/{filename?}', [FormController::class, 'showEncryptedDocument'])
         ->where('filename', '.+')
         ->name('document.show');
     Route::post('/delete_education', [FormController::class, 'delete_education'])->name('delete_education');
@@ -346,12 +367,13 @@ Route::post('/forma/storerenewal', [FormAController::class, 'storerenewal'])->na
 
 Route::put('/forma/update/{appl_id}', [FormAController::class, 'update'])->name('forma.update');
 
-Route::get('/generate-pdf/{login_id}', [PDFController::class, 'generatePDF'])->name('generate.pdf');
+Route::get('/payment-receipt/{login_id}', [PDFController::class, 'paymentDetails'])->name('payment-receipt.pdf');
 Route::get('/generateTamilPDF/{login_id}', [PDFController::class, 'generateTamilPDF'])->name('generate.tamil.pdf');
 
 Route::get('/generatea-pdf/{login_id}', [PDFFormAController::class, 'generateaPDF'])->name('generatea.pdf');
 Route::get('/generateaTamilPDF/{login_id}', [PDFFormAController::class, 'generateaTamilPDF'])->name('generatea.tamil.pdf');
 
+Route::get('/test-pdf/{login_id}', [LicensepdfController::class, 'generateLicensePDF'])->name('test.pdf');
 // ------------------------ Dynamic Form Access ------------------------
 
 Route::get('/apply-form/{form_name}/{application_id}', [RegisterController::class, 'apply_form'])->name('apply-form');

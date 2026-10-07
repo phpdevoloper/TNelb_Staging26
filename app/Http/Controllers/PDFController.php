@@ -17,6 +17,7 @@ use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbFormP;
 use App\Models\TnelbAppsInstitute;
 use App\Services\FormS\FormSApplicationWorkflowService;
+use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\SensitiveProofCryptService;
 use Illuminate\Support\Collection;
@@ -209,7 +210,128 @@ class PDFController extends Controller
             ];
         }
 
-        return DB::table('payments')->whereIn('application_id', $ids)->first();
+        return null;
+    }
+
+    public function paymentDetails(string $login_id)
+    {
+        $applicationId = trim($login_id);
+        $payment = $this->getPayment($applicationId);
+        if (! $payment) {
+            return redirect()->back()->with('error', 'Payment not found!');
+        }
+
+        try {
+            $application = app(CompetencyApplicationService::class)->licensePdfApplication($applicationId);
+            $applicant = $application
+                ? app(CompetencyApplicationService::class)->licensePdfApplicant($applicationId, $application)
+                : null;
+
+            $applType = strtoupper(trim((string) ($application->appl_type ?? '')));
+            $typeOfForm = match ($applType) {
+                'N' => 'New',
+                'R' => 'Renewal',
+                default => 'Application',
+            };
+
+            $paymentType = mb_strtoupper((string) ($payment->payment_mode ?? 'ONLINE'), 'UTF-8');
+            $transactionNo = mb_strtoupper((string) ($payment->transaction_id ?? 'N/A'), 'UTF-8');
+            $paymentDateRaw = $payment->created_at ?? null;
+            $paymentDate = $paymentDateRaw
+                ? \Carbon\Carbon::parse($paymentDateRaw)->format('d-m-Y')
+                : 'N/A';
+            $amountValue = $payment->amount ?? 'Nil';
+            $statusValue = mb_strtoupper((string) ($payment->payment_status ?? 'N/A'), 'UTF-8');
+            $applicantName = $applicant->name ?? 'N/A';
+            $formName = strtoupper(trim((string) ($applicant->form_name ?? $application->form_name ?? '')));
+            $certName = match ($formName) {
+                'S' => 'Supervisor Competency Certificate',
+                'W' => 'Wireman Competency Certificate',
+                'WH' => 'Wireman Helper Competency Certificate',
+                default => 'Power Generating Station Operation & Maintenance Competency Certificate',
+            };
+
+            $mpdf = new \Mpdf\Mpdf([
+                'mode' => 'utf-8',
+                'format' => 'A4',
+                'default_font' => 'helvetica',
+                'margin_top' => 12,
+                'margin_bottom' => 12,
+                'margin_left' => 12,
+                'margin_right' => 12,
+            ]);
+            $mpdf->SetTitle('TNELB Payment Receipt ' . $applicationId);
+
+            $html = '
+            <style>
+                .no_space { margin: 3px; line-height: 1.3; }
+                .table-border { border-collapse: collapse; width: 100%; margin-top: 10px; }
+                .table-border td, .table-border th {
+                    padding: 6px;
+                    font-size: 14px;
+                    text-align: left;
+                    border-bottom: 1px solid #e5e5e5;
+                }
+                .table-border th { width: 40%; }
+            </style>
+            <div style="text-align:center;">
+                <h3 class="no_space" style="font-size:18px;">GOVERNMENT OF TAMIL NADU</h3>
+                <h4 class="no_space" style="font-size:16px;">THE ELECTRICAL LICENSING BOARD</h4>
+                <p class="no_space" style="font-size:14px;">Thiru.Vi.Ka. Industrial Estate, Guindy, Chennai – 600 032.</p>
+            </div>
+            <hr style="margin:10px 0; border:0; border-top:1px solid #000;">
+            <p style="font-size:15px; font-weight:bold; margin-top:5px; text-align:center;">Payment Acknowledgement Receipt</p>
+            <table class="table-border">
+                <tr>
+                    <th>Application ID</th>
+                    <td>: ' . e($applicationId) . '</td>
+                </tr>
+                <tr>
+                    <th>Applicant Name</th>
+                    <td>: ' . e($applicantName) . '</td>
+                </tr>
+                <tr>
+                    <th>Certificate</th>
+                    <td>: ' . e($certName) . '</td>
+                </tr>
+                <tr>
+                    <th>Form</th>
+                    <td>: ' . e($formName) . '</td>
+                </tr>
+                <tr>
+                    <th>Type of Form</th>
+                    <td>: ' . e($typeOfForm) . '</td>
+                </tr>
+                <tr>
+                    <th>Payment Type</th>
+                    <td>: ' . e($paymentType) . '</td>
+                </tr>
+                <tr>
+                    <th>Payment Date</th>
+                    <td>: ' . e($paymentDate) . '</td>
+                </tr>
+                <tr>
+                    <th>Transaction Number</th>
+                    <td>: ' . e($transactionNo) . '</td>
+                </tr>
+                <tr>
+                    <th>Amount</th>
+                    <td>: &#8377; ' . e((string) $amountValue) . '</td>
+                </tr>
+                <tr>
+                    <th>Payment Status</th>
+                    <td>: ' . e($statusValue) . '</td>
+                </tr>
+            </table>';
+
+            $mpdf->WriteHTML($html);
+
+            return response($mpdf->Output('payment_receipt.pdf', 'S'), 200)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="payment_receipt.pdf"');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Failed to generate payment details: ' . $e->getMessage());
+        }
     }
 
     private function resolveMasterApplicationIdForPdf(string $applicationId): string
@@ -241,10 +363,11 @@ class PDFController extends Controller
         // Prefer CC per-form meta (S/W/WH/P) before legacy tnelb_application_tbl.
         $ccMeta = CC_Forms_Meta::findByApplicationId($applicationId);
         if ($ccMeta) {
-            $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+            $proofApplicationId = app(FormSChildDocumentSnapshotService::class)
+                ->preferredIdentityProofApplicationId($ccMeta);
             $applicationDetails = $this->mapFormFields((object) $ccMeta->toArray());
 
-            return $this->addAadhaarPan($applicationDetails, $masterApplicationId);
+            return $this->addAadhaarPan($applicationDetails, $proofApplicationId);
         }
 
         // $legacyForm = DB::table('tnelb_application_tbl')
@@ -261,40 +384,38 @@ class PDFController extends Controller
 
     private function resolveEducationForPdf(string $applicationId): Collection
     {
-        $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+        $ownerId = $this->resolveSnapshotOwnerApplicationId($applicationId, 'education');
 
-        $ccRows = CC_Education::where('application_id', $masterApplicationId)
+        return CC_Education::where('application_id', $ownerId)
             ->orderByDesc('year_of_passing')
             ->get();
-        if ($ccRows->isNotEmpty()) {
-            return $ccRows;
-        }
-
-        $legacyRows = CC_Education::where('application_id', $applicationId)->get();
-        if ($legacyRows->isNotEmpty()) {
-            return $legacyRows;
-        }
-
-        return CC_Education::where('application_id', $masterApplicationId)->get();
     }
 
     private function resolveExperienceForPdf(string $applicationId): Collection
     {
-        $masterApplicationId = $this->resolveMasterApplicationIdForPdf($applicationId);
+        $ownerId = $this->resolveSnapshotOwnerApplicationId($applicationId, 'experience');
 
-        $ccRows = CC_Experience::where('application_id', $masterApplicationId)
+        return CC_Experience::where('application_id', $ownerId)
             ->orderBy('exp_id')
             ->get();
-        if ($ccRows->isNotEmpty()) {
-            return $ccRows;
+    }
+
+    /**
+     * Education and experience for a later alteration live on that alteration
+     * when it has its own snapshot, otherwise on the nearest parent that does.
+     */
+    private function resolveSnapshotOwnerApplicationId(string $applicationId, string $kind): string
+    {
+        $meta = CC_Forms_Meta::findByApplicationId($applicationId);
+        if (! $meta) {
+            return $applicationId;
         }
 
-        $legacyRows = CC_Experience::where('application_id', $applicationId)->get();
-        if ($legacyRows->isNotEmpty()) {
-            return $legacyRows;
-        }
+        $snapshot = app(FormSChildDocumentSnapshotService::class);
 
-        return CC_Experience::where('application_id', $masterApplicationId)->get();
+        return $kind === 'experience'
+            ? $snapshot->preferredExperienceApplicationId($meta)
+            : $snapshot->preferredEducationApplicationId($meta);
     }
 
     /**
@@ -655,7 +776,7 @@ class PDFController extends Controller
             $html .= '<tr>
                 <td>' . ($i + 1) . '</td>
                 <td>' . e($inst->institute_name_address ?? '') . '</td>
-                <td>' . e((string) ($inst->duration ?? '')) . ' YEARS</td>
+                <td>' . e(format_institute_duration($inst->duration ?? '', $inst->from_date ?? null, $inst->to_date ?? null)) . '</td>
                 <td>' . e(format_date($inst->from_date) ?? '') . '</td>
                 <td>' . e(format_date($inst->to_date) ?? '') . '</td>
             </tr>';
@@ -937,7 +1058,7 @@ class PDFController extends Controller
             $html .= '<tr>
                 <td>' . ($i + 1) . '</td>
                 <td>' . $inst->institute_name_address . '</td>
-                <td>' . $inst->duration . ' Years </td>
+                <td>' . e(format_institute_duration($inst->duration ?? '', $inst->from_date ?? null, $inst->to_date ?? null)) . '</td>
                 <td>' . format_date($inst->from_date) . '</td>
                 <td>' . format_date($inst->to_date) . '</td>
             </tr>';
@@ -1271,14 +1392,6 @@ class PDFController extends Controller
         }
 
         $mpdf = new \Mpdf\Mpdf($mpdfConfig);
-
-        // $logoPath = public_path('assets/admin/images/logo/logo.png');
-        // $mpdf->SetWatermarkImage(
-        //     $logoPath,
-        //     0.08,
-        //     [120, 130],
-        //     'P'
-        // );
         $mpdf->showWatermarkImage = true;
 
         $mpdf->SetTitle('TNELB Application License ' . $applicant->license_name);
@@ -1559,22 +1672,6 @@ class PDFController extends Controller
         } else {
             $appltye = 'Alteration Application';
         }
-        $payment = $this->getPayment((string) $application_id);
-        $paymentType   = 'N/A';
-        $transactionNo = 'N/A';
-        $paymentDate   = 'N/A';
-        $amountValue   = '&#8377; Nil';
-        $statusValue   = 'N/A';
-        if ($payment) {
-            $paymentType   = mb_strtoupper($payment->payment_mode   ?? 'ONLINE', 'UTF-8');
-            $transactionNo = mb_strtoupper($payment->transaction_id ?? 'N/A',    'UTF-8');
-            $paymentDateRaw = $payment->created_at ?? null;
-            $paymentDate   = $paymentDateRaw
-                ? mb_strtoupper(\Carbon\Carbon::parse($paymentDateRaw)->format('d-m-Y'), 'UTF-8')
-                : 'N/A';
-            $amountValue   = '&#8377; ' . ($payment->amount ?? 'Nil');
-            $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
-        }
         $html = '
         <div class="card">
 
@@ -1594,10 +1691,6 @@ class PDFController extends Controller
 
 
                      <div class="bi-en  header-title"> Acknowledgement Slip </span></div>
-
-
-
-
                 </div>
             </div>
 
@@ -1689,56 +1782,14 @@ class PDFController extends Controller
                         </td>
                     </tr>
                 </table>
-
         ';
 
-        if ($payment) {
-            // dd('111');
-            $paymentType   = mb_strtoupper($payment->payment_mode   ?? 'ONLINE', 'UTF-8');
-            $transactionNo = mb_strtoupper($payment->transaction_id ?? 'N/A',    'UTF-8');
-            $paymentDate   = mb_strtoupper(\Carbon\Carbon::parse($payment->created_at)->format('d-m-Y'), 'UTF-8');
-            $amountValue   = '&#8377; ' . ($payment->amount ?? 'Nil');
-            $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
-
-            $html ='    <div class="summary-card">
-                    <div class="summary-heading"><div class="bi-en">Payment Details</div></div>
-                    <table class="summary-table" width="100%" cellspacing="0" cellpadding="0">
-                    <thead>
-                          <tr>
-                            <th>PAYMENT TYPE</th>
-                            <td>' . e($paymentType)   . '</td>
-                        </tr>
-
-                        <tr>
-                            <th>TRANSACTION NUMBER</th>
-                            <td>' . e($transactionNo) . '</td>
-                        </tr>
-
-                        <tr>
-                        <th>PAYMENT DATE</th>
-                         <td>' . e($paymentDate)   . '</td>
-                        </tr>
-                        <tr>
-                            <th>AMOUNT</th>
-                             <td>' . $amountValue      . '</td>
-                        </tr>
-                        <tr>
-                            <th>PAYMENT STATUS</th>
-                            <td>' . e($statusValue)   . '</td>
-                        </tr>
-                    </thead>
-
-                    </table>
-                </div>
-
+        $html .= '
             </div>
 
             <div class="footer-spacer"></div>
 
-
-
         </div>';
-        }
 
 
         // Inline Tamil font — mPDF often applies stylesheet fonts in header/body blocks but not in nested <td>
@@ -1754,480 +1805,11 @@ class PDFController extends Controller
         );
 
         $mpdf->WriteHTML($html);
-        return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
-    }
+        $pdfBinary = $mpdf->Output('Application_Details.pdf', 'S');
 
-    public function generatePDF_bk($newApplicationId)
-    {
-
-        $form = $this->resolveApplicationFormForPdf($newApplicationId);
-
-        // var_dump(format_date($form->previously_number));die;
-        $education = $this->resolveEducationForPdf($newApplicationId);
-        $experience = $this->resolveExperienceForPdf($newApplicationId);
-        $applicant_photo = $this->getPhoto($newApplicationId);
-        $payment = $this->getPayment($newApplicationId);
-
-        if (!$form) {
-            return redirect()->back()->with('error', 'No records found!');
-        }
-
-        $decryptedaadhar = $this->decryptProofNo($form->aadhaar ?? null);
-        $decryptedaadhar = $decryptedaadhar ? preg_replace('/\s+/', '', $decryptedaadhar) : '';
-        $masked = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
-        $decryptedPan = $this->decryptProofNo($form->pancard ?? null);
-        $decryptedPan = $decryptedPan ? strtoupper(preg_replace('/[^A-Z0-9]/i', '', $decryptedPan)) : '';
-        $maskedPan = strlen($decryptedPan) === 10 ? str_repeat('X', 6) . substr($decryptedPan, -4) : '';
-
-        // $wrap = function ($text, $length = 20) {
-        //     return wordwrap($text, $length, '<br>', true);
-        // };
-
-        $mpdf = new Mpdf([
-            'mode'              => 'utf-8',
-            'format'            => 'A4',
-            'default_font_size' => 10,
-            'default_font'      => 'helvetica',
-            'margin_left'       => 15,
-            'margin_right'      => 15,
-            'margin_top'        => 12,
-            'margin_bottom'     => 12,
-        ]);
-
-        $mpdf->WriteHTML('
-        <style>
-            body { font-family: helvetica, sans-serif; font-size: 10pt; line-height: 1.5; color: #1a1a1a; margin: 0; padding: 0; }
-
-            /* ── Page header ── */
-            .hdr { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-            .hdr td { border: none; text-align: center; padding: 1px 0; line-height: 1.45; }
-
-            /* ── Shared num column (used in pd-rows, sec-heading, q-tbl) ── */
-            .col-num   { width: 6%;  font-weight: bold; text-align: left; white-space: nowrap;
-                         vertical-align: top; padding: 4px 4px 4px 0; border: none; color: #1a1a1a; }
-
-            /* ── Personal details outer (content | photo) ── */
-            .pd-outer { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            .pd-outer td { border: none; padding: 0; vertical-align: top; }
-            .pd-content { width: 78%; }
-            .pd-photo   { width: 22%; text-align: center; padding-left: 8px; vertical-align: top; }
-
-            /* ── Flat 4-col row: num | label | colon | value ── */
-            .pd-rows { width: 100%; border-collapse: collapse; }
-            .pd-rows td { border: none; vertical-align: top; padding: 4px 4px 4px 0; color: #1a1a1a; }
-            .pd-num   { width: 6%;  font-weight: bold; text-align: left; white-space: nowrap; }
-            .pd-label { width: 34%; text-align: left; }
-            .pd-colon { width: 4%;  text-align: center; }
-            .pd-val   { width: 56%; text-align: left; }
-
-            /* ── Section heading row (5., 6.) ── */
-            .sec-heading { width: 100%; border-collapse: collapse; margin-top: 6px; }
-            .sec-heading td { border: none; padding: 4px 4px 4px 0; vertical-align: top; color: #1a1a1a; }
-            .sec-heading .pd-num { width: 6%; font-weight: bold; }
-
-            /* ── Data tables (education / experience) ── */
-            .tbl-data { width: 100%; border-collapse: collapse; margin-top: 3px; font-size: 9pt; }
-            .tbl-data th { border: 1px solid #333; background: #eeeeee; font-weight: bold;
-                           text-align: center; padding: 5px 4px; vertical-align: middle; white-space: nowrap; }
-            .tbl-data td { border: 1px solid #333; text-align: center;
-                           padding: 4px 4px; vertical-align: middle; color: #1a1a1a; }
-            .tbl-data td.td-left { text-align: left; }
-
-            /* ── Data table cell color fix ── */
-            .tbl-data td, .tbl-data th { color: #1a1a1a; }
-
-            /* ── Q&A table (7, 8, 9, 10 …) ── */
-            .q-tbl { width: 100%; border-collapse: collapse; margin-top: 8px; }
-            .q-tbl td { border: none; padding: 4px 4px 4px 0; vertical-align: top; color: #1a1a1a; }
-            .q-num  { width: 6%;  font-weight: bold; text-align: left; white-space: nowrap; }
-            .q-qa   { width: 94%; text-align: left; }
-            .q-qa-inner { width: 100%; border-collapse: collapse; }
-            .q-qa-inner td { border: none; padding: 0; vertical-align: top; color: #1a1a1a; }
-            .q-qa-text { width: 80%; text-align: left; }
-            .q-qa-ans  { width: 20%; text-align: left; white-space: nowrap; }
-
-            /* ── Certificate sub-detail row ── */
-            .cert-sub { width: 90%; border-collapse: collapse; margin: 4px 0 6px 0; font-size: 9pt; }
-            .cert-sub td { border: 1px solid #aaa; padding: 5px 10px; text-align: center;
-                           background: #f9f9f9; color: #1a1a1a; }
-
-            /* ── Payment table ── */
-            .pay-tbl { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9.5pt; }
-            .pay-tbl th { border: 1px solid #333; background: #eeeeee; font-weight: bold;
-                          text-align: center; padding: 6px 8px; color: #1a1a1a; }
-            .pay-tbl td { border: 1px solid #333; text-align: center; padding: 6px 8px; color: #1a1a1a; }
-        </style>', HTMLParserMode::HEADER_CSS);
-
-        $certificateText = match ($form->form_name) {
-            'S' => 'Acknowledgement Slip for Supervisor Competency Certificate',
-            'W' => 'Acknowledgement Slip for Wireman Competency Certificate',
-            'WH' => 'Acknowledgement Slip for Wireman Helper Competency Certificate',
-            default => 'Acknowledgement Slip for Competency Certificate',
-        };
-
-        // Pre-format key personal details in CAPITAL LETTERS
-        $applicantNameUpper = mb_strtoupper($form->applicant_name ?? '', 'UTF-8');
-        $fatherNameUpper    = mb_strtoupper($form->fathers_name ?? '', 'UTF-8');
-        $addressRaw         = $form->applicants_address ?? '';
-        $addressUpper       = mb_strtoupper($addressRaw, 'UTF-8');
-
-        $dobDisplay  = trim(($form->d_o_b ?? '') . ' (' . ($form->age ?? '') . ' YEARS)');
-        $dobDisplay  = mb_strtoupper($dobDisplay, 'UTF-8');
-
-        $emailDisplay = trim((string) ($form->applicant_email ?? ''));
-        $emailDisplay = $emailDisplay !== '' ? $emailDisplay : '—';
-
-        $formCodeComp = strtoupper((string) ($form->form_name ?? ''));
-        $showCompetencyEmailRow = in_array($formCodeComp, ['W', 'WH'], true);
-        $eduSectionNum = $showCompetencyEmailRow ? '6' : '5';
-        $expSectionNum = $showCompetencyEmailRow ? '7' : '6';
-
-        $appIdUpper    = mb_strtoupper($form->application_id ?? '', 'UTF-8');
-        $formNameUpper = mb_strtoupper($form->form_name ?? '', 'UTF-8');
-        $applTypeCode  = strtoupper(trim($form->appl_type ?? 'N'));
-        $typeOfForm    = ($applTypeCode === 'N') ? 'NEW APPLICATION' : 'RENEWAL APPLICATION';
-
-        // ── Page header ──────────────────────────────────────────────
-        $html = '
-        <table class="hdr">
-            <tr><td style="font-size:13pt; font-weight:bold; letter-spacing:.5px;">GOVERNMENT OF TAMILNADU</td></tr>
-            <tr><td style="font-size:11.5pt; font-weight:bold;">ELECTRICAL LICENSING BOARD</td></tr>
-            <tr><td style="font-size:9.5pt;">THIRU.VI.KA.INDUSTRIAL.ESTATE, GUINDY, CHENNAI &ndash; 600032.</td></tr>
-            <tr><td style="padding:4px 0; font-size:11pt; font-weight:bold;">
-                FORM &ldquo;' . $formNameUpper . ($form->appl_type == 'R' ? '&rdquo; &ndash; RENEWAL' : '&rdquo;') . '
-            </td></tr>
-            <tr><td style="font-size:9.5pt; padding-top:2px;">' . mb_strtoupper($certificateText, 'UTF-8') . '</td></tr>
-            <tr><td style="font-size:11pt; font-weight:bold; padding-top:3px;">APPLICATION NUMBER : ' . $appIdUpper . '</td></tr>
-        </table>';
-
-        // ── Format address (preserve line breaks, no forced word chunking) ──
-        $formattedAddress = nl2br(e($addressUpper));
-
-        // ── Photo HTML ───────────────────────────────────────────────────────
-        if ($applicant_photo && file_exists(public_path($applicant_photo->upload_path))) {
-            $photoHtml = '<img src="' . public_path($applicant_photo->upload_path)
-                . '" style="width:110px; height:130px; border:1px solid #555;">';
-        } else {
-            $photoHtml = '<div style="width:110px; height:130px; border:1px solid #999; display:inline-block; '
-                . 'text-align:center; vertical-align:middle; font-size:8pt; color:#777; padding-top:50px;">No Photo</div>';
-        }
-
-        // ── Items 1-4 (+ optional email for Form W / WH only) + photo (right) ─────────
-        $emailRowHtml = '';
-        if ($showCompetencyEmailRow) {
-            $emailRowHtml = '
-                <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">5.</td>
-                  <td style="width:34%; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">EMAIL ID</td>
-                  <td style="width:4%;  vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
-                  <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . e($emailDisplay) . '</td>
-                </tr>';
-        }
-
-        $html .= '
-        <table style="width:100%; border-collapse:collapse; margin-top:14px;">
-          <tr>
-            <td style="vertical-align:top; padding:0;">
-              <table style="width:100%; border-collapse:collapse;">
-                <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
-                  <td style="width:34%; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">NAME OF THE APPLICANT</td>
-                  <td style="width:4%;  vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
-                  <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . e($applicantNameUpper) . '</td>
-                </tr>
-                <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
-                  <td style="vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">FATHER&rsquo;S NAME</td>
-                  <td style="vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
-                  <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . e($fatherNameUpper) . '</td>
-                </tr>
-                <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
-                  <td style="vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">ADDRESS OF THE APPLICANT</td>
-                  <td style="vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
-                  <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . $formattedAddress . '</td>
-                </tr>
-                <tr>
-                  <td style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"></td>
-                  <td style="vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;">DATE OF BIRTH AND AGE</td>
-                  <td style="vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;">:</td>
-                  <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . e($dobDisplay) . '</td>
-                </tr>'
-            . $emailRowHtml . '
-              </table>
-            </td>
-            <td style="width:125pt; vertical-align:top; text-align:center; padding-left:8px;">' . $photoHtml . '</td>
-          </tr>
-        </table>';
-
-
-
-
-        // ── Education (section 5 for Form S, section 6 for W / WH when email row present) ──
-        $html .= '
-        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-          <tr>
-            <td style="width:28pt; font-weight:normal; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">' . $eduSectionNum . '.</td>
-            <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">DETAILS OF TECHNICAL QUALIFICATION AND EXAMINATION, IF ANY PASSED BY THE APPLICANT</td>
-          </tr>
-        </table>
-        <table class="tbl-data" style="margin-top:4px;">
-          <tr>
-            <th rowspan="2" style="width:6%;">S.NO</th>
-            <th rowspan="2">EDUCATION LEVEL</th>
-            <th rowspan="2">INSTITUTION</th>
-            <th colspan="2">MONTH &amp; YEAR OF PASSING</th>
-            <th rowspan="2">CERTIFICATE NO</th>
-          </tr>
-          <tr>
-            <th style="width:10%;">MONTH</th>
-            <th style="width:10%;">YEAR</th>
-          </tr>';
-        foreach ($education as $i => $edu) {
-            $passingMonth = format_edu_passing_month($edu->month_passing ?? $edu->month_of_passing ?? null);
-            $passingYear  = trim((string) ($edu->year_of_passing ?? ''));
-            $html .= '<tr>
-                <td>' . ($i + 1) . '</td>
-                <td>' . e($edu->educational_level) . '</td>
-                <td class="td-left">' . e($edu->institute_name) . '</td>
-                <td>' . e($passingMonth !== '' ? $passingMonth : '-') . '</td>
-                <td>' . e($passingYear  !== '' ? $passingYear  : '-') . '</td>
-                <td>' . e($edu->certificate_no) . '</td>
-            </tr>';
-        }
-        $html .= '</table>';
-
-        // ── Experience: section 6 (Form S) or 7 (W / WH) ────────────
-        if (in_array((string) $form->form_name, ['S', 'W', 'WH'], true)) {
-            $isFormS = strtoupper((string) $form->form_name) === 'S';
-
-            $html .= '
-            <table style="width:100%; border-collapse:collapse; margin-top:8px;">
-              <tr>
-                <td style="width:28pt; font-weight:normal; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">' . $expSectionNum . '.</td>
-                <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">DETAILS OF PAST AND PRESENT EXPERIENCE</td>
-              </tr>
-            </table>
-            <table class="tbl-data" style="margin-top:4px;">';
-            $hasContractorRow = $isFormS && $experience->contains(function ($exp) {
-                return $this->isContractor($exp);
-            });
-
-            if ($isFormS) {
-                $html .= '<tr>
-                    <th rowspan="2" style="width:5%;">S.NO</th>
-                    <th rowspan="2">EMPLOYMENT TYPE</th>
-                    <th rowspan="2">EMPLOYER / ORGANIZATION</th>
-                    <th colspan="3">YEAR OF EXPERIENCE</th>
-                    <th rowspan="2">DESIGNATION</th>'
-                    . ($hasContractorRow ? '<th rowspan="2">INTIMATION DATE</th>' : '') . '
-                </tr>
-                <tr>
-                    <th>FROM (DATE)</th>
-                    <th>TO (DATE)</th>
-                    <th style="width:16%; white-space:normal;">YRS / MO / DAYS</th>
-                </tr>';
-            } else {
-                $html .= '<tr>
-                    <th rowspan="2" style="width:5%;">S.NO</th>
-                    <th rowspan="2">EMPLOYER NAME</th>
-                    <th colspan="3">YEAR OF EXPERIENCE</th>
-                    <th rowspan="2">DESIGNATION</th>
-                </tr>
-                <tr>
-                    <th>FROM (DATE)</th>
-                    <th>TO (DATE)</th>
-                    <th style="width:10%;">TOTAL YRS</th>
-                </tr>';
-            }
-
-            $hasExpData = $experience->contains(function ($exp) use ($isFormS) {
-                $employerName = $this->employerName($exp);
-                if ($isFormS) {
-                    return trim((string) ($exp->emp_type ?? '')) !== ''
-                        || ($employerName !== '' && $employerName !== '-')
-                        || trim((string) ($exp->from_date ?? '')) !== ''
-                        || trim((string) ($exp->to_date ?? '')) !== ''
-                        || trim((string) ($exp->total_exp ?? $exp->experience ?? '')) !== ''
-                        || trim((string) ($exp->designation ?? '')) !== '';
-                }
-                return ($employerName !== '' && $employerName !== '-')
-                    || trim((string) ($exp->total_exp ?? $exp->experience ?? '')) !== ''
-                    || trim((string) ($exp->designation ?? '')) !== '';
-            });
-
-            if (!$hasExpData) {
-                if ($isFormS) {
-                    $extraNilCell = $hasContractorRow ? '<td>-</td>' : '';
-                    $html .= '<tr><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>' . $extraNilCell . '</tr>';
-                } else {
-                    $html .= '<tr><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
-                }
-            } else {
-                foreach ($experience as $i => $exp) {
-                    $employerName    = $this->employerName($exp);
-                    $experienceYears = $exp->total_exp ?? $exp->experience ?? '-';
-                    $designation     = $exp->designation ?: '-';
-
-                    if ($isFormS) {
-                        $employmentType = $exp->emp_type ?: '-';
-                        $fromDate = !empty($exp->from_date) ? format_date($exp->from_date) : '-';
-                        $toDate   = !empty($exp->to_date)   ? format_date($exp->to_date)   : '-';
-                        $durationCell = $this->formatFormSExperienceDurationCell($exp);
-                        $isContractor   = $this->isContractor($exp);
-                        $intimationCell = '';
-                        if ($hasContractorRow) {
-                            $intimationRaw = $exp->intimation_date ?? $exp->board_meeting_date ?? null;
-                            $intimationCell = $isContractor
-                                ? '<td>' . e(!empty($intimationRaw) ? format_date($intimationRaw) : '-') . '</td>'
-                                : '<td>-</td>';
-                        }
-                        $html .= '<tr>
-                            <td>' . ($i + 1) . '</td>
-                            <td>' . e($this->formatEmploymentTypeForPdf((string) $employmentType)) . '</td>
-                            <td class="td-left">' . e($employerName) . '</td>
-                            <td>' . e($fromDate) . '</td>
-                            <td>' . e($toDate) . '</td>
-                            <td style="white-space:nowrap;">' . e($durationCell) . '</td>
-                            <td class="td-left">' . e($designation) . '</td>'
-                            . $intimationCell . '
-                        </tr>';
-                    } else {
-                        $fromDate = !empty($exp->from_date) ? format_date($exp->from_date) : '-';
-                        $toDate   = !empty($exp->to_date)   ? format_date($exp->to_date)   : '-';
-
-                        $html .= '<tr>
-                            <td>' . ($i + 1) . '</td>
-                            <td>' . e($employerName) . '</td>
-                            <td>' . e($fromDate) . '</td>
-                            <td>' . e($toDate) . '</td>
-                            <td>' . e($experienceYears) . '</td>
-                            <td>' . e($designation) . '</td>
-                        </tr>';
-                    }
-                }
-            }
-            $html .= '</table>';
-        }
-
-        // ── Compute Yes/No flags ─────────────────────────────────────────────
-        $previousValidToRaw = $form->previously_valid_to ?? $form->previously_date ?? null;
-        $certificateValidToRaw = $form->certificate_valid_to ?? $form->certificate_date ?? null;
-
-        $value  = (empty($form->previously_number) || empty($previousValidToRaw)) ? 'No' : 'Yes';
-        $certno = (empty($form->certificate_no) || empty($certificateValidToRaw)) ? 'No' : 'Yes';
-
-        $previousRefNo           = trim((string) ($form->previously_number ?? ''));
-        $previousIssueDate       = !empty($form->previously_issue_date) ? format_date($form->previously_issue_date) : '-';
-        $previousValidFromDate   = !empty($form->previously_valid_from) ? format_date($form->previously_valid_from) : '-';
-        $previousValidToDate     = !empty($previousValidToRaw) ? format_date($previousValidToRaw) : '-';
-        $certificateRefNo        = trim((string) ($form->certificate_no ?? ''));
-        $certificateIssueDate    = !empty($form->certificate_issue_date) ? format_date($form->certificate_issue_date) : '-';
-        $certificateValidFromDate = !empty($form->certificate_valid_from) ? format_date($form->certificate_valid_from) : '-';
-        $certificateValidToDate  = !empty($certificateValidToRaw) ? format_date($certificateValidToRaw) : '-';
-
-        // ── Helper: render one Q&A row (num | inner: text + answer) ────────
-        // ── Q rows — same 28pt num col as items 1–4 (+ optional email row for W/WH) ──────
-        $numStyle  = 'style="width:28pt; font-weight:bold; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;"';
-        $textStyle = 'style="width:58%; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a;"';
-        $colStyle  = 'style="width:3%;  vertical-align:top; padding:4px 2px; text-align:center; color:#1a1a1a;"';
-        $ansStyle  = 'style="vertical-align:top; padding:4px 0; color:#1a1a1a;"';
-
-        $qRow = function(string $num, string $text, string $ans) use ($numStyle, $textStyle, $colStyle, $ansStyle) {
-            return '
-            <tr>
-              <td ' . $numStyle  . '>' . $num . '.</td>
-              <td ' . $textStyle . '>' . $text . '</td>
-              <td ' . $colStyle  . '>:</td>
-              <td ' . $ansStyle  . '>' . $ans . '</td>
-            </tr>';
-        };
-        $certSubRow = function(string $refNo, string $issueDate, string $fromDate, string $toDate) use ($numStyle) {
-            return '
-            <tr>
-              <td ' . $numStyle . '></td>
-              <td colspan="3" style="padding:2px 0 6px 0;">
-                <table class="cert-sub">
-                  <tr>
-                    <td><strong>Certificate No</strong><br>' . e($refNo) . '</td>
-                    <td><strong>Date of First Issue</strong><br>' . e($issueDate) . '</td>
-                    <td><strong>From Date</strong><br>' . e($fromDate) . '</td>
-                    <td><strong>To Date</strong><br>' . e($toDate) . '</td>
-                  </tr>
-                </table>
-              </td>
-            </tr>';
-        };
-
-        // ── Q7–Q10 (Form S) / Q8–Q10 (W / WH) ───────────────────────
-        $html .= '<table style="width:100%; border-collapse:collapse; margin-top:10px;">';
-
-        if ($form->form_name == 'S') {
-            $html .= $qRow('7', 'HAVE YOU MADE ANY PREVIOUS APPLICATION? IF SO, STATE REFERENCE NO AND DATE.', e($value));
-            if ($value === 'Yes') {
-                $html .= $certSubRow($previousRefNo ?: '-', $previousIssueDate, $previousValidFromDate, $previousValidToDate);
-            }
-            $html .= $qRow('8', 'DO YOU POSSESS WIREMAN COMPETENCY CERTIFICATE / WIREMAN HELPER COMPETENCY CERTIFICATE ISSUED BY THIS BOARD? IF SO FURNISH THE DETAILS AND SURRENDER THE SAME.', e($certno));
-            if ($certno === 'Yes') {
-                $html .= $certSubRow($certificateRefNo ?: '-', $certificateIssueDate, $certificateValidFromDate, $certificateValidToDate);
-            }
-            $html .= $qRow('9', 'AADHAAR NUMBER', $masked);
-            $html .= $qRow('10', 'PAN NUMBER',     $maskedPan);
-        } else {
-            $no = '8';
-            $certLabel = ($form->form_name == 'WH')
-                ? 'DO YOU POSSESS WIREMAN HELPER COMPETENCY CERTIFICATE ISSUED BY THIS BOARD? IF SO FURNISH THE DETAILS AND SURRENDER THE SAME.'
-                : 'DO YOU POSSESS WIREMAN COMPETENCY CERTIFICATE / WIREMAN HELPER COMPETENCY CERTIFICATE ISSUED BY THIS BOARD? IF SO FURNISH THE DETAILS AND SURRENDER THE SAME.';
-            $html .= $qRow($no, $certLabel, e($certno));
-
-            $html .= $qRow('9', 'AADHAAR NUMBER', $masked);
-            $html .= $qRow('10', 'PAN NUMBER',     $maskedPan);
-        }
-
-        $html .= '</table>';
-
-        // ── Payment details ──────────────────────────────────────────────────
-        if ($payment) {
-            $paymentType   = mb_strtoupper($payment->payment_mode   ?? 'ONLINE', 'UTF-8');
-            $transactionNo = mb_strtoupper($payment->transaction_id ?? 'N/A',    'UTF-8');
-            $paymentDateRaw = $payment->created_at ?? null;
-            $paymentDate   = $paymentDateRaw
-                ? mb_strtoupper(\Carbon\Carbon::parse($paymentDateRaw)->format('d-m-Y'), 'UTF-8')
-                : 'N/A';
-            $amountValue   = '&#8377; ' . ($payment->amount ?? 'N/A');
-            $statusValue   = mb_strtoupper($payment->payment_status ?? 'N/A', 'UTF-8');
-
-            $html .= '
-            <p style="font-size:11pt; font-weight:bold; margin-top:16px; margin-bottom:4px; text-align:center;">PAYMENT DETAILS</p>
-            <table class="pay-tbl">
-              <tr>
-                <th>PAYMENT TYPE</th>
-                <th>TRANSACTION NUMBER</th>
-                <th>PAYMENT DATE</th>
-                <th>AMOUNT</th>
-                <th>PAYMENT STATUS</th>
-              </tr>
-              <tr>
-                <td>' . e($paymentType)   . '</td>
-                <td>' . e($transactionNo) . '</td>
-                <td>' . e($paymentDate)   . '</td>
-                <td>' . $amountValue      . '</td>
-                <td>' . e($statusValue)   . '</td>
-              </tr>
-            </table>';
-        }
-
-        // ── Place / Date footer ──────────────────────────────────────────────
-        $html .= '
-        <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-          <tr>
-            <td style="text-align:left;"><strong>Place :</strong> Chennai</td>
-            <td style="text-align:right;"><strong>Date :</strong> ' . date('d-m-Y') . '</td>
-          </tr>
-        </table>';
-
-        $mpdf->WriteHTML($html);
-        return response($mpdf->Output('Application_Details.pdf', 'I'))->header('Content-Type', 'application/pdf');
+        return response($pdfBinary)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="Application_Details.pdf"');
     }
 
 

@@ -7,6 +7,15 @@
     var parentName = '';
     var parentAddress = '';
 
+    function alterationFormEl() {
+        return document.getElementById('competency_form_ws') || document.getElementById('competency_form_p');
+    }
+
+    function alterationForm$() {
+        var $form = $('#competency_form_ws');
+        return $form.length ? $form : $('#competency_form_p');
+    }
+
     function newWorkRows() {
         return $('.js-work-container .work-fields:not(.fs-alt-existing-work)');
     }
@@ -93,10 +102,16 @@
             window.wxSetAlterationExistingWorkUnlocked(!!unlocked);
             return;
         }
-        $('#competency_form_ws').toggleClass('fs-alt-work-unlocked', !!unlocked);
+        alterationForm$().toggleClass('fs-alt-work-unlocked', !!unlocked);
         var $rows = existingWorkRows();
         $rows.find('input, textarea, select, button').not('input[type="hidden"]').prop('disabled', true);
         $rows.find('input[name="work_id[]"], input[name="fs_alt_existing_work[]"]').prop('disabled', false);
+        alterationForm$().find('.add-more-work').prop('disabled', !unlocked);
+        if (unlocked) {
+            newWorkRows().each(function () {
+                enableNewWorkRowFields($(this));
+            });
+        }
     }
 
     function scrollToSection(selector) {
@@ -200,11 +215,11 @@
 
     function enableNewWorkRowFields($row) {
         $row.show().find('input, textarea, select, button')
-            .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
+            .not('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display, .fp-years, .fp-months, .fp-days')
             .prop('disabled', false)
             .prop('readonly', false);
-        $row.find('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display')
-            .prop('disabled', true)
+        $row.find('.work-duration-y, .work-duration-m, .work-duration-d, .work-year-total-display, .fp-years, .fp-months, .fp-days')
+            .prop('disabled', false)
             .prop('readonly', true);
     }
 
@@ -301,7 +316,7 @@
             '.js-work-container .work-fields:not(.fs-alt-existing-work) select, ' +
             '.js-work-container .work-fields:not(.fs-alt-existing-work) button';
 
-        $('#competency_form_ws')
+        alterationForm$()
             .find('input, textarea, select, button')
             .not('#Applicant_Name, #applicants_address, #name_alteration_proof, #address_alteration_proof')
             .not('#fsAltOptName, #fsAltOptAddress, #fsAltOptWork')
@@ -388,7 +403,8 @@
                     return false;
                 }
             }
-            if (typeof window.wxValidateFormSCountableExperience === 'function') {
+            var altFormName = String($('#form_name').val() || '').trim().toUpperCase();
+            if (altFormName === 'S' && typeof window.wxValidateFormSCountableExperience === 'function') {
                 var expCheck = window.wxValidateFormSCountableExperience();
                 if (!expCheck.ok) {
                     var $msg = $('#work-exp-total-msg-previous').length
@@ -451,9 +467,15 @@
     function buildAlterationFormData() {
         prepareAlterationFormForSubmit();
         syncAlterFlagsFromForm();
-        var formData = new FormData(document.getElementById('competency_form_ws'));
+        var formEl = alterationFormEl();
+        var formData = new FormData(formEl);
+        var altFormName = String($('#form_name').val() || '').trim().toUpperCase();
+        if ((altFormName === 'W' || altFormName === 'WH')
+            && typeof window.appendWorkExperienceFilesToFormData === 'function') {
+            window.appendWorkExperienceFilesToFormData(formData, formEl);
+        }
         if (typeof window.appendWorkBoardMemberFieldsToFormData === 'function') {
-            window.appendWorkBoardMemberFieldsToFormData(formData, document.getElementById('competency_form_ws'));
+            window.appendWorkBoardMemberFieldsToFormData(formData, formEl);
         }
         formData.set('alter_name', $('#alter_name').val() || '0');
         formData.set('alter_address', $('#alter_address').val() || '0');
@@ -645,10 +667,10 @@
                 return;
             }
 
-            if (certCode !== 'S' && certCode !== 'W') {
-                Swal.fire('Not available', 'Alteration for this certificate type is not available yet.', 'info');
-                return;
-            }
+            // if (certCode !== 'S' && certCode !== 'W') {
+            //     Swal.fire('Not available', 'Alteration for this certificate type is not available yet.', 'info');
+            //     return;
+            // }
 
             var $btn = $(this).prop('disabled', true);
             try {

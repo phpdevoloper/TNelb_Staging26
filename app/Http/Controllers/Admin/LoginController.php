@@ -21,6 +21,7 @@ use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\Competency\CompetencyMetaService;
+use App\Services\Competency\CompetencyQcQscService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
@@ -106,7 +107,6 @@ class LoginController extends Controller
     //     if (!$staff || !$staff->name) {
     //         return abort(403, 'Unauthorized');
     //     }
-    //     // var_dump($staff);die;
 
     //     $assignedFormID = $staff->form_id;
     //     $processed_by   = $this->getProcessedByRole($staff->name);
@@ -228,6 +228,7 @@ class LoginController extends Controller
      */
     public function dashboard()
     {
+
 
         $staff = Auth::user();
 
@@ -437,6 +438,7 @@ class LoginController extends Controller
                 );
             }
 
+
             // Contractor licences (Form A/B & their variants) use dedicated EA/EB tables.
             // Add their pending counts so contractor cards can display New/Renewal correctly.
             $contractorLicences = $licences->filter(function ($lic) use ($contractorCategoryIds) {
@@ -466,8 +468,6 @@ class LoginController extends Controller
                 $contractorTables = ['ccl_forma_meta'];
 
                 foreach ($contractorTables as $tbl) {
-
-                    // dd($staff);exit;
 
                     if ($staff->role_id == '1') {
 
@@ -536,11 +536,6 @@ class LoginController extends Controller
                     $contractorCounts = $contractorCounts->merge($rows);
                 }
 
-                // dd($contractorCounts);exit;
-
-
-
-
                 foreach ($contractorCounts as $row) {
                     $formCode = strtoupper((string) ($row->form_name ?? ''));
 
@@ -566,7 +561,6 @@ class LoginController extends Controller
                 }
             }
         }
-
         // Build a detailed flat list combining ID + type + licence details
         $assignedForms = $assignedRows
             ->flatMap(function ($row) use ($licences) {
@@ -732,23 +726,9 @@ class LoginController extends Controller
                 ->select('application_id', 'form_name', 'created_at', 'updated_at', 'processed_by')
                 ->orderByDesc('created_at')
                 ->get();
-            $receivedFromFormP = DB::table('cc_form_p_meta')
-                ->whereIn('app_status', ['F', 'RF'])
-                ->where('processed_by', 'A')
-                ->whereIn('payment_status', ['payment', 'paid'])
-                ->select(
-                    'application_id',
-                    DB::raw("'P' as form_name"),
-                    'created_at',
-                    'updated_at',
-                    'processed_by'
-                )
-                ->orderByDesc('created_at')
-                ->get();
             $recieved_apps = $receivedFromCc
                 ->merge($receivedFromLegacy)
                 ->merge($receivedFromEa)
-                ->merge($receivedFromFormP)
                 ->sortByDesc('created_at')
                 ->values();
 
@@ -774,26 +754,14 @@ class LoginController extends Controller
                 ->select('application_id', 'form_name', 'created_at', 'updated_at', 'processed_by', DB::raw('application_status as status'))
                 ->orderByDesc('updated_at')
                 ->get();
-            $inprogressFromFormP = DB::table('cc_form_p_meta')
-                ->whereIn('app_status', ['F', 'RF', 'QU'])
-                ->whereIn('payment_status', ['payment', 'paid'])
-                ->select(
-                    'application_id',
-                    DB::raw("'P' as form_name"),
-                    'created_at',
-                    'updated_at',
-                    'processed_by',
-                    DB::raw('app_status as status')
-                )
-                ->orderByDesc('updated_at')
-                ->get();
             $inprogress = $inprogressFromCc
                 ->merge($inprogressFromLegacy)
                 ->merge($inprogressFromEa)
-                ->merge($inprogressFromFormP)
                 ->sortByDesc('updated_at')
                 ->values();
         }
+
+
 
         return view('admin.dashboard.president_dashboard', compact(
             'staff',
@@ -1812,8 +1780,6 @@ class LoginController extends Controller
         }
 
 
-        // var_dump($applicant->form_id);die;
-
         if ($applicant->appl_type == "R") {
 
             // $ids = [$applicant->old_application, $applicant_id];
@@ -1838,8 +1804,6 @@ class LoginController extends Controller
                 ->whereNotNull('upload_path')
                 ->orderByDesc('id')
                 ->first();
-
-            // var_dump($workExperience);die;
 
         } else {
 
@@ -2050,8 +2014,6 @@ class LoginController extends Controller
         // Get the current user's role ID
         $staff = Auth::user();
 
-        // dd($staff->name);exit;
-
         if (!$staff || !$staff->roles_id) {
             return abort(403, 'Unauthorized');
         }
@@ -2165,13 +2127,8 @@ class LoginController extends Controller
                 ->first();
         }
 
-        if (($applicant->appl_type ?? '') === 'A' && $parentApplicantForAlter) {
-            if ((int) ($applicant->qc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qc ?? 0) === 1) {
-                $applicant->qc = 1;
-            }
-            if ((int) ($applicant->qsc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qsc ?? 0) === 1) {
-                $applicant->qsc = 1;
-            }
+        if (in_array((string) ($applicant->appl_type ?? ''), ['A', 'R', 'D'], true)) {
+            app(CompetencyQcQscService::class)->overlayOnApplicant($applicant);
         }
 
         $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)
@@ -2323,21 +2280,15 @@ class LoginController extends Controller
         if ($appl_type === 'R') {
             // dd($applicant->old_application);
             // exit;
-            $old_issuedat = DB::table('tnelb_license')
-                ->select('issued_at', 'created_at', 'expires_at')
+            $old_issuedat = DB::table('cl_forma_lic')
+                ->select('dateof_issue', 'created_at', 'valid_from',  'valid_to')
                 ->where('application_id', $applicant->old_application)
 
-                ->unionAll(
 
-                    DB::table('cl_forma_lic')
-                        ->select('issued_at', 'created_at', 'expires_at')
-                        ->where('application_id', $applicant->old_application)
-
-                )
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            $old_issued_at_date = $old_issuedat->expires_at;
+            $old_issued_at_date = $old_issuedat->valid_to;
 
             // dd($old_issuedat->issued_at);
             // exit;
@@ -2552,8 +2503,6 @@ class LoginController extends Controller
             ->select('tnelb_workflow_a.*', 'mst__roles.name', 'ccl_forma_meta.form_name', 'ccl_forma_meta.license_name')
             ->orderBy('tnelb_workflow_a.id', 'desc')
             ->get();
-
-        // var_dump($workflows);die;
 
         $queries = DB::table('tnelb_query_applicable as qa')
             ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
@@ -2965,8 +2914,6 @@ class LoginController extends Controller
             ->orderBy('tnelb_workflow_a.id', 'desc')
             ->get();
 
-        // var_dump($workflows);die;
-
         $queries = DB::table('tnelb_query_applicable as qa')
             ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
             ->where('qa.application_id', $applicant_id)
@@ -3308,8 +3255,6 @@ class LoginController extends Controller
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
 
-    //     // var_dump($workflows);die;
-
     //     $queries = DB::table('tnelb_query_applicable as qa')
     //         ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
     //         ->where('qa.application_id', $applicant_id)
@@ -3481,8 +3426,6 @@ class LoginController extends Controller
     //         ->orderBy('tnelb_workflow_a.created_at', 'desc')
     //         ->get();
 
-    //     // var_dump($workflows);die;
-
     //     $queries = DB::table('tnelb_query_applicable as qa')
     //         ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
     //         ->where('qa.application_id', $applicant_id)
@@ -3642,8 +3585,6 @@ class LoginController extends Controller
         }
 
 
-        // var_dump($applicant->form_id);die;
-
         if ($applicant->appl_type == "R") {
 
             // $ids = [$applicant->old_application, $applicant_id];
@@ -3668,8 +3609,6 @@ class LoginController extends Controller
                 ->whereNotNull('upload_path')
                 ->orderByDesc('id')
                 ->first();
-
-            // var_dump($workExperience);die;
 
         } else {
 
@@ -3930,8 +3869,6 @@ class LoginController extends Controller
         // Get the current user's role ID
         $staff = Auth::user();
 
-        // dd($staff->name);exit;
-
         if (!$staff || !$staff->roles_id) {
             return abort(403, 'Unauthorized');
         }
@@ -3958,7 +3895,6 @@ class LoginController extends Controller
 
 
 
-        // dd($applicant->status);exit;
         if ($staff->name === "Assistant Secretary") {
 
 
@@ -4059,13 +3995,8 @@ class LoginController extends Controller
                 ->first();
         }
 
-        if (($applicant->appl_type ?? '') === 'A' && $parentApplicantForAlter) {
-            if ((int) ($applicant->qc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qc ?? 0) === 1) {
-                $applicant->qc = 1;
-            }
-            if ((int) ($applicant->qsc ?? 0) !== 1 && (int) ($parentApplicantForAlter->qsc ?? 0) === 1) {
-                $applicant->qsc = 1;
-            }
+        if (in_array((string) ($applicant->appl_type ?? ''), ['A', 'R', 'D'], true)) {
+            app(CompetencyQcQscService::class)->overlayOnApplicant($applicant);
         }
 
         $Existingchecklist = CC_Checklist_applicant::where('applicant_id', $applicant_id)
@@ -4093,7 +4024,6 @@ class LoginController extends Controller
         // Determine view based on user role
 
 
-        // var_dump($nextForwardUser);exit;
         return view('admin.completed_appl_view', compact(
             'applicant',
             'educationalQualifications',
@@ -4119,7 +4049,6 @@ class LoginController extends Controller
     }
     public function viewCompletedApplicationDetail_bk($applicant_id)
     {
-        // dd($applicant_id);exit;
         $staff = Auth::user();
         if (!$staff) {
             return abort(403, 'Unauthorized');

@@ -217,6 +217,10 @@ class RegisterController extends BaseController
             return redirect()->route('dashboard')->with('error', 'You can only renew your own application.');
         }
 
+        if (app(FormController::class)->renewalAlreadyInProgress((string) $appl_id, (string) $loginId)) {
+            return redirect()->route('dashboard')->with('error', 'A renewal application is already in progress for this certificate.');
+        }
+
         $master = app(FormSApplicationWorkflowService::class)->masterApplication($application);
         $masterApplicationId = (string) $master->application_id;
         $formName = (string) ($application->form_name ?? 'S');

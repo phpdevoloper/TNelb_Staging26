@@ -295,6 +295,18 @@
                             ]);
 
 
+                            // Alteration---------------------
+                             $alter = $isFormAContractor
+                            ? route('admin.view_form', [
+                                'type' => 'A',
+                                'form_type' => 'A'
+                            ])
+                            : route('admin.view_applications', [
+                                'form_id' => $summary['id'],
+                                'form_type' => 'A'
+                            ]);
+
+
                         /*
                         |--------------------------------------------------------------------------
                         | Form Code
@@ -379,6 +391,17 @@
                                             Digitisation
                                             <span class="ms-1 fw-bold text-danger">
                                                 {{ $summary['digi_count'] ?? 0 }}
+                                            </span>
+                                        </a>
+
+                                        {{-- Alteration --}}
+                                        <a
+                                            href="{{ $alter }}"
+                                            class="badge outline-badge-info fw-semibold text-decoration-none"
+                                        >
+                                            Alteration
+                                            <span class="ms-1 fw-bold text-danger">
+                                                {{ $summary['alteration_count'] ?? 0 }}
                                             </span>
                                         </a>
 

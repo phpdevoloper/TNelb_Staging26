@@ -866,7 +866,8 @@
                         @php
                         use Carbon\Carbon;
                         $today = Carbon::today();
-                        $competencyCodes = ['C', 'B', 'W', 'WH'];
+                        $competencyCodes = ['C', 'B', 'H', 'P'];
+                        $contractorCodes = ['A'];
                         $allLicenses = collect($present_license);
                         $competencyLicenses = $allLicenses->filter(function ($l) use ($competencyCodes) {
                             return in_array($l->license_name, $competencyCodes);
@@ -874,6 +875,8 @@
                         $contractorLicenses = $allLicenses->reject(function ($l) use ($competencyCodes) {
                             return in_array($l->license_name, $competencyCodes);
                         });
+
+                        
                         @endphp
 
                         <div class="projects-section-login license-board">
@@ -899,9 +902,9 @@
                                                 $licName = DB::table('mst_licences')
                                                     ->where('cert_licence_code', $workflow->license_name)
                                                     ->first();
-                                                $issuedDate = $workflow->issued_at ? Carbon::parse($workflow->issued_at)->format('d-m-Y') : 'N/A';
-                                                $expiryDate = $workflow->expires_at ? Carbon::parse($workflow->expires_at)->format('d-m-Y') : 'N/A';
-                                                $expiry = $workflow->renewal_expires_at ?: $workflow->expires_at;
+                                                $issuedDate = $workflow->valid_from ? Carbon::parse($workflow->valid_from)->format('d-m-Y') : 'N/A';
+                                                $expiryDate = $workflow->valid_to ? Carbon::parse($workflow->valid_to)->format('d-m-Y') : 'N/A';
+                                                $expiry =  $workflow->valid_to;
                                                 $isExpired = $expiry ? Carbon::parse($expiry)->lte($today) : false;
                                             @endphp
 
@@ -932,10 +935,10 @@
                                                     <span class="license-card__chip">Form {{ $workflow->license_name ?? 'N/A' }}</span>
                                                 </div>
 
-                                                @if ($isExpired && $workflow->expires_at)
+                                                @if ($isExpired && $expiry)
                                                     <div class="license-card__reason">
                                                         <i class="fa fa-exclamation-triangle"></i>
-                                                        <span>Expired on {{ Carbon::parse($workflow->expires_at)->format('d-m-Y') }}</span>
+                                                        <span>Expired on {{ Carbon::parse($expiry)->format('d-m-Y') }}</span>
                                                     </div>
                                                 @endif
                                             </article>
@@ -964,9 +967,9 @@
                                                 $licName = DB::table('mst_licences')
                                                     ->where('cert_licence_code', $workflow->license_name)
                                                     ->first();
-                                                $issuedDate = $workflow->issued_at ? Carbon::parse($workflow->issued_at)->format('d-m-Y') : 'N/A';
-                                                $expiryDate = $workflow->expires_at ? Carbon::parse($workflow->expires_at)->format('d-m-Y') : 'N/A';
-                                                $expiry = $workflow->renewal_expires_at ?: $workflow->expires_at;
+                                                $issuedDate = $workflow->valid_from ? Carbon::parse($workflow->valid_from)->format('d-m-Y') : 'N/A';
+                                                $expiryDate = $workflow->valid_to ? Carbon::parse($workflow->valid_to)->format('d-m-Y') : 'N/A';
+                                                $expiry = $workflow->renewal_expires_at ?: $workflow->valid_to;
                                                 $isExpired = $expiry ? Carbon::parse($expiry)->lte($today) : false;
 
                                                 // TEMP: Bank Solvency / Staff CC checks disabled (source tables missing in DB)
@@ -1004,10 +1007,10 @@
                                                     <span class="license-card__chip">Form {{ $workflow->license_name ?? 'N/A' }}</span>
                                                 </div>
 
-                                                @if ($isExpired && $workflow->expires_at)
+                                                @if ($isExpired && $expiry)
                                                     <div class="license-card__reason">
                                                         <i class="fa fa-exclamation-triangle"></i>
-                                                        <span>Expired on {{ Carbon::parse($workflow->expires_at)->format('d-m-Y') }}</span>
+                                                        <span>Expired on {{ Carbon::parse($expiry)->format('d-m-Y') }}</span>
                                                     </div>
                                                 @elseif ($hasBankExpired || $hasStaffExpired)
                                                     <div class="license-card__reason">
@@ -1291,6 +1294,33 @@
                                                     </a>
 
                                                     @endif
+                                               @elseif(strtoupper(trim($workflow->appl_type)) === 'A')
+                                                     @if($workflow->form_name == 'A')
+                                                    <a href="{{ route('forma_alter_draft', ['application_id' => $workflow->application_id]) }}">
+                                                        <button class="btn btn-sm btn-info">
+                                                            <i class="fa fa-pencil"></i> Draft
+                                                        </button>
+                                                    </a>
+                                                    @elseif($workflow->form_name == 'B')
+                                                    <a href="{{ route('apply-form-b_draft', ['application_id' => $workflow->application_id]) }}">
+                                                        <button class="btn btn-sm btn-info">
+                                                            <i class="fa fa-pencil"></i> Draft
+                                                        </button>
+                                                    </a>
+                                                    @elseif($workflow->form_name == 'SB')
+                                                    <a href="{{ route('apply-form-sb_draft', ['application_id' => $workflow->application_id]) }}">
+                                                        <button class="btn btn-sm btn-info">
+                                                            <i class="fa fa-pencil"></i> Draft
+                                                        </button>
+                                                    </a>
+                                                    @else
+                                                    <a href="{{ route('apply-form-sa_draft', ['application_id' => $workflow->application_id]) }}">
+                                                        <button class="btn btn-sm btn-info">
+                                                            <i class="fa fa-pencil"></i> Draft
+                                                        </button>
+                                                    </a>
+
+                                                    @endif     
                                                @else
                                                @if($workflow->form_name == 'A')
                                                <a href="{{ route('renew-form_ea', ['application_id' => $workflow->application_id]) }}">

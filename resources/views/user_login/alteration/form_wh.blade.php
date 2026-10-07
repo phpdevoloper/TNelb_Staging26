@@ -23,7 +23,14 @@
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit input.work-date-to:not([type="hidden"]),
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] input,
     .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] button,
-    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn {
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-card-field[data-field="relieve"] .form-s-file-upload-wrap,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-date-work.fs-alt-till-partial-edit .work-row-done-btn,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-card-till-toggle,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-date-till,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open input.work-date-to:not([type="hidden"]),
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-card-field[data-field="relieve"],
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-card-field[data-field="relieve"] *,
+    .fs-alt-form.fs-alt-work-unlocked .fs-alt-existing-work.fs-till-relieve-open .work-row-done-btn {
         pointer-events: auto !important;
     }
     /* Keep the expanded till-date card visible after Till date is unchecked
@@ -1631,9 +1638,10 @@
                                                             @php
                                                                 $isWH = (isset($application_details->form_name) && $application_details->form_name === 'WH');
                                                                 $isDraft = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
+                                                                $isWhHelperExam = trim((string) ($edu_details->educational_level ?? '')) === 'Wireman Helper Examination';
                                                                 $instituteDisplayValue = !empty(trim((string) ($edu_details->institute_name ?? '')))
                                                                     ? $edu_details->institute_name
-                                                                    : ($isDraft && $isWH ? 'Dept of Employment & Training' : '');
+                                                                    : ($isDraft && $isWH && $isWhHelperExam ? 'Dept of Employment & Training' : '');
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($instituteDisplayValue) !!}"></td>
                                                             <td>
@@ -1748,9 +1756,7 @@
                                                                 </select>
                                                             </td>
                                                             @php
-                                                                $isWHEmptyRow = isset($application_details->form_name) && $application_details->form_name === 'WH';
-                                                                $isDraftEmptyRow = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
-                                                                $defaultInstituteForEmptyRow = ($isDraftEmptyRow && $isWHEmptyRow) ? 'Dept of Employment & Training' : '';
+                                                                $defaultInstituteForEmptyRow = '';
                                                             @endphp
                                                             <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($defaultInstituteForEmptyRow) !!}"></td>
                                                             <td>
@@ -2723,7 +2729,7 @@
     })();
 </script>
 @endif
-<script src="{{ url('assets/js/alteration.js') }}"></script>
+<script src="{{ url('assets/js/alteration.js') }}?v={{ filemtime(public_path('assets/js/alteration.js')) }}"></script>
 
 <script>
     window.toggleSectionEdit = function(btn) {
@@ -3032,12 +3038,14 @@
                         <option value="">Select Education</option>
                         ${isSForm
                             ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option>'
-                            : (isWOrWHForm
+                            : (isWHForm
+                                ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper Examination">Wireman Helper Examination</option><option value="ITI Certificate">ITI Certificate</option>'
+                                : (isWOrWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper(H) Certificate">Wireman Helper(H) Certificate</option><option value="ITI Certificate">ITI Certificate</option>'
-                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>' + (isWHForm ? '<option value="8">8</option>' : ''))}
+                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>'))}
                     </select>
                 </td>
-                <td><input type="text" class="form-control" name="institute_name[]" required value="${isWHForm ? 'Dept of Employment & Training' : ''}"></td>
+                <td><input type="text" class="form-control" name="institute_name[]" required></td>
                 <td>
                     <select name="month_of_passing[]" class="form-control" required>
                         <option value="">Select Month</option>
@@ -3571,23 +3579,38 @@
 
     // ── Date display formatter: show DD-MM-YYYY, revert to picker on focus ──
     function initDateDisplay(inp) {
-        function toDisplay(raw) {
-            if (!raw) return;
-            var p = raw.split('-');
-            if (p.length === 3) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        /* Work From/To stay type=date. Switching to text on blur drops year keystrokes. */
+        if (inp && inp.classList && (inp.classList.contains('work-date-from') || inp.classList.contains('work-date-to'))) {
+            return;
         }
-        if (inp.value) { inp.setAttribute('data-raw', inp.value); toDisplay(inp.value); }
+        function yearOk(raw) {
+            var y = parseInt(String(raw || '').slice(0, 4), 10);
+            return y >= 1900 && y <= 9999;
+        }
+        function toDisplay(raw) {
+            if (!raw || !yearOk(raw)) return;
+            var p = String(raw).split('-');
+            if (p.length === 3 && p[0].length === 4) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        }
+        if (inp.value && yearOk(inp.value)) { inp.setAttribute('data-raw', inp.value); toDisplay(inp.value); }
         inp.addEventListener('focus', function() {
             var raw = this.getAttribute('data-raw') || '';
-            this.type = 'date'; if (raw) this.value = raw;
+            this.type = 'date';
+            if (raw && yearOk(raw)) this.value = raw;
+            if (this.classList.contains('work-date-to')) this.removeAttribute('max');
         });
         inp.addEventListener('blur', function() {
-            if (this.type === 'date' && this.value) {
-                this.setAttribute('data-raw', this.value); toDisplay(this.value);
+            if (this.type !== 'date') return;
+            if (this.value && yearOk(this.value)) {
+                this.setAttribute('data-raw', this.value);
+                toDisplay(this.value);
+                return;
             }
+            var raw = this.getAttribute('data-raw') || '';
+            if (raw && yearOk(raw)) { this.value = raw; toDisplay(raw); }
         });
         inp.addEventListener('change', function() {
-            if (this.type === 'date' && this.value) this.setAttribute('data-raw', this.value);
+            if (this.type === 'date' && this.value && yearOk(this.value)) this.setAttribute('data-raw', this.value);
         });
     }
     document.querySelectorAll('.work-date-from, .work-date-to, .work-intimation-date').forEach(initDateDisplay);

@@ -1262,7 +1262,7 @@
                                                     @endif
                                                 </select>
                                             </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $eduRow->institute_name ?? ($isRenewWH ? 'Dept of Employment & Training' : '') }}"></td>
+                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $eduRow->institute_name ?? ((trim((string) ($eduRow->educational_level ?? '')) === 'Wireman Helper Examination') ? 'Dept of Employment & Training' : '') }}"></td>
                                             <td>
                                                 @php
                                                     $boundMonth = $eduRow->month_of_passing ?? $eduRow->month_passing ?? '';
@@ -1344,7 +1344,7 @@
                                                     @endif
                                                 </select>
                                             </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" value="{{ $isRenewWH ? 'Dept of Employment & Training' : '' }}"></td>
+                                            <td><input type="text" class="form-control" name="institute_name[]" value=""></td>
                                             <td>
                                                 <select name="month_of_passing[]" class="form-control">
                                                     <option value="">Select Month</option>
@@ -1418,6 +1418,7 @@
                                 'exp_details' => $renewWorkExpList,
                                 'hideUploadWhenDocExists' => true,
                                 'lockExistingRows' => true,
+                                'lock7bBoardMemberOnReturn' => true,
                             ])
                             @elseif($isRenewW || $isRenewWH)
                             @php
@@ -2304,7 +2305,7 @@
                         ${eduOptions}
                     </select>
                 </td>
-                <td><input type="text" class="form-control" name="institute_name[]" ${isRenewWH ? 'value="Dept of Employment & Training"' : ''} required></td>
+                <td><input type="text" class="form-control" name="institute_name[]" required></td>
                 ${monthCell}
                 <td>
                     <select name="year_of_passing[]" class="form-control" required>
@@ -2664,26 +2665,41 @@
 <script>
     function initDateDisplay(inp) {
         if (!inp) return;
-        function toDisplay(raw) {
-            if (!raw) return;
-            var p = String(raw).split('-');
-            if (p.length === 3) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        /* Work From/To stay type=date. Switching to text on blur drops year keystrokes. */
+        if (inp.classList && (inp.classList.contains('work-date-from') || inp.classList.contains('work-date-to'))) {
+            return;
         }
-        if (inp.value && /^\d{4}-\d{2}-\d{2}$/.test(inp.value)) {
+        function yearOk(raw) {
+            var y = parseInt(String(raw || '').slice(0, 4), 10);
+            return y >= 1900 && y <= 9999;
+        }
+        function toDisplay(raw) {
+            if (!raw || !yearOk(raw)) return;
+            var p = String(raw).split('-');
+            if (p.length === 3 && p[0].length === 4) { inp.type = 'text'; inp.value = p[2] + '-' + p[1] + '-' + p[0]; }
+        }
+        if (inp.value && yearOk(inp.value)) {
             inp.setAttribute('data-raw', inp.value);
             toDisplay(inp.value);
         }
         inp.addEventListener('focus', function() {
             var raw = this.getAttribute('data-raw') || '';
-            this.type = 'date'; if (raw) this.value = raw;
+            this.type = 'date';
+            if (raw && yearOk(raw)) this.value = raw;
+            if (this.classList.contains('work-date-to')) this.removeAttribute('max');
         });
         inp.addEventListener('blur', function() {
-            if (this.type === 'date' && this.value) {
-                this.setAttribute('data-raw', this.value); toDisplay(this.value);
+            if (this.type !== 'date') return;
+            if (this.value && yearOk(this.value)) {
+                this.setAttribute('data-raw', this.value);
+                toDisplay(this.value);
+                return;
             }
+            var raw = this.getAttribute('data-raw') || '';
+            if (raw && yearOk(raw)) { this.value = raw; toDisplay(raw); }
         });
         inp.addEventListener('change', function() {
-            if (this.type === 'date' && this.value) this.setAttribute('data-raw', this.value);
+            if (this.type === 'date' && this.value && yearOk(this.value)) this.setAttribute('data-raw', this.value);
         });
     }
     document.querySelectorAll('#competency_form_ws .work-date-from, #competency_form_ws .work-date-to').forEach(initDateDisplay);
@@ -2711,6 +2727,34 @@
             var $toggle = $('.fs-7b-board-toggle');
             $toggle.find('.fs-segmented-opt').removeClass('is-active');
             $input.closest('.fs-segmented-opt').addClass('is-active');
+        }
+
+        function lockReturned7bFields($row) {
+            var $root = $('#fs-7b-root');
+            if (!$root.hasClass('fs-7b-return-locked')) return;
+
+            $('.fs-7b-board-toggle').addClass('is-locked').attr('aria-disabled', 'true');
+            $('input[name="current_work_board_member"][type="radio"]').prop('disabled', true);
+            if (!$('input[type="hidden"][name="current_work_board_member"]').length) {
+                $('.fs-7b-board-toggle').after('<input type="hidden" name="current_work_board_member" value="yes">');
+            }
+
+            if (!$row || !$row.length) return;
+
+            $row.find('input, select, textarea').not('[type="hidden"]').each(function () {
+                var type = (this.type || '').toLowerCase();
+                if (type === 'file') {
+                    $(this).prop('disabled', true).prop('required', false);
+                    return;
+                }
+                if ((this.tagName || '').toLowerCase() === 'select') {
+                    $(this).prop('disabled', false).attr('tabindex', '-1');
+                    return;
+                }
+                $(this).prop('readonly', true).prop('disabled', false);
+            });
+            $row.find('.remove-work-doc-confirm').hide();
+            $row.find('.form-s-file-upload-wrap, .work-card-field-hint').hide();
         }
 
         function apply7bBoardToggle(mode, isInit) {
@@ -2742,6 +2786,10 @@
                 $emp.prop('required', false).prop('disabled', true).val('');
             }
 
+            if ($root.hasClass('fs-7b-return-locked')) {
+                lockReturned7bFields($row);
+            }
+
             if (typeof window.wxSyncBoardMemberRenewalFee === 'function') {
                 window.wxSyncBoardMemberRenewalFee();
             }
@@ -2749,6 +2797,12 @@
 
         $(document).ready(function () {
             $('input[name="current_work_board_member"]').on('change', function () {
+                if ($('#fs-7b-root').hasClass('fs-7b-return-locked')) {
+                    $('#current_work_board_member_yes').prop('checked', true);
+                    sync7bSegmentedActive($('#current_work_board_member_yes'));
+                    lockReturned7bFields(get7bWorkRow());
+                    return;
+                }
                 sync7bSegmentedActive($(this));
                 apply7bBoardToggle($(this).val(), false);
             });

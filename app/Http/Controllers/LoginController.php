@@ -119,6 +119,7 @@ class LoginController extends BaseController
 
         return match ($normalized) {
             'n', 'draft' => 'draft',
+            'b' => 'payment',
             'y', 'payment', 'paid', 'success' => 'payment',
             default => $normalized !== '' ? $normalized : 'draft',
         };
@@ -195,8 +196,8 @@ class LoginController extends BaseController
             ->whereRaw("TRIM(COALESCE(ta.appl_type, '')) <> 'A'")
             ->select(
                 'c.certificate_no as license_number',
-                'c.valid_to as expires_at',
-                'c.dateof_issue as issued_at',
+                'c.valid_to',
+                DB::raw('COALESCE(c.valid_from, c.dateof_issue) as valid_from'),
                 'ta.application_id',
                 'ta.form_name',
                 DB::raw("{$licenseNameExpr} as license_name"),
@@ -230,26 +231,19 @@ class LoginController extends BaseController
             }
 
             if ($license) {
-                if ($workflow->appl_type === 'N') {
-                    $renewalApp = DB::table('tnelb_form_p')
-                        ->where('old_application', $workflow->application_id)
-                        ->where('appl_type', 'R')
-                        ->orderByDesc('id')
-                        ->first();
+                $licenseNumber = $license->license_number;
+                $expiry = $license->expires_at;
 
+                if ($workflow->appl_type === 'N') {
+                    $renewalApp = $this->findFormPRenewalApplication((string) $workflow->application_id);
                     if ($renewalApp) {
                         $renewalApplicationId = $renewalApp->application_id;
-                    } else {
-                        $licenseNumber = $license->license_number;
-                        $expiry = $license->expires_at;
                     }
-                } else {
-                    $licenseNumber = $license->license_number;
-                    $expiry = $license->expires_at;
                 }
             }
 
-            if ($workflow->appl_type === 'A' && $workflow->status !== 'A') {
+            $legacyStatus = strtoupper(trim((string) ($workflow->status ?? $workflow->app_status ?? '')));
+            if ($workflow->appl_type === 'A' && $legacyStatus !== 'A') {
                 $licenseNumber = null;
                 $expiry = null;
             }
@@ -285,7 +279,15 @@ class LoginController extends BaseController
             ? $certificatePdfApplicationId
             : (string) $workflow->application_id;
         $workflow->expires_at = $expiry;
+        [$canApplyRenewal, $renewalApplicationId, $renewals] = $this->applyCertificateFamilyRenewalState(
+            $workflow,
+            $canApplyRenewal,
+            $renewalApplicationId,
+            true
+        );
+
         $workflow->renewal_application_id = $renewalApplicationId;
+        $workflow->renewals = $renewals;
         $workflow->is_under_validity_period = $isValid;
         $workflow->can_apply_renewal = $canApplyRenewal;
 
@@ -314,18 +316,85 @@ class LoginController extends BaseController
     }
 
     /**
-     * Alteration reuses the parent certificate; licence PDF is stored against that parent id.
+     * @return list<string>
      */
-    private function issuedCertificateApplicationId(object $workflow): string
+    private function competencyRenewalApplicationIds(string $parentApplicationId): array
     {
-        if (strtoupper(trim((string) ($workflow->appl_type ?? ''))) === 'A') {
-            $parentId = trim((string) ($workflow->old_application ?? ''));
-            if ($parentId !== '') {
-                return $parentId;
+        $parentApplicationId = trim($parentApplicationId);
+        if ($parentApplicationId === '') {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($this->competencyMetaService()->allMetaTables() as $metaTable) {
+            $found = DB::table($metaTable)
+                ->where('old_application', $parentApplicationId)
+                ->whereRaw("UPPER(TRIM(COALESCE(appl_type, ''))) = 'R'")
+                ->orderByDesc('app_id')
+                ->pluck('application_id');
+
+            foreach ($found as $id) {
+                $id = trim((string) $id);
+                if ($id !== '' && ! in_array($id, $ids, true)) {
+                    $ids[] = $id;
+                }
             }
         }
 
-        return trim((string) ($workflow->application_id ?? ''));
+        $legacy = DB::table('tnelb_application_tbl')
+            ->where('old_application', $parentApplicationId)
+            ->whereRaw("UPPER(TRIM(COALESCE(appl_type, ''))) = 'R'")
+            ->orderByDesc('id')
+            ->pluck('application_id');
+
+        foreach ($legacy as $id) {
+            $id = trim((string) $id);
+            if ($id !== '' && ! in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Certificate row may sit on this application or on an earlier one in the chain.
+     * A second alteration's parent is another alteration, so the lookup has to keep
+     * walking until the issued certificate is found. The application's own row wins
+     * when the certificate was issued on that latest application.
+     */
+    private function issuedCertificateApplicationId(object $workflow): string
+    {
+        $metaService = app(CompetencyMetaService::class);
+        $certService = $this->competencyCertificateService();
+        $currentId = trim((string) ($workflow->application_id ?? ''));
+        $formName = (string) ($workflow->form_name ?? '');
+        $seen = [];
+        $fallback = $currentId;
+
+        while ($currentId !== '' && ! isset($seen[$currentId])) {
+            $seen[$currentId] = true;
+            $license = $certService->asWorkflowLicense($currentId, $formName);
+            if ($license && trim((string) ($license->license_number ?? '')) !== '') {
+                return $currentId;
+            }
+
+            $parentId = '';
+            $row = $metaService->findModel($currentId);
+            if ($row) {
+                $parentId = trim((string) ($row->old_application ?? ''));
+                $formName = (string) ($row->form_name ?? $formName);
+            } elseif ($currentId === $fallback) {
+                $parentId = trim((string) ($workflow->old_application ?? ''));
+            }
+
+            if ($parentId === '' || $parentId === $currentId) {
+                break;
+            }
+            $currentId = $parentId;
+        }
+
+        return $fallback;
     }
 
     private function enrichCompetencyWorkflowRow(object $workflow): object
@@ -353,24 +422,21 @@ class LoginController extends BaseController
             }
 
             if ($license) {
+                $licenseNumber = $license->license_number;
+                $expiry = $license->expires_at;
+
                 if ($workflow->appl_type === 'N') {
                     $renewalApp = $this->findCompetencyRenewalApplication((string) $workflow->application_id);
-
                     if ($renewalApp) {
                         $renewalApplicationId = $renewalApp->application_id;
-                        $licenseNumber = null;
-                        $expiry = null;
-                    } else {
-                        $licenseNumber = $license->license_number;
-                        $expiry = $license->expires_at;
                     }
-                } else {
-                    $licenseNumber = $license->license_number;
-                    $expiry = $license->expires_at;
                 }
             }
 
-            if ($workflow->appl_type === 'A' && $workflow->app_status !== 'A') {
+            $appStatus = strtoupper(trim((string) (
+                $workflow->application_status ?? $workflow->app_status ?? $workflow->status ?? ''
+            )));
+            if ($workflow->appl_type === 'A' && $appStatus !== 'A') {
                 $licenseNumber = null;
                 $expiry = null;
             }
@@ -406,7 +472,15 @@ class LoginController extends BaseController
             ? $certificatePdfApplicationId
             : (string) $workflow->application_id;
         $workflow->expires_at = $expiry;
+        [$canApplyRenewal, $renewalApplicationId, $renewals] = $this->applyCertificateFamilyRenewalState(
+            $workflow,
+            $canApplyRenewal,
+            $renewalApplicationId,
+            false
+        );
+
         $workflow->renewal_application_id = $renewalApplicationId;
+        $workflow->renewals = $renewals;
         $workflow->is_under_validity_period = $isValid;
         $workflow->can_apply_renewal = $canApplyRenewal;
 
@@ -435,16 +509,7 @@ class LoginController extends BaseController
                 return [false, $renewalApplicationId];
             }
 
-            $parentId = trim((string) ($workflow->old_application ?? ''));
-            $latestIssued = $parentId !== ''
-                ? ($isFormP
-                    ? $this->findCompletedFormPAlteration($parentId)
-                    : $this->findCompletedCompetencyAlteration($parentId))
-                : null;
-            $isLatestIssued = $latestIssued
-                && trim((string) ($latestIssued->application_id ?? '')) === $applicationId;
-
-            if (! $isLatestIssued) {
+            if (! $this->isLatestCompletedAlteration($applicationId, $isFormP)) {
                 return [false, $renewalApplicationId];
             }
 
@@ -459,17 +524,223 @@ class LoginController extends BaseController
             return [true, $renewalApplicationId];
         }
 
-        $completedAlteration = $applicationId !== ''
-            ? ($isFormP
-                ? $this->findCompletedFormPAlteration($applicationId)
-                : $this->findCompletedCompetencyAlteration($applicationId))
-            : null;
-
-        if ($completedAlteration) {
+        if ($applicationId !== '' && $this->hasCompletedAlterationDownstream($applicationId, $isFormP)) {
             return [false, $renewalApplicationId];
         }
 
         return [$isValid && empty($renewalApplicationId), $renewalApplicationId];
+    }
+
+    /**
+     * A renewal parented to an earlier alteration still belongs to the latest
+     * certificate in that chain. Only that latest row shows the count and the
+     * renewal id, and it does not offer another renewal while one exists.
+     *
+     * @return array{0: bool, 1: ?string, 2: list<string>}
+     */
+    private function applyCertificateFamilyRenewalState(
+        object $workflow,
+        bool $canApplyRenewal,
+        ?string $renewalApplicationId,
+        bool $isFormP
+    ): array {
+        $applicationId = trim((string) ($workflow->application_id ?? ''));
+        $applType = strtoupper(trim((string) ($workflow->appl_type ?? '')));
+        $familyRenewals = $this->certificateFamilyRenewalIds($applicationId, $isFormP);
+        $ownerId = $this->renewalStatusOwnerId($applicationId, $isFormP);
+
+        if ($applicationId !== '' && $applicationId === $ownerId) {
+            if ($familyRenewals !== []) {
+                $renewalApplicationId = $familyRenewals[0];
+                $canApplyRenewal = false;
+            }
+
+            return [$canApplyRenewal, $renewalApplicationId, $familyRenewals];
+        }
+
+        if ($applType === 'R') {
+            $latestRenewal = $familyRenewals[0] ?? '';
+            if ($latestRenewal !== $applicationId) {
+                $canApplyRenewal = false;
+            }
+            if ($renewalApplicationId === $applicationId) {
+                $renewalApplicationId = null;
+            }
+
+            return [$canApplyRenewal, $renewalApplicationId, []];
+        }
+
+        return [false, null, []];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function certificateFamilyRenewalIds(string $applicationId, bool $isFormP): array
+    {
+        $root = $this->certificateChainRootId($applicationId);
+        if ($root === '') {
+            return [];
+        }
+
+        $seen = [];
+        $queue = [$root];
+        $renewals = [];
+
+        while ($queue !== []) {
+            $current = array_shift($queue);
+            if ($current === '' || isset($seen[$current])) {
+                continue;
+            }
+            $seen[$current] = true;
+
+            foreach ($this->directChildApplications($current, $isFormP) as $child) {
+                $childId = trim((string) ($child->application_id ?? ''));
+                if ($childId === '' || isset($seen[$childId])) {
+                    continue;
+                }
+
+                $queue[] = $childId;
+                if (strtoupper(trim((string) ($child->appl_type ?? ''))) !== 'R') {
+                    continue;
+                }
+
+                $renewals[$childId] = (int) ($child->sort_id ?? 0);
+            }
+        }
+
+        arsort($renewals);
+
+        return array_keys($renewals);
+    }
+
+    private function renewalStatusOwnerId(string $applicationId, bool $isFormP): string
+    {
+        $current = $this->certificateChainRootId($applicationId);
+        if ($current === '') {
+            return trim($applicationId);
+        }
+
+        $seen = [];
+        while ($current !== '' && ! isset($seen[$current])) {
+            $seen[$current] = true;
+            $next = $isFormP
+                ? $this->findCompletedFormPAlteration($current)
+                : $this->findCompletedCompetencyAlteration($current);
+            $nextId = trim((string) ($next->application_id ?? ''));
+            if ($nextId === '' || $nextId === $current) {
+                break;
+            }
+            $current = $nextId;
+        }
+
+        return $current;
+    }
+
+    private function certificateChainRootId(string $applicationId): string
+    {
+        $current = trim($applicationId);
+        $seen = [];
+
+        while ($current !== '' && ! isset($seen[$current])) {
+            $seen[$current] = true;
+            $parent = trim((string) (app(CompetencyMetaService::class)->findModel($current)?->old_application ?? ''));
+            if ($parent === '' || $parent === $current) {
+                return $current;
+            }
+            $current = $parent;
+        }
+
+        return trim($applicationId);
+    }
+
+    /**
+     * @return list<object>
+     */
+    private function directChildApplications(string $parentApplicationId, bool $isFormP): array
+    {
+        $parentApplicationId = trim($parentApplicationId);
+        if ($parentApplicationId === '') {
+            return [];
+        }
+
+        $tables = $isFormP
+            ? [['cc_form_p_meta', 'app_id'], ['tnelb_form_p', 'id']]
+            : array_merge(
+                array_map(
+                    fn (string $table) => [$table, 'app_id'],
+                    $this->competencyMetaService()->allMetaTables()
+                ),
+                [['tnelb_application_tbl', 'id']]
+            );
+
+        $rows = [];
+        foreach ($tables as [$table, $pk]) {
+            $found = DB::table($table)
+                ->where('old_application', $parentApplicationId)
+                ->orderByDesc($pk)
+                ->get(['application_id', 'appl_type', DB::raw($pk . ' as sort_id')]);
+
+            foreach ($found as $row) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Renewal belongs only on the latest approved alteration in the certificate chain.
+     * An earlier alteration stays ineligible once a later approved alteration exists,
+     * including a second alteration whose parent is the previous alteration.
+     */
+    private function isLatestCompletedAlteration(string $applicationId, bool $isFormP): bool
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '' || $this->hasCompletedAlterationDownstream($applicationId, $isFormP)) {
+            return false;
+        }
+
+        $parentId = trim((string) (app(CompetencyMetaService::class)->findModel($applicationId)?->old_application ?? ''));
+        if ($parentId === '' || $parentId === $applicationId) {
+            return true;
+        }
+
+        $latestSibling = $isFormP
+            ? $this->findCompletedFormPAlteration($parentId)
+            : $this->findCompletedCompetencyAlteration($parentId);
+
+        return $latestSibling
+            && trim((string) ($latestSibling->application_id ?? '')) === $applicationId;
+    }
+
+    private function hasCompletedAlterationDownstream(string $applicationId, bool $isFormP): bool
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return false;
+        }
+
+        $seen = [];
+        $currentId = $applicationId;
+
+        while ($currentId !== '' && ! isset($seen[$currentId])) {
+            $seen[$currentId] = true;
+            $next = $isFormP
+                ? $this->findCompletedFormPAlteration($currentId)
+                : $this->findCompletedCompetencyAlteration($currentId);
+            $nextId = trim((string) ($next->application_id ?? ''));
+            if ($nextId === '' || $nextId === $currentId) {
+                return false;
+            }
+
+            $currentId = $nextId;
+            if ($currentId !== $applicationId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function findFormPRenewalApplication(string $parentApplicationId): ?object
@@ -494,6 +765,38 @@ class LoginController extends BaseController
             ->where('appl_type', 'R')
             ->orderByDesc('id')
             ->first();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function formPRenewalApplicationIds(string $parentApplicationId): array
+    {
+        $parentApplicationId = trim($parentApplicationId);
+        if ($parentApplicationId === '') {
+            return [];
+        }
+
+        $ids = [];
+        foreach ([
+            ['cc_form_p_meta', 'app_id'],
+            ['tnelb_form_p', 'id'],
+        ] as [$table, $orderColumn]) {
+            $found = DB::table($table)
+                ->where('old_application', $parentApplicationId)
+                ->whereRaw("UPPER(TRIM(COALESCE(appl_type, ''))) = 'R'")
+                ->orderByDesc($orderColumn)
+                ->pluck('application_id');
+
+            foreach ($found as $id) {
+                $id = trim((string) $id);
+                if ($id !== '' && ! in_array($id, $ids, true)) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        return $ids;
     }
 
     private function findCompletedCompetencyAlteration(string $parentApplicationId): ?object
@@ -815,8 +1118,6 @@ class LoginController extends BaseController
                     $appl_type = str_replace(' ', '', $workflow->appl_type);
 
                     $form_name = str_replace(' ', '', $workflow->form_name);
-
-                    // dd($form_name); exit;
 
                     // ------------------------------------------------
                     // NEW APPLICATION
@@ -1253,7 +1554,7 @@ class LoginController extends BaseController
                     }
 
                     $ps = strtolower((string) ($row->payment_status ?? ''));
-                    if (in_array($ps, ['payment', 'paid', 'y', 'success'], true)) {
+                    if (in_array($ps, ['payment', 'paid', 'y', 'b', 'success'], true)) {
                         $parts[] = 'success';
                         $parts[] = 'payment';
                     } else {

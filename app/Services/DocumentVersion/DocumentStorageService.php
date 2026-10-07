@@ -366,12 +366,7 @@ class DocumentStorageService
                 abort(500, 'Could not decrypt document.');
             }
 
-            $displayName = $crypt->displayFileNameForProofDocument($safeName);
-
-            return response($decrypted, 200, [
-                'Content-Type' => $crypt->inlineMimeTypeForProofDocument($relativePath, $safeName),
-                'Content-Disposition' => 'inline; filename="' . $displayName . '"',
-            ]);
+            return $crypt->browserInlineResponse($decrypted, $safeName);
         }
 
         return $disk->response($relativePath, $safeName, [
@@ -493,7 +488,7 @@ class DocumentStorageService
         }
 
         // 2) Derive the form code from the application number.
-        // Format: {applType? R|D}{formCode}{licenceCode}{yy}{sequence}, e.g. DWB261111226 → W.
+        // Format: {applType? A|R|D}{formCode}{licenceCode}{yy}{sequence}, e.g. AWB26… → W, DWB26… → W.
         $formCode = $this->formCodeFromApplicationNo($uppercase, array_keys($configured));
         if ($formCode !== '') {
             $key = 'FORM_' . $formCode;
@@ -518,9 +513,10 @@ class DocumentStorageService
             return '';
         }
 
-        // Strip a single leading application-type prefix (R = Renewal, D = Digitisation).
-        // No form code starts with R or D, so this is safe.
-        if ($s !== '' && ($s[0] === 'R' || $s[0] === 'D')) {
+        // Strip a single leading application-type prefix
+        // (A = Alteration, R = Renewal, D = Digitisation).
+        // No form code starts with A, R, or D, so this is safe.
+        if ($s !== '' && ($s[0] === 'A' || $s[0] === 'R' || $s[0] === 'D')) {
             $s = substr($s, 1);
         }
 

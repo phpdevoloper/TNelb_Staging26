@@ -7265,17 +7265,6 @@ $(document).on("click", "#save_qc", function () {
     // CATEGORY
     // ========================================================
 
-    let category =
-        $section.find(".staffqc_category").val();
-
-    if (!category) {
-
-        $section.find(".staff-category-error")
-            .text("Please select staff category.");
-
-        hasError = true;
-    }
-
 
     // ========================================================
     // APPLICATION TYPE
