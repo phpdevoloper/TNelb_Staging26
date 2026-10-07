@@ -574,7 +574,17 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
 // URL: /{DOCUMENT_PUBLIC_URL_PREFIX}/FORM_* — Laravel serves when DOCUMENT_SERVE_VIA_LARAVEL=true;
 // otherwise configure nginx/Apache Alias to DOCUMENT_STORAGE_ROOT.
 $competencyUrlPrefix = trim((string) config('document_versioning.public_url_prefix', 'competency'), '/');
-if ($competencyUrlPrefix !== '' && config('document_versioning.serve_via_laravel', true)) {
+if ($competencyUrlPrefix === '') {
+    $competencyUrlPrefix = 'competency';
+}
+
+// Aadhaar/PAN are encrypted .bin files. Do not use a URL that ends in .pdf —
+// staging nginx treats those as static files and 404s before Laravel runs.
+Route::get('/'.$competencyUrlPrefix.'/identity/{type}', [FormController::class, 'showEncryptedDocument'])
+    ->where('type', 'aadhaar|pan')
+    ->name('competency.identity');
+
+if (config('document_versioning.serve_via_laravel', true)) {
     Route::get('/'.$competencyUrlPrefix.'/{filePath}', [FormSDocumentController::class, 'viewByPath'])
         ->where('filePath', '(FORM_[A-Z]+|uploads/digitization)/.+')
         ->name('competency.file');

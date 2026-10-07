@@ -496,22 +496,27 @@ if (!function_exists('proof_document_url')) {
         }
 
         $legacyType = strtolower($legacyType) === 'pan' ? 'pan' : 'aadhaar';
-        $isEncryptedBlob = str_ends_with(strtolower($storedPath), '.bin')
-            || preg_match('#^FORM_[A-Z]+/#', $storedPath)
-            || str_starts_with($storedPath, 'uploads/digitization/')
-            || ! str_contains($storedPath, '/');
 
-        // Encrypted Aadhaar/PAN must be decrypted by Laravel and shown inline as PDF.
-        // Use a .pdf URL so the browser tab/download name is not the stored .bin file.
-        if ($isEncryptedBlob && \Illuminate\Support\Facades\Route::has('document.show')) {
-            $displayPath = preg_replace('/\.bin$/i', '.pdf', $storedPath) ?: $storedPath;
-            $displayName = basename($displayPath);
+        $identityQueryUrl = static function (string $type, string $path): string {
+            if (\Illuminate\Support\Facades\Route::has('competency.identity')) {
+                return route('competency.identity', ['type' => $type]).'?file='.rawurlencode($path);
+            }
 
-            return url('/document/'.$legacyType.'/'.$displayName).'?file='.rawurlencode($displayPath);
+            return url('/competency/identity/'.$type).'?file='.rawurlencode($path);
+        };
+
+        // Aadhaar/PAN under FORM_* are encrypted .bin on disk. A URL that ends in
+        // .pdf (including /competency/FORM_P/NEW/PROOF/file.pdf) 404s on staging
+        // because nginx looks for a physical PDF. Stream through Laravel instead.
+        if (preg_match('#^FORM_[A-Z]+/#', $storedPath) || str_starts_with($storedPath, 'uploads/digitization/')) {
+            return $identityQueryUrl($legacyType, $storedPath);
         }
 
-        if (preg_match('#^FORM_[A-Z]+/#', $storedPath) || str_starts_with($storedPath, 'uploads/digitization/')) {
-            return competency_document_path_url($storedPath);
+        $isEncryptedBlob = str_ends_with(strtolower($storedPath), '.bin')
+            || ! str_contains($storedPath, '/');
+
+        if ($isEncryptedBlob) {
+            return $identityQueryUrl($legacyType, $storedPath);
         }
 
         return '/' . ltrim($storedPath, '/');

@@ -5713,6 +5713,23 @@ public function update(Request $request, $id)
             $candidates[] = basename($pdfPath);
         }
 
+        foreach (['FORM_P', 'FORM_S', 'FORM_W', 'FORM_WH'] as $formFolder) {
+            foreach (['NEW', 'RENEWAL', 'ALTERATION', 'DIGITISATION'] as $stage) {
+                foreach ([$filename, basename($filename)] as $name) {
+                    $name = basename((string) $name);
+                    if ($name === '') {
+                        continue;
+                    }
+                    $candidates[] = $formFolder.'/'.$stage.'/PROOF/'.$name;
+                    if (preg_match('/\.pdf$/i', $name)) {
+                        $candidates[] = $formFolder.'/'.$stage.'/PROOF/'.preg_replace('/\.pdf$/i', '.bin', $name);
+                    } elseif (preg_match('/\.bin$/i', $name)) {
+                        $candidates[] = $formFolder.'/'.$stage.'/PROOF/'.preg_replace('/\.bin$/i', '.pdf', $name);
+                    }
+                }
+            }
+        }
+
         $storage = app(DocumentStorageService::class);
         $crypt = app(SensitiveProofCryptService::class);
 
