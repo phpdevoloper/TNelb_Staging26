@@ -12,6 +12,7 @@ use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
 use App\Models\TnelbAppsInstitute;
 use App\Models\TnelbFormP;
+use App\Services\CcDigitizationLinkService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\Competency\FormPSchema;
@@ -80,7 +81,16 @@ class FormPController extends BaseController
         $form = $request->form;
         $authUser = Auth::user();
         $user = $this->formPUserPayload($authUser);
-        $contractorDetails = $this->getContractorDetails($authUser->login_id);
+        $cc_digitization_temp_id = (string) (app(CcDigitizationLinkService::class)->resolveTempAppId(
+            null,
+            (string) $authUser->login_id,
+            null,
+            FormPSchema::FORM_NAME
+        ) ?? '');
+        $contractorDetails = $this->getContractorDetails(
+            $authUser->login_id,
+            $cc_digitization_temp_id !== '' ? $cc_digitization_temp_id : null
+        );
         $applicant_photo = null;
         $proof_doc = null;
 
@@ -89,7 +99,8 @@ class FormPController extends BaseController
             'form',
             'contractorDetails',
             'applicant_photo',
-            'proof_doc'
+            'proof_doc',
+            'cc_digitization_temp_id'
         ));
     }
 
@@ -102,7 +113,8 @@ class FormPController extends BaseController
         } elseif (! empty($tempAppId)) {
             $query->where('temp_app_id', $tempAppId);
         } else {
-            $query->where('form_name', FormPSchema::FORM_NAME);
+            $query->where('form_name', FormPSchema::FORM_NAME)
+                ->whereNull('application_id');
         }
 
         $row = $query->orderByDesc('id')->first();
@@ -142,7 +154,7 @@ class FormPController extends BaseController
             'cert_name' => FormPSchema::LICENSE_NAME,
         ]);
         $request->validate([
-            'ccnumber' => ['required', 'string', 'max:25', 'regex:/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,24}$/'],
+            'ccnumber' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,19}$/'],
             'fissue' => 'required|date',
             'from_date' => 'required|date|after_or_equal:fissue',
             'to_date' => 'required|date|after_or_equal:from_date',
@@ -203,9 +215,86 @@ class FormPController extends BaseController
                 $qsc = 1;
             }
 
-            $row = Tnelb_CC_Digitization::create([
-                'login_id' => Auth::user()->login_id,
-                'temp_app_id' => 'TEMP'.date('Ymd').'0000',
+            $loginId = Auth::user()->login_id;
+            $postedTemp = trim((string) (
+                $request->input('cc_digitization_temp_id')
+                ?: $request->input('temp_app_id')
+                ?: ''
+            ));
+            $unlinked = Tnelb_CC_Digitization::where('login_id', $loginId)
+                ->where('form_name', FormPSchema::FORM_NAME)
+                ->whereNull('application_id');
+            $row = $postedTemp !== ''
+                ? (clone $unlinked)->where('temp_app_id', $postedTemp)->orderByDesc('id')->first()
+                : (clone $unlinked)->orderByDesc('id')->first();
+
+            if (! $row) {
+                $row = Tnelb_CC_Digitization::create([
+                    'login_id' => $loginId,
+                    'temp_app_id' => 'TEMP'.date('Ymd').'0000',
+                    'form_name' => FormPSchema::FORM_NAME,
+                    'cert_name' => FormPSchema::LICENSE_NAME,
+                    'ccnumber' => $request->ccnumber,
+                    'fissue' => $request->fissue,
+                    'from_date' => $request->from_date,
+                    'to_date' => $request->to_date,
+                    'qc' => $qc,
+                    'qsc' => $qsc,
+                    'cl_type' => $clType,
+                    'licence_no' => $licenceNo,
+                    'contractor_name' => $contractorName,
+                    'cc_doc' => 'pending',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                    'qc_det' => $workingWithContractor ? 1 : 0,
+                    'cc_type' => FormPSchema::LICENSE_NAME,
+                ]);
+            }
+
+            $temp_app_id = trim((string) ($row->temp_app_id ?? ''));
+            if ($temp_app_id === '' || preg_match('/TEMP\d{8}0000$/', $temp_app_id)) {
+                $temp_app_id = 'TEMP'.date('Ymd').str_pad((string) $row->id, 4, '0', STR_PAD_LEFT);
+            }
+            $digiDir = CompetencyDocumentSupport::digitizationUploadDirectory(FormPSchema::FORM_NAME);
+
+            if ($request->hasFile('cc_doc')) {
+                $file = $request->file('cc_doc');
+                $original_name = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $fileName = $temp_app_id.'_'.time().'_'.$request->cert_name.'.'.$extension;
+                $fileName = $this->fileUpload->upload($file, $digiDir, $fileName);
+            } else {
+                $fileName = $row->cc_doc;
+                $original_name = $row->original_name;
+            }
+
+            if ($workingWithContractor && $request->hasFile('qc_doc')) {
+                $qcFile = $request->file('qc_doc');
+                $extension = $qcFile->getClientOriginalExtension();
+                $qcFileName = $temp_app_id.'_QC_'.time().'.'.$extension;
+                $qcFileName = $this->fileUpload->upload($qcFile, $digiDir, $qcFileName);
+            } elseif ($workingWithContractor) {
+                $qcFileName = $row->qc_doc;
+            }
+
+            $mapPayload = [
+                'application_id' => $request->input('application_id') ?: null,
+                'updated_at' => $now,
+                'temp_id' => $temp_app_id,
+                'cc_type' => FormPSchema::LICENSE_NAME,
+            ];
+            if (preg_match('/^\d+$/', (string) $request->ccnumber)) {
+                $mapPayload['old_cc_no'] = $request->ccnumber;
+            }
+            $existingMap = CC_Digitisation_Map::where('temp_id', $temp_app_id)->first();
+            if ($existingMap) {
+                $existingMap->update($mapPayload);
+            } else {
+                CC_Digitisation_Map::create(array_merge($mapPayload, ['created_at' => $now]));
+            }
+
+            $row->update([
+                'temp_app_id' => $temp_app_id,
                 'form_name' => FormPSchema::FORM_NAME,
                 'cert_name' => FormPSchema::LICENSE_NAME,
                 'ccnumber' => $request->ccnumber,
@@ -217,44 +306,11 @@ class FormPController extends BaseController
                 'cl_type' => $clType,
                 'licence_no' => $licenceNo,
                 'contractor_name' => $contractorName,
-                'cc_doc' => 'pending',
-                'created_at' => $now,
-                'updated_at' => $now,
-                'qc_det' => $workingWithContractor ? 1 : 0,
-                'cc_type' => FormPSchema::LICENSE_NAME,
-            ]);
-
-            $temp_app_id = 'TEMP'.date('Ymd').str_pad($row->id, 4, '0', STR_PAD_LEFT);
-            $digiDir = CompetencyDocumentSupport::digitizationUploadDirectory(FormPSchema::FORM_NAME);
-
-            if ($request->hasFile('cc_doc')) {
-                $file = $request->file('cc_doc');
-                $original_name = $file->getClientOriginalName();
-                $extension = $file->getClientOriginalExtension();
-                $fileName = $temp_app_id.'_'.time().'_'.$request->cert_name.'.'.$extension;
-                $fileName = $this->fileUpload->upload($file, $digiDir, $fileName);
-            }
-
-            if ($workingWithContractor && $request->hasFile('qc_doc')) {
-                $qcFile = $request->file('qc_doc');
-                $extension = $qcFile->getClientOriginalExtension();
-                $qcFileName = $temp_app_id.'_QC_'.time().'.'.$extension;
-                $qcFileName = $this->fileUpload->upload($qcFile, $digiDir, $qcFileName);
-            }
-
-            CC_Digitisation_Map::create([
-                'application_id' => $request->input('application_id') ?: null,
-                'old_cc_no' => $request->ccnumber,
-                'created_at' => $now,
-                'temp_id' => $temp_app_id,
-                'cc_type' => FormPSchema::LICENSE_NAME,
-            ]);
-
-            $row->update([
-                'temp_app_id' => $temp_app_id,
                 'cc_doc' => $fileName,
                 'original_name' => $original_name,
                 'qc_doc' => $qcFileName,
+                'qc_det' => $workingWithContractor ? 1 : 0,
+                'cc_type' => FormPSchema::LICENSE_NAME,
                 'updated_at' => $now,
             ]);
 
@@ -331,6 +387,11 @@ class FormPController extends BaseController
         if ($viewData === []) {
             return redirect()->route('dashboard')->with('error', 'Application not found.');
         }
+        $this->markFormPRenewalInheritedRows(
+            $viewData,
+            (string) $appl_id,
+            $renewalDraft !== null && (string) $dataSourceId !== (string) $appl_id
+        );
 
 
         if ($renewalDraft && !empty($appl_id) && (string) $dataSourceId !== (string) $appl_id) {
@@ -384,20 +445,12 @@ class FormPController extends BaseController
             }
         }
 
-        $issuedForRenew = '';
-        if (!empty($viewData['license_details']->license_number ?? null)) {
-            $issuedForRenew = trim((string) $viewData['license_details']->license_number);
-        } elseif (!empty($original->license_number)) {
-            $issuedForRenew = trim((string) $original->license_number);
-        } else {
-            $licRow = DB::table('cl_forma_lic')->where('application_id', $appl_id)->first();
-            $issuedForRenew = trim((string) ($licRow->license_number ?? ''));
-        }
-
+        // Issued number lives on the approved parent (N/D/A), never on the unpaid R draft.
+        $issuedForRenew = $this->formPIssuedCertificateNo((string) $appl_id, $original);
         if ($issuedForRenew !== '') {
-            if (!$viewData['license_details']) {
+            if (! $viewData['license_details']) {
                 $viewData['license_details'] = (object) ['license_number' => $issuedForRenew];
-            } elseif (trim((string) ($viewData['license_details']->license_number ?? '')) === '') {
+            } else {
                 $viewData['license_details']->license_number = $issuedForRenew;
             }
         }
@@ -445,12 +498,14 @@ class FormPController extends BaseController
 
     public function draft_renewal_submit_p(Request $request, $id = null)
     {
+        $request->merge(['appl_type' => 'R']);
+
         return $this->persistViaFormController('draft_renewal_submit', $request, $id);
     }
 
     public function draftRenewalSubmit(Request $request, $id = null)
     {
-        return $this->persistViaFormController('draft_renewal_submit', $request, $id);
+        return $this->draft_renewal_submit_p($request, $id);
     }
 
     public function update(Request $request)
@@ -590,9 +645,11 @@ class FormPController extends BaseController
 
         try {
             $child = $this->alterationService->storeAlterationRequest($request);
-            if (! FormPSchema::isFormP($child->form_name ?? '')) {
+            if (! $this->childLooksLikeFormP($child)) {
                 throw new \RuntimeException('Alteration is not a Form P application.');
             }
+
+            $this->persistAlterationInstitutes($request, $child);
 
             return response()->json([
                 'status' => 'success',
@@ -672,6 +729,20 @@ class FormPController extends BaseController
         $isReturnedRoute = request()->routeIs('edit_returned_application_p');
 
         $queries = collect();
+        $applType = strtoupper(trim((string) ($application_details->appl_type ?? '')));
+        $parentId = trim((string) ($application_details->old_application ?? ''));
+        $pay = strtoupper(trim((string) ($application_details->payment_status ?? '')));
+        $paidOrExempt = in_array($pay, ['Y', 'B', 'SUCCESS', 'PAID', 'S', 'PAYMENT'], true);
+        if (
+            ! $isReturnedRoute
+            && $appStatus !== 'QU'
+            && $applType === 'R'
+            && $parentId !== ''
+            && ! $paidOrExempt
+        ) {
+            return redirect()->route('renew_form_p', ['application_id' => $parentId]);
+        }
+
         $queryReasonsForValidation = [];
         $returnRemarks = '';
         $returnedEditableSections = [ReturnedApplicationEditScope::SECTION_FULL];
@@ -1000,43 +1071,163 @@ class FormPController extends BaseController
 
     private function findFormPRenewalDraft(string $parentId, string $loginId)
     {
-        $cc = DB::table(FormPSchema::META_TABLE)
+        $ccRows = DB::table(FormPSchema::META_TABLE)
             ->where('old_application', $parentId)
             ->where('appl_type', 'R')
             ->where('login_id', $loginId)
-            ->where(function ($q) {
-                $q->where('payment_status', 'draft')
-                    ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) = 'draft'");
-            })
             ->orderByDesc('app_id')
-            ->first();
-        if ($cc) {
-            return $cc;
+            ->get();
+        foreach ($ccRows as $cc) {
+            if ($this->formPRenewalDraftIsOpen($cc)) {
+                return $cc;
+            }
         }
 
-        return TnelbFormP::where('old_application', $parentId)
+        $legacyRows = TnelbFormP::where('old_application', $parentId)
             ->where('appl_type', 'R')
             ->where('login_id', $loginId)
-            ->where(function ($q) {
-                $q->where('payment_status', 'draft')
-                    ->orWhereRaw("LOWER(TRIM(COALESCE(payment_status, ''))) = 'draft'");
-            })
             ->orderByDesc('id')
-            ->first();
+            ->get();
+        foreach ($legacyRows as $legacy) {
+            if ($this->formPRenewalDraftIsOpen($legacy)) {
+                return $legacy;
+            }
+        }
+
+        return null;
+    }
+
+    private function formPRenewalDraftIsOpen(object $row): bool
+    {
+        $pay = strtoupper(trim((string) ($row->payment_status ?? '')));
+        if (in_array($pay, ['Y', 'B', 'SUCCESS', 'PAID', 'S', 'PAYMENT'], true)) {
+            return false;
+        }
+
+        $status = strtoupper(trim((string) ($row->app_status ?? '')));
+        if (in_array($status, ['A', 'APPROVED', 'C', 'CANCELLED', 'R', 'REJECTED'], true)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Lock only rows copied from the approved parent. New draft rows stay editable.
+     *
+     * @param  array<string, mixed>  $viewData
+     */
+    private function markFormPRenewalInheritedRows(array &$viewData, string $parentId, bool $dataIsChild): void
+    {
+        $eduDetails = $viewData['edu_details'] ?? collect();
+        $parentEdu = $dataIsChild
+            ? CC_Education::where('application_id', $parentId)->get()
+            : collect();
+        foreach ($eduDetails as $edu) {
+            $edu->renew_inherited = ! $dataIsChild || $this->formPEducationMatchesParent($edu, $parentEdu);
+        }
+
+        $institutes = $viewData['institutes'] ?? collect();
+        $parentInstitutes = $dataIsChild && Schema::hasTable('tnelb_applicant_institute')
+            ? TnelbAppsInstitute::where('application_id', $parentId)
+                ->where(function ($q) {
+                    $q->where('institute_status', 1)->orWhereNull('institute_status');
+                })
+                ->get()
+            : collect();
+        foreach ($institutes as $institute) {
+            $institute->renew_inherited = ! $dataIsChild || $this->formPInstituteMatchesParent($institute, $parentInstitutes);
+        }
+
+        $expDetails = $viewData['exp_details'] ?? collect();
+        $parentExp = $dataIsChild
+            ? CC_Experience::where('application_id', $parentId)->get()
+            : collect();
+        foreach ($expDetails as $exp) {
+            $exp->renew_inherited = ! $dataIsChild || $this->formPWorkMatchesParent($exp, $parentExp);
+        }
+    }
+
+    private function formPEducationMatchesParent(object $edu, $parentRows): bool
+    {
+        $level = strtoupper(trim((string) ($edu->educational_level ?? '')));
+        $institute = strtoupper(trim((string) ($edu->institute_name ?? '')));
+        foreach ($parentRows as $parent) {
+            if (
+                strtoupper(trim((string) ($parent->educational_level ?? ''))) === $level
+                && strtoupper(trim((string) ($parent->institute_name ?? ''))) === $institute
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function formPInstituteMatchesParent(object $institute, $parentRows): bool
+    {
+        $name = strtoupper(trim((string) ($institute->institute_name_address ?? '')));
+        $from = calendar_date_ymd($institute->from_date ?? null);
+        $to = calendar_date_ymd($institute->to_date ?? null);
+        foreach ($parentRows as $parent) {
+            if (
+                strtoupper(trim((string) ($parent->institute_name_address ?? ''))) === $name
+                && calendar_date_ymd($parent->from_date ?? null) === $from
+                && calendar_date_ymd($parent->to_date ?? null) === $to
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function formPWorkMatchesParent(object $exp, $parentRows): bool
+    {
+        $org = strtoupper(trim((string) ($exp->org_name ?? $exp->company_name ?? $exp->emp_cate ?? '')));
+        $designation = strtoupper(trim((string) ($exp->designation ?? '')));
+        $from = calendar_date_ymd($exp->from_date ?? null);
+        foreach ($parentRows as $parent) {
+            $parentOrg = strtoupper(trim((string) ($parent->org_name ?? $parent->company_name ?? $parent->emp_cate ?? '')));
+            if (
+                $parentOrg === $org
+                && strtoupper(trim((string) ($parent->designation ?? ''))) === $designation
+                && calendar_date_ymd($parent->from_date ?? null) === $from
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function persistViaFormController(string $method, Request $request, ...$args)
     {
-        if ($request->input('month_of_passing') === null && $request->exists('month_passing')) {
-            $request->merge(['month_of_passing' => (array) $request->input('month_passing', [])]);
+        $months = (array) $request->input('month_of_passing', []);
+        $altMonths = (array) $request->input('month_passing', []);
+        if ($altMonths !== []) {
+            foreach ($altMonths as $key => $value) {
+                if (! isset($months[$key]) || $months[$key] === null || $months[$key] === '') {
+                    $months[$key] = $value;
+                }
+            }
+            $request->merge(['month_of_passing' => $months]);
         }
 
-        $request->merge(array_filter([
+        $request->attributes->set('form_p_persist_method', $method);
+        $this->lockFormPPersistIdentity($request, ...$args);
+
+        $request->merge([
             'form_name' => FormPSchema::FORM_NAME,
-            'license_name' => $request->input('license_name') ?: FormPSchema::LICENSE_NAME,
-            'form_id' => $request->input('form_id') ?: FormPSchema::FORM_ID,
-        ], static fn ($v) => $v !== null && $v !== ''));
+            'license_name' => FormPSchema::LICENSE_NAME,
+            'form_id' => FormPSchema::FORM_ID,
+        ]);
+        $this->fillFormPRenewalLicenseNumber($request, ...$args);
         $request->attributes->set(FormPSchema::VIA_CONTROLLER_ATTR, true);
+
+        if ($reject = $this->rejectIfFormPDigitizationCaptureMissing($request)) {
+            return $reject;
+        }
 
         DB::beginTransaction();
         try {
@@ -1054,6 +1245,153 @@ class FormPController extends BaseController
             DB::rollBack();
             throw $e;
         }
+    }
+
+    private function lockFormPPersistIdentity(Request $request, ...$args): void
+    {
+        $applicationId = trim((string) (
+            $request->input('application_id')
+            ?: ($args[0] ?? '')
+        ));
+        $existing = null;
+        if ($applicationId !== '') {
+            $existing = CC_Forms_Meta::findByApplicationId($applicationId, FormPSchema::FORM_NAME)
+                ?: TnelbFormP::where('application_id', $applicationId)->first();
+        }
+
+        $posted = strtoupper(trim((string) $request->input('appl_type', '')));
+        $stored = strtoupper(trim((string) ($existing->appl_type ?? '')));
+        $persistMethod = (string) $request->attributes->get('form_p_persist_method', '');
+        $isRenewalPersist = in_array($persistMethod, ['draft_renewal_submit', 'draftRenewalSubmit'], true);
+
+        $merge = [];
+        if ($isRenewalPersist) {
+            $applType = 'R';
+            $parentId = trim((string) $request->input('old_application', ''));
+            if ($parentId === '' && $stored !== 'R' && $applicationId !== '') {
+                $parentId = $applicationId;
+            }
+            if ($parentId !== '' && ! $request->filled('old_application')) {
+                $merge['old_application'] = $parentId;
+            }
+        } elseif (in_array($stored, ['D', 'R', 'A'], true)) {
+            $applType = $stored;
+        } elseif ($posted !== '') {
+            $applType = $posted;
+        } else {
+            $applType = $stored;
+        }
+
+        if ($applType !== '') {
+            $merge['appl_type'] = $applType;
+        }
+        if ($applicationId !== '' && ! $request->filled('application_id')) {
+            $merge['application_id'] = $applicationId;
+        }
+        if ($merge !== []) {
+            $request->merge($merge);
+        }
+    }
+
+    /**
+     * Current issued Form P certificate number for the approved application (parent on renewal).
+     */
+    private function formPIssuedCertificateNo(string $applicationId, $meta = null): string
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return '';
+        }
+
+        $certService = app(CompetencyCertificateService::class);
+        foreach ([
+            $certService->asLicenseDetails($applicationId, FormPSchema::FORM_NAME),
+            $certService->asWorkflowLicense($applicationId, FormPSchema::FORM_NAME),
+        ] as $cert) {
+            $number = trim((string) ($cert->license_number ?? $cert->certificate_no ?? ''));
+            if ($number !== '' && $number !== '0') {
+                return $number;
+            }
+        }
+
+        $meta = $meta ?: CC_Forms_Meta::findByApplicationId($applicationId, FormPSchema::FORM_NAME);
+        foreach ([
+            $meta->certificate_no ?? null,
+            $meta->license_number ?? null,
+            $meta->wcc_no ?? null,
+        ] as $candidate) {
+            $number = trim((string) ($candidate ?? ''));
+            if ($number !== '' && $number !== '0') {
+                return $number;
+            }
+        }
+
+        if (Schema::hasTable('tnelb_license')) {
+            $number = trim((string) (DB::table('tnelb_license')->where('application_id', $applicationId)->value('license_number') ?? ''));
+            if ($number !== '' && $number !== '0') {
+                return $number;
+            }
+        }
+
+        return '';
+    }
+
+    private function fillFormPRenewalLicenseNumber(Request $request, ...$args): void
+    {
+        $persistMethod = (string) $request->attributes->get('form_p_persist_method', '');
+        if (! in_array($persistMethod, ['draft_renewal_submit', 'draftRenewalSubmit'], true)) {
+            return;
+        }
+
+        $posted = trim((string) $request->input('license_number', ''));
+        if ($posted !== '' && $posted !== '0') {
+            return;
+        }
+
+        $parentId = trim((string) (
+            $request->input('old_application')
+            ?: ($args[0] ?? '')
+        ));
+        $existing = $parentId !== ''
+            ? CC_Forms_Meta::findByApplicationId($parentId, FormPSchema::FORM_NAME)
+            : null;
+        if ($existing && strtoupper(trim((string) ($existing->appl_type ?? ''))) === 'R') {
+            $parentId = trim((string) ($existing->old_application ?? ''));
+        }
+
+        $issued = $this->formPIssuedCertificateNo($parentId);
+        if ($issued !== '') {
+            $request->merge(['license_number' => $issued]);
+        }
+    }
+
+    private function rejectIfFormPDigitizationCaptureMissing(Request $request)
+    {
+        if (strtoupper(trim((string) $request->input('appl_type', ''))) !== 'D') {
+            return null;
+        }
+
+        $loginId = trim((string) (Auth::user()->login_id ?? $request->input('login_id', '')));
+        $applicationId = trim((string) $request->input('application_id', ''));
+        $linker = app(CcDigitizationLinkService::class);
+        $tempAppId = $linker->resolveTempAppId(
+            $request->input('cc_digitization_temp_id'),
+            $loginId,
+            $applicationId !== '' ? $applicationId : null,
+            FormPSchema::FORM_NAME
+        );
+        if ($tempAppId) {
+            $request->merge(['cc_digitization_temp_id' => $tempAppId]);
+        }
+
+        if ($linker->assertCanSave($tempAppId, $loginId, $applicationId !== '' ? $applicationId : null)) {
+            return null;
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Please complete digitisation certificate details before saving this application.',
+        ], 422);
     }
 
     private function persistResponseFailed($response): bool
@@ -1098,6 +1436,46 @@ class FormPController extends BaseController
         return $response;
     }
 
+    private function persistAlterationInstitutes(Request $request, $child): void
+    {
+        $applicationId = trim((string) ($child->application_id ?? ''));
+        if ($applicationId === '') {
+            return;
+        }
+
+        $this->alterationService->ensureFormPInstitutesOnAlterationChild(
+            $child,
+            trim((string) $request->input('parent_application_id'))
+        );
+
+        if ($this->formPApplicationHasInstitutes($applicationId)) {
+            return;
+        }
+
+        $this->saveInstituteRows($request, $applicationId);
+    }
+
+    private function childLooksLikeFormP($child): bool
+    {
+        return FormPSchema::isFormP($child->form_name ?? null)
+            || FormPSchema::isFormP($child->certificate_name ?? null)
+            || (int) ($child->form_id ?? 0) === FormPSchema::FORM_ID;
+    }
+
+    private function formPApplicationHasInstitutes(string $applicationId): bool
+    {
+        if (! Schema::hasTable('tnelb_applicant_institute')) {
+            return false;
+        }
+
+        return DB::table('tnelb_applicant_institute')
+            ->where('application_id', $applicationId)
+            ->where(function ($query) {
+                $query->where('institute_status', 1)->orWhereNull('institute_status');
+            })
+            ->exists();
+    }
+
     private function saveInstituteRows(Request $request, string $applicationId): void
     {
         if (! Schema::hasTable('tnelb_applicant_institute')) {
@@ -1110,6 +1488,8 @@ class FormPController extends BaseController
         }
 
         $workflowApp = CC_Forms_Meta::findByApplicationId($applicationId);
+        $loginId = (string) ($request->input('login_id') ?: Auth::user()->login_id ?? '');
+        $parentApplicationId = trim((string) ($workflowApp->old_application ?? ''));
         $loginId = (string) ($request->input('login_id') ?: Auth::user()->login_id ?? '');
         $durations = (array) $request->input('duration', []);
         $fromDates = (array) $request->input('from_date', []);
@@ -1135,7 +1515,40 @@ class FormPController extends BaseController
             $row = $rowId > 0
                 ? TnelbAppsInstitute::where('id', $rowId)->where('application_id', $applicationId)->first()
                 : null;
-
+            if (! $row && $rowId > 0 && $parentApplicationId !== '') {
+                $parentRow = TnelbAppsInstitute::where('id', $rowId)
+                    ->where('application_id', $parentApplicationId)
+                    ->first();
+                if ($parentRow) {
+                    $row = TnelbAppsInstitute::where('application_id', $applicationId)
+                        ->where('institute_name_address', $institute !== '' ? $institute : $parentRow->institute_name_address)
+                        ->where(function ($q) {
+                            $q->where('institute_status', 1)->orWhereNull('institute_status');
+                        })
+                        ->where(function ($q) use ($from, $parentRow) {
+                            $matchFrom = $from ?? $this->instituteDateYmd($parentRow->from_date);
+                            if ($matchFrom) {
+                                $q->whereDate('from_date', $matchFrom);
+                            } else {
+                                $q->whereNull('from_date');
+                            }
+                        })
+                        ->first();
+                    if (! $row && empty($existingDocs[$key]) && ! empty($parentRow->upload_doc)) {
+                        $existingDocs[$key] = $parentRow->upload_doc;
+                    }
+                }
+            }
+            if (! $row) {
+                $row = TnelbAppsInstitute::where('application_id', $applicationId)
+                    ->where('institute_name_address', $institute)
+                    ->where(function ($q) {
+                        $q->where('institute_status', 1)->orWhereNull('institute_status');
+                    })
+                    ->when($from, fn ($q) => $q->whereDate('from_date', $from))
+                    ->when($to, fn ($q) => $q->whereDate('to_date', $to))
+                    ->first();
+            }
             $file = $this->instituteUploadedFile($request, (int) $key);
             $removed = (string) ($removedFlags[$key] ?? '0') === '1';
             $filePath = $row->upload_doc ?? null;

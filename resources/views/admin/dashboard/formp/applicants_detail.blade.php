@@ -169,9 +169,6 @@
                                                     @if ($fpHasAlteredWork)
                                                         <li>Power station experience — rows marked <span class="fp-alter-badge">Altered</span> below</li>
                                                     @endif
-                                                    @if ($fpHasProofs)
-                                                        <li>Supporting documents uploaded for the name or address change</li>
-                                                    @endif
                                                 </ul>
                                             </div>
                                         @endif
@@ -415,6 +412,8 @@
                                                     <thead>
                                                         <tr>
                                                             <th>Company / Power Station</th>
+                                                            <th>From Date</th>
+                                                            <th>To Date</th>
                                                             <th>Designation</th>
                                                             <th>Years of Experience</th>
                                                             <th>Document Upload</th>
@@ -429,8 +428,10 @@
                                                                     <span class="fp-alter-badge ms-1">Altered</span>
                                                                 @endif
                                                             </td>
+                                                            <td>{{ format_date($exp->from_date) }}</td>
+                                                            <td>{{ format_date($exp->to_date) }}</td>
                                                             <td>{{ $exp->designation ?? '—' }}</td>
-                                                            <td>{{ format_total_exp_years($exp->experience ?? $exp->total_exp) ?? '—' }}</td>
+                                                            <td>{{ format_total_exp_years($exp->total_exp ?? $exp->experience ?? null, $exp->from_date ?? null, $exp->to_date ?? null) ?? '—' }}</td>
                                                             <td style="text-align:center;">
                                                                 @if(!empty($exp->upload_document))
                                                                 <a href="{{ competency_document_url($exp->upload_document ?? $exp->support_document ?? null, 'experience', (int) ($exp->id ?? $exp->exp_id ?? 0), 'experience_doc') }}" target="_blank" style="font-size: small;">
@@ -826,9 +827,11 @@
                                     {{-- <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Supervisor
                                     </button> --}}
-                                    <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
-                                        Return to Applicant
-                                    </button>
+                                    @if(!in_array($applicant->appl_type, ['D', 'A']))
+                                        <button type="button" id="confirmReturnToApplicantBtn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#returnToApplicantModal">
+                                            Return to Applicant
+                                        </button>
+                                    @endif
                                     <button class="btn btn-danger reject_application" data-bs-toggle="modal" data-bs-target="#rejectionModal">Reject</button>
 
                                 @elseif ($role == 'President')

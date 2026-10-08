@@ -195,25 +195,57 @@ if (!function_exists('format_total_exp_years')) {
     /**
      * Normalize work-experience years for storage/display (e.g. 2.0 instead of 2.00).
      *
-     * @param  mixed  $value
+     * @param  mixed  $duration
+     * @param  mixed  $from
+     * @param  mixed  $to
      * @return string|null
      */
-    function format_total_exp_years($value): ?string
+    function format_total_exp_years($duration, $from = null, $to = null): ?string
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        if (is_string($value)) {
-            $value = trim($value);
-            if ($value === '') {
-                return null;
-            }
-        }
-        if (! is_numeric($value)) {
-            return (string) $value;
+        $computed = institute_calendar_ymd(calendar_date_ymd($from), calendar_date_ymd($to));
+        $raw = $computed !== '' ? $computed : trim((string) $duration);
+        if ($raw === '') {
+            return '—';
         }
 
-        return number_format((float) $value, 1, '.', '');
+        $parts = array_map('intval', explode('.', $raw));
+        $years = $parts[0] ?? 0;
+        $months = $parts[1] ?? 0;
+        $days = $parts[2] ?? 0;
+
+        return $years.' Y, '.$months.' M, '.$days.' D';
+    }
+}
+
+if (! function_exists('numeric_total_exp_years')) {
+    /**
+     * Decimal years for cc_exp.total_exp (cast decimal:2).
+     * Accepts 1.50, "1", "1.0.0", or display text "1 Y, 0 M, 0 D".
+     */
+    function numeric_total_exp_years(mixed $duration): ?string
+    {
+        $raw = trim((string) $duration);
+        if ($raw === '' || $raw === '—' || strcasecmp($raw, 'null') === 0) {
+            return null;
+        }
+
+        if (preg_match('/^(\d+)\s*Y,\s*(\d+)\s*M,\s*(\d+)\s*D$/i', $raw, $m)) {
+            $yearsDec = (int) $m[1] + ((int) $m[2] / 12) + ((int) $m[3] / 365.25);
+
+            return number_format(round($yearsDec * 100) / 100, 2, '.', '');
+        }
+
+        if (preg_match('/^(\d+)\.(\d+)\.(\d+)$/', $raw, $m)) {
+            $yearsDec = (int) $m[1] + ((int) $m[2] / 12) + ((int) $m[3] / 365.25);
+
+            return number_format(round($yearsDec * 100) / 100, 2, '.', '');
+        }
+
+        if (is_numeric($raw)) {
+            return number_format((float) $raw, 2, '.', '');
+        }
+
+        return null;
     }
 }
 

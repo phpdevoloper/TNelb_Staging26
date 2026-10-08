@@ -591,6 +591,7 @@ function formPWorkRowOverlaps($row) {
 }
 
 function refreshFormPWorkYears() {
+    console.log('refreshFormPWorkYears');
     var $rows = $('#competency_form_p #work-container .work-fields');
     $rows.find('.work-date-overlap').remove();
     $rows.each(function () {
@@ -646,7 +647,7 @@ $(document).ready(function () {
     if (!document.getElementById('fp-ymd-style')) {
         var ymdStyle = document.createElement('style');
         ymdStyle.id = 'fp-ymd-style';
-        ymdStyle.textContent = '.fp-ymd{display:flex;gap:4px;width:50px;}.fp-ymd>div{flex:1;min-width:36px;text-align:center;}.fp-ymd span{display:block;font-size:.62rem;font-weight:700;color:#5a7299;line-height:1;margin-bottom:2px;}.fp-ymd input{text-align:center;padding:.2rem .15rem;font-size:.8rem;min-width:0;}';
+        ymdStyle.textContent = '.fp-ymd{display:flex;gap:4px;}.fp-ymd>div{flex:1;min-width:36px;text-align:center;}.fp-ymd span{display:block;font-size:.62rem;font-weight:700;color:#5a7299;line-height:1;margin-bottom:2px;}.fp-ymd input{text-align:center;padding:.2rem .15rem;font-size:.8rem;min-width:0;}';
         document.head.appendChild(ymdStyle);
     }
     refreshFormPInstituteDurations();

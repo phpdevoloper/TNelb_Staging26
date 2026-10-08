@@ -333,10 +333,8 @@
             <div class="adm-pills">
                 <span class="adm-pill">{{ $formDisplay }}</span>
                 <span class="adm-pill is-type">{{ $applTypeLabel }}</span>
-                <span class="adm-pill {{ in_array($appStatus, ['A'], true) ? 'is-ok' : (in_array($appStatus, ['QU'], true) ? 'is-warn' : 'is-muted') }}">{{ $statusLabel }}</span>
-                @if($paymentStatus !== '')
-                    <span class="adm-pill {{ in_array($paymentStatus, ['B', 'PAYMENT', 'PAID', 'SUCCESS', 'Y'], true) ? 'is-ok' : 'is-muted' }}">{{ $paymentStatusLabel }}</span>
-                @endif
+                
+                
             </div>
         </div>
         <div class="adm-hero-grid">
@@ -386,9 +384,11 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="appDetailsHome-tab" data-bs-toggle="tab" data-bs-target="#appDetailsHome" type="button" role="tab" aria-controls="appDetailsHome" aria-selected="true">Personal Details</button>
         </li>
+        @if(!in_array($applTypeCode, ['D', 'A']))
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="appDetailsPayment-tab" data-bs-toggle="tab" data-bs-target="#appDetailsPayment" type="button" role="tab" aria-controls="appDetailsPayment" aria-selected="false">Payment Status</button>
         </li>
+        @endif
     </ul>
 
     <div class="tab-content adm-tab-panel" id="appDetailsTabContent">
@@ -399,8 +399,8 @@
                     <ul class="mb-0">
                         @if($nameAltered)<li>Applicant name <span class="adm-alter-badge">ALTER</span></li>@endif
                         @if($addressAltered)<li>Address <span class="adm-alter-badge">ALTER</span></li>@endif
-                        @if($hasAlteredWork)<li>Work experience marked as altered</li>@endif
-                        @if($hasAlterationProofs)<li>Supporting documents uploaded for name/address change</li>@endif
+                        @if($hasAlteredWork)<li>Work experience <span class="adm-alter-badge">ALTER</span></li></li>@endif
+                        
                     </ul>
                 </div>
             @endif
@@ -588,6 +588,8 @@
                     <thead>
                         <tr>
                             <th>Company</th>
+                            <th>From Date</th>
+                            <th>To Date</th>
                             <th>Designation</th>
                             <th>Years of Experience</th>
                             <th>Document</th>
@@ -611,6 +613,8 @@
                                         <span class="adm-renew-badge ms-1">RENEW</span>
                                     @endif
                                 </td>
+                                <td>{{ !empty($experience->from_date) ? format_date($experience->from_date) : '—' }}</td>
+                                <td>{{ !empty($experience->to_date) ? format_date($experience->to_date) : '—' }}</td>
                                 <td>{{ $experience->designation ?? '—' }}</td>
                                 <td>{{ format_total_exp_years($experience->total_exp ?? $experience->experience ?? null) ?? (($experience->total_exp ?? $experience->experience ?? '—') . (isset($experience->total_exp) || isset($experience->experience) ? ' years' : '')) }}</td>
                                 <td class="text-center">
@@ -631,6 +635,11 @@
                     </tbody>
                 </table>
             </div>
+
+            @if($isFormP)
+                <h6 class="adm-section-title">Name of the Employer</h6>
+                <span class="adm-v">{{ $applicant->employer_detail ?: '—' }}</span>
+            @endif
 
             @if($hasPreviousEaQual || $hasCert)
                 <h6 class="adm-section-title">Existing Certificates</h6>

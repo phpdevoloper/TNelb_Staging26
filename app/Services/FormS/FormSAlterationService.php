@@ -530,6 +530,11 @@ class FormSAlterationService
             $applicationDetails,
             $context['proofApplicationId'] ?? $masterApplicationId
         );
+        $applicationDetails = $this->enrichFormPEmployerOnAlterationDisplay(
+            $applicationDetails,
+            $parent,
+            $context['alterationDraft'] ?? null
+        );
 
         return [
             'applicationid' => $parent->application_id,
@@ -901,6 +906,7 @@ class FormSAlterationService
                 'certificate_no' => $parent->certificate_no,
                 ...$this->alterationWccSnapshot($parent, $request),
                 ...$this->alterationQcQscSnapshot($parent),
+                ...$this->alterationFormPMetaSnapshot($parent, $request),
                 'appl_type' => 'A',
                 'old_application' => $parent->application_id,
                 'app_status' => 'P',
@@ -1001,7 +1007,7 @@ class FormSAlterationService
                 'payment_status' => 'draft',
                 'app_status' => 'P',
                 'updated_at' => now(),
-            ], $this->alterationWccSnapshot($parent, $request), $this->alterationQcQscSnapshot($parent)));
+            ], $this->alterationWccSnapshot($parent, $request), $this->alterationQcQscSnapshot($parent), $this->alterationFormPMetaSnapshot($parent, $request)));
 
             $this->snapshotUnchangedParentDocumentsOntoChild($child, $loginId);
 
@@ -1037,20 +1043,23 @@ class FormSAlterationService
         CC_Education::where('application_id', $child->application_id)->delete();
         $this->childDocumentSnapshot->copyParentEducationToChild($child, $loginId);
         $this->childDocumentSnapshot->copyParentIdentityProofsToChild($child);
-        $this->copyParentInstitutesToAlterationChild($child);
+        $this->ensureFormPInstitutesOnAlterationChild($child);
     }
 
     /**
      * Form P training institutes live on tnelb_applicant_institute, not with education.
      * Copy the nearest ancestor rows onto the alteration. Parent rows stay unchanged.
+     * If no source rows exist, child institute rows are left as they are.
      */
-    protected function copyParentInstitutesToAlterationChild(CC_CompetencyMeta $child): void
-    {
-        if (! FormPSchema::isFormP($child->form_name ?? null) || ! Schema::hasTable('tnelb_applicant_institute')) {
+    public function ensureFormPInstitutesOnAlterationChild(
+        CC_CompetencyMeta $child,
+        ?string $parentApplicationId = null
+    ): void {
+        if (! $this->childIsFormPForInstitutes($child) || ! Schema::hasTable('tnelb_applicant_institute')) {
             return;
         }
 
-        $sourceId = $this->instituteSourceApplicationId($child);
+        $sourceId = $this->instituteSourceApplicationId($child, $parentApplicationId);
         if ($sourceId === null) {
             return;
         }
@@ -1077,34 +1086,166 @@ class FormSAlterationService
                 'duration' => $row->duration,
                 'from_date' => $row->from_date,
                 'to_date' => $row->to_date,
-                'upload_doc' => $row->upload_doc ?? null,
+                'upload_doc' => $row->upload_doc ?? $row->upload_document ?? null,
                 'institute_status' => 1,
             ]);
         }
     }
 
-    private function instituteSourceApplicationId(CC_CompetencyMeta $child): ?string
+    private function childIsFormPForInstitutes(CC_CompetencyMeta $child): bool
     {
-        $currentId = trim((string) ($child->old_application ?? ''));
+        return FormPSchema::isFormP($child->form_name ?? null)
+            || FormPSchema::isFormP($child->certificate_name ?? null)
+            || (int) ($child->form_id ?? 0) === FormPSchema::FORM_ID;
+    }
+
+    private function instituteSourceApplicationId(
+        CC_CompetencyMeta $child,
+        ?string $parentApplicationId = null
+    ): ?string {
+        $queue = array_values(array_unique(array_filter([
+            trim((string) $parentApplicationId),
+            trim((string) ($child->old_application ?? '')),
+        ])));
         $seen = [trim((string) $child->application_id) => true];
 
-        while ($currentId !== '' && ! isset($seen[$currentId])) {
+        while ($queue !== []) {
+            $currentId = (string) array_shift($queue);
+            if ($currentId === '' || isset($seen[$currentId])) {
+                continue;
+            }
             $seen[$currentId] = true;
-            $hasRows = DB::table('tnelb_applicant_institute')
-                ->where('application_id', $currentId)
-                ->where(function ($query) {
-                    $query->where('institute_status', 1)->orWhereNull('institute_status');
-                })
-                ->exists();
-            if ($hasRows) {
+
+            if ($this->applicationHasInstituteRows($currentId)) {
                 return $currentId;
             }
 
-            $parent = CC_Forms_Meta::findByApplicationId($currentId);
-            $currentId = trim((string) ($parent->old_application ?? ''));
+            $nextId = $this->parentApplicationIdForInstituteWalk($currentId);
+            if ($nextId !== '' && ! isset($seen[$nextId])) {
+                $queue[] = $nextId;
+            }
         }
 
         return null;
+    }
+
+    private function applicationHasInstituteRows(string $applicationId): bool
+    {
+        return DB::table('tnelb_applicant_institute')
+            ->where('application_id', $applicationId)
+            ->where(function ($query) {
+                $query->where('institute_status', 1)->orWhereNull('institute_status');
+            })
+            ->exists();
+    }
+
+    private function parentApplicationIdForInstituteWalk(string $applicationId): string
+    {
+        $parent = CC_Forms_Meta::findByApplicationId($applicationId);
+        if ($parent) {
+            return trim((string) ($parent->old_application ?? ''));
+        }
+
+        if (Schema::hasTable('tnelb_form_p')) {
+            $legacy = DB::table('tnelb_form_p')->where('application_id', $applicationId)->first();
+            if ($legacy) {
+                return trim((string) ($legacy->old_application ?? ''));
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Form P “Name of the employer” lives on employer_detail (posted as employer_name).
+     * Alteration create/update does not go through FormController, so copy it here.
+     * Returns [] for S/W/WH so those forms are unchanged.
+     *
+     * @return array{employer_detail?: ?string}
+     */
+    protected function alterationFormPMetaSnapshot(CC_CompetencyMeta $parent, ?Request $request = null): array
+    {
+        if (! FormPSchema::isFormP($parent->form_name ?? null)
+            && ! FormPSchema::isFormP($parent->certificate_name ?? null)) {
+            return [];
+        }
+
+        if (! Schema::hasColumn(FormPSchema::META_TABLE, 'employer_detail')) {
+            return [];
+        }
+
+        $posted = '';
+        if ($request) {
+            if ($request->exists('employer_name')) {
+                $posted = trim((string) $request->input('employer_name', ''));
+            } elseif ($request->exists('employer_detail')) {
+                $posted = trim((string) $request->input('employer_detail', ''));
+            }
+        }
+
+        $fromParent = $this->formPEmployerDetailFromSource($parent);
+
+        return [
+            'employer_detail' => $posted !== '' ? $posted : ($fromParent !== '' ? $fromParent : null),
+        ];
+    }
+
+    protected function formPEmployerDetailFromSource(object $source): string
+    {
+        $value = trim((string) ($source->employer_detail ?? $source->employer_name ?? ''));
+        if ($value !== '') {
+            return $value;
+        }
+
+        $applicationId = trim((string) ($source->application_id ?? ''));
+        $parentId = trim((string) ($source->old_application ?? ''));
+        $ids = array_values(array_filter([$applicationId, $parentId]));
+        if ($ids === []) {
+            return '';
+        }
+
+        if (Schema::hasTable(FormPSchema::META_TABLE) && Schema::hasColumn(FormPSchema::META_TABLE, 'employer_detail')) {
+            $value = trim((string) (DB::table(FormPSchema::META_TABLE)
+                ->whereIn('application_id', $ids)
+                ->orderByDesc('app_id')
+                ->value('employer_detail') ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        if (Schema::hasTable('tnelb_form_p')) {
+            $value = trim((string) (DB::table('tnelb_form_p')
+                ->whereIn('application_id', $ids)
+                ->orderByDesc('id')
+                ->value('employer_detail') ?? ''));
+        }
+
+        return $value;
+    }
+
+    protected function enrichFormPEmployerOnAlterationDisplay(
+        object $applicationDetails,
+        CC_CompetencyMeta $parent,
+        ?CC_CompetencyMeta $draft = null
+    ): object {
+        if (! FormPSchema::isFormP($parent->form_name ?? $applicationDetails->form_name ?? null)
+            && ! FormPSchema::isFormP($parent->certificate_name ?? null)) {
+            return $applicationDetails;
+        }
+
+        $employer = '';
+        if ($draft) {
+            $employer = $this->formPEmployerDetailFromSource($draft);
+        }
+        if ($employer === '') {
+            $employer = $this->formPEmployerDetailFromSource($parent);
+        }
+
+        $applicationDetails->employer_detail = $employer;
+        $applicationDetails->employer_name = $employer;
+
+        return $applicationDetails;
     }
 
     /**
@@ -1200,6 +1341,7 @@ class FormSAlterationService
             'certificate_no' => $parent->certificate_no,
             ...$this->alterationWccSnapshot($parent),
             ...$this->alterationQcQscSnapshot($parent),
+            ...$this->alterationFormPMetaSnapshot($parent),
             'appl_type' => 'A',
             'old_application' => $parent->application_id,
             'app_status' => 'P',

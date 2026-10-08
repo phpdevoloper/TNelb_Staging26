@@ -1008,7 +1008,7 @@ class FormController extends BaseController
             $out['total_d'] = $workRow['total_d'];
         }
         if ($hasTotalExpColumn && !empty($workRow['store_total_exp'])) {
-            $out['total_exp'] = format_total_exp_years($workRow['total_exp']);
+            $out['total_exp'] = numeric_total_exp_years($workRow['total_exp']);
         }
 
         return $out;
@@ -1713,7 +1713,12 @@ class FormController extends BaseController
 
             $orgName = trim((string) ($workRow['org_name'] ?? $workRow['company_name'] ?? ''));
             $designation = trim((string) ($workRow['designation'] ?? ''));
-            if ($orgName === '' || $designation === '') {
+            $isFormPWork = FormPSchema::isFormP($formName);
+            if ($isFormPWork) {
+                if ($orgName === '' && $designation === '') {
+                    continue;
+                }
+            } elseif ($orgName === '' || $designation === '') {
                 continue;
             }
 
@@ -1747,7 +1752,7 @@ class FormController extends BaseController
                         'total_y' => $parentExp->total_y,
                         'total_m' => $parentExp->total_m,
                         'total_d' => $parentExp->total_d,
-                        'total_exp' => $parentExp->total_exp,
+                        'total_exp' => numeric_total_exp_years($parentExp->total_exp) ?? $parentExp->total_exp,
                         'nature_work' => $parentExp->nature_work,
                         'voltage_level' => $parentExp->voltage_level,
                         'transformer_kva' => $parentExp->transformer_kva,
@@ -1839,7 +1844,7 @@ class FormController extends BaseController
                 'total_y' => $parentExp->total_y,
                 'total_m' => $parentExp->total_m,
                 'total_d' => $parentExp->total_d,
-                'total_exp' => $parentExp->total_exp,
+                'total_exp' => numeric_total_exp_years($parentExp->total_exp) ?? $parentExp->total_exp,
                 'nature_work' => $parentExp->nature_work,
                 'voltage_level' => $parentExp->voltage_level,
                 'transformer_kva' => $parentExp->transformer_kva,
@@ -1928,7 +1933,7 @@ class FormController extends BaseController
         foreach ($request->educational_level ?? [] as $key => $level) {
             $levelName = trim((string) ($level ?? ''));
             $institute = trim((string) ($request->institute_name[$key] ?? ''));
-            $monthRaw = $request->month_of_passing[$key] ?? null;
+            $monthRaw = $request->month_of_passing[$key] ?? $request->month_passing[$key] ?? null;
             $year = $request->year_of_passing[$key] ?? null;
             $certificateNo = $request->certificate_no[$key] ?? null;
             $removed = isset($request->removed_document[$key]) && $request->removed_document[$key] == '1';
