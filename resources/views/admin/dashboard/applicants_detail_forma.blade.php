@@ -1510,7 +1510,7 @@
                                                         <span
                                                             id="staffStatusText_{{ $staff->id }}"
                                                             class="badge {{ $verifyFlag == 1 ? 'bg-success' : 'bg-danger' }}">
-                                                            {{ $verifyFlag == 1 ? 'Verified' : 'Not Verified' }}
+                                                            {{ $verifyFlag == 1 ? 'Correct' : 'Incorrect' }}
                                                         </span>
 
                                                         <div class="form-check form-switch">
@@ -1653,7 +1653,7 @@
                                                                 <span
                                                                     id="staffStatusText_{{ $staff->id }}"
                                                                     class="badge {{ $verifyFlag == 1 ? 'bg-success' : 'bg-danger' }}">
-                                                                    {{ $verifyFlag == 1 ? 'Verified' : 'Not Verified' }}
+                                                                    {{ $verifyFlag == 1 ? 'Correct' : 'Incorrect' }}
                                                                 </span>
 
                                                                 <div class="form-check form-switch">
@@ -4515,19 +4515,34 @@ $(document).on("click", ".verify-staff", function () {
                 // ----------------------------------
                 // Certificate Details
                 // ----------------------------------
-
+                let applicant = response.applicant_details || {};
                 let result = `
 
                     <div class="competency-result-box">
 
+                           <div class="competency-result-title">
+                                Applicant Details
+                            </div>
 
-                        <!-- CERTIFICATE DETAILS -->
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th width="20%">Applicant Name</th>
+                                            <td width="30%">${applicant.applicant_name ?? '-'}</td>
 
-                        <div class="table-responsive mb-4">
+                                            <th width="20%">Father's Name</th>
+                                            <td width="30%">${applicant.fathers_name ?? '-'}</td>
+                                        </tr>
 
-                            <table class="table table-bordered">
+                                        <tr>
+                                            <th>Date of Birth</th>
+                                            <td>${applicant.dob ?? '-'}</td>
 
-                                <tbody>
+                                            <th>Age</th>
+                                            <td>${applicant.age ?? '-'}</td>
+                                        </tr>
+                                   
 
                                     <tr>
 
@@ -4588,7 +4603,7 @@ $(document).on("click", ".verify-staff", function () {
 
                             </table>
 
-                        </div>
+                        
 
 
                         <!-- EXPERIENCE TITLE -->
@@ -4661,6 +4676,10 @@ $(document).on("click", ".verify-staff", function () {
 
                                         <th>
                                             Total Experience
+                                        </th>
+
+                                         <th colspan="2">
+                                             Documents
                                         </th>
 
                                     </tr>
@@ -4743,7 +4762,20 @@ $(document).on("click", ".verify-staff", function () {
 
                                 <td>
                                     ${data.total_exp ?? '-'}
-                                </td>
+                              </td>
+                            <td>
+                                ${data.relieve_document
+                                    ? `<a href="${encodeURI('/competency/' + data.relieve_document.replace(/^\/+|^competency\//, ''))}"
+                                        target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
+                                    : '-'}
+                            </td>
+
+                            <td>
+                                ${data.support_document
+                                    ? `<a href="${encodeURI('/competency/' + data.support_document.replace(/^\/+|^competency\//, ''))}"
+                                        target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
+                                    : '-'}
+                            </td>
 
                             </tr>
 
@@ -4854,7 +4886,7 @@ $(document).on("click", ".verify-staff", function () {
 
             $button
                 .prop("disabled", false)
-                .text("Verify");
+                .text("View History");
 
         }
 
@@ -4977,7 +5009,7 @@ $(document).on("click", ".verify-otherstaff", function () {
                 response.certificate
             ) {
 
-                let certificate =
+              let certificate =
                     response.certificate;
 
                 let records =
@@ -4987,19 +5019,34 @@ $(document).on("click", ".verify-otherstaff", function () {
                 // ----------------------------------
                 // Certificate Details
                 // ----------------------------------
-
+                let applicant = response.applicant_details || {};
                 let result = `
 
                     <div class="competency-result-box">
 
+                           <div class="competency-result-title">
+                                Applicant Details
+                            </div>
 
-                        <!-- CERTIFICATE DETAILS -->
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th width="20%">Applicant Name</th>
+                                            <td width="30%">${applicant.applicant_name ?? '-'}</td>
 
-                        <div class="table-responsive mb-4">
+                                            <th width="20%">Father's Name</th>
+                                            <td width="30%">${applicant.fathers_name ?? '-'}</td>
+                                        </tr>
 
-                            <table class="table table-bordered">
+                                        <tr>
+                                            <th>Date of Birth</th>
+                                            <td>${applicant.dob ?? '-'}</td>
 
-                                <tbody>
+                                            <th>Age</th>
+                                            <td>${applicant.age ?? '-'}</td>
+                                        </tr>
+                                   
 
                                     <tr>
 
@@ -5060,7 +5107,7 @@ $(document).on("click", ".verify-otherstaff", function () {
 
                             </table>
 
-                        </div>
+                        
 
 
                         <!-- EXPERIENCE TITLE -->
@@ -5133,6 +5180,10 @@ $(document).on("click", ".verify-otherstaff", function () {
 
                                         <th>
                                             Total Experience
+                                        </th>
+
+                                         <th colspan="2">
+                                             Documents
                                         </th>
 
                                     </tr>
@@ -5215,7 +5266,20 @@ $(document).on("click", ".verify-otherstaff", function () {
 
                                 <td>
                                     ${data.total_exp ?? '-'}
-                                </td>
+                              </td>
+                            <td>
+                                ${data.relieve_document
+                                    ? `<a href="${encodeURI('/competency/' + data.relieve_document.replace(/^\/+|^competency\//, ''))}"
+                                        target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
+                                    : '-'}
+                            </td>
+
+                            <td>
+                                ${data.support_document
+                                    ? `<a href="${encodeURI('/competency/' + data.support_document.replace(/^\/+|^competency\//, ''))}"
+                                        target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
+                                    : '-'}
+                            </td>
 
                             </tr>
 
@@ -5261,7 +5325,6 @@ $(document).on("click", ".verify-otherstaff", function () {
                 // Display result
                 $("#competencyVerifyModalBody")
                     .html(result);
-
 
             } else {
 
@@ -5326,7 +5389,7 @@ $(document).on("click", ".verify-otherstaff", function () {
 
             $button
                 .prop("disabled", false)
-                .text("Verify");
+                .text("View History");
 
         }
 
@@ -5345,14 +5408,14 @@ $(document).on('change', '.staff-status-switch', function () {
         $('#staffStatusText_' + id)
             .removeClass('bg-danger')
             .addClass('bg-success')
-            .text('Verified');
+            .text('Correct');
 
     } else {
 
         $('#staffStatusText_' + id)
             .removeClass('bg-success')
             .addClass('bg-danger')
-            .text('Not Verified');
+            .text('InCorrect');
 
     }
 

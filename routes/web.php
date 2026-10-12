@@ -347,6 +347,9 @@ Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.stor
 
 // formA QC Check------------------------
 Route::post('/check-qc-certificate',[FormAController::class, 'checkQCCertificate'])->name('check-qc-certificate');
+Route::post('/otherstaffcheck',[FormAController::class, 'otherstaffcheck'])->name('otherstaffcheck');
+
+
 
 
 Route::post('/check-cc-certificate',[FormAController::class, 'checkCCCertificate'])->name('check-cc-certificate');

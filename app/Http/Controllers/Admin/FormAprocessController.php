@@ -28,9 +28,8 @@ class FormAprocessController extends Controller
 
         // Certificate not found
         if (!$certificate) {
-
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Certificate details not found - Enter valid details.'
             ]);
         }
@@ -42,35 +41,80 @@ class FormAprocessController extends Controller
         $cc_exp = DB::table('cc_exp')
             ->where('application_id', $application_id)
             ->orderBy('exp_id', 'DESC')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                foreach (
+                    [
+                        'from_date',
+                        'to_date',
+                        'date_from',
+                        'date_to',
+                        'start_date',
+                        'end_date',
+                    ] as $field
+                ) {
+                    if (isset($item->$field) && !empty($item->$field)) {
+                        $item->$field = \Carbon\Carbon::parse($item->$field)->format('d-m-Y');
+                    }
+                }
 
-        // Certificate details
+                return $item;
+            });
+
+        // Get applicant details
+        $applicant_details = DB::table('cc_form_s_meta')
+            ->where('application_id', $application_id)
+            ->first();
+
+        // Applicant details response
+        $applicantData = $applicant_details ? [
+            'applicant_name' => $applicant_details->applicant_name ?? '-',
+            'fathers_name'   => $applicant_details->fathers_name ?? '-',
+            'dob'            => !empty($applicant_details->d_o_b)
+                ? \Carbon\Carbon::parse($applicant_details->d_o_b)->format('d-m-Y')
+                : '-',
+            'age'            => $applicant_details->age ?? '-',
+        ] : [
+            'applicant_name' => '-',
+            'fathers_name'   => '-',
+            'dob'            => '-',
+            'age'            => '-',
+        ];
+
+        // Certificate details: dates in dd-mm-yyyy
         $certificateData = [
             'certificate_no' => $certificate->certificate_no,
-            'dateof_issue'   => $certificate->dateof_issue,
-            'valid_from'     => $certificate->valid_from,
-            'valid_to'       => $certificate->valid_to,
+            'dateof_issue'   => !empty($certificate->dateof_issue)
+                ? \Carbon\Carbon::parse($certificate->dateof_issue)->format('d-m-Y')
+                : '-',
+            'valid_from'     => !empty($certificate->valid_from)
+                ? \Carbon\Carbon::parse($certificate->valid_from)->format('d-m-Y')
+                : '-',
+            'valid_to'       => !empty($certificate->valid_to)
+                ? \Carbon\Carbon::parse($certificate->valid_to)->format('d-m-Y')
+                : '-',
         ];
 
         // Certificate found but no experience
         if ($cc_exp->isEmpty()) {
-
             return response()->json([
-                'status' => true,
-                'message' => 'Certificate found, but no experience data found.',
-                'application_id' => $application_id,
-                'certificate' => $certificateData,
-                'data' => []
+                'status'            => true,
+                'message'           => 'Certificate found, but no experience data found.',
+                'application_id'    => $application_id,
+                'certificate'       => $certificateData,
+                'applicant_details' => $applicantData,
+                'data'              => [],
             ]);
         }
 
-        // Certificate + experience found
+        // Certificate and experience found
         return response()->json([
-            'status' => true,
-            'message' => 'Certificate and experience data found.',
-            'application_id' => $application_id,
-            'certificate' => $certificateData,
-            'data' => $cc_exp
+            'status'            => true,
+            'message'           => 'Certificate and experience data found.',
+            'application_id'    => $application_id,
+            'certificate'       => $certificateData,
+            'applicant_details' => $applicantData,
+            'data'              => $cc_exp,
         ]);
     }
 
@@ -132,58 +176,93 @@ class FormAprocessController extends Controller
         // -------------------------------------------------
         // STEP 4: Application ID
         // -------------------------------------------------
-
         $application_id = $certificate->application_id;
 
-
-        // -------------------------------------------------
-        // STEP 5: Get all experience records
-        // -------------------------------------------------
-
+        // Get all experience records
         $cc_exp = DB::table('cc_exp')
             ->where('application_id', $application_id)
             ->orderBy('exp_id', 'DESC')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                foreach (
+                    [
+                        'from_date',
+                        'to_date',
+                        'date_from',
+                        'date_to',
+                        'start_date',
+                        'end_date',
+                    ] as $field
+                ) {
+                    if (isset($item->$field) && !empty($item->$field)) {
+                        $item->$field = \Carbon\Carbon::parse($item->$field)->format('d-m-Y');
+                    }
+                }
 
+                return $item;
+            });
 
-        // -------------------------------------------------
-        // STEP 6: Certificate details
-        // -------------------------------------------------
+        // Get applicant details
+        $applicant_details = DB::table('cc_form_s_meta')
+            ->where('application_id', $application_id)
+            ->first();
 
-        $certificateData = [
-            'certificate_no' => $certificate->certificate_no,
-            'dateof_issue'   => $certificate->dateof_issue,
-            'valid_from'     => $certificate->valid_from,
-            'valid_to'       => $certificate->valid_to,
+        if (!$applicant_details) {
+
+            $applicant_details = DB::table('cc_form_w_cert')
+                ->where('application_id', $application_id)
+                ->first();
+        }
+
+        // Applicant details response
+        $applicantData = $applicant_details ? [
+            'applicant_name' => $applicant_details->applicant_name ?? '-',
+            'fathers_name'   => $applicant_details->fathers_name ?? '-',
+            'dob'            => !empty($applicant_details->d_o_b)
+                ? \Carbon\Carbon::parse($applicant_details->d_o_b)->format('d-m-Y')
+                : '-',
+            'age'            => $applicant_details->age ?? '-',
+        ] : [
+            'applicant_name' => '-',
+            'fathers_name'   => '-',
+            'dob'            => '-',
+            'age'            => '-',
         ];
 
+        // Certificate details: dates in dd-mm-yyyy
+        $certificateData = [
+            'certificate_no' => $certificate->certificate_no,
+            'dateof_issue'   => !empty($certificate->dateof_issue)
+                ? \Carbon\Carbon::parse($certificate->dateof_issue)->format('d-m-Y')
+                : '-',
+            'valid_from'     => !empty($certificate->valid_from)
+                ? \Carbon\Carbon::parse($certificate->valid_from)->format('d-m-Y')
+                : '-',
+            'valid_to'       => !empty($certificate->valid_to)
+                ? \Carbon\Carbon::parse($certificate->valid_to)->format('d-m-Y')
+                : '-',
+        ];
 
-        // -------------------------------------------------
-        // STEP 7: Certificate found but no experience
-        // -------------------------------------------------
-
+        // Certificate found but no experience
         if ($cc_exp->isEmpty()) {
-
             return response()->json([
-                'status' => true,
-                'message' => 'Certificate found, but no experience data found.',
-                'application_id' => $application_id,
-                'certificate' => $certificateData,
-                'data' => []
+                'status'            => true,
+                'message'           => 'Certificate found, but no experience data found.',
+                'application_id'    => $application_id,
+                'certificate'       => $certificateData,
+                'applicant_details' => $applicantData,
+                'data'              => [],
             ]);
         }
 
-
-        // -------------------------------------------------
-        // STEP 8: Certificate + experience found
-        // -------------------------------------------------
-
+        // Certificate and experience found
         return response()->json([
-            'status' => true,
-            'message' => 'Certificate and experience data found.',
-            'application_id' => $application_id,
-            'certificate' => $certificateData,
-            'data' => $cc_exp
+            'status'            => true,
+            'message'           => 'Certificate and experience data found.',
+            'application_id'    => $application_id,
+            'certificate'       => $certificateData,
+            'applicant_details' => $applicantData,
+            'data'              => $cc_exp,
         ]);
     }
 }

@@ -504,7 +504,7 @@ class DocumentUploadController extends Controller
 
                 $uploadedFiles[] = [
                     'file_name' => $fileName,
-                    'file_url'  => asset($dbFilePath .'/'. $fileName),
+                    'file_url'  => asset($dbFilePath . $fileName),
                 ];
             }
 

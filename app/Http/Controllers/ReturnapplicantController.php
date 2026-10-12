@@ -104,18 +104,7 @@ class ReturnapplicantController extends BaseController
                 ->value('ownership_type');
             // dd($proprietors);exit;
 
-            $QCstaffs = DB::table('cl_staff_tbl')
-                ->where('application_id', $application_id)
-                ->whereIn('staff_category', ['QC', 'QSC'])
-                ->where('staff_flag', '1')
-                ->orderBy('id', 'ASC')
-                ->get();
-
-            $staffs = DB::table('cl_staff_tbl')
-                ->where('application_id', $application_id)
-                ->whereNotIn('staff_category', ['QC', 'QSC'])
-                ->orderBy('id', 'ASC')
-                ->get();
+           
 
             // dd($staffs);
             // exit;
@@ -155,13 +144,39 @@ class ReturnapplicantController extends BaseController
 
             $returnsection = json_decode($application->return_reason, true);
 
+                $QCstaffs = DB::table('cl_staff_tbl')
+                ->where('application_id', $application_id)
+                ->whereIn('staff_category', ['QC', 'QSC'])
+                ->where('staff_flag', '1')
+                ->orderBy('id', 'ASC')
+                ->get();
+
+          
+               $staff_store_tbl_0 = DB::table('cl_staff_detail_adminstore')
+                ->where('application_id', $application_id)
+                ->where('verify_flag', '0')
+                ->pluck('staff_cc_no')
+                ->toArray();
+
+             $staffs = DB::table('cl_staff_tbl')
+                ->where('application_id', $application_id)
+                ->whereNotIn('staff_category', ['QC', 'QSC'])
+                ->orderBy('id', 'ASC')
+                ->get();
+
+              $staff_store_tbl_1 = DB::table('cl_staff_detail_adminstore')->where('application_id', $application_id)
+            ->where('verify_flag', '1')
+            ->get();
+
+
+
             // var_dump()
             // dd($application->appl_type); exit;
         }
 
         // return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency' , 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails','Qcstaffs'));
 
-        return view('user_login.return.forma', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType', 'returnsection'));
+        return view('user_login.return.forma', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType', 'returnsection', 'staff_store_tbl_0', 'staff_store_tbl_1'));
     }
 
     //     return view('user_login.return.forma', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'returnsection'));

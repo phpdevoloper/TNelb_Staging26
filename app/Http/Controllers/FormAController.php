@@ -178,6 +178,13 @@ class FormAController extends BaseController
             ]);
         }
 
+        if (\Carbon\Carbon::parse($certificate->valid_to)->toDateString() < now()->toDateString()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Staff Certificate has already expired.'
+            ]);
+        }
+
 
         // -------------------------------------------------
         // STEP 2: Check QC / QSC eligibility
@@ -212,19 +219,19 @@ class FormAController extends BaseController
 
         // dd($existingStaff);exit;
 
-        if ($existingStaffpending) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Certificate is under process for another licence.'
-            ]);
-        }
+        // if ($existingStaffpending) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Certificate is under process for another licence.'
+        //     ]);
+        // }
 
-        if ($existingStaff) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Certificate is already mapped with another licence.'
-            ]);
-        }
+        // if ($existingStaff) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Certificate is already mapped with another licence.'
+        //     ]);
+        // }
 
 
         // -------------------------------------------------
@@ -237,6 +244,19 @@ class FormAController extends BaseController
         ]);
     }
 
+
+    private function normalizeCertificateDate($date)
+    {
+        foreach (['Y-m-d', 'd-m-Y', 'Y-m-d H:i:s'] as $format) {
+            try {
+                return Carbon::createFromFormat('!' . $format, $date)->format('Y-m-d');
+            } catch (\Carbon\Exceptions\InvalidFormatException $e) {
+                // Try the next format
+            }
+        }
+
+        throw new \InvalidArgumentException('Invalid date format: ' . $date);
+    }
     public function checkQCCertificate(Request $request)
     {
 
@@ -256,20 +276,9 @@ class FormAController extends BaseController
         //     $request->valid_to
         // )->format('Y-m-d');
 
-        $dateofIssue = Carbon::createFromFormat(
-            'Y-m-d',
-            $request->dateof_issue
-        )->format('Y-m-d');
-
-        $validFrom = Carbon::createFromFormat(
-            'Y-m-d',
-            $request->valid_from
-        )->format('Y-m-d');
-
-        $validTo = Carbon::createFromFormat(
-            'Y-m-d',
-            $request->valid_to
-        )->format('Y-m-d');
+       $dateofIssue = $this->normalizeCertificateDate($request->dateof_issue);
+        $validFrom   = $this->normalizeCertificateDate($request->valid_from);
+        $validTo     = $this->normalizeCertificateDate($request->valid_to);
 
         // dd($dateofIssue,$validFrom,$validTo);exit;
         // -------------------------------------------------
@@ -277,13 +286,13 @@ class FormAController extends BaseController
         // -------------------------------------------------
         $certificate = DB::table('cc_forms_cert')
             ->where('certificate_no', $request->certificate_no)
-            // ->where('dateof_issue', $dateofIssue)
-            // ->where('valid_from', $validFrom)
-            // ->where('valid_to', $validTo)
-            // ->where('cert_status', 'A')
-            // ->orderBy('cc_id', 'desc')
+            ->where('dateof_issue', $dateofIssue)
+            ->where('valid_from', $validFrom)
+            ->where('valid_to', $validTo)
+            ->where('cert_status', 'A')
+            ->orderBy('cc_id', 'desc')
             ->first();
-//   dd($certificate);exit;
+        //   dd($certificate);exit;
         if (!$certificate) {
             return response()->json([
                 'status' => false,
@@ -291,9 +300,16 @@ class FormAController extends BaseController
             ]);
         }
 
+        if (Carbon::parse($certificate->valid_to)->lt(Carbon::today())) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Staff Certificate has expired.'
+            ]);
+        }
 
 
-          // =====================================================
+
+        // =====================================================
         // STEP 2: GET APPLICANT NAME
         // =====================================================
 
@@ -375,6 +391,168 @@ class FormAController extends BaseController
         // ]);
     }
 
+    public function otherstaffcheck(Request $request)
+    {
+
+        // dd($request->all()); exit;
+        $request->validate([
+            'certificate_no' => 'required|string',
+            'dateof_issue'   => 'required|date',
+            'valid_from'     => 'required|date',
+            'valid_to'       => 'required|date',
+        ]);
+
+        $certificateNo = trim($request->certificate_no);
+        $dateofIssue   = $request->dateof_issue;
+        $validFrom     = $request->valid_from;
+        $validTo       = $request->valid_to;
+
+        /*
+    |--------------------------------------------------------------------------
+    | STEP 1: CHECK CERTIFICATE
+    |--------------------------------------------------------------------------
+    */
+
+        $certificate = DB::query()
+            ->fromSub(
+
+                DB::table('cc_forms_cert')
+                    ->select(
+                        'certificate_no',
+                        'dateof_issue',
+                        'valid_from',
+                        'valid_to',
+                        'cert_status',
+                        'application_id'
+                    )
+                    ->where('certificate_no', $certificateNo)
+                    ->where('dateof_issue', $dateofIssue)
+                    ->where('valid_from', $validFrom)
+                    ->where('valid_to', $validTo)
+                    ->where('cert_status', 'A')
+
+                    ->unionAll(
+
+                        DB::table('cc_form_w_cert')
+                            ->select(
+                                'certificate_no',
+                                'dateof_issue',
+                                'valid_from',
+                                'valid_to',
+                                'cert_status',
+                                'application_id'
+                            )
+                            ->where('certificate_no', $certificateNo)
+                            ->where('dateof_issue', $dateofIssue)
+                            ->where('valid_from', $validFrom)
+                            ->where('valid_to', $validTo)
+                            ->where('cert_status', 'A')
+                    ),
+
+                'certificates'
+            )
+            ->first();
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | CERTIFICATE NOT FOUND
+    |--------------------------------------------------------------------------
+    */
+
+        if (!$certificate) {
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Staff Certificate details are not valid.'
+            ]);
+        }
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | STEP 2: GET CERTIFICATE HOLDER NAME
+    |--------------------------------------------------------------------------
+    |
+    | application_id from certificate is used to find the applicant.
+    |
+    */
+
+        $applicant = DB::table('cc_form_s_meta')
+            ->where('application_id', $certificate->application_id)
+            ->first();
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | If not found in cc_form_s_meta,
+    | try cc_form_w_cert
+    |--------------------------------------------------------------------------
+    */
+
+        if (!$applicant) {
+
+            $applicant = DB::table('cc_form_w_meta')
+                ->where('application_id', $certificate->application_id)
+                ->first();
+        }
+
+        // dd($applicant); exit;
+        /*
+    |--------------------------------------------------------------------------
+    | APPLICANT NOT FOUND
+    |--------------------------------------------------------------------------
+    */
+
+        if (!$applicant) {
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Certificate found, but applicant details are not available.'
+            ]);
+        }
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | CERTIFICATE HOLDER NAME
+    |--------------------------------------------------------------------------
+    |
+    | Change certificate_holder_name below if your actual column name
+    | is different.
+    |
+    */
+
+        $certificateHolderName = $applicant->applicant_name ?? null;
+
+
+        if (empty($certificateHolderName)) {
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Certificate found, but certificate holder name is not available.'
+            ]);
+        }
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | SUCCESS
+    |--------------------------------------------------------------------------
+    */
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Certificate verified successfully.',
+            'certificate_no' => $certificate->certificate_no,
+            'dateof_issue' => $certificate->dateof_issue,
+            'valid_from' => $certificate->valid_from,
+            'valid_to' => $certificate->valid_to,
+            'application_id' => $certificate->application_id,
+            'certificate_holder_name_others' => $certificateHolderName,
+        ]);
+    }
+
     public function store(Request $request)
     {
 
@@ -409,9 +587,14 @@ class FormAController extends BaseController
                 'authorised_name_designation' => 'nullable|string|max:255',
                 'authorised_name' => 'nullable|string|max:255',
                 'authorised_designation' => 'nullable|string|max:255',
-                'previous_contractor_license' => 'nullable|string|max:10',
+
+                'previous_contractor_license' => 'required|string|max:10',
                 'previous_application_number' => 'nullable|string|max:50',
-                'previous_application_validity' => 'nullable',
+                'previous_validity_first_issue' => 'nullable',
+                'previous_validity_from' => 'nullable',
+                'previous_validity_to' => 'nullable',
+
+
                 'bank_address' => 'nullable|string|max:500',
                 'bank_validity' => 'nullable|date',
                 'bank_amount' => 'nullable|numeric|min:0',
@@ -500,6 +683,17 @@ class FormAController extends BaseController
         // }
 
 
+        // dd([
+
+        //         'previous_application_number' => $request->previous_application_number,
+        //         'previous_validity_first_issue' => $request->previous_validity_first_issue,
+        //         'previous_validity_from' => $request->previous_validity_from,
+        //         'previous_validity_to' => $request->previous_validity_to,
+        //     ]);
+
+        // exit;
+
+
 
 
         // Determine if record exists
@@ -533,6 +727,18 @@ class FormAController extends BaseController
         $dataToSave = $validatedData;
         $dataToSave['application_id'] = $applicationId;
         $dataToSave['login_id'] = $request->login_id_store;
+
+        $dataToSave['previous_application_number'] =
+            $request->input('previous_application_number');
+
+        $dataToSave['previous_validity_first_issue'] =
+            $request->input('previous_validity_first_issue');
+
+        $dataToSave['previous_validity_from'] =
+            $request->input('previous_validity_from');
+
+        $dataToSave['previous_validity_to'] =
+            $request->input('previous_validity_to');
         if ($request->appl_type === 'D') {
             $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
         } else {
@@ -880,6 +1086,10 @@ class FormAController extends BaseController
                 []
             );
 
+
+          $staffName = $request->input('certificate_holder_name', []);
+          $staffNameQC = $request->input('certificate_holder_name_qc', []);
+
             $staffCcNos = $request->input(
                 'staff_cc_no',
                 []
@@ -929,10 +1139,28 @@ class FormAController extends BaseController
             // ==========================================================
             // ROW INDEXES PRESENT IN CURRENT FORM
             // ==========================================================
+            $removedStaffIds = $request->input('removed_staffqc_ids', []);
 
+            
+
+            if (!empty($removedStaffIds)) {
+                DB::table('cl_staff_tbl')
+                    ->where('application_id', $applicationId)
+                    ->whereIn('id', $removedStaffIds)
+                    ->whereIn('staff_category', ['QC', 'QSC'])
+                    ->update([
+                        'staff_flag' => '0',
+                        'updated_at' => now(),
+                    ]);
+            }
             $currentRowIndexes = [];
 
-
+// dd([
+//     'categories' => $request->input('staffqc_category', []),
+//     'names' => $request->input('certificate_holder_name', []),
+//     'old_names' => $request->input('certificate_holder_name_qc', []),
+//     'certificate_numbers' => $request->input('staff_cc_no', []),
+// ]);exit;
             // ==========================================================
             // PROCESS QC / QSC
             // ==========================================================
@@ -993,7 +1221,11 @@ class FormAController extends BaseController
                 // ------------------------------------------------------
                 // OTHER VALUES
                 // ------------------------------------------------------
-
+              $ccName = trim((string) (
+                    $staffName[$index]
+                    ?? $staffNameQC[$index]
+                    ?? ''
+                ));
                 $firstIssue = trim(
                     (string) (
                         $staffFirstIssues[$index] ?? ''
@@ -1112,8 +1344,7 @@ class FormAController extends BaseController
 
                         $updateData = [
 
-                            'staff_category' =>
-                            $category,
+
 
                             'staff_cc_no' =>
                             $ccNo,
@@ -1131,6 +1362,10 @@ class FormAController extends BaseController
                             $updateData['staff_cc_first_issue'] = $firstIssue;
                         }
 
+                        if ($ccName !== '') {
+
+                            $updateData['staff_name'] = $ccName;
+                        }
 
                         if ($validityFrom !== '') {
 
@@ -1182,21 +1417,12 @@ class FormAController extends BaseController
 
                 else {
 
+
                     // --------------------------------------------------
                     // USE SUBMITTED ROW INDEX
                     // --------------------------------------------------
 
-                    if (
-                        $submittedRowIndex !== null
-                    ) {
-
-                        $newRowIndex =
-                            $submittedRowIndex;
-                    } else {
-
-                        $newRowIndex =
-                            $nextRowIndex;
-                    }
+                $newRowIndex = $nextRowIndex;
 
 
                     // --------------------------------------------------
@@ -1215,8 +1441,9 @@ class FormAController extends BaseController
                             'application_id' =>
                             $applicationId,
 
-                            'staff_category' =>
-                            $category,
+                           'staff_category' => $category,
+
+                            'staff_name' => $ccName,
 
                             'staff_cc_no' =>
                             $ccNo,
@@ -1653,11 +1880,52 @@ class FormAController extends BaseController
 
                 $validityTo = $request->input("cc_validity_to.$index");
 
+                $ccName = $request->input("certificate_holder_name_others.$index");
+
                 $designation = $request->input("designation.$index");
 
                 $staffId = $staffIdsFromForm[$index] ?? null;
 
                 $rowIndex = $rowIndexesFromForm[$index] ?? null;
+
+                //                 dd([
+                //     'index' => $index,
+
+                //     'ccNumber' => $ccNumber,
+
+                //     'firstIssue' => $firstIssue,
+
+                //     'validityFrom' => $validityFrom,
+
+                //     'validityTo' => $validityTo,
+
+                //     'ccName' => $ccName,
+
+                //     'designation' => $designation,
+
+                //     'staffId' => $staffId,
+
+                //     'rowIndex' => $rowIndex,
+
+                //     // Also show complete submitted arrays
+                //     'staff_category' => $request->input('staff_category', []),
+
+                //     'cc_number_all' => $request->input('cc_number', []),
+
+                //     'cc_firstissue_all' => $request->input('cc_firstissue', []),
+
+                //     'cc_validity_from_all' => $request->input('cc_validity_from', []),
+
+                //     'cc_validity_to_all' => $request->input('cc_validity_to', []),
+
+                //     'certificate_holder_name_all' => $request->input('certificate_holder_name_others', []),
+
+                //     'designation_all' => $request->input('designation', []),
+
+                //     'staff_id_all' => $staffIdsFromForm,
+
+                //     'row_index_all' => $rowIndexesFromForm,
+                // ]); exit;
 
 
                 // ----------------------------------------------------------
@@ -1735,6 +2003,15 @@ class FormAController extends BaseController
                     'staff_cc_validity_to' =>
                     $validityTo,
 
+
+
+                    'staff_name' =>
+                    !empty($ccName)
+                        ? trim((string) $ccName)
+                        : null,
+
+
+
                     'staff_status' =>
                     'N',
 
@@ -1763,6 +2040,8 @@ class FormAController extends BaseController
                     $staffData['staff_cc_no'] = null;
 
                     $staffData['staff_cc_first_issue'] = null;
+
+                    $staffData['staff_name'] = null;
 
                     $staffData['staff_cc_validity_from'] = null;
 
@@ -4318,6 +4597,24 @@ class FormAController extends BaseController
 
             $staffQcIds = $request->input('staffqc_id', []);
             $rowIndexes = $request->input('row_index', []);
+
+            $staffName = $request->input('certificate_holder_name', []);
+            $staffNameQC = $request->input('certificate_holder_name_qc', []);
+
+            dd([
+    'all_request_data' => $request->all(),
+    'staffqc_category' => $staffCategories,
+    'certificate_holder_name' => $staffName,
+    'certificate_holder_name_qc' => $staffNameQC,
+    'staff_cc_no' => $staffCcNos,
+    'staff_cc_first_issue' => $staffFirstIssues,
+    'staff_cc_validity_from' => $staffValidityFroms,
+    'staff_cc_validity_to' => $staffValidityTos,
+    'staffqc_id' => $staffQcIds,
+    'row_index' => $rowIndexes,
+]);
+
+
 
             /*
     |--------------------------------------------------------------------------

@@ -7136,26 +7136,7 @@ flatpickr('input[name="competency_certificate_validity_to[]"]', {
     // }
 });
 
-flatpickr(
-    'input[name="previous_validity_first_issue"],' +
-    'input[name="previous_validity_from"],' +
-    'input[name="previous_validity_to"],' +
-    'input[name="staff_cc_first_issue[]"],' +
-    'input[name="staff_cc_validity_from[]"],' +
-    'input[name="staff_cc_validity_to[]"],' +
-    'input[name="cc_validity[]"],' +
 
-    'input[name="cc_firstissue[]"],' +
-    'input[name="cc_validity_from[]"],' +
-    'input[name="cc_validity_to[]"]',
-
-    'input[name="cc_number[]"]',
-    'input[name="cc_firstissue[]"]',
-
-    {
-        dateFormat: "d-m-Y"
-    }
-);
 
 
 flatpickr('input[name="competency_certificate_first_issue[]"]', {
