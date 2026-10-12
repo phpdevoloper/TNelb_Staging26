@@ -31,6 +31,7 @@ use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Services\Competency\FormPSchema;
+use App\Services\CcDigitizationLinkService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\ReturnedApplicationEditScope;
 use App\Http\Controllers\Admin\LicensepdfController;
@@ -1183,6 +1184,14 @@ class FormPController extends Controller
                     (string) $request->application_id,
                     (string) ($application->login_id ?? '')
                 );
+                $tempAppId = trim((string) ($digitized->temp_app_id ?? ''));
+                if ($tempAppId !== '' && trim((string) ($digitized->application_id ?? '')) === '') {
+                    app(CcDigitizationLinkService::class)->linkToApplication(
+                        $tempAppId,
+                        (string) $request->application_id,
+                        (string) ($application->login_id ?? '')
+                    );
+                }
                 $oldNumber = trim((string) ($digitized->ccnumber ?? $digitized->old_cc_no ?? ''));
                 if ($oldNumber === '' || $oldNumber === '0') {
                     throw new \RuntimeException('The old certificate number was not found, so this digitisation was not approved.');
@@ -1268,8 +1277,8 @@ class FormPController extends Controller
                 'status' => 'success',
                 'message' => $appl_type === 'R'
                     ? 'Renewal approved till '.date('d/m/Y', strtotime((string) $expiresAt))
-                    : 'License issued till '.date('d/m/Y', strtotime((string) $expiresAt)),
-                'license_number' => $newSerial,
+                    : 'Certificate issued till '.date('d/m/Y', strtotime((string) $expiresAt)),
+                'certificate_number' => $newSerial,
                 'issued_at' => $issuedAt,
                 'expires_at' => $expiresAt,
                 'license_pdf_en_url' => $storedLicenceUrl,
@@ -1632,6 +1641,23 @@ class FormPController extends Controller
             $applicant->payment_mode = $applicant->payment_mode ?? null;
             $applicant->payment_status = $applicant->payment_status ?? null;
             $applicant->amount = $applicant->amount ?? $applicant->application_fee ?? null;
+            $employer = trim((string) ($applicant->employer_detail ?? $applicant->employer_name ?? ''));
+            if ($employer === '' && strtoupper(trim((string) ($applicant->appl_type ?? ''))) === 'A') {
+                $parentId = trim((string) ($applicant->old_application ?? ''));
+                if ($parentId !== '') {
+                    $employer = trim((string) (DB::table(FormPSchema::META_TABLE)
+                        ->where('application_id', $parentId)
+                        ->value('employer_detail') ?? ''));
+                    if ($employer === '' && Schema::hasTable('tnelb_form_p')) {
+                        $employer = trim((string) (DB::table('tnelb_form_p')
+                            ->where('application_id', $parentId)
+                            ->value('employer_detail') ?? ''));
+                    }
+                }
+            }
+            if ($employer !== '') {
+                $applicant->employer_detail = $employer;
+            }
             if (Schema::hasTable('cc_payments')) {
                 $payQuery = DB::table('cc_payments')->where('application_id', $applicantId);
                 if (Schema::hasColumn('cc_payments', 'p_id')) {

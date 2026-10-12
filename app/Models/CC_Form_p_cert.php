@@ -10,5 +10,5 @@ class CC_Form_p_cert extends CompetencyCertificateModel
 
     protected $table = 'cc_form_p_cert';
 
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'cc_id';
 }

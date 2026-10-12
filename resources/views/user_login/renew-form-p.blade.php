@@ -68,6 +68,7 @@
     .fs-form .form-control { border: 1px solid #ccd5e3; border-radius: 6px; font-size: .875rem; height: auto; padding: 7px 11px; transition: border-color .2s, box-shadow .2s; background: #fff; }
     .fs-form .form-control:focus { border-color: #035ab3; box-shadow: 0 0 0 3px rgba(3,90,179,.12); outline: none; }
     .fs-form .form-control[readonly], .fs-form .form-control:disabled { background: #f4f6fb; color: #6b7a99; }
+    .fs-form #d_o_b[readonly] { pointer-events: none; caret-color: transparent; }
     .fs-form textarea.form-control { resize: vertical; }
 
     /* ── Radio toggle ─────────────────────────────────── */
@@ -103,8 +104,42 @@
     /* ── Table add/remove buttons ─────────────────────── */
     .btn-tbl-add { background: #035ab3; color: #fff; border: none; border-radius: 5px; padding: 4px 9px; font-size: .8rem; cursor: pointer; transition: background .2s; }
     .btn-tbl-add:hover { background: #024a98; }
+    .btn-tbl-add:disabled { opacity: .55; cursor: not-allowed; pointer-events: none; }
     .btn-tbl-remove { background: #dc3545; color: #fff; border: none; border-radius: 5px; padding: 4px 9px; font-size: .8rem; cursor: pointer; transition: background .2s; }
     .btn-tbl-remove:hover { background: #b52a37; }
+
+    /* Renewal: copied education / institute / work rows are view-only; Add stays enabled. */
+    #education-table .fs-renew-existing-edu input:not([type="hidden"]),
+    #education-table .fs-renew-existing-edu select,
+    #education-table .fs-renew-existing-edu textarea,
+    #institute-table .fs-renew-existing-inst input:not([type="hidden"]),
+    #institute-table .fs-renew-existing-inst select,
+    #institute-table .fs-renew-existing-inst textarea,
+    #work-table .fs-renew-existing-work input:not([type="hidden"]),
+    #work-table .fs-renew-existing-work select,
+    #work-table .fs-renew-existing-work textarea {
+        pointer-events: none !important;
+        background-color: #f4f6fb !important;
+        color: #6b7a99 !important;
+        box-shadow: none !important;
+    }
+    #education-table .fs-renew-existing-edu select,
+    #institute-table .fs-renew-existing-inst select {
+        appearance: none;
+        -webkit-appearance: none;
+    }
+    #education-table .fs-renew-existing-edu .remove-education,
+    #education-table .fs-renew-existing-edu .remove-doc_edu,
+    #education-table .fs-renew-existing-edu input[type="file"],
+    #institute-table .fs-renew-existing-inst .remove-institute,
+    #institute-table .fs-renew-existing-inst .remove-inst,
+    #institute-table .fs-renew-existing-inst input[type="file"],
+    #work-table .fs-renew-existing-work .remove-work,
+    #work-table .fs-renew-existing-work .remove-doc_work,
+    #work-table .fs-renew-existing-work input[type="file"] {
+        display: none !important;
+    }
+    .fs-renew-lock-radios { pointer-events: none; opacity: .85; }
 
     /* ── Education / institute / work table ──────────── */
     #education-table thead th, #institute-table thead th, #work-table thead th { font-size: .72rem; font-weight: 600; padding: .3rem .35rem; vertical-align: middle; line-height: 1.2; text-align: center; }
@@ -274,7 +309,7 @@
     $signatureSrc   = !empty($signaturePath) ? competency_media_url($signaturePath) : '';
 @endphp
 
-{{-- ░░ BREADCRUMB ░░ --}}
+{{-- BREADCRUMB --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
         <ul id="breadcrumb">
@@ -294,12 +329,12 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{-- PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- CARD HEADER --}}
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Renewal Application for Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
@@ -313,13 +348,13 @@
                 </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- MANDATORY NOTICE --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Read-only banner (returned applications) ── --}}
-            @if($isReturned)
+            {{-- READ-ONLY BANNER --}}
+           @if($isReturned)
                 <div class="fs-readonly-banner" id="readonlyBanner">
                     <div class="icon"><i class="fa fa-eye"></i></div>
                     <div class="body">
@@ -329,7 +364,7 @@
                 </div>
             @endif
 
-            {{-- ── Progress pill ── --}}
+            {{-- PROGRESS PILL --}}
             <div class="fs-progress-row">
                 <div class="fs-progress-pill" id="formProgressPill">
                     <i class="fa fa-list-alt"></i>
@@ -338,11 +373,11 @@
                 </div>
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- FORM BODY --}}
             <div class="fs-form-body fs-form apply-card">
                 <form id="competency_form_p" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTION 1 & 2 — Name & Father's Name ═══ --}}
+                    {{-- SECTION 1 & 2 -- NAME & FATHER'S NAME --}}
                     <div class="fs-section" data-section-key="personal" data-query-keywords="name|father|applicant name|father's name|fathers name">
                         <div class="fs-section-body">
                             <div class="row">
@@ -354,7 +389,7 @@
                                 <div class="col-12 col-md-6">
                                     <div class="fs-field-label">2. Father's Name <span class="req">*</span></div>
                                     <div class="fs-field-tamil">தகப்பனார் பெயர்</div>
-                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application_details) ? $application_details->fathers_name : '' }}" maxlength="80">
+                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application_details) ? $application_details->fathers_name : '' }}" maxlength="80" {{ $isRenewFormP ? 'readonly' : '' }}>
                                     <span class="error-message text-danger"></span>
                                 </div>
                                 @php
@@ -375,7 +410,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 3 & 4 — Address / DOB / Age ═══ --}}
+                    {{-- SECTION 3 & 4 -- ADDRESS / DOB / AGE --}}
                     <div class="fs-section" data-section-key="contact" data-query-keywords="address|dob|date of birth|age|பிறந்த">
                         <div class="fs-section-body">
                             <div class="row">
@@ -390,7 +425,7 @@
                                         <div class="col-12 col-sm-7 mb-3 mb-sm-0">
                                             <div class="fs-field-label">4. (i) Date of Birth <span class="req">*</span></div>
                                             <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
-                                            <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b" type="text" placeholder="DD/MM/YYYY" value="{{ $application_details->d_o_b ?? '' }}">
+                                            <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b" type="text" placeholder="DD/MM/YYYY" value="{{ $application_details->d_o_b ?? '' }}" {{ $isRenewFormP ? 'readonly tabindex=-1' : '' }}>
                                             <span id="dob-error" class="text-danger d-block mt-1" style="display:none;"></span>
                                         </div>
                                         <div class="col-12 col-sm-5">
@@ -404,7 +439,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 5 — Technical Qualifications ═══ --}}
+                    {{-- SECTION 5 -- TECHNICAL QUALIFICATIONS --}}
                     <div class="fs-section" data-section-key="qualifications" data-query-keywords="education|qualification|institute|training|power station|work|experience|employer|technical">
                         <div class="fs-section-header">
                             <span class="fs-section-num">5</span>
@@ -419,7 +454,7 @@
                         </div>
                         <div class="fs-section-body">
 
-                            {{-- (i) Education table --}}
+                            {{-- (i) EDUCATION TABLE --}}
                             <div class="fs-field-label mb-2">(i) Education Details <span class="req">*</span></div>
                             <div class="fs-table-wrap mb-4">
                                 <table class="table table-bordered" id="education-table">
@@ -441,7 +476,8 @@
                                     <tbody id="education-container">
                                         @if ($edu_details->isNotEmpty())
                                             @foreach ($edu_details as $edu)
-                                                <tr class="education-fields text-center">
+                                                @php $lockEdu = $isRenewFormP && ($edu->renew_inherited ?? true); @endphp
+                                                <tr class="education-fields text-center{{ $lockEdu ? ' fs-renew-existing-edu' : '' }}" @if($lockEdu) data-renew-locked="1" @endif>
                                                     <td>{{ $loop->iteration }}</td>
                                                     <td>
                                                         <select class="form-control" name="educational_level[]">
@@ -457,18 +493,19 @@
                                                         <div style="display:flex;gap:4px;">
                                                             <select name="month_of_passing[]" class="form-control" style="flex:1;min-width:0;">
                                                                 <option value="">Month</option>
-                                                                <option value="01" {{ ($edu->month_passing ?? '') == '01' ? 'selected' : '' }}>Jan</option>
-                                                                <option value="02" {{ ($edu->month_passing ?? '') == '02' ? 'selected' : '' }}>Feb</option>
-                                                                <option value="03" {{ ($edu->month_passing ?? '') == '03' ? 'selected' : '' }}>Mar</option>
-                                                                <option value="04" {{ ($edu->month_passing ?? '') == '04' ? 'selected' : '' }}>Apr</option>
-                                                                <option value="05" {{ ($edu->month_passing ?? '') == '05' ? 'selected' : '' }}>May</option>
-                                                                <option value="06" {{ ($edu->month_passing ?? '') == '06' ? 'selected' : '' }}>Jun</option>
-                                                                <option value="07" {{ ($edu->month_passing ?? '') == '07' ? 'selected' : '' }}>Jul</option>
-                                                                <option value="08" {{ ($edu->month_passing ?? '') == '08' ? 'selected' : '' }}>Aug</option>
-                                                                <option value="09" {{ ($edu->month_passing ?? '') == '09' ? 'selected' : '' }}>Sep</option>
-                                                                <option value="10" {{ ($edu->month_passing ?? '') == '10' ? 'selected' : '' }}>Oct</option>
-                                                                <option value="11" {{ ($edu->month_passing ?? '') == '11' ? 'selected' : '' }}>Nov</option>
-                                                                <option value="12" {{ ($edu->month_passing ?? '') == '12' ? 'selected' : '' }}>Dec</option>
+                                                                @php $eduMonth = (int) ltrim((string) ($edu->month_passing ?? ''), '0'); @endphp
+                                                                <option value="01" {{ $eduMonth === 1 ? 'selected' : '' }}>Jan</option>
+                                                                <option value="02" {{ $eduMonth === 2 ? 'selected' : '' }}>Feb</option>
+                                                                <option value="03" {{ $eduMonth === 3 ? 'selected' : '' }}>Mar</option>
+                                                                <option value="04" {{ $eduMonth === 4 ? 'selected' : '' }}>Apr</option>
+                                                                <option value="05" {{ $eduMonth === 5 ? 'selected' : '' }}>May</option>
+                                                                <option value="06" {{ $eduMonth === 6 ? 'selected' : '' }}>Jun</option>
+                                                                <option value="07" {{ $eduMonth === 7 ? 'selected' : '' }}>Jul</option>
+                                                                <option value="08" {{ $eduMonth === 8 ? 'selected' : '' }}>Aug</option>
+                                                                <option value="09" {{ $eduMonth === 9 ? 'selected' : '' }}>Sep</option>
+                                                                <option value="10" {{ $eduMonth === 10 ? 'selected' : '' }}>Oct</option>
+                                                                <option value="11" {{ $eduMonth === 11 ? 'selected' : '' }}>Nov</option>
+                                                                <option value="12" {{ $eduMonth === 12 ? 'selected' : '' }}>Dec</option>
                                                             </select>
                                                             <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;">
                                                                 <option value="0" disabled {{ empty($edu->year_of_passing) ? 'selected' : '' }}>Select Year</option>
@@ -511,7 +548,7 @@
                                                 <td>1</td>
                                                 <td>
                                                     <select class="form-control" name="educational_level[]">
-                                                        <option selected disabled>Select Education</option>
+                                                        <option value="" selected>Select Education</option>
                                                         <option value="BEM">B.E(Mechanical)</option>
                                                         <option value="BEE">B.E(Electrical)</option>
                                                         <option value="DME">Diploma(Mechanical)</option>
@@ -580,7 +617,8 @@
                                     <tbody id="institute-container">
                                         @if ($institutes->isNotEmpty())
                                             @foreach ($institutes as $institute)
-                                                <tr class="institute-fields text-center">
+                                                @php $lockInst = $isRenewFormP && ($institute->renew_inherited ?? true); @endphp
+                                                <tr class="institute-fields text-center{{ $lockInst ? ' fs-renew-existing-inst' : '' }}" @if($lockInst) data-renew-locked="1" @endif>
                                                     <td>{{ $loop->iteration }}</td>
                                                     <td>
                                                         <textarea autocomplete="off" class="form-control" name="institute_name_address[]" cols="5" rows="3" maxlength="255">{{ $institute->institute_name_address ?? '' }}</textarea>
@@ -676,7 +714,8 @@
                                                     $expToDate = !empty($exp->to_date) ? \Carbon\Carbon::parse($exp->to_date)->format('Y-m-d') : '';
                                                     $expTotal = $exp->total_exp ?? $exp->experience ?? '';
                                                 @endphp
-                                                <tr class="work-fields text-center">
+                                                @php $lockWork = $isRenewFormP && ($exp->renew_inherited ?? true); @endphp
+                                                <tr class="work-fields text-center{{ $lockWork ? ' fs-renew-existing-work' : '' }}" @if($lockWork) data-renew-locked="1" @endif>
                                                     <td>{{ $loop->iteration }}</td>
                                                     <td>
                                                         <input autocomplete="off" class="form-control" name="work_level[]" type="text" value="{{ $exp->company_name ?? $exp->emp_cate ?? '' }}">
@@ -752,7 +791,7 @@
                                     <div class="fs-field-tamil">தொழில் வழங்குநரின் பெயர்</div>
                                 </div>
                                 <div class="col-12 col-md-9">
-                                    <textarea class="form-control" name="employer_name" id="employer_name" cols="5" rows="3" maxlength="255">{{ $application_details->employer_detail ?? '' }}</textarea>
+                                    <textarea class="form-control" name="employer_name" id="employer_name" cols="5" rows="3" maxlength="255" {{ $isRenewFormP ? 'readonly' : '' }}>{{ $application_details->employer_detail ?? '' }}</textarea>
                                 </div>
                             </div>
 
@@ -769,13 +808,13 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
-                            <div class="fs-radio-group mb-2">
+                            <div class="fs-radio-group mb-2{{ $isRenewFormP ? ' fs-renew-lock-radios' : '' }}">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ $hasPreviousApplication ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ $hasPreviousApplication ? 'checked' : '' }} {{ $isRenewFormP ? 'tabindex=-1' : '' }}>
                                     <label class="form-check-label" for="previous_license_yes">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ !$hasPreviousApplication ? 'checked' : '' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ !$hasPreviousApplication ? 'checked' : '' }} {{ $isRenewFormP ? 'tabindex=-1' : '' }}>
                                     <label class="form-check-label" for="previous_license_no">No</label>
                                 </div>
                             </div>
@@ -783,12 +822,12 @@
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
                                         <div class="fs-field-label">Application Number</div>
-                                        <input autocomplete="off" class="form-control" id="previously_number" name="previously_number" type="text" placeholder="Application Number" maxlength="80" value="{{ $application_details->previously_number ?? '' }}">
+                                        <input autocomplete="off" class="form-control" id="previously_number" name="previously_number" type="text" placeholder="Application Number" maxlength="80" value="{{ $application_details->previously_number ?? '' }}" {{ $isRenewFormP ? 'readonly' : '' }}>
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-4">
                                         <div class="fs-field-label">Date <span class="req">*</span></div>
-                                        <input autocomplete="off" class="form-control verify-date" id="previously_date" name="previously_date" type="date" data-error="#dateError" value="{{ $application_details->previously_date ?? '' }}">
+                                        <input autocomplete="off" class="form-control verify-date" id="previously_date" name="previously_date" type="date" data-error="#dateError" value="{{ $application_details->previously_date ?? '' }}" {{ $isRenewFormP ? 'readonly' : '' }}>
                                         <span id="dateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
@@ -849,7 +888,7 @@
                                             <div class="fs-field-tamil">ஆதார் எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" value="{{ $decryptedaadhar }}" style="max-width:260px;">
+                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" value="{{ $decryptedaadhar }}" style="max-width:260px;" {{ $isRenewFormP ? 'readonly' : '' }}>
                                             <span id="aadhaar-error" class="text-danger"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -862,7 +901,9 @@
                                                     <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank">
                                                         <i class="fa fa-file-pdf-o"></i> View
                                                     </a>
+                                                    @if(!$isRenewFormP)
                                                     <button type="button" class="btn-tbl-remove remove-docs py-1 px-2">Remove</button>
+                                                    @endif
                                                 </div>
                                             @else
                                                 <div class="aadhaar-doc-input">
@@ -895,7 +936,7 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" value="{{ $decryptedPanEdit }}" style="max-width:260px;" placeholder="e.g. ABCDE1234F">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" value="{{ $decryptedPanEdit }}" style="max-width:260px;" placeholder="e.g. ABCDE1234F" {{ $isRenewFormP ? 'readonly' : '' }}>
                                             <span id="pancard-error" class="text-danger d-block"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -908,7 +949,9 @@
                                                     <a href="{{ proof_document_url($existingPanDocFormP, 'pan') }}" target="_blank">
                                                         <i class="fa fa-file-pdf-o"></i> View
                                                     </a>
+                                                    @if(!$isRenewFormP)
                                                     <button type="button" class="btn-tbl-remove remove-pan-doc py-1 px-2">Remove</button>
+                                                    @endif
                                                 </div>
                                             @else
                                                 <div class="pancard-doc-input">
@@ -981,8 +1024,8 @@
                     <input type="hidden" id="old_application" name="old_application" value="{{ $old_application_id ?? ($old_application ?? ($application_details->old_application ?? '')) }}">
                     <input type="hidden" id="license_number" name="license_number" value="{{ $license_details->license_number ?? '' }}">
                     <input type="hidden" id="form_name" name="form_name" value="P">
-                    <input type="hidden" id="license_name" name="license_name" value="{{ $application_details->license_name ?? 'P' }}">
-                    <input type="hidden" id="form_id" name="form_id" value="{{ $application_details->form_id ?? '' }}">
+                    <input type="hidden" id="license_name" name="license_name" value="P">
+                    <input type="hidden" id="form_id" name="form_id" value="6">
                     <input type="hidden" id="appl_type" name="appl_type" value="{{ $isRenewFormP ? 'R' : ($application_details->appl_type ?? 'N') }}">
                     @if($isRenewFormP)
                         <input type="hidden" id="amount" name="amount" value="750">
@@ -1029,6 +1072,19 @@
     window.returnApplicationQueryReasons = @json(isset($queryReasonsForValidation) ? $queryReasonsForValidation : []);
     window.isRenewFormP = @json($isRenewFormP ?? false);
     window.isReturnedFormP = @json($isReturned);
+    if (window.isRenewFormP) {
+        document.addEventListener('DOMContentLoaded', function () {
+            var dob = document.getElementById('d_o_b');
+            if (!dob) {
+                return;
+            }
+            if (dob._flatpickr) {
+                dob._flatpickr.destroy();
+            }
+            dob.readOnly = true;
+            dob.setAttribute('tabindex', '-1');
+        });
+    }
 </script>
 <script>
     function confirmWithSwal(message, onConfirm) {
@@ -1245,6 +1301,9 @@
 
         if (e.target.closest(".remove-education")) {
             const row = e.target.closest("tr");
+            if (row && row.getAttribute('data-renew-locked') === '1') {
+                return;
+            }
             confirmWithSwal('Are you sure you want to remove this education row?', function () {
                 row.remove();
             });
@@ -1310,6 +1369,9 @@
 
         if (e.target.closest(".remove-work")) {
             const row = e.target.closest("tr");
+            if (row && row.getAttribute('data-renew-locked') === '1') {
+                return;
+            }
             confirmWithSwal('Are you sure you want to remove this work row?', function () {
                 row.remove();
             });
@@ -1365,6 +1427,9 @@
 
         if (e.target.closest(".remove-inst-row")) {
             const row = e.target.closest("tr");
+            if (row && row.getAttribute('data-renew-locked') === '1') {
+                return;
+            }
             confirmWithSwal('Are you sure you want to remove this institute row?', function () {
                 row.remove();
             });
@@ -1374,6 +1439,9 @@
     // Remove existing education document (switch to file upload + mark removed)
     $(document).on('click', '.remove-doc_edu', function () {
         const $row = $(this).closest('tr');
+        if ($row.attr('data-renew-locked') === '1') {
+            return;
+        }
         const uploadCell = $(this).closest('td');
         confirmWithSwal('Are you sure you want to remove this education document?', function () {
             $row.find('.removed-document-edu').val('1');
@@ -1385,6 +1453,9 @@
     // Remove existing institute document (switch to file upload + mark removed)
     $(document).on('click', '.remove-inst', function () {
         const $row = $(this).closest('tr');
+        if ($row.attr('data-renew-locked') === '1') {
+            return;
+        }
         const uploadCell = $(this).closest('td');
         confirmWithSwal('Are you sure you want to remove this institute document?', function () {
             $row.find('.removed-document-inst').val('1');

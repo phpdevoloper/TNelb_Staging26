@@ -8345,6 +8345,60 @@ $(document).on("click", "#verify_qc_staff", function () {
 
 });
 
+
+// ---------------------return forma-------------
+$(document).on("click", ".edit-qc-staff", function () {
+
+    let $row = $(this).closest("tr.staffqc-record");
+    let $section = $("#staffqc_datasection");
+
+    // Get values from selected row
+    let staffId = $row.find('input[name="staffqc_id[]"]').first().val() || "";
+    let category = $row.find('input[name="staffqc_category[]"]').first().val() || "QC";
+    let ccNo = $row.find('input[name="staff_cc_no[]"]').first().val() || "";
+    let holderName = $row.find('input[name="certificate_holder_name[]"]').first().val() || "";
+
+    let firstIssue = $row.find('input[name="staff_cc_first_issue[]"]').first().val() || "";
+    let validityFrom = $row.find('input[name="staff_cc_validity_from[]"]').first().val() || "";
+    let validityTo = $row.find('input[name="staff_cc_validity_to[]"]').first().val() || "";
+
+    // Clear previous errors
+    $section.find(".text-danger").text("");
+
+    // Store the selected row and staff ID for later use
+    $section.attr("data-edit-row-id", staffId);
+    $section.attr("data-edit-mode", "1");
+
+    // Fill existing form fields
+    $section.find('input[name="staffqc_category[]"]').first().val(category);
+    $section.find('input[name="staff_cc_no[]"]').first().val(ccNo);
+    $section.find('input[name="staff_cc_first_issue[]"]').first().val(firstIssue);
+    $section.find('input[name="staff_cc_validity_from[]"]').first().val(validityFrom);
+    $section.find('input[name="staff_cc_validity_to[]"]').first().val(validityTo);
+
+    // Display certificate holder name
+    $("#certificate-holder-name").text(holderName);
+
+    // Show the upload section
+    $("#qc_upload_section").show();
+
+    // Enable Save button
+    $("#save_qc").prop("disabled", false);
+
+    // Change heading for edit mode
+    $section.find("h5").first().text("Edit QC Staff Details");
+
+    // Open the form
+    $section.stop(true, true).slideDown();
+
+    // Scroll to form
+    $("html, body").animate({
+        scrollTop: $section.offset().top - 100
+    }, 400);
+});
+
+// -----------------------
+
 $(document).on("click", "#save_qc", function () {
 
     let $section = $("#staffqc_datasection");

@@ -2474,26 +2474,12 @@ exit; -->
                         style="display:none;">
                         <div class="row">
                             <div class="col-md-6">
-                                <h5>Enter QC/QSC Staff Details </h5>
+                                <h5>Enter QC Staff Details </h5>
                             </div>
                         </div>
                         <div class="row mt-3">
-                            <div class="col-12 col-md-2">
-                                <p>Select Staff Category <span class="text-red">*</span></p>
-                            </div>
 
-                            <div class="col-12 col-md-3">
-                                <select class="form-control staffqc_category" name="staffqc_category[]">
 
-                                    <option value="">Select Category</option>
-
-                                    <option value="QC">QC</option>
-                                    <option value="QSC">QSC</option>
-
-                                </select>
-
-                                <span class="text-danger small staff-category-error"></span>
-                            </div>
 
                             {{-- ------------------------- --}}
                             <div class="col-12 col-md-2">
@@ -2501,17 +2487,13 @@ exit; -->
                             </div>
 
                             <div class="col-12 col-md-3">
+                                <input type="hidden" name="staffqc_category[]" value="QC">
                                 <input type="text" name="staff_cc_no[]" maxlength="20" class="form-control"
                                     placeholder="CC Number">
                                 <span class="text-danger small staff-cc-error"></span>
                             </div>
 
-
-                        </div>
-
-                        <div class="row mt-3">
-
-                            <div class="col-12 col-md-2">
+                                  <div class="col-12 col-md-2">
                                 <p>Enter Certificate First Issue <span class="text-red">*</span></p>
                             </div>
 
@@ -2520,6 +2502,13 @@ exit; -->
                                     placeholder="CC First Issue">
                                 <span class="text-danger small staff-first-issue-error"></span>
                             </div>
+
+
+                        </div>
+
+                        <div class="row mt-3">
+
+
 
                             {{-- ---------------------------------- --}}
                             <div class="col-12 col-md-2">
@@ -2532,12 +2521,7 @@ exit; -->
                                 <span class="text-danger small staff-validity-from-error"></span>
                             </div>
 
-
-                        </div>
-
-                        <div class="row mt-3">
-
-                            <div class="col-12 col-md-2">
+                                <div class="col-12 col-md-2">
                                 <p>Enter Certificate Validity To Date<span class="text-red">*</span></p>
                             </div>
 
@@ -2550,7 +2534,27 @@ exit; -->
 
                         </div>
 
-                        <div class="row">
+                        <div class="row mb-2 text-center">
+                             <div class="col-md-4 col-lg-4">
+                                <button type="button" class="btn btn-primary" id="verify_qc_staff">
+                                    Verify Staff   </button>
+                            </div>
+                            <div class="col-md-8 col-lg-8">
+                               <p>
+                                    Certificate Verified and Certificate holder name is
+                                    <span id="certificate-holder-name" class="badge bg-primary text-white"></span>
+                                </p>
+
+                                <span class="text-danger staff-verify-error"></span>
+                            </div>
+
+
+
+
+
+                        </div>
+
+                        <div class="row" id="qc_upload_section" style="display:none;">
 
                             <div class="col-md-6 col-lg-2">
                                 <div class="text-center fw-bold">
@@ -2652,7 +2656,7 @@ exit; -->
 
                                     <div class="col-12 col-md-12 text-center">
 
-                                        <button type="button" class="btn btn-success" id="save_qc">
+                                        <button type="button" class="btn btn-success" id="save_qc" disabled>
                                             Save
                                         </button>
                                         <button type="button" class="btn btn-danger ms-2"
@@ -2665,7 +2669,6 @@ exit; -->
                         </div>
 
                     </div>
-
 
 
 

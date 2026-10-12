@@ -259,19 +259,23 @@ $(document).ready(function() {
             if (storedIso) {
                 dobInput.value = storedIso[3] + '-' + storedIso[2] + '-' + storedIso[1];
             }
-            flatpickr(dobInput, {
-                dateFormat: "d-m-Y",
-                onChange: function (_selectedDates, dateStr) {
-                    validateDOB(dateStr || dobInput.value);
-                },
-                onClose: function (_selectedDates, dateStr) {
-                    validateDOB(dateStr || dobInput.value);
-                }
-            });
+            if (dobInput.readOnly || dobInput.disabled) {
+                dobInput.setAttribute('tabindex', '-1');
+            } else {
+                flatpickr(dobInput, {
+                    dateFormat: "d-m-Y",
+                    onChange: function (_selectedDates, dateStr) {
+                        validateDOB(dateStr || dobInput.value);
+                    },
+                    onClose: function (_selectedDates, dateStr) {
+                        validateDOB(dateStr || dobInput.value);
+                    }
+                });
 
-            dobInput.addEventListener('keyup', () => validateDOB(dobInput.value));
-            dobInput.addEventListener('change', () => validateDOB(dobInput.value));
-            dobInput.addEventListener('blur', () => validateDOB(dobInput.value));
+                dobInput.addEventListener('keyup', () => validateDOB(dobInput.value));
+                dobInput.addEventListener('change', () => validateDOB(dobInput.value));
+                dobInput.addEventListener('blur', () => validateDOB(dobInput.value));
+            }
         }
 
 

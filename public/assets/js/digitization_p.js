@@ -1,6 +1,6 @@
-// Form W (Wireman) Certificate Digitization modal logic.
-// Mirrors digitization.js but posts to the dedicated Form W routes and has no
-// Qualified Supervisor (QC) step — that section is specific to Form S.
+// Form P certificate digitisation modal logic.
+// Posts to /digitization/p/storeDigitization. Contractor (EA/ESA) details are
+// optional enrolment only — Form P does not require a matching work-experience row.
 
 function hasCcDigitizationTempId() {
     var $field = $("#cc_digitization_temp_id");
@@ -313,8 +313,8 @@ $(document).on("click", "#digitizationSubmit", function () {
     if (ccnumber === "") {
         $("#ccnumber_error").html("Certificate Number is required");
         isValid = false;
-    } else if (!/^\d{1,5}$/.test(ccnumber)) {
-        $("#ccnumber_error").html("Certificate Number must be 1 to 5 digits only");
+    } else if (!/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,19}$/.test(ccnumber)) {
+        $("#ccnumber_error").html("Certificate Number must be up to 20 letters, numbers, hyphen, or slash");
         isValid = false;
     }
 
@@ -420,6 +420,17 @@ $(document).on("click", "#digitizationSubmit", function () {
         return false;
     }
     let formData = new FormData(formEl);
+    var postedTemp = ($("#cc_digitization_temp_id").val() || "").trim();
+    if (!postedTemp) {
+        try {
+            postedTemp = String(sessionStorage.getItem("cc_digitization_temp_id") || "").trim();
+        } catch (e) {
+            postedTemp = "";
+        }
+    }
+    if (postedTemp) {
+        formData.append("cc_digitization_temp_id", postedTemp);
+    }
 
     $.ajax({
         url: BASE_URL + "/digitization/p/storeDigitization",
@@ -484,7 +495,7 @@ $(document).on("click", "#digitizationSubmit", function () {
 });
 
 $(document).on("input", 'input[name="ccnumber"]', function () {
-    const cleaned = ($(this).val() || "").replace(/\D/g, "").slice(0, 5);
+    const cleaned = ($(this).val() || "").replace(/[^A-Za-z0-9\-\/]/g, "").slice(0, 20);
     if ($(this).val() !== cleaned) {
         $(this).val(cleaned);
     }

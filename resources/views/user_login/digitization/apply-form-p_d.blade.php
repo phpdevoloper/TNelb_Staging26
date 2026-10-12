@@ -675,7 +675,7 @@
                     <div class="fs-action-bar">
                         @if(! isset($application))
                         <button type="button" class="btn-fs-draft" id="DraftBtn"
-                            data-url="{{ route('form.draft_submit') }}"
+                            data-url="{{ route('form_p.saveDraft') }}"
                             data-id="{{ $application_details->application_id ?? '' }}">
                             <i class="fa fa-floppy-o"></i> Save As Draft
                         </button>

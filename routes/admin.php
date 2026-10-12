@@ -57,12 +57,9 @@ use App\Http\Controllers\FormAController;
 
 
 
-Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])
-    ->where('filename', '.+')
+Route::get('/document/{type}/{filename?}', [FormController::class, 'showEncryptedDocument'])
+    ->where('filename', '.*')
     ->name('document.show');
-
-
-Route::get('/document/{type}/{filename}', [FormController::class, 'showEncryptedDocument'])->name('document.show');
 Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
 
 
