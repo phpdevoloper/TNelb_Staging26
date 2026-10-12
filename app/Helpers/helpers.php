@@ -1,5 +1,6 @@
-<?php 
+<?php
 
+use App\Models\CC_Doc_Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
@@ -628,20 +629,20 @@ if (!function_exists('competency_media_url')) {
 
         $path = trim($path);
 
-        $log = \App\Models\DocumentsLog::query()
-            ->where('is_active', true)
-            ->where(function ($q) use ($path) {
-                $q->where('file_path', $path)
-                    ->orWhere('old_file_path', $path);
-            })
-            ->orderByDesc('id')
-            ->first();
+        // $log = \App\Models\DocumentsLog::query()
+        //     ->where('is_active', true)
+        //     ->where(function ($q) use ($path) {
+        //         $q->where('file_path', $path)
+        //             ->orWhere('old_file_path', $path);
+        //     })
+        //     ->orderByDesc('id')
+        //     ->first();
 
-        if ($log) {
-            return competency_document_path_url($log->file_path);
-        }
+        // if ($log) {
+        //     return competency_document_path_url($log->file_path);
+        // }
 
-        $ccLog = \App\Models\CC_Doc_Log::query()
+        $ccLog = CC_Doc_Log::query()
             ->where('is_active', true)
             ->where(function ($q) use ($path) {
                 $q->where('file_path', $path)

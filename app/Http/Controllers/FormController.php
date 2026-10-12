@@ -3023,6 +3023,7 @@ class FormController extends BaseController
      */
     public function previewApplication(string $application_id)
     {
+        
         if (! Auth::check()) {
             if (request()->ajax()) {
                 return response()->json(['message' => 'Please sign in to view this application.'], 401);

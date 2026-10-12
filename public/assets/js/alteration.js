@@ -339,6 +339,26 @@
         $('.fs-section-edit-toggle').hide();
     }
 
+    function isFormPAlteration() {
+        return String($('#form_name').val() || '').trim().toUpperCase() === 'P';
+    }
+
+    function formPApplicantNameAllowed(name) {
+        return /^[A-Za-z\s]+$/.test(String(name || '').trim());
+    }
+
+    function assertFormPApplicantName(name) {
+        if (!isFormPAlteration()) {
+            return true;
+        }
+        name = String(name || '').trim();
+        if (name === '' || formPApplicantNameAllowed(name)) {
+            return true;
+        }
+        Swal.fire('Validation', 'Only alphabets and spaces are allowed.', 'warning');
+        return false;
+    }
+
     function validateAlterationBeforePreview() {
         var flags = syncAlterFlagsFromForm();
 
@@ -352,6 +372,9 @@
             var name = ($('#Applicant_Name').val() || '').trim();
             if (!name || name === parentName) {
                 Swal.fire('Validation', 'Enter a new applicant name different from the current name.', 'warning');
+                return false;
+            }
+            if (!assertFormPApplicantName(name)) {
                 return false;
             }
             if (!$('#name_alteration_proof')[0] || !$('#name_alteration_proof')[0].files.length) {
@@ -765,6 +788,17 @@
         initAlterationEditableMode();
 
         $('#Applicant_Name, #applicants_address').on('input change', syncAlterFlagsFromForm);
+
+        if (isFormPAlteration()) {
+            $('#Applicant_Name').on('input', function () {
+                var $el = $(this);
+                $el.siblings('.error-message').remove();
+                var typed = ($el.val() || '').trim();
+                if (typed !== '' && !formPApplicantNameAllowed(typed)) {
+                    $el.after('<span class="error-message text-danger d-block mt-1">Only alphabets and spaces are allowed.</span>');
+                }
+            });
+        }
         $(document).on('change.formSAltDecl', '#declarationCheckbox', function () {
             if ($(this).is(':checked')) {
                 $('#checkboxError').addClass('d-none');
@@ -804,6 +838,10 @@
 
             e.preventDefault();
             e.stopImmediatePropagation();
+
+            if (!assertFormPApplicantName($('#Applicant_Name').val())) {
+                return;
+            }
 
             var $btn = $(this).prop('disabled', true);
             try {

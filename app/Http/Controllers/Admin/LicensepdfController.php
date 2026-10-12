@@ -2317,13 +2317,13 @@ class LicensepdfController extends Controller
         }
 
         if ($application && $application->appl_type === 'R') {
-            $appltye = 'Renewal Application';
+            $appltye = 'Renewal';
         } else if ($application && $application->appl_type === 'N') {
-            $appltye = 'New Application';
+            $appltye = 'New';
         } else if ($application && $application->appl_type === 'D') {
-            $appltye = 'Digitization Application';
+            $appltye = 'Digitization';
         } else {
-            $appltye = 'Alteration Application';
+            $appltye = 'Alteration';
         }
 
         $html = '

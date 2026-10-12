@@ -29,13 +29,13 @@
                             <p class="t-time">{{ format_date_other($row->created_at) }}</p>
 
                             <div class="t-dot
-                                {{ $row->appl_status == 'RE' || $row->appl_status == 'PRE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : ($row->appl_status == 'QU' ? 't-dot-warning' : 't-dot-info')) }}">
+                                {{ in_array(strtoupper((string) data_get($row, 'appl_status')), ['RE', 'PRE'], true) ? 't-dot-danger' : (strtoupper((string) data_get($row, 'appl_status')) === 'A' ? 't-dot-success' : (strtoupper((string) data_get($row, 'appl_status')) === 'QU' ? 't-dot-warning' : 't-dot-info')) }}">
                             </div>
 
                             <div class="t-text">
                                 @php
-                                    $processedBy = $row->processed_by;
-                                    $applStatus = strtoupper((string) ($row->appl_status ?? ''));
+                                    $processedBy = data_get($row, 'processed_by');
+                                    $applStatus = strtoupper((string) (data_get($row, 'appl_status') ?? ''));
                                     $roleLabel = match ($processedBy) {
                                         'SE' => 'Secretary',
                                         'PR' => 'President',
@@ -48,8 +48,8 @@
                                     $isApplicantResubmission = $applStatus === 'RE' && $processedBy === 'AP';
                                     $isExternalApplicantReturn = $applStatus === 'QU'
                                         && in_array($processedBy, ['SE', 'PR'], true);
-                                    $hasPendingQuery = ($row->query_status ?? null) === 'P';
-                                    $raisedByRaw = trim((string) ($row->raised_by ?? ''));
+                                    $hasPendingQuery = data_get($row, 'query_status') === 'P';
+                                    $raisedByRaw = trim((string) (data_get($row, 'raised_by') ?? ''));
                                     if ($raisedByRaw !== '' && !ctype_digit($raisedByRaw)) {
                                         $queryRaisedByLabel = match ($raisedByRaw) {
                                             'SE' => 'Secretary',
@@ -61,23 +61,22 @@
                                     } else {
                                         $queryRaisedByLabel = $roleLabel;
                                     }
-                                    $returnLogInternalQ = $row->return_log_internal_queries ?? [];
+                                    $returnLogInternalQ = data_get($row, 'return_log_internal_queries', []);
                                     if (!is_array($returnLogInternalQ)) {
                                         $returnLogInternalQ = [];
                                     }
-                                    if ($returnLogInternalQ === [] && isset($row->return_queries) && is_array($row->return_queries)) {
-                                        $returnLogInternalQ = $row->return_queries;
+                                    if ($returnLogInternalQ === [] && is_array(data_get($row, 'return_queries'))) {
+                                        $returnLogInternalQ = data_get($row, 'return_queries');
                                     }
                                     $returnLogInternalQ = array_values(array_filter(
                                         $returnLogInternalQ,
                                         static fn ($item) => is_string($item) && $item !== ''
                                     ));
-                                    $forwardedRoleName = trim((string) ($row->role_name ?? $row->name ?? ''));
-                                    $returnLogInternalRemark = $row->remarks ?? null;
-                                    $returnRemarksDisplay = $row->return_remarks
-                                        ?? $row->return_log_internal_remarks
-                                        ?? null;
-                                    $queries = $row->queries ?? null;
+                                    $forwardedRoleName = trim((string) (data_get($row, 'role_name') ?: data_get($row, 'name') ?: ''));
+                                    $returnLogInternalRemark = data_get($row, 'remarks');
+                                    $returnRemarksDisplay = data_get($row, 'return_remarks')
+                                        ?: data_get($row, 'return_log_internal_remarks');
+                                    $queries = data_get($row, 'queries');
                                     if ($queries === null || $queries === '') {
                                         $queries = [];
                                     } elseif (is_string($queries)) {
@@ -119,18 +118,18 @@
                                 @if (!$isApplicantResubmission)
                                     <p class="t-meta-time">
                                         @if ($applStatus === 'RJ')
-                                            Reason: {{ $row->reject_reason }}
+                                            Reason: {{ data_get($row, 'reject_reason') }}
                                         @elseif ($applStatus === 'PRE')
                                             Returned to {{ $forwardedRoleName }}
-                                            @if (!$remarksInColoredBlock && !empty($row->remarks))
+                                            @if (!$remarksInColoredBlock && data_get($row, 'remarks'))
                                                 <br>
-                                                Remarks: {{ $row->remarks }}
+                                                Remarks: {{ data_get($row, 'remarks') }}
                                             @endif
                                         @elseif ($forwardedRoleName !== '')
                                             Forwarded to {{ $forwardedRoleName }}
-                                            @if (!$remarksInColoredBlock && !empty($row->remarks))
+                                            @if (!$remarksInColoredBlock && data_get($row, 'remarks'))
                                                 <br>
-                                                Remarks: {{ $row->remarks }}
+                                                Remarks: {{ data_get($row, 'remarks') }}
                                             @endif
                                         @elseif ($isExternalApplicantReturn)
                                             {{-- Title + remarks live in purple block below --}}
@@ -173,10 +172,10 @@
                                             ({{ implode(', ', $queries) }})
                                         @endif
                                     </p>
-                                    @if (!empty($row->remarks))
+                                    @if (data_get($row, 'remarks'))
                                         <p class="t-meta-time mb-0">
                                             <span>Remark:</span>
-                                            {{ $row->remarks }}
+                                            {{ data_get($row, 'remarks') }}
                                         </p>
                                     @endif
                                 @endif

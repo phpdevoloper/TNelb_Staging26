@@ -167,7 +167,7 @@
                                                         <li>Address <span class="fp-alter-badge">Altered</span></li>
                                                     @endif
                                                     @if ($fpHasAlteredWork)
-                                                        <li>Power station experience — rows marked <span class="fp-alter-badge">Altered</span> below</li>
+                                                        <li>Power station experience <span class="fp-alter-badge">Altered</span></li>
                                                     @endif
                                                 </ul>
                                             </div>
@@ -667,14 +667,14 @@
                                                         <p><strong>Application Fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->amount }}.00</p>
+                                                        <p>{{ $applicant->amount }}</p>
                                                     </div>
                                                     @if (!empty($applicant->late_fees))
                                                         <div class="col-lg-6">
                                                             <p><strong>Late Fees({{ $applicant->late_months }} Months)</strong></p>
                                                         </div>
                                                         <div class="col-lg-6">
-                                                            <p>Rs.{{ $applicant->late_fees }}.00</p>
+                                                            <p>{{ $applicant->late_fees }}</p>
                                                         </div>
                                                     @endif
                                                     <div class="col-lg-6">
@@ -704,10 +704,10 @@
                                                     </div>
                                                     @endif
                                                     <div class="col-lg-6">
-                                                        <p><strong>Amount</strong></p>
+                                                        <p><strong>Amount Paid</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->amount }}.00</p>
+                                                        <p>{{ $applicant->amount }}</p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong>Payment mode:</strong></p>
@@ -853,94 +853,8 @@
                             </div>
                     </div>
                     <!-- ----------------------------- -->
+                        
                         @include('admin.include.workflow_timeline')
-                        {{-- <div id="timelineMinimal" class="col-lg-12 layout-spacing mt-4">
-                            <div class="statbox widget box box-shadow">
-                                <div class="widget-header">
-                                    <div class="row">
-                                        <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                                            <h4>Workflow</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="widget-content widget-content-area pb-1">
-                                    <div class="mt-container mx-auto">
-                                        <div class="timeline-line">
-                                            @foreach ($workflows as $row)
-                                            @php
-                                                $roleLabels = [
-                                                    'PR' => 'President',
-                                                    'SE' => 'Secretary',
-                                                    'S'  => 'Supervisor',
-                                                    'AS' => 'Assistant Secretary',
-                                                    'AP' => 'Applicant',
-                                                ];
-                                                $processedLabel = $roleLabels[$row->processed_by] ?? $row->processed_by;
-                                            @endphp
-                                            <div class="item-timeline">
-                                                <p class="t-time">{{ format_date_other($row->created_at) }}</p>
-                                                
-                                                <div class="t-dot 
-                                                    {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
-                                                </div>
-                                                <div class="t-text">
-                                                    @if ($row->appl_status == 'RE')
-                                                        <p>Returned by {{ $processedLabel }}</p>
-                                                    @elseif ($row->appl_status == 'A')
-                                                        <p>Approved by {{ $processedLabel }}</p>
-                                                    @elseif ($row->appl_status == 'RJ')
-                                                        <p class="text-danger">Rejected by {{ $processedLabel }}</p>
-                                                    @else
-                                                        <p>Processed by {{ $processedLabel }}</p>
-                                                    @endif
-                                            
-                                                    <p class="t-meta-time">
-                                                        @if ($row->appl_status == 'RJ')
-                                                            Reason: {{ $row->reject_reason }}
-                                                        @else
-                                                            @if (!$row->name)
-                                                                Approved by {{ $processedLabel }}
-                                                            @else
-                                                                Forwarded to {{ $row->name }} <br>
-                                                                Remarks: {{ $row->remarks }}
-                                                            @endif
-                                                        @endif
-                                                        
-                                                    </p>
-                                                    @if ($row->processed_by !== 'Assistant Secretary')
-                                                        @if ($row->query_status == "P")
-                                                            <p class="text-danger">Note: Query raised by {{ $processedLabel }} (
-                                                                @php
-                                                                $queries = $row->queries;
-                                                            
-                                                                // If it's a string, decode it
-                                                                if (is_string($queries)) {
-                                                                    $queries = json_decode($queries, true);
-                                                                }
-                                                            @endphp
-                                                            
-                                                            @if(!empty($queries) && is_array($queries))
-                                                                {{ implode(', ', $queries) }}
-                                                            @endif
-                                                            )</p>
-                                                        @endif
-                                                    @endif
-                                                </div>
-                                            </div>
-                                            @endforeach
-                                            <div class="item-timeline">
-                                                <p class="t-time">{{ format_date_other($user_entry->created_at) }}</p>
-                                                <div class="t-dot t-dot-warning"></div>
-                                                <div class="t-text">
-                                                    <p>Received from Applicant</p>
-                                                    <p class="t-meta-time">Form: {{ $user_entry->form_name }}, License: {{ $user_entry->license_name }}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>--}} 
                 </div>
 
             <!-- -------------------------------------------- -->
@@ -1318,6 +1232,33 @@
             return { checklists: checklists, status: status, check_id: check_id };
         }
 
+        function formPAllChecklistsChecked() {
+            var boxes = $('#specific-class input[name^="checklists"]');
+            if (!boxes.length) {
+                return true;
+            }
+            var complete = true;
+            boxes.each(function () {
+                if (!$(this).is(':checked')) {
+                    complete = false;
+                    return false;
+                }
+            });
+            return complete;
+        }
+
+        function formPRequireChecklistBeforeForward() {
+            if (formPAllChecklistsChecked()) {
+                return true;
+            }
+            Swal.fire({
+                icon: 'warning',
+                title: 'Checklist incomplete',
+                text: 'Please check all checklist items before forwarding the application.'
+            });
+            return false;
+        }
+
         $('.status-switch').on('change', function () {
             var id = this.id.replace('status_', '');
             var badge = $('#statusText_' + id);
@@ -1415,7 +1356,7 @@
                                     title: "Success",
                                     html: `
                                         <p>${response.message}</p>
-                                        <p><b>Certificate No:</b> ${response.license_number}</p>
+                                        <p><b>Certificate No:</b> ${response.certificate_number}</p>
                                     `,
                                     confirmButtonText: "OK",
                                     allowOutsideClick: false
@@ -1444,6 +1385,9 @@
 
 
         confirmForwardPres.click(function () {
+            if (!formPRequireChecklistBeforeForward()) {
+                return;
+            }
             var applicationId   = @json($applicant->application_id);
             var role_id         = @json(Auth::user()->roles_id);
             var forwardedTo     = @json($nextForwardUser->roles_id);
@@ -1534,6 +1478,9 @@
 
 
         forwardbtn.click(function() {
+            if (!formPRequireChecklistBeforeForward()) {
+                return;
+            }
             Swal.fire({
                 title: "Declaration",
                 text: 'I confirm that all documents have been verified by me as a supervisor.',
