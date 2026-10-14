@@ -1638,20 +1638,7 @@ class SupervisorController extends Controller
                     ]
                 );
         }
-        $checklistData = [];
-
-        $checkIds = $request->input('check_id', []);
-        $checklists = $request->input('checklists', []);
-        $statuses = $request->input('status', []);
-
-        foreach ($checkIds as $id => $checkId) {
-
-            $checklistData[] = [
-                'id'      => $checkId,
-                'checked' => (int) ($checklists[$id] ?? 0),
-                'verify'  => (int) ($statuses[$id] ?? 0),
-            ];
-        }
+        $checklistData = $this->checklistRowsFromRequest($request);
         // dd($applicant->certificate_name); exit;
         // dd(([
         //     'login_id'        => Auth::id(),
@@ -1665,7 +1652,8 @@ class SupervisorController extends Controller
 
 
         $Existingcheck = Cl_Checklist_applicant::where('applicant_id', $request->application_id)
-            ->where('licence_name', $applicant->certificate_name)
+            ->where('licence_name', $applicant->license_name)
+            ->orderByDesc('id')
             ->first();
 
         if ($Existingcheck) {
@@ -3143,5 +3131,39 @@ class SupervisorController extends Controller
         }
 
         return $licensePeriod;
+    }
+
+    private function checklistRowsFromRequest(Request $request): array
+    {
+        $checkIds = $request->input('check_id', []);
+        $checklists = $request->input('checklists', []);
+        $statuses = $request->input('status', []);
+
+        $checkIds = is_array($checkIds) ? $checkIds : [];
+        $checklists = is_array($checklists) ? $checklists : [];
+        $statuses = is_array($statuses) ? $statuses : [];
+
+        $checkedById = [];
+        foreach ($checklists as $id => $value) {
+            $checkedById[(string) $id] = (int) $value;
+        }
+
+        $verifyById = [];
+        foreach ($statuses as $id => $value) {
+            $verifyById[(string) $id] = (int) $value;
+        }
+
+        $rows = [];
+        foreach ($checkIds as $id => $checkId) {
+            $key = (string) $id;
+
+            $rows[] = [
+                'id' => (string) $checkId,
+                'checked' => $checkedById[$key] ?? 0,
+                'verify' => $verifyById[$key] ?? 0,
+            ];
+        }
+
+        return $rows;
     }
 }

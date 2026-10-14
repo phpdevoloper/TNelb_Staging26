@@ -2239,9 +2239,6 @@ class LoginController extends Controller
     public function applicants_detail_forma($applicant_id)
     {
 
-        // dd($applicant_id);
-        // exit;
-
         $returnForwardUser = null;
 
         $staff = Auth::user();
@@ -2271,16 +2268,9 @@ class LoginController extends Controller
             ->orderByDesc('dt_submit')
             ->first();
 
-        // dd($applicant->appl_type);
-        // exit;
-
         $appl_type = trim($applicant->appl_type);
-        // dd($appl_type);
-        // exit;
 
         if ($appl_type === 'R') {
-            // dd($applicant->old_application);
-            // exit;
             $old_issuedat = DB::table('cl_forma_lic')
                 ->select('dateof_issue', 'created_at', 'valid_from',  'valid_to')
                 ->where('application_id', $applicant->old_application)
@@ -2291,8 +2281,6 @@ class LoginController extends Controller
 
             $old_issued_at_date = $old_issuedat->valid_to;
 
-            // dd($old_issuedat->issued_at);
-            // exit;
         } else {
 
             $old_issued_at_date = '0';
@@ -2304,7 +2292,6 @@ class LoginController extends Controller
         $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
 
         $license_name_data = DB::table('mst_licences')->where('cert_licence_code', $applicant->license_name)->first();
-        // dd($license_name_data); exit;
 
         if (!$applicant) {
             return abort(404, 'Applicant not found');
@@ -2317,31 +2304,6 @@ class LoginController extends Controller
                 ->where('name', 'Assistant Secretary')
                 ->select('name', 'roles_id')
                 ->first();
-
-
-            // if ($applicant->application_status == 'RE') {
-
-            //     $processed_by = match ($applicant->processed_by) {
-            //         'PR'  => 'President',
-            //         'SE'  => 'Secretary',
-            //         'S'  => 'Supervisor',
-            //         'A'  => 'Assistant Secretary'
-            //     };
-
-            //     $nextForwardUser = DB::table('mst__staffs__tbls')
-            //         ->where('name', $processed_by)
-            //         ->select('name', 'roles_id')
-            //         ->first();
-
-            //         // dd($nextForwardUser);
-            //         // exit;
-            // } else {
-            //     $nextForwardUser = DB::table('mst__staffs__tbls')
-            //         ->where('name', 'Assistant Secretary')
-            //         ->select('name', 'roles_id')
-            //         ->first();
-
-            // }
         }
 
         if ($staff->name === "Supervisor2") {
@@ -2476,10 +2438,6 @@ class LoginController extends Controller
             }
         }
 
-
-
-
-
         $staff = Auth::user();
         if (!$staff || !$staff->roles_id) {
             return abort(403, 'Unauthorized');
@@ -2551,16 +2509,7 @@ class LoginController extends Controller
             ->where('application_id', $applicant_id)
             ->first();
 
-        // $view = match ($staff->name) {
-        //     'President'  => 'admin.dashboard.applicants_president_forma',
-        //     'Secretary'  => 'admin.dashboard.applicants_detail_sec_forma',
-        //     'Supervisor' => 'admin.dashboard.applicants_detail_forma',
-        //     // 'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
-        //     'Assistant Secretary'    => 'admin.dashboard.applicants_detail_auditor_forma',
-
-        //     default      => abort(403, 'Unauthorized'),
-        // };
-        // dd($applicant->appl_type);exit;
+        
         $checklist = DB::table('mst_checklists as mc')
             ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
             ->where('ml.cert_licence_code', $applicant->license_name)
@@ -2575,6 +2524,7 @@ class LoginController extends Controller
 
         $Existingchecklist = Cl_Checklist_applicant::where('applicant_id', $applicant_id)
             ->where('licence_name', $applicant->license_name)
+            ->orderByDesc('id')
             ->first();
 
 
@@ -2584,12 +2534,17 @@ class LoginController extends Controller
 
         if ($Existingchecklist && $Existingchecklist->checklist_json) {
 
-            $json = json_decode($Existingchecklist->checklist_json, true);
+            $json = is_array($Existingchecklist->checklist_json)
+                ? $Existingchecklist->checklist_json
+                : json_decode($Existingchecklist->checklist_json, true);
 
-            foreach ($json as $row) {
+            foreach ($json ?? [] as $row) {
+                if (!is_array($row) || !isset($row['id'])) {
+                    continue;
+                }
 
-                $checkedList_1[$row['id']] = $row['checked'];
-                $verifyList[$row['id']]  = $row['verify'];
+                $checkedList_1[$row['id']] = (int) ($row['checked'] ?? 0);
+                $verifyList[$row['id']] = (int) ($row['verify'] ?? 0);
             }
         }
 
@@ -2607,7 +2562,7 @@ class LoginController extends Controller
 
             default      => abort(403, 'Unauthorized'),
         };
-        $verifyList = $staff_checklist
+        $staffVerifyList = $staff_checklist
             ->whereNotNull('staff_cc_no')
             ->pluck('verify_flag', 'staff_cc_no')
             ->toArray();
@@ -2627,8 +2582,15 @@ class LoginController extends Controller
          $cl_digitization = DB::table('mapping_digi_cls')
             ->where('application_id', $applicant_id)
             ->first();
-
-            // dd($cl_digitization); exit;
+        
+        $applicant->appl_type = match(trim($applicant->appl_type)) {
+            'N' => 'New',
+            'R' => 'Renewal',
+            'D' => 'Digitisation',
+            'A' => 'Alteration',
+            default => $applicant->appl_type,
+        };
+        
 
         return view($view, compact(
             'applicant',
@@ -2656,6 +2618,7 @@ class LoginController extends Controller
             'checklist',
             'staff_checklist',
             'verifyList',
+            'staffVerifyList',
             'checkedList_1',
             'maxQcCertNo',
             'maxQcValidityDate',

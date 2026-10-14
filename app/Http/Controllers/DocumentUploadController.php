@@ -124,19 +124,11 @@ class DocumentUploadController extends Controller
     }
 
 
-     public function uploadownershipdeed(Request $request)
+    public function uploadownershipdeed(Request $request)
     {
-
-    // dd($request->all());
-    // exit;
         try {
 
-
-
-
-            // --------------------------------------------------
-            // 1. CHECK FILE EXISTENCE
-            // --------------------------------------------------
+            # 1. CHECK FILE EXISTENCE
             if (count($request->files->all()) === 0) {
                 return response()->json([
                     'status' => 'error',
@@ -145,17 +137,15 @@ class DocumentUploadController extends Controller
             }
 
             $fileInputs = $request->files->all();
-            $fileField  = array_key_first($fileInputs);
-            $fileValue  = $fileInputs[$fileField];
+            $fileField = array_key_first($fileInputs);
+            $fileValue = $fileInputs[$fileField];
 
-            // --------------------------------------------------
-            // 2. VALIDATION
-            // --------------------------------------------------
+            # 2. VALIDATION
             $rules = [
-                'module'            => 'required',
+                'module' => 'required',
                 'document_category' => 'required',
-                'license_name'      => 'required',
-                'form_name'         => 'required',
+                'license_name' => 'required',
+                'form_name' => 'required',
             ];
 
             if (is_array($fileValue)) {
@@ -167,14 +157,14 @@ class DocumentUploadController extends Controller
 
             $request->validate($rules);
 
-            // --------------------------------------------------
-            // 3. NORMALIZE FILES
-            // --------------------------------------------------
+            
+
+            
+
+            # 3. NORMALIZE FILES
             $files = is_array($fileValue) ? $fileValue : [$fileValue];
 
-            // --------------------------------------------------
-            // 4. SESSION APPLICATION ID
-            // --------------------------------------------------
+            # 4. SESSION APPLICATION ID
             if (!session()->has('application_id')) {
                 $applicationId = 'APP_' . $request->license_name . date('dmY');
                 session(['application_id' => $applicationId]);
@@ -184,19 +174,13 @@ class DocumentUploadController extends Controller
 
             $loginId = auth()->user()->login_id;
 
-            // --------------------------------------------------
-            // 5. FILE PATH
-            // --------------------------------------------------
+            # 5. FILE PATH
             $dbFilePath_all = DocPathController::getPath($request);
 
             $dbFilePath = $dbFilePath_all->filepath_pro;
 
             $dbFilePath_modulecode = $dbFilePath_all->module_code;
 
-            // dd($dbFilePath_modulecode);
-            // exit;
-
-            // dd($dbFilePath);exit;
             $folderPath = public_path($dbFilePath);
 
             if (!\File::exists($folderPath)) {
@@ -205,31 +189,17 @@ class DocumentUploadController extends Controller
 
             $uploadedFiles = [];
 
-            // --------------------------------------------------
-            // 6. LOOP FILES
-            // --------------------------------------------------
+            # 6. LOOP FILES
             $counter = 1;
             foreach ($files as $file) {
 
-             $originalName = $file->getClientOriginalName();
+                $originalName = $file->getClientOriginalName();
 
 
-                // ----------------------------------------------
-                // CHECK EXISTING RECORD
-                // ----------------------------------------------
-                // $existing = DB::table('tnelb_temp_uploaded_documents')
-                //     ->where('login_id', $loginId)
-                //     ->where('application_id', $applicationId)
-                //     ->where('module', $request->module)
-                //     ->where('form_name', $request->form_name)
-                //     ->where('document_category', $request->document_category)
-                //     ->first();
+                # CHECK EXISTING RECORD
 
-                // dd($request->document_category);
-                // exit;
 
                 $record_id_app = $request->record_id;
-                // dd($record_id);exit;
                 $existingQuery = DB::table('tnelb_temp_uploaded_documents')
                     ->where('login_id', $loginId)
                     ->where('application_id', $applicationId)
@@ -238,105 +208,92 @@ class DocumentUploadController extends Controller
                     ->where('form_name', $request->form_name)
                     ->where('document_category', $request->document_category);
 
-                // dd($existingQuery);exit;
-
-                 if ($request->document_sub_category === 'OED') {
+                if ($request->document_sub_category === 'OED') {
                     $existingQuery->where('document_sub_category', 'OED')
-                                ->where('ownership_type', $request->ownership_type)
-                                ->where('row_index', $request->row_index);
+                        ->where('ownership_type', $request->ownership_type)
+                        ->where('row_index', $request->row_index);
                 }
 
-                  if ($request->document_sub_category === 'AP') {
+                if ($request->document_sub_category === 'AP') {
                     $existingQuery->where('document_sub_category', 'AP')
-                                ->where('ownership_type', $request->ownership_type)
-                                ->where('row_index', $request->row_index);
+                        ->where('ownership_type', $request->ownership_type)
+                        ->where('row_index', $request->row_index);
                 }
 
                 if ($request->document_sub_category === 'ED') {
 
-                // dd('ED');exit;
                     $existingQuery->where('document_sub_category', 'ED')
-                                    ->where('equip_code', $request->equip_code);
+                        ->where('equip_code', $request->equip_code);
                 }
 
                 if ($request->document_sub_category === 'QD') {
 
                     $existingQuery->where('document_sub_category', 'QD')
-                                    ->where('qc_code', $request->qc_code);
+                        ->where('qc_code', $request->qc_code);
                 }
 
 
-                 if ($request->document_sub_category === 'OHD') {
+                if ($request->document_sub_category === 'OHD') {
                     $existingQuery->where('ownership_type', $request->ownership_type);
 
                 }
 
-                 if ($request->document_sub_category === 'QAD') {
+                if ($request->document_sub_category === 'QAD') {
 
                     $existingQuery->where('document_sub_category', 'QAD')
-                                ->where('row_index', $request->row_index);
+                        ->where('row_index', $request->row_index);
 
                 }
 
-                   if ($request->document_sub_category === 'QCD') {
+                if ($request->document_sub_category === 'QCD') {
 
                     $existingQuery->where('document_sub_category', 'QCD')
-                                ->where('row_index', $request->row_index);
+                        ->where('row_index', $request->row_index);
 
                 }
 
-                  if ($request->document_sub_category === 'SS') {
+                if ($request->document_sub_category === 'SS') {
 
                     $existingQuery->where('document_sub_category', 'SS')
-                                ->where('row_index', $request->row_index);
+                        ->where('row_index', $request->row_index);
 
                 }
 
                 $existing = $existingQuery->first();
 
 
-                // dd($existing);
-                // exit;
-
-
-
                 if ($existing) {
 
-                    // ------------------------------------------
-                    // UPDATE FLOW
-                    // ------------------------------------------
+                    # UPDATE FLOW
                     $fileName = $existing->file_name;
 
-                      $newStatus = ($existing->is_final == '1') ? '2' : '0';
+                    $newStatus = ($existing->is_final == '1') ? '2' : '0';
 
-                    // DELETE OLD FILE
+                    # DELETE OLD FILE
                     $oldFile = public_path($existing->file_path . $fileName);
                     if (\File::exists($oldFile)) {
                         \File::delete($oldFile);
                     }
 
-                    // MOVE NEW FILE (SAME NAME)
+                    # MOVE NEW FILE (SAME NAME)
                     $file->move($folderPath, $fileName);
 
                     DB::table('tnelb_temp_uploaded_documents')
                         ->where('id', $existing->id)
                         ->update([
-                            'ownership_type'        => $request->ownership_type,
+                            'ownership_type' => $request->ownership_type,
                             'document_sub_category' => $request->document_sub_category,
-                            'original_pdfname'      => $originalName,
-                            'file_path'             => $dbFilePath,
-                            'is_final'              => $newStatus,
-                            'uploaded_at'           => now(),
-                            'updated_at'            => now(),
+                            'original_pdfname' => $originalName,
+                            'file_path' => $dbFilePath,
+                            'is_final' => $newStatus,
+                            'uploaded_at' => now(),
+                            'updated_at' => now(),
                         ]);
                 } else {
 
-                    // ------------------------------------------
-                    // INSERT FLOW
-                    // ------------------------------------------
+                    # INSERT FLOW
 
-
-                    $date   = now()->format('Ymd');
+                    $date = now()->format('Ymd');
                     $time = now()->timezone('Asia/Kolkata')->format('Hi');
 
                     $form_code = $request->form_code;
@@ -344,126 +301,72 @@ class DocumentUploadController extends Controller
                     $equip_code = $request->equip_code;
                     $qc_code = $request->qc_code;
 
-                    // dd($equip_code);
-                    // exit;
-
-                    // dd($time);
-                    // exit;
-                     $moduleCode = strtoupper($dbFilePath_modulecode);
+                    $moduleCode = strtoupper($dbFilePath_modulecode);
 
 
                     $random = str_pad(rand(0, 99999), 5, '0', STR_PAD_LEFT);
-                    // ---------------------------------
-                    // Filename Format
-                    // yyyymmdd_time(11.30)login_id_L(license)_1_document_sub_category(OT).pdf
-                    // Array()
-                    // yyyymmdd_time(11.30)login_id_L(license)_1_document_sub_category(PT)1 .pdf
-                    // ---------------------------------
-                    // $fileName = $date . '_' .$time .'_' . $loginId . '_' . 'L' . $form_code .'_' .
-                    //     strtoupper($dbFilePath_modulecode) . '.pdf';
-//  dd($request->ownership_type);
-//                                         exit;
+
                     if ($request->document_sub_category === 'OED') {
 
-                            // $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                            //             'L' . $form_code . '_' .$request->ownership_type.
-                            //             $moduleCode . $counter . '.pdf';
-
-                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                'L' . $form_code . '_' .
-                                strtoupper($request->ownership_type).
-                                $moduleCode.$request->row_index . '.pdf';
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' .
+                            strtoupper($request->ownership_type) .
+                            $moduleCode . $request->row_index . '.pdf';
 
 
 
-                            // dd($fileName);exit;
+                    } elseif ($request->document_sub_category === 'AP') {
 
-                        } elseif ($request->document_sub_category === 'AP') {
-
-                            // $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                            //             'L' . $form_code . '_' .$request->ownership_type.
-                            //             $moduleCode . $counter . '.pdf';
-
-                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                'L' . $form_code . '_' .
-                                strtoupper($request->ownership_type).
-                                $moduleCode.$request->row_index . '.pdf';
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' .
+                            strtoupper($request->ownership_type) .
+                            $moduleCode . $request->row_index . '.pdf';
 
 
 
-                            // dd($fileName);exit;
+                    } elseif ($request->document_sub_category === 'QAD') {
 
-                        }
-
-                        elseif ($request->document_sub_category === 'QAD') {
-
-                        // dd($request->row_index); exit;
-
-                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                'L' . $form_code . '_' .
-                                $moduleCode.$request->row_index . '.pdf';
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' .
+                            $moduleCode . $request->row_index . '.pdf';
 
 
-                        }
-
-                        elseif ($request->document_sub_category === 'QCD') {
-                        // dd($request->row_index); exit;
-
-                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                'L' . $form_code . '_' .
-                                $moduleCode.$request->row_index . '.pdf';
+                    } elseif ($request->document_sub_category === 'QCD') {
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' .
+                            $moduleCode . $request->row_index . '.pdf';
 
 
-                        }
-
-                            elseif ($request->document_sub_category === 'SS') {
-                        // dd($request->row_index); exit;
-
-                             $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                'L' . $form_code . '_' .
-                                $moduleCode.$request->row_index . '.pdf';
+                    } elseif ($request->document_sub_category === 'SS') {
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' .
+                            $moduleCode . $request->row_index . '.pdf';
 
 
-                        }
+                    } elseif ($request->document_sub_category === 'OHD') {
 
 
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' . $request->ownership_type . '_' .
+                            $moduleCode . '.pdf';
+
+                    } elseif ($request->document_sub_category === 'ED') {
+
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' . $request->ownership_type . '_' .
+                            $moduleCode . $equip_code . '.pdf';
+                    } elseif ($request->document_sub_category === 'QD') {
+
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . $moduleCode . $qc_code . '.pdf';
+                    } else {
 
 
-                        elseif($request->document_sub_category === 'OHD') {
+                        $fileName = $date . '_' . $time . '_' . $loginId . '_' .
+                            'L' . $form_code . '_' .
+                            $moduleCode . '.pdf';
+                    }
 
-
-                           // yyyymmdd_time(11.30)login_id_L(license)1_ownership_type_document_sub_category(OT).pdf
-                            $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                        'L' . $form_code . '_' . $request->ownership_type . '_'.
-                                        $moduleCode . '.pdf';
-
-                            // dd($fileName);
-                            // exit;
-
-                        }
-                        elseif($request->document_sub_category === 'ED') {
-
-                            $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                        'L' . $form_code . '_' . $request->ownership_type . '_'.
-                                        $moduleCode . $equip_code . '.pdf';
-                        }
-
-                          elseif($request->document_sub_category === 'QD') {
-
-                            $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                        'L' . $form_code .$moduleCode . $qc_code . '.pdf';
-                        }
-
-                        else {
-
-
-                            $fileName = $date . '_' . $time . '_' . $loginId . '_' .
-                                        'L' . $form_code . '_' .
-                                        $moduleCode . '.pdf';
-                        }
-
-                    // dd($fileName);
-                    // exit;
                     $equip_code = is_numeric($request->equip_code) ? $request->equip_code : null;
 
                     $qc_code = is_numeric($request->qc_code) ? $request->qc_code : null;
@@ -474,29 +377,29 @@ class DocumentUploadController extends Controller
 
 
                     DB::table('tnelb_temp_uploaded_documents')->insert([
-                        'login_id'              => $loginId,
-                        'application_id'        => $applicationId,
-                        'form_name'             => $request->form_name,
-                        'license_name'          => $request->license_name,
-                        'module'                => $request->module,
-                        'ownership_type'        => $request->ownership_type,
-                        'document_category'     => $request->document_category,
+                        'login_id' => $loginId,
+                        'application_id' => $applicationId,
+                        'form_name' => $request->form_name,
+                        'license_name' => $request->license_name,
+                        'module' => $request->module,
+                        'ownership_type' => $request->ownership_type,
+                        'document_category' => $request->document_category,
                         'document_sub_category' => $request->document_sub_category,
-                        'original_pdfname'      => $originalName,
-                        'file_name'             => $fileName,
-                        'file_path'             => $dbFilePath,
-                        'ownership_count'       => $counter,
+                        'original_pdfname' => $originalName,
+                        'file_name' => $fileName,
+                        'file_path' => $dbFilePath,
+                        'ownership_count' => $counter,
 
-                        'appl_type'             => $request->appl_type,
+                        'appl_type' => $request->appl_type,
 
-                        'row_index' =>            is_numeric($request->row_index) ? (int)$request->row_index : null,
+                        'row_index' => is_numeric($request->row_index) ? (int) $request->row_index : null,
 
-                        'equip_code'             => $equip_code,
-                        'qc_code'               => $qc_code,
-                        'uploaded_at'           => now(),
-                        'is_final'              => '0',
-                        'created_at'            => now(),
-                        'updated_at'            => now(),
+                        'equip_code' => $equip_code,
+                        'qc_code' => $qc_code,
+                        'uploaded_at' => now(),
+                        'is_final' => '0',
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
 
@@ -504,17 +407,15 @@ class DocumentUploadController extends Controller
 
                 $uploadedFiles[] = [
                     'file_name' => $fileName,
-                    'file_url'  => asset($dbFilePath . $fileName),
+                    'file_url' => asset($dbFilePath . $fileName),
                 ];
             }
 
 
-            // --------------------------------------------------
-            // 7. RESPONSE
-            // --------------------------------------------------
+            # 7. RESPONSE
             return response()->json([
                 'status' => 'success',
-                'files'  => $uploadedFiles
+                'files' => $uploadedFiles
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
 
@@ -524,7 +425,7 @@ class DocumentUploadController extends Controller
             ], 422);
         } catch (\Exception $e) {
 
-           return response()->json([
+            return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage(),
                 'line' => $e->getLine(),

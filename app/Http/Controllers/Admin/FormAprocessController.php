@@ -209,7 +209,7 @@ class FormAprocessController extends Controller
 
         if (!$applicant_details) {
 
-            $applicant_details = DB::table('cc_form_w_cert')
+            $applicant_details = DB::table('cc_form_w_meta')
                 ->where('application_id', $application_id)
                 ->first();
         }
