@@ -148,6 +148,8 @@
 <script src="{{ url('assets/js/custom.js') }}?v={{ filemtime(public_path('assets/js/custom.js')) }}"></script>
 <script src="{{ url('assets/js/form_p_script.js') }}?v={{ filemtime(public_path('assets/js/form_p_script.js')) }}"></script>
 <script src="{{ url('assets/js/forma.js') }}"></script>
+<script src="{{ url('assets/js/formareturn.js') }}"></script>
+
 <script src="{{ url('assets/js/forma_alt.js') }}"></script>
 <script src="{{ url('assets/js/formsa.js') }}"></script>
 <script src="{{ url('assets/js/formsb.js') }}"></script>

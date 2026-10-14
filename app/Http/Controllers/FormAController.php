@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\File;
 
-
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 
@@ -196,42 +196,42 @@ class FormAController extends BaseController
         // STEP 3: Check certificate already mapped
         // -------------------------------------------------
 
-        // $existingStaff = DB::table('cl_staff_tbl')
-        //     ->where('staff_cc_no', $request->certificate_no)
-        //     ->where('staff_cc_first_issue', $dateofIssue)
-        //     ->where('staff_cc_validity_from', $validFrom)
-        //     ->where('staff_cc_validity_to', $validTo)
-        //     // ->whereIn('staff_status', ['A', 'P'])
-        //     ->where('staff_status', 'A')
-
-        //     ->exists();
+        
 
 
 
-        // $existingStaffpending = DB::table('cl_staff_tbl')
-        //     ->where('staff_cc_no', $request->certificate_no)
-        //     ->where('staff_cc_first_issue', $dateofIssue)
-        //     ->where('staff_cc_validity_from', $validFrom)
-        //     ->where('staff_cc_validity_to', $validTo)
-        //     ->where('staff_status',  'P')
-        //     ->exists();
+        $existingStaffpending = DB::table('cl_staff_tbl')
+            ->where('staff_cc_no', $request->certificate_no)
+            ->where('staff_cc_first_issue', $dateofIssue)
+            ->where('staff_cc_validity_from', $validFrom)
+            ->where('staff_cc_validity_to', $validTo)
+            ->where('staff_status',  'P')
+            ->exists();
 
 
-        // dd($existingStaff);exit;
+            $existingStaff = DB::table('cl_staff_tbl')
+            ->where('staff_cc_no', $request->certificate_no)
+            ->where('staff_cc_first_issue', $dateofIssue)
+            ->where('staff_cc_validity_from', $validFrom)
+            ->where('staff_cc_validity_to', $validTo)
+            // ->whereIn('staff_status', ['A', 'P'])
+            ->where('staff_status', 'A')
+            ->exists();
 
-        // if ($existingStaffpending) {
-        //     return response()->json([
-        //         'status' => false,
-        //         'message' => 'Certificate is under process for another licence.'
-        //     ]);
-        // }
 
-        // if ($existingStaff) {
-        //     return response()->json([
-        //         'status' => false,
-        //         'message' => 'Certificate is already mapped with another licence.'
-        //     ]);
-        // }
+            if ($existingStaff) {
+                $validLicenceExists = DB::table('cl_forma_lic')
+                    ->where('application_id', $existingStaff->application_id)
+                    ->whereDate('valid_to', '>=', now()->toDateString())
+                    ->exists();
+
+                if ($validLicenceExists) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Certificate is already mapped with another licence.'
+                    ]);
+                }
+            }
 
 
         // -------------------------------------------------
@@ -340,6 +340,20 @@ class FormAController extends BaseController
 
             ->exists();
 
+             if ($existingStaff) {
+                $validLicenceExists = DB::table('cl_forma_lic')
+                    ->where('application_id', $existingStaff->application_id)
+                    ->whereDate('valid_to', '>=', now()->toDateString())
+                    ->exists();
+
+                if ($validLicenceExists) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Certificate is already mapped with another licence.'
+                    ]);
+                }
+            }
+
 
 
         $existingStaffpending = DB::table('cl_staff_tbl')
@@ -353,12 +367,12 @@ class FormAController extends BaseController
 
         // dd($existingStaff);exit;
 
-        if ($existingStaffpending) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Certificate is under process for another licence.'
-            ]);
-        }
+        // if ($existingStaffpending) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Certificate is under process for another licence.'
+        //     ]);
+        // }
 
         if ($existingStaff) {
             return response()->json([
@@ -716,12 +730,17 @@ class FormAController extends BaseController
             );
         }
 
-        DB::table('mapping_digi_cls')
-            ->where('temp_app_id', $request->temp_app_id)
-            ->update([
-                'application_id' => $applicationId,
-                'updated_at' => now(),
-            ]);
+        if(trim($request->appl_type) =='D' ){
+                DB::table('mapping_digi_cls')
+                            ->where('temp_app_id', $request->temp_app_id)
+                            ->update([
+                                'application_id' => $applicationId,
+                                'updated_at' => now(),
+                            ]);
+
+        }
+
+      
 
         // Final data to save
         $dataToSave = $validatedData;
@@ -1074,11 +1093,6 @@ class FormAController extends BaseController
 
         $processedStaffIdsQC = [];
 
-
-        // ==========================================================
-        // QC / QSC
-        // ==========================================================
-
         if ($request->has('staffqc_category')) {
 
             $staffCategories = $request->input(
@@ -1155,15 +1169,6 @@ class FormAController extends BaseController
             }
             $currentRowIndexes = [];
 
-// dd([
-//     'categories' => $request->input('staffqc_category', []),
-//     'names' => $request->input('certificate_holder_name', []),
-//     'old_names' => $request->input('certificate_holder_name_qc', []),
-//     'certificate_numbers' => $request->input('staff_cc_no', []),
-// ]);exit;
-            // ==========================================================
-            // PROCESS QC / QSC
-            // ==========================================================
 
             foreach (
                 $staffCategories
@@ -3948,6 +3953,9 @@ class FormAController extends BaseController
 
 
 
+             
+
+
 
 
             $form = DB::table('tnelb_forms')
@@ -4601,18 +4609,18 @@ class FormAController extends BaseController
             $staffName = $request->input('certificate_holder_name', []);
             $staffNameQC = $request->input('certificate_holder_name_qc', []);
 
-            dd([
-    'all_request_data' => $request->all(),
-    'staffqc_category' => $staffCategories,
-    'certificate_holder_name' => $staffName,
-    'certificate_holder_name_qc' => $staffNameQC,
-    'staff_cc_no' => $staffCcNos,
-    'staff_cc_first_issue' => $staffFirstIssues,
-    'staff_cc_validity_from' => $staffValidityFroms,
-    'staff_cc_validity_to' => $staffValidityTos,
-    'staffqc_id' => $staffQcIds,
-    'row_index' => $rowIndexes,
-]);
+//             dd([
+//     'all_request_data' => $request->all(),
+//     'staffqc_category' => $staffCategories,
+//     'certificate_holder_name' => $staffName,
+//     'certificate_holder_name_qc' => $staffNameQC,
+//     'staff_cc_no' => $staffCcNos,
+//     'staff_cc_first_issue' => $staffFirstIssues,
+//     'staff_cc_validity_from' => $staffValidityFroms,
+//     'staff_cc_validity_to' => $staffValidityTos,
+//     'staffqc_id' => $staffQcIds,
+//     'row_index' => $rowIndexes,
+// ]);
 
 
 
@@ -9720,7 +9728,7 @@ class FormAController extends BaseController
     {
         // dd('111');
         // exit;
-
+// dd($request->application_id); exit;
         $request->validate([
             'application_id' => 'required|string',
             'payment_status' => 'required|in:draft,pending,paid',
@@ -9740,6 +9748,23 @@ class FormAController extends BaseController
 
         // dd($payment);
         // exit;
+
+           $staffRecords = DB::table('cl_staff_tbl')
+                    ->where('application_id', $request->application_id)
+                    ->get();
+
+                    // dd($staffRecords); exit;
+
+                foreach ($staffRecords as $staff) {
+                    if ($staff->staff_flag == '1') {
+                        DB::table('cl_staff_tbl')
+                            ->where('id', $staff->id)
+                            ->update([
+                                'staff_status' => 'P',
+                                'updated_at' => now(),
+                            ]);
+                    }
+                }
 
 
 
@@ -9805,10 +9830,53 @@ class FormAController extends BaseController
         return response()->json(['status' => 'updated']);
     }
 
+    // forma datachange------------
+    public function updateLicenseValidTo(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'licence_number' => 'required|string',
+        'valid_to'       => 'required|date_format:Y-m-d',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Please select a licence number and valid-to date.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    $updated = DB::table('cl_forma_lic')
+        ->where('license_number', $request->licence_number)
+        ->update([
+            'valid_to' => $request->valid_to,
+            'updated_at' => now(),
+        ]);
+
+    if ($updated === 0) {
+        $exists = DB::table('cl_forma_lic')
+            ->where('license_number', $request->licence_number)
+            ->exists();
+
+        if (!$exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Licence number not found.',
+            ], 404);
+        }
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Licence valid-to date updated successfully.',
+    ]);
+}
+
 
     public function expiry_date_change()
     {
-        return view('user_login.license_datechange.index');
+        $licence= DB::table('cl_forma_lic')->get();
+        return view('user_login.license_datechange.index', compact('licence'));
     }
 
     public function getLicenseNumbersByType(string $certificateType)

@@ -104,7 +104,7 @@ class ReturnapplicantController extends BaseController
                 ->value('ownership_type');
             // dd($proprietors);exit;
 
-           
+
 
             // dd($staffs);
             // exit;
@@ -144,29 +144,35 @@ class ReturnapplicantController extends BaseController
 
             $returnsection = json_decode($application->return_reason, true);
 
-                $QCstaffs = DB::table('cl_staff_tbl')
+            $QCstaffs = DB::table('cl_staff_tbl')
                 ->where('application_id', $application_id)
                 ->whereIn('staff_category', ['QC', 'QSC'])
                 ->where('staff_flag', '1')
                 ->orderBy('id', 'ASC')
                 ->get();
 
-          
-               $staff_store_tbl_0 = DB::table('cl_staff_detail_adminstore')
+            $staff_store_tbl_0 = DB::table('cl_staff_detail_adminstore')
                 ->where('application_id', $application_id)
                 ->where('verify_flag', '0')
                 ->pluck('staff_cc_no')
                 ->toArray();
 
-             $staffs = DB::table('cl_staff_tbl')
+            $staffs = DB::table('cl_staff_tbl')
                 ->where('application_id', $application_id)
                 ->whereNotIn('staff_category', ['QC', 'QSC'])
+                ->where('staff_flag', '1')
                 ->orderBy('id', 'ASC')
                 ->get();
 
-              $staff_store_tbl_1 = DB::table('cl_staff_detail_adminstore')->where('application_id', $application_id)
-            ->where('verify_flag', '1')
-            ->get();
+
+
+
+
+            // dd($staff_store_tbl_0); exit;
+
+            $staff_store_tbl_1 = DB::table('cl_staff_detail_adminstore')->where('application_id', $application_id)
+                ->where('verify_flag', '1')
+                ->get();
 
 
 
@@ -347,7 +353,7 @@ class ReturnapplicantController extends BaseController
         // if ($request->appl_type === 'D') {
         //     $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
         // } else {
-            $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
+        $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
         // }
         $dataToSave['application_status'] = 'P';
         // $dataToSave['created_at'] = now();
@@ -685,17 +691,20 @@ class ReturnapplicantController extends BaseController
 
         // QC/QSC----------------
 
-        if ($request->has('staffqc_category')) {
-            // dd('qc'); exit;
+        // QC/QSC
 
-            $staffCategories = $request->input('staffqc_category', []);
-            $staffCcNos = $request->input('staff_cc_no', []);
-            $staffFirstIssues = $request->input('staff_cc_first_issue', []);
+        if ($request->has('staffqc_category')) {
+
+         $staffName = $request->input('certificate_holder_name', []);
+          $staffNameQC = $request->input('certificate_holder_name_qc', []);
+
+            $staffCategories    = $request->input('staffqc_category', []);
+            $staffCcNos         = $request->input('staff_cc_no', []);
+            $staffFirstIssues   = $request->input('staff_cc_first_issue', []);
             $staffValidityFroms = $request->input('staff_cc_validity_from', []);
-            $staffValidityTos = $request->input('staff_cc_validity_to', []);
+            $staffValidityTos   = $request->input('staff_cc_validity_to', []);
 
             $staffQcIds = $request->input('staffqc_id', []);
-            $rowIndexes = $request->input('row_index', []);
 
             /*
     |--------------------------------------------------------------------------
@@ -711,114 +720,136 @@ class ReturnapplicantController extends BaseController
 
             /*
     |--------------------------------------------------------------------------
-    | ROW INDEXES PRESENT IN CURRENT FORM
+    | CURRENT ROW INDEXES
     |--------------------------------------------------------------------------
     */
 
             $currentRowIndexes = [];
 
+            /*
+    |--------------------------------------------------------------------------
+    | PROCESS EACH QC / QSC STAFF
+    |--------------------------------------------------------------------------
+    */
+
             foreach ($staffCategories as $index => $category) {
 
                 $category = strtoupper(trim((string) $category));
 
-                /*
-        |--------------------------------------------------------------------------
-        | Only QC / QSC
-        |--------------------------------------------------------------------------
-        */
-
+                // Process only QC / QSC
                 if (!in_array($category, ['QC', 'QSC'], true)) {
                     continue;
                 }
 
-                $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
+                $ccNo = strtoupper(trim((string) ($staffCcNos[$index] ?? '')));
 
-                /*
-        |--------------------------------------------------------------------------
-        | Ignore empty / undefined certificate number
-        |--------------------------------------------------------------------------
-        */
-
+                // Ignore empty / invalid certificate numbers
                 if (
                     $ccNo === '' ||
-                    strtolower($ccNo) === 'undefined' ||
-                    strtolower($ccNo) === 'null'
+                    in_array(strtolower($ccNo), ['undefined', 'null'], true)
                 ) {
                     continue;
                 }
+
+                 $ccName = trim((string) (
+                    $staffName[$index]
+                    ?? $staffNameQC[$index]
+                    ?? ''
+                ));
 
                 $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
                 $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
                 $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
 
-
-
                 $staffId = $staffQcIds[$index] ?? null;
-                $submittedRowIndex = $rowIndexes[$index] ?? null;
 
                 /*
         |--------------------------------------------------------------------------
-        | EXISTING RECORD
+        | FIND EXISTING STAFF BY ID WITHIN THIS APPLICATION
         |--------------------------------------------------------------------------
         */
 
-                /*
-|--------------------------------------------------------------------------
-| EXISTING RECORD
-|--------------------------------------------------------------------------
-*/
+                $existing = null;
 
-                if (!empty($staffId)) {
-
+                if (
+                    $staffId !== null &&
+                    $staffId !== '' &&
+                    strtolower(trim((string) $staffId)) !== 'undefined' &&
+                    strtolower(trim((string) $staffId)) !== 'null'
+                ) {
                     $existing = DB::table('cl_staff_tbl')
                         ->where('id', $staffId)
                         ->where('application_id', $applicationId)
                         ->whereIn('staff_category', ['QC', 'QSC'])
                         ->first();
-
-                    if ($existing) {
-
-                        /*
-        |--------------------------------------------------------------------------
-        | Keep existing values if POST value is empty
-        |--------------------------------------------------------------------------
-        */
-
-                        $updateData = [
-                            'staff_category' => $category,
-                            'staff_cc_no' => $ccNo,
-                            'staff_flag' => '1',
-                            'updated_at' => now(),
-                        ];
-
-                        if ($firstIssue !== '') {
-                            $updateData['staff_cc_first_issue'] = $firstIssue;
-                        }
-
-                        if ($validityFrom !== '') {
-                            $updateData['staff_cc_validity_from'] = $validityFrom;
-                        }
-
-                        if ($validityTo !== '') {
-                            $updateData['staff_cc_validity_to'] = $validityTo;
-                        }
-
-                        DB::table('cl_staff_tbl')
-                            ->where('id', $staffId)
-                            ->where('application_id', $applicationId)
-                            ->update($updateData);
-
-                        $currentRowIndexes[] = (int) $existing->row_index;
-                    }
                 }
 
                 /*
         |--------------------------------------------------------------------------
-        | NEW RECORD
+        | CHECK CERTIFICATE IN cl_staff_tbl FOR THIS APPLICATION
         |--------------------------------------------------------------------------
-        */ else {
+        */
 
-                    // dd('new qc'); exit;
+                $existingByCertificate = DB::table('cl_staff_tbl')
+                    ->where('application_id', $applicationId)
+                    ->whereIn('staff_category', ['QC', 'QSC'])
+                    ->whereRaw('UPPER(TRIM(staff_cc_no)) = ?', [$ccNo])
+                    ->first();
+
+                if ($existing) {
+
+                    // Update the submitted staff record
+                    $updateData = [
+                        'staff_category' => $category,
+                        'staff_cc_no'    => $ccNo,
+                        'staff_flag'     => '1',
+                        'updated_at'     => now(),
+                    ];
+
+                    if ($firstIssue !== '') {
+                        $updateData['staff_cc_first_issue'] = $firstIssue;
+                    }
+
+                    if ($validityFrom !== '') {
+                        $updateData['staff_cc_validity_from'] = $validityFrom;
+                    }
+
+                    if ($validityTo !== '') {
+                        $updateData['staff_cc_validity_to'] = $validityTo;
+                    }
+
+                      if ($ccName !== '') {
+
+                            $updateData['staff_name'] = $ccName;
+                        }
+
+                    DB::table('cl_staff_tbl')
+                        ->where('id', $existing->id)
+                        ->where('application_id', $applicationId)
+                        ->update($updateData);
+
+                    $currentRowIndexes[] = (int) $existing->row_index;
+                } elseif ($existingByCertificate) {
+
+                    // Certificate already exists in cl_staff_tbl.
+                    // Do not insert a duplicate staff record.
+                    DB::table('cl_staff_tbl')
+                        ->where('id', $existingByCertificate->id)
+                        ->where('application_id', $applicationId)
+                        ->update([
+                            'staff_category' => $category,
+                            'staff_flag'     => '1',
+                            'updated_at'     => now(),
+                        ]);
+
+                    $currentRowIndexes[] = (int) $existingByCertificate->row_index;
+                } else {
+
+                    /*
+            |--------------------------------------------------------------------------
+            | CERTIFICATE MISSING IN cl_staff_tbl -> INSERT
+            |--------------------------------------------------------------------------
+            */
 
                     $newRowIndex = $nextRowIndex;
 
@@ -826,6 +857,54 @@ class ReturnapplicantController extends BaseController
                         'login_id' => $request->input('login_id_store'),
                         'application_id' => $applicationId,
                         'staff_category' => $category,
+                        'staff_cc_no' => $ccNo,
+
+                        'staff_name' => $ccName,
+
+                        'staff_cc_first_issue' =>
+                        $firstIssue !== '' ? $firstIssue : null,
+
+                        'staff_cc_validity_from' =>
+                        $validityFrom !== '' ? $validityFrom : null,
+
+                        'staff_cc_validity_to' =>
+                        $validityTo !== '' ? $validityTo : null,
+
+                        'row_index'   => $newRowIndex,
+                        'staff_flag'  => '1',
+                        'staff_status' => 'N',
+                        'new_entry'   => '1',
+
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $currentRowIndexes[] = $newRowIndex;
+
+                    $nextRowIndex++;
+                }
+
+                /*
+        |--------------------------------------------------------------------------
+        | CHECK CERTIFICATE IN cl_staff_detail_adminstore
+        |--------------------------------------------------------------------------
+        */
+
+                $adminStoreExists = DB::table('cl_staff_detail_adminstore')
+                    ->where('application_id', $applicationId)
+                    ->whereRaw('UPPER(TRIM(staff_cc_no)) = ?', [$ccNo])
+                    ->exists();
+
+                /*
+        |--------------------------------------------------------------------------
+        | CERTIFICATE MISSING IN ADMIN STORE -> INSERT
+        |--------------------------------------------------------------------------
+        */
+
+                if (!$adminStoreExists) {
+
+                    DB::table('cl_staff_detail_adminstore')->insert([
+                        'application_id' => $applicationId,
                         'staff_cc_no' => $ccNo,
 
                         'staff_cc_first_issue' =>
@@ -837,39 +916,36 @@ class ReturnapplicantController extends BaseController
                         'staff_cc_validity_to' =>
                         $validityTo !== '' ? $validityTo : null,
 
-                        'row_index' => $newRowIndex,
-                        'staff_flag' => '1',
-                        'staff_status' => 'N',
+                        'verify_flag'  => 0,
+                        'processed_by' => null,
+
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
-
-                    $currentRowIndexes[] = $newRowIndex;
-
-                    $nextRowIndex++;
                 }
             }
 
             /*
     |--------------------------------------------------------------------------
-    | SET MISSING QC / QSC RECORDS TO staff_flag = 0
+    | MARK MISSING QC / QSC RECORDS AS INACTIVE
     |--------------------------------------------------------------------------
-    |
-    | Existing DB records which are NOT present in the submitted form
-    | will be marked as 0.
-    |
     */
 
-            DB::table('cl_staff_tbl')
+            $inactiveQuery = DB::table('cl_staff_tbl')
                 ->where('application_id', $applicationId)
                 ->whereIn('staff_category', ['QC', 'QSC'])
-                ->where('staff_flag', '1')
-                ->whereNotIn('row_index', $currentRowIndexes)
-                ->update([
-                    'staff_flag' => '0',
-                    'updated_at' => now(),
-                ]);
+                ->where('staff_flag', '1');
+
+            if (!empty($currentRowIndexes)) {
+                $inactiveQuery->whereNotIn('row_index', $currentRowIndexes);
+            }
+
+            $inactiveQuery->update([
+                'staff_flag' => '0',
+                'updated_at' => now(),
+            ]);
         }
+
 
 
         if ($request->has('cc_number')) {
@@ -994,6 +1070,8 @@ class ReturnapplicantController extends BaseController
 
                 $staffId = $staffIdsFromForm[$index] ?? null;
 
+                $ccName = $request->input("certificate_holder_name_others.$index");
+
                 $rowIndex = $rowIndexesFromForm[$index] ?? null;
 
 
@@ -1069,6 +1147,12 @@ class ReturnapplicantController extends BaseController
                     'staff_cc_validity_from' =>
                     $validityFrom,
 
+                     'staff_name' =>
+                    !empty($ccName)
+                        ? trim((string) $ccName)
+                        : null,
+
+
                     'staff_cc_validity_to' =>
                     $validityTo,
 
@@ -1102,6 +1186,8 @@ class ReturnapplicantController extends BaseController
                     $staffData['staff_cc_first_issue'] = null;
 
                     $staffData['staff_cc_validity_from'] = null;
+
+                    $staffData['staff_name'] = null;
 
                     $staffData['staff_cc_validity_to'] = null;
                 }
@@ -1150,6 +1236,30 @@ class ReturnapplicantController extends BaseController
                         ->insertGetId($staffData);
 
                     $processedStaffIds[] = $newStaffId;
+
+
+
+                    DB::table('cl_staff_detail_adminstore')->insert([
+                        'application_id' => $applicationId,
+
+                        'staff_cc_no' => $staffData['staff_cc_no'],
+
+                        'staff_cc_first_issue' =>
+                        !empty($firstIssue) ? $firstIssue : null,
+
+                        'staff_cc_validity_from' =>
+                        !empty($validityFrom) ? $validityFrom : null,
+
+                        'staff_cc_validity_to' =>
+                        !empty($validityTo) ? $validityTo : null,
+
+                        'verify_flag'  => 0,
+                        'processed_by' => null,
+
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
 
                     $nextRowIndex++;
                 }
@@ -2516,7 +2626,7 @@ class ReturnapplicantController extends BaseController
 
     // ----------forma renewal return------------------
 
-     public function storerenewalreturn(Request $request)
+    public function storerenewalreturn(Request $request)
     {
 
         // dd($request->type_doc);
@@ -2678,7 +2788,7 @@ class ReturnapplicantController extends BaseController
         // if ($request->appl_type === 'D') {
         //     $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
         // } else {
-            $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
+        $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
         // }
         $dataToSave['application_status'] = 'P';
         // $dataToSave['created_at'] = now();
@@ -3481,6 +3591,33 @@ class ReturnapplicantController extends BaseController
                         ->insertGetId($staffData);
 
                     $processedStaffIds[] = $newStaffId;
+
+                    if (
+                        in_array($category, ['B', 'C'], true) &&
+                        !empty($staffData['staff_cc_no'])
+                    ) {
+
+                        DB::table('cl_staff_detail_adminstore')->insert([
+                            'application_id' => $applicationId,
+
+                            'staff_cc_no' => $staffData['staff_cc_no'],
+
+                            'staff_cc_first_issue' =>
+                            !empty($firstIssue) ? $firstIssue : null,
+
+                            'staff_cc_validity_from' =>
+                            !empty($validityFrom) ? $validityFrom : null,
+
+                            'staff_cc_validity_to' =>
+                            !empty($validityTo) ? $validityTo : null,
+
+                            'verify_flag'  => 0,
+                            'processed_by' => null,
+
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
 
                     $nextRowIndex++;
                 }

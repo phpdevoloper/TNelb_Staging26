@@ -2683,6 +2683,22 @@
                     });
 
 
+                      let staffVerification = [];
+
+                        $('.staff-status-switch').each(function () {
+
+                            let staffId = $(this).data('id');
+
+                            let verifyFlag = $(this).is(':checked') ? 1 : 0;
+
+                            staffVerification.push({
+                                staff_id: staffId,
+                                verify_flag: verifyFlag
+                            });
+
+                        });
+
+
             // 🔹 STEP 1: CHECK VALIDITY FROM CONTROLLER
             $.ajax({
                 url: '{{ route('admin.checkallvalidity') }}',
@@ -2986,7 +3002,13 @@
                                     bank_validity: bank_validity,
                                     appl_type: appl_type,
                                     old_issuedat : old_issuedat,
-                                      role_id : role_id
+                                      role_id : role_id,
+
+
+                                    staff_verification: JSON.stringify(staffVerification),
+                                    check_id: check_id,
+                                    checklists: checklists,
+                                    status: status
                             },
                           success: function (response) {
 
@@ -3051,9 +3073,6 @@
 
                                             <div class="digitisation-not-found">
 
-                                                <span class="info-icon">
-                                                    ℹ
-                                                </span>
 
                                                 <span>
                                                     No CL Digitisation mapping found
@@ -3107,9 +3126,7 @@
 
                                                 <div class="approval-header">
 
-                                                    <div class="success-circle">
-                                                        ✓
-                                                    </div>
+                                                   
 
                                                     <div class="approval-header-text">
 
@@ -3134,9 +3151,7 @@
 
                                                     <div class="section-heading">
 
-                                                        <span class="heading-icon">
-                                                            📄
-                                                        </span>
+                                                      
 
                                                         Licence Details
 
@@ -3198,9 +3213,7 @@
 
                                                     <div class="expiry-message">
 
-                                                        <span class="expiry-check">
-                                                            ✓
-                                                        </span>
+                                                        
 
                                                         <span>
                                                             ${response.message}
@@ -3547,125 +3560,267 @@
 
         // --------process-----------
 
-        $("#returntoapplicant").on("click", function () {
+       
+$("#returntoapplicant").on("click", function () {
 
-            $(".modal-footer button").not(this).prop("disabled", true);
+    $(".modal-footer button").not(this).prop("disabled", true);
 
-            $("#return_section").slideDown();
+    $("#return_section").slideDown();
 
-            $('html, body').animate({
-                scrollTop: $("#return_section").offset().top - 120
-            }, 600);
+    $('html, body').animate({
+        scrollTop: $("#return_section").offset().top - 120
+    }, 600);
 
+});
+
+$("#exit_return").on("click", function () {
+
+    $("#return_section").slideUp();
+
+    $(".modal-footer button").prop("disabled", false);
+
+    // Clear return checkboxes
+    $(".return-checkbox").prop("checked", false);
+
+    // Clear remarks
+    $("#remarks_return").val("");
+
+    // Clear validation messages
+    $("#checkbox_error").text("").hide();
+    $("#remarks_error").text("");
+    $("#query_error").text("");
+});
+
+$("#process_return").on("click", function () {
+
+    // -----------------------------------------
+    // BASIC VALIDATION
+    // -----------------------------------------
+
+    var remarks = $("#remarks").val().trim();
+    var remarks_return = $("#remarks_return").val().trim();
+
+    $("#remarks_error").text("");
+    $("#checkbox_error").text("").hide();
+    $("#query_error").text("");
+
+    // Remarks validation (same as forwardbtn)
+    if (remarks === "") {
+        $("#remarks_error").text("Remarks is required");
+        $("#remarks").focus();
+        return;
+    }
+
+    // Return reason validation
+    let checkedReasons = [];
+
+    $(".return-checkbox:checked").each(function () {
+        checkedReasons.push($(this).val());
+    });
+
+    if (checkedReasons.length === 0) {
+
+        $("#checkbox_error")
+            .text("Select at least one reason before return.")
+            .fadeIn();
+
+        $('html, body').animate({
+            scrollTop: $("#checkbox_error").offset().top - 150
+        }, 600);
+
+        return;
+    } else {
+        $("#checkbox_error").fadeOut();
+    }
+
+    // -----------------------------------------
+    // APPLICATION DETAILS
+    // -----------------------------------------
+
+    var applicationId = @json($applicant->application_id);
+    var processedBy = @json(Auth::user()->name);
+    var role_id = @json(Auth::user()->roles_id);
+    var forwardedTo = @json($returnForwardUser->roles_id ?? 0);
+
+    var returnflag = @json($applicant->return_flag);
+    var application_status = @json($applicant->application_status);
+
+    var checkboxStatus = "Yes";
+
+    // -----------------------------------------
+    // QUERY VALIDATION
+    // -----------------------------------------
+
+    let queryswitch = $("#Queryswitch").prop("checked");
+    let queryType = $("#queryType").val() || [];
+    let errorBox = $("#query_error");
+
+    errorBox.text("");
+
+    if (queryswitch && queryType.length === 0) {
+
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Please select at least one query type."
         });
 
-        $("#exit_return").on("click", function () {
+        return;
+    }
 
-            $("#return_section").slideUp();
+    // -----------------------------------------
+    // RETURN CONFIRMATION
+    // -----------------------------------------
 
-            $(".modal-footer button").prop("disabled", false);
+    Swal.fire({
+        title: "Declaration",
+        text: "Confirm that the application is being returned to the applicant for the selected reasons.",
+        showCancelButton: true,
+        confirmButtonText: "Return to Applicant",
+        cancelButtonText: "Cancel",
+        focusConfirm: false
+    }).then((result) => {
 
-            // Clear checkboxes
-            $(".return-checkbox").prop("checked", false);
-
-            // Clear remarks
-            $("#remarks_return").val("");
-
-        });
-
-        $("#process_return").on("click", function () {
-
-
-            var applicationId   = @json($applicant->application_id);
-            var returnBy        = @json(Auth::user()->name);
-            var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
-            var checkboxStatus = "Yes";
-
-            var remarks         = $("#remarks").val().trim();
-
-            var remarks_return         = $("#remarks_return").val().trim();
-
-
-         let checkedReasons = [];
-
-        $('.return-checkbox:checked').each(function() {
-            checkedReasons.push($(this).val());
-        });
-
-        if (checkedReasons.length === 0) {
-
-            // Show error message
-            $("#checkbox_error")
-                .text("Select at least one reason before return.")
-                .fadeIn();
-
-            // Smooth scroll to checkbox section
-            $('html, body').animate({
-                scrollTop: $("#checkbox_error").offset().top - 150
-            }, 600);
-
+        if (!result.isConfirmed) {
             return;
-        } else {
-            // Hide error if valid
-            $("#checkbox_error").fadeOut();
         }
 
+        // -----------------------------------------
+        // CHECKLIST DATA
+        // -----------------------------------------
 
-            let queryswitch = $("#Queryswitch").prop("checked");
-            queryType = $("#queryType").val();
-            let errorBox = $("#query_error");
+        let check_id = {};
+        let checklists = {};
+        let status = {};
 
-            Swal.fire({
-              title: "Return",
-              html: 'Confirm to return this application!',
+        $('input[name^="check_id["]').each(function () {
 
-              showCancelButton: true,
-              confirmButtonText: "Return to Applicant",
-              cancelButtonText: "Cancel",
-              focusConfirm: false,
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '{{ route('admin.returntoapplicantforma') }}',
-                        type: 'POST',
-                        headers: {
-                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
-                        },
-                        data: {
-                            application_id  : applicationId,
-                            return_by       : returnBy,
-                            forwarded_to    : forwardedTo,
-                            remarks         : remarks || "No remarks provided",
-                            checkboxes      : checkboxStatus,
-                            reasons         : checkedReasons,
-                            queryswitch     : queryswitch,
-                            remarks_return     : remarks_return,
-                            "queryType[]": queryType
-                        },
-                        success: function (response) {
+            let id = $(this).attr("name")
+                .replace("check_id[", "")
+                .replace("]", "");
 
-                            if (response.status == "success") {
-                                Swal.fire({
+            check_id[id] = $(this).val();
 
-                                    title: "Success",
-                                    text: response.message,
-                                    confirmButtonText: "OK",
-                                    allowOutsideClick: false
-                                }).then(() => {
-                                    window.location.href = "{{ url('admin/dashboard') }}";
-                                });
-                            }
-                        },
-                        error: function (xhr) {
-                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
-                            $('#errorMessage').text(errorMessage);
-                            $('#errorModal').modal('show');
-                        }
+            checklists[id] =
+                $('input[name="checklists[' + id + ']"]').is(":checked")
+                    ? 1
+                    : 0;
+
+            status[id] =
+                $('input[name="status[' + id + ']"]').is(":checked")
+                    ? 1
+                    : 0;
+        });
+
+        console.log("CHECK ID:", check_id);
+        console.log("CHECKLISTS:", checklists);
+        console.log("STATUS:", status);
+
+        // -----------------------------------------
+        // STAFF VERIFICATION DATA
+        // -----------------------------------------
+
+        let staffVerification = [];
+
+        $(".staff-status-switch").each(function () {
+
+            let staffId = $(this).data("id");
+            let verifyFlag = $(this).is(":checked") ? 1 : 0;
+
+            staffVerification.push({
+                staff_id: staffId,
+                verify_flag: verifyFlag
+            });
+        });
+
+        console.log("STAFF VERIFICATION:", staffVerification);
+
+        // -----------------------------------------
+        // AJAX REQUEST
+        // -----------------------------------------
+
+        $.ajax({
+            url: '{{ route("admin.returntoapplicantforma") }}',
+            type: "POST",
+
+            headers: {
+                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+            },
+
+            data: {
+                application_id: applicationId,
+                return_by: processedBy,
+                forwarded_to: forwardedTo,
+                role_id: role_id,
+
+                remarks: remarks,
+                remarks_return: remarks_return,
+
+                checkboxes: checkboxStatus,
+                reasons: checkedReasons,
+
+                application_status: application_status,
+                returnflag: returnflag,
+
+                queryswitch: queryswitch ? "Yes" : "No",
+                "queryType[]": queryType,
+
+                // Staff verification
+                staff_verification: JSON.stringify(staffVerification),
+
+                // Checklist data
+                check_id: check_id,
+                checklists: checklists,
+                status: status
+            },
+
+            success: function (response) {
+
+                if (response.status === "success") {
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "Success",
+                        text: response.message,
+                        confirmButtonText: "OK",
+                        allowOutsideClick: false
+                    }).then(() => {
+                        window.location.href = "{{ url('admin/dashboard') }}";
+                    });
+
+                } else {
+
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: response.message || "Unable to return the application."
                     });
                 }
-            });
+            },
 
+            error: function (xhr) {
+
+                let errorMessage =
+                    xhr.responseJSON && (
+                        xhr.responseJSON.error ||
+                        xhr.responseJSON.message
+                    )
+                    ? (
+                        xhr.responseJSON.error ||
+                        xhr.responseJSON.message
+                    )
+                    : "An unexpected error occurred.";
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: errorMessage
+                });
+            }
         });
+    });
+});
+
 
         // -----------------------------------------------
  forwardbtn.click(function() {

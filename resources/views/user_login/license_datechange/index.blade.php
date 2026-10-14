@@ -130,6 +130,66 @@
                     </div>
                 </div>
 
+
+                <div class="col-lg-12 col-12">
+                    <div class="apply-card apply-card-info" data-select2-id="14">
+                        <div class="apply-card-header" style="background-color: #70c6ef  !important;">
+                            <div class="row">
+                                <div class="col-6 col-lg-8">
+                                    <h5 class="card-title_apply text-black text-left"> Contractor Licence Date Change
+                                    </h5>
+                                </div>
+
+
+
+                            </div>
+
+                        </div>
+                        <div class="apply-card-body">
+
+                            <form id="cl_license_date_change" enctype="multipart/form-data">
+                                @csrf
+
+                                <div class="row align-items-center">
+
+                                    <div class="col-md-4 mb-3">
+                                        <label for="license_number" class="form-label">Licence No</label>
+
+                                        <select class="form-control" name="licence_number" id="licence_number">
+                                            <option value="">Select Licence Number</option>
+
+                                            @foreach ($licence as $lic)
+                                                <option value="{{ $lic->license_number }}"
+                                                    data-valid-to="{{ $lic->valid_to }}">
+                                                    {{ $lic->license_number }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+
+                                        <span class="error text-danger field-error" id="license_number_error"></span>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label for="expiry" class="form-label">Valid To Date</label>
+
+                                        <input type="date" class="form-control" name="valid_to" id="validto">
+
+                                        <span class="error text-danger field-error" id="valid_to_error"></span>
+                                    </div>
+
+                                </div>
+
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-success px-4 py-2">
+                                        Save Valid To Date
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-lg-12 col-12">
                     <div class="apply-card apply-card-info" data-select2-id="14">
                         <div class="apply-card-header" style="background-color: #70c6ef  !important;">
@@ -152,8 +212,8 @@
                                                         <label for="Name">Date </label>
                                                     </div>
                                                     <div class="col-12 col-md-8 pd-left-40">
-                                                        <input type="date" class="form-control" name="current_date"
-                                                            id="current_date">
+                                                        <input type="date" class="form-control"
+                                                            name="current_date" id="current_date">
                                                     </div>
                                                 </div>
                                             </div>
@@ -231,9 +291,11 @@
                     return;
                 }
 
-                $.get(BASE_URL + '/get-license-expiry/' + encodeURIComponent(certificateType) + '/' + encodeURIComponent(licenseNumber), function(data) {
-                    $expiry.val(data.valid_to || '');
-                }).fail(function() {
+                $.get(BASE_URL + '/get-license-expiry/' + encodeURIComponent(certificateType) + '/' +
+                    encodeURIComponent(licenseNumber),
+                    function(data) {
+                        $expiry.val(data.valid_to || '');
+                    }).fail(function() {
                     $expiry.val('');
                 });
             }
@@ -247,7 +309,8 @@
                 }
 
                 resetLicenseDropdown('Loading...');
-                $.get(BASE_URL + '/get-license-numbers/' + encodeURIComponent(certificateType), function(data) {
+                $.get(BASE_URL + '/get-license-numbers/' + encodeURIComponent(certificateType), function(
+                    data) {
                     const certificates = data.certificates || [];
                     let options = '<option value="">Select Certificate No</option>';
                     certificates.forEach(function(item) {
@@ -261,7 +324,8 @@
                     $expiry.val('');
                 }).fail(function() {
                     resetLicenseDropdown('Unable to load certificates');
-                    showFieldError('certificate_type', 'Unable to load certificates for this type.');
+                    showFieldError('certificate_type',
+                    'Unable to load certificates for this type.');
                 });
             });
 
@@ -327,17 +391,20 @@
 
                         if (xhr.status === 422 && Object.keys(errors).length) {
                             $.each(errors, function(name, messages) {
-                                showFieldError(name, Array.isArray(messages) ? messages[0] : messages);
+                                showFieldError(name, Array.isArray(messages) ? messages[
+                                    0] : messages);
                             });
                             return;
                         }
 
                         if (xhr.status === 404) {
-                            showFieldError('license_number', payload.message || 'License not found.');
+                            showFieldError('license_number', payload.message ||
+                                'License not found.');
                             return;
                         }
 
-                        showFieldError('expires_at', payload.message || 'Something went wrong. Please try again.');
+                        showFieldError('expires_at', payload.message ||
+                            'Something went wrong. Please try again.');
                     },
                     complete: function() {
                         $licenseNumber.prop('disabled', $wasDisabled);
@@ -361,4 +428,58 @@
             });
 
         });
+
+
+        // ----------------------cl-------
+    
     </script>
+
+  <script>
+    $(document).ready(function () {
+        $('#licence_number').on('change', function () {
+            
+
+            let validTo = $(this).find(':selected').data('valid-to');
+
+            $('#validto').val(validTo || '');
+        });
+    });
+
+$(document).ready(function () {
+
+    $('#cl_license_date_change').on('submit', function (e) {
+        e.preventDefault();
+
+        $('.field-error').text('');
+
+        $.ajax({
+            url: "{{ route('admin.updateLicenseValidTo') }}",
+            type: 'POST',
+            data: $(this).serialize(),
+
+            success: function (response) {
+                if (response.status) {
+                    alert(response.message);
+                    window.location.href = "{{ route('dashboard') }}";
+                }
+            },
+
+            error: function (xhr) {
+                if (xhr.status === 422 && xhr.responseJSON.errors) {
+                    $.each(xhr.responseJSON.errors, function (field, messages) {
+                        let errorId = field === 'licence_number'
+                            ? '#license_number_error'
+                            : '#valid_to_error';
+
+                        $(errorId).text(messages[0]);
+                    });
+                } else {
+                    alert(xhr.responseJSON?.message || 'Unable to update the licence date.');
+                }
+            }
+        });
+    });
+
+});
+
+</script>
