@@ -438,7 +438,8 @@ Route::get('/get-form-instructions', [FormAController::class, 'getFormInstructio
 
 # expiry date change
 
-
+Route::post('/update-license-valid-to', [FormAController::class, 'updateLicenseValidTo'])
+    ->name('admin.updateLicenseValidTo');
 
 Route::get('/expiry_date_change', [FormAController::class, 'expiry_date_change'])->name('expiry_date_change');
 Route::get('/get-license-numbers/{certificate_type}', [FormAController::class, 'getLicenseNumbersByType'])

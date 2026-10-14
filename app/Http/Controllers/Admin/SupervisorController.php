@@ -1488,14 +1488,7 @@ class SupervisorController extends Controller
 
 
 
-        $staffVerification = json_decode(
-            $request->staff_verification,
-            true
-        );
-
-        if (!is_array($staffVerification)) {
-            $staffVerification = [];
-        }
+      
 
 
         $applicant = EA_Application_model::where('application_id', $request->application_id)
@@ -1570,6 +1563,15 @@ class SupervisorController extends Controller
         // dd($request->returnflag);exit;
 
         $forwarded = $request->forwarded_to;
+
+        $staffVerification = json_decode(
+            $request->staff_verification,
+            true
+        );
+
+        if (!is_array($staffVerification)) {
+            $staffVerification = [];
+        }
 
         foreach ($staffVerification as $staffVerify) {
 
@@ -1732,6 +1734,8 @@ class SupervisorController extends Controller
 
    public function approveApplicationForma(Request $request)
 {
+
+
     $request->validate([
         'application_id'    => 'required|string',
         'processed_by'      => 'required|string',
@@ -1816,7 +1820,7 @@ class SupervisorController extends Controller
          *
          * A and D don't use normal validity configuration here
          * ====================================================== */
-
+        $staffID = Auth::user()->id;
         $monthsToAdd = null;
 
         if ($appl_type !== 'A' && $appl_type !== 'D') {
@@ -1844,6 +1848,116 @@ class SupervisorController extends Controller
 
             $monthsToAdd = $validity->validity;
         }
+
+
+        $staffVerification = json_decode(
+            $request->staff_verification,
+            true
+        );
+
+        if (!is_array($staffVerification)) {
+            $staffVerification = [];
+        }
+
+        foreach ($staffVerification as $staffVerify) {
+
+            $staffId = $staffVerify['staff_id'] ?? null;
+
+            if (!$staffId) {
+                continue;
+            }
+
+            $verifyFlag = (int) (
+                $staffVerify['verify_flag'] ?? 0
+            );
+
+
+            $staffDetail = DB::table('cl_staff_tbl')
+                ->where('id', $staffId)
+                ->first();
+
+
+            if (!$staffDetail) {
+                continue;
+            }
+
+
+            // OTHERS does not have CC verification
+            if (
+                isset($staffDetail->staff_category) &&
+                $staffDetail->staff_category === 'OTHERS'
+            ) {
+                continue;
+            }
+
+
+            DB::table('cl_staff_detail_adminstore')
+                ->updateOrInsert(
+
+                    [
+                        'application_id' =>
+                        $request->application_id,
+
+                        'staff_cc_no' =>
+                        $staffDetail->staff_cc_no,
+                    ],
+
+                    [
+                        'staff_cc_first_issue' =>
+                        $staffDetail->staff_cc_first_issue,
+
+                        'staff_cc_validity_from' =>
+                        $staffDetail->staff_cc_validity_from,
+
+                        'staff_cc_validity_to' =>
+                        $staffDetail->staff_cc_validity_to,
+
+                        'verify_flag' =>
+                        $verifyFlag,
+
+                        'processed_by' =>
+                        $staffID,
+
+                        'updated_at' =>
+                        now(),
+
+                        'created_at' =>
+                        now(),
+                    ]
+                );
+        }
+        $checklistData = [];
+
+        $checkIds = $request->input('check_id', []);
+        $checklists = $request->input('checklists', []);
+        $statuses = $request->input('status', []);
+
+        foreach ($checkIds as $id => $checkId) {
+
+            $checklistData[] = [
+                'id'      => $checkId,
+                'checked' => (int) ($checklists[$id] ?? 0),
+                'verify'  => (int) ($statuses[$id] ?? 0),
+            ];
+        }
+
+
+               $staffRecords = DB::table('cl_staff_tbl')
+                    ->where('application_id', $request->application_id)
+                    ->get();
+
+                    // dd($staffRecords); exit;
+
+                foreach ($staffRecords as $staff) {
+                    if ($staff->staff_flag == '1') {
+                        DB::table('cl_staff_tbl')
+                            ->where('id', $staff->id)
+                            ->update([
+                                'staff_status' => 'A',
+                                'updated_at' => now(),
+                            ]);
+                    }
+                }
 
 
         /* ======================================================

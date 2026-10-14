@@ -2216,7 +2216,7 @@ exit; -->
                             <!-- License Number -->
                             <div class="col-3 col-md-3">
                                 <label>Previous License Number <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_number" type="text" id="previous_application_number" name="previous_licence_no" maxlength="15" placeholder="Previous License Number" readonly="">
+                                <input class="form-control previous_application_number" type="text" id="previous_application_number" name="previous_licence_no" maxlength="15" placeholder="Previous License Number" value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}" readonly="">
 
 
 
@@ -2225,18 +2225,21 @@ exit; -->
                             <!-- License Validity -->
                             <div class="col-3 col-md-3">
                                 <label>Licence Date of First Issue <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_first_issue" name="previous_validity_first_issue" placeholder="Licence Date of First Issue" value="" title="Select a date up to today" readonly="readonly">
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_first_issue" name="previous_validity_first_issue" placeholder="Licence Date of First Issue"title="Select a date up to today" value="{{ old('previous_validity_first_issue', !empty($application->previous_validity_first_issue) ? \Carbon\Carbon::parse($application->previous_validity_first_issue)->format('Y-m-d') : '') }}" readonly="readonly">
                             </div>
 
                             <div class="col-3 col-md-3">
                                 <label>Licence Validity From <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_from" name="previous_validity_from" placeholder="Licence Validity From" readonly="readonly">
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_from" name="previous_validity_from" placeholder="Licence Validity From" 
+                                value="{{ old('previous_validity_from', !empty($application->previous_validity_from) ? \Carbon\Carbon::parse($application->previous_validity_from)->format('Y-m-d') : '') }}"
+                                readonly="readonly">
                             </div>
 
 
                             <div class="col-3 col-md-3">
                                 <label>Licence Validity To <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_to" name="previous_validity_to" placeholder="Licence Validity To" readonly="readonly">
+                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_to" name="previous_validity_to" placeholder="Licence Validity To" 
+                                 value="{{ old('previous_validity_to', !empty($application->previous_validity_to) ? \Carbon\Carbon::parse($application->previous_validity_to)->format('Y-m-d') : '') }}"readonly="readonly">
                             </div>
 
 
@@ -2261,7 +2264,7 @@ exit; -->
             <div class="col-md-12">
                 <div class="row align-items-center head_label">
                     <div class="col-12 col-md-12 title_bar">
-                        <label>5A. Details of Eligible QC/QSC Staff appointed on full time basis: <span
+                        <label>5A. Details of Eligible QC Staff appointed on full time basis: <span
                                 style="color: red;">*</span></label>
 
                     </div>
@@ -2300,13 +2303,7 @@ exit; -->
             <th width="15%">
                 Attachments <span class="text-red">*</span>
             </th>
-            <th width="10%">
-                <button type="button"
-                        class="btn btn-success"
-                        id="add_qc_staff">
-                    + Add
-                </button>
-            </th>
+           
         </tr>
     </thead>
 
@@ -2341,7 +2338,7 @@ exit; -->
                 @php
                     $staff = $qcStaffs[$i];
 
-                    $canEdit = in_array(
+                     $canEdit = in_array(
                         (string) $staff->staff_cc_no,
                         array_map('strval', $editableStaffNumbers),
                         true
@@ -2362,6 +2359,8 @@ exit; -->
                         <input type="hidden"
                                name="row_index[]"
                                value="{{ $staff->row_index }}">
+
+                               <input type="hidden" id="edit_qc_row_index" value="">
 
                         <input type="hidden"
                                name="staffqc_id[]"
@@ -2446,7 +2445,7 @@ exit; -->
 
                         <button type="button"
                                 class="btn btn-danger remove-qc-staff">
-                            &#128465; Remove
+                            &#128465; Delete
                         </button>
                         @endif
 
@@ -2656,8 +2655,8 @@ exit; -->
 
                                     <div class="col-12 col-md-12 text-center">
 
-                                        <button type="button" class="btn btn-success" id="save_qc" disabled>
-                                            Save
+                                        <button type="button" class="btn btn-warning" id="update_qc" style="display:none;">
+                                            Update
                                         </button>
                                         <button type="button" class="btn btn-danger ms-2"
                                             id="cancel_qc">Cancel</button>
@@ -2671,8 +2670,7 @@ exit; -->
                     </div>
 
 
-
-                    <p class="text-red note_txt">Note : Maximum 5 QC Staffs are allowed and Mandatory 1 QC
+                    <p class="text-red note_txt">Note : If Applicant Delete the Row No Fees will be Refunded  
                     </p>
 
                 </div>
@@ -2698,430 +2696,467 @@ exit; -->
 
 
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="staff-table">
-                        <thead>
-                            <tr>
-                                <th>S.NO</th>
-                                <th width="10%">Category <span class="text-red">*</span></th>
-                                
-                                
-                                <th>Competency Certificate Number <span class="text-red">*</span></th>
 
-                                <!-- <th>Qualification <span class="text-red">*</span> </th> -->
-                                <th>Certificate First Issue <span class="text-red">*</span></th>
-                                <th>Certificate Validity From <span class="text-red">*</span></th>
-                                <th>Certificate Validity To <span class="text-red">*</span></th>
-
-                                <th>Action </th>
-
-                                <th>Certificate Holder Name <span class="text-red">*</span></th>
-
-                            </tr>
-                        </thead>
-
-                        @if(!$application)
-
-                        @php
-                        $staff_count = 2;
-                        @endphp
-
-                        <tbody id="staff-container">
-
-                            @for($i = 0; $i < $staff_count; $i++)
-
-                                <tr class="staff-fields">
-
-                                <td>{{ $i + 1 }}</td>
-
-                                {{-- CATEGORY --}}
-                                <td>
-
-                                    {{-- First 2 staff are always B --}}
-                                    <input type="hidden"
-                                        name="staff_category[{{ $i }}]"
-                                        value="B"
-                                        class="staff_category">
-
-                                    <input type="text"
-                                        class="form-control"
-                                        value="B"
-                                        readonly>
-
-                                    <span class="error text-danger">
-                                        {{ $errors->first('staff_category.' . $i) }}
-                                    </span>
-
-                                </td>
-
-                              
-
-
-                                {{-- CERTIFICATE NUMBER --}}
-                                <td class="cc-column">
-
-                                    <input type="text"
-                                        class="form-control cc_number"
-                                        name="cc_number[{{ $i }}]"
-                                        placeholder="Certificate No"
-                                        maxlength="15"
-                                        value="{{ old('cc_number.' . $i) }}"
-                                        oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
-
-                                    <span class="error text-danger">
-                                        {{ $errors->first('cc_number.' . $i) }}
-                                    </span>
-
-                                    <div class="competency_verify_result text-danger small mt-1"></div>
-
-                                </td>
-
-
-                                {{-- FIRST ISSUE --}}
-                                <td class="validity-column">
-
-                                    <input type="date"
-                                        class="form-control cc_firstissue"
-                                        name="cc_firstissue[{{ $i }}]"
-                                        value="{{ old('cc_firstissue.' . $i) }}">
-
-                                    <span class="error text-danger">
-                                        {{ $errors->first('cc_firstissue.' . $i) }}
-                                    </span>
-
-                                </td>
-
-
-                                {{-- VALIDITY FROM --}}
-                                <td class="validity-column">
-
-                                    <input type="date"
-                                        class="form-control cc_validity_from"
-                                        name="cc_validity_from[{{ $i }}]"
-                                        value="{{ old('cc_validity_from.' . $i) }}">
-
-                                    <span class="error text-danger">
-                                        {{ $errors->first('cc_validity_from.' . $i) }}
-                                    </span>
-
-                                </td>
-
-
-                                {{-- VALIDITY TO --}}
-                                <td class="validity-column">
-
-                                    <input type="date"
-                                        class="form-control cc_validity_to"
-                                        name="cc_validity_to[{{ $i }}]"
-                                        value="{{ old('cc_validity_to.' . $i) }}">
-
-                                    <span class="error text-danger">
-                                        {{ $errors->first('cc_validity_to.' . $i) }}
-                                    </span>
-
-                                </td>
-
-
-                                {{-- DESIGNATION --}}
-                                <td class="designation-column"
-                                    style="display:none;">
-
-                                    <input type="text"
-                                        class="form-control designation"
-                                        name="designation[{{ $i }}]"
-                                        placeholder="Enter Designation"
-                                        value="{{ old('designation.' . $i) }}">
-
-                                </td>
-
-                                
-
-
-                                {{-- ACTION --}}
-                                <td>
-                                     <button type="button"
-                                            class="btn btn-primary verify-otherstaff">
-                                        Verify
-                                    </button>
-
-                                    @if($i == $staff_count - 1)
-
-                                    <button type="button"
-                                        class="btn btn-success"
-                                        onclick="addStaffRows()">
-                                        + Add
-                                    </button>
-
-                                    @endif
-
-                                   
-
-                                </td>
-
-                                 <td class="certificate-holder-column">
-
-                                        <p class="certificate-holder mb-0"></p>
-
-                                        <input type="text"
-                                            class="certificate_holder_name_others"
-                                            name="certificate_holder_name_others[{{ $i }}]"
-                                            value="">
-
-                                    </td>
-
-
-                                {{-- STAFF ID --}}
-                                <input type="hidden"
-                                    name="staff_id[{{ $i }}]"
-                                    value="">
-
-                                </tr>
-
-                                @endfor
-
-                        </tbody>
-
-
-
-                        @else
-
-                        {{-- =========================================================
-                                                        EXISTING APPLICATION
-                                                        REMOVE QC / QSC
-                                                        ========================================================= --}}
-
-                       @php
-                        $normalStaffs = collect($staffs ?? [])
-                            ->filter(function ($staff) {
-                                return !in_array(
-                                    $staff->staff_category ?? '',
-                                    ['QC', 'QSC']
-                                ) && ($staff->staff_flag ?? '1') == '1';
-                            })
-                            ->values();
-
-                        $existingCount = $normalStaffs->count();
-                        $staff_count = max(2, $existingCount);
-                    @endphp
-
-                    <tbody id="staff-container">
-
-                        @for ($i = 0; $i < $staff_count; $i++)
-
-                            @php
-                                $staff = $normalStaffs[$i] ?? null;
-                                $category = $staff->staff_category ?? '';
-                                $isOthers = ($category === 'OTHERS');
-
-                                $rowIndex = $staff->row_index ?? ($i + 1);
-                            @endphp
-
-                            <tr class="staff-fields"
-                        data-id="{{ $staff->id ?? '' }}"
-                        data-row-index="{{ $rowIndex }}">
-
-                        <td>
-                            {{ $i + 1 }}
-
-                            <input type="hidden"
-                                name="row_index[{{ $i }}]"
-                                value="{{ $staff->row_index ?? $rowIndex }}"
-                                class="form-control row_index">
-                        </td>
-
-                        <td>
-
-                            @if ($i < 2)
-
-                                <input type="hidden"
-                                    name="staff_category[{{ $i }}]"
-                                    value="B"
-                                    class="staff_category">
-
-                                <input type="text"
-                                    class="form-control"
-                                    value="B"
-                                    readonly>
-
-                            @else
-
-                            
-
-                                <select class="form-control staff_category"
-                                        name="staff_category[{{ $i }}]">
-
-                                    <option value="">Select Category</option>
-
-                                    <option value="B"
-                                        {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
-                                        B
-                                    </option>
-
-                                    <option value="C"
-                                        {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
-                                        C
-                                    </option>
-
-                                    <option value="OTHERS"
-                                        {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
-                                        OTHERS
-                                    </option>
-
-                                </select>
-
-                            @endif
-
-                            <span class="error text-danger">
-                                {{ $errors->first('staff_category.' . $i) }}
-                            </span>
-
-                        </td>
-
-                     
-
-                        <td class="cc-column"
-                            style="{{ $isOthers ? 'display:none;' : '' }}">
-
-                            <input type="text"
-                                class="form-control cc_number"
-                                name="cc_number[{{ $i }}]"
-                                maxlength="15"
-                                placeholder="Certificate No"
-                                value="{{ old('cc_number.' . $i, $staff->staff_cc_no ?? '') }}"
-                                oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
-
-                            <span class="error text-danger"></span>
-
-                            <div class="competency_verify_result text-danger small mt-1"></div>
-
-                        </td>
-
-
-
-                        <td class="validity-column"
-                            style="{{ $isOthers ? 'display:none;' : '' }}">
-
-                            <input type="date"
-                                class="form-control cc_firstissue"
-                                name="cc_firstissue[{{ $i }}]"
-                                value="{{ old(
-                                    'cc_firstissue.' . $i,
-                                    isset($staff->staff_cc_first_issue)
-                                        ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('Y-m-d')
-                                        : ''
-                                ) }}">
-
-                        </td>
-
-                        <td class="validity-column"
-                            style="{{ $isOthers ? 'display:none;' : '' }}">
-
-                            <input type="date"
-                                class="form-control cc_validity_from"
-                                name="cc_validity_from[{{ $i }}]"
-                                value="{{ old(
-                                    'cc_validity_from.' . $i,
-                                    isset($staff->staff_cc_validity_from)
-                                        ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('Y-m-d')
-                                        : ''
-                                ) }}">
-
-                        </td>
-
-                        <td class="validity-column"
-                            style="{{ $isOthers ? 'display:none;' : '' }}">
-
-                            <input type="date"
-                                class="form-control cc_validity_to"
-                                name="cc_validity_to[{{ $i }}]"
-                                value="{{ old(
-                                    'cc_validity_to.' . $i,
-                                    isset($staff->staff_cc_validity_to)
-                                        ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('Y-m-d')
-                                        : ''
-                                ) }}">
-
-                        </td>
-
-                        <td class="designation-column"
-                            style="{{ $isOthers ? '' : 'display:none;' }}">
-
-                            <input type="text"
-                                class="form-control designation"
-                                name="designation[{{ $i }}]"
-                                placeholder="Enter Designation"
-                                value="{{ old(
-                                    'designation.' . $i,
-                                    $staff->staff_designation ?? ''
-                                ) }}"
-                                oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')">
-
-                            <span class="error text-danger"></span>
-
-                        </td>
-
-                        <td class="action-column">
-
-                            
-                                <button type="button"
-                                        class="btn btn-primary verify-otherstaff">
-                                    Verify
-                                </button>
-
-
-                            @if ($i == $staff_count - 1)
-
-                                <button type="button"
-                                        class="btn btn-success"
-                                        onclick="addStaffRows()">
-                                    + Add
-                                </button>
-
-                            @endif
-
-                            @if ($i >= 2)
-
-                                <button type="button"
-                                        class="btn btn-danger"
-                                        onclick="removeStaffRow(this)">
-                                    Remove
-                                </button>
-
-                            @endif
-
-                        </td>
-
-                           <td class="certificate-holder-column">
-
-                                <p class="certificate-holder mb-0">
-                                    {{ $staff->staff_name ?? '' }}
-                                </p>
-
-                                <input type="hidden"
-                                    class="certificate_holder_name_others"
-                                    name="certificate_holder_name_others[{{ $i }}]"
-                                    value="{{ $staff->staff_name ?? '' }}">
-
-                            </td>
-
+                    
+<table class="table table-bordered" id="staff-table">
+    <thead>
+        <tr>
+            <th>S.NO</th>
+            <th width="10%">Category <span class="text-red">*</span></th>
+            <th>Competency Certificate Number <span class="text-red">*</span></th>
+            <th>Certificate First Issue <span class="text-red">*</span></th>
+            <th>Certificate Validity From <span class="text-red">*</span></th>
+            <th>Certificate Validity To <span class="text-red">*</span></th>
+            <th>Action</th>
+            <th>Certificate Holder Name <span class="text-red">*</span></th>
+        </tr>
+    </thead>
+
+    @if (!$application)
+
+        @php
+            $staff_count = 2;
+        @endphp
+
+        <tbody id="staff-container">
+
+            @for ($i = 0; $i < $staff_count; $i++)
+
+                <tr class="staff-fields">
+
+                    {{-- SERIAL NUMBER --}}
+                    <td>{{ $i + 1 }}</td>
+
+                    {{-- CATEGORY --}}
+                    <td>
                         <input type="hidden"
-                            name="staff_id[{{ $i }}]"
-                            value="{{ $staff->id ?? '' }}">
+                            name="staff_category[{{ $i }}]"
+                            value="B"
+                            class="staff_category">
 
-                        <input type="hidden"
-                            name="staff_flag[{{ $i }}]"
-                            value="1">
+                        <input type="text"
+                            class="form-control"
+                            value="B"
+                            readonly>
 
-                    </tr>
+                        <span class="error text-danger">
+                            {{ $errors->first('staff_category.' . $i) }}
+                        </span>
+                    </td>
 
-                        @endfor
+                    {{-- CERTIFICATE NUMBER --}}
+                    <td class="cc-column">
+                        <input type="text"
+                            class="form-control cc_number"
+                            name="cc_number[{{ $i }}]"
+                            placeholder="Certificate No"
+                            maxlength="15"
+                            value="{{ old('cc_number.' . $i) }}"
+                            oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
 
-                    </tbody>
+                        <span class="error text-danger">
+                            {{ $errors->first('cc_number.' . $i) }}
+                        </span>
 
+                        <div class="competency_verify_result text-danger small mt-1"></div>
+                    </td>
+
+                    {{-- FIRST ISSUE --}}
+                    <td class="validity-column">
+                        <input type="date"
+                            class="form-control cc_firstissue"
+                            name="cc_firstissue[{{ $i }}]"
+                            value="{{ old('cc_firstissue.' . $i) }}">
+
+                        <span class="error text-danger">
+                            {{ $errors->first('cc_firstissue.' . $i) }}
+                        </span>
+                    </td>
+
+                    {{-- VALIDITY FROM --}}
+                    <td class="validity-column">
+                        <input type="date"
+                            class="form-control cc_validity_from"
+                            name="cc_validity_from[{{ $i }}]"
+                            value="{{ old('cc_validity_from.' . $i) }}">
+
+                        <span class="error text-danger">
+                            {{ $errors->first('cc_validity_from.' . $i) }}
+                        </span>
+                    </td>
+
+                    {{-- VALIDITY TO --}}
+                    <td class="validity-column">
+                        <input type="date"
+                            class="form-control cc_validity_to"
+                            name="cc_validity_to[{{ $i }}]"
+                            value="{{ old('cc_validity_to.' . $i) }}">
+
+                        <span class="error text-danger">
+                            {{ $errors->first('cc_validity_to.' . $i) }}
+                        </span>
+                    </td>
+
+                    {{-- ACTION --}}
+                    <td class="action-column">
+                        <button type="button"
+                            class="btn btn-primary verify-otherstaff">
+                            Verify
+                        </button>
+
+                        @if ($i == $staff_count - 1)
+                            <button type="button"
+                                class="btn btn-success addotherstaffs"
+                                onclick="addStaffRows()">
+                                + Add
+                            </button>
                         @endif
+                    </td>
+
+                    {{-- CERTIFICATE HOLDER --}}
+                    <td class="certificate-holder-column">
+                        <p class="certificate-holder mb-0"></p>
+
+                        <input type="text"
+                            class="certificate_holder_name_others"
+                            name="certificate_holder_name_others[{{ $i }}]"
+                            value="">
+                    </td>
+
+                    {{-- STAFF ID --}}
+                    <input type="hidden"
+                        name="staff_id[{{ $i }}]"
+                        value="">
+
+                </tr>
+
+            @endfor
+
+        </tbody>
+
+    @else
+
+        {{-- =====================================================
+             EXISTING APPLICATION
+             SHOW ONLY STAFF MATCHING verify_flag = '0'
+             EXCLUDE QC / QSC
+        ====================================================== --}}
+
+        @php
+            $pendingCertificateNumbers = collect($staff_store_tbl_0 ?? [])
+                ->map(function ($ccNo) {
+                    return strtoupper(trim((string) $ccNo));
+                })
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $normalStaffs = collect($staffs ?? [])
+                ->filter(function ($staff) use ($pendingCertificateNumbers) {
+
+                    $category = strtoupper(trim(
+                        (string) ($staff->staff_category ?? '')
+                    ));
+
+                    $ccNo = strtoupper(trim(
+                        (string) ($staff->staff_cc_no ?? '')
+                    ));
+
+                    return !in_array($category, ['QC', 'QSC'], true)
+                        && ($staff->staff_flag ?? '1') == '1'
+                        && $ccNo !== ''
+                        && in_array(
+                            $ccNo,
+                            $pendingCertificateNumbers,
+                            true
+                        );
+                })
+                ->values();
+
+            $staff_count = $normalStaffs->count();
+        @endphp
+
+        <tbody id="staff-container">
+
+           
+{{-- =====================================================
+     EXISTING APPLICATION
+     SHOW ALL ACTIVE STAFF (staff_flag = 1)
+     ONLY verify_flag = 0 MATCHES ARE EDITABLE
+     EXCLUDE QC / QSC
+====================================================== --}}
+
+@php
+    $pendingCertificateNumbers = collect($staff_store_tbl_0 ?? [])
+        ->map(function ($ccNo) {
+            return strtoupper(trim((string) $ccNo));
+        })
+        ->filter()
+        ->unique()
+        ->values()
+        ->toArray();
+
+    $normalStaffs = collect($staffs ?? [])
+        ->filter(function ($staff) {
+            return !in_array(
+                strtoupper(trim((string) ($staff->staff_category ?? ''))),
+                ['QC', 'QSC'],
+                true
+            ) && ($staff->staff_flag ?? '0') == '1';
+        })
+        ->values();
+
+    $staff_count = $normalStaffs->count();
+@endphp
+
+<tbody id="staff-container">
+
+    @forelse ($normalStaffs as $i => $staff)
+
+        @php
+            $category = strtoupper(trim(
+                (string) ($staff->staff_category ?? '')
+            ));
+
+            $ccNo = strtoupper(trim(
+                (string) ($staff->staff_cc_no ?? '')
+            ));
+
+            // Editable only if the certificate exists in adminstore
+            // with verify_flag = 0.
+            $isEditable = $ccNo !== ''
+                && in_array(
+                    $ccNo,
+                    $pendingCertificateNumbers,
+                    true
+                );
+
+            $isOthers = ($category === 'OTHERS');
+            $rowIndex = $staff->row_index ?? ($i + 1);
+        @endphp
+
+        <tr class="staff-fields"
+            data-id="{{ $staff->id }}"
+            data-row-index="{{ $rowIndex }}"
+            data-editable="{{ $isEditable ? '1' : '0' }}">
+
+            {{-- SERIAL NUMBER --}}
+            <td>
+                {{ $i + 1 }}
+
+                <input type="hidden"
+                    name="row_index[{{ $i }}]"
+                    value="{{ $rowIndex }}"
+                    class="row_index">
+
+                <input type="hidden"
+                    name="staff_id[{{ $i }}]"
+                    value="{{ $staff->id }}">
+
+                <input type="hidden"
+                    name="staff_flag[{{ $i }}]"
+                    value="1">
+            </td>
+
+            {{-- CATEGORY --}}
+            <td>
+                @if ($i < 2 || !$isEditable)
+
+                    <input type="hidden"
+                        name="staff_category[{{ $i }}]"
+                        value="{{ $category }}"
+                        class="staff_category">
+
+                    <input type="text"
+                        class="form-control"
+                        value="{{ $category }}"
+                        readonly>
+
+                @else
+
+                    <select class="form-control staff_category"
+                        name="staff_category[{{ $i }}]">
+
+                        <option value="">Select Category</option>
+
+                        <option value="B"
+                            {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
+                            B
+                        </option>
+
+                        <option value="C"
+                            {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
+                            C
+                        </option>
+
+                        <option value="OTHERS"
+                            {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
+                            OTHERS
+                        </option>
+
+                    </select>
+
+                @endif
+
+                <span class="error text-danger">
+                    {{ $errors->first('staff_category.' . $i) }}
+                </span>
+            </td>
+
+            {{-- CERTIFICATE NUMBER --}}
+            <td class="cc-column"
+                style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                <input type="text"
+                    class="form-control cc_number"
+                    name="cc_number[{{ $i }}]"
+                    maxlength="15"
+                    placeholder="Certificate No"
+                    value="{{ old('cc_number.' . $i, $staff->staff_cc_no ?? '') }}"
+                    {{ !$isEditable ? 'readonly' : '' }}
+                    oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
+
+                <span class="error text-danger"></span>
+
+                <div class="competency_verify_result text-danger small mt-1"></div>
+            </td>
+
+            {{-- FIRST ISSUE --}}
+            <td class="validity-column"
+                style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                <input type="date"
+                    class="form-control cc_firstissue"
+                    name="cc_firstissue[{{ $i }}]"
+                    value="{{ old(
+                        'cc_firstissue.' . $i,
+                        !empty($staff->staff_cc_first_issue)
+                            ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('Y-m-d')
+                            : ''
+                    ) }}"
+                    {{ !$isEditable ? 'readonly' : '' }}>
+            </td>
+
+            {{-- VALIDITY FROM --}}
+            <td class="validity-column"
+                style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                <input type="date"
+                    class="form-control cc_validity_from"
+                    name="cc_validity_from[{{ $i }}]"
+                    value="{{ old(
+                        'cc_validity_from.' . $i,
+                        !empty($staff->staff_cc_validity_from)
+                            ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('Y-m-d')
+                            : ''
+                    ) }}"
+                    {{ !$isEditable ? 'readonly' : '' }}>
+            </td>
+
+            {{-- VALIDITY TO --}}
+            <td class="validity-column"
+                style="{{ $isOthers ? 'display:none;' : '' }}">
+
+                <input type="date"
+                    class="form-control cc_validity_to"
+                    name="cc_validity_to[{{ $i }}]"
+                    value="{{ old(
+                        'cc_validity_to.' . $i,
+                        !empty($staff->staff_cc_validity_to)
+                            ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('Y-m-d')
+                            : ''
+                    ) }}"
+                    {{ !$isEditable ? 'readonly' : '' }}>
+            </td>
+
+            {{-- DESIGNATION --}}
+            <td class="designation-column"
+                style="{{ $isOthers ? '' : 'display:none;' }}">
+
+                <input type="text"
+                    class="form-control designation"
+                    name="designation[{{ $i }}]"
+                    placeholder="Enter Designation"
+                    value="{{ old(
+                        'designation.' . $i,
+                        $staff->staff_designation ?? ''
+                    ) }}"
+                    {{ !$isEditable ? 'readonly' : '' }}
+                    oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')">
+
+                <span class="error text-danger"></span>
+            </td>
+
+            {{-- ACTION --}}
+            <td class="action-column">
+
+                @if ($isEditable)
+                    <button type="button"
+                        class="btn btn-primary verify-otherstaff">
+                        Verify
+                    </button>
+
+                    @if ($loop->last)
+                        <button type="button"
+                            class="btn btn-success addotherstaffs"
+                            onclick="addStaffRows()">
+                            + Add
+                        </button>
+                    @endif
+
+                    @if ($i >= 2)
+                        <button type="button"
+                            class="btn btn-danger removeotherStaffRow"
+                            onclick="removeStaffRow(this)">
+                            Remove
+                        </button>
+                    @endif
+                @else
+                <button type="button"
+                class="btn btn-primary verify-otherstaff">
+                Verify
+            </button>
+          
+                @endif
+
+            </td>
+
+            {{-- CERTIFICATE HOLDER --}}
+            <td class="certificate-holder-column">
+
+                <p class="certificate-holder mb-0">
+                    {{ $staff->staff_name ?? '' }}
+                </p>
+
+                <input type="hidden"
+                    class="certificate_holder_name_others"
+                    name="certificate_holder_name_others[{{ $i }}]"
+                    value="{{ $staff->staff_name ?? '' }}">
+
+            </td>
+
+        </tr>
+
+    @empty
+
+        <tr>
+            <td colspan="8" class="text-center text-muted">
+                No active staff records found.
+            </td>
+        </tr>
+
+    @endforelse
+
+</tbody>
 
 
 
-                    </table>
+    @endif
+
+</table>
+
+
                     <p class="text-red note_txt">Note : Minimum 20 Staffs are allowed and Mandatory ( 2 B)
                     </p>
                     <!-- <div class="row">
@@ -8879,6 +8914,12 @@ $(document).ready(function(){
             $(this).find(".removeStaffRow").prop("disabled", true);
 
             $(this).find(".addotherstaffs").prop("disabled", true);
+
+            $(this).find(".removeotherStaffRow").prop("disabled", true);
+
+            
+
+            
 
 
 

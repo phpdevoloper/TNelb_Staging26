@@ -190,7 +190,42 @@ $(document).on("click", ".upload-btn", function () {
     // Consent Letter     = 2
     // --------------------------------------------------
 
+    // let rowIndex = btn.attr("data-row-index");
+
+    // --------------------------------------------------
+    // ROW INDEX — PRESERVE OTHER DOCUMENT UPLOADS
+    // --------------------------------------------------
+
     let rowIndex = btn.attr("data-row-index");
+
+    // Only QC/QSC appointment and consent documents use
+    // the selected staff row's index from the edit form.
+    if (documentCategory === "app_doc" ||
+        documentCategory === "cons_doc") {
+
+        let $section = $("#staffqc_datasection");
+
+        rowIndex = rowIndex ||
+            $section.attr("data-edit-row-index") ||
+            "";
+
+        if (!rowIndex || !/^\d+$/.test(String(rowIndex))) {
+
+            console.error("Invalid QC staff row index:", rowIndex);
+
+            $section.find(".staff-verify-error").text(
+                "Staff row index is missing. Please edit the staff row again."
+            );
+
+            return;
+        }
+    }
+
+    // Preserve the existing row-index behavior for other uploads.
+    if (rowIndex !== undefined && rowIndex !== null && rowIndex !== "") {
+        formData.append("row_index", rowIndex);
+    }
+ 
 
     // if (documentCategory === "app_doc") {
 
@@ -2766,6 +2801,38 @@ $mandatoryStaffRows.each(function (index) {
 
         return;
     }
+
+
+    let holderName = (
+            $row.find(".certificate_holder_name_others").val() || ""
+        ).trim();
+
+        let $holderColumn = $row.find(".certificate-holder-column");
+        let $verifyButton = $row.find(".verify-otherstaff");
+
+        // Remove previous holder-name errors
+        $holderColumn.find(".holder-name-error").remove();
+
+        if (holderName === "") {
+
+            staffBasicValidationPassed = false;
+
+            // Show error inside certificate holder column
+            $holderColumn.append(
+                '<span class="holder-name-error text-danger d-block mt-1">' +
+                'Certificate holder name is missing. Please verify first.' +
+                '</span>'
+            );
+
+            // Highlight the Verify button
+            $verifyButton.addClass("btn-danger");
+
+            // Stop validating this row until verified
+            return;
+        }
+
+        // Holder name exists: remove Verify button highlight
+        $verifyButton.removeClass("btn-danger");
 
 
     // ==================================================
@@ -6040,449 +6107,1417 @@ $("#competency_form_a_return").on("submit", async function (e) {
 
         });
     }
-    // ======================================================
-    // 5A STAFF QC/QSC VALIDATION - FIRST PRIORITY
-    // ======================================================
-
-    // ======================================================
-    // QC / QSC STAFF VALIDATION
-    // ======================================================
-
-    // ======================================================
-    // STAFF B VALIDATION - SECOND PRIORITY
-    // FIRST 2 STAFF MUST BE CATEGORY B
-    // ALL CERTIFICATE FIELDS ARE MANDATORY
-    // ======================================================
-    // ======================================================
-    // MANDATORY STAFF VALIDATION
-    // ======================================================
-
-    let $mandatoryStaffRows =
-        $("#staff-container tr.staff-fields");
-
-    let mandatoryStaffRowCount =
-        $mandatoryStaffRows.length;
-
-    $("#staff-container .staff-validation-error").remove();
-
-    let staffValidationPassed = true;
+  
+let qcStaffRecords = [];
 
 
-    // ======================================================
-    // CHECK MINIMUM 2 STAFF
-    // ======================================================
+// ==========================================================
+// GET ALL QC / QSC STAFF ROWS
+// ==========================================================
 
-    if (mandatoryStaffRowCount < 2) {
+$("#staffqc-records tr.staffqc-record").each(function (index) {
 
-        isValid = false;
-        staffValidationPassed = false;
+    let $tr = $(this);
 
-        Swal.fire({
-            icon: "warning",
-            title: "Staff Details Required",
-            text: "Minimum 2 B staff members are mandatory.",
-            confirmButtonText: "OK",
-            width: 450
-        });
+    // ------------------------------------------------------
+    // CATEGORY
+    // ------------------------------------------------------
+
+    let category = $tr
+        .find('input[name="staffqc_category[]"]')
+        .val();
+
+    // Fallback for dynamically created rows
+    if (!category) {
+        category = $tr
+            .find('input[name^="staffqc_category["]')
+            .val();
+    }
+
+    if (!category) {
+        category = $tr
+            .find(".staffqc_category")
+            .val();
+    }
+
+    if (!category) {
+        category = $tr.find("td:eq(1)").text().trim();
+    }
+
+    category = String(category || "")
+        .trim()
+        .toUpperCase();
 
 
-        // Open Staff & Bank Details tab
-        $(".nav-item").each(function () {
+    // ------------------------------------------------------
+    // DEBUG
+    // ------------------------------------------------------
 
-            if (
-                $(this)
-                    .text()
-                    .trim()
-                    .includes("Staff & Bank Details")
-            ) {
+    console.log(
+        "QC ROW",
+        index,
+        "Category:",
+        category,
+        "HTML:",
+        $tr.html()
+    );
 
-                $(this).addClass("tab-error-bg");
 
-                $(this).trigger("click");
+    // ------------------------------------------------------
+    // ONLY QC / QSC
+    // ------------------------------------------------------
 
-                return false;
+    if (category !== "QC" && category !== "QSC") {
+        return;
+    }
+
+
+    // ------------------------------------------------------
+    // CREATE RECORD
+    // ------------------------------------------------------
+
+    let record = {
+
+        id:
+            $tr.attr("data-id") ||
+            $tr.data("id") ||
+            null,
+
+        staffqc_category:
+            category,
+
+        // ------------------------------------------------------
+        // CERTIFICATE HOLDER NAME
+        // ------------------------------------------------------
+
+        certificate_holder_name:
+            $tr.find('input[name="certificate_holder_name[]"]').val()
+            ||
+            $tr.find('input[name^="certificate_holder_name["]').val()
+            ||
+            $tr.find(".certificate_holder_name").val()
+            ||
+            $tr.find(".certificate-holder-name").text().trim()
+            ||
+            $tr.find("td:eq(2)").text().trim()
+            ||
+            "",
+
+        // ------------------------------------------------------
+        // CERTIFICATE NUMBER
+        // ------------------------------------------------------
+
+        staff_cc_no:
+            $tr.find('input[name="staff_cc_no[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_no["]').val()
+            ||
+            $tr.find(".staff_cc_no").val()
+            ||
+            $tr.find(".cc_number").val()
+            ||
+            $tr.find("td:eq(3)").text().trim()
+            ||
+            "",
+
+        // ------------------------------------------------------
+        // FIRST ISSUE
+        // ------------------------------------------------------
+
+        staff_cc_first_issue:
+            $tr.find('input[name="staff_cc_first_issue[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_first_issue["]').val()
+            ||
+            $tr.find(".staff_cc_first_issue").val()
+            ||
+            $tr.find(".cc_firstissue").val()
+            ||
+            "",
+
+        // ------------------------------------------------------
+        // VALIDITY FROM
+        // ------------------------------------------------------
+
+        staff_cc_validity_from:
+            $tr.find('input[name="staff_cc_validity_from[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_validity_from["]').val()
+            ||
+            $tr.find(".staff_cc_validity_from").val()
+            ||
+            $tr.find(".cc_validity_from").val()
+            ||
+            "",
+
+        // ------------------------------------------------------
+        // VALIDITY TO
+        // ------------------------------------------------------
+
+        staff_cc_validity_to:
+            $tr.find('input[name="staff_cc_validity_to[]"]').val()
+            ||
+            $tr.find('input[name^="staff_cc_validity_to["]').val()
+            ||
+            $tr.find(".staff_cc_validity_to").val()
+            ||
+            $tr.find(".cc_validity_to").val()
+            ||
+            "",
+
+        // ------------------------------------------------------
+        // APP DOCUMENT
+        // ------------------------------------------------------
+
+        app_doc:
+            $tr.find('input[name="app_doc[]"]').val()
+            ||
+            $tr.find('input[name^="app_doc["]').val()
+            ||
+            "",
+
+        // ------------------------------------------------------
+        // CONSENT DOCUMENT
+        // ------------------------------------------------------
+
+        cons_doc:
+            $tr.find('input[name="cons_doc[]"]').val()
+            ||
+            $tr.find('input[name^="cons_doc["]').val()
+            ||
+            "",
+
+        // ------------------------------------------------------
+        // ROW INDEX
+        // ------------------------------------------------------
+
+        row_index:
+            $tr.attr("data-row-index")
+            ||
+            $tr.data("row-index")
+            ||
+            $tr.find('input[name="row_index[]"]').val()
+            ||
+            ""
+    };
+
+
+    // ------------------------------------------------------
+    // ADD RECORD
+    // ------------------------------------------------------
+
+    qcStaffRecords.push(record);
+
+});
+
+
+// ==========================================================
+// DEBUG
+// ==========================================================
+
+console.log(
+    "QC/QSC tbody rows:",
+    $("#staffqc-records tr.staffqc-record").length
+);
+
+console.log(
+    "QC/QSC records found:",
+    qcStaffRecords.length
+);
+
+console.log(
+    "QC/QSC records:",
+    qcStaffRecords
+);
+
+
+// ==========================================================
+// MINIMUM ONE QC / QSC
+// ==========================================================
+
+if (qcStaffRecords.length === 0) {
+
+    isValid = false;
+
+    $("#qc-staff-table").addClass("qc-table-error");
+
+
+    Swal.fire({
+        icon: "warning",
+        title: "Staff Details Required",
+        text: "Please enter minimum one QC/QSC staff.",
+        confirmButtonText: "OK",
+        width: 450
+    });
+
+
+    // Open Staff & Bank Details tab
+    $(".nav-item").each(function () {
+
+        if (
+            $(this)
+                .text()
+                .trim()
+                .includes("Staff & Bank Details")
+        ) {
+
+            $(this).addClass("tab-error-bg");
+
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+
+    return;
+}
+
+
+// ==========================================================
+// QC/QSC EXISTS
+// ==========================================================
+
+console.log(
+    "Minimum QC/QSC requirement satisfied.",
+    qcStaffRecords.length,
+    "record(s) found."
+);
+
+
+$("#qc-staff-table").removeClass("qc-table-error");
+
+
+$(".nav-item").each(function () {
+
+    if (
+        $(this)
+            .text()
+            .trim()
+            .includes("Staff & Bank Details")
+    ) {
+
+        $(this).removeClass("tab-error-bg");
+
+        return false;
+    }
+
+});
+
+
+// ==========================================================
+// ADD QC RECORDS TO FORMDATA
+// ==========================================================
+
+formData.set(
+    "qc_staff_records",
+    JSON.stringify(qcStaffRecords)
+);
+
+
+console.log(
+    "FINAL QC STAFF:",
+    formData.get("qc_staff_records")
+);
+
+
+// ======================================================
+// STAFF B VALIDATION - SECOND PRIORITY
+// FIRST 2 STAFF MUST BE CATEGORY B
+// ALL CERTIFICATE FIELDS ARE MANDATORY
+// ======================================================
+
+
+// ======================================================
+// MANDATORY STAFF VALIDATION
+// ======================================================
+
+let $mandatoryStaffRows =
+    $("#staff-container tr.staff-fields");
+
+let mandatoryStaffRowCount =
+    $mandatoryStaffRows.length;
+
+$("#staff-container .staff-validation-error").remove();
+
+let staffValidationPassed = true;
+
+
+// ======================================================
+// CHECK MINIMUM 2 STAFF
+// ======================================================
+
+if (mandatoryStaffRowCount < 2) {
+
+    isValid = false;
+    staffValidationPassed = false;
+
+    Swal.fire({
+        icon: "warning",
+        title: "Staff Details Required",
+        text: "Minimum 2 B staff members are mandatory.",
+        confirmButtonText: "OK",
+        width: 450
+    });
+
+
+    // Open Staff & Bank Details tab
+    $(".nav-item").each(function () {
+
+        if (
+            $(this)
+                .text()
+                .trim()
+                .includes("Staff & Bank Details")
+        ) {
+
+            $(this).addClass("tab-error-bg");
+
+            $(this).trigger("click");
+
+            return false;
+        }
+    });
+
+
+    $("#staff-container").after(
+
+        '<span class="staff-validation-error error text-danger d-block">' +
+        'Minimum 2 B staff members are mandatory.' +
+        '</span>'
+    );
+
+
+    return;
+}
+
+
+// ======================================================
+// CLEAR PREVIOUS STAFF VALIDATION ERRORS
+// ======================================================
+
+$(".staff-validation-error").remove();
+
+
+// ======================================================
+// VALIDATE STAFF
+// ======================================================
+
+let staffValidationRequests = [];
+
+let staffBasicValidationPassed = true;
+
+
+// ======================================================
+// GLOBAL DUPLICATE CERTIFICATE NUMBER CHECK
+// B / C / QC / QSC
+// ======================================================
+
+let allStaffCCNumbers = {};
+
+
+// ======================================================
+// 1. COLLECT B / C CERTIFICATE NUMBERS
+// ======================================================
+
+$mandatoryStaffRows.each(function (index) {
+
+    let $row = $(this);
+
+
+    // ==================================================
+    // CATEGORY
+    // ==================================================
+
+    let category = (
+        $row.find(".staff_category").val() || ""
+    ).trim().toUpperCase();
+
+
+    // First 2 rows are mandatory B
+    if (index < 2) {
+        category = "B";
+    }
+
+
+    // ==================================================
+    // OTHERS
+    // No certificate number validation
+    // ==================================================
+
+    if (category === "OTHERS") {
+        return;
+    }
+
+
+    // ==================================================
+    // ONLY B / C
+    // ==================================================
+
+    if (category !== "B" && category !== "C") {
+        return;
+    }
+
+
+    // ==================================================
+    // CERTIFICATE NUMBER
+    // ==================================================
+
+    let ccNumber = (
+        $row.find(".cc_number").val() || ""
+    ).trim();
+
+
+    // Empty value handled by normal required validation
+    if (ccNumber === "") {
+        return;
+    }
+
+
+    // Normalize for duplicate comparison
+    let normalizedCC = ccNumber.toUpperCase();
+
+
+    // ==================================================
+    // CREATE ARRAY
+    // ==================================================
+
+    if (!allStaffCCNumbers[normalizedCC]) {
+        allStaffCCNumbers[normalizedCC] = [];
+    }
+
+
+    // ==================================================
+    // STORE B / C RECORD
+    // ==================================================
+
+    allStaffCCNumbers[normalizedCC].push({
+
+        type: "mandatory",
+
+        row: $row,
+
+        category: category,
+
+        ccNumber: ccNumber
+
+    });
+
+});
+
+
+// ======================================================
+// 2. COLLECT QC / QSC CERTIFICATE NUMBERS
+// ======================================================
+
+$("#staffqc-records tr.staffqc-record").each(function (index) {
+
+    let $tr = $(this);
+
+
+    // ==================================================
+    // CATEGORY
+    // ==================================================
+
+    let category =
+        $tr.find('input[name="staffqc_category[]"]').val()
+        ||
+        $tr.find('input[name^="staffqc_category["]').val()
+        ||
+        $tr.find(".staffqc_category").val()
+        ||
+        $tr.find("td:eq(1)").text().trim()
+        ||
+        "";
+
+
+    category = String(category)
+        .trim()
+        .toUpperCase();
+
+
+    // ==================================================
+    // ONLY QC / QSC
+    // ==================================================
+
+    if (category !== "QC" && category !== "QSC") {
+        return;
+    }
+
+
+    // ==================================================
+    // CERTIFICATE NUMBER
+    // ==================================================
+
+    // let ccNumber =
+    //     $tr.find('input[name="staff_cc_no[]"]').val()
+    //     ||
+    //     $tr.find('input[name^="staff_cc_no["]').val()
+    //     ||
+    //     $tr.find(".staff_cc_no").val()
+    //     ||
+    //     $tr.find(".cc_number").val()
+    //     ||
+    //     $tr.find("td:eq(3)").text().trim()
+    //     ||
+    //     "";
+
+
+    // ccNumber = String(ccNumber).trim();
+
+    let ccNumber = String(
+    $tr.find('input[name="staff_cc_no[]"]').first().val() ||
+    $tr.find(".staff_cc_no").val() ||
+    $tr.find(".cc_number").val() ||
+    $tr.find("td:eq(2)").text().trim() ||
+    ""
+).trim();
+
+
+    // Empty value
+    if (ccNumber === "") {
+        return;
+    }
+
+
+    // Normalize for duplicate comparison
+    let normalizedCC = ccNumber.toUpperCase();
+
+
+    // ==================================================
+    // CREATE ARRAY
+    // ==================================================
+
+    if (!allStaffCCNumbers[normalizedCC]) {
+        allStaffCCNumbers[normalizedCC] = [];
+    }
+
+
+    // ==================================================
+    // STORE QC / QSC RECORD
+    // ==================================================
+
+    allStaffCCNumbers[normalizedCC].push({
+
+        type: "qc",
+
+        row: $tr,
+
+        category: category,
+
+        ccNumber: ccNumber
+
+    });
+
+});
+
+
+// ======================================================
+// DEBUG GLOBAL CC NUMBERS
+// ======================================================
+
+console.log(
+    "ALL STAFF CC NUMBERS:",
+    allStaffCCNumbers
+);
+
+
+// ======================================================
+// 3. CHECK DUPLICATE CERTIFICATE NUMBERS
+// ======================================================
+
+let duplicateStaffCCFound = false;
+
+
+Object.keys(allStaffCCNumbers).forEach(function (normalizedCC) {
+
+    let records =
+        allStaffCCNumbers[normalizedCC];
+
+
+    // ==================================================
+    // MORE THAN ONE = DUPLICATE
+    // ==================================================
+
+    if (records.length > 1) {
+
+        duplicateStaffCCFound = true;
+
+
+        console.log(
+            "DUPLICATE CERTIFICATE NUMBER:",
+            normalizedCC,
+            records
+        );
+
+
+        // ==================================================
+        // SHOW ERROR IN EVERY DUPLICATE RECORD
+        // ==================================================
+
+        records.forEach(function (record) {
+
+            let $row = record.row;
+
+
+            // ==================================================
+            // NORMAL B / C STAFF
+            // ==================================================
+
+            if (record.type === "mandatory") {
+
+                $row
+                    .find(".duplicate-cc-error")
+                    .remove();
+
+
+                let $ccField =
+                    $row.find(".cc_number").first();
+
+
+                if ($ccField.length) {
+
+                    $ccField.after(
+
+                        '<span class="duplicate-cc-error staff-validation-error error text-danger d-block">' +
+                        'Duplicate Certificate Number. This certificate number is already used in another staff row.' +
+                        '</span>'
+
+                    );
+
+                }
+
             }
+
+
+            // ==================================================
+            // QC / QSC STAFF
+            // ==================================================
+
+            if (record.type === "qc") {
+
+                $row
+                    .find(".duplicate-cc-error")
+                    .remove();
+
+
+                let $ccField =
+                    $row.find(
+                        'input[name="staff_cc_no[]"],' +
+                        'input[name^="staff_cc_no["],' +
+                        '.staff_cc_no,' +
+                        '.cc_number'
+                    ).first();
+
+
+                if ($ccField.length) {
+
+                    $ccField.after(
+
+                        '<span class="duplicate-cc-error staff-validation-error error text-danger d-block">' +
+                        'Duplicate Certificate Number. This certificate number is already used in another staff row.' +
+                        '</span>'
+
+                    );
+
+                } else {
+
+                    // Fallback if certificate number is table text
+
+                    $row
+                        .find("td:eq(3)")
+                        .append(
+
+                            '<span class="duplicate-cc-error staff-validation-error error text-danger d-block">' +
+                            'Duplicate Certificate Number. This certificate number is already used in another staff row.' +
+                            '</span>'
+
+                        );
+
+                }
+
+            }
+
         });
 
+    }
 
-        $("#staff-container").after(
+});
 
-            '<span class="staff-validation-error error text-danger d-block">' +
 
-            'Minimum 2 B staff members are mandatory.' +
+// ======================================================
+// DUPLICATE CERTIFICATE VALIDATION FAILED
+// ======================================================
 
-            '</span>'
+if (duplicateStaffCCFound) {
+
+    isValid = false;
+
+    staffBasicValidationPassed = false;
+
+
+    console.log(
+        "Duplicate certificate number validation failed."
+    );
+
+
+    Swal.fire({
+        icon: "warning",
+        title: "Duplicate Certificate Number",
+        text: "The same certificate number cannot be used for multiple staff members.",
+        confirmButtonText: "OK",
+        width: 500
+    });
+
+
+    // ==================================================
+    // OPEN STAFF & BANK DETAILS TAB
+    // ==================================================
+
+    $(".nav-item").each(function () {
+
+        if (
+            $(this)
+                .text()
+                .trim()
+                .includes("Staff & Bank Details")
+        ) {
+
+            $(this).addClass("tab-error-bg");
+
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+
+    // ==================================================
+    // SCROLL TO STAFF TABLE
+    // ==================================================
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+
+                behavior: "smooth",
+
+                block: "center"
+
+            });
+
+        }
+
+    }, 300);
+
+
+    // VERY IMPORTANT
+    return;
+}
+
+
+// ======================================================
+// VALIDATE ALL STAFF ROWS
+// B + C = CERTIFICATE VALIDATION
+// OTHERS = SKIP CERTIFICATE VALIDATION
+// ======================================================
+
+$mandatoryStaffRows.each(function (index) {
+
+    let $row = $(this);
+
+
+    // ==================================================
+    // CATEGORY
+    // ==================================================
+
+    let category =
+        ($row.find(".staff_category").val() || "")
+        .trim();
+
+
+    // First 2 rows are mandatory B
+    if (index < 2) {
+        category = "B";
+    }
+
+
+    console.log(
+        "===================================="
+    );
+
+
+    console.log(
+        "STAFF " + (index + 1)
+    );
+
+
+    console.log(
+        "CATEGORY:",
+        category
+    );
+
+
+    // ==================================================
+    // OTHERS
+    // No certificate validation required
+    // ==================================================
+
+    if (category === "OTHERS") {
+
+        console.log(
+            "STAFF " + (index + 1) +
+            ": OTHERS - Certificate validation skipped"
         );
 
         return;
     }
 
 
-    // ======================================================
-    // VALIDATE FIRST 2 B STAFF
-    // ======================================================
-    let staffValidationRequests = [];
-    let staffBasicValidationPassed = true;
+    // ==================================================
+    // ONLY B AND C REQUIRE CERTIFICATE DETAILS
+    // ==================================================
 
-    // ======================================================
-    // VALIDATE ALL STAFF ROWS
-    // B + C = CERTIFICATE VALIDATION
-    // OTHERS = SKIP CERTIFICATE VALIDATION
-    // ======================================================
+    if (
+        category !== "B" &&
+        category !== "C"
+    ) {
 
-    $mandatoryStaffRows.each(function (index) {
-
-        let $row = $(this);
-
-        // ==================================================
-        // CATEGORY
-        // ==================================================
-
-        let category = ($row.find(".staff_category").val() || "").trim();
-
-        // First 2 rows are mandatory B
-        if (index < 2) {
-            category = "B";
-        }
-
-        console.log("====================================");
-        console.log("STAFF " + (index + 1));
-        console.log("CATEGORY:", category);
+        staffBasicValidationPassed = false;
 
 
-        // ==================================================
-        // OTHERS
-        // No certificate validation required
-        // ==================================================
+        $row.find(".staff_category").after(
 
-        if (category === "OTHERS") {
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Please select a valid staff category.' +
+            '</span>'
 
-            console.log(
-                "STAFF " + (index + 1) +
-                ": OTHERS - Certificate validation skipped"
-            );
-
-            return;
-        }
+        );
 
 
-        // ==================================================
-        // ONLY B AND C REQUIRE CERTIFICATE DETAILS
-        // ==================================================
-
-        if (category !== "B" && category !== "C") {
-
-            staffBasicValidationPassed = false;
-
-            $row.find(".staff_category").after(
-                '<span class="staff-validation-error error text-danger d-block">' +
-                'Please select a valid staff category.' +
-                '</span>'
-            );
-
-            return;
-        }
+        return;
+    }
 
 
-        // ==================================================
-        // CERTIFICATE NUMBER
-        // ==================================================
+    // ==================================================
+    // CERTIFICATE NUMBER
+    // ==================================================
 
-        let ccNumber = ($row.find(".cc_number").val() || "").trim();
-
-        // ==================================================
-        // FIRST ISSUE
-        // ==================================================
-
-        let firstIssue = ($row.find(".cc_firstissue").val() || "").trim();
-
-        // ==================================================
-        // VALIDITY FROM
-        // ==================================================
-
-        let validityFrom = ($row.find(".cc_validity_from").val() || "").trim();
-
-        // ==================================================
-        // VALIDITY TO
-        // ==================================================
-
-        let validityTo = ($row.find(".cc_validity_to").val() || "").trim();
-
-
-         let holderName =
-        ($row.find(".certificate_holder_name_others").val() || "")
+    let ccNumber =
+        ($row.find(".cc_number").val() || "")
         .trim();
 
 
-        console.log("Certificate No:", ccNumber);
-        console.log("First Issue:", firstIssue);
-        console.log("Validity From:", validityFrom);
-        console.log("Validity To:", validityTo);
+    // ==================================================
+    // CERTIFICATE HOLDER NAME
+    // ==================================================
 
+    let ccName =
+        (
+            $row.find(
+                ".certificate_holder_name_others"
+            ).val() || ""
+        ).trim();
 
-        // ==================================================
-        // CERTIFICATE NUMBER REQUIRED
-        // ==================================================
 
-        if (ccNumber === "") {
+    // ==================================================
+    // FIRST ISSUE
+    // ==================================================
 
-            staffBasicValidationPassed = false;
+    let firstIssue =
+        (
+            $row.find(".cc_firstissue").val() || ""
+        ).trim();
 
-            $row.find(".cc_number").after(
-                '<span class="staff-validation-error error text-danger d-block">' +
-                'Certificate Number is required.</span>'
-            );
 
-            return;
-        }
+    // ==================================================
+    // VALIDITY FROM
+    // ==================================================
 
+    let validityFrom =
+        (
+            $row.find(".cc_validity_from").val() || ""
+        ).trim();
 
-        // ==================================================
-        // FIRST ISSUE REQUIRED
-        // ==================================================
 
-        if (firstIssue === "") {
+    // ==================================================
+    // VALIDITY TO
+    // ==================================================
 
-            staffBasicValidationPassed = false;
+    let validityTo =
+        (
+            $row.find(".cc_validity_to").val() || ""
+        ).trim();
 
-            $row.find(".cc_firstissue").after(
-                '<span class="staff-validation-error error text-danger d-block">' +
-                'Certificate First Issue is required.</span>'
-            );
-
-            return;
-        }
-
-
-        // ==================================================
-        // VALIDITY FROM REQUIRED
-        // ==================================================
-
-        if (validityFrom === "") {
-
-            staffBasicValidationPassed = false;
-
-            $row.find(".cc_validity_from").after(
-                '<span class="staff-validation-error error text-danger d-block">' +
-                'Certificate Validity From is required.</span>'
-            );
-
-            return;
-        }
-
-
-        // ==================================================
-        // VALIDITY TO REQUIRED
-        // ==================================================
-
-        if (validityTo === "") {
-
-            staffBasicValidationPassed = false;
-
-            $row.find(".cc_validity_to").after(
-                '<span class="staff-validation-error error text-danger d-block">' +
-                'Certificate Validity To is required.</span>'
-            );
-
-            return;
-        }
-
-
-        // ==================================================
-        // SEND B / C CERTIFICATE TO CONTROLLER
-        // ==================================================
-
-        let request = validateStaffCertificate(
-            category,
-            ccNumber,
-            firstIssue,
-            validityFrom,
-            validityTo
-        )
-
-
-            .then(function (response) {
-
-                console.log(
-                    "STAFF " + (index + 1) +
-                    " CERTIFICATE RESPONSE:",
-                    response
-                );
-
-
-                // ==================================================
-                // CERTIFICATE INVALID
-                // ==================================================
-
-                if (response.status !== true) {
-
-                    staffValidationPassed = false;
-
-                    $row.find(".cc_number").after(
-                        '<span class="staff-validation-error error text-danger d-block">' +
-                        (response.message || "Certificate validation failed.") +
-                        '</span>'
-                    );
-
-                    return false;
-                }
-
-
-                // ==================================================
-                // CERTIFICATE VALID
-                // ==================================================
-
-                console.log(
-                    "STAFF " + (index + 1) +
-                    " certificate verified successfully."
-                );
-
-                return true;
-
-            })
-            .catch(function (xhr) {
-
-                staffValidationPassed = false;
-
-                console.log(
-                    "STAFF " + (index + 1) +
-                    " CERTIFICATE ERROR"
-                );
-
-                console.log("HTTP STATUS:", xhr.status);
-                console.log("RESPONSE:", xhr.responseText);
-                console.log("JSON:", xhr.responseJSON);
-
-
-                $row.find(".cc_number").after(
-                    '<span class="staff-validation-error error text-danger d-block">' +
-                    'Unable to verify certificate. Please try again.' +
-                    '</span>'
-                );
-
-                return false;
-            });
-        console.log(request);
-
-        staffValidationRequests.push(request);
-
-    });
-
-
-    // ======================================================
-    // BASIC VALIDATION FAILED
-    // ======================================================
-
-    if (!staffBasicValidationPassed) {
-
-
-
-        isValid = false;
-
-        Swal.fire({
-            icon: "warning",
-            title: "Staff Details Incomplete",
-            text: "Please complete all mandatory staff certificate details.",
-            confirmButtonText: "OK",
-            width: 500
-        });
-
-        $(".nav-item").each(function () {
-
-            if ($(this).text().trim().includes("Staff & Bank Details")) {
-
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
-
-                return false;
-            }
-
-        });
-
-        setTimeout(function () {
-
-            if ($("#staff-table").length) {
-
-                $("#staff-table")[0].scrollIntoView({
-                    behavior: "smooth",
-                    block: "center"
-                });
-
-            }
-
-        }, 300);
-
-        return false;
-    }
-
-
-    // ======================================================
-    // WAIT FOR ALL B + C CERTIFICATE CHECKS
-    // ======================================================
-
-    let results = await Promise.all(staffValidationRequests);
 
     console.log(
-        "ALL STAFF CERTIFICATE RESULTS:",
-        results
+        "Certificate No:",
+        ccNumber
     );
 
 
-    // ======================================================
-    // CHECK ALL CERTIFICATES
-    // ======================================================
-
-    let allCertificatesValid = results.every(function (result) {
-        return result === true;
-    });
+    console.log(
+        "First Issue:",
+        firstIssue
+    );
 
 
-    // ======================================================
-    // CERTIFICATE VALIDATION FAILED
-    // ======================================================
+    console.log(
+        "Validity From:",
+        validityFrom
+    );
 
-    if (!allCertificatesValid) {
 
-        isValid = false;
+    console.log(
+        "Validity To:",
+        validityTo
+    );
 
-        console.log("Certificate validation failed");
-        console.log("isValid:", isValid);
 
-        Swal.fire({
-            icon: "warning",
-            title: "Invalid Staff Certificate",
-            text: "Please correct the invalid B/C staff certificate details.",
-            confirmButtonText: "OK",
-            width: 500
-        });
+    // ==================================================
+    // CERTIFICATE NUMBER REQUIRED
+    // ==================================================
 
-        $(".nav-item").each(function () {
+    if (ccNumber === "") {
 
-            if ($(this).text().trim().includes("Staff & Bank Details")) {
+        staffBasicValidationPassed = false;
 
-                $(this).addClass("tab-error-bg");
-                $(this).trigger("click");
+
+        $row.find(".cc_number").after(
+
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate Number is required.' +
+            '</span>'
+
+        );
+
+
+        return;
+    }
+
+
+    // ==================================================
+    // FIRST ISSUE REQUIRED
+    // ==================================================
+
+    if (firstIssue === "") {
+
+        staffBasicValidationPassed = false;
+
+
+        $row.find(".cc_firstissue").after(
+
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate First Issue is required.' +
+            '</span>'
+
+        );
+
+
+        return;
+    }
+
+
+    // ==================================================
+    // VALIDITY FROM REQUIRED
+    // ==================================================
+
+    if (validityFrom === "") {
+
+        staffBasicValidationPassed = false;
+
+
+        $row.find(".cc_validity_from").after(
+
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate Validity From is required.' +
+            '</span>'
+
+        );
+
+
+        return;
+    }
+
+
+    // ==================================================
+    // VALIDITY TO REQUIRED
+    // ==================================================
+
+    if (validityTo === "") {
+
+        staffBasicValidationPassed = false;
+
+
+        $row.find(".cc_validity_to").after(
+
+            '<span class="staff-validation-error error text-danger d-block">' +
+            'Certificate Validity To is required.' +
+            '</span>'
+
+        );
+
+
+        return;
+    }
+
+
+    let holderName = (
+            $row.find(".certificate_holder_name_others").val() || ""
+        ).trim();
+
+        let $holderColumn = $row.find(".certificate-holder-column");
+        let $verifyButton = $row.find(".verify-otherstaff");
+
+        // Remove previous holder-name errors
+        $holderColumn.find(".holder-name-error").remove();
+
+        if (holderName === "") {
+
+            staffBasicValidationPassed = false;
+
+            // Show error inside certificate holder column
+            $holderColumn.append(
+                '<span class="holder-name-error text-danger d-block mt-1">' +
+                'Certificate holder name is missing. Please verify first.' +
+                '</span>'
+            );
+
+            // Highlight the Verify button
+            $verifyButton.addClass("btn-danger");
+
+            // Stop validating this row until verified
+            return;
+        }
+
+        // Holder name exists: remove Verify button highlight
+        $verifyButton.removeClass("btn-danger");
+
+
+    // ==================================================
+    // SEND B / C CERTIFICATE TO CONTROLLER
+    // ==================================================
+
+    let request = validateStaffCertificate(
+
+        category,
+
+        ccNumber,
+
+        firstIssue,
+
+        validityFrom,
+
+        validityTo
+
+    )
+
+
+        .then(function (response) {
+
+
+            console.log(
+
+                "STAFF " + (index + 1) +
+                " CERTIFICATE RESPONSE:",
+
+                response
+
+            );
+
+
+            // ==================================================
+            // CERTIFICATE VALIDATION FAILED
+            // ==================================================
+
+            if (response.status !== true) {
+
+                staffValidationPassed = false;
+
+
+                $row.find(".cc_number").after(
+
+                    '<span class="staff-validation-error error text-danger d-block">' +
+                    (
+                        response.message ||
+                        "Certificate validation failed."
+                    ) +
+                    '</span>'
+
+                );
+
 
                 return false;
             }
 
+
+            // ==================================================
+            // SET CERTIFICATE HOLDER NAME
+            // ==================================================
+
+            let holderName =
+                response.certificate_holder_name_others || "";
+
+
+            $row.find(".certificate-holder")
+
+                .text(holderName)
+
+                .removeClass("text-danger")
+
+                .addClass("text-success");
+
+
+            $row.find(".certificate_holder_name_others")
+                .val(holderName);
+
+
+            console.log(
+
+                "STAFF " + (index + 1) +
+                " HOLDER NAME:",
+
+                holderName
+
+            );
+
+
+            console.log(
+
+                "STAFF " + (index + 1) +
+                " certificate verified successfully."
+
+            );
+
+
+            return true;
+
+        })
+
+
+        .catch(function (xhr) {
+
+
+            staffValidationPassed = false;
+
+
+            console.log(
+
+                "STAFF " + (index + 1) +
+                " CERTIFICATE ERROR"
+
+            );
+
+
+            console.log(
+                "HTTP STATUS:",
+                xhr.status
+            );
+
+
+            console.log(
+                "RESPONSE:",
+                xhr.responseText
+            );
+
+
+            console.log(
+                "JSON:",
+                xhr.responseJSON
+            );
+
+
+            $row.find(".cc_number").after(
+
+                '<span class="staff-validation-error error text-danger d-block">' +
+                'Unable to verify certificate. Please try again.' +
+                '</span>'
+
+            );
+
+
+            return false;
+
         });
 
-        setTimeout(function () {
 
-            if ($("#staff-table").length) {
+    console.log(request);
 
-                $("#staff-table")[0].scrollIntoView({
-                    behavior: "smooth",
-                    block: "center"
-                });
-            }
 
-        }, 300);
+    staffValidationRequests.push(request);
 
-        // VERY IMPORTANT
-        return false;
-    }
+});
+
+
+// ======================================================
+// BASIC VALIDATION FAILED
+// ======================================================
+
+if (!staffBasicValidationPassed) {
+
+    isValid = false;
+
+
+    Swal.fire({
+
+        icon: "warning",
+
+        title: "Staff Details Incomplete",
+
+        text: "Please complete all mandatory staff certificate details.",
+
+        confirmButtonText: "OK",
+
+        width: 500
+
+    });
+
+
+    $(".nav-item").each(function () {
+
+        if (
+            $(this)
+                .text()
+                .trim()
+                .includes("Staff & Bank Details")
+        ) {
+
+            $(this).addClass("tab-error-bg");
+
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+
+                behavior: "smooth",
+
+                block: "center"
+
+            });
+
+        }
+
+    }, 300);
+
+
+    return;
+}
+
+
+// ======================================================
+// WAIT FOR ALL B + C CERTIFICATE CHECKS
+// ======================================================
+
+let results = await Promise.all(
+    staffValidationRequests
+);
+
+
+console.log(
+    "ALL STAFF CERTIFICATE RESULTS:",
+    results
+);
+
+
+// ======================================================
+// CHECK ALL CERTIFICATES
+// ======================================================
+
+let allCertificatesValid =
+    results.every(function (result) {
+
+        return result === true;
+
+    });
+
+
+// ======================================================
+// CERTIFICATE VALIDATION FAILED
+// ======================================================
+
+if (!allCertificatesValid) {
+
+    isValid = false;
+
+
+    console.log(
+        "Certificate validation failed"
+    );
+
+
+    console.log(
+        "isValid:",
+        isValid
+    );
+
+
+    Swal.fire({
+
+        icon: "warning",
+
+        title: "Invalid Staff Certificate",
+
+        text: "Please correct the invalid B/C staff certificate details.",
+
+        confirmButtonText: "OK",
+
+        width: 500
+
+    });
+
+
+    $(".nav-item").each(function () {
+
+        if (
+            $(this)
+                .text()
+                .trim()
+                .includes("Staff & Bank Details")
+        ) {
+
+            $(this).addClass("tab-error-bg");
+
+            $(this).trigger("click");
+
+            return false;
+        }
+
+    });
+
+
+    setTimeout(function () {
+
+        if ($("#staff-table").length) {
+
+            $("#staff-table")[0].scrollIntoView({
+
+                behavior: "smooth",
+
+                block: "center"
+
+            });
+
+        }
+
+    }, 300);
+
+
+    // VERY IMPORTANT
+    return false;
+}
 
     // ======================================================
     // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
@@ -8346,59 +9381,6 @@ $(document).on("click", "#verify_qc_staff", function () {
 });
 
 
-// ---------------------return forma-------------
-$(document).on("click", ".edit-qc-staff", function () {
-
-    let $row = $(this).closest("tr.staffqc-record");
-    let $section = $("#staffqc_datasection");
-
-    // Get values from selected row
-    let staffId = $row.find('input[name="staffqc_id[]"]').first().val() || "";
-    let category = $row.find('input[name="staffqc_category[]"]').first().val() || "QC";
-    let ccNo = $row.find('input[name="staff_cc_no[]"]').first().val() || "";
-    let holderName = $row.find('input[name="certificate_holder_name[]"]').first().val() || "";
-
-    let firstIssue = $row.find('input[name="staff_cc_first_issue[]"]').first().val() || "";
-    let validityFrom = $row.find('input[name="staff_cc_validity_from[]"]').first().val() || "";
-    let validityTo = $row.find('input[name="staff_cc_validity_to[]"]').first().val() || "";
-
-    // Clear previous errors
-    $section.find(".text-danger").text("");
-
-    // Store the selected row and staff ID for later use
-    $section.attr("data-edit-row-id", staffId);
-    $section.attr("data-edit-mode", "1");
-
-    // Fill existing form fields
-    $section.find('input[name="staffqc_category[]"]').first().val(category);
-    $section.find('input[name="staff_cc_no[]"]').first().val(ccNo);
-    $section.find('input[name="staff_cc_first_issue[]"]').first().val(firstIssue);
-    $section.find('input[name="staff_cc_validity_from[]"]').first().val(validityFrom);
-    $section.find('input[name="staff_cc_validity_to[]"]').first().val(validityTo);
-
-    // Display certificate holder name
-    $("#certificate-holder-name").text(holderName);
-
-    // Show the upload section
-    $("#qc_upload_section").show();
-
-    // Enable Save button
-    $("#save_qc").prop("disabled", false);
-
-    // Change heading for edit mode
-    $section.find("h5").first().text("Edit QC Staff Details");
-
-    // Open the form
-    $section.stop(true, true).slideDown();
-
-    // Scroll to form
-    $("html, body").animate({
-        scrollTop: $section.offset().top - 100
-    }, 400);
-});
-
-// -----------------------
-
 $(document).on("click", "#save_qc", function () {
 
     let $section = $("#staffqc_datasection");
@@ -8418,7 +9400,7 @@ $(document).on("click", "#save_qc", function () {
     if (!applicationId) {
 
         $section.find(".staff-verify-error")
-            .text("Please verify the QC certificate first.");
+            .text("Verify the QC certificate first.");
 
         return;
     }
@@ -9306,6 +10288,9 @@ $(document).on('click', '.verify-otherstaff', function () {
     let $button = $(this);
     let $row = $button.closest('tr.staff-fields');
 
+
+     let $holderColumn = $row.find(".certificate-holder-column");
+
     // ==================================================
     // GET VALUES ONLY FROM CURRENT ROW
     // ==================================================
@@ -9350,6 +10335,28 @@ $(document).on('click', '.verify-otherstaff', function () {
     $holder.text('');
 
     $holderInput.val('');
+
+
+       let holderName = (
+        $row.find(".certificate_holder_name_others").val() || ""
+    ).trim();
+
+    if (holderName !== "") {
+
+        $holderColumn.find(".holder-name-error").remove();
+
+        $(this).removeClass("btn-danger");
+
+    } else {
+
+        $holderColumn.find(".holder-name-error").remove();
+
+        $holderColumn.append(
+            '<span class="holder-name-error text-danger d-block mt-1">' +
+            'Certificate holder name is missing. Please verify first.' +
+            '</span>'
+        );
+    }
 
 
     // ==================================================

@@ -12,6 +12,7 @@ use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyAdminQueryService;
 use App\Services\Competency\CompetencyWorkflowService;
 use App\Models\CC_Checklist_applicant;
+use App\Models\Cl_Checklist_applicant;
 use App\Models\EA_Application_model;
 use Carbon\Carbon;
 
@@ -615,8 +616,10 @@ class ApplicationController extends Controller
 
 
     // -------forma return --------------------
-     public function returntoSecretaryforma(Request $request)
+    public function returntoSecretaryforma(Request $request)
     {
+
+        // dd($request->all()); exit;
 
         $staff = Auth::user();
 
@@ -635,6 +638,16 @@ class ApplicationController extends Controller
         ]);
 
 
+        $staffVerification = json_decode(
+            $request->staff_verification,
+            true
+        );
+
+        if (!is_array($staffVerification)) {
+            $staffVerification = [];
+        }
+
+
         $query_status = null;
         $queryTypeJson = json_encode($request->queryType);
         $forwarded_to    = ($request->return_by === 'President') ? 3 : 1;
@@ -644,6 +657,121 @@ class ApplicationController extends Controller
         if ($request->queryswitch == 'Yes' && !empty($request->queryType) || ($request->queryswitch == 'true')) {
             $query_status = "P";
         }
+
+        $forwarded = $request->forwarded_to;
+
+        foreach ($staffVerification as $staffVerify) {
+
+            $staffId = $staffVerify['staff_id'] ?? null;
+
+            if (!$staffId) {
+                continue;
+            }
+
+            $verifyFlag = (int) (
+                $staffVerify['verify_flag'] ?? 0
+            );
+
+
+            $staffDetail = DB::table('cl_staff_tbl')
+                ->where('id', $staffId)
+                ->first();
+
+
+            if (!$staffDetail) {
+                continue;
+            }
+
+
+            // OTHERS does not have CC verification
+            if (
+                isset($staffDetail->staff_category) &&
+                $staffDetail->staff_category === 'OTHERS'
+            ) {
+                continue;
+            }
+
+
+            DB::table('cl_staff_detail_adminstore')
+                ->updateOrInsert(
+
+                    [
+                        'application_id' =>
+                        $request->application_id,
+
+                        'staff_cc_no' =>
+                        $staffDetail->staff_cc_no,
+                    ],
+
+                    [
+                        'staff_cc_first_issue' =>
+                        $staffDetail->staff_cc_first_issue,
+
+                        'staff_cc_validity_from' =>
+                        $staffDetail->staff_cc_validity_from,
+
+                        'staff_cc_validity_to' =>
+                        $staffDetail->staff_cc_validity_to,
+
+                        'verify_flag' =>
+                        $verifyFlag,
+
+                        'processed_by' =>
+                        $staffID,
+
+                        'updated_at' =>
+                        now(),
+
+                        'created_at' =>
+                        now(),
+                    ]
+                );
+        }
+        $checklistData = [];
+
+        $checkIds = $request->input('check_id', []);
+        $checklists = $request->input('checklists', []);
+        $statuses = $request->input('status', []);
+
+        foreach ($checkIds as $id => $checkId) {
+
+            $checklistData[] = [
+                'id'      => $checkId,
+                'checked' => (int) ($checklists[$id] ?? 0),
+                'verify'  => (int) ($statuses[$id] ?? 0),
+            ];
+        }
+
+        $applicant = EA_Application_model::where('application_id', $request->application_id)
+            ->select('*')
+            ->first();
+
+
+        $Existingcheck = Cl_Checklist_applicant::where('applicant_id', $request->application_id)
+            ->where('licence_name', $applicant->certificate_name)
+            ->first();
+
+        if ($Existingcheck) {
+            $Existingcheck->update([
+
+                // 'certificate_name'       => $request->certificate_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        } else {
+
+            // dd( json_encode($checklistData)); exit;
+
+            Cl_Checklist_applicant::create([
+                'login_id'        => Auth::id(),
+                'applicant_id'    => $request->application_id,
+                'cert_license_id' => $applicant->id,
+                'licence_name'       => $applicant->license_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        }
+
 
 
         $formType = DB::table('ccl_forma_meta')
@@ -904,7 +1032,122 @@ class ApplicationController extends Controller
 
         $raised_by    = ($request->queryswitch === 'Yes') ? $processed_by : $staffID;
         // var_dump($queryTypeJson);die;
+        $staffVerification = json_decode(
+            $request->staff_verification,
+            true
+        );
 
+
+        // dd($staffVerification);exit;
+
+        if (!is_array($staffVerification)) {
+            $staffVerification = [];
+        }
+
+
+        $query_status = null;
+        $queryTypeJson = json_encode($request->queryType);
+        $forwarded_to    = ($request->return_by === 'President') ? 3 : 1;
+
+        // dd($forwarded_to);exit;
+
+        if ($request->queryswitch == 'Yes' && !empty($request->queryType) || ($request->queryswitch == 'true')) {
+            $query_status = "P";
+        }
+
+        $forwarded = $request->forwarded_to;
+
+        foreach ($staffVerification as $staffVerify) {
+
+            $staffId = $staffVerify['staff_id'] ?? null;
+
+            if (!$staffId) {
+                continue;
+            }
+
+            $verifyFlag = (int) ($staffVerify['verify_flag'] ?? 0);
+
+            $staffDetail = DB::table('cl_staff_tbl')
+                ->where('id', $staffId)
+                ->where('application_id', $request->application_id)
+                ->first();
+
+            if (!$staffDetail) {
+                continue;
+            }
+
+            // Skip OTHERS category
+            if (strtoupper(trim((string) $staffDetail->staff_category)) === 'OTHERS') {
+                continue;
+            }
+
+            // Skip empty certificate numbers
+            if (empty(trim((string) $staffDetail->staff_cc_no))) {
+                continue;
+            }
+
+            
+            
+            DB::table('cl_staff_detail_adminstore')->updateOrInsert(
+                [
+                    'application_id' => $request->application_id,
+                    'staff_cc_no'    => $staffDetail->staff_cc_no,
+                ],
+                [
+                    'staff_cc_first_issue'   => $staffDetail->staff_cc_first_issue,
+                    'staff_cc_validity_from' => $staffDetail->staff_cc_validity_from,
+                    'staff_cc_validity_to'   => $staffDetail->staff_cc_validity_to,
+                    'verify_flag'            => $verifyFlag,
+                    'processed_by'           => $staffID,
+                    'updated_at'             => now(),
+                    'created_at'             => now(),
+                ]
+            );
+        }
+        $checklistData = [];
+
+        $checkIds = $request->input('check_id', []);
+        $checklists = $request->input('checklists', []);
+        $statuses = $request->input('status', []);
+
+        foreach ($checkIds as $id => $checkId) {
+
+            $checklistData[] = [
+                'id'      => $checkId,
+                'checked' => (int) ($checklists[$id] ?? 0),
+                'verify'  => (int) ($statuses[$id] ?? 0),
+            ];
+        }
+
+        $applicant = EA_Application_model::where('application_id', $request->application_id)
+            ->select('*')
+            ->first();
+
+
+        $Existingcheck = Cl_Checklist_applicant::where('applicant_id', $request->application_id)
+            ->where('licence_name', $applicant->certificate_name)
+            ->first();
+
+        if ($Existingcheck) {
+            $Existingcheck->update([
+
+                // 'certificate_name'       => $request->certificate_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        } else {
+
+            // dd( json_encode($checklistData)); exit;
+
+            Cl_Checklist_applicant::create([
+                'login_id'        => Auth::id(),
+                'applicant_id'    => $request->application_id,
+                'cert_license_id' => $applicant->id,
+                'licence_name'       => $applicant->license_name,
+                'checklist_json'  => json_encode($checklistData),
+                'updated_by'      => Auth::id(),
+            ]);
+        }
 
 
 

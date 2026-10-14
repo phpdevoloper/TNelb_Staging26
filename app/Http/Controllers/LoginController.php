@@ -1195,25 +1195,21 @@ class LoginController extends BaseController
                     // ------------------------------------------------
                     // VALIDITY CHECK
                     // ------------------------------------------------
-                    if ($expiry && $licenceID) {
+                
+        if ($expiry) {
+            $validityMonths = FeesValidity::where('licence_id', $licenceID)
+                ->where('form_type', 'A')
+                ->where('validity_start_date', '<=', $this->today)
+                ->value('validity');
 
-                    // dd($licenceID); exit;
+            $expiryDate = Carbon::parse($expiry);
+            $validFromDate = $expiryDate->copy()->subMonths((int) $validityMonths);
+            $today = Carbon::today();
+            $oneYearAfterExpiry =  $today->copy()->addMonths(6);
 
-                        $validityMonths = FeesValidity::where('licence_id', $licenceID)
-                            ->where('form_type', trim($appl_type))
-                            ->value('validity');
-
-                            // dd($expiry); exit;
-
-                        $expiryDate = Carbon::parse($expiry);
-                        $validFromDate = $expiryDate->copy()->subMonths((int) $validityMonths);
-                        $today = Carbon::today();
-                        // $oneYearAfterExpiry = $expiryDate->copy()->addYear();
-                        $oneYearAfterExpiry = $expiryDate->copy()->addMonths(6);
-
-                        $isValid = $today->greaterThanOrEqualTo($validFromDate)
-                            && $today->lessThanOrEqualTo($oneYearAfterExpiry);
-                    }
+            $isValid = $today->greaterThanOrEqualTo($validFromDate)
+                && $today->lessThanOrEqualTo($oneYearAfterExpiry);
+        }
 
                     // ------------------------------------------------
                     // ATTACH EXTRA DATA
