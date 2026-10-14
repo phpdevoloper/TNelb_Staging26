@@ -1,7 +1,7 @@
 .dash-prv {
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: 1.05rem;
 }
 .dash-prv-meta {
     display: grid;
@@ -35,32 +35,33 @@
 }
 .dash-prv-section {
     background: #fff;
-    border: 1px solid #dce5f1;
-    border-radius: 0.75rem;
+    border: 1px solid #e3ebf5;
+    border-radius: 0.95rem;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(15, 40, 80, 0.04);
+    box-shadow: 0 10px 28px rgba(15, 40, 80, 0.06);
 }
 .dash-prv-section-hd {
-    background: linear-gradient(180deg, #f4f8fd 0%, #eaf1fa 100%);
-    border-bottom: 1px solid #dde5f3;
-    padding: 0.7rem 1rem;
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%);
+    border-bottom: 1px solid #e6eef8;
+    padding: 0.9rem 1.15rem;
     display: flex;
     align-items: flex-start;
-    gap: 0.7rem;
+    gap: 0.8rem;
 }
 .dash-prv-section-num {
-    width: 1.7rem;
-    height: 1.7rem;
-    border-radius: 50%;
-    background: #035ab3;
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(160deg, #0468cc 0%, #035ab3 100%);
     color: #fff;
-    font-size: 0.74rem;
+    font-size: 0.76rem;
     font-weight: 700;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     margin-top: 0.05rem;
+    box-shadow: 0 4px 10px rgba(3, 90, 179, 0.22);
 }
 .dash-prv-section-num--sub {
     width: auto;
@@ -70,18 +71,19 @@
     font-size: 0.7rem;
 }
 .dash-prv-section-title {
-    font-size: 0.92rem;
+    font-size: 0.98rem;
     font-weight: 700;
     color: #12233f;
     line-height: 1.35;
+    letter-spacing: -0.01em;
 }
 .dash-prv-section-tamil {
-    font-size: 0.76rem;
-    color: #5a7299;
-    margin-top: 0.15rem;
-    line-height: 1.4;
+    font-size: 0.78rem;
+    color: #5d7396;
+    margin-top: 0.18rem;
+    line-height: 1.45;
 }
-.dash-prv-section-body { padding: 1rem 1.05rem 1.1rem; }
+.dash-prv-section-body { padding: 1.15rem 1.2rem 1.25rem; }
 .dash-prv-question + .dash-prv-question {
     margin-top: 1rem;
     padding-top: 1rem;
@@ -95,8 +97,8 @@
 .dash-prv-question .dash-prv-section-body { padding: 0; }
 .dash-prv-personal {
     display: grid;
-    grid-template-columns: 10.5rem minmax(0, 1fr);
-    gap: 1.15rem;
+    grid-template-columns: 12.25rem minmax(0, 1fr);
+    gap: 1.25rem;
     align-items: start;
 }
 @media (max-width: 767.98px) {
@@ -105,11 +107,11 @@
 .dash-prv-media {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
-    padding: 0.75rem;
-    background: #f7fafd;
-    border: 1px solid #e3e8f0;
-    border-radius: 0.65rem;
+    gap: 0.95rem;
+    padding: 0.9rem 0.75rem;
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%);
+    border: 1px solid #e4ecf6;
+    border-radius: 0.8rem;
 }
 .dash-prv-media-label {
     font-size: 0.66rem;
@@ -130,9 +132,10 @@
 }
 .dash-prv-thumb--photo img,
 .dash-prv-no-img--photo {
-    width: 7.25rem;
-    height: 8.75rem;
+    width: 8.1rem;
+    height: 9.6rem;
     object-fit: cover;
+    box-shadow: 0 8px 18px rgba(15, 40, 80, 0.08);
 }
 .dash-prv-thumb--sign img,
 .dash-prv-no-img--sign {
@@ -156,7 +159,7 @@
 .dash-prv-details {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.75rem 0.9rem;
+    gap: 0.85rem 0.95rem;
     min-width: 0;
 }
 @media (max-width: 991.98px) {
@@ -175,16 +178,16 @@
     margin-bottom: 0.25rem;
 }
 .dash-prv-value {
-    font-size: 0.92rem;
+    font-size: 0.94rem;
     color: #12233f;
     font-weight: 600;
-    padding: 0.55rem 0.7rem;
-    background: #f7fafd;
-    border: 1px solid #e3e8f0;
-    border-radius: 0.45rem;
-    min-height: 2.35rem;
+    padding: 0.62rem 0.75rem;
+    background: #f8fafd;
+    border: 1px solid #e6edf5;
+    border-radius: 0.55rem;
+    min-height: 2.5rem;
     word-break: break-word;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 .dash-prv-value.is-empty {
     color: #9aa8bf;
@@ -192,53 +195,73 @@
     font-weight: 400;
 }
 .dash-prv-subhead {
-    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.84rem;
     font-weight: 700;
-    color: #1a3a72;
-    margin: 0.35rem 0 0.55rem;
-    padding-bottom: 0.3rem;
-    border-bottom: 1px dashed #dde5f3;
+    color: #0f3d7a;
+    margin: 1.15rem 0 0.65rem;
+}
+.dash-prv-subhead::before {
+    content: "";
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: #035ab3;
+    flex-shrink: 0;
+}
+.dash-prv-section-body > .dash-prv-subhead:first-child {
+    margin-top: 0.1rem;
 }
 .dash-prv-table-wrap {
     overflow-x: auto;
-    border: 1px solid #e3e8f0;
-    border-radius: 0.55rem;
-    margin-bottom: 0.9rem;
+    border: 1px solid #e4ecf6;
+    border-radius: 0.7rem;
+    margin-bottom: 0.35rem;
 }
 .dash-prv-table {
     width: 100%;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     border-collapse: collapse;
     margin: 0;
     min-width: 36rem;
 }
 .dash-prv-table th {
-    background: #eef3fb;
+    background: #f3f7fc;
     color: #1a2a4a;
     font-weight: 700;
-    padding: 0.5rem 0.55rem;
-    border: 1px solid #dde5f3;
-    font-size: 0.72rem;
+    padding: 0.62rem 0.65rem;
+    border-bottom: 1px solid #e3ebf5;
+    border-right: 1px solid #e8eef6;
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     white-space: nowrap;
     text-align: center;
 }
+.dash-prv-table th:last-child { border-right: 0; }
 .dash-prv-table td {
-    padding: 0.5rem 0.55rem;
-    border: 1px solid #e8edf6;
+    padding: 0.62rem 0.65rem;
+    border-bottom: 1px solid #eef3f8;
+    border-right: 1px solid #f2f6fb;
     vertical-align: middle;
-    color: #2c3e5e;
+    color: #243652;
     text-align: center;
 }
+.dash-prv-table td:last-child { border-right: 0; }
+.dash-prv-table tbody tr:last-child td { border-bottom: 0; }
 .dash-prv-table td.dash-prv-td-left { text-align: left; }
 .dash-prv-table tr:nth-child(even) td { background: #f8fafd; }
 .dash-prv-doc-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    background: #e8f2ff;
+    gap: 0.35rem;
+    background: #eef5ff;
     color: #035ab3;
+    border: 1px solid #d5e6fb;
     border-radius: 999px;
-    padding: 0.25rem 0.7rem;
+    padding: 0.28rem 0.72rem;
     font-size: 0.74rem;
     font-weight: 600;
     text-decoration: none;
@@ -252,21 +275,61 @@
     color: #d9534f;
 }
 .dash-prv-doc-empty { color: #9aa8bf; font-size: 0.78rem; }
-.dash-prv-yes {
-    background: #d4edda;
-    color: #155724;
-    border-radius: 0.3rem;
-    padding: 0.2rem 0.65rem;
-    font-size: 0.76rem;
-    font-weight: 700;
-}
+.dash-prv-yes,
 .dash-prv-no {
-    background: #f8d7da;
-    color: #721c24;
-    border-radius: 0.3rem;
-    padding: 0.2rem 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.22rem 0.7rem;
     font-size: 0.76rem;
     font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.dash-prv-yes::before,
+.dash-prv-no::before {
+    content: "";
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+}
+.dash-prv-yes {
+    background: #e8f7ee;
+    color: #146c36;
+}
+.dash-prv-yes::before { background: #1f9d55; }
+.dash-prv-no {
+    background: #fdecec;
+    color: #9b2c2c;
+}
+.dash-prv-no::before { background: #d64545; }
+.dash-prv-id-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+.dash-prv-id-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.95rem;
+    background: #f8fbff;
+    border: 1px solid #e4ecf6;
+    border-radius: 0.8rem;
+}
+.dash-prv-id-hd {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #12233f;
+}
+.dash-prv-id-hd .fa {
+    color: #035ab3;
+}
+@media (max-width: 767.98px) {
+    .dash-prv-id-grid { grid-template-columns: 1fr; }
 }
 .dash-prv-grid-2,
 .dash-prv-grid-4,
@@ -405,8 +468,9 @@
 .dash-prv-alter {
     background: #fffbeb;
     border: 1px solid #f5d48a;
-    border-radius: 0.65rem;
-    padding: 0.8rem 1rem;
+    border-radius: 0.9rem;
+    padding: 0.95rem 1.1rem;
+    box-shadow: 0 8px 20px rgba(180, 83, 9, 0.06);
 }
 .dash-prv-alter-title {
     font-weight: 700;

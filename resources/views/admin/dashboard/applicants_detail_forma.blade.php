@@ -1337,6 +1337,12 @@
 
                                                         @forelse($checklist as $item)
 
+                                                        @php
+                                                            $savedChecked = (int) ($checkedList_1[$item->id] ?? 0) === 1;
+                                                            $savedVerify = array_key_exists($item->id, $verifyList)
+                                                                ? (int) $verifyList[$item->id]
+                                                                : 1;
+                                                        @endphp
                                                         <tr>
 
                                                             <td>
@@ -1365,7 +1371,7 @@
                                                                     id="checklist_{{ $item->id }}"
                                                                     name="checklists[{{ $item->id }}]"
                                                                     value="1"
-                                                                    {{ ($checkedList_1[$item->id] ?? 0) == 1 ? 'checked' : '' }}>
+                                                                    {{ $savedChecked ? 'checked' : '' }}>
                                                             </td>
 
                                                             <td class="text-center">
@@ -1374,9 +1380,9 @@
 
                                                                     <span
                                                                         id="statusText_{{ $item->id }}"
-                                                                        class="badge {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'bg-success' : 'bg-danger' }}">
+                                                                        class="badge {{ $savedVerify === 1 ? 'bg-success' : 'bg-danger' }}">
 
-                                                                        {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'Correct' : 'Incorrect' }}
+                                                                        {{ $savedVerify === 1 ? 'Correct' : 'Incorrect' }}
 
                                                                     </span>
 
@@ -1387,8 +1393,8 @@
                                                                             type="checkbox"
                                                                             id="status_{{ $item->id }}"
                                                                             name="status[{{ $item->id }}]"
-                                                                            value="1"
-                                                                            {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'checked' : '' }}>
+                                                                            value="{{ $savedVerify }}"
+                                                                            {{ $savedVerify === 1 ? 'checked' : '' }}>
 
                                                                     </div>
 
@@ -1421,13 +1427,9 @@
                                             <table class="table table-bordered">
                                                 <thead>
                                                     <tr>
-                                                        <th>Staff Category </th>
-
-
-                                                        <th>Competency Certificate Number
-                                                        </th>
+                                                        <th>Staff Name</th>
+                                                        <th>Competency Certificate Number <br> Certificate First Issue , <br>Validity From<br> Validity To</th>
                                                         <th>Certificate First Issue , <br>Validity From<br> Validity To</th>
-
                                                         <th>Attachments
                                                         </th>
                                                         <th>History of Staff
@@ -1438,9 +1440,12 @@
                                                 </thead>
                                                 <tbody>
                                                     @forelse ($qcQscStaffs_details as $index => $staff)
+                                                    @php
+                                                        // var_dump($staff);exit;
+                                                    @endphp
                                                     <tr>
 
-                                                        <td>{{ $staff->staff_category }}</td>
+                                                        <td>{{ $staff->staff_name }}</td>
                                                         <td>{{ $staff->staff_cc_no }}</td>
 
                                                          <td>{{ \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') }},<br> {{ \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') }},<br>{{ \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') }} </td>
@@ -1500,8 +1505,8 @@
                                                 @if($staff->staff_category != 'OTHERS')
 
                                                     @php
-                                                        $verifyFlag = isset($verifyList[$staff->staff_cc_no])
-                                                            ? (int) $verifyList[$staff->staff_cc_no]
+                                                        $verifyFlag = isset($staffVerifyList[$staff->staff_cc_no])
+                                                            ? (int) $staffVerifyList[$staff->staff_cc_no]
                                                             : 0;
                                                     @endphp
 
@@ -1548,12 +1553,7 @@
                                                     <tr>
 
                                                         <th>Staff Category </th>
-
-
-                                                        <th>CC Number <br>
-                                                       CC First Issue , <br>Validity From<br> Validity To</th>
-
-
+                                                        <th>Staff Name <br> CC Number <br>CC First Issue , <br>Validity From<br> Validity To</th>
                                                         <th>History of Staff
                                                         </th>
                                                         <th class="text-center">Verify</th>
@@ -1562,6 +1562,9 @@
                                                 </thead>
                                                 <tbody>
                                                     @forelse ($otherstaffdetails as $index => $staff)
+                                                    @php
+                                                        // dd($staff);exit;
+                                                    @endphp
                                                     <tr>
 
 
@@ -1573,8 +1576,7 @@
                                                             {{ $staff->staff_designation }}
 
                                                         @else
-
-
+                                                        {{ $staff->staff_name }}<br>
                                                         {{ $staff->staff_cc_no }}<br>
                                                         {{ $staff->staff_cc_first_issue
                                                             ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
@@ -1643,8 +1645,8 @@
                                                         @if($staff->staff_category != 'OTHERS')
 
                                                             @php
-                                                                $verifyFlag = isset($verifyList[$staff->staff_cc_no])
-                                                                    ? (int) $verifyList[$staff->staff_cc_no]
+                                                                $verifyFlag = isset($staffVerifyList[$staff->staff_cc_no])
+                                                                    ? (int) $staffVerifyList[$staff->staff_cc_no]
                                                                     : 0;
                                                             @endphp
 
@@ -1967,10 +1969,11 @@
                                                 </div>
                                                 <div class="row mt-3">
                                                     <div class="col-lg-6">
-                                                        <p><strong> Payment Status</strong></p>
+                                                        <p><strong>Application Type</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p class="badge text-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
+                                                        
+                                                        <p><strong>{{ $applicant->appl_type ?? 'NA' }}</strong></p>
                                                     </div>
 
 
@@ -1997,14 +2000,11 @@
 
 
                                                      <div class="col-lg-6">
-                                                        <p><strong>Amount Paid</strong></p>
+                                                        <p><strong>Date of Application</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->amount }}.00</p>
+                                                        <p>{{ format_date_other($applicant->dt_submit) }}</p>
                                                     </div>
-
-
-
 
                                                 </div>
                                             </div>
@@ -2017,7 +2017,7 @@
                                                         <p><strong> Payment Status</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p class="badge text-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
+                                                        <p class="badge badge-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
                                                     </div>
 
                                                     <div class="col-lg-6">
@@ -2565,21 +2565,29 @@
 
 
 
-        // forwardbtn.prop('disabled', $('.form-check-input:not(#check_all):checked').length === 0);
-
         // Initially disable Reset All
         resetAllBox.prop('disabled', true);
+
+        var checklistBoxes = $('#specific-class input[name^="checklists"]');
+
+        function syncForwardButton() {
+            var total = checklistBoxes.length;
+            var checkedCount = checklistBoxes.filter(':checked').length;
+            var allChecked = total === 0 || checkedCount === total;
+            forwardbtn.prop('disabled', !allChecked);
+        }
+
+        syncForwardButton();
 
         checkAllBox.change(function() {
             if ($(this).prop('checked')) {
                 individualCheckboxes.prop('checked', true);
                 resetAllBox.prop('disabled', false).prop('checked', false); // Enable Reset All
-                forwardbtn.prop('disabled', false);
             } else {
                 individualCheckboxes.prop('checked', false);
                 resetAllBox.prop('disabled', true).prop('checked', false); // Disable Reset All
-                forwardbtn.prop('disabled', true);
             }
+            syncForwardButton();
         });
 
         // "Reset All" functionality
@@ -2589,17 +2597,18 @@
                 checkAllBox.prop('checked', false); // Uncheck Check All
                 checkAllBox.prop('disabled', false); // Enable Check All
                 resetAllBox.prop('disabled', true); // Disable Reset All after use
-                forwardbtn.prop('disabled', true);
+                syncForwardButton();
             }
         });
 
         // If any individual checkbox is manually unchecked, uncheck "Check All"
         individualCheckboxes.change(function() {
-            if ($('.form-check-input:not(#check_all):not(#reset_all):checked').length === individualCheckboxes.length) {
+            if (checklistBoxes.length > 0 && checklistBoxes.filter(':checked').length === checklistBoxes.length) {
                 checkAllBox.prop('checked', true);
             } else {
                 checkAllBox.prop('checked', false);
             }
+            syncForwardButton();
         });
 
 
@@ -2678,7 +2687,7 @@
                         let id = match[0];
 
                         checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                        status[id] = switchBtn.is(":checked") ? 1 : 0;
+                        status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
                         check_id[id] = checkid.val();
                     });
 
@@ -3306,7 +3315,7 @@
                         let id = match[0];
 
                         checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                        status[id] = switchBtn.is(":checked") ? 1 : 0;
+                        status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
                         check_id[id] = checkid.val();
                     });
 
@@ -3464,7 +3473,7 @@
                         let id = match[0];
 
                         checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                        status[id] = switchBtn.is(":checked") ? 1 : 0;
+                        status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
                         check_id[id] = checkid.val();
                     });
 
@@ -3898,7 +3907,7 @@ $("#process_return").on("click", function () {
                                 : 0;
 
                         status[id] =
-                            $('input[name="status[' + id + ']"]').is(':checked')
+                            $('#status_' + id).prop('checked')
                                 ? 1
                                 : 0;
                     });

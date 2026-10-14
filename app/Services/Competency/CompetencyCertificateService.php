@@ -224,6 +224,7 @@ class CompetencyCertificateService
     {
         $formName = $this->normalizeFormName($formName);
         $modelClass = $this->modelClassForForm($formName);
+        
         if (!$modelClass) {
             throw new \InvalidArgumentException("Unsupported competency form for certificate issue: {$formName}");
         }

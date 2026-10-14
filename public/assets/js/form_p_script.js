@@ -94,13 +94,19 @@ async function showInstructPopup(licence_code,login_id) {
                     const licence_name = saveResponse.licence_name || 'N/A';
 
                 
+                    const payRow = (label, value, opts = {}) => {
+                        const valueColor = opts.color || '#1e293b';
+                        const weight = opts.weight || '600';
+                        const border = opts.last ? '' : 'border-bottom:1px solid #e8eef5;';
+                        return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:9px 2px;${border}">
+                            <span style="width:158px;flex:0 0 158px;color:#64748b;font-weight:600;line-height:1.4;text-align:left;">${label}</span>
+                            <span style="flex:1;min-width:0;text-align:right;color:${valueColor};font-weight:${weight};line-height:1.4;word-break:break-word;">${value}</span>
+                        </div>`;
+                    };
+
                     let lateFeeRow = "";
                     if (lateFee > 0) {
-                        lateFeeRow = `
-                                <tr>
-                                    <th style="text-align: left; padding: 6px 10px; color: #555;">Late Fees (${lateMonths} Months)</th>
-                                    <td style="text-align: right; padding: 6px 10px; font-weight: 500;">Rs. ${lateFee} </td>
-                                </tr>`;
+                        lateFeeRow = payRow(`Late Fees (${lateMonths} Months)`, `Rs. ${lateFee}`);
                     }
 
 
@@ -144,43 +150,18 @@ async function showInstructPopup(licence_code,login_id) {
                     Swal.fire({
                         title: "<span style='color:#0d6efd;'>₹ Payment Details</span>",
                         html: `
-                            <div class="text-start" style="font-size: 14px; padding: 10px 0;">
-                                <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
-                                    <tbody>
-                                            <tr>
-                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Application ID</th>
-                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${application_id}</td>
-                                            </tr>
-                                            <tr>
-                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Applicant Name</th>
-                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${applicantName}</td>
-                                            </tr>
-                                            <tr>
-                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Type of Application</th>
-                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${licence_name}</td>
-                                            </tr>
-                                            <tr>
-                                            <th style="text-align: left; padding: 6px 10px; color: #555;">Type of Form</th>
-                                            <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${formTypeLabel}</td>
-                                            </tr>
-                                            <tr>
-                                                <th style="text-align: left; padding: 6px 10px; color: #555;">Date</th>
-                                                <td style="text-align: right; padding: 6px 10px; font-weight: 500;">${transactionDate}</td>
-                                                </tr>
-                                                <tr>
-                                                    <th style="text-align: left; padding: 10px; color: #333;">Application Fees</th>
-                                                    <td style="text-align: right; padding: 10px; font-weight: bold; color: #0d6efd;">Rs. ${actual_fees} </td>
-                                                    </tr>
-                                                            ${lateFeeRow}
-                                                                <tr>
-                                                                    <th style="text-align: left; padding: 6px 10px; color: #555;">Total</th>
-                                                                    <td style="text-align: right; padding: 6px 10px; font-weight: 500;">Rs. ${amount}</td>
-                                                                    </tr>
-                                                                    </tbody>
-                                                                    </table>
-                                                                    </div>
-                                                                    `,
-                        width: '515px',
+                            <div style="text-align:left;font-size:14px;padding:4px 2px 0;">
+                                ${payRow('Application ID', application_id)}
+                                ${payRow('Applicant Name', applicantName)}
+                                ${payRow('Type of Application', licence_name)}
+                                ${payRow('Type of Form', formTypeLabel)}
+                                ${payRow('Date', transactionDate)}
+                                ${payRow('Application Fees', 'Rs. ' + amount, { color: '#0d6efd', weight: '700' })}
+                                ${lateFeeRow}
+                                ${payRow('Total', 'Rs. ' + amount, { weight: '700', last: true })}
+                            </div>
+                        `,
+                        width: '560px',
                         showCancelButton: true,
                         confirmButtonText: '<span class="btn btn-primary px-4 pr-4 payment">Pay Now</span>',
                         cancelButtonText: '<span class="btn btn-danger px-4">Cancel</span>',

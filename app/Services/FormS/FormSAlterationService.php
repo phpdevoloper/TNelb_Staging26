@@ -858,6 +858,7 @@ class FormSAlterationService
             if ($newName === '') {
                 throw new RuntimeException('Applicant name cannot be empty.');
             }
+            $this->assertFormPAlterationApplicantName($parent, $newName);
             if (! $this->alterationHasProof($request, $parent, FormSProofDocumentService::PROOF_NAME_CHANGE, 'name_alteration_proof')) {
                 throw new RuntimeException('Supporting proof document is required for name alteration.');
             }
@@ -996,6 +997,7 @@ class FormSAlterationService
         $parentAddress = $this->metaAddress($parent);
         $newName = trim((string) $request->input('applicant_name', $parent->applicant_name));
         $newAddress = $this->requestAlterationAddress($request, $parentAddress);
+        $this->assertFormPAlterationApplicantName($parent, $newName);
 
         return DB::transaction(function () use ($request, $parent, $loginId, $newName, $newAddress, $parentAddress) {
             $child = $this->findOrCreateAlterationDraftChild($parent, $loginId);
@@ -1154,6 +1156,27 @@ class FormSAlterationService
         }
 
         return '';
+    }
+
+    /**
+     * Match Form P new/renew: applicant name is letters and spaces only.
+     * S / W / WH alteration names are unchanged.
+     */
+    protected function assertFormPAlterationApplicantName(CC_CompetencyMeta $parent, string $name): void
+    {
+        if (! FormPSchema::isFormP($parent->form_name ?? null)
+            && ! FormPSchema::isFormP($parent->certificate_name ?? null)) {
+            return;
+        }
+
+        $name = trim($name);
+        if ($name === '') {
+            return;
+        }
+
+        if (! preg_match('/^[A-Za-z\s]+$/', $name)) {
+            throw new RuntimeException('Only alphabets and spaces are allowed.');
+        }
     }
 
     /**

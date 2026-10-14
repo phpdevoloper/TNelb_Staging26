@@ -1168,7 +1168,7 @@
                     {{-- Hidden fields --}}
                     <input type="hidden" class="form-control text-box single-line" id="login_id_store" name="login_id" value="{{ Auth::user()->login_id }}">
                     <input type="hidden" id="application_id" name="application_id" value="{{ $application_details->application_id ?? '' }}">
-                    <input type="hidden" id="license_number" name="license_number" value="{{ $license_details->license_number ?? '' }}">
+                    <input type="hidden" id="license_number" name="license_number" value="{{ $application_details->certificate_no ?? '' }}">
                     <input type="hidden" id="form_name" name="form_name" value="{{ $application_details->form_name ?? '' }}">
                     <input type="hidden" id="license_name" name="license_name" value="{{ $application_details->license_name ?? '' }}">
                     <input type="hidden" id="form_id" name="form_id" value="{{ $application_details->form_id ?? '' }}">

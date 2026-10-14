@@ -18,6 +18,7 @@
         $licenceLabel = 'Form ' . ($formCode !== '' ? $formCode : '—');
     }
     $photoUrl = competency_media_url($applicant_photo->upload_path ?? null);
+    
     $signUrl = competency_media_url($proof_doc->uploaded_doc ?? $proof_doc->upload_path ?? null);
     $appPk = (int) ($application_details->id ?? $application_details->app_id ?? 0);
 
@@ -145,21 +146,6 @@
     $showAlterationSummary = $isAlterationPreview && ($nameAltered || $addressAltered || $hasAlteredWork || $hasAlterationProofs);
 @endphp
 <div class="dash-prv">
-    <div class="dash-prv-meta">
-        <div class="dash-prv-meta-card">
-            <div class="dash-prv-meta-label">Applicant</div>
-            <div class="dash-prv-meta-value">{{ $dashTxt($application_details->applicant_name) !== '' ? $application_details->applicant_name : '—' }}</div>
-        </div>
-        <div class="dash-prv-meta-card">
-            <div class="dash-prv-meta-label">Application ID</div>
-            <div class="dash-prv-meta-value">{{ $dashTxt($application_details->application_id) !== '' ? $application_details->application_id : '—' }}</div>
-        </div>
-        <div class="dash-prv-meta-card">
-            <div class="dash-prv-meta-label">Licence / Certificate</div>
-            <div class="dash-prv-meta-value">{{ $licenceLabel }} · {{ $applTypeLabel }}</div>
-        </div>
-    </div>
-
     @if ($showAlterationSummary)
         <div class="dash-prv-alter">
             <div class="dash-prv-alter-title">Altered in this request</div>
@@ -647,33 +633,39 @@
             </div>
         </div>
         <div class="dash-prv-section-body">
-            <div class="dash-prv-grid-id">
-                <div class="dash-prv-field mb-0">
-                    <div class="dash-prv-label">Aadhaar Number</div>
-                    <div class="dash-prv-value {{ $aadhaarPlain === '' ? 'is-empty' : '' }}">{{ $aadhaarPlain !== '' ? $aadhaarPlain : '—' }}</div>
-                </div>
-                <div class="dash-prv-field mb-0">
-                    <div class="dash-prv-label">Aadhaar Document</div>
-                    <div class="dash-prv-value {{ ! $aadhaarDocUrl ? 'is-empty' : '' }}">
-                        @if ($aadhaarDocUrl)
-                            <a class="dash-prv-doc-pill" href="{{ $aadhaarDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
-                        @else
-                            —
-                        @endif
+            <div class="dash-prv-id-grid">
+                <div class="dash-prv-id-card">
+                    <div class="dash-prv-id-hd"><i class="fa fa-id-card-o" aria-hidden="true"></i> Aadhaar</div>
+                    <div class="dash-prv-field mb-0">
+                        <div class="dash-prv-label">Number</div>
+                        <div class="dash-prv-value {{ $aadhaarPlain === '' ? 'is-empty' : '' }}">{{ $aadhaarPlain !== '' ? $aadhaarPlain : '—' }}</div>
+                    </div>
+                    <div class="dash-prv-field mb-0">
+                        <div class="dash-prv-label">Document</div>
+                        <div class="dash-prv-value {{ ! $aadhaarDocUrl ? 'is-empty' : '' }}">
+                            @if ($aadhaarDocUrl)
+                                <a class="dash-prv-doc-pill" href="{{ $aadhaarDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
+                            @else
+                                —
+                            @endif
+                        </div>
                     </div>
                 </div>
-                <div class="dash-prv-field mb-0">
-                    <div class="dash-prv-label">PAN Number</div>
-                    <div class="dash-prv-value {{ $panPlain === '' ? 'is-empty' : '' }}">{{ $panPlain !== '' ? $panPlain : '—' }}</div>
-                </div>
-                <div class="dash-prv-field mb-0">
-                    <div class="dash-prv-label">PAN Document</div>
-                    <div class="dash-prv-value {{ ! $panDocUrl ? 'is-empty' : '' }}">
-                        @if ($panDocUrl)
-                            <a class="dash-prv-doc-pill" href="{{ $panDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
-                        @else
-                            —
-                        @endif
+                <div class="dash-prv-id-card">
+                    <div class="dash-prv-id-hd"><i class="fa fa-id-card-o" aria-hidden="true"></i> PAN</div>
+                    <div class="dash-prv-field mb-0">
+                        <div class="dash-prv-label">Number</div>
+                        <div class="dash-prv-value {{ $panPlain === '' ? 'is-empty' : '' }}">{{ $panPlain !== '' ? $panPlain : '—' }}</div>
+                    </div>
+                    <div class="dash-prv-field mb-0">
+                        <div class="dash-prv-label">Document</div>
+                        <div class="dash-prv-value {{ ! $panDocUrl ? 'is-empty' : '' }}">
+                            @if ($panDocUrl)
+                                <a class="dash-prv-doc-pill" href="{{ $panDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
+                            @else
+                                —
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>

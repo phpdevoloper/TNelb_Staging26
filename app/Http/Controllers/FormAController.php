@@ -103,10 +103,13 @@ class FormAController extends BaseController
         //     $request->valid_to
         // )->format('Y-m-d');
 
-      $dateofIssue = $this->normalizeCertificateDate($request->dateof_issue);
+        $dateofIssue = $this->normalizeCertificateDate($request->dateof_issue);
         $validFrom   = $this->normalizeCertificateDate($request->valid_from);
         $validTo     = $this->normalizeCertificateDate($request->valid_to);
 
+        
+
+// dd(['certificate_no' => $request->certificate_no, 'dateof_issue' => $dateofIssue, 'valid_from' => $validFrom, 'valid_to' => $validTo]);exit;
 
         // -------------------------------------------------
         // STEP 1: Check certificate details
@@ -122,6 +125,7 @@ class FormAController extends BaseController
                         'valid_from',
                         'valid_to',
                         'cert_status',
+                        'cc_id'
 
                     )
                     ->where('certificate_no', $request->certificate_no)
@@ -139,6 +143,7 @@ class FormAController extends BaseController
                                 'valid_from',
                                 'valid_to',
                                 'cert_status',
+                                'cc_id'
 
                             )
                             ->where('certificate_no', $request->certificate_no)
@@ -149,6 +154,7 @@ class FormAController extends BaseController
                     ),
                 'certificates'
             )
+            ->orderBy('cc_id', 'desc')
             ->first();
 
 
@@ -408,9 +414,15 @@ class FormAController extends BaseController
         ]);
 
         $certificateNo = trim($request->certificate_no);
-        $dateofIssue   = $request->dateof_issue;
-        $validFrom     = $request->valid_from;
-        $validTo       = $request->valid_to;
+        // $dateofIssue   = $request->dateof_issue;
+        // $validFrom     = $request->valid_from;
+        // $validTo       = $request->valid_to;
+
+        $dateofIssue = $this->normalizeCertificateDate($request->dateof_issue);
+        $validFrom   = $this->normalizeCertificateDate($request->valid_from);
+        $validTo     = $this->normalizeCertificateDate($request->valid_to);
+
+        // dd([$certificateNo, $dateofIssue, $validFrom, $validTo]);exit;
 
         /*
     |--------------------------------------------------------------------------
@@ -457,6 +469,8 @@ class FormAController extends BaseController
                 'certificates'
             )
             ->first();
+
+            // dd($certificate);exit;
 
 
         /*
@@ -566,15 +580,9 @@ class FormAController extends BaseController
         ]);
         $isDraft = $request->input('form_action') === 'draft';
         $recordId = $request->input('record_id');
-        // dd($request->input('form_action'));
-        // dd($request->all());
-        // exit;
+     
         // Format date fields
         $this->formatDatesToDMY([
-            // 'bank_validity',
-            // 'cc_validity',
-            // 'competency_certificate_validity',
-            // 'previous_experience_lnumber_validity'
         ], $request);
 
         if ($isDraft) {
@@ -617,9 +625,6 @@ class FormAController extends BaseController
 
                 'declaration1' => 'nullable|string|max:255',
                 'declaration2' => 'nullable|string|max:255',
-                // 'aadhaar_doc' => 'nullable|file|max:2048',
-                // 'pancard_doc' => 'nullable|file|max:2048',
-                // 'gst_doc' => 'nullable|file|max:2048',
             ];
         } else {
             // Final submission: all required fields
@@ -652,62 +657,13 @@ class FormAController extends BaseController
 
             ];
         }
-        // dd($request->all());
-        // dd($request->appl_type);
-        // exit;
         $validatedData = $request->validate($rules);
-
-        // $validatedData['name_of_authorised_to_sign'] = !empty($request->name_of_authorised_to_sign)
-        //     ? json_encode($request->name_of_authorised_to_sign)
-        //     : null;
-
-        // $validatedData['age_of_authorised_to_sign'] = !empty($request->age_of_authorised_to_sign)
-        //     ? json_encode($request->age_of_authorised_to_sign)
-        //     : null;
-
-        // $validatedData['qualification_of_authorised_to_sign'] = !empty($request->qualification_of_authorised_to_sign)
-        //     ? json_encode($request->qualification_of_authorised_to_sign)
-        //     : null;
-
-        // // Convert to uppercase for certain fields
-        // foreach (
-        //     [
-        //         'applicant_name',
-        //         'business_address',
-        //         'authorised_name',
-        //         'authorised_designation',
-        //         'bank_address',
-        //         'form_name',
-        //         'license_name',
-
-        //     ] as $field
-        // ) {
-        //     if (!empty($validatedData[$field])) {
-        //         $validatedData[$field] = strtoupper($validatedData[$field]);
-        //     }
-        // }
-
-
-        // dd([
-
-        //         'previous_application_number' => $request->previous_application_number,
-        //         'previous_validity_first_issue' => $request->previous_validity_first_issue,
-        //         'previous_validity_from' => $request->previous_validity_from,
-        //         'previous_validity_to' => $request->previous_validity_to,
-        //     ]);
-
-        // exit;
-
-
-
 
         // Determine if record exists
         $applicationId = null;
         $existing = null;
 
         if ($recordId) {
-
-            // dd($recordId); exit;
             $existing = EA_Application_model::where('application_id', $recordId)->first();
             if ($existing) {
                 $applicationId = $existing->application_id;
@@ -721,17 +677,14 @@ class FormAController extends BaseController
             );
         }
 
-        if(trim($request->appl_type) =='D' ){
-                DB::table('mapping_digi_cls')
-                            ->where('temp_app_id', $request->temp_app_id)
-                            ->update([
-                                'application_id' => $applicationId,
-                                'updated_at' => now(),
-                            ]);
-
+        if (trim($request->appl_type) == 'D') {
+            DB::table('mapping_digi_cls')
+                ->where('temp_app_id', $request->temp_app_id)
+                ->update([
+                    'application_id' => $applicationId,
+                    'updated_at' => now(),
+                ]);
         }
-
-      
 
         // Final data to save
         $dataToSave = $validatedData;
@@ -755,12 +708,10 @@ class FormAController extends BaseController
             $dataToSave['payment_status'] = $isDraft ? 'draft' : 'pending';
         }
         $dataToSave['application_status'] = 'P';
-        // $dataToSave['created_at'] = now();
         $dataToSave['updated_at'] = DB::raw('NOW()');
 
         $appl_type = preg_replace('/\s+/', '', $request->appl_type ?? '');
 
-        // dd($request->appl_type); exit;
         // Addressproof----------------
 
         if (!empty($request->type_doc) || !empty($request->addressproofno)) {
@@ -772,23 +723,9 @@ class FormAController extends BaseController
                 'license_name'    => $request->license_name,
                 'addressproofno'    => $request->addressproofno,
                 'type_doc'    => $request->type_doc,
-
-                // 'status'         => '1'
             ];
 
-
-            // dd([
-            //     'login_id_store' => $request->login_id_store,
-            //     'bank_address' => $request->bank_address,
-            //     'bank_validity' => $request->bank_validity,
-            //     'bank_amount' => $request->bank_amount,
-            // ]);
-
-
             $existingaddress = Tnelb_Addressproof_cl::where('application_id', $applicationId)->first();
-
-            // dd($existingBank);
-            // exit;
 
             if ($existingaddress) {
                 $existingaddress->update($addressproof);
@@ -796,10 +733,6 @@ class FormAController extends BaseController
                 Tnelb_Addressproof_cl::create($addressproof);
             }
         }
-
-
-
-
 
         // 🔹 Save Bank Solvency data in separate table
         if (!empty($request->bank_address) || !empty($request->bank_validity) || !empty($request->bank_amount)) {
@@ -813,21 +746,8 @@ class FormAController extends BaseController
                 'bank_amount'    => $request->bank_amount ?? null,
                 'status'         => '1'
             ];
-            //             dd($request->login_id_store);
-            // exit;
-
-            // dd([
-            //     'login_id_store' => $request->login_id_store,
-            //     'bank_address' => $request->bank_address,
-            //     'bank_validity' => $request->bank_validity,
-            //     'bank_amount' => $request->bank_amount,
-            // ]);
-
 
             $existingBank = Tnelb_banksolvency_a::where('application_id', $applicationId)->first();
-
-            // dd($existingBank);
-            // exit;
 
             if ($existingBank) {
                 $existingBank->update($bankData);
@@ -877,9 +797,6 @@ class FormAController extends BaseController
             Tnelb_cl_validitycheck::create($data);
         }
 
-
-        //  dd($applicationId);
-        //         exit;
 
         unset($dataToSave['bank_address'], $dataToSave['bank_validity'], $dataToSave['bank_amount']);
 
@@ -3875,7 +3792,7 @@ class FormAController extends BaseController
                             'updated_at' => now()
                         ]);
                 }
-
+             
                 // ===================================================
                 // INSERT OR UPDATE RECORD
                 // ===================================================
