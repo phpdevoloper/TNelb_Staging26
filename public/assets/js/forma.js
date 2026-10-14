@@ -10456,110 +10456,57 @@ $(document).on('click', '.verify-otherstaff', function () {
         // ==================================================
 
         success: function (response) {
+    if (response.status === true) {
 
-            if (response.status === true) {
+        let holderName =
+            (response.certificate_holder_name_others || '').trim();
 
-                let holderName =
-                    (response.certificate_holder_name_others || '').trim();
+        $holder.text(holderName);
+        $holderInput.val(holderName);
 
+        // Clear missing-name error after successful verification
+        if (holderName !== '') {
+            $holderColumn.find('.holder-name-error').remove();
+            $button.removeClass('btn-danger');
+        } else {
+            $holderColumn.find('.holder-name-error').remove();
 
-                console.log(
-                    'CURRENT ROW HOLDER:',
-                    holderName
-                );
+            $holderColumn.append(
+                '<span class="holder-name-error text-danger d-block mt-1">' +
+                'Certificate holder name is missing. Please verify first.' +
+                '</span>'
+            );
+        }
 
+        $result
+            .removeClass('text-danger')
+            .addClass('text-success')
+            .text(response.message);
 
-                // ==================================================
-                // UPDATE ONLY CURRENT ROW <p>
-                // ==================================================
+        let $applicationId =
+            $row.find('.certificate_application_id');
 
-                $holder
-                    .text(holderName)
-                    .removeClass('text-danger')
-                    .addClass('text-success');
+        if ($applicationId.length === 0) {
+            $row.append(
+                '<input type="hidden" ' +
+                'class="certificate_application_id" ' +
+                'name="certificate_application_id[]" ' +
+                'value="' + (response.application_id || '') + '">'
+            );
+        } else {
+            $applicationId.val(response.application_id || '');
+        }
 
+    } else {
+        $holder.text('');
+        $holderInput.val('');
 
-                // ==================================================
-                // UPDATE ONLY CURRENT ROW HIDDEN INPUT
-                // ==================================================
-
-                $holderInput
-                    .val(holderName);
-
-
-                console.log(
-                    'CURRENT ROW HIDDEN HOLDER:',
-                    $holderInput.val()
-                );
-
-
-                // ==================================================
-                // SUCCESS MESSAGE ONLY CURRENT ROW
-                // ==================================================
-
-                $result
-                    .removeClass('text-danger')
-                    .addClass('text-success')
-                    .text(response.message);
-
-
-                // ==================================================
-                // APPLICATION ID
-                // ==================================================
-
-                let $applicationId =
-                    $row.find('.certificate_application_id');
-
-
-                if ($applicationId.length === 0) {
-
-                    $row.append(
-                        '<input type="hidden" ' +
-                        'class="certificate_application_id" ' +
-                        'name="certificate_application_id[]" ' +
-                        'value="' +
-                        (response.application_id || '') +
-                        '">'
-                    );
-
-                } else {
-
-                    $applicationId.val(
-                        response.application_id || ''
-                    );
-                }
-
-
-                // ==================================================
-                // DEBUG CURRENT ROW ONLY
-                // ==================================================
-
-                console.log(
-                    'CURRENT ROW HOLDER INPUT NAME:',
-                    $holderInput.attr('name')
-                );
-
-                console.log(
-                    'CURRENT ROW HOLDER INPUT VALUE:',
-                    $holderInput.val()
-                );
-
-            } else {
-
-                // ==================================================
-                // FAILED
-                // ==================================================
-
-                $holder.text('');
-
-                $holderInput.val('');
-
-                $result
-                    .removeClass('text-success')
-                    .addClass('text-danger')
-                    .text(response.message);
-            }
-        },
+        $result
+            .removeClass('text-success')
+            .addClass('text-danger')
+            .text(response.message);
+    }
+},
 
 
         // ==================================================

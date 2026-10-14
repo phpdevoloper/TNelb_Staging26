@@ -1852,6 +1852,8 @@ class SupervisorController extends Controller
                 )
                 ->first();
 
+                // dd($validity); exit;
+
             if (!$validity) {
                 throw new \Exception(
                     'Licence validity configuration not found.'
@@ -2019,13 +2021,15 @@ class SupervisorController extends Controller
 
         } elseif ($appl_type === 'D') {
 
-            /*
-             * Digitisation
-             *
-             * No normal validity calculation
-             */
+             $cl_digitization = DB::table('mapping_digi_cls')
+            ->where('application_id', $request->application_id)
+            ->first();
 
-            $expiresAt = null;
+            // to_date
+
+            // dd($cl_digitization); exit;
+
+            $expiresAt = $cl_digitization->to_date;
 
 
         } else {
@@ -2040,6 +2044,8 @@ class SupervisorController extends Controller
                 ->addMonths($monthsToAdd)
                 ->toDateString();
         }
+
+        
 
 
         /* ======================================================
@@ -2458,6 +2464,38 @@ class SupervisorController extends Controller
                 'updated_at' =>
                     now(),
             ]);
+
+
+//            $existingMapping = DB::table('cl_mapping_lic')
+//     ->where('license_number', $newSerial)
+//     ->whereDate('dateof_issue', $issuedAt)
+//     ->whereDate('valid_from', $issuedAt)
+//     ->whereDate('valid_to', $expiresAt)
+//     ->first();
+
+// if ($existingMapping) {
+//     // Update the existing record's application_id
+//     DB::table('cl_mapping_lic')
+//         ->where('id', $existingMapping->id)
+//         ->update([
+//             'application_id' => $request->application_id,
+//             'updated_at'     => now(),
+//         ]);
+// } else {
+//     // Insert a new record
+//     DB::table('cl_mapping_lic')->insert([
+//         'application_id' => $request->application_id,
+//         'license_number' => $newSerial,
+//         'issued_by'      => $request->roleid,
+//         'dateof_issue'   => $issuedAt,
+//         'valid_from'     => $issuedAt,
+//         'valid_to'       => $expiresAt,
+//         'cert_status'    => 'A',
+//         'cert_pdf'       => '',
+//         'created_at'     => now(),
+//         'updated_at'     => now(),
+//     ]);
+// }
         }
 
 

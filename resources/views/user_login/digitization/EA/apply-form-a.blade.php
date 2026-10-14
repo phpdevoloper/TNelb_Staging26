@@ -351,8 +351,7 @@ exit; -->
 
 
 
-
-                    <div class="row align-items-center head_label mt-2">
+     <div class="row align-items-center head_label mt-2">
                         <div class="col-12 col-md-12 title_bar">
                             <label>3) Ownership Type - Proprietor / Partners / Directors Details<span
                                     style="color: red;">*</span></label>
@@ -988,7 +987,7 @@ exit; -->
 
                                                 <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
                                                     <button type="button"
-                                                        class="btn btn-primary"
+                                                        class="btn btn-primary verify_competency_btn"
                                                         id="verify_competency_btn">
                                                         Verify
                                                     </button>
@@ -1521,7 +1520,7 @@ exit; -->
 
                                                     <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
                                                         <button type="button"
-                                                            class="btn btn-primary"
+                                                            class="btn btn-primary verify_competency_btn"
                                                             id="verify_competency_btn">
                                                             Verify
                                                         </button>
@@ -2070,7 +2069,7 @@ exit; -->
 
                                             <div class="col-12 col-md-2 mt-1 d-flex align-items-end">
                                                 <button type="button"
-                                                    class="btn btn-primary"
+                                                    class="btn btn-primary verify_competency_btn"
                                                     id="verify_competency_btn">
                                                     Verify
                                                 </button>
@@ -2170,19 +2169,7 @@ exit; -->
 
                         $validityValue = '';
 
-                        if (old('previous_application_validity')) {
-                        $validityValue = old('previous_application_validity');
-                        } elseif (!empty($application->previous_application_validity)) {
-                        try {
-                        $validityValue = Carbon::createFromFormat('d/m/Y', $application->previous_application_validity)->format('Y-m-d');
-                        } catch (\Exception $e) {
-                        try {
-                        $validityValue = Carbon::parse($application->previous_application_validity)->format('Y-m-d');
-                        } catch (\Exception $e) {
-                        $validityValue = '';
-                        }
-                        }
-                        }
+                    
 
                         $isVerified = !empty($application) && $application->previous_contractor_license_verify === '1';
                         $isVerificationSet = !empty($application) && $application->previous_contractor_license_verify !== null;
@@ -2192,7 +2179,7 @@ exit; -->
                         <div class="row">
 
                             <!-- License Number -->
-                             <div class="col-3 col-md-3">
+                            <div class="col-3 col-md-3">
                                 <label>Previous License Number <span class="text-red">*</span></label>
                                 <input class="form-control previous_application_number" type="text" id="previous_application_number" name="previous_application_number" maxlength="15" placeholder="Previous License Number" value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}" >
 
@@ -2254,7 +2241,7 @@ exit; -->
             <div class="col-md-12">
                 <div class="row align-items-center head_label">
                     <div class="col-12 col-md-12 title_bar">
-                        <label>5A. Details of Eligible QC/QSC Staff appointed on full time basis: <span
+                        <label>5A. Details of Eligible QC Staff appointed on full time basis: <span
                                 style="color: red;">*</span></label>
 
                     </div>
@@ -2263,7 +2250,8 @@ exit; -->
 
 
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="qc-staff-table">
+
+    <table class="table table-bordered" id="qc-staff-table">
 
         <thead>
             <tr>
@@ -2493,6 +2481,8 @@ exit; -->
 
     </table>
 
+
+
                     <span id="staffqc_error" class="error text-center text-danger d-block mt-2"></span>
 
                     <div class="border box-shadow-blue p-3 mt-3"
@@ -2695,6 +2685,7 @@ exit; -->
                         </div>
 
                     </div>
+
 
 
 
@@ -3998,7 +3989,7 @@ exit; -->
                                 <th style="width:15%">Make Model</th>
 
                                 <th>Test Report</th>
-                                <th>Purchase Report </th>
+                                <th>Purchase Bill </th>
                                 <th style="width:8%">Date of Test </th>
                             </tr>
                         </thead>
@@ -4204,7 +4195,6 @@ exit; -->
 
 
 
-
         <!-- -------------Equip end----------- -->
 
 
@@ -4308,7 +4298,7 @@ exit; -->
     @if (request()->is('apply-form-a_d'))
     <script src="{{ url('assets/js/digitization_cl.js') }}"></script>
     @endif
-    <script>
+      <script>
         $(document).ready(async function() {
             var modalEl = document.getElementById('rolePop');
             if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
@@ -4674,43 +4664,65 @@ let proprietorCount = initialDraftCount || 0;
             }
         });
 
-        function togglePreviousLicenseFields(show) {
-            const section = document.querySelector(".previous-license-fields");
+        
+function togglePreviousLicenseFields(show) {
+    const section = document.querySelector(".previous-license-fields");
 
-            if (!section) return;
+    if (!section) return;
 
-            section.style.display = show ? "block" : "none";
+    section.style.display = show ? "block" : "none";
 
-            if (!show) {
-                // Clear all input values and remove readonly
-                const inputs = section.querySelectorAll('input');
-                inputs.forEach(input => {
-                    input.value = '';
-                    input.removeAttribute('readonly');
-                });
+    if (!show) {
+        // Clear all input values and remove readonly
+        const inputs = section.querySelectorAll('input');
 
-                // Reset verification result display
-                const verifyResult = document.getElementById("verifyea_result");
-                if (verifyResult) verifyResult.innerHTML = '';
-
-                // Reset hidden verification input to 0
-                const verifyInput = section.querySelector('input.previous_contractor_license_verify');
-                if (verifyInput) verifyInput.value = '0';
-
-                // Replace Clear button with Verify button
-                const wrapper = document.getElementById("licenseVerificationBtnWrapper");
-                if (wrapper) {
-                    wrapper.innerHTML = `
-                            <button type="button" class="btn btn-primary" id="verifyLicenseBtn" onclick="verifyeaCertificateprevoius(event, this)">Verify</button>
-                              <input
-                                                type="hidden"
-                                                name="previous_contractor_license_verify"
-                                                class="previous_contractor_license_verify"
-                                                value="{{ $application?->previous_contractor_license_verify ?? '' }}">
-                        `;
-                }
+        inputs.forEach(input => {
+            if (input._flatpickr) {
+                input._flatpickr.clear();
+            } else {
+                input.value = '';
             }
+
+            input.removeAttribute('readonly');
+        });
+
+        // Reset verification result display
+        const verifyResult = document.getElementById("verifyea_result");
+        if (verifyResult) {
+            verifyResult.innerHTML = '';
         }
+
+        // Reset hidden verification input
+        const verifyInput = section.querySelector(
+            'input.previous_contractor_license_verify'
+        );
+
+        if (verifyInput) {
+            verifyInput.value = '0';
+        }
+
+        // Replace Clear button with Verify button
+        const wrapper = document.getElementById("licenseVerificationBtnWrapper");
+
+        if (wrapper) {
+            wrapper.innerHTML = `
+                <button type="button"
+                    class="btn btn-primary"
+                    id="verifyLicenseBtn"
+                    onclick="verifyeaCertificateprevoius(event, this)">
+                    Verify
+                </button>
+
+                <input type="hidden"
+                    name="previous_contractor_license_verify"
+                    class="previous_contractor_license_verify"
+                    value="0">
+            `;
+        }
+    }
+}
+
+
 
 
         // On page load, show/hide section based on saved value
@@ -4722,7 +4734,7 @@ let proprietorCount = initialDraftCount || 0;
         function setDateRestrictions(input) {
             input.type = 'date';
             let currentYear = new Date().getFullYear();
-            input.min = "1970-01-01";
+            input.min = "1935-01-01";
             input.max = currentYear + "-12-31";
         }
 
@@ -4828,6 +4840,7 @@ let proprietorCount = initialDraftCount || 0;
         //         }
         //     });
         // });
+
 $(document).on("click", "#add-more-authority-name", function () {
 
     // ==========================================================
@@ -5244,7 +5257,6 @@ $(document).on(
 
 
 
-
         // ----license check---------------
         function clearPreviousLicense() {
             // alert('111');
@@ -5656,6 +5668,32 @@ $(document).on(
     let $rows = $('#staff-container tr.staff-fields');
     let rowCount = $rows.length;
 
+    // ==========================================================
+// GET NEXT UNIQUE FORM INDEX
+// ==========================================================
+
+let maxHolderIndex = -1;
+
+$('#staff-container input.certificate_holder_name_others').each(function () {
+
+    let name = $(this).attr('name') || '';
+
+    let match = name.match(
+        /certificate_holder_name_others\[(\d+)\]/
+    );
+
+    if (match) {
+
+        let index = parseInt(match[1], 10);
+
+        if (index > maxHolderIndex) {
+            maxHolderIndex = index;
+        }
+    }
+});
+
+let nextHolderIndex = maxHolderIndex + 1;
+
     if (rowCount >= 8) {
         Swal.fire({
             icon: 'error',
@@ -5763,11 +5801,12 @@ $(document).on(
         nextRowIndex = rowCount + 1;
     }
 
-    let newRow = `
+   let newRow = `
 <tr class="staff-fields">
 
     <td>${rowCount + 1}</td>
 
+    <!-- CATEGORY -->
     <td>
         <select class="form-control staff_category"
                 name="staff_category[${rowCount}]">
@@ -5782,6 +5821,11 @@ $(document).on(
         <span class="error text-danger"></span>
     </td>
 
+
+  
+
+
+    <!-- CERTIFICATE NUMBER -->
     <td class="cc-column">
 
         <input type="text"
@@ -5797,6 +5841,8 @@ $(document).on(
 
     </td>
 
+
+    <!-- FIRST ISSUE -->
     <td class="validity-column">
 
         <input type="date"
@@ -5807,6 +5853,8 @@ $(document).on(
 
     </td>
 
+
+    <!-- VALIDITY FROM -->
     <td class="validity-column">
 
         <input type="date"
@@ -5817,6 +5865,8 @@ $(document).on(
 
     </td>
 
+
+    <!-- VALIDITY TO -->
     <td class="validity-column">
 
         <input type="date"
@@ -5827,6 +5877,8 @@ $(document).on(
 
     </td>
 
+
+    <!-- DESIGNATION -->
     <td class="designation-column"
         style="display:none;">
 
@@ -5840,7 +5892,14 @@ $(document).on(
 
     </td>
 
+
+    <!-- ACTION -->
     <td class="action-column">
+
+        <button type="button"
+                class="btn btn-primary verify-otherstaff">
+            Verify
+        </button>
 
         <button type="button"
                 class="btn btn-success"
@@ -5856,14 +5915,32 @@ $(document).on(
 
     </td>
 
+      <!-- CERTIFICATE HOLDER NAME -->
+    <td class="certificate-holder-column">
+
+        <p class="certificate-holder mb-0"></p>
+
+        <input type="hidden"
+               class="certificate_holder_name_others"
+               name="certificate_holder_name_others[${rowCount}]"
+               value="">
+
+    </td>
+
+
+    <!-- STAFF ID -->
     <input type="hidden"
            name="staff_id[${rowCount}]"
            value="">
 
+
+    <!-- ROW INDEX -->
     <input type="hidden"
            name="row_index[${rowCount}]"
            value="${nextRowIndex}">
 
+
+    <!-- STAFF FLAG -->
     <input type="hidden"
            name="staff_flag[${rowCount}]"
            value="1">
@@ -7987,7 +8064,7 @@ function removeStaffRow(button) {
         $firstIssue[0]._flatpickr.setDate(
             firstIssueYMD,
             true,
-            "Y-m-d"
+            "d-m-Y"
         );
     } else {
         $firstIssue.val(firstIssueYMD);
@@ -7998,7 +8075,7 @@ function removeStaffRow(button) {
         $validityFrom[0]._flatpickr.setDate(
             validityFromYMD,
             true,
-            "Y-m-d"
+            "d-m-Y"
         );
     } else {
         $validityFrom.val(validityFromYMD);
@@ -8009,7 +8086,7 @@ function removeStaffRow(button) {
         $validityTo[0]._flatpickr.setDate(
             validityToYMD,
             true,
-            "Y-m-d"
+            "d-m-Y"
         );
     } else {
         $validityTo.val(validityToYMD);
@@ -9441,6 +9518,9 @@ function removeStaffRow(button) {
                 $("#instrument3_row").slideUp();
             }
         });
+
+
+        
     </script>
     <!--
     <script>

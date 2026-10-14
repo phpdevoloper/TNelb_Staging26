@@ -103,20 +103,9 @@ class FormAController extends BaseController
         //     $request->valid_to
         // )->format('Y-m-d');
 
-        $dateofIssue = Carbon::createFromFormat(
-            'Y-m-d',
-            $request->dateof_issue
-        )->format('Y-m-d');
-
-        $validFrom = Carbon::createFromFormat(
-            'Y-m-d',
-            $request->valid_from
-        )->format('Y-m-d');
-
-        $validTo = Carbon::createFromFormat(
-            'Y-m-d',
-            $request->valid_to
-        )->format('Y-m-d');
+      $dateofIssue = $this->normalizeCertificateDate($request->dateof_issue);
+        $validFrom   = $this->normalizeCertificateDate($request->valid_from);
+        $validTo     = $this->normalizeCertificateDate($request->valid_to);
 
 
         // -------------------------------------------------
@@ -216,7 +205,7 @@ class FormAController extends BaseController
             ->where('staff_cc_validity_to', $validTo)
             // ->whereIn('staff_status', ['A', 'P'])
             ->where('staff_status', 'A')
-            ->exists();
+            ->first();
 
 
             if ($existingStaff) {
@@ -338,7 +327,9 @@ class FormAController extends BaseController
             // ->whereIn('staff_status', ['A', 'P'])
             ->where('staff_status', 'A')
 
-            ->exists();
+            ->first();
+
+            // dd($existingStaff); exit;
 
              if ($existingStaff) {
                 $validLicenceExists = DB::table('cl_forma_lic')
