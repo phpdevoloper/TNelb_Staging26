@@ -1175,7 +1175,8 @@
                                                             <td>{{ $proprietor->proprietor_name }} </td>
                                                             <td> {{ $proprietor->fathers_name }}</td>
                                                             <td>{{ \Carbon\Carbon::parse($proprietor->dob)->format('d-m-Y')
-                                                                 }}, {{ $proprietor->age }} <a href="{{asset($proprietor->age_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
+                                                                 }}, {{ $proprietor->age }}                                                                  
+                                                                 <a href="{{ asset($proprietor->age_proof) }}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
                                                             <td>{{ $proprietor->proprietor_address }} </td>
                                                              <td> {{ $proprietor->qualification }}, {{ $proprietor->qualification_text }} <a href="{{asset($proprietor->educational_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
 
@@ -1440,29 +1441,18 @@
                                                 </thead>
                                                 <tbody>
                                                     @forelse ($qcQscStaffs_details as $index => $staff)
-                                                    @php
-                                                        // var_dump($staff);exit;
-                                                    @endphp
                                                     <tr>
 
                                                         <td>{{ $staff->staff_name }}</td>
                                                         <td>{{ $staff->staff_cc_no }}</td>
-
-                                                         <td>{{ \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') }},<br> {{ \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') }},<br>{{ \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') }} </td>
+                                                        <td>{{ \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') }},<br> {{ \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') }},<br>{{ \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') }} </td>
 
 
                                                     <td>
                                                         <div class="file-link">
-
-                                                                 <a href="#" target="_blank">
-                                                                    Appointment Letter
-                                                                </a>
-
-                                                                <br>
-                                                                <a href="#" target="_blank">
-                                                                    Consent Letter
-                                                                </a>
-
+                                                        <a href="#" target="_blank">Appointment Letter</a>
+                                                        <br>
+                                                        <a href="#" target="_blank">Consent Letter</a>
                                                         </div>
                                                     </td>
                                                    <td>

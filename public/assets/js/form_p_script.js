@@ -572,7 +572,6 @@ function formPWorkRowOverlaps($row) {
 }
 
 function refreshFormPWorkYears() {
-    console.log('refreshFormPWorkYears');
     var $rows = $('#competency_form_p #work-container .work-fields');
     $rows.find('.work-date-overlap').remove();
     $rows.each(function () {

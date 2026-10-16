@@ -333,7 +333,7 @@ class EA_RenewalController extends BaseController
 
 
      // ----------------------------draft
-   public function edit($application_id)
+    public function edit($application_id)
     {
         $application = null;
         $proprietors = collect();
@@ -341,7 +341,7 @@ class EA_RenewalController extends BaseController
         $document = collect();
 
         if ($application_id) {
-              $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
+            $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
             $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
@@ -354,23 +354,19 @@ class EA_RenewalController extends BaseController
             $ownershipType = ProprietorformA::where('application_id', $application_id)
                 ->where('proprietor_flag', 1)
                 ->value('ownership_type');
-            // dd($proprietors);exit;
 
-             $QCstaffs = DB::table('cl_staff_tbl')
-            ->where('application_id', $application_id)
-            ->whereIn('staff_category', ['QC', 'QSC'])
-            ->where('staff_flag', '1')
-            ->orderBy('id', 'ASC')
-            ->get();
+            $QCstaffs = DB::table('cl_staff_tbl')
+                ->where('application_id', $application_id)
+                ->whereIn('staff_category', ['QC', 'QSC'])
+                ->where('staff_flag', '1')
+                ->orderBy('id', 'ASC')
+                ->get();
 
             $staffs = DB::table('cl_staff_tbl')
-            ->where('application_id', $application_id)
-            ->whereNotIn('staff_category', ['QC', 'QSC'])
-            ->orderBy('id', 'ASC')
-            ->get();
-
-            // dd($staffs);
-            // exit;
+                ->where('application_id', $application_id)
+                ->whereNotIn('staff_category', ['QC', 'QSC'])
+                ->orderBy('id', 'ASC')
+                ->get();
 
             // $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
@@ -408,16 +404,13 @@ class EA_RenewalController extends BaseController
             $authoritysignatory = DB::table('cl_forma_signs')
                 ->where('login_id', Auth::user()->login_id)
                 ->where('application_id', $application_id)
-                  ->where('flag', 1)
-                   ->orderBy('row_index', 'asc')
+                ->where('flag', 1)
+                ->orderBy('row_index', 'asc')
                 ->get();
 
-            // var_dump()
         }
 
-        // return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency' , 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails','Qcstaffs'));
-
-          return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType','authoritysignatory'));
+        return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType', 'authoritysignatory'));
     }
 
 

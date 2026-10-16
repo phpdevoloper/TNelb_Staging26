@@ -157,7 +157,7 @@ class DocumentUploadController extends Controller
 
             $request->validate($rules);
 
-            
+             
 
             
 
@@ -187,6 +187,8 @@ class DocumentUploadController extends Controller
                 \File::makeDirectory($folderPath, 0755, true);
             }
 
+            
+
             $uploadedFiles = [];
 
             # 6. LOOP FILES
@@ -197,7 +199,6 @@ class DocumentUploadController extends Controller
 
 
                 # CHECK EXISTING RECORD
-
 
                 $record_id_app = $request->record_id;
                 $existingQuery = DB::table('tnelb_temp_uploaded_documents')
@@ -261,9 +262,10 @@ class DocumentUploadController extends Controller
 
                 $existing = $existingQuery->first();
 
+                
 
                 if ($existing) {
-
+                    
                     # UPDATE FLOW
                     $fileName = $existing->file_name;
 

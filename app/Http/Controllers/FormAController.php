@@ -8775,29 +8775,16 @@ class FormAController extends BaseController
 
     public function getFormInstructions(Request $request)
     {
-
-        // dd($request->all());exit;
         try {
             $formName  = $request->get('form_name');
             $appl_type = $request->get('appl_type');
 
             $issued_licence = $request->get('issued_licence');
 
-
-            // dd($issued_licence);
-            // exit;
-            // $form = \DB::table('tnelb_forms')
-            //     ->where('form_name', $formName)
-            //     ->where('status', '1')
-            //     ->first();
-
             $form = DB::table('mst_licences')
                 ->where('form_code', $formName)
                 // ->where('status', '1')
                 ->first();
-
-            // dd($form->id);
-            // exit;
 
             $today = Carbon::today()->toDateString();
 
@@ -8808,9 +8795,6 @@ class FormAController extends BaseController
                 ->orderBy('start_date', 'desc')
                 ->first();
 
-
-            // dd($fees_form->fees_status);
-            // exit;
 
             if (!$form) {
                 return response()->json([
@@ -8841,9 +8825,6 @@ class FormAController extends BaseController
             }
 
             if ($appl_type === 'R') {
-
-                // dd($appl_type, $issued_licence, $form->id); exit;
-                // $issued_licence = 'LA20251000001';
 
                 $paymentDetails = DB::select("
                 SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)

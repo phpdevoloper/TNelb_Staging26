@@ -1279,9 +1279,6 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
 
     let type = $(this).val();
 
-    console.log("Ownership Type:", type);
-    console.log("From Draft:", fromDraft);
-
     if (!fromDraft) {
         $("input[type='file']").val("");
         $(".ownershipdoc_upload_error").text("");

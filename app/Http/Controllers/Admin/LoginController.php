@@ -2261,8 +2261,6 @@ class LoginController extends Controller
                 'payments.late_fee',
             );
 
-
-
         $applicant = $applicantQuery1
             // ->unionAll($applicantQuery2)
             ->orderByDesc('dt_submit')
@@ -2358,6 +2356,8 @@ class LoginController extends Controller
             ->where('staff_flag', '1')
             ->orderBy('id')
             ->get();
+        
+        
 
         $otherstaffdetails = DB::table('cl_staff_tbl')
             ->where('application_id', $applicant_id)
@@ -2366,10 +2366,11 @@ class LoginController extends Controller
             ->orderBy('id')
             ->get();
 
+        
 
 
-        $qcQscStaffs_details = $staffdetails
-            ->filter(function ($staff) {
+
+        $qcQscStaffs_details = $staffdetails->filter(function ($staff) {
                 return in_array(
                     strtoupper(trim($staff->staff_category)),
                     ['QC', 'QSC']

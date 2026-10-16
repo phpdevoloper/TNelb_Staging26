@@ -286,9 +286,8 @@ class LicenceManagementController extends BaseController
 
     public function getPaymentDetails(Request $request){
 
-    // dd($request->all()); exit;
         try {
-
+            
             $licence_code = trim((string) ($request->licence_code ?? ''));
             $issued_licence = trim((string) ($request->issued_licence ?? ''));
             $appl_type = strtoupper(trim((string) ($request->appl_type ?? '')));

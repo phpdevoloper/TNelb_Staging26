@@ -1179,7 +1179,6 @@
                                 <ul class="legend justify-content-end mb-2">
                                     <li><span class="bg-info"></span> Draft</li>
                                     <li><span class="bg-primary"></span> Submitted</li>
-
                                     <li><span class="bg-warning"></span> In Progress</li>
                                     <li><span class="bg-success"></span> Completed</li>
                                     <li><span class="bg-danger"></span> Rejected</li>
@@ -1222,16 +1221,13 @@
                                    <tbody>
                                        @if (isset($workflows_cl) && $workflows_cl->isNotEmpty())
                                        @foreach ($workflows_cl as $index => $workflow)
-                                       <?php
-                                    //    var_dump($workflow);die;
-                                       ?>
                                        <tr>
                                            <td>{{ $index + 1 }}</td>
                                             <td style="width: 18%;">
                                            {{ $workflow->licence_display_name ?? 'N/A' }} <br>
                                            [Form {{ strtoupper($workflow->form_name ?? 'NA') }}]
                                            </td>
-                                           <td>{{ $workflow->application_id ?? 'N/A' }}</td>
+                                           <td> <a href="{{ route('contractor.application.preview', ['application_id' => $workflow->application_id]) }}" class="js-app-preview-link" target="_blank">{{ $workflow->application_id ?? 'N/A' }}</a></td>
                                            <td>{{ isset($workflow->dt_submit) ? \Carbon\Carbon::parse($workflow->dt_submit)->format('d/m/Y') : 'N/A' }}
                                            </td>
 
