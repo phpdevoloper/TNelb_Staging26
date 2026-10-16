@@ -3976,12 +3976,12 @@ exit; -->
                                             <th style="width:15%">Serial Number</th>
                                             <th style="width:15%">Make Model</th>
 
-                                            <th>Test Report</th>
-                                            <th>Purchase Report </th>
-                                            <th style="width:8%">Date of Test </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                                <th>Test Report</th>
+                                <th>Purchase Report </th>
+                                <th style="width:8%">Date of Test </th>
+                            </tr>
+                        </thead>
+                        <tbody>
 
                                         @foreach ($equiplist as $index => $equip)
                                             @php

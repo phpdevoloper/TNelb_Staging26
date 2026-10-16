@@ -3762,6 +3762,8 @@ $(document).ready(function () {
                 let lateMonths = formData.get("late_months") || 0;
 
                 let dbNow = formData.get("dbNow");
+                
+
 
                 const qcfees = parseFloat(response.qcfees) || 0;
                 const totalfee = parseFloat(formData.get("total_fees")) || 0;
@@ -3771,6 +3773,10 @@ $(document).ready(function () {
 
                 let licenseName = formData.get("license_name");
 
+                // for (const [key, value] of formData.entries()) {
+                //     console.log(key, value);
+                // }
+                // return false;
 
                 const formName = $("#form_name").val();
 
