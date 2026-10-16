@@ -178,7 +178,9 @@ $(document).on("click", ".upload-btn", function () {
         btn.data("form_code")
     );
 
+    let recordId = $("input[name='record_id']").val()?.trim() || null;
 
+    formData.append("record_id", recordId);
     // --------------------------------------------------
     // ROW INDEX
     // --------------------------------------------------
@@ -2809,6 +2811,9 @@ $mandatoryStaffRows.each(function (index) {
 
         let $holderColumn = $row.find(".certificate-holder-column");
         let $verifyButton = $row.find(".verify-otherstaff");
+
+
+        // alert(holderName);
 
         // Remove previous holder-name errors
         $holderColumn.find(".holder-name-error").remove();
@@ -10469,6 +10474,7 @@ $(document).on('click', '.verify-otherstaff', function () {
             $holderColumn.find('.holder-name-error').remove();
             $button.removeClass('btn-danger');
         } else {
+            
             $holderColumn.find('.holder-name-error').remove();
 
             $holderColumn.append(
