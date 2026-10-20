@@ -668,7 +668,7 @@ class LoginController extends BaseController
             ? [['cc_form_p_meta', 'app_id'], ['tnelb_form_p', 'id']]
             : array_merge(
                 array_map(
-                    fn (string $table) => [$table, 'app_id'],
+                    fn(string $table) => [$table, 'app_id'],
                     $this->competencyMetaService()->allMetaTables()
                 ),
                 [['tnelb_application_tbl', 'id']]
@@ -778,10 +778,12 @@ class LoginController extends BaseController
         }
 
         $ids = [];
-        foreach ([
-            ['cc_form_p_meta', 'app_id'],
-            ['tnelb_form_p', 'id'],
-        ] as [$table, $orderColumn]) {
+        foreach (
+            [
+                ['cc_form_p_meta', 'app_id'],
+                ['tnelb_form_p', 'id'],
+            ] as [$table, $orderColumn]
+        ) {
             $found = DB::table($table)
                 ->where('old_application', $parentApplicationId)
                 ->whereRaw("UPPER(TRIM(COALESCE(appl_type, ''))) = 'R'")
@@ -1073,6 +1075,11 @@ class LoginController extends BaseController
 
     public function dashboard()
     {
+
+        $sessionId = session()->getId();
+
+        // dd($sessionId);
+        // exit;
         $loginId = session('login_id'); // Get login_id from session
 
 
@@ -1128,16 +1135,16 @@ class LoginController extends BaseController
 
                     if ($form_name == 'A') {
 
-                  $license = DB::table('cl_forma_lic')->where('application_id', $workflow->application_id)
-                                ->select('license_number', 'valid_to')
-                                ->first();
-                                    if ($license) {
+                        $license = DB::table('cl_forma_lic')->where('application_id', $workflow->application_id)
+                            ->select('license_number', 'valid_to')
+                            ->first();
+                        if ($license) {
 
-        $licenseNumber = $license->license_number;
-        $expiry = $license->valid_to;
+                            $licenseNumber = $license->license_number;
+                            $expiry = $license->valid_to;
 
-        $expiry = $license->valid_to;
-    }
+                            $expiry = $license->valid_to;
+                        }
                     } else {
 
 
@@ -1195,7 +1202,7 @@ class LoginController extends BaseController
                     // ------------------------------------------------
                     // VALIDITY CHECK
                     // ------------------------------------------------
-                            
+
                     if ($expiry) {
                         $validityMonths = FeesValidity::where('licence_id', $licenceID)
                             ->where('form_type', 'A')

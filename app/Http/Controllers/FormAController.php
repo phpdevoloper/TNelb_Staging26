@@ -697,7 +697,7 @@ class FormAController extends BaseController
         //             'updated_at'    => now(),
         //         ]);
 
-        // } 
+        // }
 
 
         if (trim($request->appl_type) == 'D') {
@@ -3842,6 +3842,8 @@ class FormAController extends BaseController
     public function store(Request $request)
     {
 
+        $sessionId = session()->getId();
+
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
@@ -3943,26 +3945,6 @@ class FormAController extends BaseController
                 $request->license_name
             );
         }
-
-        // dd($applicationId); exit;
-
-
-        // $temp_mapping = DB::table('cl_temp_mapping')->where('application_id', $applicationId)->first();
-
-        // if(!$temp_mapping) {
-
-        //      DB::table('tnelb_cl_validitychecks')->insert([
-        //             'login_id'      => auth()->id(),
-        //             'application_id' => $application_id,
-        //             'form_name'     => $request->form_name,
-        //             'license_name'  => $request->license_name,
-        //             'app_date'   => now()->toDateString(),
-
-        //             'created_at'    => now(),
-        //             'updated_at'    => now(),
-        //         ]);
-
-        // } 
 
 
         if (trim($request->appl_type) == 'D') {
@@ -4091,679 +4073,397 @@ class FormAController extends BaseController
         unset($dataToSave['bank_address'], $dataToSave['bank_validity'], $dataToSave['bank_amount']);
 
 
+
         $processedStaffIdsQC = [];
 
         if ($request->has('staffqc_category')) {
 
-            $staffCategories = $request->input(
-                'staffqc_category',
-                []
-            );
-
+            $staffCategories = $request->input('staffqc_category', []);
 
             $staffName = $request->input('certificate_holder_name', []);
             $staffNameQC = $request->input('certificate_holder_name_qc', []);
 
-            $staffCcNos = $request->input(
-                'staff_cc_no',
-                []
+            $staffCcNos = $request->input('staff_cc_no', []);
+            $staffFirstIssues = $request->input('staff_cc_first_issue', []);
+            $staffValidityFroms = $request->input('staff_cc_validity_from', []);
+            $staffValidityTos = $request->input('staff_cc_validity_to', []);
+
+            $staffQcIds = $request->input('staffqc_id', []);
+            $rowIndexes = $request->input('row_index', []);
+
+            $removedStaffIds = array_filter(
+                (array) $request->input('removed_staffqc_ids', []),
+                fn($id) => is_numeric($id)
             );
 
-            $staffFirstIssues = $request->input(
-                'staff_cc_first_issue',
-                []
-            );
-
-            $staffValidityFroms = $request->input(
-                'staff_cc_validity_from',
-                []
-            );
-
-            $staffValidityTos = $request->input(
-                'staff_cc_validity_to',
-                []
-            );
-
-            $staffQcIds = $request->input(
-                'staffqc_id',
-                []
-            );
-
-            $rowIndexes = $request->input(
-                'row_index',
-                []
-            );
-
+            $now = now();
 
             // ==========================================================
-            // GET CURRENT MAX ROW INDEX
+            // 1. DEACTIVATE EXPLICITLY REMOVED STAFF
+            // ==========================================================
+
+            if (!empty($removedStaffIds)) {
+
+                DB::table('cl_staff_tbl')
+                    ->where('application_id', $applicationId)
+                    ->whereIn('staff_category', ['QC', 'QSC'])
+                    ->whereIn('id', $removedStaffIds)
+                    ->update([
+                        'staff_flag' => '0',
+                        'updated_at' => $now,
+                    ]);
+            }
+
+            // ==========================================================
+            // 2. GET CURRENT MAXIMUM ROW INDEX
             // ==========================================================
 
             $lastRowIndex = DB::table('cl_staff_tbl')
-                ->where(
-                    'application_id',
-                    $applicationId
-                )
+                ->where('application_id', $applicationId)
                 ->max('row_index');
 
-            $nextRowIndex =
-                ((int) $lastRowIndex) + 1;
+            $nextRowIndex = ((int) $lastRowIndex) + 1;
 
 
-            // ==========================================================
-            // ROW INDEXES PRESENT IN CURRENT FORM
-            // ==========================================================
-            $removedStaffIds = $request->input('removed_staffqc_ids', []);
+            $currentRowIndexes = $currentRowIndexes ?? [];
 
+            foreach ($staffCategories as $index => $category) {
 
+                $category = strtoupper(trim((string) $category));
 
-            if (!empty($removedStaffIds)) {
-                DB::table('cl_staff_tbl')
-                    ->where('application_id', $applicationId)
-                    ->whereIn('id', $removedStaffIds)
-                    ->whereIn('staff_category', ['QC', 'QSC'])
-                    ->update([
-                        'staff_flag' => '0',
-                        'updated_at' => now(),
-                    ]);
-            }
-            $currentRowIndexes = [];
+                if (!in_array($category, ['QC', 'QSC'], true)) {
+                    continue;
+                }
 
-
-            foreach (
-                $staffCategories
-                as $index => $category
-            ) {
-
-                // ------------------------------------------------------
-                // CATEGORY
-                // ------------------------------------------------------
-
-                $category = strtoupper(
-                    trim((string) $category)
-                );
-
-
-                // ------------------------------------------------------
-                // ONLY QC / QSC
-                // ------------------------------------------------------
+                $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
 
                 if (
-                    !in_array(
-                        $category,
-                        ['QC', 'QSC'],
+                    $ccNo === '' ||
+                    in_array(strtolower($ccNo), ['undefined', 'null'], true)
+                ) {
+                    continue;
+                }
+
+                $ccName = $category === 'QC'
+                    ? ($staffNameQC[$index] ?? $staffName[$index] ?? '')
+                    : ($staffName[$index] ?? $staffNameQC[$index] ?? '');
+
+                $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
+                $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
+                $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
+
+                $staffId = $staffQcIds[$index] ?? null;
+                $submittedRowIndex = $rowIndexes[$index] ?? null;
+
+                // Normalize staff ID.
+                $staffId = is_numeric($staffId) ? (int) $staffId : null;
+
+                // Normalize submitted row index.
+                $submittedRowIndex = (
+                    $submittedRowIndex !== null &&
+                    $submittedRowIndex !== '' &&
+                    is_numeric($submittedRowIndex)
+                ) ? (int) $submittedRowIndex : null;
+
+                // ------------------------------------------------------
+                // 1. FIND EXISTING ROW BY STAFF ID
+                // ------------------------------------------------------
+
+                $existing = null;
+
+                if ($staffId !== null && $staffId > 0) {
+                    $existing = DB::table('cl_staff_tbl')
+                        ->where('id', $staffId)
+                        ->where('application_id', $applicationId)
+                        ->where('staff_category', $category)
+                        ->first();
+                }
+
+                // ------------------------------------------------------
+                // 2. FIND EXISTING ROW BY EXACT ROW INDEX + CATEGORY
+                // ------------------------------------------------------
+
+                if (!$existing && $submittedRowIndex !== null) {
+                    $existing = DB::table('cl_staff_tbl')
+                        ->where('application_id', $applicationId)
+                        ->where('row_index', $submittedRowIndex)
+                        ->where('staff_category', $category)
+                        ->first();
+                }
+
+                // ------------------------------------------------------
+                // 3. UPDATE EXISTING ROW OR INSERT NEW ROW
+                // ------------------------------------------------------
+
+                $staffData = [
+                    'staff_cc_no' => $ccNo,
+                    'staff_flag' => '1',
+                    'updated_at' => now(),
+                ];
+
+                if (trim((string) $ccName) !== '') {
+                    $staffData['staff_name'] = trim((string) $ccName);
+                }
+
+                if ($firstIssue !== '') {
+                    $staffData['staff_cc_first_issue'] = $firstIssue;
+                }
+
+                if ($validityFrom !== '') {
+                    $staffData['staff_cc_validity_from'] = $validityFrom;
+                }
+
+                if ($validityTo !== '') {
+                    $staffData['staff_cc_validity_to'] = $validityTo;
+                }
+
+                if ($existing) {
+
+                    // Preserve row_index, app_doc and cons_doc.
+                    DB::table('cl_staff_tbl')
+                        ->where('id', $existing->id)
+                        ->update($staffData);
+
+                    $savedStaffId = $existing->id;
+                    $savedRowIndex = (int) $existing->row_index;
+                } else {
+
+                    // IMPORTANT:
+                    // Use the submitted row_index first.
+                    // Generate a new one only if the form supplied no row_index.
+
+                    if ($submittedRowIndex !== null) {
+
+                        $newRowIndex = $submittedRowIndex;
+                    } else {
+
+                        // Do not assume MAX(row_index) + 1 is the intended row.
+                        // A missing row index must be corrected in the form payload
+                        // when an existing document row is meant to be reused.
+
+                        throw new \RuntimeException(
+                            'Missing row_index for ' . $category .
+                                ' staff at form index ' . $index .
+                                '. Send the existing row_index from the frontend.'
+                        );
+                    }
+
+                    // Check whether another QC/QSC row already occupies this index.
+                    $rowAtIndex = DB::table('cl_staff_tbl')
+                        ->where('application_id', $applicationId)
+                        ->where('row_index', $newRowIndex)
+                        ->whereIn('staff_category', ['QC', 'QSC'])
+                        ->first();
+
+                    if ($rowAtIndex) {
+
+                        if ($rowAtIndex->staff_category !== $category) {
+                            throw new \RuntimeException(
+                                'Row index ' . $newRowIndex .
+                                    ' already belongs to ' . $rowAtIndex->staff_category .
+                                    '; cannot save it as ' . $category . '.'
+                            );
+                        }
+
+                        // Reuse the existing row instead of inserting a duplicate.
+                        DB::table('cl_staff_tbl')
+                            ->where('id', $rowAtIndex->id)
+                            ->update($staffData);
+
+                        $savedStaffId = $rowAtIndex->id;
+                        $savedRowIndex = (int) $rowAtIndex->row_index;
+                    } else {
+
+                        $savedStaffId = DB::table('cl_staff_tbl')
+                            ->insertGetId(array_merge([
+                                'login_id' => $request->input('login_id_store'),
+                                'application_id' => $applicationId,
+                                'staff_category' => $category,
+                                'row_index' => $newRowIndex,
+                                'staff_status' => 'N',
+                                'created_at' => now(),
+                            ], $staffData));
+
+                        $savedRowIndex = $newRowIndex;
+                    }
+                }
+
+                $processedStaffIdsQC[] = $savedStaffId;
+                $currentRowIndexes[] = $savedRowIndex;
+            }
+
+
+            // ==========================================================
+            // 6. DO NOT DEACTIVATE ROWS OMITTED FROM THE FORM
+            // ==========================================================
+            // Intentionally do not use whereNotIn(row_index, ...).
+            // A document upload may have created a row that was not included
+            // in the current form submission.
+            //
+            // Only the explicit removed_staffqc_ids list above deactivates
+            // staff records.
+
+            // ==========================================================
+            // 7. FIND TEMPORARY APPOINTMENT / CONSENT DOCUMENTS
+            // ==========================================================
+
+            $tempDocs = DB::table('tnelb_temp_uploaded_documents')
+                ->where(
+                    'login_id',
+                    $request->input('login_id_store')
+                )
+                ->where(
+                    'form_name',
+                    $request->input('form_name')
+                )
+                ->where(
+                    'license_name',
+                    $request->input('license_name')
+                )
+                ->whereIn('document_category', [
+                    'app_doc',
+                    'cons_doc',
+                ])
+                ->where(
+                    'appl_type',
+                    trim((string) $request->input('appl_type'))
+                )
+                ->where('is_final', '1')
+                ->get();
+
+            // ==========================================================
+            // 8. PROCESS TEMPORARY DOCUMENTS
+            // ==========================================================
+
+            foreach ($tempDocs as $tempDoc) {
+
+                $tempRowIndex = trim(
+                    (string) ($tempDoc->row_index ?? '')
+                );
+
+                if (
+                    $tempRowIndex === '' ||
+                    !is_numeric($tempRowIndex) ||
+                    in_array(
+                        strtolower($tempRowIndex),
+                        ['undefined', 'null'],
                         true
                     )
                 ) {
                     continue;
                 }
 
-
-                // ------------------------------------------------------
-                // CERTIFICATE NUMBER
-                // ------------------------------------------------------
-
-                $ccNo = trim(
-                    (string) (
-                        $staffCcNos[$index] ?? ''
-                    )
-                );
-
-
-                // ------------------------------------------------------
-                // IGNORE EMPTY CERTIFICATE
-                // ------------------------------------------------------
-
-                if (
-                    $ccNo === '' ||
-                    strtolower($ccNo) === 'undefined' ||
-                    strtolower($ccNo) === 'null'
-                ) {
-                    continue;
-                }
-
-
-                // ------------------------------------------------------
-                // OTHER VALUES
-                // ------------------------------------------------------
-                $ccName = trim((string) (
-                    $staffName[$index]
-                    ?? $staffNameQC[$index]
-                    ?? ''
-                ));
-                $firstIssue = trim(
-                    (string) (
-                        $staffFirstIssues[$index] ?? ''
-                    )
-                );
-
-                $validityFrom = trim(
-                    (string) (
-                        $staffValidityFroms[$index] ?? ''
-                    )
-                );
-
-                $validityTo = trim(
-                    (string) (
-                        $staffValidityTos[$index] ?? ''
-                    )
-                );
-
-
-                // ------------------------------------------------------
-                // STAFF ID
-                // ------------------------------------------------------
-
-                $staffId =
-                    $staffQcIds[$index] ?? null;
-
-
-                // ------------------------------------------------------
-                // SUBMITTED ROW INDEX
-                // ------------------------------------------------------
-
-                $submittedRowIndex =
-                    $rowIndexes[$index] ?? null;
-
-
-                // ======================================================
-                // NORMALIZE STAFF ID
-                // ======================================================
-
-                if (
-                    $staffId !== null &&
-                    $staffId !== '' &&
-                    strtolower(
-                        trim((string) $staffId)
-                    ) !== 'undefined' &&
-                    strtolower(
-                        trim((string) $staffId)
-                    ) !== 'null'
-                ) {
-
-                    $staffId = (int) $staffId;
-                } else {
-
-                    $staffId = null;
-                }
-
-
-                // ======================================================
-                // NORMALIZE ROW INDEX
-                // ======================================================
-
-                if (
-                    $submittedRowIndex !== null &&
-                    $submittedRowIndex !== '' &&
-                    strtolower(
-                        trim((string) $submittedRowIndex)
-                    ) !== 'undefined' &&
-                    strtolower(
-                        trim((string) $submittedRowIndex)
-                    ) !== 'null'
-                ) {
-
-                    $submittedRowIndex =
-                        (int) $submittedRowIndex;
-                } else {
-
-                    $submittedRowIndex = null;
-                }
-
-
-                // ======================================================
-                // EXISTING QC / QSC RECORD
-                // ======================================================
-
-                if (!empty($staffId)) {
-
-                    $existing = DB::table('cl_staff_tbl')
-                        ->where(
-                            'id',
-                            $staffId
-                        )
-                        ->where(
-                            'application_id',
-                            $applicationId
-                        )
-                        ->whereIn(
-                            'staff_category',
-                            ['QC', 'QSC']
-                        )
-                        ->first();
-
-
-                    if ($existing) {
-
-                        // --------------------------------------------------
-                        // DO NOT CHANGE EXISTING ROW INDEX
-                        // --------------------------------------------------
-
-                        $existingRowIndex =
-                            (int) $existing->row_index;
-
-
-                        // --------------------------------------------------
-                        // UPDATE DATA
-                        // --------------------------------------------------
-
-                        $updateData = [
-
-
-
-                            'staff_cc_no' =>
-                            $ccNo,
-
-                            'staff_flag' =>
-                            '1',
-
-                            'updated_at' =>
-                            now(),
-                        ];
-
-
-                        if ($firstIssue !== '') {
-
-                            $updateData['staff_cc_first_issue'] = $firstIssue;
-                        }
-
-                        if ($ccName !== '') {
-
-                            $updateData['staff_name'] = $ccName;
-                        }
-
-                        if ($validityFrom !== '') {
-
-                            $updateData['staff_cc_validity_from'] = $validityFrom;
-                        }
-
-
-                        if ($validityTo !== '') {
-
-                            $updateData['staff_cc_validity_to'] = $validityTo;
-                        }
-
-
-                        // --------------------------------------------------
-                        // UPDATE
-                        // --------------------------------------------------
-
-                        DB::table('cl_staff_tbl')
-                            ->where(
-                                'id',
-                                $staffId
-                            )
-                            ->where(
-                                'application_id',
-                                $applicationId
-                            )
-                            ->update(
-                                $updateData
-                            );
-
-
-                        // --------------------------------------------------
-                        // CURRENT ROW
-                        // --------------------------------------------------
-
-                        $currentRowIndexes[] =
-                            $existingRowIndex;
-
-
-                        $processedStaffIdsQC[] =
-                            $staffId;
-                    }
-                }
-
-
-                // ======================================================
-                // NEW QC / QSC RECORD
-                // ======================================================
-
-                else {
-
-
-                    // --------------------------------------------------
-                    // USE SUBMITTED ROW INDEX
-                    // --------------------------------------------------
-
-                    $newRowIndex = $nextRowIndex;
-
-
-                    // --------------------------------------------------
-                    // INSERT
-                    // --------------------------------------------------
-
-                    $newStaffId =
-                        DB::table('cl_staff_tbl')
-                        ->insertGetId([
-
-                            'login_id' =>
-                            $request->input(
-                                'login_id_store'
-                            ),
-
-                            'application_id' =>
-                            $applicationId,
-
-                            'staff_category' => $category,
-
-                            'staff_name' => $ccName,
-
-                            'staff_cc_no' =>
-                            $ccNo,
-
-                            'staff_cc_first_issue' =>
-                            $firstIssue !== ''
-                                ? $firstIssue
-                                : null,
-
-                            'staff_cc_validity_from' =>
-                            $validityFrom !== ''
-                                ? $validityFrom
-                                : null,
-
-                            'staff_cc_validity_to' =>
-                            $validityTo !== ''
-                                ? $validityTo
-                                : null,
-
-                            'row_index' =>
-                            $newRowIndex,
-
-                            'staff_flag' =>
-                            '1',
-
-                            'staff_status' =>
-                            'N',
-
-                            'created_at' =>
-                            now(),
-
-                            'updated_at' =>
-                            now(),
-                        ]);
-
-
-                    // --------------------------------------------------
-                    // CURRENT ROW
-                    // --------------------------------------------------
-
-                    $currentRowIndexes[] =
-                        $newRowIndex;
-
-
-                    $processedStaffIdsQC[] =
-                        $newStaffId;
-
-
-                    // --------------------------------------------------
-                    // UPDATE NEXT ROW INDEX
-                    // --------------------------------------------------
-
-                    if (
-                        $newRowIndex >= $nextRowIndex
-                    ) {
-
-                        $nextRowIndex =
-                            $newRowIndex + 1;
-                    }
-                }
-            }
-
-
-            // ==========================================================
-            // SET MISSING QC / QSC RECORDS TO FLAG 0
-            // ==========================================================
-
-            DB::table('cl_staff_tbl')
-                ->where(
-                    'application_id',
-                    $applicationId
-                )
-                ->whereIn(
-                    'staff_category',
-                    ['QC', 'QSC']
-                )
-                ->where(
-                    'staff_flag',
-                    '1'
-                )
-                ->whereNotIn(
-                    'row_index',
-                    $currentRowIndexes
-                )
-                ->update([
-
-                    'staff_flag' =>
-                    '0',
-
-                    'updated_at' =>
-                    now(),
-                ]);
-
-
-            // ==========================================================
-            // SYNC TEMP UPLOADED DOCUMENTS
-            // APP DOC / CONS DOC
-            // ==========================================================
-
-            $tempDocs = DB::table(
-                'tnelb_temp_uploaded_documents'
-            )
-                ->where(
-                    'login_id',
-                    $request->input(
-                        'login_id_store'
-                    )
-                )
-                ->where(
-                    'form_name',
-                    $request->input(
-                        'form_name'
-                    )
-                )
-                ->where(
-                    'license_name',
-                    $request->input(
-                        'license_name'
-                    )
-                )
-                ->whereIn(
-                    'document_category',
-                    [
-                        'app_doc',
-                        'cons_doc'
-                    ]
-                )
-                ->where(
-                    'appl_type',
-                    trim(
-                        (string) $request->input(
-                            'appl_type'
-                        )
-                    )
-                )->get();
-
-
-            // ==========================================================
-            // PROCESS EACH TEMP DOCUMENT
-            // ==========================================================
-
-            foreach ($tempDocs as $tempDoc) {
-
-                // ------------------------------------------------------
-                // ROW INDEX
-                // ------------------------------------------------------
-
-                $tempRowIndex = trim(
-                    (string) (
-                        $tempDoc->row_index ?? ''
-                    )
-                );
-
-
-                if (
-                    $tempRowIndex === '' ||
-                    strtolower($tempRowIndex) === 'undefined' ||
-                    strtolower($tempRowIndex) === 'null'
-                ) {
-                    continue;
-                }
-
-
-                $tempRowIndex =
-                    (int) $tempRowIndex;
-
+                $tempRowIndex = (int) $tempRowIndex;
 
                 // ------------------------------------------------------
                 // BUILD DOCUMENT PATH
                 // ------------------------------------------------------
 
                 $documentPath = rtrim(
-                    (string) (
-                        $tempDoc->file_path ?? ''
-                    ),
+                    (string) ($tempDoc->file_path ?? ''),
                     '/'
                 );
-
 
                 $fileName = ltrim(
-                    (string) (
-                        $tempDoc->file_name ?? ''
-                    ),
+                    (string) ($tempDoc->file_name ?? ''),
                     '/'
                 );
 
-
-                if (
-                    $documentPath !== '' &&
-                    $fileName !== ''
-                ) {
-
-                    $documentPath .= '/' .
-                        $fileName;
-                } elseif (
-                    $fileName !== ''
-                ) {
-
-                    $documentPath =
-                        $fileName;
+                if ($documentPath !== '' && $fileName !== '') {
+                    $documentPath .= '/' . $fileName;
+                } elseif ($fileName !== '') {
+                    $documentPath = $fileName;
                 }
 
-
-                // ------------------------------------------------------
-                // IGNORE EMPTY DOCUMENT
-                // ------------------------------------------------------
-
-                if (
-                    trim($documentPath) === ''
-                ) {
+                if (trim($documentPath) === '') {
                     continue;
                 }
 
+                // ------------------------------------------------------
+                // FIND EXISTING QC / QSC ROW
+                // ------------------------------------------------------
 
-                // ======================================================
-                // FIND QC / QSC STAFF BY APPLICATION + ROW INDEX
-                // ======================================================
-
-                $staff = DB::table(
-                    'cl_staff_tbl'
-                )
-                    ->where(
-                        'application_id',
-                        $applicationId
-                    )
-                    ->where(
-                        'row_index',
-                        $tempRowIndex
-                    )
-                    ->whereIn(
-                        'staff_category',
-                        ['QC', 'QSC']
-                    )
+                $staff = DB::table('cl_staff_tbl')
+                    ->where('application_id', $applicationId)
+                    ->where('row_index', $tempRowIndex)
+                    ->whereIn('staff_category', ['QC', 'QSC'])
                     ->first();
 
-
                 // ------------------------------------------------------
-                // STAFF NOT FOUND
+                // IF MISSING, CREATE A DOCUMENT-ONLY ROW
                 // ------------------------------------------------------
+                // Normally the staff loop above creates the row.
+                // This fallback prevents the uploaded document from being
+                // discarded if no staff row exists.
+                //
+                // The correct staff_category must be available from the
+                // temporary record or request. Do not guess QC versus QSC.
 
                 if (!$staff) {
-                    continue;
-                }
 
-
-                // ======================================================
-                // APP DOC
-                // ======================================================
-
-                if (
-                    $tempDoc->document_category ===
-                    'app_doc'
-                ) {
-
-                    DB::table(
-                        'cl_staff_tbl'
-                    )
-                        ->where(
-                            'id',
-                            $staff->id
+                    $documentStaffCategory = strtoupper(trim(
+                        (string) (
+                            $tempDoc->staff_category
+                            ?? $tempDoc->ownership_type
+                            ?? ''
                         )
-                        ->where(
-                            'application_id',
-                            $applicationId
-                        )
-                        ->where(
-                            'row_index',
-                            $tempRowIndex
-                        )
-                        ->update([
+                    ));
 
-                            'app_doc' =>
-                            $documentPath,
+                    if (!in_array(
+                        $documentStaffCategory,
+                        ['QC', 'QSC'],
+                        true
+                    )) {
+                        // Cannot safely assign a document to QC or QSC.
+                        continue;
+                    }
 
-                            'updated_at' =>
-                            now(),
+                    $staffId = DB::table('cl_staff_tbl')
+                        ->insertGetId([
+                            'login_id' => $request->input('login_id_store'),
+                            'application_id' => $applicationId,
+                            'row_index' => $tempRowIndex,
+                            'staff_category' => $documentStaffCategory,
+                            $tempDoc->document_category => $documentPath,
+                            'staff_flag' => '1',
+                            'staff_status' => 'N',
+                            'created_at' => $now,
+                            'updated_at' => $now,
                         ]);
+
+                    $staff = DB::table('cl_staff_tbl')
+                        ->where('id', $staffId)
+                        ->first();
                 }
 
-
                 // ======================================================
-                // CONS DOC
+                // 9. UPDATE ONLY THE RELEVANT DOCUMENT FIELD
                 // ======================================================
 
-                elseif (
-                    $tempDoc->document_category ===
-                    'cons_doc'
-                ) {
+                if ($tempDoc->document_category === 'app_doc') {
 
-                    DB::table(
-                        'cl_staff_tbl'
-                    )
-                        ->where(
-                            'id',
-                            $staff->id
-                        )
-                        ->where(
-                            'application_id',
-                            $applicationId
-                        )
-                        ->where(
-                            'row_index',
-                            $tempRowIndex
-                        )
+                    DB::table('cl_staff_tbl')
+                        ->where('id', $staff->id)
+                        ->where('application_id', $applicationId)
+                        ->where('row_index', $tempRowIndex)
                         ->update([
+                            'app_doc' => $documentPath,
+                            'updated_at' => $now,
+                        ]);
+                } elseif ($tempDoc->document_category === 'cons_doc') {
 
-                            'cons_doc' =>
-                            $documentPath,
-
-                            'updated_at' =>
-                            now(),
+                    DB::table('cl_staff_tbl')
+                        ->where('id', $staff->id)
+                        ->where('application_id', $applicationId)
+                        ->where('row_index', $tempRowIndex)
+                        ->update([
+                            'cons_doc' => $documentPath,
+                            'updated_at' => $now,
                         ]);
                 }
             }
         }
+
 
 
         if ($request->has('cc_number') || $request->filled('designation')) {
@@ -4892,49 +4592,7 @@ class FormAController extends BaseController
 
                 $rowIndex = $rowIndexesFromForm[$index] ?? null;
 
-                //                 dd([
-                //     'index' => $index,
 
-                //     'ccNumber' => $ccNumber,
-
-                //     'firstIssue' => $firstIssue,
-
-                //     'validityFrom' => $validityFrom,
-
-                //     'validityTo' => $validityTo,
-
-                //     'ccName' => $ccName,
-
-                //     'designation' => $designation,
-
-                //     'staffId' => $staffId,
-
-                //     'rowIndex' => $rowIndex,
-
-                //     // Also show complete submitted arrays
-                //     'staff_category' => $request->input('staff_category', []),
-
-                //     'cc_number_all' => $request->input('cc_number', []),
-
-                //     'cc_firstissue_all' => $request->input('cc_firstissue', []),
-
-                //     'cc_validity_from_all' => $request->input('cc_validity_from', []),
-
-                //     'cc_validity_to_all' => $request->input('cc_validity_to', []),
-
-                //     'certificate_holder_name_all' => $request->input('certificate_holder_name_others', []),
-
-                //     'designation_all' => $request->input('designation', []),
-
-                //     'staff_id_all' => $staffIdsFromForm,
-
-                //     'row_index_all' => $rowIndexesFromForm,
-                // ]); exit;
-
-
-                // ----------------------------------------------------------
-                // NORMALIZE STAFF ID
-                // ----------------------------------------------------------
 
                 if (
                     $staffId !== null &&
@@ -6617,297 +6275,249 @@ class FormAController extends BaseController
         $payment = $isDraft ? 'draft' : 'success';
 
         // ------------Temp Table move------------------------------------------
-        DB::transaction(function () use ($applicationId, $request) {
+        $sessionId = session('application_id', session()->getId());
 
-            // dd('111');exit;
+        DB::transaction(function () use ($applicationId, $request, $sessionId) {
 
+            // =======================================================
+            // GET PERMANENT FILE PATH AND CREATE DIRECTORY
+            // =======================================================
 
             $pathData = DocPathController::getPath($request);
-            $proFolderPath = public_path($pathData->filepath_pro);
+
+            $relativeProPath = trim($pathData->filepath_pro, '/\\');
+            $proFolderPath = public_path($relativeProPath);
 
             if (!File::exists($proFolderPath)) {
                 File::makeDirectory($proFolderPath, 0755, true);
             }
 
+            // =======================================================
+            // HELPER: COPY TEMP FILE TO PERMANENT DIRECTORY
+            // =======================================================
+
+            $copyTempDocument = function ($doc) use ($proFolderPath, $relativeProPath) {
+
+                $tempRelativePath = trim($doc->file_path, '/\\');
+
+                $tempFullPath = public_path(
+                    $tempRelativePath . DIRECTORY_SEPARATOR . $doc->file_name
+                );
+
+                $proFullPath = $proFolderPath . DIRECTORY_SEPARATOR . $doc->file_name;
+
+                if (File::exists($tempFullPath)) {
+
+                    // Avoid deleting/copying the file onto itself.
+                    if (realpath($tempFullPath) !== realpath($proFullPath)) {
+
+                        if (File::exists($proFullPath)) {
+                            File::delete($proFullPath);
+                        }
+
+                        if (!File::copy($tempFullPath, $proFullPath)) {
+                            throw new \RuntimeException(
+                                'Failed to copy document: ' . $doc->file_name
+                            );
+                        }
+                    }
+                } elseif (!File::exists($proFullPath)) {
+
+                    throw new \RuntimeException(
+                        'Document file not found: ' . $doc->file_name
+                    );
+                }
+
+                return $relativeProPath . '/' . $doc->file_name;
+            };
+
+            // =======================================================
+            // HELPER: MARK TEMP DOCUMENT AS PROCESSED
+            // =======================================================
+
+            $markTempDocument = function ($doc) use ($sessionId, $applicationId, $request) {
+
+                DB::table('tnelb_temp_uploaded_documents')
+                    ->where('id', $doc->id)
+                    ->where('application_id', $sessionId)
+                    ->update([
+                        'is_final'      => '1',
+                        'moved_as'      => $request->input('form_action'),
+                        'record_id_app' => $applicationId,
+                        'updated_at'    => now(),
+                    ]);
+            };
+
+            // Common conditions for temporary documents.
+            $applType = trim((string) $request->input('appl_type'));
+
+            // =======================================================
+            // 1. OWNERSHIP DOCUMENT
+            // =======================================================
+
             $doc = DB::table('tnelb_temp_uploaded_documents')
+                ->where('application_id', $sessionId)
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'ownership_doc')
                 ->whereIn('is_final', ['0', '2', '1'])
-                ->where(
-                    'appl_type',
-                    trim(
-                        (string) $request->input(
-                            'appl_type'
-                        )
-                    )
-                )
-                ->latest()
+                ->where('appl_type', $applType)
+                ->latest('id')
                 ->first();
 
             if ($doc) {
 
-                $tempFullPath = public_path($doc->file_path . $doc->file_name);
-                $proFullPath  = $proFolderPath . $doc->file_name;
+                $finalPath = $copyTempDocument($doc);
 
-                if (File::exists($tempFullPath)) {
+                DB::table('ccl_forma_meta')->updateOrInsert(
+                    [
+                        'application_id' => $applicationId,
+                    ],
+                    [
+                        'ownership_doc' => $finalPath,
+                        'updated_at'    => now(),
+                    ]
+                );
 
-                    File::delete($proFullPath); // replace
-                    // File::copy($tempFullPath, $proFullPath);
-                }
-
-                $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
-
-                DB::table('ccl_forma_meta')
-                    ->updateOrInsert(
-                        ['application_id' => $applicationId],
-                        [
-                            'ownership_doc' => $finalPath,
-                            'updated_at' => now()
-                        ]
-                    );
-
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $doc->id)
-                    ->update([
-                        'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId
-                    ]);
+                $markTempDocument($doc);
             }
 
+            // =======================================================
+            // 2. BANK SOLVENCY DOCUMENT
+            // =======================================================
 
-            // ---------------------------bank doc------------------
             $doc = DB::table('tnelb_temp_uploaded_documents')
+                ->where('application_id', $sessionId)
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'bank_doc')
                 ->whereIn('is_final', ['0', '2', '1'])
-                ->where(
-                    'appl_type',
-                    trim(
-                        (string) $request->input(
-                            'appl_type'
-                        )
-                    )
-                )
-                ->latest()
+                ->where('appl_type', $applType)
+                ->latest('id')
                 ->first();
-
-
-            // dd($doc); exit;
 
             if ($doc) {
 
-                $tempFullPath = public_path($doc->file_path . $doc->file_name);
-                $proFullPath  = $proFolderPath . $doc->file_name;
+                $finalPath = $copyTempDocument($doc);
 
-                if (File::exists($tempFullPath)) {
+                DB::table('tnelb_banksolvency_a')->updateOrInsert(
+                    [
+                        'application_id' => $applicationId,
+                    ],
+                    [
+                        'login_id'     => $request->login_id_store,
+                        'form_name'    => $request->form_name,
+                        'license_name' => $request->license_name,
+                        'bank_doc'     => $finalPath,
+                        'updated_at'   => now(),
+                        'status'       => '1',
+                    ]
+                );
 
-                    File::delete($proFullPath);
-                    // File::copy($tempFullPath, $proFullPath);
-                }
-
-                $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
-
-                DB::table('tnelb_banksolvency_a')
-                    ->updateOrInsert(
-                        ['application_id' => $applicationId],
-                        [
-                            'login_id'            => $request->login_id_store,
-
-                            'form_name'           => $request->form_name,
-                            'license_name'        => $request->license_name,
-                            'bank_doc' => $finalPath,
-                            'updated_at' => now(),
-                            'status' => '1'
-                        ]
-                    );
-
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $doc->id)
-                    ->update([
-                        'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId
-                    ]);
+                $markTempDocument($doc);
             }
 
-            // ------------------------Address proof--------------------
+            // =======================================================
+            // 3. ADDRESS PROOF
+            // =======================================================
+
             $doc = DB::table('tnelb_temp_uploaded_documents')
+                ->where('application_id', $sessionId)
                 ->where('login_id', $request->login_id_store)
                 ->where('document_category', 'Address_proof')
                 ->whereIn('is_final', ['0', '2', '1'])
-                ->where(
-                    'appl_type',
-                    trim(
-                        (string) $request->input(
-                            'appl_type'
-                        )
-                    )
-                )
-                ->latest()
+                ->where('appl_type', $applType)
+                ->latest('id')
                 ->first();
 
             if ($doc) {
 
-                $tempFullPath = public_path($doc->file_path . $doc->file_name);
-                $proFullPath  = $proFolderPath . $doc->file_name;
+                $finalPath = $copyTempDocument($doc);
 
-                if (File::exists($tempFullPath)) {
+                DB::table('tnelb_addressproof_cl')->updateOrInsert(
+                    [
+                        'application_id' => $applicationId,
+                    ],
+                    [
+                        'login_id'     => $request->login_id_store,
+                        'form_name'    => $request->form_name,
+                        'license_name' => $request->license_name,
+                        'file_doc'     => $finalPath,
+                        'updated_at'   => now(),
+                    ]
+                );
 
-                    File::delete($proFullPath);
-                    // File::copy($tempFullPath, $proFullPath);
-                }
-
-                $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
-
-                DB::table('tnelb_addressproof_cl')
-                    ->updateOrInsert(
-                        ['application_id' => $applicationId],
-                        [
-                            'login_id'            => $request->login_id_store,
-
-                            'form_name'           => $request->form_name,
-                            'license_name'        => $request->license_name,
-                            'file_doc' => $finalPath,
-                            'updated_at' => now()
-                        ]
-                    );
-
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $doc->id)
-                    ->update([
-                        'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId
-                    ]);
+                $markTempDocument($doc);
             }
 
-            // ---------------other docs------------------
+            // =======================================================
+            // 4. OTHER DOCUMENTS
+            // =======================================================
 
             $otherDocs = DB::table('tnelb_temp_uploaded_documents')
+                ->where('application_id', $sessionId)
                 ->where('login_id', $request->login_id_store)
-                ->whereIn('is_final', ['0', '2', '1'])
                 ->where('document_category', 'other_doc')
-                ->where(
-                    'appl_type',
-                    trim(
-                        (string) $request->input(
-                            'appl_type'
-                        )
-                    )
-                )->get();
-
+                ->whereIn('is_final', ['0', '2', '1'])
+                ->where('appl_type', $applType)
+                ->get();
 
             foreach ($otherDocs as $doc) {
 
-                $pathData = DocPathController::getPath($request);
-                $proFolderPath = public_path($pathData->filepath_pro);
-
-                if (!File::exists($proFolderPath)) {
-                    File::makeDirectory($proFolderPath, 0755, true);
-                }
-
-                $tempFullPath = public_path($doc->file_path . $doc->file_name);
-                $proFullPath  = $proFolderPath . $doc->file_name;
-
-                if (File::exists($tempFullPath)) {
-
-                    File::delete($proFullPath);
-                    // File::copy($tempFullPath, $proFullPath);
-                }
-
-                $finalPath = $pathData->filepath_pro . '/' . $doc->file_name;
-
-                // DB::table('tnelb_attachments_cl')->insert([
-                //     'application_id' => $applicationId,
-                //     'file_doc'       => $finalPath,
-                //     'type'           => $doc->ownership_type,
-                //     'created_at'     => now(),
-                //     'updated_at'     => now(),
-                // ]);
+                $finalPath = $copyTempDocument($doc);
 
                 DB::table('tnelb_attachments_cl')->updateOrInsert(
                     [
                         'application_id' => $applicationId,
-                        'type' => $doc->ownership_type // important for unique condition
+                        'type'           => $doc->ownership_type,
                     ],
                     [
-                        'login_id'            => $request->login_id_store,
-
-                        'form_name'           => $request->form_name,
-                        'license_name'        => $request->license_name,
-                        'file_doc'   => $finalPath,
-                        'updated_at' => now(),
-                        'created_at' => now()
+                        'login_id'     => $request->login_id_store,
+                        'form_name'    => $request->form_name,
+                        'license_name' => $request->license_name,
+                        'file_doc'     => $finalPath,
+                        'updated_at'   => now(),
+                        'created_at'   => now(),
                     ]
                 );
 
-                DB::table('tnelb_temp_uploaded_documents')
-                    ->where('id', $doc->id)
-                    ->update([
-                        'is_final' => '1',
-                        'moved_as' => $request->input('form_action'),
-                        'record_id_app' => $applicationId
-                    ]);
+                $markTempDocument($doc);
             }
 
-
-
-
             // =======================================================
-            // 8️⃣ MOVE EQUIPMENT FILES + INSERT INTO PERMANENT TABLE
+            // 5. EQUIPMENT DOCUMENTS
             // =======================================================
 
-            // if ($request->has('equipments')) {
-            // =======================================================
-            // 8️⃣ MOVE EQUIPMENT FILES + INSERT/UPDATE INTO PERMANENT TABLE
-            // =======================================================
-
-            $dbFilePath_all = DocPathController::getPath($request);
-            $proFolderPath  = public_path($dbFilePath_all->filepath_pro);
-
-            // if (!File::exists($proFolderPath)) {
-            //     File::makeDirectory($proFolderPath, 0755, true);
-            // }
-
-            // Fetch all temp docs grouped by equipment
             $allEquipmentDocs = DB::table('tnelb_temp_uploaded_documents')
+                ->where('application_id', $sessionId)
                 ->where('login_id', $request->login_id_store)
                 ->where('module', 'EQUIPMENTS DOCUMENT')
                 ->where('document_sub_category', 'ED')
                 ->whereIn('is_final', ['0', '2', '1'])
-                ->where(
-                    'appl_type',
-                    trim(
-                        (string) $request->input(
-                            'appl_type'
-                        )
-                    )
-                )->get()
-
+                ->where('appl_type', $applType)
+                ->get()
                 ->groupBy('equip_code');
 
-            foreach ($request->equipments as $index => $equipment) {
+            foreach ($request->input('equipments', []) as $index => $equipment) {
+
+                $equipmentId = $equipment['equip_id'] ?? null;
+
+                $serialNo = $request->serial_no[$index] ?? null;
+                $modelNo = $request->model[$index] ?? null;
+                $dateOfTest = $request->date_of_test[$index] ?? null;
+                $licenceId = $equipment['licence_id'] ?? null;
 
                 if (
-                    empty($equipment['equip_id']) &&
-                    empty($request->serial_no[$index]) &&
-                    empty($request->model[$index])
+                    empty($equipmentId) &&
+                    empty($serialNo) &&
+                    empty($modelNo)
                 ) {
                     continue;
                 }
 
-                $equipmentId = $equipment['equip_id'];
-                $licenceId   = $equipment['licence_id'];
+                if (empty($equipmentId)) {
+                    continue;
+                }
 
-                $serialNo   = $request->serial_no[$index] ?? null;
-                $modelNo    = $request->model[$index] ?? null;
-                $dateOfTest = $request->date_of_test[$index] ?? null;
-
-                // ===================================================
-                // GET EXISTING RECORD TO PRESERVE OLD FILES
-                // ===================================================
-
+                // Preserve existing files if no new temporary document exists.
                 $existingEquipment = DB::table('tnelb_equimentsuser_cl')
                     ->where('application_id', $applicationId)
                     ->where('equipment_id', $equipmentId)
@@ -6918,9 +6528,9 @@ class FormAController extends BaseController
 
                 $equipmentDocs = $allEquipmentDocs[$equipmentId] ?? collect();
 
-                // ===================================================
+                // ---------------------------------------------------
                 // TEST REPORT
-                // ===================================================
+                // ---------------------------------------------------
 
                 $testDoc = $equipmentDocs
                     ->where('document_category', 'instrument_test_report')
@@ -6929,27 +6539,14 @@ class FormAController extends BaseController
 
                 if ($testDoc) {
 
-                    $tempFullPath = public_path($testDoc->file_path . '/' . $testDoc->file_name);
-                    $proFullPath  = $proFolderPath . $testDoc->file_name;
+                    $testReportPath = $copyTempDocument($testDoc);
 
-                    if (File::exists($tempFullPath)) {
-                        // File::copy($tempFullPath, $proFullPath);
-                    }
-
-                    $testReportPath = $dbFilePath_all->filepath_pro . '/' . $testDoc->file_name;
-
-                    DB::table('tnelb_temp_uploaded_documents')
-                        ->where('id', $testDoc->id)
-                        ->update([
-                            'is_final'   => '1',
-                            'moved_as'   => $request->input('form_action'),
-                            'updated_at' => now()
-                        ]);
+                    $markTempDocument($testDoc);
                 }
 
-                // ===================================================
+                // ---------------------------------------------------
                 // PURCHASE REPORT
-                // ===================================================
+                // ---------------------------------------------------
 
                 $purchaseDoc = $equipmentDocs
                     ->where('document_category', 'instrument_purchase_report')
@@ -6958,27 +6555,14 @@ class FormAController extends BaseController
 
                 if ($purchaseDoc) {
 
-                    $tempFullPath = public_path($purchaseDoc->file_path . '/' . $purchaseDoc->file_name);
-                    $proFullPath  = $proFolderPath . $purchaseDoc->file_name;
+                    $purchaseReportPath = $copyTempDocument($purchaseDoc);
 
-                    if (File::exists($tempFullPath)) {
-                        // File::copy($tempFullPath, $proFullPath);
-                    }
-
-                    $purchaseReportPath = $dbFilePath_all->filepath_pro . '/' . $purchaseDoc->file_name;
-
-                    DB::table('tnelb_temp_uploaded_documents')
-                        ->where('id', $purchaseDoc->id)
-                        ->update([
-                            'is_final'   => '1',
-                            'moved_as'   => $request->input('form_action'),
-                            'updated_at' => now()
-                        ]);
+                    $markTempDocument($purchaseDoc);
                 }
 
-                // ===================================================
-                // INSERT OR UPDATE RECORD
-                // ===================================================
+                // ---------------------------------------------------
+                // INSERT OR UPDATE EQUIPMENT RECORD
+                // ---------------------------------------------------
 
                 DB::table('tnelb_equimentsuser_cl')->updateOrInsert(
                     [
