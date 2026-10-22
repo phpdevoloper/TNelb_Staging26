@@ -194,6 +194,10 @@ window.COMPETENCY_FORM_CONFIG = {
     payuInitiateUrl: @json(route('payu.initiate')),
     payuStatusUrl: @json(route('payu.status')),
 };
+window.CONTRACTOR_PAYU_CONFIG = {
+    payuInitiateUrl: @json(route('payu.contractor.initiate')),
+    csrfToken: @json(csrf_token()),
+};
 </script>
 <script src="{{ url('assets/js/competency_form_ws.js') }}?v={{ filemtime(public_path('assets/js/competency_form_ws.js')) }}"></script>
 

@@ -2325,7 +2325,7 @@ use Illuminate\Support\Facades\Auth;
                 </div>
 
                 <div class="modal-footer border-0 justify-content-center">
-                    <a href="{{ route('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+                    <a href="/dashboard" id="contractorGoToDashboardBtn" class="btn btn-primary">Go to Dashboard</a>
                 </div>
 
             </div>

@@ -34,6 +34,12 @@ use Illuminate\Support\Str;
 
 class FormAController extends BaseController
 {
+    protected $dbNow;
+    public function __construct()
+    {
+        parent::__construct();
+        $this->dbNow = DB::selectOne("SELECT date_trunc('second', NOW()::timestamp) AS db_now")->db_now;
+    }
     private function toUpperCaseRecursive($data)
     {
         foreach ($data as $key => $value) {
@@ -6261,7 +6267,7 @@ class FormAController extends BaseController
             EA_Application_model::where('application_id', $existing->application_id)
                 ->update($updateData);
         } else {
-            $dataToSave['created_at'] = DB::raw('NOW()');
+            $dataToSave['created_at'] = $this->dbNow;
 
             $createData = collect($dataToSave)
                 ->except(['aadhaar_doc', 'pancard_doc', 'gst_doc'])
@@ -6270,9 +6276,6 @@ class FormAController extends BaseController
             EA_Application_model::create($createData);
             $message = $isDraft ? 'Draft saved successfully!' : 'Application submitted successfully!';
         }
-        $transactionId = 'TXN' . rand(100000, 999999);
-
-        $payment = $isDraft ? 'draft' : 'success';
 
         // ------------Temp Table move------------------------------------------
         $sessionId = session('application_id', session()->getId());
@@ -6344,7 +6347,7 @@ class FormAController extends BaseController
                         'is_final'      => '1',
                         'moved_as'      => $request->input('form_action'),
                         'record_id_app' => $applicationId,
-                        'updated_at'    => now(),
+                        'updated_at'    => $this->dbNow,
                     ]);
             };
 
@@ -6374,7 +6377,7 @@ class FormAController extends BaseController
                     ],
                     [
                         'ownership_doc' => $finalPath,
-                        'updated_at'    => now(),
+                        'updated_at'    => $this->dbNow,
                     ]
                 );
 
@@ -6407,7 +6410,7 @@ class FormAController extends BaseController
                         'form_name'    => $request->form_name,
                         'license_name' => $request->license_name,
                         'bank_doc'     => $finalPath,
-                        'updated_at'   => now(),
+                        'updated_at'   => $this->dbNow,
                         'status'       => '1',
                     ]
                 );
@@ -6441,7 +6444,7 @@ class FormAController extends BaseController
                         'form_name'    => $request->form_name,
                         'license_name' => $request->license_name,
                         'file_doc'     => $finalPath,
-                        'updated_at'   => now(),
+                        'updated_at'   => $this->dbNow,
                     ]
                 );
 
@@ -6474,8 +6477,8 @@ class FormAController extends BaseController
                         'form_name'    => $request->form_name,
                         'license_name' => $request->license_name,
                         'file_doc'     => $finalPath,
-                        'updated_at'   => now(),
-                        'created_at'   => now(),
+                        'updated_at'   => $this->dbNow,
+                        'created_at'   => $this->dbNow,
                     ]
                 );
 
@@ -6580,8 +6583,8 @@ class FormAController extends BaseController
                         'purchasereport_file' => $purchaseReportPath,
                         'dateoftest'          => $dateOfTest,
                         'ipaddress'           => $request->ip(),
-                        'updated_at'          => now(),
-                        'created_at'          => now(),
+                        'updated_at'          => $this->dbNow,
+                        'created_at'          => $this->dbNow,
                     ]
                 );
             }
@@ -6628,13 +6631,11 @@ class FormAController extends BaseController
 
             $issued_licence = $request->issued_licence ?? 0;
 
-            // dd($issued_licence);
-            // exit;
             if ($appl_type === 'D') {
                 EA_Application_model::where('application_id', $applicationId)
                     ->update([
-                        'dt_submit'  => DB::raw('NOW()'),
-                        'updated_at' => DB::raw('NOW()'),
+                        'dt_submit'  => $this->dbNow,
+                        'updated_at' => $this->dbNow,
                     ]);
 
                 return response()->json([
@@ -6643,6 +6644,7 @@ class FormAController extends BaseController
                     'login_id'        => $applicationId,
                     'transaction_id'  => null,
                     'application_type' => 'D',
+                    'dbNow'           => $this->formaMetaSubmitDate($applicationId),
                 ]);
             }
 
@@ -6719,81 +6721,65 @@ class FormAController extends BaseController
                 }
 
 
-                // dd($qcFee); exit;
-
-
-
                 $instructions = $form->instructions;
                 $licence_name = $form->licence_name;
 
-                //   dd($licence_name);
-                // exit;
-                // HH24:MI:SS
+
                 $dbNow  = DB::selectOne("SELECT TO_CHAR(NOW(), 'DD-MM-YYYY ') AS db_now")->db_now;
                 $fees_details['dbNow'] = $dbNow;
                 $fees_details['qcfee'] = $qcFee;
 
-                $fees_details['total_fees'] =
-                    (float) $paymentDetails[0]->total_fee + $qcFee;
+                $fees_details['total_fees'] = (float) $paymentDetails[0]->total_fee + $qcFee;
                 $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
-                // $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
-
-                // dd($fees_details['qcfee']);
-                // exit;
-
             }
 
-            // dd($form->license_name);
-            // exit;
+            $existingDtSubmit = DB::table('ccl_forma_meta')
+                ->where('application_id', $applicationId)
+                ->value('dt_submit');
 
-
-            Payment::create([
-                'login_id'       => $request->login_id_store,
-                'application_id' => $applicationId,
-                'transaction_id' => $transactionId,
-                'payment_status' => $payment,
-                'payment_mode' => 'UPI',
-                'amount'         => $fees_details['total_fees'],
-                'late_fee'       => $fees_details['lateFees'] ?? 0,
-                'late_months'    => $fees_details['late_months'] ?? 0,
-                'application_fee'     => $fees_details['basic_fees'],
-                // 'qcfees'     => $qcFee,
-                'form_name'      => $request->form_name,
-                'license_name'   => $request->license_name,
-            ]);
-
-            mst_workflow::create([
-                'login_id' => $request->login_id_store,
-                'application_id' => $applicationId,
-                'transaction_id' => $transactionId,
-                'payment_status' => $payment,
-
-                'formname_appliedfor' => $request->form_name,
-                'license_name' => $request->license_name,
-            ]);
-
-
+            if (empty($existingDtSubmit)) {
+                EA_Application_model::where('application_id', $applicationId)->update([
+                    'dt_submit'  => $this->dbNow,
+                    'updated_at' => $this->dbNow,
+                ]);
+            }
 
             return response()->json([
                 'draft_status' => $isDraft,
                 'message' => 'Payment Processed!',
                 'login_id' => $applicationId,
-                'transaction_id' => $transactionId,
-                'qcfees'     => $qcFee,
-
+                'transaction_id' => null,
+                'qcfees'     => $qcFee ?? 0,
+                'dbNow'      => $this->formaMetaSubmitDate($applicationId),
             ]);
         }
 
         return response()->json([
             'message' => 'Draft',
             'login_id' => $applicationId,
-            'transaction_id' => $isDraft ? 'DRAFT' . rand(100000, 999999) : 'TXN' . rand(100000, 999999),
+            'transaction_id' => null,
             'draft_status' => $isDraft,
-
         ]);
+    }
+
+    private function formaMetaSubmitDate(string $applicationId): string
+    {
+        $dtSubmit = DB::table('ccl_forma_meta')
+            ->where('application_id', $applicationId)
+            ->value('dt_submit');
+
+        if (!empty($dtSubmit)) {
+            try {
+                return Carbon::parse($dtSubmit)->format('d-m-Y');
+            } catch (\Throwable $e) {
+                return (string) $dtSubmit;
+            }
+        }
+
+        return (string) (DB::selectOne("SELECT TO_CHAR(NOW(), 'DD-MM-YYYY') AS d")->d ?? '');
     }
 
     // ------------application id-----------------------
