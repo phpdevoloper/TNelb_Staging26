@@ -464,6 +464,36 @@ if (!function_exists('competency_document_path_url')) {
     }
 }
 
+if (!function_exists('cl_document_path_url')) {
+    /**
+     * Browser URL for Form A / contractor licence stored file paths (public disk).
+     */
+    function cl_document_path_url(?string $storedPath): ?string
+    {
+        $storedPath = trim((string) ($storedPath ?? ''));
+        if ($storedPath === '' || strcasecmp($storedPath, 'pending') === 0) {
+            return null;
+        }
+        $storedPath = str_replace('\\', '/', $storedPath);
+        if (preg_match('#^https?://#i', $storedPath)) {
+            return $storedPath;
+        }
+        if (preg_match('#public/(.+)$#i', $storedPath, $matches)) {
+            $storedPath = $matches[1];
+        }
+        $storedPath = preg_replace('#^/?public/#', '', $storedPath) ?? $storedPath;
+        $normalized = ltrim($storedPath, '/');
+        if (preg_match('#^FORM_[A-Z]+/#', $normalized)) {
+            return competency_document_path_url($normalized);
+        }
+        if (! str_contains($normalized, '/') && ! preg_match('#\.(pdf|jpe?g|png|gif|webp|bin)$#i', $normalized)) {
+            return null;
+        }
+
+        return asset($normalized);
+    }
+}
+
 if (!function_exists('digitization_document_url')) {
     /**
      * Browser URL for Form S/W/WH/P digitisation PDFs.
