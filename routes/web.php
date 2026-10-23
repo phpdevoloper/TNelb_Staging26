@@ -73,6 +73,9 @@ Route::get('/feedback', [IndexController::class, 'feedback'])->name('feedback');
 
 # Auth: Register/Login
 
+Route::post('/check-mobile', [RegisterController::class, 'checkMobile'])->name('check-mobile');
+Route::post('/generate-otp', [RegisterController::class, 'generateOtp'])->name('generate-otp');
+
 Route::get('/register', [RegisterController::class, 'register'])->name('register');
 Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
 Route::get('/loginpage', [RegisterController::class, 'login'])->name('loginpage');
