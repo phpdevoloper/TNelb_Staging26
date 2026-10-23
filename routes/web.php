@@ -341,6 +341,12 @@ Route::post('/form_wh/update/{appl_id}', [FormWHController::class, 'updateApplic
 Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.store');
 
 
+Route::post('/partner/deactivate', [FormAController::class, 'deactivatePartner'])->name('partner.deactivate');
+
+
+
+
+
 # formA QC Check
 Route::post('/check-qc-certificate',[FormAController::class, 'checkQCCertificate'])->name('check-qc-certificate');
 Route::post('/otherstaffcheck',[FormAController::class, 'otherstaffcheck'])->name('otherstaffcheck');

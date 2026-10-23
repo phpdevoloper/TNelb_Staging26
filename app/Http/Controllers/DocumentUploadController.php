@@ -447,7 +447,7 @@ public function uploadownershipdeed(Request $request)
         // ======================================================
         // 1. VALIDATE FILE EXISTENCE
         // ======================================================
-
+// dd($request->row); exit;
         $fileInputs = $request->files->all();
 
         if (empty($fileInputs)) {

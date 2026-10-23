@@ -902,6 +902,9 @@ $(document).ready(function () {
                 proprietor_address:
                     $tds.eq(3).text().trim(),
 
+                        age_proof: $tds.eq(2).attr("data-age_proof") || "",
+    qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
+
                 qualification:
                     $tds.eq(4).attr("data-qualification") || "",
 
@@ -932,7 +935,10 @@ $(document).ready(function () {
                 ownership_type:
                     $tds.eq(7).find("input[name='ownership_type[]']").val() ||
                     $tds.eq(7).attr("data-ownership") ||
-                    ""
+                    "",
+                    row_index: $tr.find("input[name='row_index[]']").val()
+                    || $tr.attr("data-row-index")
+                    || "",
 
             });
         });
@@ -1025,6 +1031,18 @@ $(document).ready(function () {
                 `partner_ccverify[${index}]`,
                 p.ccverify
             );
+
+            formData.append(
+                `partner_age_proof[${index}]`,
+                p.age_proof
+            );
+
+            formData.append(
+                `partner_qual_proof[${index}]`,
+                p.qual_proof
+            );
+
+            formData.append(`partner_row_index[${index}]`, p.row_index);
 
         });
         // ------------director push--------------
@@ -9722,26 +9740,6 @@ $(document).ready(function () {
         $holderInput.val('');
 
 
-        let holderName = (
-            $row.find(".certificate_holder_name_others").val() || ""
-        ).trim();
-
-        if (holderName !== "") {
-
-            $holderColumn.find(".holder-name-error").remove();
-
-            $(this).removeClass("btn-danger");
-
-        } else {
-
-            $holderColumn.find(".holder-name-error").remove();
-
-            $holderColumn.append(
-                '<span class="holder-name-error text-danger d-block mt-1">' +
-                'Certificate holder name is missing. Please verify first.' +
-                '</span>'
-            );
-        }
 
 
         // ==================================================

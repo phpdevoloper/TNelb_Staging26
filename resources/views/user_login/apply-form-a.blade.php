@@ -587,8 +587,11 @@ exit; -->
 
                                         @foreach ($proprietors as $p)
                                             @if ($p->ownership_type === 'pr')
-                                                <tr data-id="{{ $p->id }}">
-                                                    <td>{{ $p->proprietor_name }}</td>
+                                                <tr data-id="{{ $p->id }}"
+                                                     data-row-index="{{ $p->row_index ?? 1 }}">
+                                                   
+
+                                                    <td> {{ $p->proprietor_name }}</td>
                                                     <td>{{ $p->fathers_name }}</td>
                                                     <td data-dob="{{ $p->dob }}"
                                                         data-age="{{ $p->age }}"
@@ -603,7 +606,7 @@ exit; -->
                                                     <td>{{ $p->proprietor_address }}</td>
                                                     <td data-qualification="{{ $p->qualification }}"
                                                         data-qual_text="{{ $p->qualification_text }}"
-                                                        data-educational_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
+                                                        data-qual_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
                                                         {{ $p->qualification }}, {{ $p->qualification_text }}
                                                         @if (!empty($p->educational_proof))
                                                             <a href="{{ asset($p->educational_proof) }}"
@@ -1129,7 +1132,7 @@ exit; -->
                                                     <td>{{ $p->proprietor_address }}</td>
                                                     <td data-qualification="{{ $p->qualification }}"
                                                         data-qual_text="{{ $p->qualification_text }}"
-                                                        data-educational_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
+                                                        data-qual_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
                                                         {{ $p->qualification }}, {{ $p->qualification_text }}
                                                         @if (!empty($p->educational_proof))
                                                             <a href="{{ asset($p->educational_proof) }}"
@@ -1218,7 +1221,15 @@ exit; -->
 
                                     <div class="col-md-6">
                                         <input type="hidden" name="ownership_type[]" value="pt">
-                                        {{-- <input type="text" name="row_index[]" value="1"> --}}
+                                        
+                                        <input
+                                            type="hidden"
+                                            id="partner_row_index"
+                                            name="row_index[]"
+                                            class="form-control"
+                                            value=""
+                                            readonly
+                                        >
                                         <div class="row align-items-center">
                                             <div class="col-12 col-md-12">
                                                 <label for="Name">(i) Full name and house address of partners <span
@@ -1463,6 +1474,8 @@ exit; -->
                                             </div>
 
                                         </div>
+
+                                        
                                     </div>
 
                                 </div>
@@ -1484,21 +1497,21 @@ exit; -->
                                                     <input class="form-check-input" type="radio"
                                                         id="competency_yes" name="competency_certificate_holding[]"
                                                         value="yes"
-                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('partner', true);">
                                                     <label class="form-check-label"
                                                         for="competency_yes_proprietor">Yes</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input" type="radio" id="competency_no"
                                                         name="competency_certificate_holding[]" value="no"
-                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('partner', false);"
                                                         checked>
                                                     <label class="form-check-label"
                                                         for="competency_no_proprietor">No</label>
                                                 </div>
                                             </div>
 
-                                            <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                            <div class="col-12 col-md-12 mt-1 competency-fields-partner"
                                                 style="display: none;">
                                                 <div class="row">
                                                     <div class="col-12 col-md-3">
@@ -1686,7 +1699,7 @@ exit; -->
                                                     <td>{{ $p->proprietor_address }}</td>
                                                     <td data-qualification="{{ $p->qualification }}"
                                                         data-qual_text="{{ $p->qualification_text }}"
-                                                        data-educational_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
+                                                        data-qual_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
                                                         {{ $p->qualification }}, {{ $p->qualification_text }}
                                                         @if (!empty($p->educational_proof))
                                                             <a href="{{ asset($p->educational_proof) }}"
@@ -2051,7 +2064,7 @@ exit; -->
                                                     <input class="form-check-input" type="radio"
                                                         id="competency_yes" name="competency_certificate_holding[]"
                                                         value="yes"
-                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('director', true);">
                                                     <label class="form-check-label"
                                                         for="competency_yes_proprietor">Yes</label>
                                                 </div>
@@ -2059,14 +2072,14 @@ exit; -->
                                                     <input class="form-check-input" type="radio"
                                                         id="competency_no" name="competency_certificate_holding[]"
                                                         value="no"
-                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('director', false);"
                                                         checked>
                                                     <label class="form-check-label"
                                                         for="competency_no_proprietor">No</label>
                                                 </div>
                                             </div>
 
-                                            <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                            <div class="col-12 col-md-12 mt-1 competency-fields-director"
                                                 style="display: none;">
                                                 <div class="row">
                                                     <div class="col-12 col-md-3">
@@ -4498,60 +4511,52 @@ let proprietorCount = initialDraftCount || 0;
 
 
     <script>
-        function toggleCompetencyFields(type, show) {
-            let fieldsClass = '';
-            if (type === 'proprietor') {
-                fieldsClass = '.competency-fields-proprietor';
-            } else if (type === 'partner') {
-                fieldsClass = '.competency-fields-partner';
-            } else {
-                fieldsClass = '.competency-fields-director';
-            }
+     
+function toggleCompetencyFields(type, show) {
 
-            const fields = document.querySelectorAll(fieldsClass);
-            fields.forEach(field => {
-                field.style.display = show ? '' : 'none';
+    // alert(show);
+    
+    let fieldsClass = '';
 
-                const numberInput = field.querySelector('.competency_number');
-                const validityInput = field.querySelector('.competency_validity');
-                const verifyInput = field.querySelector('.proprietor_cc_verify, .partner_cc_verify');
-                const resultDiv = field.querySelector('.competency_verify_result');
+    if (type === 'proprietor') {
+        fieldsClass = '.competency-fields-proprietor';
+    } else if (type === 'partner') {
+        fieldsClass = '.competency-fields-partner';
+    } else {
+        fieldsClass = '.competency-fields-director';
+    }
 
-                if (show) {
-                    if (numberInput) numberInput.value = '';
-                    if (validityInput) validityInput.value = '';
-                    if (verifyInput) verifyInput.value = '';
-                    if (resultDiv) resultDiv.textContent = '';
-                }
-            });
+    const fields = document.querySelectorAll(fieldsClass);
+
+    fields.forEach(function (field) {
+        field.style.display = show ? '' : 'none';
+
+        
+
+        // Do not clear saved values when opening fields for editing.
+        if (!show) {
+            const numberInput = field.querySelector('.competency_number');
+            const validityInput = field.querySelector('.competency_validity');
+            const firstIssueInput = field.querySelector('.competency_validity_first_issue');
+            const validityFromInput = field.querySelector('.competency_validity_from');
+            const validityToInput = field.querySelector('.competency_validity_to');
+            const verifyInput = field.querySelector(
+                '.proprietor_cc_verify, .partner_cc_verify'
+            );
+            const resultDiv = field.querySelector('.competency_verify_result');
+
+            if (numberInput) numberInput.value = '';
+            if (validityInput) validityInput.value = '';
+            if (firstIssueInput) firstIssueInput.value = '';
+            if (validityFromInput) validityFromInput.value = '';
+            if (validityToInput) validityToInput.value = '';
+            if (verifyInput) verifyInput.value = '';
+            if (resultDiv) resultDiv.textContent = '';
         }
+    });
+}
 
 
-        function toggleEmploymentFields(type, show) {
-            let fieldsClass = '';
-
-            if (type === 'proprietor') {
-                fieldsClass = '.employment-fields-proprietor';
-            } else if (type === 'partner') {
-                fieldsClass = '.employment-fields-partner';
-            } else {
-                fieldsClass = '.employment-fields-director';
-            }
-
-            const fields = document.querySelectorAll(fieldsClass);
-            fields.forEach(field => {
-                field.style.display = show ? '' : 'none';
-
-                if (show) {
-                    const inputs = field.querySelectorAll('input, textarea, select');
-                    inputs.forEach(input => {
-                        input.value = '';
-                        input.readOnly = false;
-                        input.disabled = false;
-                    });
-                }
-            });
-        }
 
 
 
@@ -6045,35 +6050,44 @@ let proprietorCount = initialDraftCount || 0;
         let proprietoreditIndex = null;
 
         // Show form on Add Proprietor button click
-        $("#add-proprietor").on("click", function() {
+        $("#add-proprietor").on("click", function () {
 
-            let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
+                let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
 
-            if (rowCount > 0) {
-                Swal.fire({
-                    title: "Proprietor Entry Exists!",
-                    width: 450,
-                    text: "Only one proprietor entry is allowed.",
-                    icon: "warning",
-                    confirmButtonText: "OK",
-                    confirmButtonColor: "#3085d6"
-                });
-                return;
-            }
+                if (rowCount > 0) {
+                    Swal.fire({
+                        title: "Proprietor Entry Exists!",
+                        width: 450,
+                        text: "Only one proprietor entry is allowed.",
+                        icon: "warning",
+                        confirmButtonText: "OK",
+                        confirmButtonColor: "#3085d6"
+                    });
+                    return;
+                }
 
-            // Reset form before showing
-            resetproprietor(false);
-            $("#proprietor-sectionfresh").slideDown();
-            $("#save_proprietor").text("Save");
-            let $section = $("#proprietor-section");
+                let nextRowIndex = lastRowIndex + 1;
 
-            $section.find(".upload-btn")
-            // .attr("data-row_index", rowCount)
-            // .data("row_index", rowCount);
+                resetproprietor(false);
+                resetproForm(false);
 
-            // .attr("data-row-index", rowCount)
-            // .data("rowIndex", rowCount);
-        });
+                let $section = $("#proprietor-sectionfresh");
+
+                $section.attr("data-row-index", nextRowIndex);
+
+                $section.find("input[name='row_index[]']")
+                    .val(nextRowIndex);
+
+                $section.find(".upload-btn")
+                    .attr("data-row-index", nextRowIndex)
+                    .data("rowIndex", nextRowIndex);
+
+                $section.find(".qualification").val("").trigger("change");
+                $section.find(".file-link, .age-file-link").html("");
+
+                $("#save_proprietor").text("Save");
+                $section.slideDown();
+            });
 
 
 
@@ -6082,6 +6096,15 @@ let proprietorCount = initialDraftCount || 0;
 
 
             let $section = $("#proprietor-sectionfresh");
+
+             let rowIndex = parseInt(
+                $section.attr("data-row-index") || "1",
+                10
+            );
+
+            if (isNaN(rowIndex) || rowIndex < 1) {
+                rowIndex = 1;
+            }
 
             // alert($section.attr("id"));
             let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
@@ -6494,7 +6517,7 @@ let proprietorCount = initialDraftCount || 0;
                 // alert('ccValidityFormatted: ' + ccValidityFormatted + ', ccValidityFromFormatted: ' + ccValidityFromFormatted + ', ccFirstIssueFormatted: ' + ccFirstIssueFormatted);
 
                 $("#proprietor-section table tbody").append(`
-                    <tr>
+                    <tr data-row-index="${rowIndex}">
 
                         <!-- Name -->
                         <td>${name}</td>
@@ -6632,23 +6655,41 @@ let proprietorCount = initialDraftCount || 0;
         // Edit row
         $(document).on("click", ".update-proprietor-row", function() {
             // alert('111');
-            let $row = $(this).closest("tr");
+          let $row = $(this).closest("tr");
             let $tds = $row.find("td");
-            let id = $row.data("id");
+
+            let id = $row.attr("data-id") || $(this).attr("data-id");
             editIndex = $row.index();
-            // let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
 
-            let ownershipValue = $row.find("td").eq(9).attr("data-ownership");
-            // console.log("Ownership Value:", ownershipValue);
-            // alert(ownershipValue);
-            // exit;
-            let row_indexValue = $row.find("td").eq(10).find("input[name='row_index[]']").val();
+            // Read row_index from the row's hidden input first
+            let rowIndexValue = $row.find("input[name='row_index[]']").val()
+                || $row.attr("data-row-index")
+                || "1";
 
+            rowIndexValue = parseInt(rowIndexValue, 10);
+
+            if (isNaN(rowIndexValue) || rowIndexValue < 1) {
+                rowIndexValue = 1;
+            }
+
+            let ownershipValue = $row.find("input[name='ownership_type[]']").val();
 
             let $section = $("#proprietor-sectionfresh");
 
+            // Store the index on the form section
+            $section.attr("data-row-index", rowIndexValue);
 
-            $section.find(".upload-btn").attr("data-row-index", row_indexValue);
+            // Pass it to the hidden input
+            $section.find("input[name='row_index[]']")
+                .val(rowIndexValue);
+
+            // Pass it to both upload buttons
+            $section.find(".upload-btn")
+                .attr("data-row-index", rowIndexValue)
+                .data("rowIndex", rowIndexValue);
+
+
+            
             // let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
             // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());
             // Fill form with row data
@@ -6750,7 +6791,7 @@ let proprietorCount = initialDraftCount || 0;
 
             let qualification = $qualTd.attr("data-qualification");
             let qual_text = $qualTd.attr("data-qual_text");
-            let qual_proof = $qualTd.attr("data-educational_proof");
+            let qual_proof = $qualTd.attr("data-qual_proof");
 
             // Set qualification
             $section.find(".qualification").val(qualification).trigger("change");
@@ -6771,9 +6812,9 @@ let proprietorCount = initialDraftCount || 0;
             }
 
             // Get present file from TABLE (important)
-            // let presentFile = $qualTd.attr("data-educational_proof");
+            // let presentFile = $qualTd.attr("data-qual_proof");
 
-            let presentFile = $qualTd.attr("data-educational_proof");
+            let presentFile = $qualTd.attr("data-qual_proof");
 
             $section.attr("data-present-file", presentFile || "");
             // Show present file below input box (only for table edit)
@@ -7054,6 +7095,8 @@ let proprietorCount = initialDraftCount || 0;
 
         // Save or Update Partner
         $("#save_partner").on("click", function() {
+
+            // alert('111');
 
             let $section = $("#partnersfill-section");
 
@@ -7421,6 +7464,41 @@ let proprietorCount = initialDraftCount || 0;
 
             if (editIndex !== null) {
 
+                const $section = $("#partnersfill-section");
+
+                let rowIndex;
+
+                if (editIndex !== null) {
+                    const $row = $("#partner-section table tbody tr").eq(editIndex);
+
+                    rowIndex = parseInt(
+                        $row.find("input[name='row_index[]']").val() ||
+                        $row.attr("data-row-index") ||
+                        0,
+                        10
+                    );
+                } else {
+                    let maxIndex = 0;
+
+                    $("#partner-section table tbody tr").each(function () {
+                        const currentIndex = parseInt(
+                            $(this).find("input[name='row_index[]']").val() ||
+                            $(this).attr("data-row-index") ||
+                            0,
+                            10
+                        );
+
+                        if (!isNaN(currentIndex) && currentIndex > maxIndex) {
+                            maxIndex = currentIndex;
+                        }
+                    });
+
+                    rowIndex = maxIndex + 1;
+                }
+
+                $section.attr("data-row-index", rowIndex);
+                $section.find("input[name='row_index[]']").val(rowIndex);
+
                 let $row =
                     $("#partner-section table tbody tr").eq(editIndex);
 
@@ -7666,6 +7744,8 @@ let proprietorCount = initialDraftCount || 0;
         // Update partner row
         $(document).on("click", ".update-partner-row", function() {
 
+            // alert('update-partner');
+
             let $row = $(this).closest("tr");
             let $tds = $row.find("td");
 
@@ -7739,7 +7819,7 @@ let proprietorCount = initialDraftCount || 0;
                 $qualTd.attr("data-qual_text") || "";
 
             let qual_proof =
-                $qualTd.attr("data-educational_proof") || "";
+                $qualTd.attr("data-qual_proof") || "";
 
             let $qualificationSelect =
                 $section.find("select[name='qualification[]']");
@@ -7782,25 +7862,44 @@ let proprietorCount = initialDraftCount || 0;
 
             // ================= QUALIFICATION PROOF =================
 
-            $section.attr("data-existing-file", qual_proof);
-            $section.attr("data-present-file", qual_proof);
+                        
+                // ================= QUALIFICATION PROOF =================
 
-            if (qual_proof) {
+qual_proof = $.trim(qual_proof);
 
-                $section.find(".file-link").html(`
-            <a href="${qual_proof}" target="_blank"
-                class="text-primary fw-bold">
-                <i class="fa fa-file-pdf-o" style="color:red;"></i>
-                View Uploaded File
-            </a>
-        `);
+let $fileLink = $section.find(".file-link");
 
-            } else {
+$section.attr("data-existing-file", qual_proof);
+$section.attr("data-present-file", qual_proof);
 
-                $section.find(".file-link").html("");
-            }
+$fileLink.empty();
 
+if (qual_proof) {
+    $("<a>", {
+        href: qual_proof,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        class: "text-primary fw-bold"
+    })
+    .append(
+        $("<i>", {
+            class: "fa fa-file-pdf-o me-1",
+            css: { color: "red" }
+        })
+    )
+    .append(document.createTextNode(" View Document"))
+    .appendTo($fileLink);
 
+    $fileLink.show();
+} else {
+    $fileLink.hide();
+
+    console.warn(
+        "Educational proof URL is missing for partner:",
+        id,
+        $qualTd[0]
+    );
+}
             // ================= EDIT ID =================
 
             $section.attr("data-edit-id", id || "");
@@ -7973,15 +8072,15 @@ let proprietorCount = initialDraftCount || 0;
 
             // ================= CHECK COMPETENCY =================
 
-            // if (
-            //     competency === "yes" &&
-            //     certNo &&
-            //     firstIssueYMD &&
-            //     validityFromYMD &&
-            //     validityToYMD
-            // ) {
-            //     checkCompetencyCertificate();
-            // }
+            if (
+                competency === "yes" &&
+                certNo &&
+                firstIssueYMD &&
+                validityFromYMD &&
+                validityToYMD
+            ) {
+                // checkCompetencyCertificate();
+            }
 
 
             // ================= SHOW FORM =================
@@ -8363,60 +8462,62 @@ let proprietorCount = initialDraftCount || 0;
 
             }
 
-            // ===========================
-            // QUALIFICATION PROOF
-            // ===========================
+              // ================= QUALIFICATION PROOF =================
 
-            let isEditMode = $section.attr("data-edit-id") ? true : false;
+           
+/* ================= QUALIFICATION PROOF ================= */
 
-            let existingFileUrl =
-                $section.attr("data-existing-file") || "";
+let isEditMode = !!$section.attr("data-edit-id");
 
-            let presentFile =
-                $section.attr("data-present-file") || "";
+let existingFileUrl =
+    $.trim($section.attr("data-existing-file") || "");
 
-            let fileInput =
-                $section.find("input[name='qual_proof[]']")[0];
+let presentFile =
+    $.trim($section.attr("data-present-file") || "");
 
-            let hasNewFile =
-                fileInput &&
-                fileInput.files &&
-                fileInput.files.length > 0;
+let fileInput =
+    $section.find("input[name='qual_proof[]']")[0];
 
-            let hasExistingFile =
-                existingFileUrl !== "";
+let hasNewFile =
+    !!(fileInput && fileInput.files && fileInput.files.length > 0);
 
-            let hasPresentFile =
-                presentFile !== "";
+// Use the saved URL when editing an existing director
+let finalFileUrl = "";
 
-            if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
+if (hasNewFile) {
 
-                setError(
-                    $section.find("input[name='qual_proof[]']"),
-                    "Please upload Qualification proof"
-                );
+    // A newly selected file must have been uploaded successfully
+    finalFileUrl = $.trim(window.uploadedFilePath || "");
 
-                isValid = false;
-            }
+    if (!finalFileUrl) {
+        setError(
+            $section.find("input[name='qual_proof[]']"),
+            "Please upload the selected Qualification proof"
+        );
 
-            let uploadedFilePath =
-                window.uploadedFilePath || "";
+        isValid = false;
+    }
 
-            let finalFileUrl = "";
+} else if (existingFileUrl) {
 
-            if (hasNewFile && uploadedFilePath) {
+    finalFileUrl = existingFileUrl;
 
-                finalFileUrl = uploadedFilePath;
+} else if (presentFile) {
 
-            } else if (hasExistingFile) {
+    finalFileUrl = presentFile;
+}
 
-                finalFileUrl = existingFileUrl;
+// Require proof only when no existing or newly uploaded file exists
+if (!finalFileUrl) {
 
-            } else if (hasPresentFile) {
+    setError(
+        $section.find("input[name='qual_proof[]']"),
+        "Please upload Qualification proof"
+    );
 
-                finalFileUrl = presentFile;
+    isValid = false;
+}
 
-            }
 
             // ===========================
             // AGE PROOF
@@ -9042,7 +9143,8 @@ let proprietorCount = initialDraftCount || 0;
                 $(".managing-director-wrapper").show();
             }
 
-            // ================= QUALIFICATION =================
+         
+            /* ================= QUALIFICATION ================= */
 
             let $qualTd = $tds.eq(4);
 
@@ -9053,7 +9155,10 @@ let proprietorCount = initialDraftCount || 0;
                 $qualTd.attr("data-qual_text") || "";
 
             let qual_proof =
-                $qualTd.attr("data-educational_proof") || "";
+                $.trim($qualTd.attr("data-qual_proof") || "");
+
+                $section.attr("data-existing-file", qual_proof);
+                $section.attr("data-present-file", qual_proof);
 
             let $qualificationSelect =
                 $section.find("select[name='qualification[]']");
@@ -9064,62 +9169,74 @@ let proprietorCount = initialDraftCount || 0;
             let $wrapper =
                 $section.find(".qualTextWrapper");
 
-            $qualificationSelect
-                .val(qualification)
-                .trigger("change");
+            // Set qualification dropdown
+            $qualificationSelect.val(qualification);
 
+            // Fallback for case differences
             if ($qualificationSelect.val() === null) {
-
-                $qualificationSelect.find("option").each(function() {
-
+                $qualificationSelect.find("option").each(function () {
                     if (
                         $.trim($(this).val()).toLowerCase() ===
                         $.trim(qualification).toLowerCase()
                     ) {
                         $(this).prop("selected", true);
                     }
-
                 });
             }
 
+            $qualificationSelect.trigger("change");
+
+            // Restore qualification text
             $qualTextInput.val(qual_text);
 
+            // Show/hide qualification text field
             if (
                 qualification &&
-                qualification !== "8TH PASS"
+                qualification.trim().toUpperCase() !== "8TH PASS"
             ) {
                 $wrapper.show();
             } else {
                 $wrapper.hide();
             }
 
-            // ================= QUALIFICATION PROOF =================
+            /* ================= QUALIFICATION PROOF ================= */
 
-            $section.attr(
-                "data-existing-file",
-                qual_proof
-            );
+            // Preserve the existing uploaded document URL
+            $section.attr("data-existing-file", qual_proof);
+            $section.attr("data-present-file", qual_proof);
 
-            $section.attr(
-                "data-present-file",
-                qual_proof
-            );
+            let $fileLink = $section.find(".file-link");
 
-            if (qual_proof) {
+            // Clear the previous director's document
+            $fileLink.empty().hide();
 
-                $section.find(".file-link").html(`
-            <a href="${qual_proof}"
-               target="_blank"
-               class="text-primary fw-bold">
-                <i class="fa fa-file-pdf-o"
-                   style="color:red;"></i>
-                View Uploaded File
-            </a>
-        `);
+            if (qual_proof !== "") {
+
+                let $link = $("<a>", {
+                    href: qual_proof,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    class: "text-primary fw-bold"
+                });
+
+                $link.append(
+                    $("<i>", {
+                        class: "fa fa-file-pdf-o",
+                        css: { color: "red" }
+                    })
+                );
+
+                $link.append(
+                    document.createTextNode(" View Document")
+                );
+
+                $fileLink.append($link).show();
 
             } else {
-
-                $section.find(".file-link").html("");
+                console.warn(
+                    "Qualification proof URL is missing for director:",
+                    id
+                );
             }
 
             // ================= EDIT ID =================
